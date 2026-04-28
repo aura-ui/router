@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/aura-ui/router/issues"
   },
-  "homepage": "https://github.com/aura-ui/router#readme"
+  "homepage": "https://github.com/aura-ui/router#readme",
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
 }

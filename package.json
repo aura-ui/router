@@ -1,0 +1,25 @@
+{
+  "name": "aura-ui-router",
+  "version": "0.0.1",
+  "description": "Framework-agnostic Web Components router for SSR-first apps with seamless SPA transitions and predictable route lifecycle hooks.",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aura-ui/router.git"
+  },
+  "keywords": [
+    "Web Components",
+    "SPA",
+    "SSR",
+    "Aura UI"
+  ],
+  "author": "Aleksandr Buryakov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aura-ui/router/issues"
+  },
+  "homepage": "https://github.com/aura-ui/router#readme"
+}

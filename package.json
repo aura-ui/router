@@ -4,6 +4,9 @@
   "description": "Framework-agnostic Web Components router for SSR-first apps with seamless SPA transitions and predictable route lifecycle hooks.",
   "main": "index.js",
   "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
     "test": "test"
   },
   "repository": {
@@ -23,6 +26,7 @@
   },
   "homepage": "https://github.com/aura-ui/router#readme",
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10"
   }
 }

@@ -11,7 +11,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:watch": "chokidar \"src/**/*.{ts,tsx}\" -c \"npm run lint\"",
-    "check": "npm run lint && npm run build"
+    "check": "npm run lint && npm run build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "repository": {
     "type": "git",
@@ -37,6 +39,7 @@
     "eslint-plugin-security": "^4.0.0",
     "eslint-plugin-unicorn": "^64.0.0",
     "globals": "^17.5.0",
+    "prettier": "^3.8.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.1",
     "vite": "^8.0.10"

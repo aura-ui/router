@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>aura-ui-router</title>
+  </head>
+  <body>
+
+    <p>Links Nav</p>
+    <a href="/a" data-router-link>link a</a>
+    <a href="/b" data-router-link>link b</a>
+
+    <aura-router>
+      <aura-route path="/a" html='<a href="/c" data-router-link>link c</a>'>
+
+      </aura-route>
+      <aura-route path="/b" html="html for b"></aura-route>
+      <aura-route path="/c" html="html for c"></aura-route>
+    </aura-router>
+
+    <script type="module" src="/src/main.ts"></script>
+
+  </body>
+</html>

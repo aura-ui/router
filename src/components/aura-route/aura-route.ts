@@ -12,6 +12,8 @@ export interface AURARouteInterface {
   cache?: boolean;
 }
 
+const sleep = (time: number) => new Promise(resolve => setTimeout(resolve, time));
+
 export class AURARoute extends HTMLElement implements AURARouteInterface {
   static is = 'aura-route'
 
@@ -21,6 +23,9 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   @attr({ readonly: true }) component: string
   @attr({ readonly: true }) componentSrc: string
   @attr({ readonly: true }) template: string
+  @attr({ readonly: true }) loadingTemplate: string
+  @attr({ readonly: true }) errorTemplate: string
+  @boolAttr({ readonly: true }) preload: boolean
   @boolAttr({ readonly: true }) cache: boolean
 
   private loadedComponents: Map<string, any>
@@ -31,8 +36,11 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   public async render(root: HTMLElement): Promise<void> {
     try {
+
+      this.loadingTemplate && this.renderTemplate(root, this.loadingTemplate)
+
       if (this.template) {
-        this.renderTemplate(root)
+        this.renderTemplate(root, this.template)
       } else if (this.componentSrc) {
         await this.loadAndRenderComponent(root)
       } else if (this.component) {
@@ -45,7 +53,9 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
         root.innerHTML = '<div>No content to display</div>'
       }
     } catch (error) {
-      this.handleRenderError(root, error)
+      this.errorTemplate
+        ? this.renderTemplate(root, this.errorTemplate)
+        : this.handleRenderError(root, error)
     }
   }
 
@@ -53,14 +63,14 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     root.innerHTML = this.html
   }
 
-  private renderTemplate(root: HTMLElement) {
-    const template = document.getElementById(this.template) as HTMLTemplateElement
+  private renderTemplate(root: HTMLElement, templateId: string) {
+    const template = document.getElementById(templateId) as HTMLTemplateElement
     if (!template) {
-      throw new Error(`Template with id "${this.template}" not found`)
+      throw new Error(`Template with id "${templateId}" not found`)
     }
 
     if (!(template instanceof HTMLTemplateElement)) {
-      throw new Error(`Element with id "${this.template}" is not a template`)
+      throw new Error(`Element with id "${templateId}" is not a template`)
     }
 
     root.innerHTML = ''
@@ -75,12 +85,13 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   private async loadAndRenderHtml(root: HTMLElement) {
     try {
-
-
       const response = await fetch(this.htmlSrc)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
+
+      await sleep(1000)
+
       const html = await response.text()
       root.innerHTML = html
     } catch (error: any) {

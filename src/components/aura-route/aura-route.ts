@@ -1,5 +1,6 @@
 import { attr } from '../../utils/decorators/attr'
 import { loadComponent } from '../../utils/misc/loaders'
+import { boolAttr } from '../../utils/decorators/bool-attr'
 
 export interface AURARouteInterface {
   path: string;
@@ -8,6 +9,7 @@ export interface AURARouteInterface {
   component?: string;
   componentSrc?: string;
   template?: string;
+  cache?: boolean;
 }
 
 export class AURARoute extends HTMLElement implements AURARouteInterface {
@@ -19,6 +21,13 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   @attr({ readonly: true }) component: string
   @attr({ readonly: true }) componentSrc: string
   @attr({ readonly: true }) template: string
+  @boolAttr({ readonly: true }) cache: boolean
+
+  private loadedComponents: Map<string, any>
+
+  connectedCallback(): void {
+    this.loadedComponents = new Map()
+  }
 
   public async render(root: HTMLElement): Promise<void> {
     try {
@@ -66,6 +75,8 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   private async loadAndRenderHtml(root: HTMLElement) {
     try {
+
+
       const response = await fetch(this.htmlSrc)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -79,7 +90,17 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   private async loadAndRenderComponent(root: HTMLElement) {
     try {
-      root.innerHTML = await loadComponent(this.componentSrc)
+      let component = this.cache
+        ? this.loadedComponents.get(this.componentSrc)
+        : undefined
+
+      if (!component) {
+        component = await loadComponent(this.componentSrc)
+        if (this.cache) {
+          this.loadedComponents.set(this.componentSrc, component)
+        }
+      }
+      root.innerHTML = component
     } catch (error: any) {
       throw new Error(`Failed to load component from ${this.componentSrc}: ${error.message}`)
     }

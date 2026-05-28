@@ -7,8 +7,8 @@
     /* Environment */
     "module": "esnext",
     "moduleResolution": "bundler",
-    "target": "esnext",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "target": "ES6",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "node"],
 
     /* Emit */
@@ -31,8 +31,21 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Decorators */
+    "experimentalDecorators": true,
+
+    /* Strict*/
+    "alwaysStrict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "strictPropertyInitialization": false
   },
+
   /* Project Files */
   "include": ["src"]
 }

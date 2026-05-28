@@ -14,6 +14,8 @@
     <a href="/d" data-router-link>element-path</a>
 
     <template id="app">Шаблон</template>
+    <template id="loading-template">Загрузка, ожидаем </template>
+    <template id="error-template">Ой что-то пошло не так, попробуйте позже</template>
 
     <br/>
 
@@ -27,8 +29,13 @@
                   layout="">
       </aura-route>-->
 
-      <aura-route path="/b" html-src="index2.html" cache></aura-route>
-      <aura-route path="/d" component-src='components/test-element' cache></aura-route>
+      <aura-route path="/b"
+                  html-src="index2.html"
+                  loading-template="loading-template">
+      </aura-route>
+      <aura-route path="/d"
+                  component-src='components/test-element'
+                  error-template="error-template" cache></aura-route>
     </aura-router>
 
     <script type="module" src="/src/main.ts"></script>

@@ -42,7 +42,6 @@
     "noImplicitAny": true,
     "noImplicitOverride": true,
     "esModuleInterop": true,
-    "downlevelIteration": true,
     "strictPropertyInitialization": false
   },
 

@@ -3,11 +3,11 @@ import { loadComponent } from '../../utils/misc/loaders'
 
 export interface AURARouteInterface {
   path: string;
-  html: string;
-  htmlSrc: string;
-  component: string;
-  componentSrc: string;
-  template: string;
+  html?: string;
+  htmlSrc?: string;
+  component?: string;
+  componentSrc?: string;
+  template?: string;
 }
 
 export class AURARoute extends HTMLElement implements AURARouteInterface {
@@ -65,15 +65,23 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   }
 
   private async loadAndRenderHtml(root: HTMLElement) {
-    //todo
-    return Promise.resolve(root)
+    try {
+      const response = await fetch(this.htmlSrc)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const html = await response.text()
+      root.innerHTML = html
+    } catch (error: any) {
+      throw new Error(`Failed to load HTML from ${this.htmlSrc}: ${error.message}`)
+    }
   }
 
   private async loadAndRenderComponent(root: HTMLElement) {
     try {
       root.innerHTML = await loadComponent(this.componentSrc)
     } catch (error: any) {
-      throw new Error(error)
+      throw new Error(`Failed to load component from ${this.componentSrc}: ${error.message}`)
     }
   }
 

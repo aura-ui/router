@@ -1,45 +1,39 @@
 import Navigo from 'navigo'
 import { AURARoute, type AURARouteInterface } from '../aura-route/aura-route'
+import { attr } from '../../utils/decorators/attr'
 
 export class AURARouter extends HTMLElement {
   static is = 'aura-router'
+
+  @attr({ dataAttr: true, defaultValue: '[data-router-link]' }) linksSelector: string
 
   routes: Map<string, AURARouteInterface>
 
   private router: Navigo
 
-  connectedCallback(): void {
+  protected connectedCallback(): void {
     this.collectRoutes()
-    this.initRoutes()
+    this.initRouter()
   }
 
-  collectRoutes() {
+  private collectRoutes() {
     const routes: NodeListOf<AURARoute> = this.querySelectorAll(AURARoute.is)
     this.routes = new Map<string, AURARoute>()
-
     for (const route of routes) {
-      const path = route.getAttribute('path')
-      if (path !== null) {
-        this.routes.set(path, route)
-      }
+      route.path && this.routes.set(route.path, route)
     }
   }
 
-  initRoutes() {
+  private initRouter() {
     this.router = new Navigo('/', {
       strategy: 'ONE',
       hash: false,
       noMatchWarning: false,
-      linksSelector: '[data-router-link]',
+      linksSelector: this.linksSelector,
     })
 
     this.routes.forEach((route: any) => {
-      const path = route.getAttribute('path')
-      if (path !== null) {
-        this.router.on(path, () => {
-          this.innerHTML = route.getAttribute('html')
-        })
-      }
+      this.router.on(route.path, () => route.render(this))
     })
 
     this.router.resolve()

@@ -10,7 +10,7 @@ export const loadComponent = (path: string): Promise<any> => {
         const tagName = Component?.is
         if (typeof tagName === 'string') {
           registerComponent(Component)
-          resolve(`<${tagName}></${tagName}>`)
+          resolve(tagName)
         } else {
           reject(`Not found [IS] property inside the component: ${path}`)
         }

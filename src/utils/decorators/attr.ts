@@ -12,6 +12,8 @@ type AttrConfig<T = string> = {
   dataAttr?: boolean;
   /** Default property value. Used if no attribute is present on the element. Empty string by default. */
   defaultValue?: T;
+  /** Specifies if attribute should be cached */
+  cached?: boolean;
 };
 
 /** Gets attribute value from the closest element */
@@ -28,12 +30,22 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
 
     const attrName = config.dataAttr ? 'data-' : '' + toKebabCase(config.name || propName)
     const inheritAttrName = typeof config.inherit === 'string' ? config.inherit : attrName
+    let cachedValue: T
 
     function get(this: HTMLElement): T | null {
+      if (config.cached && cachedValue) return cachedValue
+
       const value = config.inherit ? this.getAttribute(attrName) || getClosestAttr(this, inheritAttrName) : this.getAttribute(attrName)
 
-      if (value === null && 'defaultValue' in config) return config.defaultValue as T
-      return value as T | null
+      const result = (value === null && 'defaultValue' in config)
+        ? config.defaultValue
+        : value
+
+      if (config.cached) {
+        cachedValue = result as T
+      }
+
+      return result as T | null
     }
 
     function set(this: HTMLElement, value: T): void {

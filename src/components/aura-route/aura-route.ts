@@ -23,8 +23,8 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   @attr({ readonly: true }) component: string
   @attr({ readonly: true }) componentSrc: string
   @attr({ readonly: true }) template: string
-  @attr({ readonly: true, inherit: true }) loadingTemplate: string
-  @attr({ readonly: true, inherit: true }) errorTemplate: string
+  @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string
+  @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string
   @boolAttr({ readonly: true }) preload: boolean
   @boolAttr({ readonly: true }) cache: boolean
 

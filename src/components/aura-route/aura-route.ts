@@ -29,9 +29,19 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   @boolAttr({ readonly: true }) cache: boolean
 
   private loadedComponents: Map<string, any>
+  private preloadedContent: string
 
   connectedCallback(): void {
     this.loadedComponents = new Map()
+    this.preload && this.preloadContent()
+  }
+
+  protected async preloadContent() {
+    if (this.componentSrc) {
+      this.preloadedContent = await this.loadComponent()
+    } else if (this.htmlSrc) {
+      this.preloadedContent = await this.loadHtml()
+    }
   }
 
   public async render(root: HTMLElement): Promise<void> {
@@ -56,6 +66,8 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
       this.errorTemplate
         ? this.renderTemplate(root, this.errorTemplate)
         : this.handleRenderError(root, error)
+    } finally {
+      this.preloadedContent = ''
     }
   }
 
@@ -83,37 +95,43 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     root.innerHTML = `<${this.component}></${this.component}>`
   }
 
+  protected async loadHtml(): Promise<string> {
+    const response = await fetch(this.htmlSrc)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    //todo add abord
+    await sleep(1000)
+
+    return await response.text()
+  }
+
   private async loadAndRenderHtml(root: HTMLElement) {
     try {
-      const response = await fetch(this.htmlSrc)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      //todo add abord
-      await sleep(1000)
-
-      const html = await response.text()
-      root.innerHTML = html
+      root.innerHTML = this.preloadedContent || await this.loadHtml()
     } catch (error: any) {
       throw new Error(`Failed to load HTML from ${this.htmlSrc}: ${error.message}`)
     }
   }
 
+  protected async loadComponent(): Promise<string> {
+    //todo add abord
+    let component = this.cache
+      ? this.loadedComponents.get(this.componentSrc)
+      : undefined
+
+    if (!component) {
+      component = await loadComponent(this.componentSrc)
+      if (this.cache) {
+        this.loadedComponents.set(this.componentSrc, component)
+      }
+    }
+    return component
+  }
+
   private async loadAndRenderComponent(root: HTMLElement) {
     try {
-      //todo add abord
-      let component = this.cache
-        ? this.loadedComponents.get(this.componentSrc)
-        : undefined
-
-      if (!component) {
-        component = await loadComponent(this.componentSrc)
-        if (this.cache) {
-          this.loadedComponents.set(this.componentSrc, component)
-        }
-      }
-      root.innerHTML = component
+      root.innerHTML = this.preloadedContent || await this.loadComponent()
     } catch (error: any) {
       throw new Error(`Failed to load component from ${this.componentSrc}: ${error.message}`)
     }

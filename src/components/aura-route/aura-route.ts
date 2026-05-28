@@ -44,7 +44,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     }
   }
 
-  public async render(root: HTMLElement): Promise<void> {
+  public async render(root: HTMLElement, options = {}): Promise<void> {
     try {
 
       this.loadingTemplate && this.renderTemplate(root, this.loadingTemplate)
@@ -52,9 +52,9 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
       if (this.template) {
         this.renderTemplate(root, this.template)
       } else if (this.componentSrc) {
-        await this.loadAndRenderComponent(root)
+        await this.loadAndRenderComponent(root, options)
       } else if (this.component) {
-        this.renderComponent(root)
+        this.renderComponent(root, options)
       } else if (this.html) {
         this.renderHtml(root)
       } else if (this.htmlSrc) {
@@ -89,14 +89,14 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     root.appendChild(template?.content.cloneNode(true))
   }
 
-  private renderComponent(root: HTMLElement) {
+  private renderComponent(root: HTMLElement, options: any) {
     const defined = customElements.get(this.component)
     if (!defined) throw new Error(`Component ${this.component} is not defined`)
-    root.innerHTML = `<${this.component}></${this.component}>`
+    root.innerHTML = `<${this.component} aura-data='${JSON.stringify(options)}'></${this.component}>`
   }
 
   protected async loadHtml(): Promise<string> {
-    const response = await fetch(this.htmlSrc)
+    const response = await fetch(`${window.location.origin}/${this.htmlSrc}`)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
@@ -129,9 +129,10 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     return component
   }
 
-  private async loadAndRenderComponent(root: HTMLElement) {
+  private async loadAndRenderComponent(root: HTMLElement, options: any) {
     try {
-      root.innerHTML = this.preloadedContent || await this.loadComponent()
+      const tagName = this.preloadedContent || await this.loadComponent()
+      root.innerHTML = `<${tagName} aura-data='${JSON.stringify(options)}'></${tagName}>`
     } catch (error: any) {
       throw new Error(`Failed to load component from ${this.componentSrc}: ${error.message}`)
     }

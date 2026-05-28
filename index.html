@@ -8,10 +8,14 @@
   </head>
   <body>
 
+  <nav style=" display: flex; gap:20px; margin:30px">
     <a href="/a" data-router-link>link a</a>
     <a href="/b" data-router-link>link b</a>
     <a href="/c" data-router-link>link c</a>
     <a href="/d" data-router-link>element-path</a>
+    <a href="/user/1" data-router-link>User</a>
+    <a href="/about.html" >About</a>
+  </nav>
 
     <template id="app">Шаблон</template>
     <template id="loading-template">Загрузка, ожидаем </template>
@@ -19,9 +23,13 @@
 
     <br/>
 
-    <aura-router error-template="error-template">
+    <aura-router error-template="error-template"
+                 loading-template="loading-template">
       <aura-route path="/a" html='<a href="/c" data-router-link>load template</a>'></aura-route>
       <aura-route path="/c" template="app"></aura-route>
+<!--      <aura-route path="/user/:id" html-src="user.html"></aura-route>-->
+<!--      <aura-route path="/user/:id/" html-src="user.html"></aura-route>-->
+<!--      <aura-route path="/user/1" html="user 1 html"></aura-route>-->
 <!--      <aura-route path="/c" component="app"></aura-route>-->
 <!--      <aura-route path="/c"
                   template="app"
@@ -29,15 +37,8 @@
                   layout="">
       </aura-route>-->
 
-      <aura-route path="/b"
-                  html-src="index2.html"
-                  preload
-                  loading-template="loading-template">
-      </aura-route>
-      <aura-route path="/d"
-                  component-src='components/test-element'
-                  preload
-                  cache></aura-route>
+      <aura-route path="/b" html-src="index2.html" preload></aura-route>
+      <aura-route path="/user/:id" component-src='components/test-element' preload></aura-route>
     </aura-router>
 
     <script type="module" src="/src/main.ts"></script>

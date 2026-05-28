@@ -12,7 +12,7 @@ export interface AURARouteInterface {
   cache?: boolean;
 }
 
-const sleep = (time: number) => new Promise(resolve => setTimeout(resolve, time));
+const sleep = (time: number) => new Promise(resolve => setTimeout(resolve, time))
 
 export class AURARoute extends HTMLElement implements AURARouteInterface {
   static is = 'aura-route'
@@ -23,8 +23,8 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   @attr({ readonly: true }) component: string
   @attr({ readonly: true }) componentSrc: string
   @attr({ readonly: true }) template: string
-  @attr({ readonly: true }) loadingTemplate: string
-  @attr({ readonly: true }) errorTemplate: string
+  @attr({ readonly: true, inherit: true }) loadingTemplate: string
+  @attr({ readonly: true, inherit: true }) errorTemplate: string
   @boolAttr({ readonly: true }) preload: boolean
   @boolAttr({ readonly: true }) cache: boolean
 
@@ -90,6 +90,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+      //todo add abord
       await sleep(1000)
 
       const html = await response.text()
@@ -101,6 +102,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   private async loadAndRenderComponent(root: HTMLElement) {
     try {
+      //todo add abord
       let component = this.cache
         ? this.loadedComponents.get(this.componentSrc)
         : undefined

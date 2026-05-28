@@ -6,11 +6,19 @@ type AttrConfig<T = string> = {
   name?: string;
   /** Create getter only */
   readonly?: boolean;
+  /** Specifies the attribute inheritance behavior. */
+  inherit?: boolean | string;
   /** Use data-* attribute */
   dataAttr?: boolean;
   /** Default property value. Used if no attribute is present on the element. Empty string by default. */
   defaultValue?: T;
 };
+
+/** Gets attribute value from the closest element */
+const getClosestAttr = <T = string>($el: HTMLElement, attrName: string): T | null => {
+  const $closest = $el.closest(`[${attrName}]`)
+  return $closest ? $closest.getAttribute(attrName) as T | null : null
+}
 
 /**
  * `@attr` decorator: maps a property to an HTML attribute
@@ -19,11 +27,13 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
   return (proto: Element, propName: string): void => {
 
     const attrName = config.dataAttr ? 'data-' : '' + toKebabCase(config.name || propName)
+    const inheritAttrName = typeof config.inherit === 'string' ? config.inherit : attrName
 
     function get(this: HTMLElement): T | null {
-      const value = this.getAttribute(attrName) as T | null
+      const value = config.inherit ? this.getAttribute(attrName) || getClosestAttr(this, inheritAttrName) : this.getAttribute(attrName)
+
       if (value === null && 'defaultValue' in config) return config.defaultValue as T
-      return value
+      return value as T | null
     }
 
     function set(this: HTMLElement, value: T): void {

@@ -19,7 +19,7 @@
 
     <br/>
 
-    <aura-router>
+    <aura-router error-template="error-template">
       <aura-route path="/a" html='<a href="/c" data-router-link>load template</a>'></aura-route>
       <aura-route path="/c" template="app"></aura-route>
 <!--      <aura-route path="/c" component="app"></aura-route>-->
@@ -34,8 +34,8 @@
                   loading-template="loading-template">
       </aura-route>
       <aura-route path="/d"
-                  component-src='components/test-element'
-                  error-template="error-template" cache></aura-route>
+                  component-src='components/test-elem1ent'
+                  cache></aura-route>
     </aura-router>
 
     <script type="module" src="/src/main.ts"></script>

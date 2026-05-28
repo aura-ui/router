@@ -12,8 +12,7 @@ export const loadComponent = (path: string): Promise<any> => {
           registerComponent(Component)
           resolve(`<${tagName}></${tagName}>`)
         } else {
-          reject('Invalid tagName')
-          console.log(`[AURA UI] did not found [IS] property for the component: ${path}`)
+          reject(`[AURA UI] did not found [IS] property for the component: ${path}`)
         }
       })
       return exports

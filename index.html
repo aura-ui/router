@@ -8,16 +8,19 @@
   </head>
   <body>
 
-    <p>Links Nav</p>
     <a href="/a" data-router-link>link a</a>
     <a href="/b" data-router-link>link b</a>
+    <a href="/d" data-router-link>element-path</a>
+
+    <template id="app">Шаблон</template>
+
+    <br/>
 
     <aura-router>
-      <aura-route path="/a" html='<a href="/c" data-router-link>link c</a>'>
-
-      </aura-route>
+      <aura-route path="/a" html='<a href="/c" data-router-link>load template</a>'></aura-route>
       <aura-route path="/b" html="html for b"></aura-route>
-      <aura-route path="/c" html="html for c"></aura-route>
+      <aura-route path="/c" template="app"></aura-route>
+      <aura-route path="/d" element-path='components/test-element'></aura-route>
     </aura-router>
 
     <script type="module" src="/src/main.ts"></script>

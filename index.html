@@ -1,47 +1,39 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>aura-ui-router</title>
-  </head>
-  <body>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>aura-ui-router</title>
+</head>
+<body>
 
-  <nav style=" display: flex; gap:20px; margin:30px">
-    <a href="/a" data-router-link>link a</a>
-    <a href="/b" data-router-link>link b</a>
-    <a href="/c" data-router-link>link c</a>
-    <a href="/d" data-router-link>element-path</a>
-    <a href="/user/1" data-router-link>User</a>
-    <a href="/about.html" >About</a>
-  </nav>
+<nav style=" display: flex; gap:20px; margin:30px">
+  <a href="/a" data-router-link>link html</a>
+  <a href="/b" data-router-link>link html-src</a>
+  <a href="/c" data-router-link>link template</a>
+  <a href="/d" data-router-link>link component-src 1 (error)</a>
+  <a href="/f" data-router-link>link component-src 2 (error)</a>
+  <a href="/users" data-router-link>Users (html-src)</a>
+  <a href="/about.html">About</a>
+</nav>
 
-    <template id="app">Шаблон</template>
-    <template id="loading-template">Загрузка, ожидаем </template>
-    <template id="error-template">Ой что-то пошло не так, попробуйте позже</template>
+<template id="app">Шаблон</template>
+<template id="loading-template">Загрузка, ожидаем</template>
+<template id="error-template">Ой что-то пошло не так, попробуйте позже</template>
 
-    <br/>
+<aura-router error-template="error-template"
+             loading-template="loading-template">
+  <aura-route path="/a" html='<a href="/c" data-router-link>load template</a>'></aura-route>
+  <aura-route path="/b" html-src="index2.html" preload></aura-route>
+  <aura-route path="/c" template="app"></aura-route>
+  <aura-route path="/d" component-src='components/test-element1'></aura-route>
+  <aura-route path="/f" component-src='components/test-element2'></aura-route>
+  <aura-route path="/users" html-src="user.html"></aura-route>
+  <aura-route path="/user/:id" component-src='components/test-element' preload></aura-route>
+</aura-router>
 
-    <aura-router error-template="error-template"
-                 loading-template="loading-template">
-      <aura-route path="/a" html='<a href="/c" data-router-link>load template</a>'></aura-route>
-      <aura-route path="/c" template="app"></aura-route>
-<!--      <aura-route path="/user/:id" html-src="user.html"></aura-route>-->
-<!--      <aura-route path="/user/:id/" html-src="user.html"></aura-route>-->
-<!--      <aura-route path="/user/1" html="user 1 html"></aura-route>-->
-<!--      <aura-route path="/c" component="app"></aura-route>-->
-<!--      <aura-route path="/c"
-                  template="app"
-                  cache="true"
-                  layout="">
-      </aura-route>-->
+<script type="module" src="/src/main.ts"></script>
 
-      <aura-route path="/b" html-src="index2.html" preload></aura-route>
-      <aura-route path="/user/:id" component-src='components/test-element' preload></aura-route>
-    </aura-router>
-
-    <script type="module" src="/src/main.ts"></script>
-
-  </body>
+</body>
 </html>

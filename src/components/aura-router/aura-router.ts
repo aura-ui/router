@@ -34,38 +34,44 @@ export class AURARouter extends HTMLElement {
 
     this.routes.forEach((route: any) => {
       this.router.on(route.path, (opt: any) => route.render(this, opt), {
-     /*   before(done) {
-          console.log('root before')
-          done()
-        },
-        after() {
-          console.log('root after')
-        },
-        leave(done) {
-          console.log('root leave')
-          done()
-        },
-     */
+        /*   before(done) {
+             console.log('root before')
+             done()
+           },
+           after() {
+             console.log('root after')
+           },
+           leave(done) {
+             console.log('root leave')
+             done()
+           },
+        */
       })
-     /* this.router.addBeforeHook(route.path, (done: any, match: any) => {
-        // my before hook logic
-        console.log('before', this.router.getCurrentLocation())
-        console.log('match', match)
-        done()
-      })
-      this.router.addAfterHook(route.path, () => {
-        // my before hook logic
-        console.log('after', this.router.getCurrentLocation())
-      })
+
       this.router.addLeaveHook(route.path, (done: any) => {
-        // my before hook logic
-        console.log('leave ', this.router.getCurrentLocation())
+        route.leave()
         done()
       })
+
       this.router.addAlreadyHook(route.path, () => {
-        // my before hook logic
-        console.log('already', this.router.getCurrentLocation())
-      })*/
+        route.already()
+      })
+
+      /*
+            this.router.addAfterHook(route.path, () => {
+              // my before hook logic
+              router.updatePageLinks()
+
+              console.log('after', this.router.getCurrentLocation())
+            })
+      */
+      /* this.router.addBeforeHook(route.path, (done: any, match: any) => {
+         // my before hook logic
+         console.log('before', this.router.getCurrentLocation())
+         console.log('match', match)
+         done()
+       })
+       */
     })
 
     this.router.notFound(() => {

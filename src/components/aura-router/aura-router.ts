@@ -1,6 +1,7 @@
 import Navigo from 'navigo'
-import { AURARoute, type AURARouteInterface } from '../aura-route/aura-route'
+import { AURARoute, type AURARouteInterface, ROUTE_RENDERED_EVENT } from '../aura-route/aura-route'
 import { attr } from '../../utils/decorators/attr'
+import { bind } from '../../utils/misc/bind'
 
 export class AURARouter extends HTMLElement {
   static is = 'aura-router'
@@ -14,6 +15,12 @@ export class AURARouter extends HTMLElement {
   protected connectedCallback(): void {
     this.collectRoutes()
     this.initRouter()
+    this.addEventListener(ROUTE_RENDERED_EVENT, this.onRouteRendered)
+  }
+
+  @bind
+  protected onRouteRendered() {
+    this.router.updatePageLinks()
   }
 
   private collectRoutes() {
@@ -87,5 +94,6 @@ export class AURARouter extends HTMLElement {
 
   protected disconnectedCallback() {
     this.router?.destroy()
+    this.removeEventListener(ROUTE_RENDERED_EVENT, this.onRouteRendered)
   }
 }

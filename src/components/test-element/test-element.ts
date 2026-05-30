@@ -4,6 +4,8 @@ export class TestElement extends HTMLElement {
   protected connectedCallback() {
     const data = JSON.parse(this.getAttribute('aura-data') || '');
     console.log(data)
-    this.innerHTML = `Welcome, user - ${data.data.id}`
+    this.innerHTML = `
+    <input type="text"/> 
+    Welcome, user - ${data.data?.id}`
   }
 }

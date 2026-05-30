@@ -13,7 +13,7 @@
   <a href="/b" data-router-link>link html-src</a>
   <a href="/c" data-router-link>link template</a>
   <a href="/d" data-router-link>link component-src 1 (error)</a>
-  <a href="/f" data-router-link>link component-src 2 (error)</a>
+  <a href="/f" data-router-link>link component-src 2</a>
   <a href="/users" data-router-link>Users (html-src)</a>
   <a href="/about.html">About</a>
 </nav>
@@ -28,7 +28,7 @@
   <aura-route path="/b" html-src="index2.html" preload></aura-route>
   <aura-route path="/c" template="app"></aura-route>
   <aura-route path="/d" component-src='components/test-element1'></aura-route>
-  <aura-route path="/f" component-src='components/test-element2'></aura-route>
+  <aura-route path="/f" component-src='components/test-element' preserve-state></aura-route>
   <aura-route path="/users" html-src="user.html"></aura-route>
   <aura-route path="/user/:id" component-src='components/test-element' preload></aura-route>
 </aura-router>

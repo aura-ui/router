@@ -1,10 +1,11 @@
-import { attr } from '../../utils/decorators/attr'
-import { sanitizeHtml, loadContent, loadAndRegisterComponent } from '../../utils/misc/loaders'
-import { boolAttr } from '../../utils/decorators/bool-attr'
-import { getTemplate } from '../../utils/misc/dom'
-import { dispatchCustomEvent } from '../../utils/misc/events'
+import { attr } from '../../utils/decorators/attr';
+import { boolAttr } from '../../utils/decorators/bool-attr';
+import { getTemplate } from '../../utils/misc/dom';
+import { dispatchCustomEvent } from '../../utils/misc/events';
+import { ContentLoaderFactory } from './loaders/content-loader-factory';
+import { ContentLoaderService } from './loaders/content-loader-service';
 
-export const ROUTE_RENDERED_EVENT = 'route-rendered'
+export const ROUTE_RENDERED_EVENT = 'route-rendered';
 
 export interface AURARouteInterface {
   path: string;
@@ -25,46 +26,56 @@ export interface AURARouteInterface {
 // })
 
 export class AURARoute extends HTMLElement implements AURARouteInterface {
-  static is = 'aura-route'
+  static is = 'aura-route';
 
-  @attr({ readonly: true }) path: string
-  @attr({ readonly: true }) html: string
-  @attr({ readonly: true }) htmlSrc: string
-  @attr({ readonly: true }) component: string
-  @attr({ readonly: true }) componentSrc: string
-  @attr({ readonly: true }) template: string
-  @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string
-  @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string
-  @boolAttr({ readonly: true }) preload: boolean
-  @boolAttr({ readonly: true }) preserveState: boolean
-  @boolAttr({ readonly: true }) restoreScroll: boolean
+  @attr({ readonly: true }) path: string;
+  @attr({ readonly: true }) source: string;
+  @attr({ readonly: true, dataAttr: true }) content: string;
+
+  @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
+  @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
+
+  @attr() hooks: string;
+  @boolAttr({ readonly: true }) preload: boolean;
+  @boolAttr({ readonly: true }) preserveState: boolean;
+  @boolAttr({ readonly: true }) restoreScroll: boolean;
 
   // cache-timeout
-  @boolAttr() cache: boolean //todo add times in seconds how many to store?
+  @boolAttr() cache: boolean; //todo add times in seconds how many to store?
 
-  private isActive: boolean
+  private isActive: boolean;
 
-  private cachedContent: Node | string
+  private factory: ContentLoaderFactory;
 
-  private abortController: AbortController
+  private cachedContent: Node | string;
 
-  private cachedHtml: string
+  private abortController: AbortController;
+
+  private cachedHtml: string;
 
   // private cachedTemplate: HTMLTemplateElement
+
+  constructor() {
+    super();
+    const clientService = new ContentLoaderService(false);
+    this.factory = new ContentLoaderFactory(clientService);
+    // console.log(this.content)
+  }
 
   async connectedCallback(): Promise<void> {
     // this.cachedTemplate = document.createElement('template')
     // call them for executing getters decorators before routes will be unmount from DOM
     // this.loadingTemplate
     // this.errorTemplate
+
     this.validateAttributes();
     // todo Retry-механизмы для загрузки контента.
     if (this.preload) {
       try {
-        await this.preloadContent()
+        await this.preloadContent();
 
       } catch (error) {
-        console.log(error)
+        console.log(error);
       }
       // todo clean on attr change
     }
@@ -74,8 +85,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     if (!this.path) {
       throw new Error('AURARoute must have a path attribute');
     }
-    const hasContent = !!(this.template || this.componentSrc || this.component || this.html || this.htmlSrc);
-    if (!hasContent) {
+    if (!this.content) {
       console.warn(`AURARoute with path "${this.path}" has no content specified`);
     }
   }
@@ -91,109 +101,107 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   }
 
   protected async preloadContent() {
-    if (this.componentSrc) return await loadAndRegisterComponent(this.componentSrc)
-    if (this.htmlSrc) return await this.loadHtml()
+    // todo
+    // if (this.componentSrc) return await loadAndRegisterComponent(this.componentSrc);
+    // if (this.htmlSrc) return await this.loadHtml();
   }
 
   public async render(options = {}): Promise<void> {
     try {
-      console.log(`Rendering started ${this.path}`)
+      console.log(`Rendering started ${this.path}`);
 
-      this.isActive = true
-      this.hidden = false
+      this.isActive = true;
+      this.hidden = false;
 
       // do not make rerender with preserveState flag
-      if (this.preserveState && this.innerHTML) return
+      if (this.preserveState && this.innerHTML) return;
 
-/*
-      if (this.cachedContent) {
-        // if (this.cachedContent && (this.cachedContent as Node).firstChild) {
-        this.setContent(root, (this.cachedContent as Node).cloneNode(true))
-        dispatchCustomEvent(this, ROUTE_RENDERED_EVENT)
-        return
-      }
-*/
+      /*
+            if (this.cachedContent) {
+              // if (this.cachedContent && (this.cachedContent as Node).firstChild) {
+              this.setContent(root, (this.cachedContent as Node).cloneNode(true))
+              dispatchCustomEvent(this, ROUTE_RENDERED_EVENT)
+              return
+            }
+      */
 
       //todo add delay, to prevent blink effect
       if (this.loadingTemplate) {
-        this.setContent(getTemplate(this.loadingTemplate))
+        this.setContent(getTemplate(this.loadingTemplate));
       }
 
-      const content = await this.getContent(options)
+      const content = await this.getContent(options);
 
       if (!content) {
-        this.setContent('<div>No content to display</div>')
-        return
+        this.setContent('<div>No content to display</div>');
+        return;
       }
 
       //  this.cachedContent = content
-      this.setContent( content as DocumentFragment)
+      this.setContent(content as DocumentFragment);
 
-      dispatchCustomEvent(this, ROUTE_RENDERED_EVENT)
+      dispatchCustomEvent(this, ROUTE_RENDERED_EVENT);
 
 
     } catch (error) {
       // this.errorTemplate
       //   ? this.setContent(root, getTemplate(this.errorTemplate))
       //   :
-      this.handleRenderError( error)
+      this.handleRenderError(error);
     } finally {
-      console.log('Rendering finished')
+      console.log('Rendering finished');
     }
   }
 
   protected async getContent(options: any): Promise<Node | string> {
-    if (this.template) return getTemplate(this.template)
-    if (this.componentSrc) return sanitizeHtml(await this.loadComponent(options))
-    if (this.component) return sanitizeHtml(this.getComponent(options))
-    if (this.html) return sanitizeHtml(this.html)
-    if (this.htmlSrc) return sanitizeHtml(await this.loadHtml())
-    return ''
+
+    // todo add static, cached loaders loader
+    const loader = this.factory.createLoader(this.source, this.content, { abortController: this.abortController });
+
+    if (!loader) return '';
+
+    try {
+      return await loader.load(this.content);
+    } catch (error: any) {
+      throw new Error(`Failed to load ${loader.type} content for route ${this.path}: ${error.message}`);
+    }
   }
 
   protected setContent($content: Node | string) {
-    if (!this.isActive) return
+    if (!this.isActive) return;
     if ($content instanceof Node) {
-      this.innerHTML = ''
-      this.appendChild($content)
+      this.innerHTML = '';
+      this.appendChild($content);
     } else {
-      this.innerHTML = $content
+      this.innerHTML = $content;
     }
   }
 
   public leave() {
-    this.isActive = false
-    this.abortController?.abort()
-    this.hidden = true
-    console.log(`leave ${this.path}`)
-    if (!this.preserveState) this.textContent = '' // todo or move to memory template, to restore after
+    this.isActive = false;
+    this.abortController?.abort();
+    this.hidden = true;
+    console.log(`leave ${this.path}`);
+    if (!this.preserveState) this.textContent = ''; // todo or move to memory template, to restore after
   }
 
   public already() {
-    console.log(`already ${this.path}`)
+    console.log(`already ${this.path}`);
   }
 
-  private async loadComponent(options: any) {
-    const tagName = await loadAndRegisterComponent(this.componentSrc)
-    return this.getComponent(options, tagName)
-  }
-
-  private getComponent(options: any, tagName = this.component) {
-    const defined = customElements.get(tagName)
-    if (!defined) throw new Error(`Component ${tagName} is not defined`)
-    return `<${tagName} aura-data='${JSON.stringify(options)}'></${tagName}>`
-  }
-
+/*
+\
   protected async loadHtml(): Promise<string> {
-    if (this.cachedHtml) return this.cachedHtml
-    this.abortController = new AbortController()
-    const signal = this.abortController.signal
-    this.cachedHtml = await loadContent(`${window.location.origin}/${this.htmlSrc}`, signal)
-    return this.cachedHtml
+    if (this.cachedHtml) return this.cachedHtml;
+    this.abortController = new AbortController();
+    const signal = this.abortController.signal;
+    this.cachedHtml = await loadContent(`${window.location.origin}/${this.htmlSrc}`, signal);
+    return this.cachedHtml;
   }
+*/
 
   private handleRenderError(error: unknown): void {
-    console.error(`Error rendering AURARoute (path: ${this.path}):`, error)
+    console.error(`Error rendering AURARoute (path: ${this.path}):`, error);
 
     if (!this.isActive) return;
 

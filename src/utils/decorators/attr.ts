@@ -28,7 +28,7 @@ const getClosestAttr = <T = string>($el: HTMLElement, attrName: string): T | nul
 export const attr = <T = string>(config: AttrConfig<T> = {}) => {
   return (proto: Element, propName: string): void => {
 
-    const attrName = config.dataAttr ? 'data-' : '' + toKebabCase(config.name || propName)
+    const attrName = (config.dataAttr ? 'data-' : '') + toKebabCase(config.name || propName)
     const inheritAttrName = typeof config.inherit === 'string' ? config.inherit : attrName
     let cachedValue: T
 

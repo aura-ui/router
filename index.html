@@ -24,14 +24,26 @@
 
 <aura-router error-template="error-template"
              loading-template="loading-template">
-  <aura-route path="/a" html='<a href="/c" data-router-link>load template</a>'></aura-route>
-  <aura-route path="/b" html-src="index2.html" preload></aura-route>
-  <aura-route path="/c" template="app"></aura-route>
-  <aura-route path="/d" component-src='components/test-element1'></aura-route>
-  <aura-route path="/f" component-src='components/test-element' preserve-state></aura-route>
-  <aura-route path="/users" html-src="user.html"></aura-route>
-  <aura-route path="/user/:id" component-src='components/test-element' preload></aura-route>
+  <aura-route path="/a" source="html" data-content='<a href="/c" data-router-link>load template</a>'></aura-route>
+  <aura-route path="/b" source="html-src" data-content="index2.html" preload></aura-route>
+  <aura-route path="/c" source="template" data-content="app"></aura-route>
+  <aura-route path="/d" source="component-src" data-content='components/test-element1'></aura-route>
+  <aura-route path="/f" source="component-src" data-content='components/test-element' preserve-state></aura-route>
+  <aura-route path="/users" source="html-src" data-content="user.html"></aura-route>
+  <aura-route path="/user/:id" soure="component-src" data-content='components/test-element' preload></aura-route>
 </aura-router>
+
+<!--<aura-route path="/b" loader='html-src' content="index2.html" preload></aura-route>-->
+<!--<aura-route path="/b" loader-type='html-src' content="index2.html" preload></aura-route>-->
+<!--<aura-route path="/b" type='html-src' content="index2.html" preload></aura-route>-->
+<!--
+
+<aura-route path="/c" source="template:app"></aura-route>
+<aura-route path="/b" source="html-src:index2.html"></aura-route>
+<aura-route path="/d" source="component-src:components/test-element"></aura-route>
+-->
+
+<!--source="<тип>:<значение>"-->
 
 <script type="module" src="/src/main.ts"></script>
 

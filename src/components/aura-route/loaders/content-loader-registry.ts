@@ -6,6 +6,8 @@ import { TemplateLoader } from './template-loader';
 import type { BaseLoader } from './base-loader';
 import type { ContentLoaderService } from './content-loader-service';
 
+export type { AURARouteContentType, BuiltInContentType, LoaderOptions } from './content-loader-types';
+
 export type LoaderConstructor = new (service: ContentLoaderService) => BaseLoader;
 
 export class ContentLoaderRegistry {
@@ -29,6 +31,17 @@ export class ContentLoaderRegistry {
 
   static getRegisteredTypes(): readonly string[] {
     return [...this.registry.keys()];
+  }
+
+  static create(type: string, service: ContentLoaderService): BaseLoader {
+    const LoaderClass = this.registry.get(type);
+
+    if (!LoaderClass) {
+      const registered = this.getRegisteredTypes().join(', ') || 'none';
+      throw new Error(`Unsupported loader type: "${type}". Registered: ${registered}`);
+    }
+
+    return new LoaderClass(service);
   }
 }
 

@@ -1,5 +1,5 @@
 import RoutingEngine from 'navigo';
-import { AURARoute, ROUTE_RENDERED_EVENT } from '../aura-route/aura-route';
+import { AURARoute, ROUTE_RENDERED_EVENT, type AURARouteConfigureOptions } from '../aura-route/aura-route';
 import { attr } from '../../utils/decorators/attr';
 import { bind } from '../../utils/misc/bind';
 import { RouteHookRegistry } from './core/aura-router-hooks-manager';
@@ -32,6 +32,10 @@ export class AURARouter extends HTMLElement {
 
   static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
     RouteHookRegistry.register(hook, options);
+  }
+
+  static configure(options: AURARouteConfigureOptions): void {
+    AURARoute.configure(options);
   }
 
   connectedCallback(): void {

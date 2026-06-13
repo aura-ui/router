@@ -3,7 +3,14 @@ import { AURARoute, ROUTE_RENDERED_EVENT } from '../aura-route/aura-route';
 import { attr } from '../../utils/decorators/attr';
 import { bind } from '../../utils/misc/bind';
 import { RouteHookRegistry } from './core/aura-router-hooks-manager';
-import type { RouteHookContext, RouteHookDefinition, RoutePhase } from './plugins/types';
+import type { RouteHookContext, RouteHookDefinition, RouteInfo, RoutePhase } from './plugins/types';
+
+type NavigoMatch = {
+  url: string;
+  route?: { path: string };
+  data?: Record<string, string> | null;
+  params?: Record<string, string> | null;
+};
 
 export class AURARouter extends HTMLElement {
   static is = 'aura-router';
@@ -13,14 +20,13 @@ export class AURARouter extends HTMLElement {
   private engine: RoutingEngine;
   private routes = new Map<string, AURARoute>();
 
-  /** Глобальная регистрация — только fn + options, без ссылки на instance */
   static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
     RouteHookRegistry.register(hook, options);
   }
 
   connectedCallback(): void {
     this.collectRoutes();
-    this.initEngine();
+    this.setupRouting();
     this.engine.notFound(() => {
       this.innerHTML = 'page no found';
     });
@@ -50,7 +56,7 @@ export class AURARouter extends HTMLElement {
     }
   }
 
-  private initEngine(): void {
+  private setupRouting(): void {
     this.engine = new RoutingEngine('/', {
       strategy: 'ONE',
       hash: false,
@@ -62,66 +68,70 @@ export class AURARouter extends HTMLElement {
   }
 
   private registerRoute(path: string, route: AURARoute): void {
-    this.engine.on(path, (match) => route.render(match));
+    this.engine.on(path, (match: NavigoMatch) => route.render(match));
 
     const phases: RoutePhase[] = ['enter', 'entered', 'leave', 'reentered'];
-    for (const phase of phases) {
-      const names = route.getHookNames(phase);
-      if (names.length) this.attachPhaseHook(path, route, phase, names);
-    }
+    for (const phase of phases) this.wirePhaseHook(path, route, phase);
   }
 
-  private attachPhaseHook(
-    path: string,
-    route: AURARoute,
-    phase: RoutePhase,
-    names: string[],
-  ): void {
+  private wirePhaseHook(path: string, route: AURARoute, phase: RoutePhase): void {
+    const names = route[phase];
+
     switch (phase) {
       case 'enter':
-        this.engine.addBeforeHook(path, (done) => void this.runBlockingPhase(route, phase, names, done));
+        this.engine.addBeforeHook(path, (done, match: NavigoMatch) => {
+          route.onEnter();
+          void this.runPhase(route, phase, names, match, done);
+        });
         break;
       case 'entered':
-        this.engine.addAfterHook(path, () => void this.runPassivePhase(route, phase, names));
+        this.engine.addAfterHook(path, (match: NavigoMatch) => {
+          route.onEntered();
+          void this.runPhase(route, phase, names, match);
+        });
         break;
       case 'leave':
-        this.engine.addLeaveHook(path, (done) => void this.runBlockingPhase(route, phase, names, done));
+        this.engine.addLeaveHook(path, (done, match) => {
+          void this.runPhase(route, phase, names, match, done, () => route.onLeave());
+        });
         break;
       case 'reentered':
-        this.engine.addAlreadyHook(path, () => void this.runPassivePhase(route, phase, names));
+        this.engine.addAlreadyHook(path, (match: NavigoMatch) => {
+          route.onReentered();
+          void this.runPhase(route, phase, names, match);
+        });
         break;
     }
   }
 
-  private runPhaseHooks(
+  private async runPhase(
     route: AURARoute,
     phase: RoutePhase,
     names: string[],
-  ): Promise<boolean | void | string> {
-    return RouteHookRegistry.run(names, this.buildHookContext(route, phase));
-  }
-
-  private async runBlockingPhase(
-    route: AURARoute,
-    phase: RoutePhase,
-    names: string[],
-    done: (value?: boolean) => void,
+    match: NavigoMatch | NavigoMatch[] | undefined,
+    done?: (value?: boolean) => void,
+    after?: () => void,
   ): Promise<void> {
-    this.finishBlocking(await this.runPhaseHooks(route, phase, names), done);
+    try {
+      const result = names.length
+        ? await RouteHookRegistry.run(names, this.buildHookContext(route, phase, match))
+        : undefined;
+
+      if (done) {
+        if (result === false || typeof result === 'string') return this.resolvePhase(result, done);
+        after?.();
+        done();
+        return;
+      }
+
+      after?.();
+    } catch (error) {
+      console.error(error);
+      done?.(false);
+    }
   }
 
-  private async runPassivePhase(
-    route: AURARoute,
-    phase: RoutePhase,
-    names: string[],
-  ): Promise<void> {
-    await this.runPhaseHooks(route, phase, names);
-  }
-
-  private finishBlocking(
-    result: boolean | void | string,
-    done: (value?: boolean) => void,
-  ): void {
+  private resolvePhase(result: boolean | void | string, done: (value?: boolean) => void): void {
     if (result === false) return done(false);
     if (typeof result === 'string') {
       this.navigate(result);
@@ -130,14 +140,46 @@ export class AURARouter extends HTMLElement {
     done();
   }
 
-  private buildHookContext(route: AURARoute, phase: RoutePhase): RouteHookContext {
+  private buildHookContext(
+    route: AURARoute,
+    phase: RoutePhase,
+    match: NavigoMatch | NavigoMatch[] | undefined,
+  ): RouteHookContext {
+    const base = { phase, router: this, route, options: {} };
+    const from = this.toRouteInfo(this.lastResolvedMatch());
+
+    if (phase === 'leave') {
+      return {
+        ...base,
+        from: from ?? this.toRouteInfo(undefined, route.path)!,
+        to: this.toRouteInfo(this.firstMatch(match)) ?? { path: '' },
+      };
+    }
+
     return {
-      phase,
-      to: { path: route.path /* + params, query */ },
-      from: null /* previous match */,
-      router: this,
-      route,
-      options: {}, // merged per hook inside Registry.run()
+      ...base,
+      to: this.toRouteInfo(this.firstMatch(match), route.path)!,
+      from,
+    };
+  }
+
+  /** Navigo.lastResolved() до updateState — предыдущий или уходящий маршрут */
+  private lastResolvedMatch(): NavigoMatch | null {
+    return this.engine.lastResolved()?.[0] ?? null;
+  }
+
+  private firstMatch(match: NavigoMatch | NavigoMatch[] | undefined): NavigoMatch | null {
+    if (!match) return null;
+    return Array.isArray(match) ? match[0] ?? null : match;
+  }
+
+  private toRouteInfo(match: NavigoMatch | null | undefined, fallback = ''): RouteInfo | null {
+    if (!match) return fallback ? { path: fallback } : null;
+
+    return {
+      path: match.url || match.route?.path || fallback,
+      ...(match.data && { params: { ...match.data } }),
+      ...(match.params && { query: { ...match.params } }),
     };
   }
 

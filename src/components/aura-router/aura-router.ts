@@ -21,7 +21,6 @@ export class AURARouter extends HTMLElement {
   connectedCallback(): void {
     this.collectRoutes();
     this.initEngine();
-    this.wirePhaseHooks();
     this.engine.notFound(() => {
       this.innerHTML = 'page no found';
     });
@@ -59,64 +58,76 @@ export class AURARouter extends HTMLElement {
       linksSelector: this.linksSelector,
     });
 
-    this.routes.forEach((route, path) => {
-      this.engine.on(path, (match) => route.render(match));
-    });
+    this.routes.forEach((route, path) => this.registerRoute(path, route));
   }
 
-  private wirePhaseHooks(): void {
+  private registerRoute(path: string, route: AURARoute): void {
+    this.engine.on(path, (match) => route.render(match));
+
     const phases: RoutePhase[] = ['enter', 'entered', 'leave', 'reentered'];
-
-    this.routes.forEach((route, path) => {
-      for (const phase of phases) {
-        const names = route.getHookNames(phase);
-        if (names.length) this.attachPhaseHooks(path, route, phase, names);
-      }
-    });
+    for (const phase of phases) {
+      const names = route.getHookNames(phase);
+      if (names.length) this.attachPhaseHook(path, route, phase, names);
+    }
   }
 
-  private attachPhaseHooks(
+  private attachPhaseHook(
     path: string,
     route: AURARoute,
     phase: RoutePhase,
     names: string[],
   ): void {
-    const runHooks = async () => {
-      const ctx = this.buildHookContext(route, phase);
-      return RouteHookRegistry.run(names, ctx);
-    };
-
-    const finishBlocking = (result: boolean | void | string, done: (value?: boolean) => void) => {
-      if (result === false) return done(false);
-      if (typeof result === 'string') {
-        this.navigate(result);
-        return done(false);
-      }
-      done();
-    };
-
     switch (phase) {
       case 'enter':
-        this.engine.addBeforeHook(path, async (done) => {
-          finishBlocking(await runHooks(), done);
-        });
+        this.engine.addBeforeHook(path, (done) => void this.runBlockingPhase(route, phase, names, done));
         break;
       case 'entered':
-        this.engine.addAfterHook(path, async () => {
-          await runHooks();
-        });
+        this.engine.addAfterHook(path, () => void this.runPassivePhase(route, phase, names));
         break;
       case 'leave':
-        this.engine.addLeaveHook(path, async (done) => {
-          finishBlocking(await runHooks(), done);
-        });
+        this.engine.addLeaveHook(path, (done) => void this.runBlockingPhase(route, phase, names, done));
         break;
       case 'reentered':
-        this.engine.addAlreadyHook(path, async () => {
-          await runHooks();
-        });
+        this.engine.addAlreadyHook(path, () => void this.runPassivePhase(route, phase, names));
         break;
     }
+  }
+
+  private runPhaseHooks(
+    route: AURARoute,
+    phase: RoutePhase,
+    names: string[],
+  ): Promise<boolean | void | string> {
+    return RouteHookRegistry.run(names, this.buildHookContext(route, phase));
+  }
+
+  private async runBlockingPhase(
+    route: AURARoute,
+    phase: RoutePhase,
+    names: string[],
+    done: (value?: boolean) => void,
+  ): Promise<void> {
+    this.finishBlocking(await this.runPhaseHooks(route, phase, names), done);
+  }
+
+  private async runPassivePhase(
+    route: AURARoute,
+    phase: RoutePhase,
+    names: string[],
+  ): Promise<void> {
+    await this.runPhaseHooks(route, phase, names);
+  }
+
+  private finishBlocking(
+    result: boolean | void | string,
+    done: (value?: boolean) => void,
+  ): void {
+    if (result === false) return done(false);
+    if (typeof result === 'string') {
+      this.navigate(result);
+      return done(false);
+    }
+    done();
   }
 
   private buildHookContext(route: AURARoute, phase: RoutePhase): RouteHookContext {

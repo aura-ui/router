@@ -1,4 +1,4 @@
-import type { AURARouteContentType } from './content-loader-types';
+import type { AURARouteContentType, LoaderOptions } from './content-loader-types';
 import { BaseLoader } from './base-loader';
 
 export class ComponentLoader extends BaseLoader {
@@ -8,10 +8,10 @@ export class ComponentLoader extends BaseLoader {
     return ComponentLoader.type;
   }
 
-  async load(tagName: string, options?: { componentOptions?: any }): Promise<string> {
+  async load(tagName: string, options?: LoaderOptions): Promise<string> {
     if (!customElements.get(tagName)) {
       throw new Error(`Component '${tagName}' is not registered`);
     }
-    return this.service.createComponentHtml(tagName, options?.componentOptions || {});
+    return this.service.createComponentHtml(tagName, options?.componentOptions ?? {});
   }
 }

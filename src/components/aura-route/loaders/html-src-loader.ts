@@ -1,4 +1,4 @@
-import type { AURARouteContentType } from './content-loader-types';
+import type { AURARouteContentType, LoaderOptions } from './content-loader-types';
 import { BaseLoader } from './base-loader';
 
 export class HtmlSrcLoader extends BaseLoader {
@@ -8,12 +8,12 @@ export class HtmlSrcLoader extends BaseLoader {
     return HtmlSrcLoader.type;
   }
 
-  async load(url: string, options?: { abortController?: AbortController }): Promise<string> {
+  async load(url: string, options?: LoaderOptions): Promise<string> {
     const fullUrl = this.service.isSSR
       ? url // В SSR путь уже полный
       : `${window.location.origin}/${url}`;
 
-    const fetched = await this.service.loadFromUrl(fullUrl, options?.abortController?.signal);
+    const fetched = await this.service.loadFromUrl(fullUrl, options?.signal);
     return this.service.sanitizeHtml(fetched);
   }
 }

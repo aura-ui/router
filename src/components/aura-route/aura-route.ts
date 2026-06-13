@@ -123,6 +123,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
       this.isActive = true;
       this.hidden = false;
+      this.resetAbortController();
 
       // do not make rerender with preserveState flag
       if (this.preserveState && this.innerHTML) return;
@@ -155,6 +156,8 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
 
     } catch (error) {
+      if (this.abortController?.signal.aborted) return;
+
       // this.errorTemplate
       //   ? this.setContent(root, getTemplate(this.errorTemplate))
       //   :
@@ -165,18 +168,22 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   }
 
   protected async getContent(options: any): Promise<Node | string> {
-
     // todo add static, cached loaders loader
-    const loader = this.factory.createLoader(this.source, this.content, { abortController: this.abortController });
-
-
-    if (!loader) return '';
+    const loader = this.factory.createLoader(this.source);
 
     try {
-      return await loader.load(this.content);
-    } catch (error: any) {
-      throw new Error(`Failed to load ${loader.type} content for route ${this.path}: ${error.message}`);
+      return await loader.load(this.content, { signal: this.abortController.signal });
+    } catch (error: unknown) {
+      if (this.abortController.signal.aborted) return '';
+
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to load ${loader.type} content for route ${this.path}: ${message}`);
     }
+  }
+
+  private resetAbortController(): void {
+    this.abortController?.abort();
+    this.abortController = new AbortController();
   }
 
   protected setContent($content: Node | string) {

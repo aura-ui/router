@@ -1,5 +1,5 @@
 import { loadAndRegisterComponent } from '../../../utils/misc/loaders';
-import type { AURARouteContentType } from './content-loader-types';
+import type { AURARouteContentType, LoaderOptions } from './content-loader-types';
 import { BaseLoader } from './base-loader';
 
 export class ComponentSrcLoader extends BaseLoader {
@@ -9,8 +9,8 @@ export class ComponentSrcLoader extends BaseLoader {
     return ComponentSrcLoader.type;
   }
 
-  async load(componentPath: string, options?: { componentOptions?: any }): Promise<string> {
+  async load(componentPath: string, options?: LoaderOptions): Promise<string> {
     const tagName = await loadAndRegisterComponent(componentPath);
-    return this.service.createComponentHtml(tagName, options?.componentOptions || {});
+    return this.service.createComponentHtml(tagName, options?.componentOptions ?? {});
   }
 }

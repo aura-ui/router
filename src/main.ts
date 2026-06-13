@@ -1,6 +1,6 @@
 import { AURARouter } from './components/aura-router/aura-router';
 import { AURARoute } from './components/aura-route/aura-route';
-import { type AURARouteContentType, auraRouteLoaders } from './components/aura-route/loaders/content-loader-factory';
+import type { AURARouteContentType } from './components/aura-route/loaders/content-loader-types';
 import { BaseLoader } from './components/aura-route/loaders/base-loader';
 import { authHook, type AuthHookOptions } from './components/aura-router/plugins/auth-plugin';
 import { analyticsHook } from './components/aura-router/plugins/analytics-plugin';
@@ -23,7 +23,7 @@ class CustomLoader extends BaseLoader {
 AURARouter.use(authHook, { redirect: '/login' } satisfies AuthHookOptions);
 AURARouter.use(analyticsHook);
 
-auraRouteLoaders.define('custom-loader', CustomLoader);
+AURARoute.registerLoader('custom-loader', CustomLoader);
 
 customElements.define(AURARoute.is, AURARoute);
 customElements.define(AURARouter.is, AURARouter);

@@ -3,6 +3,7 @@ import { boolAttr } from '../../utils/decorators/bool-attr';
 import { getTemplate } from '../../utils/misc/dom';
 import { dispatchCustomEvent } from '../../utils/misc/events';
 import { ContentLoaderFactory } from './loaders/content-loader-factory';
+import { ContentLoaderRegistry, type LoaderConstructor } from './loaders/content-loader-registry';
 import { ContentLoaderService } from './loaders/content-loader-service';
 import { parseCommaSeparated } from '../../utils/misc/format';
 import type { RouteLifecycleContext } from '../aura-router/plugins/types';
@@ -29,6 +30,10 @@ export interface AURARouteInterface {
 
 export class AURARoute extends HTMLElement implements AURARouteInterface {
   static is = 'aura-route';
+
+  static registerLoader(type: string, loaderClass: LoaderConstructor): void {
+    ContentLoaderRegistry.register(type, loaderClass);
+  }
 
   @attr({ readonly: true }) path: string;
   @attr({ readonly: true }) source: string;

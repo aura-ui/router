@@ -1,4 +1,4 @@
-import type { AURARouteContentType } from './content-loader-factory';
+import type { AURARouteContentType } from './content-loader-types';
 import { BaseLoader } from './base-loader';
 import { getTemplate } from '../../../utils/misc/dom';
 

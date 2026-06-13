@@ -1,71 +1,28 @@
-import { HtmlLoader } from './html-loader';
-import { HtmlSrcLoader } from './html-src-loader';
-import { ComponentSrcLoader } from './component-src-loader';
-import { ComponentLoader } from './component-loader';
+import { ContentLoaderRegistry } from './content-loader-registry';
+import type { AURARouteContentType } from './content-loader-types';
 import { ContentLoaderService } from './content-loader-service';
-import type { BaseLoader, BaseLoaderInterface } from './base-loader';
-import { TemplateLoader } from './template-loader';
+import type { BaseLoaderInterface } from './base-loader';
 
-export type AURARouteContentType = 'html' | 'html-src' | 'template' | 'component' | 'component-src';
-
-interface BaseLoaderConstructor {
-  new(service: ContentLoaderService): BaseLoader;
-}
-
-const loaderClasses: Record<string, BaseLoaderConstructor> = {};
-
-export const auraRouteLoaders = {
-  get: (type: string) => {
-    return loaderClasses[type];
-  },
-  define: (type: string, loaderClass: BaseLoaderConstructor): void => {
-    loaderClasses[type] = loaderClass;
-  },
-};
+export type { AURARouteContentType, BuiltInContentType } from './content-loader-types';
+export type { LoaderConstructor } from './content-loader-registry';
 
 export class ContentLoaderFactory {
-  //private loaderClasses: Record<string, BaseLoaderConstructor> = {};
-
   private readonly service: ContentLoaderService;
 
-  //private static instance: ContentLoaderFactory;
-
-
   constructor(service: ContentLoaderService) {
-    //  if (ContentLoaderFactory.instance) {
-    //  return ContentLoaderFactory.instance;
-    // }
-
     this.service = service;
-
-    // Регистрация стандартных загрузчиков
-    this.registerLoader('html', HtmlLoader);
-    this.registerLoader('html-src', HtmlSrcLoader);
-    this.registerLoader('component-src', ComponentSrcLoader);
-    this.registerLoader('component', ComponentLoader);
-    this.registerLoader('template', TemplateLoader);
-
-    //ContentLoaderFactory.instance = this;
   }
 
-  /**
-   * Регистрация кастомного загрузчика
-   */
-  registerLoader(type: AURARouteContentType, loaderClass: BaseLoaderConstructor): void {
-    auraRouteLoaders.define(type, loaderClass);
-  }
-
-  /**
-   * Создание загрузчика по типу
-   */
   createLoader(
     type: string,
     content: string,
     options?: any,
   ): BaseLoaderInterface {
-    const LoaderClass = auraRouteLoaders.get(type);//this.loaderClasses[type];
+    const LoaderClass = ContentLoaderRegistry.get(type);
+
     if (!LoaderClass) {
-      throw new Error(`Unsupported loader type: ${type}`);
+      const registered = ContentLoaderRegistry.getRegisteredTypes().join(', ') || 'none';
+      throw new Error(`Unsupported loader type: "${type}". Registered: ${registered}`);
     }
 
     const instance = new LoaderClass(this.service);

@@ -1,4 +1,4 @@
-import type { AURARouteContentType } from './content-loader-factory';
+import type { AURARouteContentType } from './content-loader-types';
 import type { ContentLoaderService } from './content-loader-service';
 
 export interface BaseLoaderInterface {

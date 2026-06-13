@@ -1,5 +1,6 @@
 import { AURARouter } from './components/aura-router/aura-router';
 import { AURARoute } from './components/aura-route/aura-route';
+import { ContentLoaderService } from './components/aura-route/loaders/content-loader-service';
 import type { AURARouteContentType } from './components/aura-route/loaders/content-loader-types';
 import { BaseLoader } from './components/aura-route/loaders/base-loader';
 import { authHook, type AuthHookOptions } from './components/aura-router/plugins/auth-plugin';
@@ -19,6 +20,7 @@ class CustomLoader extends BaseLoader {
   }
 }
 
+AURARoute.configure({ contentLoaderService: new ContentLoaderService(false) });
 
 AURARouter.use(authHook, { redirect: '/login' } satisfies AuthHookOptions);
 AURARouter.use(analyticsHook);

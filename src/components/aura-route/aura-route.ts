@@ -9,6 +9,10 @@ import type { RouteLifecycleContext } from '../aura-router/plugins/types';
 
 export const ROUTE_RENDERED_EVENT = 'route-rendered';
 
+export interface AURARouteConfigureOptions {
+  contentLoaderService?: ContentLoaderService;
+}
+
 export interface AURARouteInterface {
   path: string;
   html?: string;
@@ -27,8 +31,16 @@ export interface AURARouteInterface {
 //   reserveState: true, // значения по умолчанию для всех маршрутов
 // })
 
+let sharedContentLoaderService: ContentLoaderService | undefined;
+
 export class AURARoute extends HTMLElement implements AURARouteInterface {
   static is = 'aura-route';
+
+  static configure(options: AURARouteConfigureOptions): void {
+    if (options.contentLoaderService) {
+      sharedContentLoaderService = options.contentLoaderService;
+    }
+  }
 
   static registerLoader(type: string, loaderClass: LoaderConstructor): void {
     ContentLoaderRegistry.register(type, loaderClass);
@@ -55,8 +67,6 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   private isActive: boolean;
 
-  private contentLoaderService: ContentLoaderService;
-
   private cachedContent: Node | string;
 
   private abortController: AbortController;
@@ -65,9 +75,9 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   // private cachedTemplate: HTMLTemplateElement
 
-  constructor() {
-    super();
-    this.contentLoaderService = new ContentLoaderService(false);
+  private static resolveContentLoaderService(): ContentLoaderService {
+    sharedContentLoaderService ??= new ContentLoaderService(false);
+    return sharedContentLoaderService;
   }
 
   async connectedCallback(): Promise<void> {
@@ -155,9 +165,15 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     } catch (error) {
       if (this.abortController?.signal.aborted) return;
 
-      // this.errorTemplate
-      //   ? this.setContent(root, getTemplate(this.errorTemplate))
-      //   :
+      if (this.errorTemplate) {
+        try {
+          this.setContent(getTemplate(this.errorTemplate));
+          return;
+        } catch (templateError) {
+          console.warn(`Failed to render errorTemplate for route "${this.path}":`, templateError);
+        }
+      }
+
       this.handleRenderError(error);
     } finally {
       console.log('Rendering finished');
@@ -166,7 +182,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   protected async getContent(options: any): Promise<Node | string> {
     // todo add static, cached loaders loader
-    const loader = ContentLoaderRegistry.create(this.source, this.contentLoaderService);
+    const loader = ContentLoaderRegistry.create(this.source, AURARoute.resolveContentLoaderService());
 
     try {
       return await loader.load(this.content, { signal: this.abortController.signal });

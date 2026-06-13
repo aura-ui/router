@@ -7,6 +7,7 @@ export interface BaseLoaderInterface {
   load(content: string, options?: any): Promise<string | DocumentFragment>;
 }
 
+// to do route content loader
 export abstract class BaseLoader implements BaseLoaderInterface {
   protected service: ContentLoaderService;
 

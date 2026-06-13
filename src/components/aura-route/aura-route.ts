@@ -4,6 +4,8 @@ import { getTemplate } from '../../utils/misc/dom';
 import { dispatchCustomEvent } from '../../utils/misc/events';
 import { ContentLoaderFactory } from './loaders/content-loader-factory';
 import { ContentLoaderService } from './loaders/content-loader-service';
+import { parseCommaSeparated } from '../../utils/misc/format';
+import type { RouteLifecycleContext } from '../aura-router/plugins/types';
 
 export const ROUTE_RENDERED_EVENT = 'route-rendered';
 
@@ -32,10 +34,14 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
   @attr({ readonly: true }) source: string;
   @attr({ readonly: true, dataAttr: true }) content: string;
 
+  @attr({ parser: parseCommaSeparated }) enter: string[];
+  @attr({ parser: parseCommaSeparated }) entered: string[];
+  @attr({ parser: parseCommaSeparated }) leave: string[];
+  @attr({ parser: parseCommaSeparated }) reentered: string[];
+
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
 
-  @attr() hooks: string;
   @boolAttr({ readonly: true }) preload: boolean;
   @boolAttr({ readonly: true }) preserveState: boolean;
   @boolAttr({ readonly: true }) restoreScroll: boolean;
@@ -158,6 +164,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     // todo add static, cached loaders loader
     const loader = this.factory.createLoader(this.source, this.content, { abortController: this.abortController });
 
+
     if (!loader) return '';
 
     try {
@@ -177,16 +184,26 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
     }
   }
 
-  public leave() {
+
+  public onEnter(ctx: RouteLifecycleContext): void {
+    // lifecycle: enter phase
+    console.log(ctx);
+  }
+
+  public onEntered(ctx: RouteLifecycleContext): void {
+    console.log(`entered ${this.path}`, ctx.to.path);
+  }
+
+  public onLeave(ctx: RouteLifecycleContext): void {
     this.isActive = false;
     this.abortController?.abort();
     this.hidden = true;
-    console.log(`leave ${this.path}`);
+    console.log(`leave ${this.path}`, ctx.to.path);
     if (!this.preserveState) this.textContent = ''; // todo or move to memory template, to restore after
   }
 
-  public already() {
-    console.log(`already ${this.path}`);
+  public onReentered(ctx: RouteLifecycleContext): void {
+    console.log(`reentered ${this.path}`, ctx.to.path);
   }
 
 /*

@@ -12,12 +12,30 @@ interface BaseLoaderConstructor {
   new(service: ContentLoaderService): BaseLoader;
 }
 
+const loaderClasses: Record<string, BaseLoaderConstructor> = {};
+
+export const auraRouteLoaders = {
+  get: (type: string) => {
+    return loaderClasses[type];
+  },
+  define: (type: string, loaderClass: BaseLoaderConstructor): void => {
+    loaderClasses[type] = loaderClass;
+  },
+};
+
 export class ContentLoaderFactory {
-  private loaderClasses: Record<string, BaseLoaderConstructor> = {};
+  //private loaderClasses: Record<string, BaseLoaderConstructor> = {};
 
   private readonly service: ContentLoaderService;
 
+  //private static instance: ContentLoaderFactory;
+
+
   constructor(service: ContentLoaderService) {
+    //  if (ContentLoaderFactory.instance) {
+    //  return ContentLoaderFactory.instance;
+    // }
+
     this.service = service;
 
     // Регистрация стандартных загрузчиков
@@ -26,13 +44,15 @@ export class ContentLoaderFactory {
     this.registerLoader('component-src', ComponentSrcLoader);
     this.registerLoader('component', ComponentLoader);
     this.registerLoader('template', TemplateLoader);
+
+    //ContentLoaderFactory.instance = this;
   }
 
   /**
    * Регистрация кастомного загрузчика
    */
   registerLoader(type: AURARouteContentType, loaderClass: BaseLoaderConstructor): void {
-    this.loaderClasses[type] = loaderClass;
+    auraRouteLoaders.define(type, loaderClass);
   }
 
   /**
@@ -43,7 +63,7 @@ export class ContentLoaderFactory {
     content: string,
     options?: any,
   ): BaseLoaderInterface {
-    const LoaderClass = this.loaderClasses[type];
+    const LoaderClass = auraRouteLoaders.get(type);//this.loaderClasses[type];
     if (!LoaderClass) {
       throw new Error(`Unsupported loader type: ${type}`);
     }

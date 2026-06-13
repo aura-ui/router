@@ -3,7 +3,13 @@ import { AURARoute, ROUTE_RENDERED_EVENT } from '../aura-route/aura-route';
 import { attr } from '../../utils/decorators/attr';
 import { bind } from '../../utils/misc/bind';
 import { RouteHookRegistry } from './core/aura-router-hooks-manager';
-import type { RouteHookContext, RouteHookDefinition, RouteInfo, RoutePhase } from './plugins/types';
+import type {
+  RouteHookContext,
+  RouteHookDefinition,
+  RouteInfo,
+  RouteLifecycleContext,
+  RoutePhase,
+} from './plugins/types';
 
 type NavigoMatch = {
   url: string;
@@ -80,41 +86,43 @@ export class AURARouter extends HTMLElement {
     switch (phase) {
       case 'enter':
         this.engine.addBeforeHook(path, (done, match: NavigoMatch) => {
-          route.onEnter();
-          void this.runPhase(route, phase, names, match, done);
+          const ctx = this.buildLifecycleContext(route, phase, match);
+          route.onEnter(ctx);
+          void this.runPhase(ctx, names, done);
         });
         break;
       case 'entered':
         this.engine.addAfterHook(path, (match: NavigoMatch) => {
-          route.onEntered();
-          void this.runPhase(route, phase, names, match);
+          const ctx = this.buildLifecycleContext(route, phase, match);
+          route.onEntered(ctx);
+          void this.runPhase(ctx, names);
         });
         break;
       case 'leave':
         this.engine.addLeaveHook(path, (done, match) => {
-          void this.runPhase(route, phase, names, match, done, () => route.onLeave());
+          const ctx = this.buildLifecycleContext(route, phase, match);
+          void this.runPhase(ctx, names, done, () => route.onLeave(ctx));
         });
         break;
       case 'reentered':
         this.engine.addAlreadyHook(path, (match: NavigoMatch) => {
-          route.onReentered();
-          void this.runPhase(route, phase, names, match);
+          const ctx = this.buildLifecycleContext(route, phase, match);
+          route.onReentered(ctx);
+          void this.runPhase(ctx, names);
         });
         break;
     }
   }
 
   private async runPhase(
-    route: AURARoute,
-    phase: RoutePhase,
+    ctx: RouteLifecycleContext,
     names: string[],
-    match: NavigoMatch | NavigoMatch[] | undefined,
     done?: (value?: boolean) => void,
     after?: () => void,
   ): Promise<void> {
     try {
       const result = names.length
-        ? await RouteHookRegistry.run(names, this.buildHookContext(route, phase, match))
+        ? await RouteHookRegistry.run(names, this.toHookContext(ctx))
         : undefined;
 
       if (done) {
@@ -140,12 +148,12 @@ export class AURARouter extends HTMLElement {
     done();
   }
 
-  private buildHookContext(
+  private buildLifecycleContext(
     route: AURARoute,
     phase: RoutePhase,
     match: NavigoMatch | NavigoMatch[] | undefined,
-  ): RouteHookContext {
-    const base = { phase, router: this, route, options: {} };
+  ): RouteLifecycleContext {
+    const base = { phase, router: this, route };
     const from = this.toRouteInfo(this.lastResolvedMatch());
 
     if (phase === 'leave') {
@@ -163,7 +171,11 @@ export class AURARouter extends HTMLElement {
     };
   }
 
-  /** Navigo.lastResolved() до updateState — предыдущий или уходящий маршрут */
+  private toHookContext(ctx: RouteLifecycleContext): RouteHookContext {
+    return { ...ctx, options: {} };
+  }
+
+  /** Navigo.lastResolved() до updateState — источник для ctx.from */
   private lastResolvedMatch(): NavigoMatch | null {
     return this.engine.lastResolved()?.[0] ?? null;
   }

@@ -161,12 +161,15 @@ export class AURARouter extends HTMLElement {
     const resolved = Array.isArray(match) ? match[0] : match ?? null;
     const to = this.toRouteInfo(resolved, route.path);
     const from = this.toRouteInfo(this.engine.lastResolved()?.[0] ?? null);
+    const isLeave = phase === 'leave';
 
-    if (phase === 'leave') {
-      return { phase, router: this, route, from: from ?? { path: route.path }, to: to ?? { path: '' } };
-    }
-
-    return { phase, router: this, route, to: to!, from };
+    return {
+      phase,
+      router: this,
+      route,
+      from: isLeave ? (from ?? { path: route.path }) : from,
+      to: isLeave ? (to ?? { path: '' }) : to!,
+    };
   }
 
   private toRouteInfo(match: NavigoMatch | null | undefined, fallback = ''): RouteInfo | null {

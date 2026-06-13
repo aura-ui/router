@@ -3,19 +3,22 @@ import { AURARoute, ROUTE_RENDERED_EVENT } from '../aura-route/aura-route';
 import { attr } from '../../utils/decorators/attr';
 import { bind } from '../../utils/misc/bind';
 import { RouteHookRegistry } from './core/aura-router-hooks-manager';
-import type {
-  RouteHookContext,
-  RouteHookDefinition,
-  RouteInfo,
-  RouteLifecycleContext,
-  RoutePhase,
-} from './plugins/types';
+import type { RouteHookDefinition, RouteInfo, RouteLifecycleContext, RoutePhase } from './plugins/types';
 
 type NavigoMatch = {
   url: string;
   route?: { path: string };
   data?: Record<string, string> | null;
   params?: Record<string, string> | null;
+};
+
+type NavigoArg = NavigoMatch | NavigoMatch[] | undefined;
+
+const LIFECYCLE: Record<RoutePhase, (ctx: RouteLifecycleContext) => void> = {
+  enter: (ctx) => ctx.route.onEnter(ctx),
+  entered: (ctx) => ctx.route.onEntered(ctx),
+  leave: (ctx) => ctx.route.onLeave(ctx),
+  reentered: (ctx) => ctx.route.onReentered(ctx),
 };
 
 export class AURARouter extends HTMLElement {
@@ -55,11 +58,10 @@ export class AURARouter extends HTMLElement {
   }
 
   private collectRoutes() {
-    const routes: NodeListOf<AURARoute> = this.querySelectorAll(AURARoute.is);
-    this.routes = new Map<string, AURARoute>();
-    for (const route of routes) {
+    this.routes = new Map();
+    this.querySelectorAll<AURARoute>(AURARoute.is).forEach((route) => {
       route.path && this.routes.set(route.path, route);
-    }
+    });
   }
 
   private setupRouting(): void {
@@ -70,119 +72,78 @@ export class AURARouter extends HTMLElement {
       linksSelector: this.linksSelector,
     });
 
-    this.routes.forEach((route, path) => this.registerRoute(path, route));
+    this.routes.forEach((route) => this.registerRoute(route));
   }
 
-  private registerRoute(path: string, route: AURARoute): void {
-    this.engine.on(path, (match: NavigoMatch) => route.render(match));
-
-    const phases: RoutePhase[] = ['enter', 'entered', 'leave', 'reentered'];
-    for (const phase of phases) this.wirePhaseHook(path, route, phase);
+  private registerRoute(route: AURARoute): void {
+    this.engine.on(route.path, (match: NavigoMatch) => route.render(match));
+    this.wirePhaseHooks(route);
   }
 
-  private wirePhaseHook(path: string, route: AURARoute, phase: RoutePhase): void {
-    const names = route[phase];
+  private wirePhaseHooks(route: AURARoute): void {
+    const { path } = route;
 
-    switch (phase) {
-      case 'enter':
-        this.engine.addBeforeHook(path, (done, match: NavigoMatch) => {
-          const ctx = this.buildLifecycleContext(route, phase, match);
-          route.onEnter(ctx);
-          void this.runPhase(ctx, names, done);
-        });
-        break;
-      case 'entered':
-        this.engine.addAfterHook(path, (match: NavigoMatch) => {
-          const ctx = this.buildLifecycleContext(route, phase, match);
-          route.onEntered(ctx);
-          void this.runPhase(ctx, names);
-        });
-        break;
-      case 'leave':
-        this.engine.addLeaveHook(path, (done, match) => {
-          const ctx = this.buildLifecycleContext(route, phase, match);
-          void this.runPhase(ctx, names, done, () => route.onLeave(ctx));
-        });
-        break;
-      case 'reentered':
-        this.engine.addAlreadyHook(path, (match: NavigoMatch) => {
-          const ctx = this.buildLifecycleContext(route, phase, match);
-          route.onReentered(ctx);
-          void this.runPhase(ctx, names);
-        });
-        break;
+    this.engine.addBeforeHook(path, (done, match) => {
+      this.runPhaseTransition(this.buildLifecycleContext(route, 'enter', match), done);
+    });
+
+    this.engine.addAfterHook(path, (match) => {
+      this.runPhaseTransition(this.buildLifecycleContext(route, 'entered', match));
+    });
+
+    this.engine.addLeaveHook(path, (done, match) => {
+      this.runPhaseTransition(this.buildLifecycleContext(route, 'leave', match), done);
+    });
+
+    this.engine.addAlreadyHook(path, (match) => {
+      this.runPhaseTransition(this.buildLifecycleContext(route, 'reentered', match));
+    });
+  }
+
+  /** enter/entered/reentered: lifecycle → hooks; leave: hooks → lifecycle */
+  private runPhaseTransition(ctx: RouteLifecycleContext, done?: (value?: boolean) => void): void {
+    const lifecycle = () => LIFECYCLE[ctx.phase](ctx);
+
+    if (ctx.phase === 'leave') void this.runPhase(ctx, done, lifecycle);
+    else {
+      lifecycle();
+      void this.runPhase(ctx, done);
     }
   }
 
   private async runPhase(
     ctx: RouteLifecycleContext,
-    names: string[],
     done?: (value?: boolean) => void,
     after?: () => void,
   ): Promise<void> {
     try {
+      const names = ctx.route[ctx.phase];
       const result = names.length
-        ? await RouteHookRegistry.run(names, this.toHookContext(ctx))
+        ? await RouteHookRegistry.run(names, { ...ctx, options: {} })
         : undefined;
 
-      if (done) {
-        if (result === false || typeof result === 'string') return this.resolvePhase(result, done);
-        after?.();
-        done();
-        return;
+      if (done && (result === false || typeof result === 'string')) {
+        if (typeof result === 'string') this.navigate(result);
+        return done(false);
       }
 
       after?.();
+      done?.();
     } catch (error) {
       console.error(error);
       done?.(false);
     }
   }
 
-  private resolvePhase(result: boolean | void | string, done: (value?: boolean) => void): void {
-    if (result === false) return done(false);
-    if (typeof result === 'string') {
-      this.navigate(result);
-      return done(false);
-    }
-    done();
-  }
-
-  private buildLifecycleContext(
-    route: AURARoute,
-    phase: RoutePhase,
-    match: NavigoMatch | NavigoMatch[] | undefined,
-  ): RouteLifecycleContext {
-    const base = { phase, router: this, route };
-    const from = this.toRouteInfo(this.lastResolvedMatch());
+  private buildLifecycleContext(route: AURARoute, phase: RoutePhase, match: NavigoArg): RouteLifecycleContext {
+    const from = this.toRouteInfo(this.engine.lastResolved()?.[0] ?? null);
+    const target = this.toRouteInfo(Array.isArray(match) ? match[0] : match ?? null, route.path);
 
     if (phase === 'leave') {
-      return {
-        ...base,
-        from: from ?? this.toRouteInfo(undefined, route.path)!,
-        to: this.toRouteInfo(this.firstMatch(match)) ?? { path: '' },
-      };
+      return { phase, router: this, route, from: from ?? { path: route.path }, to: target ?? { path: '' } };
     }
 
-    return {
-      ...base,
-      to: this.toRouteInfo(this.firstMatch(match), route.path)!,
-      from,
-    };
-  }
-
-  private toHookContext(ctx: RouteLifecycleContext): RouteHookContext {
-    return { ...ctx, options: {} };
-  }
-
-  /** Navigo.lastResolved() до updateState — источник для ctx.from */
-  private lastResolvedMatch(): NavigoMatch | null {
-    return this.engine.lastResolved()?.[0] ?? null;
-  }
-
-  private firstMatch(match: NavigoMatch | NavigoMatch[] | undefined): NavigoMatch | null {
-    if (!match) return null;
-    return Array.isArray(match) ? match[0] ?? null : match;
+    return { phase, router: this, route, to: target!, from };
   }
 
   private toRouteInfo(match: NavigoMatch | null | undefined, fallback = ''): RouteInfo | null {

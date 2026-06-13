@@ -1,4 +1,6 @@
-import { toKebabCase } from '../misc/format'
+import { parseString, toKebabCase } from '../misc/format';
+
+type AttrParser<T> = (attr: T | null) => T | T[];
 
 /** HTML attribute mapping configuration */
 type AttrConfig<T = string> = {
@@ -12,15 +14,17 @@ type AttrConfig<T = string> = {
   dataAttr?: boolean;
   /** Default property value. Used if no attribute is present on the element. Empty string by default. */
   defaultValue?: T;
+  /** Parser from attribute value */
+  parser?: AttrParser<T>;
   /** Specifies if attribute should be cached */
   cached?: boolean;
 };
 
 /** Gets attribute value from the closest element */
 const getClosestAttr = <T = string>($el: HTMLElement, attrName: string): T | null => {
-  const $closest = $el.closest(`[${attrName}]`)
-  return $closest ? $closest.getAttribute(attrName) as T | null : null
-}
+  const $closest = $el.closest(`[${attrName}]`);
+  return $closest ? $closest.getAttribute(attrName) as T | null : null;
+};
 
 /**
  * `@attr` decorator: maps a property to an HTML attribute
@@ -28,34 +32,36 @@ const getClosestAttr = <T = string>($el: HTMLElement, attrName: string): T | nul
 export const attr = <T = string>(config: AttrConfig<T> = {}) => {
   return (proto: Element, propName: string): void => {
 
-    const attrName = (config.dataAttr ? 'data-' : '') + toKebabCase(config.name || propName)
-    const inheritAttrName = typeof config.inherit === 'string' ? config.inherit : attrName
-    let cachedValue: T
+    const attrName = (config.dataAttr ? 'data-' : '') + toKebabCase(config.name || propName);
+    const inheritAttrName = typeof config.inherit === 'string' ? config.inherit : attrName;
+    let cachedValue: T;
 
     function get(this: HTMLElement): T | null {
-      if (config.cached && cachedValue) return cachedValue
+      if (config.cached && cachedValue) return cachedValue;
 
-      const value = config.inherit ? this.getAttribute(attrName) || getClosestAttr(this, inheritAttrName) : this.getAttribute(attrName)
+      const value = config.inherit ? this.getAttribute(attrName) || getClosestAttr(this, inheritAttrName) : this.getAttribute(attrName);
 
-      const result = (value === null && 'defaultValue' in config)
+      let result = (value === null && 'defaultValue' in config)
         ? config.defaultValue
-        : value
+        : value;
+
+      result = (config.parser || parseString as AttrParser<any>)(result as T)
 
       if (config.cached) {
-        cachedValue = result as T
+        cachedValue = result as T;
       }
 
-      return result as T | null
+      return result as T | null;
     }
 
     function set(this: HTMLElement, value: T): void {
       if (value == null) {
-        this.removeAttribute(attrName)
+        this.removeAttribute(attrName);
       } else {
-        this.setAttribute(attrName, String(value))
+        this.setAttribute(attrName, String(value));
       }
     }
 
-    Object.defineProperty(proto, propName, config.readonly ? { get } : { get, set })
-  }
-}
+    Object.defineProperty(proto, propName, config.readonly ? { get } : { get, set });
+  };
+};

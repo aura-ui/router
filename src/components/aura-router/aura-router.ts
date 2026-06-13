@@ -61,7 +61,13 @@ export class AURARouter extends HTMLElement {
   private collectRoutes() {
     this.routes = new Map();
     this.querySelectorAll<AURARoute>(AURARoute.is).forEach((route) => {
-      route.path && this.routes.set(route.path, route);
+      if (!route.path) return;
+
+      if (this.routes.has(route.path)) {
+        console.warn(`Duplicate route path "${route.path}" — previous route will be overwritten`);
+      }
+
+      this.routes.set(route.path, route);
     });
   }
 
@@ -122,13 +128,10 @@ export class AURARouter extends HTMLElement {
     try {
       const hookNames = ctx.route[ctx.phase];
       const result = hookNames.length
-        ? await RouteHookRegistry.run(hookNames, { ...ctx, options: {} })
+        ? await RouteHookRegistry.run(hookNames, ctx)
         : undefined;
 
-      if (done && (result === false || typeof result === 'string')) {
-        if (typeof result === 'string') this.navigate(result);
-        return done(false);
-      }
+      if (this.applyHookResult(result, done)) return;
 
       after?.();
       done?.();
@@ -138,35 +141,32 @@ export class AURARouter extends HTMLElement {
     }
   }
 
+  /** true — навигация прервана (redirect или cancel) */
+  private applyHookResult(result: boolean | void | string | undefined, done?: NavigoDone): boolean {
+    if (typeof result === 'string') {
+      this.navigate(result);
+      done?.(false);
+      return true;
+    }
+
+    if (result === false && done) {
+      done(false);
+      return true;
+    }
+
+    return false;
+  }
+
   private buildLifecycleContext(route: AURARoute, phase: RoutePhase, match: NavigoArg): RouteLifecycleContext {
-    const target = this.resolveMatch(match, route.path);
+    const resolved = Array.isArray(match) ? match[0] : match ?? null;
+    const to = this.toRouteInfo(resolved, route.path);
     const from = this.toRouteInfo(this.engine.lastResolved()?.[0] ?? null);
 
     if (phase === 'leave') {
-      return this.buildLeaveContext(route, from, target);
+      return { phase, router: this, route, from: from ?? { path: route.path }, to: to ?? { path: '' } };
     }
 
-    return { phase, router: this, route, to: target!, from };
-  }
-
-  /** Leaving route: `from` is current route, `to` is the destination being navigated to */
-  private buildLeaveContext(
-    route: AURARoute,
-    from: RouteInfo | null,
-    to: RouteInfo | null,
-  ): RouteLifecycleContext {
-    return {
-      phase: 'leave',
-      router: this,
-      route,
-      from: from ?? { path: route.path },
-      to: to ?? { path: '' },
-    };
-  }
-
-  private resolveMatch(match: NavigoArg, fallbackPath: string): RouteInfo | null {
-    const resolved = Array.isArray(match) ? match[0] : match ?? null;
-    return this.toRouteInfo(resolved, fallbackPath);
+    return { phase, router: this, route, to: to!, from };
   }
 
   private toRouteInfo(match: NavigoMatch | null | undefined, fallback = ''): RouteInfo | null {
@@ -181,5 +181,4 @@ export class AURARouter extends HTMLElement {
       ...(queryParams && { query: { ...queryParams } }),
     };
   }
-
 }

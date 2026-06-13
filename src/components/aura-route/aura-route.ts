@@ -2,7 +2,6 @@ import { attr } from '../../utils/decorators/attr';
 import { boolAttr } from '../../utils/decorators/bool-attr';
 import { getTemplate } from '../../utils/misc/dom';
 import { dispatchCustomEvent } from '../../utils/misc/events';
-import { ContentLoaderFactory } from './loaders/content-loader-factory';
 import { ContentLoaderRegistry, type LoaderConstructor } from './loaders/content-loader-registry';
 import { ContentLoaderService } from './loaders/content-loader-service';
 import { parseCommaSeparated } from '../../utils/misc/format';
@@ -56,7 +55,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   private isActive: boolean;
 
-  private factory: ContentLoaderFactory;
+  private contentLoaderService: ContentLoaderService;
 
   private cachedContent: Node | string;
 
@@ -68,9 +67,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   constructor() {
     super();
-    const clientService = new ContentLoaderService(false);
-    this.factory = new ContentLoaderFactory(clientService);
-    // console.log(this.content)
+    this.contentLoaderService = new ContentLoaderService(false);
   }
 
   async connectedCallback(): Promise<void> {
@@ -169,7 +166,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface {
 
   protected async getContent(options: any): Promise<Node | string> {
     // todo add static, cached loaders loader
-    const loader = this.factory.createLoader(this.source);
+    const loader = ContentLoaderRegistry.create(this.source, this.contentLoaderService);
 
     try {
       return await loader.load(this.content, { signal: this.abortController.signal });

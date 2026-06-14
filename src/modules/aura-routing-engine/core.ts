@@ -30,5 +30,6 @@ export type {
 export { RoutingProviderRegistry } from './core/provider-registry';
 export { RoutingEngine } from './core/routing-engine';
 
-// Registers the built-in Navigo provider as `'navigo'`.
-import './core/providers';
+import { registerBuiltInProviders } from './core/providers';
+
+registerBuiltInProviders();

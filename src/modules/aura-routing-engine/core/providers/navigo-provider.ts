@@ -15,6 +15,22 @@ import { currentLocationUrl, firstMatch, matchPattern, toRouteMatch } from './na
 
 type NavigoDone = (value?: boolean) => void;
 
+/**
+ * Navigo adapter for {@link RoutingEngineProvider}.
+ *
+ * Maps aura-ui-router phases to Navigo hooks:
+ *
+ * | Aura phase | Navigo API |
+ * |------------|------------|
+ * | `leave` | `addLeaveHook` |
+ * | `onTransition` + `enter` | `addBeforeHook` |
+ * | `render` | `on` |
+ * | `entered` | `addAfterHook` |
+ * | `reentered` | `addAlreadyHook` |
+ *
+ * `lastRenderedMatch` tracks the route after `render` — used by `leave` hooks.
+ * The facade's `current` / `previous` are updated earlier, in `onTransition`.
+ */
 export class NavigoProvider implements RoutingEngineProvider {
   readonly id = 'navigo';
 
@@ -23,7 +39,8 @@ export class NavigoProvider implements RoutingEngineProvider {
   private navigo?: Navigo;
   private notFoundHandler?: NotFoundHandler;
   private readonly registrations = new Map<string, ProviderRouteRegistration>();
-  private activeMatch: RouteMatch | null = null;
+  /** Last route that completed `render` — `leave` needs this, not the facade's `current`. */
+  private lastRenderedMatch: RouteMatch | null = null;
 
   constructor(config: NavigoProviderConfig) {
     this.config = config;
@@ -77,16 +94,16 @@ export class NavigoProvider implements RoutingEngineProvider {
     const navigo = this.ensureNavigo();
 
     navigo.on(pattern, (match?: Match) => {
-      void this.runRender(render, pattern, match);
+      void this.runRenderPhase(render, pattern, match);
     });
 
     navigo.addBeforeHook(pattern, (done: NavigoDone, match: Match) => {
-      void this.runBefore(pattern, match, phases.enter, done);
+      void this.runEnterPhase(pattern, match, phases.enter, done);
     });
 
     if (phases.leave) {
       navigo.addLeaveHook(pattern, (done: NavigoDone, match: Match | Match[]) => {
-        void this.runLeave(pattern, match, phases.leave!, done);
+        void this.runLeavePhase(pattern, match, phases.leave!, done);
       });
     }
 
@@ -105,7 +122,7 @@ export class NavigoProvider implements RoutingEngineProvider {
 
   // ——— Phase pipeline ———
 
-  private async runRender(
+  private async runRenderPhase(
     render: ProviderRouteRegistration['render'],
     pattern: string,
     match?: Match,
@@ -114,11 +131,11 @@ export class NavigoProvider implements RoutingEngineProvider {
     if (!routeMatch) return;
 
     await render(routeMatch);
-    this.activeMatch = routeMatch;
+    this.lastRenderedMatch = routeMatch;
   }
 
-  /** onTransition → enter (blocking) */
-  private async runBefore(
+  /** `onTransition` → `enter` (blocking). Wired to Navigo `addBeforeHook`. */
+  private async runEnterPhase(
     pattern: string,
     match: Match,
     enterHandler: PhaseHandler | undefined,
@@ -130,7 +147,7 @@ export class NavigoProvider implements RoutingEngineProvider {
       return;
     }
 
-    const from = this.activeMatch;
+    const from = this.lastRenderedMatch;
     this.requireBinding().onTransition({ from, to });
 
     if (!enterHandler) {
@@ -141,8 +158,8 @@ export class NavigoProvider implements RoutingEngineProvider {
     await this.runBlockingPhase({ phase: 'enter', from, to }, enterHandler, done);
   }
 
-  /** leave (blocking) */
-  private async runLeave(
+  /** `leave` (blocking). Wired to Navigo `addLeaveHook`. */
+  private async runLeavePhase(
     pattern: string,
     match: Match | Match[],
     handler: PhaseHandler,
@@ -150,13 +167,13 @@ export class NavigoProvider implements RoutingEngineProvider {
   ): Promise<void> {
     const target = firstMatch(match);
     const targetPattern = matchPattern(target, pattern);
-    const from = this.activeMatch ?? { path: pattern, pattern };
+    const from = this.lastRenderedMatch ?? { path: pattern, pattern };
     const to = toRouteMatch(target, targetPattern) ?? { path: '', pattern: targetPattern };
 
     await this.runBlockingPhase({ phase: 'leave', from, to }, handler, done);
   }
 
-  /** entered / reentered */
+  /** `entered` / `reentered` — non-blocking. */
   private async runOptionalPhase(
     phase: 'entered' | 'reentered',
     pattern: string,
@@ -187,7 +204,7 @@ export class NavigoProvider implements RoutingEngineProvider {
     const to = toRouteMatch(match, pattern);
     if (!to) return null;
 
-    return { phase, from: this.activeMatch, to };
+    return { phase, from: this.lastRenderedMatch, to };
   }
 
   // ——— Lifecycle ———
@@ -216,7 +233,7 @@ export class NavigoProvider implements RoutingEngineProvider {
   private teardownNavigo(clearRegistrations = false): void {
     this.navigo?.destroy();
     this.navigo = undefined;
-    this.activeMatch = null;
+    this.lastRenderedMatch = null;
 
     if (clearRegistrations) {
       this.registrations.clear();

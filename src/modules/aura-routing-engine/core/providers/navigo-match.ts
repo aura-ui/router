@@ -13,6 +13,13 @@ export function matchPattern(match: Match | null, fallback: string): string {
   return typeof routePath === 'string' ? routePath : fallback;
 }
 
+/**
+ * Convert a Navigo {@link Match} to a provider-agnostic {@link RouteMatch}.
+ *
+ * Navigo naming (differs from aura-ui-router):
+ * - `match.data` — path segment params (`/user/:id` → `{ id: '42' }`)
+ * - `match.params` — query string params (`?tab=settings` → `{ tab: 'settings' }`)
+ */
 export function toRouteMatch(match: Match | null | undefined, pattern: string): RouteMatch | null {
   if (!match) return null;
 

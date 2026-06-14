@@ -19,6 +19,17 @@ export interface RoutingEngineOptions {
  * Orchestrates route registration and delegates URL matching / navigation
  * to a pluggable {@link RoutingEngineProvider}.
  *
+ * ## Typical lifecycle
+ *
+ * 1. `RoutingEngine.create(providerId, config)`
+ * 2. `register()` / `registerAll()` — all routes before `start()`
+ * 3. `setNotFoundHandler()` — optional
+ * 4. `start()` — handle the initial URL
+ * 5. `destroy()` — full teardown (also clears route registrations)
+ *
+ * Use `clearRoutes()` instead of `destroy()` when re-collecting routes from DOM:
+ * Navigo is torn down but registrations are kept for the next `start()`.
+ *
  * @example
  * const engine = RoutingEngine.create('navigo', {
  *   root: '/',
@@ -109,6 +120,7 @@ export class RoutingEngine {
     this.provider.start();
   }
 
+  /** Full teardown — destroys the provider and clears all route registrations. */
   destroy(): void {
     this.started = false;
     this.provider.destroy();
@@ -126,7 +138,10 @@ export class RoutingEngine {
     this.provider.rebindLinks?.();
   }
 
-  /** Clear registered routes before re-collecting from DOM. */
+  /**
+   * Reset navigation state and tear down the provider instance.
+   * Route registrations are **kept** — call `register()` again only when patterns change.
+   */
   clearRoutes(): void {
     this.routes.clear();
     this.current = null;

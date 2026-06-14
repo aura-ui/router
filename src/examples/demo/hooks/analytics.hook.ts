@@ -1,4 +1,4 @@
-import { defineRouteHook } from '../modules/aura-route-hooks/core';
+import { defineRouteHook } from '../../../modules/aura-route-hooks/core';
 
 function track(event: string, path: string): void {
   console.log(`[Analytics] ${event}: ${path}`);

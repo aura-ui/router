@@ -1,5 +1,5 @@
 import type { AURARoute } from '../../aura-route/aura-route';
-import type { AURARouter } from '../aura-router';
+import type { AURARouter } from '../../aura-router/aura-router';
 
 /** Логика hook — без фазы */
 type RouteHookFn = (ctx: RouteHookContext) => Promise<boolean | void | string>;
@@ -11,7 +11,6 @@ export interface RouteHookDefinition {
   fn: RouteHookFn;
   requires?: string; // опционально: ">=0.2.0" — совместимость API роутера (>=, >, <=, <, =)
 }
-
 
 export function defineRouteHook(def: RouteHookDefinition): Readonly<RouteHookDefinition> {
   if (!def.name || !/^[a-z][a-z0-9-]*$/.test(def.name)) {

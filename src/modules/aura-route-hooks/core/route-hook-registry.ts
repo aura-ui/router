@@ -2,7 +2,7 @@ import type {
   RouteHookDefinition,
   RouteHookContext,
   RouteLifecycleContext,
-} from '../plugins/types';
+} from './types';
 import { ROUTER_VERSION, satisfies } from '../../../utils/misc/semver';
 
 interface StoredHook {

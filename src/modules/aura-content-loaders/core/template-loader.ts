@@ -1,4 +1,4 @@
-import type { AURARouteContentType } from './content-loader-types';
+import type { AURARouteContentType } from './types';
 import { BaseLoader } from './base-loader';
 import { getTemplate } from '../../../utils/misc/dom';
 
@@ -10,6 +10,6 @@ export class TemplateLoader extends BaseLoader {
   }
 
   load(templateContent: string): Promise<DocumentFragment> {
-    return getTemplate(templateContent );
+    return getTemplate(templateContent);
   }
 }

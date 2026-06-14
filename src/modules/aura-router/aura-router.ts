@@ -2,8 +2,8 @@ import RoutingEngine from 'navigo';
 import { AURARoute, ROUTE_RENDERED_EVENT, type AURARouteConfigureOptions } from '../aura-route/aura-route';
 import { attr } from '../../utils/decorators/attr';
 import { bind } from '../../utils/misc/bind';
-import { RouteHookRegistry } from './core/aura-router-hooks-manager';
-import type { RouteHookDefinition, RouteInfo, RouteLifecycleContext, RoutePhase } from './plugins/types';
+import { RouteHookRegistry } from '../aura-route-hooks/core';
+import type { RouteHookDefinition, RouteInfo, RouteLifecycleContext, RoutePhase } from '../aura-route-hooks/core';
 
 type NavigoMatch = {
   url: string;

@@ -1,8 +1,10 @@
 import { AURARouter } from './modules/aura-router/aura-router';
 import { AURARoute } from './modules/aura-route/aura-route';
-import { ContentLoaderService } from './modules/aura-route/loaders/content-loader-service';
-import type { AURARouteContentType } from './modules/aura-route/loaders/content-loader-types';
-import { BaseLoader } from './modules/aura-route/loaders/base-loader';
+import {
+  BaseLoader,
+  ContentLoaderService,
+  type AURARouteContentType,
+} from './modules/aura-content-loaders/core';
 import { authHook, type AuthHookOptions } from './modules/aura-router/plugins/auth-plugin';
 import { analyticsHook } from './modules/aura-router/plugins/analytics-plugin';
 

@@ -1,5 +1,5 @@
-import type { AURARoute } from '../../aura-route/aura-route';
-import type { AURARouter } from '../../aura-router/aura-router';
+import type { AURARoute } from '../../aura-route/core';
+import type { AURARouter } from '../../aura-router/core';
 
 /** Логика hook — без фазы */
 type RouteHookFn = (ctx: RouteHookContext) => Promise<boolean | void | string>;

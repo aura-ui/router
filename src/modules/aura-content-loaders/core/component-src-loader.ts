@@ -1,4 +1,4 @@
-import { loadAndRegisterComponent } from '../../../utils/misc/loaders';
+import { loadAndRegisterComponent } from '../../aura-utils/misc';
 import type { AURARouteContentType, LoaderOptions } from './types';
 import { BaseLoader } from './base-loader';
 

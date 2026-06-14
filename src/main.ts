@@ -1,5 +1,5 @@
-import { AURARouter } from './modules/aura-router/aura-router';
-import { AURARoute } from './modules/aura-route/aura-route';
+import { AURARouter } from './modules/aura-router/core';
+import { AURARoute } from './modules/aura-route/core';
 import { ContentLoaderService } from './modules/aura-content-loaders/core';
 import { authHook, type AuthHookOptions } from './hooks/auth.hook';
 import { analyticsHook } from './hooks/analytics.hook';

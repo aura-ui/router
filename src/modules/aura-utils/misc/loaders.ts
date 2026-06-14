@@ -17,8 +17,8 @@ export const loadContent = async (url: string, signal: AbortSignal): Promise<str
   return await response.text()
 }
 
-/** For path correct from subfolder (utils/misc) to the root folder (src) */
-const pathPrefix = '../../'
+/** For path correct from subfolder (aura-utils/misc) to the root folder (src) */
+const pathPrefix = '../../../'
 
 export const loadAndRegisterComponent = (path: string): Promise<any> => {
   return new Promise((resolve, reject) => {

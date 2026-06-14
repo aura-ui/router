@@ -1,14 +1,11 @@
-import { attr } from '../../utils/decorators/attr';
-import { boolAttr } from '../../utils/decorators/bool-attr';
-import { getTemplate } from '../../utils/misc/dom';
-import { dispatchCustomEvent } from '../../utils/misc/events';
+import { attr, boolAttr } from '../../aura-utils/decorators';
+import { dispatchCustomEvent, getTemplate, parseCommaSeparated } from '../../aura-utils/misc';
 import {
   ContentLoaderRegistry,
   ContentLoaderService,
   type LoaderConstructor,
-} from '../aura-content-loaders/core';
-import { parseCommaSeparated } from '../../utils/misc/format';
-import type { RouteLifecycleContext } from '../aura-route-hooks/core';
+} from '../../aura-content-loaders/core';
+import type { RouteLifecycleContext } from '../../aura-route-hooks/core';
 
 export const ROUTE_RENDERED_EVENT = 'route-rendered';
 

@@ -1,5 +1,36 @@
-import type { AURARoute } from '../../aura-route/core';
-import type { AURARouter } from '../../aura-router/core';
+export type RoutePhase = 'enter' | 'entered' | 'leave' | 'reentered';
+
+export interface RouteInfo {
+  path: string;
+  params?: Record<string, string>;
+  query?: Record<string, string>;
+}
+
+/** Minimal route surface required by hooks and the routing engine. */
+export interface RouteInstance {
+  path: string;
+  enter: string[];
+  entered: string[];
+  leave: string[];
+  reentered: string[];
+  onEnter(ctx: RouteLifecycleContext): void;
+  onEntered(ctx: RouteLifecycleContext): void;
+  onLeave(ctx: RouteLifecycleContext): void;
+  onReentered(ctx: RouteLifecycleContext): void;
+}
+
+/** Minimal router surface exposed to route hooks. */
+export interface RouterInstance {
+  navigate(path: string): void;
+}
+
+export interface RouteLifecycleContext {
+  phase: RoutePhase;
+  to: RouteInfo;
+  from: RouteInfo | null;
+  router: RouterInstance;
+  route: RouteInstance;
+}
 
 /** Логика hook — без фазы */
 type RouteHookFn = (ctx: RouteHookContext) => Promise<boolean | void | string>;
@@ -17,22 +48,6 @@ export function defineRouteHook(def: RouteHookDefinition): Readonly<RouteHookDef
     throw new Error(`Invalid hook name: "${def.name}"`);
   }
   return Object.freeze({ ...def, fn: def.fn });
-}
-
-export type RoutePhase = 'enter' | 'entered' | 'leave' | 'reentered';
-
-export interface RouteInfo {
-  path: string;
-  params?: Record<string, string>;
-  query?: Record<string, string>;
-}
-
-export interface RouteLifecycleContext {
-  phase: RoutePhase;
-  to: RouteInfo;
-  from: RouteInfo | null;
-  router: AURARouter;
-  route: AURARoute;
 }
 
 export interface RouteHookContext extends RouteLifecycleContext {

@@ -5,7 +5,7 @@ import {
   ContentLoaderService,
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
-import type { RouteLifecycleContext } from '../../aura-route-hooks/core';
+import type { RouteInstance, RouteLifecycleContext } from '../../aura-route-hooks/core';
 
 export const ROUTE_RENDERED_EVENT = 'route-rendered';
 
@@ -33,7 +33,7 @@ export interface AURARouteInterface {
 
 let sharedContentLoaderService: ContentLoaderService | undefined;
 
-export class AURARoute extends HTMLElement implements AURARouteInterface {
+export class AURARoute extends HTMLElement implements AURARouteInterface, RouteInstance {
   static is = 'aura-route';
 
   static configure(options: AURARouteConfigureOptions): void {

@@ -28,11 +28,11 @@
   <aura-route path="/a" source="html" enter="auth, analytics" data-content='<a href="/c" data-router-link>load template</a>'></aura-route>
   <aura-route path="/b" source="html-src" entered="analytics" data-content="index2.html" preload></aura-route>
   <aura-route path="/c" source="template" data-content="app"></aura-route>
-  <aura-route path="/d" source="component-src" data-content='components/test-element1'></aura-route>
-  <aura-route path="/f" source="component-src" data-content='components/test-element' preserve-state></aura-route>
+  <aura-route path="/d" source="component-src" data-content='modules/test-element1'></aura-route>
+  <aura-route path="/f" source="component-src" data-content='modules/test-element' preserve-state></aura-route>
   <aura-route path="/users" source="html-src" data-content="user.html"></aura-route>
   <aura-route path="/custom-loader" source="custom-loader" data-content="user.html"></aura-route>
-  <aura-route path="/user/:id" soure="component-src" data-content='components/test-element' preload></aura-route>
+  <aura-route path="/user/:id" soure="component-src" data-content='modules/test-element' preload></aura-route>
 </aura-router>
 
 <!--<aura-route path="/b" loader='html-src' content="index2.html" preload></aura-route>-->
@@ -42,7 +42,7 @@
 
 <aura-route path="/c" source="template:app"></aura-route>
 <aura-route path="/b" source="html-src:index2.html"></aura-route>
-<aura-route path="/d" source="component-src:components/test-element"></aura-route>
+<aura-route path="/d" source="component-src:modules/test-element"></aura-route>
 -->
 
 <!--source="<тип>:<значение>"-->

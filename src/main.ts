@@ -1,12 +1,12 @@
-import { AURARouter } from './components/aura-router/aura-router';
-import { AURARoute } from './components/aura-route/aura-route';
-import { ContentLoaderService } from './components/aura-route/loaders/content-loader-service';
-import type { AURARouteContentType } from './components/aura-route/loaders/content-loader-types';
-import { BaseLoader } from './components/aura-route/loaders/base-loader';
-import { authHook, type AuthHookOptions } from './components/aura-router/plugins/auth-plugin';
-import { analyticsHook } from './components/aura-router/plugins/analytics-plugin';
+import { AURARouter } from './modules/aura-router/aura-router';
+import { AURARoute } from './modules/aura-route/aura-route';
+import { ContentLoaderService } from './modules/aura-route/loaders/content-loader-service';
+import type { AURARouteContentType } from './modules/aura-route/loaders/content-loader-types';
+import { BaseLoader } from './modules/aura-route/loaders/base-loader';
+import { authHook, type AuthHookOptions } from './modules/aura-router/plugins/auth-plugin';
+import { analyticsHook } from './modules/aura-router/plugins/analytics-plugin';
 
-// import {TestElement} from './components/test-element/test-element';
+// import {TestElement} from './modules/test-element/test-element';
 
 class CustomLoader extends BaseLoader {
   static readonly type = 'custom-loader' as const;

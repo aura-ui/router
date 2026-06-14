@@ -117,11 +117,14 @@ export interface RoutingEngineBinding {
  *
  * ```
  * 1. leave   (from route) — blocking; call onGuardResult after handler
- * 2. onTransition({ from, to })
+ * 2. onTransition({ from, to }) — engine callback, NOT a route hook
  * 3. enter   (to route)   — blocking; call onGuardResult after handler
  * 4. render(match)
  * 5. entered (to route)
  * ```
+ *
+ * `onTransition` syncs facade state (`current` / `previous`). It is not part of
+ * {@link RoutePhaseHandlers} — providers call {@link RoutingEngineBinding.onTransition} directly.
  *
  * **reentered** — when navigation targets the already active route (same path):
  * skip `leave` + `enter` + `render`; run only `reentered` handlers.

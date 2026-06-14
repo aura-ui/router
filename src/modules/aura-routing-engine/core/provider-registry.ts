@@ -8,7 +8,12 @@ export class RoutingProviderRegistry {
     id: string,
     factory: RoutingProviderFactory<T>,
   ): void {
-    if (!id || providers.has(id)) {
+    if (!id) {
+      console.warn('Routing provider id must be a non-empty string — skipping registration');
+      return;
+    }
+
+    if (providers.has(id)) {
       console.warn(`Routing provider "${id}" is already registered — overwriting`);
     }
     providers.set(id, factory as RoutingProviderFactory);

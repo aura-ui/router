@@ -1,4 +1,4 @@
-import { defineRouteHook, type RouteHookContext } from '../modules/aura-route-hooks/core';
+import { defineRouteHook, type RouteHookContext } from '../../../modules/aura-route-hooks/core';
 
 async function checkAuth(): Promise<boolean> {
   return false;

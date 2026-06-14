@@ -1,4 +1,4 @@
-import { BaseLoader, type AURARouteContentType } from '../modules/aura-content-loaders/core';
+import { BaseLoader, type AURARouteContentType } from '../../../modules/aura-content-loaders/core';
 
 export class CustomLoader extends BaseLoader {
   static readonly type = 'custom-loader' as const;

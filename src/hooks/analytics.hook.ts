@@ -1,14 +1,13 @@
-function track(event: string, path: string) {
+import { defineRouteHook } from '../modules/aura-route-hooks/core';
+
+function track(event: string, path: string): void {
   console.log(`[Analytics] ${event}: ${path}`);
 }
-
-// hooks/analytics.hook.ts
-import { defineRouteHook } from '../../aura-route-hooks/core';
 
 export const analyticsHook = defineRouteHook({
   name: 'analytics',
   version: '1.0.0',
-  fn: (ctx) => {
+  fn: async (ctx) => {
     track('pageview', ctx.to.path);
   },
 });

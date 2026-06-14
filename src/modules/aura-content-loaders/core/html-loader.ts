@@ -1,4 +1,4 @@
-import type { AURARouteContentType } from './content-loader-types';
+import type { AURARouteContentType } from './types';
 import { BaseLoader } from './base-loader';
 
 export class HtmlLoader extends BaseLoader {

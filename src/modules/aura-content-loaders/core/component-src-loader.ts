@@ -1,5 +1,5 @@
 import { loadAndRegisterComponent } from '../../../utils/misc/loaders';
-import type { AURARouteContentType, LoaderOptions } from './content-loader-types';
+import type { AURARouteContentType, LoaderOptions } from './types';
 import { BaseLoader } from './base-loader';
 
 export class ComponentSrcLoader extends BaseLoader {

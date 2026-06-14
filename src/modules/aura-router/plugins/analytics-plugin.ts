@@ -3,7 +3,7 @@ function track(event: string, path: string) {
 }
 
 // hooks/analytics.hook.ts
-import { defineRouteHook } from './types';
+import { defineRouteHook } from '../../aura-route-hooks/core';
 
 export const analyticsHook = defineRouteHook({
   name: 'analytics',

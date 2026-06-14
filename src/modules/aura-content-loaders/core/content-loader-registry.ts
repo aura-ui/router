@@ -6,8 +6,6 @@ import { TemplateLoader } from './template-loader';
 import type { BaseLoader } from './base-loader';
 import type { ContentLoaderService } from './content-loader-service';
 
-export type { AURARouteContentType, BuiltInContentType, LoaderOptions } from './content-loader-types';
-
 export type LoaderConstructor = new (service: ContentLoaderService) => BaseLoader;
 
 export class ContentLoaderRegistry {

@@ -2,10 +2,13 @@ import { attr } from '../../utils/decorators/attr';
 import { boolAttr } from '../../utils/decorators/bool-attr';
 import { getTemplate } from '../../utils/misc/dom';
 import { dispatchCustomEvent } from '../../utils/misc/events';
-import { ContentLoaderRegistry, type LoaderConstructor } from './loaders/content-loader-registry';
-import { ContentLoaderService } from './loaders/content-loader-service';
+import {
+  ContentLoaderRegistry,
+  ContentLoaderService,
+  type LoaderConstructor,
+} from '../aura-content-loaders/core';
 import { parseCommaSeparated } from '../../utils/misc/format';
-import type { RouteLifecycleContext } from '../aura-router/plugins/types';
+import type { RouteLifecycleContext } from '../aura-route-hooks/core';
 
 export const ROUTE_RENDERED_EVENT = 'route-rendered';
 

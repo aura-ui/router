@@ -1,5 +1,5 @@
 import type { RouteHookDefinition, RouteLifecycleContext } from '../plugins/types';
-import { ROUTER_VERSION, satisfiesRouterVersion } from '../version';
+import { ROUTER_VERSION, satisfies } from '../../../utils/misc/semver';
 
 interface RegisteredHook {
   definition: RouteHookDefinition;
@@ -16,7 +16,7 @@ export class RouteHookRegistry {
       console.warn(`Hook "${hook.name}" ${existing.definition.version} → ${hook.version}`);
     }
 
-    if (hook.requires && !satisfiesRouterVersion(ROUTER_VERSION, hook.requires)) {
+    if (hook.requires && !satisfies(ROUTER_VERSION, hook.requires)) {
       console.warn(`Hook "${hook.name}@${hook.version}" requires router ${hook.requires}`);
     }
 

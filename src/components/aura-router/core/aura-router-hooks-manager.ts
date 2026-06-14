@@ -1,50 +1,63 @@
-import type { RouteHookDefinition, RouteLifecycleContext } from '../plugins/types';
+import type {
+  RouteHookDefinition,
+  RouteHookContext,
+  RouteLifecycleContext,
+} from '../plugins/types';
 import { ROUTER_VERSION, satisfies } from '../../../utils/misc/semver';
 
-interface RegisteredHook {
-  definition: RouteHookDefinition;
+interface StoredHook {
+  fn: RouteHookDefinition['fn'];
+  version: string;
   options: Record<string, unknown>;
 }
 
+/** Cancel navigation (`false`) or redirect URL (`string`). */
+function isTerminalResult(result: boolean | void | string): result is false | string {
+  return result === false || typeof result === 'string';
+}
+
 export class RouteHookRegistry {
-  private static registry = new Map<string, RegisteredHook>();
+  private static registry = new Map<string, StoredHook>();
 
   static register(hook: RouteHookDefinition, options: Record<string, unknown> = {}): void {
-    const existing = this.registry.get(hook.name);
+    const { name, version, fn, requires } = hook;
+    const existing = this.registry.get(name);
 
-    if (existing && existing.definition.version !== hook.version) {
-      console.warn(`Hook "${hook.name}" ${existing.definition.version} → ${hook.version}`);
+    if (existing && existing.version !== version) {
+      console.warn(`Hook "${name}" ${existing.version} → ${version}`);
     }
 
-    if (hook.requires && !satisfies(ROUTER_VERSION, hook.requires)) {
-      console.warn(`Hook "${hook.name}@${hook.version}" requires router ${hook.requires}`);
+    if (requires && !satisfies(ROUTER_VERSION, requires)) {
+      console.warn(`Hook "${name}@${version}" requires router ${requires}`);
     }
 
-    this.registry.set(hook.name, { definition: hook, options });
+    this.registry.set(name, { fn, version, options });
   }
 
-  static get(name: string): RegisteredHook | undefined {
+  static get(name: string): StoredHook | undefined {
     return this.registry.get(name);
   }
 
+  /** Runs hooks in order; stops on first cancel (`false`) or redirect URL (`string`). */
   static async run(
     names: string[],
     ctx: RouteLifecycleContext,
   ): Promise<boolean | void | string> {
+    const hookCtx: RouteHookContext = { ...ctx, options: {} };
+    const routePath = ctx.route.path;
+
     for (const name of names) {
       const entry = this.registry.get(name);
 
       if (!entry) {
-        console.warn(`Unknown hook "${name}" on route ${ctx.route.path} (phase ${ctx.phase})`);
+        console.warn(`Unknown hook "${name}" on route ${routePath} (phase ${ctx.phase})`);
         continue;
       }
 
-      const result = await entry.definition.fn({
-        ...ctx,
-        options: entry.options,
-      });
+      hookCtx.options = entry.options;
 
-      if (result === false || typeof result === 'string') {
+      const result = await entry.fn(hookCtx);
+      if (isTerminalResult(result)) {
         return result;
       }
     }

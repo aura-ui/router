@@ -3,7 +3,7 @@ import type {
   RouteHookContext,
   RouteLifecycleContext,
 } from './types';
-import { ROUTER_VERSION, satisfies } from '../../aura-utils/misc';
+import { ROUTER_VERSION, satisfies } from './version';
 
 interface StoredHook {
   fn: RouteHookDefinition['fn'];

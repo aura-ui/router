@@ -4,7 +4,13 @@ import { attr } from '../../aura-utils/decorators';
 import { bind } from '../../aura-utils/misc';
 import { AURARoute, ROUTE_RENDERED_EVENT, type AURARouteConfigureOptions } from '../../aura-route/core';
 import { RouteHookRegistry } from '../../aura-route-hooks/core';
-import type { RouteHookDefinition, RouteInfo, RouteLifecycleContext, RoutePhase } from '../../aura-route-hooks/core';
+import type {
+  RouteHookDefinition,
+  RouteInfo,
+  RouteLifecycleContext,
+  RoutePhase,
+  RouterInstance,
+} from '../../aura-route-hooks/core';
 
 type NavigoMatch = {
   url: string;
@@ -23,7 +29,7 @@ const LIFECYCLE: Record<RoutePhase, (ctx: RouteLifecycleContext) => void> = {
   reentered: (ctx) => ctx.route.onReentered(ctx),
 };
 
-export class AURARouter extends HTMLElement {
+export class AURARouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' }) linksSelector: string;

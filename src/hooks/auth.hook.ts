@@ -1,10 +1,8 @@
+import { defineRouteHook, type RouteHookContext } from '../modules/aura-route-hooks/core';
+
 async function checkAuth(): Promise<boolean> {
-  // Твоя логика проверки
   return false;
 }
-
-// hooks/auth.hook.ts
-import { defineRouteHook, type RouteHookContext } from '../../aura-route-hooks/core';
 
 async function authGuard(ctx: RouteHookContext): Promise<string | void> {
   if (!await checkAuth()) {

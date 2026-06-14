@@ -14,6 +14,7 @@ import {
   type GuardResult,
   type NavigationContext,
   type RouteMatch,
+  type RouteRegistration,
 } from '../../aura-routing-engine/core';
 
 const LIFECYCLE: Record<RoutePhase, (ctx: RouteLifecycleContext) => void> = {
@@ -29,7 +30,6 @@ export class AURARouter extends HTMLElement implements RouterInstance {
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' }) linksSelector: string;
 
   private engine!: RoutingEngine;
-  private routes = new Map<string, AURARoute>();
 
   static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
     RouteHookRegistry.register(hook, options);
@@ -40,8 +40,8 @@ export class AURARouter extends HTMLElement implements RouterInstance {
   }
 
   connectedCallback(): void {
-    this.collectRoutes();
-    this.setupRouting();
+    const routes = this.collectRoutes();
+    this.setupRouting(routes);
     this.engine.setNotFoundHandler(() => {
       this.innerHTML = 'page not found';
     });
@@ -63,16 +63,19 @@ export class AURARouter extends HTMLElement implements RouterInstance {
     this.engine.rebindLinks();
   }
 
-  private collectRoutes(): void {
-    this.routes = new Map();
+  private collectRoutes(): Map<string, AURARoute> {
+    const routes = new Map<string, AURARoute>();
+
     this.querySelectorAll<AURARoute>(AURARoute.is).forEach((route) => {
       if (!route.path) return;
 
-      this.routes.set(route.path, route);
+      routes.set(route.path, route);
     });
+
+    return routes;
   }
 
-  private setupRouting(): void {
+  private setupRouting(routes: Map<string, AURARoute>): void {
     this.engine = RoutingEngine.create('navigo', {
       root: '/',
       strategy: 'ONE',
@@ -81,24 +84,24 @@ export class AURARouter extends HTMLElement implements RouterInstance {
       linksSelector: this.linksSelector,
     });
 
-    this.routes.forEach((route) => this.registerRoute(route));
+    this.engine.registerAll([...routes.values()].map((route) => this.toRouteRegistration(route)));
   }
 
-  private registerRoute(route: AURARoute): void {
-    this.engine.register({
+  private toRouteRegistration(route: AURARoute): RouteRegistration {
+    return {
       pattern: route.path,
       render: () => route.render(),
       phases: {
-        enter: (ctx) => this.runBlockingLifecycle(route, ctx),
-        entered: (ctx) => this.runNonBlockingLifecycle(route, ctx),
+        enter: (ctx) => this.runEnter(route, ctx),
+        entered: (ctx) => this.runEntered(route, ctx),
         leave: (ctx) => this.runLeave(route, ctx),
-        reentered: (ctx) => this.runNonBlockingLifecycle(route, ctx),
+        reentered: (ctx) => this.runEntered(route, ctx),
       },
-    });
+    };
   }
 
-  /** enter: route lifecycle → hooks (blocking). */
-  private async runBlockingLifecycle(
+  /** route lifecycle → hooks. */
+  private async runLifecycle(
     route: AURARoute,
     navCtx: NavigationContext,
   ): Promise<GuardResult> {
@@ -107,12 +110,14 @@ export class AURARouter extends HTMLElement implements RouterInstance {
     return this.runHooks(ctx);
   }
 
-  /** entered / reentered: route lifecycle → hooks (non-blocking). */
-  private async runNonBlockingLifecycle(
-    route: AURARoute,
-    navCtx: NavigationContext,
-  ): Promise<void> {
-    const result = await this.runBlockingLifecycle(route, navCtx);
+  /** enter: blocking — engine handles guard result via onGuardResult. */
+  private runEnter(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
+    return this.runLifecycle(route, navCtx);
+  }
+
+  /** entered / reentered: non-blocking — redirect handled here. */
+  private async runEntered(route: AURARoute, navCtx: NavigationContext): Promise<void> {
+    const result = await this.runLifecycle(route, navCtx);
 
     if (typeof result === 'string') {
       this.navigate(result);

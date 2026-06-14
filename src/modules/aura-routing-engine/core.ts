@@ -18,6 +18,8 @@ export { PHASE_PIPELINE } from './core/types';
 
 export type { NavigoRoutingStrategy, NavigoProviderConfig } from './core/providers/navigo-config';
 
+export { NavigoProvider, createNavigoProvider } from './core/providers/navigo-provider';
+
 export type { RoutingEngineOptions } from './core/routing-engine';
 
 export type {
@@ -27,3 +29,6 @@ export type {
 
 export { RoutingProviderRegistry } from './core/provider-registry';
 export { RoutingEngine } from './core/routing-engine';
+
+// Registers the built-in Navigo provider as `'navigo'`.
+import './core/providers';

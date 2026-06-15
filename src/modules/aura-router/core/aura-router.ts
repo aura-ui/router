@@ -6,7 +6,6 @@ import type {
   RouteHookDefinition,
   RouteInfo,
   RouteLifecycleContext,
-  RoutePhase,
   RouterInstance,
 } from '../../aura-route-hooks/core';
 import {
@@ -16,13 +15,6 @@ import {
   type RouteMatch,
   type RouteRegistration,
 } from '../../aura-routing-engine/core';
-
-const LIFECYCLE: Record<RoutePhase, (ctx: RouteLifecycleContext) => void> = {
-  enter: (ctx) => ctx.route.onEnter(ctx),
-  entered: (ctx) => ctx.route.onEntered(ctx),
-  leave: (ctx) => ctx.route.onLeave(ctx),
-  reentered: (ctx) => ctx.route.onReentered(ctx),
-};
 
 export class AURARouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
@@ -65,13 +57,10 @@ export class AURARouter extends HTMLElement implements RouterInstance {
 
   private collectRoutes(): Map<string, AURARoute> {
     const routes = new Map<string, AURARoute>();
-
     this.querySelectorAll<AURARoute>(AURARoute.is).forEach((route) => {
       if (!route.path) return;
-
       routes.set(route.path, route);
     });
-
     return routes;
   }
 
@@ -83,7 +72,6 @@ export class AURARouter extends HTMLElement implements RouterInstance {
       noMatchWarning: false,
       linksSelector: this.linksSelector,
     });
-
     this.engine.registerAll([...routes.values()].map((route) => this.toRouteRegistration(route)));
   }
 
@@ -95,29 +83,34 @@ export class AURARouter extends HTMLElement implements RouterInstance {
         enter: (ctx) => this.runEnter(route, ctx),
         entered: (ctx) => this.runEntered(route, ctx),
         leave: (ctx) => this.runLeave(route, ctx),
-        reentered: (ctx) => this.runEntered(route, ctx),
+        reentered: (ctx) => this.runReentered(route, ctx),
       },
     };
   }
 
-  /** route lifecycle → hooks. */
-  private async runLifecycle(
-    route: AURARoute,
-    navCtx: NavigationContext,
-  ): Promise<GuardResult> {
+  /** enter: route lifecycle → hooks (blocking). */
+  private async runEnter(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
     const ctx = this.toLifecycleContext(route, navCtx);
-    LIFECYCLE[ctx.phase](ctx);
-    return this.runHooks(ctx);
+    route.onEnter(ctx);
+    return this.runHooks(ctx, route.enter);
   }
 
-  /** enter: blocking — engine handles guard result via onGuardResult. */
-  private runEnter(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
-    return this.runLifecycle(route, navCtx);
-  }
-
-  /** entered / reentered: non-blocking — redirect handled here. */
+  /** entered: route lifecycle → hooks; redirect handled here. */
   private async runEntered(route: AURARoute, navCtx: NavigationContext): Promise<void> {
-    const result = await this.runLifecycle(route, navCtx);
+    const ctx = this.toLifecycleContext(route, navCtx);
+    route.onEntered(ctx);
+    const result = await this.runHooks(ctx, route.entered);
+
+    if (typeof result === 'string') {
+      this.navigate(result);
+    }
+  }
+
+  /** reentered: route lifecycle → hooks; redirect handled here. */
+  private async runReentered(route: AURARoute, navCtx: NavigationContext): Promise<void> {
+    const ctx = this.toLifecycleContext(route, navCtx);
+    route.onReentered(ctx);
+    const result = await this.runHooks(ctx, route.reentered);
 
     if (typeof result === 'string') {
       this.navigate(result);
@@ -127,20 +120,18 @@ export class AURARouter extends HTMLElement implements RouterInstance {
   /** leave: hooks → route lifecycle (blocking). */
   private async runLeave(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
     const ctx = this.toLifecycleContext(route, navCtx);
-    const result = await this.runHooks(ctx);
+    const result = await this.runHooks(ctx, route.leave);
 
     if (result === false || typeof result === 'string') {
       return result;
     }
 
-    LIFECYCLE.leave(ctx);
+    route.onLeave(ctx);
     return undefined;
   }
 
-  private async runHooks(ctx: RouteLifecycleContext): Promise<GuardResult> {
+  private async runHooks(ctx: RouteLifecycleContext, hookNames: string[]): Promise<GuardResult> {
     try {
-      const hookNames = ctx.route[ctx.phase];
-
       if (!hookNames.length) return undefined;
 
       return await RouteHookRegistry.run(hookNames, ctx);
@@ -153,13 +144,14 @@ export class AURARouter extends HTMLElement implements RouterInstance {
   private toLifecycleContext(route: AURARoute, navCtx: NavigationContext): RouteLifecycleContext {
     const from = this.toRouteInfo(navCtx.from, navCtx.phase === 'leave' ? route.path : '');
     const to = this.toRouteInfo(navCtx.to);
+    const isLeavePhase = navCtx.phase === 'leave';
 
     return {
       phase: navCtx.phase,
       router: this,
       route,
-      from: navCtx.phase === 'leave' ? (from ?? { path: route.path }) : from,
-      to: navCtx.phase === 'leave' ? (to ?? { path: '' }) : to!,
+      from: isLeavePhase ? (from ?? { path: route.path }) : from,
+      to: isLeavePhase ? (to ?? { path: '' }) : to!,
     };
   }
 

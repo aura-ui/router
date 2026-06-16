@@ -165,12 +165,38 @@ export class NavigoProvider implements RoutingEngineProvider {
     handler: PhaseHandler,
     done: NavigoDone,
   ): Promise<void> {
+    await this.runBlockingPhase(this.buildLeaveContext(pattern, match), handler, done);
+  }
+
+  /**
+   * Navigo `addLeaveHook` passes the *target* match, not the leaving route.
+   * Normalize to {@link NavigationContext} contract: `from` = active route, `to` = target.
+   */
+  private buildLeaveContext(pattern: string, match: Match | Match[]): NavigationContext {
     const target = firstMatch(match);
     const targetPattern = matchPattern(target, pattern);
-    const from = this.lastRenderedMatch ?? { path: pattern, pattern };
     const to = toRouteMatch(target, targetPattern) ?? { path: '', pattern: targetPattern };
 
-    await this.runBlockingPhase({ phase: 'leave', from, to }, handler, done);
+    return {
+      phase: 'leave',
+      from: this.resolveLeaveFrom(pattern),
+      to,
+    };
+  }
+
+  /** Active route on leave — always non-null; falls back to the leaving route pattern. */
+  private resolveLeaveFrom(pattern: string): RouteMatch {
+    const active = this.lastRenderedMatch;
+
+    if (!active) {
+      return { path: pattern, pattern };
+    }
+
+    if (!active.path) {
+      return { ...active, path: pattern };
+    }
+
+    return active;
   }
 
   /** `entered` / `reentered` — non-blocking. */

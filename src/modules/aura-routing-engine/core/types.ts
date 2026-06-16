@@ -39,7 +39,7 @@ export type GuardResult = void | boolean | string;
  * Context passed to phase handlers during a navigation transition.
  *
  * `from` / `to` reflect the navigation snapshot at the moment the phase runs:
- * - on `leave` — `from` is the active route, `to` is the navigation target
+ * - on `leave` — `from` is the active route (providers MUST set non-null), `to` is the navigation target
  * - on `enter` / `entered` / `reentered` — `to` is the target route, `from` is the previous route
  */
 export interface NavigationContext {

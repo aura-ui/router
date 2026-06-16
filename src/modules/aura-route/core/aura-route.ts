@@ -1,13 +1,11 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
-import { dispatchCustomEvent, getTemplate, parseCommaSeparated } from '../../aura-utils/misc';
+import { getTemplate, parseCommaSeparated } from '../../aura-utils/misc';
 import {
   ContentLoaderRegistry,
   ContentLoaderService,
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
 import type { RouteInstance, RouteLifecycleContext } from '../../aura-route-hooks/core';
-
-export const ROUTE_RENDERED_EVENT = 'route-rendered';
 
 export interface AURARouteConfigureOptions {
   contentLoaderService?: ContentLoaderService;
@@ -139,7 +137,6 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
             if (this.cachedContent) {
               // if (this.cachedContent && (this.cachedContent as Node).firstChild) {
               this.setContent(root, (this.cachedContent as Node).cloneNode(true))
-              dispatchCustomEvent(this, ROUTE_RENDERED_EVENT)
               return
             }
       */
@@ -158,10 +155,6 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
       //  this.cachedContent = content
       this.setContent(content as DocumentFragment);
-
-      dispatchCustomEvent(this, ROUTE_RENDERED_EVENT);
-
-
     } catch (error) {
       if (this.abortController?.signal.aborted) return;
 

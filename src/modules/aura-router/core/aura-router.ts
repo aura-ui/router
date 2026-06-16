@@ -16,7 +16,7 @@ import {
   type RouteRegistration,
 } from '../../aura-routing-engine/core';
 
-export class AURARouter extends HTMLElement implements RouterInstance {
+export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' }) linksSelector: string;
@@ -80,23 +80,23 @@ export class AURARouter extends HTMLElement implements RouterInstance {
       pattern: route.path,
       render: () => route.render(),
       phases: {
-        enter: (ctx) => this.runEnter(route, ctx),
-        entered: (ctx) => this.runEntered(route, ctx),
-        leave: (ctx) => this.runLeave(route, ctx),
-        reentered: (ctx) => this.runReentered(route, ctx),
+        enter: (ctx) => this.runEnterPhase(route, ctx),
+        entered: (ctx) => this.runEnteredPhase(route, ctx),
+        leave: (ctx) => this.runLeavePhase(route, ctx),
+        reentered: (ctx) => this.runReenteredPhase(route, ctx),
       },
     };
   }
 
   /** enter: route lifecycle → hooks (blocking). */
-  private async runEnter(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
+  private async runEnterPhase(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
     const ctx = this.toLifecycleContext(route, navCtx);
     route.onEnter(ctx);
     return this.runHooks(ctx, route.enter);
   }
 
   /** entered: route lifecycle → hooks; redirect handled here. */
-  private async runEntered(route: AURARoute, navCtx: NavigationContext): Promise<void> {
+  private async runEnteredPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
     const ctx = this.toLifecycleContext(route, navCtx);
     route.onEntered(ctx);
     const result = await this.runHooks(ctx, route.entered);
@@ -106,19 +106,8 @@ export class AURARouter extends HTMLElement implements RouterInstance {
     }
   }
 
-  /** reentered: route lifecycle → hooks; redirect handled here. */
-  private async runReentered(route: AURARoute, navCtx: NavigationContext): Promise<void> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-    route.onReentered(ctx);
-    const result = await this.runHooks(ctx, route.reentered);
-
-    if (typeof result === 'string') {
-      this.navigate(result);
-    }
-  }
-
   /** leave: hooks → route lifecycle (blocking). */
-  private async runLeave(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
+  private async runLeavePhase(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
     const ctx = this.toLifecycleContext(route, navCtx);
     const result = await this.runHooks(ctx, route.leave);
 
@@ -130,10 +119,20 @@ export class AURARouter extends HTMLElement implements RouterInstance {
     return undefined;
   }
 
+  /** reentered: route lifecycle → hooks; redirect handled here. */
+  private async runReenteredPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
+    const ctx = this.toLifecycleContext(route, navCtx);
+    route.onReentered(ctx);
+    const result = await this.runHooks(ctx, route.reentered);
+
+    if (typeof result === 'string') {
+      this.navigate(result);
+    }
+  }
+
   private async runHooks(ctx: RouteLifecycleContext, hookNames: string[]): Promise<GuardResult> {
     try {
       if (!hookNames.length) return undefined;
-
       return await RouteHookRegistry.run(hookNames, ctx);
     } catch (error) {
       console.error(error);
@@ -142,21 +141,17 @@ export class AURARouter extends HTMLElement implements RouterInstance {
   }
 
   private toLifecycleContext(route: AURARoute, navCtx: NavigationContext): RouteLifecycleContext {
-    const from = this.toRouteInfo(navCtx.from, navCtx.phase === 'leave' ? route.path : '');
-    const to = this.toRouteInfo(navCtx.to);
-    const isLeavePhase = navCtx.phase === 'leave';
-
     return {
       phase: navCtx.phase,
       router: this,
       route,
-      from: isLeavePhase ? (from ?? { path: route.path }) : from,
-      to: isLeavePhase ? (to ?? { path: '' }) : to!,
+      from: this.toRouteInfo(navCtx.from),
+      to: this.toRouteInfo(navCtx.to) ?? { path: '' },
     };
   }
 
-  private toRouteInfo(match: RouteMatch | null, fallback = ''): RouteInfo | null {
-    if (!match) return fallback ? { path: fallback } : null;
+  private toRouteInfo(match: RouteMatch | null): RouteInfo | null {
+    if (!match) return null;
 
     return {
       path: match.path,

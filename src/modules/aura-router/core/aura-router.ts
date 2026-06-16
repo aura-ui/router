@@ -1,6 +1,5 @@
 import { attr } from '../../aura-utils/decorators';
-import { bind } from '../../aura-utils/misc';
-import { AURARoute, ROUTE_RENDERED_EVENT, type AURARouteConfigureOptions } from '../../aura-route/core';
+import { AURARoute, type AURARouteConfigureOptions } from '../../aura-route/core';
 import { RouteHookRegistry } from '../../aura-route-hooks/core';
 import type {
   RouteHookDefinition,
@@ -38,21 +37,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       this.innerHTML = 'page not found';
     });
     this.engine.start();
-    this.addEventListener(ROUTE_RENDERED_EVENT, this.onRouteRendered);
   }
 
   disconnectedCallback(): void {
     this.engine?.destroy();
-    this.removeEventListener(ROUTE_RENDERED_EVENT, this.onRouteRendered);
   }
 
   navigate(path: string): void {
     this.engine.navigate(path);
-  }
-
-  @bind
-  protected onRouteRendered() {
-    this.engine.rebindLinks();
   }
 
   private collectRoutes(): Map<string, AURARoute> {
@@ -103,7 +95,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
     if (typeof result === 'string') {
       this.navigate(result);
+      return;
     }
+
+    this.engine.rebindLinks();
   }
 
   /** leave: hooks → route lifecycle (blocking). */
@@ -127,7 +122,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
     if (typeof result === 'string') {
       this.navigate(result);
+      return;
     }
+
+    this.engine.rebindLinks();
   }
 
   private async runHooks(ctx: RouteLifecycleContext, hookNames: string[]): Promise<GuardResult> {

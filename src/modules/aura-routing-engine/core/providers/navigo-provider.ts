@@ -24,8 +24,7 @@ type NavigoDone = (value?: boolean) => void;
  * |------------|------------|
  * | `leave` | `addLeaveHook` |
  * | `onTransition` + `enter` | `addBeforeHook` |
- * | `render` | `on` |
- * | `entered` | `addAfterHook` |
+ * | `render` + `entered` | `on` → await render → entered |
  * | `reentered` | `addAlreadyHook` |
  *
  * `lastRenderedMatch` tracks the route after `render` — used by `leave` hooks.
@@ -94,7 +93,7 @@ export class NavigoProvider implements RoutingEngineProvider {
     const navigo = this.ensureNavigo();
 
     navigo.on(pattern, (match?: Match) => {
-      void this.runRenderPhase(render, pattern, match);
+      void this.runRenderPhase(render, pattern, match, phases.entered);
     });
 
     navigo.addBeforeHook(pattern, (done: NavigoDone, match: Match) => {
@@ -107,12 +106,6 @@ export class NavigoProvider implements RoutingEngineProvider {
       });
     }
 
-    if (phases.entered) {
-      navigo.addAfterHook(pattern, (match: Match) => {
-        void this.runOptionalPhase('entered', pattern, match, phases.entered!);
-      });
-    }
-
     if (phases.reentered) {
       navigo.addAlreadyHook(pattern, (match: Match) => {
         void this.runOptionalPhase('reentered', pattern, match, phases.reentered!);
@@ -122,16 +115,22 @@ export class NavigoProvider implements RoutingEngineProvider {
 
   // ——— Phase pipeline ———
 
+  /** `render` then `entered` — both awaited; wired to Navigo `on`. */
   private async runRenderPhase(
     render: ProviderRouteRegistration['render'],
     pattern: string,
-    match?: Match,
+    match: Match | undefined,
+    enteredHandler?: PhaseHandler,
   ): Promise<void> {
     const routeMatch = toRouteMatch(match ?? null, pattern);
     if (!routeMatch) return;
 
     await render(routeMatch);
     this.lastRenderedMatch = routeMatch;
+
+    if (!enteredHandler || !match) return;
+
+    await this.runOptionalPhase('entered', pattern, match, enteredHandler);
   }
 
   /** `onTransition` → `enter` (blocking). Wired to Navigo `addBeforeHook`. */

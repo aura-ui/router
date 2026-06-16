@@ -74,8 +74,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       phases: {
         enter: (ctx) => this.runEnterPhase(route, ctx),
         load: (ctx) => this.runLoadPhase(route, ctx),
+        entering: (ctx) => this.runEnteringPhase(route, ctx),
         entered: (ctx) => this.runEnteredPhase(route, ctx),
         leave: (ctx) => this.runLeavePhase(route, ctx),
+        leaving: (ctx) => this.runLeavingPhase(route, ctx),
         left: (ctx) => this.runLeftPhase(route, ctx),
         reentered: (ctx) => this.runReenteredPhase(route, ctx),
       },
@@ -94,6 +96,13 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     const ctx = this.toLifecycleContext(route, navCtx);
     route.onLoad(ctx);
     return this.runHooks(ctx, route.load);
+  }
+
+  /** entering: route lifecycle → hooks (non-blocking, before render). */
+  private async runEnteringPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
+    const ctx = this.toLifecycleContext(route, navCtx);
+    route.onEntering(ctx);
+    this.warnIgnoredEffectResult(await this.runHooks(ctx, route.entering), route.path, 'entering');
   }
 
   /** entered: route lifecycle → hooks; redirect handled here. */
@@ -116,18 +125,19 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.runHooks(ctx, route.leave);
   }
 
+  /** leaving: route lifecycle → hooks (non-blocking, before teardown). */
+  private async runLeavingPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
+    const ctx = this.toLifecycleContext(route, navCtx);
+    route.onLeaving(ctx);
+    this.warnIgnoredEffectResult(await this.runHooks(ctx, route.leaving), route.path, 'leaving');
+  }
+
   /** left: route teardown → hooks (non-blocking). */
   private async runLeftPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
     const ctx = this.toLifecycleContext(route, navCtx);
     route.onLeft(ctx);
 
-    const result = await this.runHooks(ctx, route.left);
-
-    if (result === false || typeof result === 'string') {
-      console.warn(
-        `left phase hook on "${route.path}" returned ${result === false ? 'false' : 'redirect'} — ignored`,
-      );
-    }
+    this.warnIgnoredEffectResult(await this.runHooks(ctx, route.left), route.path, 'left');
   }
 
   /** reentered: route lifecycle → hooks; redirect handled here. */
@@ -142,6 +152,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
 
     this.engine.rebindLinks();
+  }
+
+  private warnIgnoredEffectResult(result: GuardResult, path: string, phase: string): void {
+    if (result === false || typeof result === 'string') {
+      console.warn(
+        `${phase} phase hook on "${path}" returned ${result === false ? 'false' : 'redirect'} — ignored`,
+      );
+    }
   }
 
   private async runHooks(ctx: RouteLifecycleContext, hookNames: string[]): Promise<GuardResult> {

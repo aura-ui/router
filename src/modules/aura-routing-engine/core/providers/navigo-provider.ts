@@ -22,8 +22,8 @@ type NavigoDone = (value?: boolean) => void;
  *
  * | Aura phase | Navigo API |
  * |------------|------------|
- * | `leave` + `left` | `addLeaveHook` → await leave → await left |
- * | `onTransition` + `enter` + `load` | `addBeforeHook` → await enter → await load |
+ * | `leave` + `leaving` + `left` | `addLeaveHook` → await leave → leaving → left |
+ * | `onTransition` + `enter` + `load` + `entering` | `addBeforeHook` |
  * | `render` + `entered` | `on` → await render → entered |
  * | `reentered` | `addAlreadyHook` |
  *
@@ -97,12 +97,12 @@ export class NavigoProvider implements RoutingEngineProvider {
     });
 
     navigo.addBeforeHook(pattern, (done: NavigoDone, match: Match) => {
-      void this.runEnterPhase(pattern, match, phases.enter, phases.load, done);
+      void this.runEnterPhase(pattern, match, phases.enter, phases.load, phases.entering, done);
     });
 
-    if (phases.leave || phases.left) {
+    if (phases.leave || phases.leaving || phases.left) {
       navigo.addLeaveHook(pattern, (done: NavigoDone, match: Match | Match[]) => {
-        void this.runLeavePhase(pattern, match, phases.leave, phases.left, done);
+        void this.runLeavePhase(pattern, match, phases.leave, phases.leaving, phases.left, done);
       });
     }
 
@@ -133,12 +133,13 @@ export class NavigoProvider implements RoutingEngineProvider {
     await this.runOptionalPhase('entered', pattern, match, enteredHandler);
   }
 
-  /** `onTransition` → `enter` → `load` (blocking). Wired to Navigo `addBeforeHook`. */
+  /** `onTransition` → `enter` → `load` → `entering`. Wired to Navigo `addBeforeHook`. */
   private async runEnterPhase(
     pattern: string,
     match: Match,
     enterHandler: PhaseHandler | undefined,
     loadHandler: PhaseHandler | undefined,
+    enteringHandler: PhaseHandler | undefined,
     done: NavigoDone,
   ): Promise<void> {
     const to = toRouteMatch(match, pattern);
@@ -172,14 +173,19 @@ export class NavigoProvider implements RoutingEngineProvider {
       }
     }
 
+    if (enteringHandler) {
+      await enteringHandler({ phase: 'entering', from, to });
+    }
+
     done();
   }
 
-  /** `leave` (blocking) then `left` (non-blocking). Wired to Navigo `addLeaveHook`. */
+  /** `leave` → `leaving` → `left`. Wired to Navigo `addLeaveHook`. */
   private async runLeavePhase(
     pattern: string,
     match: Match | Match[],
     leaveHandler: PhaseHandler | undefined,
+    leavingHandler: PhaseHandler | undefined,
     leftHandler: PhaseHandler | undefined,
     done: NavigoDone,
   ): Promise<void> {
@@ -192,6 +198,10 @@ export class NavigoProvider implements RoutingEngineProvider {
         done(false);
         return;
       }
+    }
+
+    if (leavingHandler) {
+      await leavingHandler({ ...ctx, phase: 'leaving' });
     }
 
     if (leftHandler) {

@@ -75,6 +75,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         enter: (ctx) => this.runEnterPhase(route, ctx),
         entered: (ctx) => this.runEnteredPhase(route, ctx),
         leave: (ctx) => this.runLeavePhase(route, ctx),
+        left: (ctx) => this.runLeftPhase(route, ctx),
         reentered: (ctx) => this.runReenteredPhase(route, ctx),
       },
     };
@@ -101,17 +102,24 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.engine.rebindLinks();
   }
 
-  /** leave: hooks → route lifecycle (blocking). */
+  /** leave: blocking guards only. */
   private async runLeavePhase(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
     const ctx = this.toLifecycleContext(route, navCtx);
-    const result = await this.runHooks(ctx, route.leave);
+    return this.runHooks(ctx, route.leave);
+  }
+
+  /** left: route teardown → hooks (non-blocking). */
+  private async runLeftPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
+    const ctx = this.toLifecycleContext(route, navCtx);
+    route.onLeft(ctx);
+
+    const result = await this.runHooks(ctx, route.left);
 
     if (result === false || typeof result === 'string') {
-      return result;
+      console.warn(
+        `left phase hook on "${route.path}" returned ${result === false ? 'false' : 'redirect'} — ignored`,
+      );
     }
-
-    route.onLeave(ctx);
-    return undefined;
   }
 
   /** reentered: route lifecycle → hooks; redirect handled here. */

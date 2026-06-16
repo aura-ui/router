@@ -51,6 +51,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   @attr({ parser: parseCommaSeparated }) enter: string[];
   @attr({ parser: parseCommaSeparated }) entered: string[];
   @attr({ parser: parseCommaSeparated }) leave: string[];
+  @attr({ parser: parseCommaSeparated }) left: string[];
   @attr({ parser: parseCommaSeparated }) reentered: string[];
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
@@ -212,11 +213,11 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     console.log(`entered ${this.path}`, ctx.to.path);
   }
 
-  public onLeave(ctx: RouteLifecycleContext): void {
+  public onLeft(ctx: RouteLifecycleContext): void {
     this.isActive = false;
     this.abortController?.abort();
     this.hidden = true;
-    console.log(`leave ${this.path}`, ctx.to.path);
+    console.log(`left ${this.path}`, ctx.to.path);
     if (!this.preserveState) this.textContent = ''; // todo or move to memory template, to restore after
   }
 

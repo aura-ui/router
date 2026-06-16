@@ -1,4 +1,4 @@
-export type RoutePhase = 'enter' | 'entered' | 'leave' | 'reentered';
+export type RoutePhase = 'enter' | 'entered' | 'leave' | 'left' | 'reentered';
 
 export interface RouteInfo {
   path: string;
@@ -12,10 +12,11 @@ export interface RouteInstance {
   enter: string[];
   entered: string[];
   leave: string[];
+  left: string[];
   reentered: string[];
   onEnter(ctx: RouteLifecycleContext): void;
   onEntered(ctx: RouteLifecycleContext): void;
-  onLeave(ctx: RouteLifecycleContext): void;
+  onLeft(ctx: RouteLifecycleContext): void;
   onReentered(ctx: RouteLifecycleContext): void;
 }
 

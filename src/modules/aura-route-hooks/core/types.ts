@@ -6,7 +6,8 @@ export type RoutePhase =
   | 'leave'
   | 'leaving'
   | 'left'
-  | 'reentered';
+  | 'reentered'
+  | 'error';
 
 export interface RouteInfo {
   path: string;
@@ -25,6 +26,7 @@ export interface RouteInstance {
   leaving: string[];
   left: string[];
   reentered: string[];
+  error: string[];
   onEnter(ctx: RouteLifecycleContext): void;
   onEntering(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;
@@ -32,6 +34,7 @@ export interface RouteInstance {
   onLeaving(ctx: RouteLifecycleContext): void;
   onLeft(ctx: RouteLifecycleContext): void;
   onReentered(ctx: RouteLifecycleContext): void;
+  onError(ctx: RouteLifecycleContext): void;
 }
 
 /** Minimal router surface exposed to route hooks. */
@@ -45,6 +48,8 @@ export interface RouteLifecycleContext {
   from: RouteInfo | null;
   router: RouterInstance;
   route: RouteInstance;
+  /** Set on the `error` phase when load or render fails. */
+  error?: unknown;
 }
 
 /** Логика hook — без фазы */

@@ -40,13 +40,15 @@ export type GuardResult = void | boolean | string;
  *
  * `from` / `to` reflect the navigation snapshot at the moment the phase runs:
  * - on `leave` — `from` is the active route (providers MUST set non-null), `to` is the navigation target
- * - on `enter` / `load` / `entered` / `reentered` — `to` is the target route, `from` is the previous route
+ * - on `enter` / `load` / `entered` / `reentered` / `error` — `to` is the target route, `from` is the previous route
  * - on `leaving` / `left` — same snapshot as `leave`: `from` = leaving route, `to` = target
+ * - on `error` — `error` carries the failure from `load` or `render`
  */
 export interface NavigationContext {
   phase: RoutePhase;
   to: RouteMatch;
   from: RouteMatch | null;
+  error?: unknown;
 }
 
 export type PhaseHandler = (
@@ -133,6 +135,8 @@ export interface RoutingEngineBinding {
  *
  * **reentered** — when navigation targets the already active route (same path):
  * skip `leave` + `leaving` + `left` + `enter` + `load` + `entering` + `render`; run only `reentered`.
+ *
+ * **error** — when `load` or `render` throws: run `error` hooks instead of `entered`; navigation stops.
  *
  * Register routes via `registerRoute()` before `start()`.
  */

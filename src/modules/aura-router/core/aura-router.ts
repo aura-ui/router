@@ -73,6 +73,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       render: () => route.render(),
       phases: {
         enter: (ctx) => this.runEnterPhase(route, ctx),
+        load: (ctx) => this.runLoadPhase(route, ctx),
         entered: (ctx) => this.runEnteredPhase(route, ctx),
         leave: (ctx) => this.runLeavePhase(route, ctx),
         left: (ctx) => this.runLeftPhase(route, ctx),
@@ -86,6 +87,13 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     const ctx = this.toLifecycleContext(route, navCtx);
     route.onEnter(ctx);
     return this.runHooks(ctx, route.enter);
+  }
+
+  /** load: route lifecycle → hooks (blocking). */
+  private async runLoadPhase(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
+    const ctx = this.toLifecycleContext(route, navCtx);
+    route.onLoad(ctx);
+    return this.runHooks(ctx, route.load);
   }
 
   /** entered: route lifecycle → hooks; redirect handled here. */

@@ -49,6 +49,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   @attr({ readonly: true, dataAttr: true }) content: string;
 
   @attr({ parser: parseCommaSeparated }) enter: string[];
+  @attr({ parser: parseCommaSeparated }) load: string[];
   @attr({ parser: parseCommaSeparated }) entered: string[];
   @attr({ parser: parseCommaSeparated }) leave: string[];
   @attr({ parser: parseCommaSeparated }) left: string[];
@@ -207,6 +208,11 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   public onEnter(ctx: RouteLifecycleContext): void {
     // lifecycle: enter phase
     console.log(ctx);
+  }
+
+  public onLoad(ctx: RouteLifecycleContext): void {
+    // lifecycle: load phase — prefetch route data before render
+    console.log(`load ${this.path}`, ctx.to.path);
   }
 
   public onEntered(ctx: RouteLifecycleContext): void {

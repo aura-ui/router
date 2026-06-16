@@ -23,7 +23,7 @@ import type {
  *
  * ## Guard results
  *
- * After each blocking phase (`enter`, `leave`):
+ * After each blocking phase (`enter`, `load`, `leave`):
  * 1. Await the phase handler.
  * 2. Call `binding.onGuardResult(result)`.
  * 3. If it returns `true` — abort the pipeline (cancel or redirect already handled).

@@ -40,7 +40,7 @@ export type GuardResult = void | boolean | string;
  *
  * `from` / `to` reflect the navigation snapshot at the moment the phase runs:
  * - on `leave` — `from` is the active route (providers MUST set non-null), `to` is the navigation target
- * - on `enter` / `entered` / `reentered` — `to` is the target route, `from` is the previous route
+ * - on `enter` / `load` / `entered` / `reentered` — `to` is the target route, `from` is the previous route
  * - on `left` — same snapshot as `leave`: `from` = leaving route, `to` = navigation target
  */
 export interface NavigationContext {
@@ -121,15 +121,16 @@ export interface RoutingEngineBinding {
  * 2. left    (from route) — non-blocking cleanup after leave approved
  * 3. onTransition({ from, to }) — engine callback, NOT a route hook
  * 4. enter   (to route)   — blocking; call onGuardResult after handler
- * 5. render(match)
- * 6. entered (to route)
+ * 5. load    (to route)   — blocking; call onGuardResult after handler
+ * 6. render(match)
+ * 7. entered (to route)
  * ```
  *
  * `onTransition` syncs facade state (`current` / `previous`). It is not part of
  * {@link RoutePhaseHandlers} — providers call {@link RoutingEngineBinding.onTransition} directly.
  *
  * **reentered** — when navigation targets the already active route (same path):
- * skip `leave` + `left` + `enter` + `render`; run only `reentered` handlers.
+ * skip `leave` + `left` + `enter` + `load` + `render`; run only `reentered` handlers.
  *
  * Register routes via `registerRoute()` before `start()`.
  */
@@ -138,6 +139,7 @@ export const PHASE_PIPELINE = [
   'left',
   'onTransition',
   'enter',
+  'load',
   'render',
   'entered',
 ] as const;

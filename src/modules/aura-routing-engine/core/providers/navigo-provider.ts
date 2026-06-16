@@ -25,6 +25,7 @@ type NavigoDone = (value?: boolean) => void;
  * | `leave` + `leaving` + `left` | `addLeaveHook` → await leave → leaving → left |
  * | `onTransition` + `enter` + `load` + `entering` | `addBeforeHook` |
  * | `render` + `entered` | `on` → await render → entered |
+ * | `error` | `on` catch — after failed render |
  * | `reentered` | `addAlreadyHook` |
  *
  * `lastRenderedMatch` tracks the route after `render` — used by `leave` hooks.
@@ -93,7 +94,7 @@ export class NavigoProvider implements RoutingEngineProvider {
     const navigo = this.ensureNavigo();
 
     navigo.on(pattern, (match?: Match) => {
-      void this.runRenderPhase(render, pattern, match, phases.entered);
+      void this.runRenderPhase(render, pattern, match, phases.entered, phases.error);
     });
 
     navigo.addBeforeHook(pattern, (done: NavigoDone, match: Match) => {
@@ -115,22 +116,31 @@ export class NavigoProvider implements RoutingEngineProvider {
 
   // ——— Phase pipeline ———
 
-  /** `render` then `entered` — both awaited; wired to Navigo `on`. */
+  /** `render` then `entered`; on failure run `error` instead. Wired to Navigo `on`. */
   private async runRenderPhase(
     render: ProviderRouteRegistration['render'],
     pattern: string,
     match: Match | undefined,
     enteredHandler?: PhaseHandler,
+    errorHandler?: PhaseHandler,
   ): Promise<void> {
     const routeMatch = toRouteMatch(match ?? null, pattern);
     if (!routeMatch) return;
 
-    await render(routeMatch);
-    this.lastRenderedMatch = routeMatch;
+    try {
+      await render(routeMatch);
+      this.lastRenderedMatch = routeMatch;
 
-    if (!enteredHandler || !match) return;
+      if (!enteredHandler || !match) return;
 
-    await this.runOptionalPhase('entered', pattern, match, enteredHandler);
+      await this.runOptionalPhase('entered', pattern, match, enteredHandler);
+    } catch (error) {
+      this.lastRenderedMatch = routeMatch;
+
+      if (!errorHandler || !match) return;
+
+      await this.runErrorPhase(pattern, match, errorHandler, error);
+    }
   }
 
   /** `onTransition` → `enter` → `load` → `entering`. Wired to Navigo `addBeforeHook`. */
@@ -253,6 +263,19 @@ export class NavigoProvider implements RoutingEngineProvider {
     if (!ctx) return;
 
     await handler(ctx);
+  }
+
+  /** `error` — non-blocking; runs when `load` or `render` fails. */
+  private async runErrorPhase(
+    pattern: string,
+    match: Match,
+    handler: PhaseHandler,
+    error: unknown,
+  ): Promise<void> {
+    const ctx = this.phaseContext('error', pattern, match);
+    if (!ctx) return;
+
+    await handler({ ...ctx, error });
   }
 
   private phaseContext(

@@ -80,6 +80,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         leaving: (ctx) => this.runLeavingPhase(route, ctx),
         left: (ctx) => this.runLeftPhase(route, ctx),
         reentered: (ctx) => this.runReenteredPhase(route, ctx),
+        error: (ctx) => this.runErrorPhase(route, ctx),
       },
     };
   }
@@ -91,11 +92,17 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.runHooks(ctx, route.enter);
   }
 
-  /** load: route lifecycle → hooks (blocking). */
+  /** load: route lifecycle → hooks (blocking); failures run `error` phase. */
   private async runLoadPhase(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
     const ctx = this.toLifecycleContext(route, navCtx);
-    route.onLoad(ctx);
-    return this.runHooks(ctx, route.load);
+
+    try {
+      route.onLoad(ctx);
+      return await this.runHooks(ctx, route.load, { onThrow: 'error' });
+    } catch (error) {
+      await this.runErrorPhase(route, navCtx, error);
+      return false;
+    }
   }
 
   /** entering: route lifecycle → hooks (non-blocking, before render). */
@@ -140,6 +147,22 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.warnIgnoredEffectResult(await this.runHooks(ctx, route.left), route.path, 'left');
   }
 
+  /** error: route lifecycle → hooks (non-blocking, after load/render failure). */
+  private async runErrorPhase(
+    route: AURARoute,
+    navCtx: NavigationContext,
+    error?: unknown,
+  ): Promise<void> {
+    const failure = error ?? navCtx.error;
+    const ctx = this.toLifecycleContext(route, {
+      ...navCtx,
+      phase: 'error',
+      ...(failure !== undefined && { error: failure }),
+    });
+    route.onError(ctx);
+    this.warnIgnoredEffectResult(await this.runHooks(ctx, route.error), route.path, 'error');
+  }
+
   /** reentered: route lifecycle → hooks; redirect handled here. */
   private async runReenteredPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
     const ctx = this.toLifecycleContext(route, navCtx);
@@ -162,23 +185,36 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
   }
 
-  private async runHooks(ctx: RouteLifecycleContext, hookNames: string[]): Promise<GuardResult> {
+  private async runHooks(
+    ctx: RouteLifecycleContext,
+    hookNames: string[],
+    options?: { onThrow?: 'cancel' | 'error' },
+  ): Promise<GuardResult> {
     try {
       if (!hookNames.length) return undefined;
       return await RouteHookRegistry.run(hookNames, ctx);
     } catch (error) {
       console.error(error);
+
+      if (options?.onThrow === 'error') {
+        throw error;
+      }
+
       return false;
     }
   }
 
-  private toLifecycleContext(route: AURARoute, navCtx: NavigationContext): RouteLifecycleContext {
+  private toLifecycleContext(
+    route: AURARoute,
+    navCtx: NavigationContext,
+  ): RouteLifecycleContext {
     return {
       phase: navCtx.phase,
       router: this,
       route,
       from: this.toRouteInfo(navCtx.from),
       to: this.toRouteInfo(navCtx.to) ?? { path: '' },
+      ...(navCtx.error !== undefined && { error: navCtx.error }),
     };
   }
 

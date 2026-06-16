@@ -56,6 +56,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   @attr({ parser: parseCommaSeparated }) leaving: string[];
   @attr({ parser: parseCommaSeparated }) left: string[];
   @attr({ parser: parseCommaSeparated }) reentered: string[];
+  @attr({ parser: parseCommaSeparated }) error: string[];
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
@@ -165,13 +166,15 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       if (this.errorTemplate) {
         try {
           this.setContent(getTemplate(this.errorTemplate));
-          return;
         } catch (templateError) {
           console.warn(`Failed to render errorTemplate for route "${this.path}":`, templateError);
+          this.handleRenderError(error);
         }
+      } else {
+        this.handleRenderError(error);
       }
 
-      this.handleRenderError(error);
+      throw error;
     } finally {
       console.log('Rendering finished');
     }
@@ -241,6 +244,10 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
   public onReentered(ctx: RouteLifecycleContext): void {
     console.log(`reentered ${this.path}`, ctx.to.path);
+  }
+
+  public onError(ctx: RouteLifecycleContext): void {
+    console.error(`error ${this.path}`, ctx.error);
   }
 
 /*

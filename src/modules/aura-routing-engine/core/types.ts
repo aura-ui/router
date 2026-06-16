@@ -41,7 +41,7 @@ export type GuardResult = void | boolean | string;
  * `from` / `to` reflect the navigation snapshot at the moment the phase runs:
  * - on `leave` — `from` is the active route (providers MUST set non-null), `to` is the navigation target
  * - on `enter` / `load` / `entered` / `reentered` — `to` is the target route, `from` is the previous route
- * - on `left` — same snapshot as `leave`: `from` = leaving route, `to` = navigation target
+ * - on `leaving` / `left` — same snapshot as `leave`: `from` = leaving route, `to` = target
  */
 export interface NavigationContext {
   phase: RoutePhase;
@@ -117,29 +117,33 @@ export interface RoutingEngineBinding {
  * Required navigation pipeline for all providers.
  *
  * ```
- * 1. leave   (from route) — blocking; call onGuardResult after handler
- * 2. left    (from route) — non-blocking cleanup after leave approved
- * 3. onTransition({ from, to }) — engine callback, NOT a route hook
- * 4. enter   (to route)   — blocking; call onGuardResult after handler
- * 5. load    (to route)   — blocking; call onGuardResult after handler
- * 6. render(match)
- * 7. entered (to route)
+ * 1. leave    (from route) — blocking; call onGuardResult after handler
+ * 2. leaving  (from route) — non-blocking; transition out (animation)
+ * 3. left     (from route) — non-blocking cleanup after leave approved
+ * 4. onTransition({ from, to }) — engine callback, NOT a route hook
+ * 5. enter    (to route)   — blocking; call onGuardResult after handler
+ * 6. load     (to route)   — blocking; call onGuardResult after handler
+ * 7. entering (to route)   — non-blocking; transition in (animation)
+ * 8. render(match)
+ * 9. entered  (to route)
  * ```
  *
  * `onTransition` syncs facade state (`current` / `previous`). It is not part of
  * {@link RoutePhaseHandlers} — providers call {@link RoutingEngineBinding.onTransition} directly.
  *
  * **reentered** — when navigation targets the already active route (same path):
- * skip `leave` + `left` + `enter` + `load` + `render`; run only `reentered` handlers.
+ * skip `leave` + `leaving` + `left` + `enter` + `load` + `entering` + `render`; run only `reentered`.
  *
  * Register routes via `registerRoute()` before `start()`.
  */
 export const PHASE_PIPELINE = [
   'leave',
+  'leaving',
   'left',
   'onTransition',
   'enter',
   'load',
+  'entering',
   'render',
   'entered',
 ] as const;

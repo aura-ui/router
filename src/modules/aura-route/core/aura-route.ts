@@ -49,9 +49,11 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   @attr({ readonly: true, dataAttr: true }) content: string;
 
   @attr({ parser: parseCommaSeparated }) enter: string[];
+  @attr({ parser: parseCommaSeparated }) entering: string[];
   @attr({ parser: parseCommaSeparated }) load: string[];
   @attr({ parser: parseCommaSeparated }) entered: string[];
   @attr({ parser: parseCommaSeparated }) leave: string[];
+  @attr({ parser: parseCommaSeparated }) leaving: string[];
   @attr({ parser: parseCommaSeparated }) left: string[];
   @attr({ parser: parseCommaSeparated }) reentered: string[];
 
@@ -215,8 +217,18 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     console.log(`load ${this.path}`, ctx.to.path);
   }
 
+  public onEntering(ctx: RouteLifecycleContext): void {
+    // lifecycle: entering phase — transition in before render
+    console.log(`entering ${this.path}`, ctx.to.path);
+  }
+
   public onEntered(ctx: RouteLifecycleContext): void {
     console.log(`entered ${this.path}`, ctx.to.path);
+  }
+
+  public onLeaving(ctx: RouteLifecycleContext): void {
+    // lifecycle: leaving phase — transition out before teardown
+    console.log(`leaving ${this.path}`, ctx.to.path);
   }
 
   public onLeft(ctx: RouteLifecycleContext): void {

@@ -48,6 +48,8 @@ export interface RouteLifecycleContext {
   from: RouteInfo | null;
   router: RouterInstance;
   route: RouteInstance;
+  jobId: number;
+  signal: AbortSignal;
   /** Set on the `error` phase when load or render fails. */
   error?: unknown;
 }

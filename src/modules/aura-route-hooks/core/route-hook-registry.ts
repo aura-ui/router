@@ -42,11 +42,14 @@ export class RouteHookRegistry {
   static async run(
     names: string[],
     ctx: RouteLifecycleContext,
+    options?: { isStale?: () => boolean }
   ): Promise<boolean | void | string> {
     const hookCtx: RouteHookContext = { ...ctx, options: {} };
     const routePath = ctx.route.path;
 
     for (const name of names) {
+      if (options?.isStale?.()) return undefined;
+
       const entry = this.registry.get(name);
 
       if (!entry) {
@@ -57,6 +60,9 @@ export class RouteHookRegistry {
       hookCtx.options = entry.options;
 
       const result = await entry.fn(hookCtx);
+
+      if (options?.isStale?.()) return undefined;
+
       if (isTerminalResult(result)) {
         return result;
       }

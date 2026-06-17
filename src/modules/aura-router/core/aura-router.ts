@@ -14,6 +14,7 @@ import {
   type RouteMatch,
   type RouteRegistration,
 } from '../../aura-routing-engine/core';
+import { NavigationJobManager } from './navigation-job';
 
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
@@ -21,6 +22,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' }) linksSelector: string;
 
   private engine!: RoutingEngine;
+
+  private readonly jobManager = new NavigationJobManager();
 
   static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
     RouteHookRegistry.register(hook, options);
@@ -40,11 +43,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   disconnectedCallback(): void {
+    this.jobManager.invalidate(); // routerGeneration++, abort job
     this.engine?.destroy();
   }
 
-  navigate(path: string): void {
-    this.engine.navigate(path);
+  navigate(path: string, options?: { replace?: boolean }): void {
+    // intent можно передать в begin() при следующем resolveForPhase,
+    // если сохранять pendingIntent на router до старта pipeline
+    this.engine.navigate(path, options);
   }
 
   private collectRoutes(): Map<string, AURARoute> {
@@ -57,6 +63,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   private setupRouting(routes: Map<string, AURARoute>): void {
+    this.jobManager.invalidate(); // re-connect / HMR — отрезать старые hooks
     this.engine = RoutingEngine.create('navigo', {
       root: '/',
       strategy: 'ONE',
@@ -70,7 +77,17 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private toRouteRegistration(route: AURARoute): RouteRegistration {
     return {
       pattern: route.path,
-      render: () => route.render(),
+      render: async () => {
+        const job = this.jobManager.requireActive();
+        const onAbort = () => route.cancelPendingRender();
+        job.signal.addEventListener('abort', onAbort, { once: true });
+        try {
+          await route.render();
+        } finally {
+          job.signal.removeEventListener('abort', onAbort);
+        }
+        if (job.aborted) return; // stale render — не rebindLinks и т.д.
+      },
       phases: {
         enter: (ctx) => this.runEnterPhase(route, ctx),
         load: (ctx) => this.runLoadPhase(route, ctx),
@@ -109,14 +126,22 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private async runEnteringPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
     const ctx = this.toLifecycleContext(route, navCtx);
     route.onEntering(ctx);
-    this.warnIgnoredEffectResult(await this.runHooks(ctx, route.entering), route.path, 'entering');
+    this.warnIgnoredEffectResult(
+      await this.runHooks(ctx, route.entering, { blocking: false }),
+      route.path,
+      'entering',
+    );
   }
 
   /** entered: route lifecycle → hooks; redirect handled here. */
   private async runEnteredPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
     const ctx = this.toLifecycleContext(route, navCtx);
+    const generation = this.jobManager.routerGeneration;
+    const job = this.jobManager.requireActive();
     route.onEntered(ctx);
-    const result = await this.runHooks(ctx, route.entered);
+    const result = await this.runHooks(ctx, route.entered, { blocking: false });
+
+    if (this.jobManager.isStale(job, generation)) return;
 
     if (typeof result === 'string') {
       this.navigate(result);
@@ -136,7 +161,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private async runLeavingPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
     const ctx = this.toLifecycleContext(route, navCtx);
     route.onLeaving(ctx);
-    this.warnIgnoredEffectResult(await this.runHooks(ctx, route.leaving), route.path, 'leaving');
+    this.warnIgnoredEffectResult(
+      await this.runHooks(ctx, route.leaving, { blocking: false }),
+      route.path,
+      'leaving',
+    );
   }
 
   /** left: route teardown → hooks (non-blocking). */
@@ -144,7 +173,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     const ctx = this.toLifecycleContext(route, navCtx);
     route.onLeft(ctx);
 
-    this.warnIgnoredEffectResult(await this.runHooks(ctx, route.left), route.path, 'left');
+    this.warnIgnoredEffectResult(
+      await this.runHooks(ctx, route.left, { blocking: false }),
+      route.path,
+      'left',
+    );
   }
 
   /** error: route lifecycle → hooks (non-blocking, after load/render failure). */
@@ -160,14 +193,22 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       ...(failure !== undefined && { error: failure }),
     });
     route.onError(ctx);
-    this.warnIgnoredEffectResult(await this.runHooks(ctx, route.error), route.path, 'error');
+    this.warnIgnoredEffectResult(
+      await this.runHooks(ctx, route.error, { blocking: false }),
+      route.path,
+      'error',
+    );
   }
 
   /** reentered: route lifecycle → hooks; redirect handled here. */
   private async runReenteredPhase(route: AURARoute, navCtx: NavigationContext): Promise<void> {
     const ctx = this.toLifecycleContext(route, navCtx);
+    const generation = this.jobManager.routerGeneration;
+    const job = this.jobManager.requireActive();
     route.onReentered(ctx);
-    const result = await this.runHooks(ctx, route.reentered);
+    const result = await this.runHooks(ctx, route.reentered, { blocking: false });
+
+    if (this.jobManager.isStale(job, generation)) return;
 
     if (typeof result === 'string') {
       this.navigate(result);
@@ -188,12 +229,28 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private async runHooks(
     ctx: RouteLifecycleContext,
     hookNames: string[],
-    options?: { onThrow?: 'cancel' | 'error' },
+    options?: { onThrow?: 'cancel' | 'error'; blocking?: boolean },
   ): Promise<GuardResult> {
+    const generation = this.jobManager.routerGeneration;
+    const job = this.jobManager.requireActive();
+    const isStale = () => this.jobManager.isStale(job, generation);
+
+
     try {
       if (!hookNames.length) return undefined;
-      return await RouteHookRegistry.run(hookNames, ctx);
+      const result = await RouteHookRegistry.run(hookNames, ctx, { isStale });
+
+      if (isStale()) {
+        // blocking: enter/load/leave → cancel navigation
+        // effect: entering/entered/left → тихо выйти
+        return options?.blocking === false ? undefined : false;
+      }
+      return result;
+
     } catch (error) {
+      if (isStale()) {
+        return options?.blocking === false ? undefined : false;
+      }
       console.error(error);
 
       if (options?.onThrow === 'error') {
@@ -208,12 +265,15 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     route: AURARoute,
     navCtx: NavigationContext,
   ): RouteLifecycleContext {
+    const job = this.jobManager.resolveForPhase(navCtx.phase);
     return {
       phase: navCtx.phase,
       router: this,
       route,
       from: this.toRouteInfo(navCtx.from),
       to: this.toRouteInfo(navCtx.to) ?? { path: '' },
+      jobId: job.id,
+      signal: job.signal,
       ...(navCtx.error !== undefined && { error: navCtx.error }),
     };
   }

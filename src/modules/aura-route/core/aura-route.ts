@@ -199,6 +199,11 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     this.abortController = new AbortController();
   }
 
+  /** Abort in-flight content load for the current render (called by router on job abort). */
+  cancelPendingRender(): void {
+    this.abortController?.abort();
+  }
+
   protected setContent($content: Node | string) {
     if (!this.isActive) return;
     if ($content instanceof Node) {

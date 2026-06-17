@@ -3,9 +3,11 @@ import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../../aur
 import type { AURARoute } from '../../aura-route/core';
 import type { GuardResult, NavigationContext, RouteMatch } from '../../aura-routing-engine/core';
 import type { NavigationJobManager } from './navigation-job';
+import type { NavigationCoordinator } from './navigation-coordinator';
 
 export interface NavigationPhaseRunnerDeps {
   jobManager: NavigationJobManager;
+  coordinator: NavigationCoordinator;
   router: RouterInstance;
   navigate: (path: string, options?: { replace?: boolean }) => void;
   rebindLinks: () => void;
@@ -24,18 +26,25 @@ export class NavigationPhaseRunner {
 
   /** enter: route lifecycle → hooks (blocking). */
   async runEnter(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-    route.onEnter(ctx);
-    return this.runHooks(ctx, route.enter);
+    return this.deps.coordinator.runPrepare({
+      enter: async () => {
+        const ctx = this.toLifecycleContext(route, navCtx);
+        route.onEnter(ctx);
+        return this.runHooks(ctx, route.enter);
+      },
+    });
   }
 
   /** load: route lifecycle → hooks (blocking); failures run `error` phase. */
   async runLoad(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-
     try {
-      route.onLoad(ctx);
-      return await this.runHooks(ctx, route.load, { onThrow: 'error' });
+      return await this.deps.coordinator.runPrepare({
+        load: async () => {
+          const ctx = this.toLifecycleContext(route, navCtx);
+          route.onLoad(ctx);
+          return this.runHooks(ctx, route.load, { onThrow: 'error' });
+        },
+      });
     } catch (error) {
       await this.runError(route, navCtx, error);
       return false;
@@ -44,59 +53,79 @@ export class NavigationPhaseRunner {
 
   /** entering: route lifecycle → hooks (non-blocking, before render). */
   async runEntering(route: AURARoute, navCtx: NavigationContext): Promise<void> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-    route.onEntering(ctx);
-    this.warnIgnoredEffectResult(
-      await this.runHooks(ctx, route.entering, { blocking: false }),
-      route.path,
-      'entering',
-    );
+    await this.deps.coordinator.runPost({
+      entering: async () => {
+        const ctx = this.toLifecycleContext(route, navCtx);
+        route.onEntering(ctx);
+        this.warnIgnoredEffectResult(
+          await this.runHooks(ctx, route.entering, { blocking: false }),
+          route.path,
+          'entering',
+        );
+      },
+    });
   }
 
   /** entered: route lifecycle → hooks; redirect handled here. */
   async runEntered(route: AURARoute, navCtx: NavigationContext): Promise<void> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-    const generation = this.deps.jobManager.routerGeneration;
-    const job = this.deps.jobManager.requireActive();
-    route.onEntered(ctx);
-    const result = await this.runHooks(ctx, route.entered, { blocking: false });
+    await this.deps.coordinator.runPost({
+      entered: async () => {
+        const ctx = this.toLifecycleContext(route, navCtx);
+        const generation = this.deps.jobManager.routerGeneration;
+        const job = this.deps.jobManager.requireActive();
+        route.onEntered(ctx);
+        const result = await this.runHooks(ctx, route.entered, { blocking: false });
 
-    if (this.deps.jobManager.isStale(job, generation)) return;
+        if (this.deps.jobManager.isStale(job, generation)) return;
 
-    if (typeof result === 'string') {
-      this.deps.navigate(result);
-      return;
-    }
+        if (typeof result === 'string') {
+          this.deps.navigate(result);
+          return;
+        }
 
-    this.deps.rebindLinks();
+        this.deps.rebindLinks();
+      },
+    });
   }
 
   /** leave: blocking guards only. */
   async runLeave(route: AURARoute, navCtx: NavigationContext): Promise<GuardResult> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-    return this.runHooks(ctx, route.leave);
+    return this.deps.coordinator.runPrepare({
+      leave: async () => {
+        const ctx = this.toLifecycleContext(route, navCtx);
+        return this.runHooks(ctx, route.leave);
+      },
+    });
   }
 
   /** leaving: route lifecycle → hooks (non-blocking, before teardown). */
   async runLeaving(route: AURARoute, navCtx: NavigationContext): Promise<void> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-    route.onLeaving(ctx);
-    this.warnIgnoredEffectResult(
-      await this.runHooks(ctx, route.leaving, { blocking: false }),
-      route.path,
-      'leaving',
-    );
+    await this.deps.coordinator.runPost({
+      leaving: async () => {
+        const ctx = this.toLifecycleContext(route, navCtx);
+        route.onLeaving(ctx);
+        this.warnIgnoredEffectResult(
+          await this.runHooks(ctx, route.leaving, { blocking: false }),
+          route.path,
+          'leaving',
+        );
+      },
+    });
   }
 
   /** left: route teardown → hooks (non-blocking). */
   async runLeft(route: AURARoute, navCtx: NavigationContext): Promise<void> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-    route.onLeft(ctx);
-    this.warnIgnoredEffectResult(
-      await this.runHooks(ctx, route.left, { blocking: false }),
-      route.path,
-      'left',
-    );
+    await this.deps.coordinator.runPost({
+      left: async () => {
+        const ctx = this.toLifecycleContext(route, navCtx);
+        route.onLeft(ctx);
+        this.warnIgnoredEffectResult(
+          await this.runHooks(ctx, route.left, { blocking: false }),
+          route.path,
+          'left',
+        );
+      },
+    });
   }
 
   /** error: route lifecycle → hooks (non-blocking, after load/render failure). */
@@ -105,36 +134,40 @@ export class NavigationPhaseRunner {
     navCtx: NavigationContext,
     error?: unknown,
   ): Promise<void> {
-    const failure = error ?? navCtx.error;
-    const ctx = this.toLifecycleContext(route, {
-      ...navCtx,
-      phase: 'error',
-      ...(failure !== undefined && { error: failure }),
+    await this.deps.coordinator.runError(async () => {
+      const failure = error ?? navCtx.error;
+      const ctx = this.toLifecycleContext(route, {
+        ...navCtx,
+        phase: 'error',
+        ...(failure !== undefined && { error: failure }),
+      });
+      route.onError(ctx);
+      this.warnIgnoredEffectResult(
+        await this.runHooks(ctx, route.error, { blocking: false }),
+        route.path,
+        'error',
+      );
     });
-    route.onError(ctx);
-    this.warnIgnoredEffectResult(
-      await this.runHooks(ctx, route.error, { blocking: false }),
-      route.path,
-      'error',
-    );
   }
 
   /** reentered: route lifecycle → hooks; redirect handled here. */
   async runReentered(route: AURARoute, navCtx: NavigationContext): Promise<void> {
-    const ctx = this.toLifecycleContext(route, navCtx);
-    const generation = this.deps.jobManager.routerGeneration;
-    const job = this.deps.jobManager.requireActive();
-    route.onReentered(ctx);
-    const result = await this.runHooks(ctx, route.reentered, { blocking: false });
+    await this.deps.coordinator.runReentered(async () => {
+      const ctx = this.toLifecycleContext(route, navCtx);
+      const generation = this.deps.jobManager.routerGeneration;
+      const job = this.deps.jobManager.requireActive();
+      route.onReentered(ctx);
+      const result = await this.runHooks(ctx, route.reentered, { blocking: false });
 
-    if (this.deps.jobManager.isStale(job, generation)) return;
+      if (this.deps.jobManager.isStale(job, generation)) return;
 
-    if (typeof result === 'string') {
-      this.deps.navigate(result);
-      return;
-    }
+      if (typeof result === 'string') {
+        this.deps.navigate(result);
+        return;
+      }
 
-    this.deps.rebindLinks();
+      this.deps.rebindLinks();
+    });
   }
 
   private warnIgnoredEffectResult(result: GuardResult, path: string, phase: string): void {

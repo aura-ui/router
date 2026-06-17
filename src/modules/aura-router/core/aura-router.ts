@@ -4,6 +4,7 @@ import { RouteHookRegistry } from '../../aura-route-hooks/core';
 import type { RouteHookDefinition, RouterInstance } from '../../aura-route-hooks/core';
 import { RoutingEngine, type RouteRegistration } from '../../aura-routing-engine/core';
 import { NavigationJobManager } from './navigation-job';
+import { NavigationCoordinator } from './navigation-coordinator';
 import { NavigationPhaseRunner } from './navigation-phase-runner';
 
 export class AuraRouter extends HTMLElement implements RouterInstance {
@@ -15,6 +16,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private phaseRunner!: NavigationPhaseRunner;
 
   private readonly jobManager = new NavigationJobManager();
+  private readonly coordinator = new NavigationCoordinator();
 
   static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
     RouteHookRegistry.register(hook, options);
@@ -62,6 +64,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     });
     this.phaseRunner = new NavigationPhaseRunner({
       jobManager: this.jobManager,
+      coordinator: this.coordinator,
       router: this,
       navigate: (path, options) => this.navigate(path, options),
       rebindLinks: () => this.engine.rebindLinks(),
@@ -75,16 +78,19 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return {
       pattern: route.path,
       render: async () => {
+        await this.coordinator.runCommit(async () => {
+          const job = this.jobManager.requireActive();
+          const onAbort = () => route.cancelPendingRender();
+          job.signal.addEventListener('abort', onAbort, { once: true });
+
+          try {
+            await route.render();
+          } finally {
+            job.signal.removeEventListener('abort', onAbort);
+          }
+        });
+
         const job = this.jobManager.requireActive();
-        const onAbort = () => route.cancelPendingRender();
-        job.signal.addEventListener('abort', onAbort, { once: true });
-
-        try {
-          await route.render();
-        } finally {
-          job.signal.removeEventListener('abort', onAbort);
-        }
-
         if (job.aborted) return;
       },
       phases: {

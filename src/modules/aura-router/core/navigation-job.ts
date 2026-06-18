@@ -70,9 +70,9 @@ export class NavigationJobManager {
    * Abort the previous job and start a new one.
    * Call at the start of a navigation pipeline (`leave`, `enter` without prior leave, `reentered`).
    */
-  begin(): NavigationJob {
+  begin(intent: NavigationIntent = 'system'): NavigationJob {
     this._active?.abort();
-    const job = new NavigationJob(++this.nextId);
+    const job = new NavigationJob(++this.nextId, intent);
     this._active = job;
     return job;
   }
@@ -112,18 +112,4 @@ export class NavigationJobManager {
     return !this.isRouterGeneration(capturedGeneration) || !this.isCurrent(job);
   }
 
-  /**
-   * Resolve job for the current phase — one id per navigation, not per phase.
-   */
-  resolveForPhase(phase: 'leave' | 'enter' | 'reentered' | string): NavigationJob {
-    if (phase === 'leave' || phase === 'reentered') {
-      return this.begin();
-    }
-
-    if (phase === 'enter' && !this.hasActive()) {
-      return this.begin();
-    }
-
-    return this.requireActive();
-  }
 }

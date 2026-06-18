@@ -4,6 +4,8 @@ export type {
   RoutingEngineConfig,
   GuardResult,
   NavigationContext,
+  NavigationEvent,
+  NavigationIntent,
   PhaseHandler,
   RoutePhaseHandlers,
   RouteRenderHandler,
@@ -20,7 +22,7 @@ export type { NavigoRoutingStrategy, NavigoProviderConfig } from './core/provide
 
 export { NavigoProvider, createNavigoProvider } from './core/providers/navigo-provider';
 
-export type { RoutingEngineOptions } from './core/routing-engine';
+export type { RoutingEngineOptions, NavigationHandler } from './core/routing-engine';
 
 export type {
   RoutingEngineProvider,

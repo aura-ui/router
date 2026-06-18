@@ -2,8 +2,8 @@ import type { RoutingEngineProvider } from './provider';
 import type { RoutingEngineConfig } from './types';
 import { RoutingProviderRegistry } from './provider-registry';
 import type {
-  GuardResult,
   NavigateOptions,
+  NavigationEvent,
   NotFoundHandler,
   RouteMatch,
   RouteRegistration,
@@ -13,37 +13,22 @@ export interface RoutingEngineOptions {
   provider: RoutingEngineProvider;
 }
 
+export type NavigationHandler = (event: NavigationEvent) => Promise<boolean>;
+
 /**
  * Framework-agnostic routing facade.
  *
- * Orchestrates route registration and delegates URL matching / navigation
- * to a pluggable {@link RoutingEngineProvider}.
- *
- * ## Typical lifecycle
- *
- * 1. `RoutingEngine.create(providerId, config)`
- * 2. `register()` / `registerAll()` — all routes before `start()`
- * 3. `setNotFoundHandler()` — optional
- * 4. `start()` — handle the initial URL
- * 5. `destroy()` — full teardown (also clears route registrations)
- *
- * Use `clearRoutes()` instead of `destroy()` when re-collecting routes from DOM:
- * Navigo is torn down but registrations are kept for the next `start()`.
- *
- * @example
- * const engine = RoutingEngine.create('navigo', {
- *   root: '/',
- *   linksSelector: '[data-router-link]',
- * });
+ * Provider reports {@link NavigationEvent} (`from` / `to`); orchestration runs via
+ * {@link setNavigationHandler} (typically NavigationCoordinator in aura-router).
  */
 export class RoutingEngine {
   private readonly provider: RoutingEngineProvider;
   private readonly routes = new Map<string, RouteRegistration>();
+  private navigationHandler?: NavigationHandler;
   private current: RouteMatch | null = null;
   private previous: RouteMatch | null = null;
   private started = false;
 
-  /** Create an engine with a registered provider and full config. */
   static create<T extends RoutingEngineConfig>(
     providerId: string,
     config: T,
@@ -56,20 +41,19 @@ export class RoutingEngine {
   constructor(options: RoutingEngineOptions) {
     this.provider = options.provider;
     this.provider.bind({
-      onTransition: (transition) => {
-        this.previous = transition.from;
-        this.current = transition.to;
-      },
-      onGuardResult: (result) => this.handleGuardResult(result),
+      onNavigate: async (event) => this.handleNavigate(event),
     });
   }
 
-  /** Underlying provider adapter (for debugging / advanced use). */
   get providerId(): string {
     return this.provider.id;
   }
 
-  /** Register a route pattern. Duplicate patterns overwrite with a warning. */
+  /** Wire coordinator-owned navigation pipeline. */
+  setNavigationHandler(handler: NavigationHandler): void {
+    this.navigationHandler = handler;
+  }
+
   register(registration: RouteRegistration): void {
     const { pattern } = registration;
 
@@ -79,29 +63,25 @@ export class RoutingEngine {
 
     this.routes.set(pattern, registration);
 
-    this.provider.registerRoute({
-      pattern,
-      render: (match) => registration.render(match),
-      phases: registration.phases ?? {},
-    });
+    this.provider.registerRoute({ pattern });
   }
 
-  /** Register multiple routes at once. */
   registerAll(registrations: RouteRegistration[]): void {
     registrations.forEach((r) => this.register(r));
   }
 
-  /** Return a snapshot of registered route patterns. */
   getRegisteredPatterns(): string[] {
     return [...this.routes.keys()];
   }
 
-  /** Last matched route in this engine instance. */
+  getRoute(pattern: string): RouteRegistration | undefined {
+    return this.routes.get(pattern);
+  }
+
   getCurrentMatch(): RouteMatch | null {
     return this.current;
   }
 
-  /** Route matched before the current one. */
   getPreviousMatch(): RouteMatch | null {
     return this.previous;
   }
@@ -110,21 +90,17 @@ export class RoutingEngine {
     this.provider.setNotFoundHandler(handler);
   }
 
-  /**
-   * Start the engine. Call after all routes are registered.
-   * Provider handles the initial URL match internally.
-   */
   start(): void {
     if (this.started) return;
     this.started = true;
     this.provider.start();
   }
 
-  /** Full teardown — destroys the provider and clears all route registrations. */
   destroy(): void {
     this.started = false;
     this.provider.destroy();
     this.routes.clear();
+    this.navigationHandler = undefined;
     this.current = null;
     this.previous = null;
   }
@@ -133,15 +109,10 @@ export class RoutingEngine {
     this.provider.navigate(path, options);
   }
 
-  /** Re-bind link interception after route content renders. */
   rebindLinks(): void {
     this.provider.rebindLinks?.();
   }
 
-  /**
-   * Reset navigation state and tear down the provider instance.
-   * Route registrations are **kept** — call `register()` again only when patterns change.
-   */
   clearRoutes(): void {
     this.routes.clear();
     this.current = null;
@@ -149,15 +120,19 @@ export class RoutingEngine {
     this.provider.clearRoutes?.();
   }
 
-  /** @returns `true` when navigation must stop. */
-  private handleGuardResult(result: GuardResult): boolean {
-    if (result === false) return true;
-
-    if (typeof result === 'string') {
-      this.navigate(result);
-      return true;
+  private async handleNavigate(event: NavigationEvent): Promise<boolean> {
+    if (!this.navigationHandler) {
+      console.warn('RoutingEngine: no navigation handler — navigation ignored');
+      return false;
     }
 
-    return false;
+    const ok = await this.navigationHandler(event);
+
+    if (ok) {
+      this.previous = event.from;
+      this.current = event.to;
+    }
+
+    return ok;
   }
 }

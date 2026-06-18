@@ -28,7 +28,7 @@ export interface RoutingEngineConfig {
 /**
  * Phase guard result — return-based, provider-agnostic.
  *
- * Interpretation (handled by the facade via {@link RoutingEngineBinding.onGuardResult}):
+ * Interpretation (handled by NavigationCoordinator):
  * - `void` / `true` — allow navigation to continue
  * - `false` — cancel the current navigation
  * - `string` — redirect to the given path (facade calls `navigate()`)
@@ -68,51 +68,55 @@ export type RouteRenderHandler = (match: RouteMatch) => void | Promise<void>;
 /** Called when no registered route matches the URL. */
 export type NotFoundHandler = (url: string) => void;
 
+export type NavigationIntent = 'push' | 'replace' | 'pop' | 'system';
+
 /**
- * Committed navigation transition — reported to the facade.
- *
- * The provider MUST call {@link RoutingEngineBinding.onTransition} once per navigation,
- * after a successful match and **before** the `enter` phase handlers run.
+ * Navigation event reported by the provider to the facade.
+ * Phase orchestration is owned by NavigationCoordinator — not the provider.
  */
+export interface NavigationEvent {
+  from: RouteMatch | null;
+  to: RouteMatch;
+  intent: NavigationIntent;
+  /** Same route re-navigation (skip full transition, run `reentered` only). */
+  reentered: boolean;
+}
+
+/** @deprecated Use {@link NavigationEvent}. */
 export interface NavigationTransition {
   from: RouteMatch | null;
   to: RouteMatch;
 }
 
-/** Public route registration — used by `AURARouter` when wiring is migrated. */
+/** Public route registration — used by `AURARouter` when wiring routes. */
 export interface RouteRegistration {
   /** Registered route pattern, e.g. `/user/:id`. */
   pattern: string;
-  render: RouteRenderHandler;
+  /** Optional — `AURARouter` commits via `renderRoute()` instead. */
+  render?: RouteRenderHandler;
   phases?: RoutePhaseHandlers;
 }
 
 /** Payload passed from the facade to a provider adapter. */
 export interface ProviderRouteRegistration {
   pattern: string;
-  render: RouteRenderHandler;
-  phases: RoutePhaseHandlers;
+  /** Legacy Navigo adapter — ignored by internal provider. */
+  render?: RouteRenderHandler;
+  phases?: RoutePhaseHandlers;
 }
 
 /**
  * Callbacks the facade exposes to the provider.
  *
- * Wired once via {@link RoutingEngineProvider.bind} before `start()`.
+ * Internal provider calls {@link onNavigate} once per navigation with `from` / `to`.
+ * Coordinator owns the phase pipeline (prepare → commit → post).
  */
 export interface RoutingEngineBinding {
   /**
-   * Sync facade navigation state.
-   * Call after match, before `enter` phase handlers.
+   * Run the full navigation transaction.
+   * @returns `true` when navigation committed; `false` when cancelled (provider may rollback history).
    */
-  onTransition(transition: NavigationTransition): void;
-
-  /**
-   * Process a {@link GuardResult} from a blocking phase (`enter` or `leave`).
-   * Return `true` when navigation must stop (cancelled or redirected).
-   *
-   * The provider MUST await the phase handler and call this before continuing the pipeline.
-   */
-  onGuardResult(result: GuardResult): boolean | Promise<boolean>;
+  onNavigate(event: NavigationEvent): Promise<boolean>;
 }
 
 /**

@@ -1,84 +1,165 @@
-import type { GuardResult } from '../../aura-routing-engine/core';
+import type { AURARoute } from '../../aura-route/core';
+import type { GuardResult, NavigationContext, NavigationEvent, RouteMatch } from '../../aura-routing-engine/core';
+import type { NavigationJobManager } from './navigation-job';
+import type { NavigationPhaseRunner } from './navigation-phase-runner';
+import { buildPlan } from './transition-plan';
 
-function isTerminalGuardResult(result: GuardResult): result is false | string {
-  return result === false || typeof result === 'string';
+export interface NavigationCoordinatorDeps {
+  jobManager: NavigationJobManager;
+  phaseRunner: NavigationPhaseRunner;
+  getRoute: (pattern: string) => AURARoute | undefined;
+  renderRoute: (route: AURARoute) => Promise<void>;
+  navigate: (path: string, options?: { replace?: boolean }) => void;
+  rebindLinks: () => void;
 }
-
-export type NavigationPrepareHandlers = {
-  /**
-   * Exit guard(s) for the leaving route(s).
-   * Should return `false` to cancel, or `string` to redirect.
-   */
-  leave?: () => Promise<GuardResult> | GuardResult;
-  /**
-   * Enter guard(s) for the target route(s).
-   * Should return `false` to cancel, or `string` to redirect.
-   */
-  enter?: () => Promise<GuardResult> | GuardResult;
-  /**
-   * Data loading for the target route(s).
-   * Should return `false` to cancel, or `string` to redirect.
-   */
-  load?: () => Promise<GuardResult> | GuardResult;
-};
-
-export type NavigationPostHandlers = {
-  /** Non-blocking effects before teardown (animation out). */
-  leaving?: () => Promise<void> | void;
-  /** Non-blocking teardown + cleanup. */
-  left?: () => Promise<void> | void;
-  /** Non-blocking effects before showing (animation in). */
-  entering?: () => Promise<void> | void;
-  /** Non-blocking effects after showing. */
-  entered?: () => Promise<void> | void;
-};
 
 /**
- * NavigationCoordinator orchestrates a single navigation as a transaction:
+ * NavigationCoordinator orchestrates a navigation transaction:
  *
- * - prepare: guards + loads (no UI commit)
- * - commit: render / patch UI (commit point)
- * - post: effects and cleanup (non-blocking)
- *
- * Not wired yet — intended for stage 3+ (see docs/IMPLEMENTATION_STEPS.md).
+ * - **Prepare** (pre-commit): deactivate `leave` (bubble) → activate `enter` + `load` (capture)
+ * - **Pre-commit effects**: activate `entering`
+ * - **Commit**: `render` (commit point)
+ * - **Post-commit**: deactivate `leaving` + `left` (bubble) → activate `entered` (capture)
  */
 export class NavigationCoordinator {
-  async runPrepare(handlers: NavigationPrepareHandlers): Promise<GuardResult> {
-    if (handlers.leave) {
-      const result = await handlers.leave();
-      if (isTerminalGuardResult(result)) return result;
+  private readonly deps: NavigationCoordinatorDeps;
+
+  constructor(deps: NavigationCoordinatorDeps) {
+    this.deps = deps;
+  }
+
+  async run(event: NavigationEvent): Promise<boolean> {
+    const plan = buildPlan(event.from, event.to);
+    const toRoute = this.deps.getRoute(event.to.pattern);
+
+    if (!toRoute) {
+      console.warn(`NavigationCoordinator: no route for pattern "${event.to.pattern}"`);
+      return false;
     }
 
-    if (handlers.enter) {
-      const result = await handlers.enter();
-      if (isTerminalGuardResult(result)) return result;
+    const fromRoute = plan.deactivate[0]
+      ? this.deps.getRoute(plan.deactivate[0].pattern)
+      : undefined;
+
+    if (plan.reentered) {
+      return this.runReenteredOnly(toRoute, event);
     }
 
-    if (handlers.load) {
-      const result = await handlers.load();
-      if (isTerminalGuardResult(result)) return result;
+    this.deps.jobManager.begin(event.intent);
+    const snapshot = { from: event.from, to: event.to };
+
+    // ——— Prepare: exit guards (bubble) ———
+    if (fromRoute) {
+      const blocked = await this.runBlocking(() =>
+        this.deps.phaseRunner.runLeave(fromRoute, this.ctx('leave', snapshot)),
+      );
+      if (blocked) return false;
     }
 
-    return undefined;
+    // ——— Prepare: enter + load (capture) ———
+    for (const ref of plan.activate) {
+      const route = this.routeFor(ref.pattern, toRoute);
+      if (!route) continue;
+
+      const enterBlocked = await this.runBlocking(() =>
+        this.deps.phaseRunner.runEnter(route, this.ctx('enter', snapshot)),
+      );
+      if (enterBlocked) return false;
+
+      try {
+        const loadBlocked = await this.runBlocking(() =>
+          this.deps.phaseRunner.runLoad(route, this.ctx('load', snapshot)),
+        );
+        if (loadBlocked) return false;
+      } catch (error) {
+        await this.deps.phaseRunner.runError(route, {
+          ...this.ctx('error', snapshot),
+          error,
+        });
+        return false;
+      }
+    }
+
+    // ——— Pre-commit: entering (capture) ———
+    for (const ref of plan.activate) {
+      const route = this.routeFor(ref.pattern, toRoute);
+      if (!route) continue;
+      await this.deps.phaseRunner.runEntering(route, this.ctx('entering', snapshot));
+    }
+
+    // ——— Commit ———
+    try {
+      await this.deps.renderRoute(toRoute);
+    } catch (error) {
+      await this.deps.phaseRunner.runError(toRoute, {
+        ...this.ctx('error', snapshot),
+        error,
+      });
+      return false;
+    }
+
+    // ——— Post-commit: deactivate bubble (leaving → left) ———
+    if (fromRoute) {
+      await this.deps.phaseRunner.runLeaving(fromRoute, this.ctx('leaving', snapshot));
+      await this.deps.phaseRunner.runLeft(fromRoute, this.ctx('left', snapshot));
+    }
+
+    // ——— Post-commit: activate capture (entered) ———
+    const enteredResult = await this.deps.phaseRunner.runEntered(
+      toRoute,
+      this.ctx('entered', snapshot),
+    );
+    if (this.applyRedirect(enteredResult)) return true;
+
+    this.deps.rebindLinks();
+    return true;
   }
 
-  async runCommit(render: () => Promise<void> | void): Promise<void> {
-    await render();
+  private async runReenteredOnly(route: AURARoute, event: NavigationEvent): Promise<boolean> {
+    this.deps.jobManager.begin(event.intent);
+    const result = await this.deps.phaseRunner.runReentered(
+      route,
+      this.ctx('reentered', { from: event.from, to: event.to }),
+    );
+
+    if (this.applyRedirect(result)) return true;
+
+    this.deps.rebindLinks();
+    return true;
   }
 
-  async runPost(handlers: NavigationPostHandlers): Promise<void> {
-    await handlers.leaving?.();
-    await handlers.left?.();
-    await handlers.entering?.();
-    await handlers.entered?.();
+  private routeFor(pattern: string, toRoute: AURARoute): AURARoute | undefined {
+    if (pattern === toRoute.path) return toRoute;
+    return this.deps.getRoute(pattern);
   }
 
-  async runError(errorHandler: () => Promise<void> | void): Promise<void> {
-    await errorHandler();
+  /** Blocking guard: cancel or redirect — returns `true` when navigation must stop. */
+  private async runBlocking(run: () => Promise<GuardResult>): Promise<boolean> {
+    const result = await run();
+    if (result === false) return true;
+    return this.applyRedirect(result);
   }
 
-  async runReentered(reenteredHandler: () => Promise<void> | void): Promise<void> {
-    await reenteredHandler();
+  private applyRedirect(result: GuardResult): boolean {
+    if (typeof result === 'string') {
+      this.deps.navigate(result);
+      return true;
+    }
+    return false;
+  }
+
+  private ctx(
+    phase: NavigationContext['phase'],
+    snapshot: { from: RouteMatch | null; to: RouteMatch },
+    error?: unknown,
+  ): NavigationContext {
+    return {
+      phase,
+      from: snapshot.from,
+      to: snapshot.to,
+      ...(error !== undefined && { error }),
+    };
   }
 }
 
+export { buildPlan, type TransitionPlan } from './transition-plan';

@@ -7,6 +7,6 @@ export const toKebabCase = (str: string): string => {
 export const parseString = (val: string | null): string => String(val ?? '');
 
 /** Parses comma-separated string into an array; `null` becomes `[]` */
-export function parseCommaSeparated(val: string | null): string[] {
-  return val?.split(',').map((s) => s.trim()).filter(Boolean) ?? [];
+export function parseCommaSeparated(val: string | null): string[] | null {
+  return val?.split(',').map((s) => s.trim()).filter(Boolean) ?? null;
 }

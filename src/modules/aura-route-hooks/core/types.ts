@@ -18,15 +18,15 @@ export interface RouteInfo {
 /** Minimal route surface required by hooks and the routing engine. */
 export interface RouteInstance {
   path: string;
-  enter: string[];
-  entering: string[];
-  load: string[];
-  entered: string[];
-  leave: string[];
-  leaving: string[];
-  left: string[];
-  reentered: string[];
-  error: string[];
+  enter: string[] | null;
+  entering: string[] | null;
+  load: string[] | null;
+  entered: string[] | null;
+  leave: string[] | null;
+  leaving: string[] | null;
+  left: string[] | null;
+  reentered: string[] | null;
+  error: string[] | null;
   onEnter(ctx: RouteLifecycleContext): void;
   onEntering(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;

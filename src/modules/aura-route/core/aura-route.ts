@@ -25,6 +25,16 @@ export interface AURARouteInterface {
   cache?: boolean;
 }
 
+type AuraRouteGuards = 'leave'|'enter'|'load';
+type AuraRoutePreRenderEffects = 'entering';
+type AuraRoutePostRenderEffects = 'leaving'|'left'|'entered';
+
+export interface AuraRouteInfo{
+  path: string;
+  guards: Record<AuraRouteGuards, string[]>;
+  preRenders: Record<AuraRoutePreRenderEffects, string[]>;
+  postRenders: Record<AuraRoutePostRenderEffects, string[]>;
+}
 // AURARoute.setDefaultOptions({
 //   reserveState: true, // значения по умолчанию для всех маршрутов
 // })
@@ -48,15 +58,15 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   @attr({ readonly: true }) source: string;
   @attr({ readonly: true, dataAttr: true }) content: string;
 
-  @attr({ parser: parseCommaSeparated }) enter: string[];
-  @attr({ parser: parseCommaSeparated }) entering: string[];
-  @attr({ parser: parseCommaSeparated }) load: string[];
-  @attr({ parser: parseCommaSeparated }) entered: string[];
-  @attr({ parser: parseCommaSeparated }) leave: string[];
-  @attr({ parser: parseCommaSeparated }) leaving: string[];
-  @attr({ parser: parseCommaSeparated }) left: string[];
-  @attr({ parser: parseCommaSeparated }) reentered: string[];
-  @attr({ parser: parseCommaSeparated }) error: string[];
+  @attr({ parser: parseCommaSeparated }) enter: string[] | null;
+  @attr({ parser: parseCommaSeparated }) entering: string[] | null;
+  @attr({ parser: parseCommaSeparated }) load: string[] | null;
+  @attr({ parser: parseCommaSeparated }) entered: string[] | null;
+  @attr({ parser: parseCommaSeparated }) leave: string[] | null;
+  @attr({ parser: parseCommaSeparated }) leaving: string[] | null;
+  @attr({ parser: parseCommaSeparated }) left: string[] | null;
+  @attr({ parser: parseCommaSeparated }) reentered: string[] | null;
+  @attr({ parser: parseCommaSeparated }) error: string[] | null;
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
@@ -109,6 +119,22 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     if (!this.content) {
       console.warn(`AURARoute with path "${this.path}" has no content specified`);
     }
+  }
+
+  get guards(): Record<AuraRouteGuards, string[]>{
+    const result={} as Record<AuraRouteGuards, string[]>;
+    this.leave && (result.leave =  this.leave);
+    this.enter && (result.enter =  this.enter);
+    this.load && (result.load =  this.load);
+    return result;
+  }
+
+  get preRendersEffects(){
+    return {}
+  }
+
+  get postRendersEffects(){
+    return {}
   }
 
   disconnectedCallback(): void {

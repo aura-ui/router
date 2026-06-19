@@ -1,6 +1,6 @@
 import { parseString, toKebabCase } from '../misc/format';
 
-type AttrParser<T> = (attr: T | null) => T | T[];
+type AttrParser<T> = (attr: T | null) => T | T[] | null;
 
 /** HTML attribute mapping configuration */
 type AttrConfig<T = string> = {

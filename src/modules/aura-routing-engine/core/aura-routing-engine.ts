@@ -183,21 +183,29 @@ export class AuraRoutingEngine {
 
     const from = this.prevMatchedRouteInfo || null;
 
-    const ok = await this.processor.run({ from, to, intent });
+    const result = await this.processor.run({ from, to, intent });
 
-    if (!ok) {
-      // push/replace: URL не менялся — выход без side effects.
-      // pop: URL уже другой — откат и согласование UI см. TSDoc navigateTo / processor.
-      return;
-    }
+    switch (result.status) {
+      case 'committed':
+        if (options.syncHistory) this.updateBrowserHistory(relativeUrl, options);
+        this.prevMatchedRouteInfo = to;
+        if (hash) {
+          this.scrollToHash(hash);
+        }
+        break;
 
-    if (options.syncHistory) {
-      this.updateBrowserHistory(relativeUrl, options);
-    }
+      case 'cancelled':
+        if (result.stayOn === 'from' && from) {
+          history.replaceState(null, '', from.url); // pop: URL уже другой
+        }
+        break;
 
-    this.prevMatchedRouteInfo = to;
-    if (hash) {
-      this.scrollToHash(hash);
+      case 'redirect':
+        void this.navigateTo(result.url, 'replace', { replace: result.replace ?? false, syncHistory: true });
+        break;
+
+      case 'error':
+      // history не трогаем или политика по intent
     }
   }
 

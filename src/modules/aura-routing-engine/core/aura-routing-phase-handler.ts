@@ -11,7 +11,10 @@ export class AuraRoutingPhaseHandler {
   }
 
   static async runRenderPhase(routeInfo: MatchedRouteInfo, job: any): Promise<any> {
+    if (job.aborted) return 'aborted';
+
     const {route}  = routeInfo;
+
     const onAbort = () => route.cancelPendingRender();
     job.signal.addEventListener('abort', onAbort, { once: true });
 
@@ -21,9 +24,7 @@ export class AuraRoutingPhaseHandler {
       job.signal.removeEventListener('abort', onAbort);
     }
 
-    if (job.aborted) {
-      throw new DOMException('Navigation aborted', 'AbortError');
-    }
+    return job.aborted ? 'aborted' : 'ok';
   }
 
   private static async runHooks(
@@ -34,12 +35,13 @@ export class AuraRoutingPhaseHandler {
   ): Promise<any> {
     try {
       const result = await RouteHookRegistry.run(phase, hookNames, routeInfo, { isJobActive });
+      // superseded / invalidate — не error, а «отмена»
       if (!isJobActive()) return false;
+
       return result;
     } catch (error) {
       if (!isJobActive()) return false;
-      console.error(error); // todo add debug
-      return false;
+      throw error; // активный job — пробрасываем наверх
     }
   }
 }

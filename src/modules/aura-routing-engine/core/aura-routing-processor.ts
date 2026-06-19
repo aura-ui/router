@@ -13,9 +13,9 @@ import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';
 import { AuraRoutingProcessorJobManager } from './aura-routing-processor-job-manager';
 import type { GuardResult } from './types';
 
-type NavigationOutcome =
+type ProcessorResponse =
   | { status: 'committed' }
-  | { status: 'cancelled'; stayOn: 'from' }  // pop + guard: синхронизировать URL с from
+  | { status: 'cancelled';}
   | { status: 'redirect'; url: string; replace?: boolean }
   | { status: 'error'; error: unknown };
 
@@ -27,7 +27,7 @@ export class AuraRoutingProcessor {
     this.jobManager = new AuraRoutingProcessorJobManager();
   }
 
-  async run({ from, to, action }: {from: MatchedRouteInfo, to :MatchedRouteInfo, action:HistoryAction}){
+  async run({ from, to, action }: {from: MatchedRouteInfo, to :MatchedRouteInfo, action:HistoryAction}):Promise<ProcessorResponse>{
     const {exitRoutes, enterRoutes, reentered} = buildRoadMap(from, to);
 
     const job = this.jobManager.begin(action);
@@ -46,7 +46,7 @@ export class AuraRoutingProcessor {
     result = await this.runPreCommitPhases(enterRoutes, isJobActive);
     if(result) return result;
 
-    result = await this.runCommitPhase(enterRoutes, job);
+    result = await this.runCommitPhase(enterRoutes, isJobActive, job);
     if(result) return result;
 
     result = await this.runPostCommitPhases(exitRoutes, enterRoutes, isJobActive);
@@ -65,30 +65,42 @@ export class AuraRoutingProcessor {
     for (const routeInfo of exitRoutesInfo) {
       const {route} = routeInfo;
       if(route.leave) {
+        try {
+
         const blocked = await this.runBlockingPhase(() =>
           AuraRoutingPhaseHandler.runPhase('leave',routeInfo, isJobActive)
         );
-        route.afterLeave(routeInfo);
         if (blocked) return blocked;
+        route.afterLeave(routeInfo);
+      } catch (error) {
+        return this.failWithError(routeInfo, error, isJobActive);
+      }
       }
     }
 
     for (const routeInfo of enterRoutesInfo) {
       const {route} = routeInfo;
       if(route.enter) {
-        const blocked = await this.runBlockingPhase(() =>
-          AuraRoutingPhaseHandler.runPhase('enter',routeInfo, isJobActive)
-        );
-        route.onEnter(routeInfo);
-        if (blocked) return blocked;
+        try {
+          const outcome = await this.runBlockingPhase(() =>
+            AuraRoutingPhaseHandler.runPhase('enter', routeInfo, isJobActive),
+          );
+          if (outcome) return outcome;
+        } catch (error) {
+          return this.failWithError(routeInfo, error, isJobActive);
+        }
       }
 
       if(route.load) {
-        const blocked = await this.runBlockingPhase(() =>
-          AuraRoutingPhaseHandler.runPhase('load',routeInfo, isJobActive)
-        );
         route.onLoad(routeInfo);
-        if (blocked) return blocked;
+        try {
+          const outcome = await this.runBlockingPhase(() =>
+            AuraRoutingPhaseHandler.runPhase('load', routeInfo, isJobActive),
+          );
+          if (outcome) return outcome;
+        } catch (error) {
+          return this.failWithError(routeInfo, error, isJobActive);
+        }
       }
     }
 
@@ -96,20 +108,27 @@ export class AuraRoutingProcessor {
 
   async runPreCommitPhases(enterRoutesInfo:MatchedRouteInfo[],isJobActive:any){
     for (const routeInfo of enterRoutesInfo) {
-      const {route} = routeInfo;
-      if(route.entering) {
-        const blocked = await this.runBlockingPhase(() =>
-          AuraRoutingPhaseHandler.runPhase('entering',routeInfo, isJobActive)
-        );
-        route.onEntering(routeInfo);
-        if (blocked) return blocked;
+      const { route } = routeInfo;
+      if (!route.entering) continue;
+      route.onEntering(routeInfo);
+      try {
+        await AuraRoutingPhaseHandler.runPhase('entering', routeInfo, isJobActive);
+      } catch (error) {
+        return this.failWithError(routeInfo, error, isJobActive);
       }
     }
   }
 
-  async runCommitPhase(enterRoutesInfo:MatchedRouteInfo[], job:any){
+  async runCommitPhase(enterRoutesInfo:MatchedRouteInfo[], isJobActive:any, job:any){
     for (const routeInfo of enterRoutesInfo) {
-      await AuraRoutingPhaseHandler.runRenderPhase(routeInfo, job);
+      try {
+        const response = await AuraRoutingPhaseHandler.runRenderPhase(routeInfo, job);
+        if (response === 'aborted' || !isJobActive()) {
+          return  { status: 'cancelled'}
+        }
+      } catch (error) {
+        return this.failWithError(routeInfo, error, isJobActive);
+      }
     }
   }
 
@@ -117,33 +136,37 @@ export class AuraRoutingProcessor {
     for (const routeInfo of exitRoutesInfo) {
       const {route} = routeInfo;
       if(route.leaving) {
-        await AuraRoutingPhaseHandler.runPhase('leaving',routeInfo, isJobActive);
+        await this.runPhaseSafe('leaving', routeInfo, isJobActive);
         route.onLeaving(routeInfo);
       }
       if(route.left) {
-        await AuraRoutingPhaseHandler.runPhase('left',routeInfo, isJobActive);
+        await this.runPhaseSafe('left', routeInfo, isJobActive);
         route.onLeft(routeInfo);
       }
     }
 
     for (const routeInfo of enterRoutesInfo) {
-      const {route} = routeInfo;
-      if(route.entered) {
-        const result = await AuraRoutingPhaseHandler.runPhase('entered', routeInfo, isJobActive);
-        route.onEntered(routeInfo);
-        if (this.applyRedirect(result)) return result;
-      }
+      const { route } = routeInfo;
+      if (!route.entered) continue;
+      const result = await this.runPhaseSafe('entered', routeInfo, isJobActive);
+      route.onEntered(routeInfo);
+      const redirect = this.applyRedirect(result);
+      if (redirect) return redirect;
     }
 
   }
 
-  private async runReenteredOnly(enterRoutesInfo:MatchedRouteInfo[], isJobActive:any): Promise<boolean> {
+  private async runReenteredOnly(enterRoutesInfo:MatchedRouteInfo[], isJobActive:any): Promise<any> {
     for (const routeInfo of enterRoutesInfo) {
-      const {route} = routeInfo;
-      if(route.reentered) {
+      const { route } = routeInfo;
+      if (!route.reentered) continue;
+      try {
         const result = await AuraRoutingPhaseHandler.runPhase('reentered', routeInfo, isJobActive);
         route.onReentered(routeInfo);
-        if (this.applyRedirect(result)) return result;
+        const redirect = this.applyRedirect(result);
+        if (redirect) return redirect;
+      } catch (error) {
+        return this.failWithError(routeInfo, error, isJobActive);
       }
     }
   }
@@ -160,5 +183,32 @@ export class AuraRoutingProcessor {
       return { status: 'redirect', url: result }
     }
     return false;
+  }
+
+  private async failWithError(
+    routeInfo: MatchedRouteInfo,
+    error: unknown,
+    isJobActive: () => boolean,
+  ): Promise<ProcessorResponse> {
+    routeInfo.route.onError({ ...routeInfo, error }); // onError ждёт ctx с .error
+    try {
+      await AuraRoutingPhaseHandler.runPhase('error', routeInfo, isJobActive);
+    } catch (hookError) {
+      console.error(hookError); // error-hook упал — не зацикливаться
+    }
+    return { status: 'error', error };
+  }
+
+  private async runPhaseSafe(
+    phase: string,
+    routeInfo: MatchedRouteInfo,
+    isJobActive: () => boolean,
+  ): Promise<GuardResult> {
+    try {
+      return await AuraRoutingPhaseHandler.runPhase(phase, routeInfo, isJobActive);
+    } catch (error) {
+      console.error(`[${phase}] hook failed after commit:`, error);
+      return undefined;
+    }
   }
 }

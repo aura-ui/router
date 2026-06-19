@@ -219,7 +219,7 @@ export class AuraRoutingEngine {
         break;
 
       case 'cancelled':
-        if (result.stayOn === 'from' && from) {
+        if (action === 'pop' && from) {
           history.replaceState(null, '', from.url); // pop: URL уже другой
         }
         break;

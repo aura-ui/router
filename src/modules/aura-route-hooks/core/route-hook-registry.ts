@@ -4,6 +4,7 @@ import type {
 } from './types';
 import { ROUTER_VERSION, satisfies } from './version';
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-engine';
+import type { RedirectTarget } from '../../aura-routing-engine/core/types';
 
 interface StoredHook {
   fn: RouteHookDefinition['fn'];
@@ -11,9 +12,17 @@ interface StoredHook {
   options: Record<string, unknown>;
 }
 
+function isRedirectResult(
+  result: boolean | void | RedirectTarget,
+): result is string | { url: string; replace?: boolean } {
+  return typeof result === 'string' || (typeof result === 'object' && result !== null && 'url' in result);
+}
+
 /** Cancel navigation (`false`) or redirect URL (`string`). */
-function isTerminalResult(result: boolean | void | string): result is false | string {
-  return result === false || typeof result === 'string';
+function isTerminalResult(
+  result: boolean | void | RedirectTarget,
+): result is false | string | { url: string; replace?: boolean } {
+  return result === false || isRedirectResult(result);
 }
 
 export class RouteHookRegistry {
@@ -43,9 +52,14 @@ export class RouteHookRegistry {
     phase: string,
     names: string[],
     routeInfo: MatchedRouteInfo,
-    options?: { isJobActive?: () => boolean }
+    options?: { isJobActive?: () => boolean; error?: unknown },
   ): Promise<boolean | void | string> {
-    const hookCtx: RouteHookContext = { ...routeInfo, options: {} };
+    const hookCtx: RouteHookContext = {
+      ...routeInfo,
+      options: {},
+      ...(options?.error !== undefined && { error: options.error }),
+    };
+
     const {routePath} = routeInfo;
 
     for (const name of names) {

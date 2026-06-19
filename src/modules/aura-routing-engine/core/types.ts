@@ -25,6 +25,9 @@ export interface RoutingEngineConfig {
   hash?: boolean;
 }
 
+export type RedirectTarget =
+  | string
+  | { url: string; replace?: boolean };
 /**
  * Phase guard result — return-based, provider-agnostic.
  *
@@ -33,7 +36,7 @@ export interface RoutingEngineConfig {
  * - `false` — cancel the current navigation
  * - `string` — redirect to the given path (facade calls `navigate()`)
  */
-export type GuardResult = void | boolean | string;
+export type GuardResult = void | boolean | RedirectTarget;
 
 /**
  * Context passed to phase handlers during a navigation transition.

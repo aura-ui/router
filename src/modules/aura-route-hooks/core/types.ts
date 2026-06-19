@@ -76,4 +76,6 @@ export function defineRouteHook(def: RouteHookDefinition): Readonly<RouteHookDef
 
 export interface RouteHookContext extends MatchedRouteInfo {
   options: Record<string, unknown>;
+  /** Только для фазы `error` — исходное исключение из load/render/guard throw */
+  error?: unknown;
 }

@@ -3,11 +3,13 @@ import { RouteHookRegistry } from '../../aura-route-hooks/core/route-hook-regist
 
 export class AuraRoutingPhaseHandler {
 
-  static async runPhase(phaseName: string, routeInfo: MatchedRouteInfo, isJobActive: any): Promise<any> {
-    // @ts-ignore
-    const hookNames = routeInfo.route[phaseName];
+  static async runPhase(phaseName: string,
+                        routeInfo: MatchedRouteInfo,
+                        isJobActive: () => boolean,
+                        phaseContext?: { error?: unknown }): Promise<any> {
+    const hookNames = routeInfo.route[phaseName as keyof typeof routeInfo.route];
     if(!hookNames) return;
-    return this.runHooks(phaseName, hookNames, routeInfo, isJobActive);
+    return this.runHooks(phaseName, hookNames as any, routeInfo, isJobActive, phaseContext);
   }
 
   static async runRenderPhase(routeInfo: MatchedRouteInfo, job: any): Promise<any> {
@@ -32,9 +34,11 @@ export class AuraRoutingPhaseHandler {
     hookNames: string[],
     routeInfo: MatchedRouteInfo,
     isJobActive: () => boolean,
+    phaseContext?: { error?: unknown },
   ): Promise<any> {
     try {
-      const result = await RouteHookRegistry.run(phase, hookNames, routeInfo, { isJobActive });
+      const result = await RouteHookRegistry.run(phase, hookNames, routeInfo, { isJobActive ,
+        error: phaseContext?.error,});
       // superseded / invalidate — не error, а «отмена»
       if (!isJobActive()) return false;
 

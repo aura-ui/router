@@ -180,6 +180,9 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
       const content = await this.getContent(options);
 
+      // fetch прерван job.abort / cancelPendingRender — тихий выход
+      if (this.abortController?.signal.aborted) return;
+
       if (!content) {
         this.setContent('<div>No content to display</div>');
         return;

@@ -72,6 +72,7 @@ export class AuraRoutingEngine {
 
   stop() {
     this.isRunning = false;
+    this.processor.stop();
     window.removeEventListener('popstate', this.onPopState);
     document.removeEventListener('click', this.onDocumentClick, { capture: true });
   }

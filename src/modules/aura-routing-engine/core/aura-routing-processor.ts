@@ -81,6 +81,7 @@ export class AuraRoutingProcessor {
     for (const routeInfo of enterRoutesInfo) {
       const {route} = routeInfo;
       if(route.enter) {
+        route.onEnter(routeInfo);
         try {
           const outcome = await this.runBlockingPhase(() =>
             AuraRoutingPhaseHandler.runPhase('enter', routeInfo, isJobActive),
@@ -178,12 +179,20 @@ export class AuraRoutingProcessor {
     return this.applyRedirect(result);
   }
 
-  private applyRedirect(result: GuardResult): any {
+  private applyRedirect(result: GuardResult): ProcessorResponse | false {
     if (typeof result === 'string') {
-      return { status: 'redirect', url: result }
+      return { status: 'redirect', url: result };
+    }
+    if (result && typeof result === 'object' && 'url' in result) {
+      return {
+        status: 'redirect',
+        url: result.url,
+        ...(result.replace !== undefined && { replace: result.replace }),
+      };
     }
     return false;
   }
+
 
   private async failWithError(
     routeInfo: MatchedRouteInfo,
@@ -192,7 +201,7 @@ export class AuraRoutingProcessor {
   ): Promise<ProcessorResponse> {
     routeInfo.route.onError({ ...routeInfo, error }); // onError ждёт ctx с .error
     try {
-      await AuraRoutingPhaseHandler.runPhase('error', routeInfo, isJobActive);
+      await AuraRoutingPhaseHandler.runPhase('error', routeInfo, isJobActive, {error});
     } catch (hookError) {
       console.error(hookError); // error-hook упал — не зацикливаться
     }

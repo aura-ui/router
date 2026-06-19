@@ -20,11 +20,20 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     AURARoute.configure(options);
   }
 
+  get routes(){
+    return this.querySelectorAll<AURARoute>(AURARoute.is);
+  }
+
   connectedCallback(): void {
-    this.setupRouting();
-   // this.engine!.setNotFoundHandler(() => {
-   //   this.innerHTML = 'page not found';
-   // });
+    if (!this.engine) {
+      const processor = new AuraRoutingProcessor();
+      this.engine = new AuraRoutingEngine(processor);
+    }
+    this.engine.isRunning && this.engine.stop();
+    this.engine.registerRoutes(Array.from(this.routes));
+    this.engine!.setNotFoundHandler((path: string) => {
+      this.innerHTML = 'page not found: ' + path;
+    });
     this.engine.start();
   }
 
@@ -32,18 +41,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.engine?.destroy();
   }
 
-  navigate(path: string, options?: { replace?: boolean }): void {
-   // todo
-   // this.engine.navigateTo(path, options, {});
+  navigate(path: string, _options?: { replace?: boolean , syncHistory: boolean}): void {
+    void this.engine.navigateTo(path, 'push', { replace: false, syncHistory: true });
   }
 
-  private setupRouting(): void {
-    if (!this.engine) {
-      const processor = new AuraRoutingProcessor();
-      this.engine = new AuraRoutingEngine(processor);
-    }
-    this.engine.isRunning && this.engine.stop();
-    const routes = this.querySelectorAll<AURARoute>(AURARoute.is);
-    this.engine.registerRoutes(Array.from(routes));
-  }
 }

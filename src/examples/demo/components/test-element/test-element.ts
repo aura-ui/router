@@ -6,6 +6,6 @@ export class TestElement extends HTMLElement {
     console.log(data)
     this.innerHTML = `
     <input type="text"/> 
-    Welcome, user - ${data.data?.id}`
+    Welcome, user - ${data.params?.id}`
   }
 }

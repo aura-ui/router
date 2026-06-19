@@ -154,7 +154,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     // if (this.htmlSrc) return await this.loadHtml();
   }
 
-  public async render(options = {}): Promise<void> {
+  public async render(routeInfo?: MatchedRouteInfo): Promise<void> {
     try {
       console.log(`Rendering started ${this.path}`);
 
@@ -178,7 +178,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
         this.setContent(getTemplate(this.loadingTemplate));
       }
 
-      const content = await this.getContent(options);
+      const content = await this.getContent(routeInfo);
 
       // fetch прерван job.abort / cancelPendingRender — тихий выход
       if (this.abortController?.signal.aborted) return;
@@ -210,18 +210,35 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     }
   }
 
-  protected async getContent(options: any): Promise<Node | string> {
+  protected async getContent(routeInfo?: MatchedRouteInfo): Promise<Node | string> {
     // todo add static, cached loaders loader
     const loader = ContentLoaderRegistry.create(this.source, AURARoute.resolveContentLoaderService());
 
     try {
-      return await loader.load(this.content, { signal: this.abortController.signal });
+      return await loader.load(this.content, {
+        signal: this.abortController.signal,
+        componentOptions: this.buildComponentOptions(routeInfo),
+      });
     } catch (error: unknown) {
       if (this.abortController.signal.aborted) return '';
 
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to load ${loader.type} content for route ${this.path}: ${message}`);
     }
+  }
+
+  private buildComponentOptions(routeInfo?: MatchedRouteInfo): Record<string, unknown> {
+    if (!routeInfo) return {};
+
+    const options: Record<string, unknown> = {
+      url: routeInfo.url,
+      routePath: routeInfo.routePath,
+    };
+
+    if (routeInfo.params) options.params = routeInfo.params;
+    if (routeInfo.query) options.query = routeInfo.query;
+
+    return options;
   }
 
   private resetAbortController(): void {

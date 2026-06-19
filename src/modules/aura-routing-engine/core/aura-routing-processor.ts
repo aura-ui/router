@@ -142,8 +142,8 @@ export class AuraRoutingProcessor {
       }
       if(route.left) {
         await this.runPhaseSafe('left', routeInfo, isJobActive);
-        route.onLeft(routeInfo);
       }
+      route.onLeft(routeInfo);
     }
 
     for (const routeInfo of enterRoutesInfo) {

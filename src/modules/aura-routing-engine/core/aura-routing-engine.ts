@@ -35,7 +35,7 @@ export class AuraRoutingEngine {
   private readonly config: any;
 
   private routes = new Map<string, AURARoute>();
-  private isRunning = false;
+  public isRunning = false;
   private processor: any;
   private prevMatchedRouteInfo: MatchedRouteInfo | null;
 
@@ -99,7 +99,7 @@ export class AuraRoutingEngine {
     const { target } = event;
     if (!(target instanceof Element)) return;
 
-    const selector = this.config.linksSelector ?? '[data-router-link]';
+    const selector = this.config?.linksSelector ?? '[data-router-link]';
     const anchor = target.closest('a');
     if (!anchor || !anchor.matches(selector)) return;
 
@@ -170,7 +170,7 @@ export class AuraRoutingEngine {
    * @param options.syncHistory — обновлять history после успешного commit; `false` для `pop`
    *   и начальной загрузки, когда URL уже задан браузером.
    */
-  private async navigateTo(
+  public async navigateTo(
     href: string,
     action: HistoryAction,
     options: {

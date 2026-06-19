@@ -8,6 +8,13 @@ import type { AURARoute } from '../../aura-route/core/aura-route';
 import { bind } from '../../aura-utils/misc/bind';
 import { parsePath, parseQuery } from '../../aura-utils/misc/url';
 
+/**
+ * Способ инициации навигации.
+ *
+ * - `push` / `replace` — программный или клик по ссылке; URL меняет engine после успешного commit.
+ * - `pop` — Back/Forward; URL уже изменён браузером до вызова processor (см. {@link AuraRoutingEngine.navigateTo}).
+ * - `system` — начальная загрузка / `start()`; URL в адресной строке уже актуален.
+ */
 export type NavigationIntent = 'push' | 'replace' | 'pop' | 'system';
 
 export interface MatchedRouteInfo {
@@ -36,7 +43,7 @@ export class AuraRoutingEngine {
   registerRoutes(routes: AURARoute[]): void {
     for (let route of routes) {
       const { path } = route;
-      if (!this.routes.has(path)) {
+      if (this.routes.has(path)) {
         console.warn(`Duplicate route path "${path}" — previous route will be overwritten`);
       }
       this.routes.set(path, route);
@@ -71,6 +78,12 @@ export class AuraRoutingEngine {
     this.prevMatchedRouteInfo = null;
   }
 
+  /**
+   * Обработчик Back/Forward. Браузер меняет URL до `popstate`, поэтому `syncHistory: false`.
+   *
+   * При отмене перехода (`processor.run` → `false`) engine не откатывает history — это
+   * ответственность processor/render. См. {@link AuraRoutingEngine.navigateTo}.
+   */
   @bind
   protected onPopState() {
     void this.navigateTo(this.currentLocationHref, 'pop', { replace: true, syncHistory: false });
@@ -108,7 +121,38 @@ export class AuraRoutingEngine {
     };
   }
 
-  /** pathname + search (+ hash при syncHistory) */
+  /**
+   * Центральный метод навигации: match → processor → commit URL и состояния.
+   *
+   * **Порядок commit URL (атомарность перехода):**
+   * 1. `processor.run({ from, to, intent })` — guards, load, render.
+   * 2. При `ok` и `syncHistory: true` — `pushState` / `replaceState`.
+   * 3. Обновление `prevMatchedRouteInfo`.
+   *
+   * **Отмена при `push` / `replace`:** URL ещё не менялся — engine просто выходит.
+   * Откат history не нужен.
+   *
+   * **Отмена при `pop` (Back/Forward) — особый случай:**
+   * Браузер меняет адресную строку *до* `popstate`. К моменту `processor.run` `window.location`
+   * уже указывает на `to`, а UI и `prevMatchedRouteInfo` могут ещё соответствовать `from`.
+   *
+   * Engine при `!ok` **не откатывает** history: `history.forward()` / `pushState` создают новые
+   * записи в стеке и ломают ожидаемое поведение Back/Forward. Синхронизацию URL и UI должен
+   * выполнить **processor / render**, в зависимости от причины отмены:
+   *
+   * - **Guard отменил** (например, несохранённая форма): оставить UI на `from`, вернуть URL
+   *   через `replaceState(from.url)` или программный navigate с `replace: true`.
+   * - **Ошибка load/render**: показать error UI, fallback или redirect; при необходимости
+   *   явно выровнять URL с отображаемым состоянием.
+   * - **Redirect из guard**: navigate на целевой URL (часто с `replace: true`), а не
+   *   механический возврат к `from`.
+   *
+   * @param href — pathname + search (+ hash).
+   * @param intent — способ инициации; для `pop` и `system` передаётся `syncHistory: false`.
+   * @param options.replace — `replaceState` вместо `pushState` (только при `syncHistory: true`).
+   * @param options.syncHistory — обновлять history после успешного commit; `false` для `pop`
+   *   и начальной загрузки, когда URL уже задан браузером.
+   */
   private async navigateTo(
     href: string,
     intent: NavigationIntent,
@@ -127,7 +171,7 @@ export class AuraRoutingEngine {
       return;
     }
 
-    const routesPaths = Object.keys(this.routes);
+    const routesPaths = [...this.routes.keys()];
     const found = this.findBestMatchRoute(pathname, routesPaths);
 
     if (!found) {
@@ -139,21 +183,21 @@ export class AuraRoutingEngine {
 
     const from = this.prevMatchedRouteInfo || null;
 
-    this.updateBrowserHistory(relativeUrl, options);
-
     const ok = await this.processor.run({ from, to, intent });
 
-    if (!ok && options.syncHistory && intent === 'push') {
-      history.back();
+    if (!ok) {
+      // push/replace: URL не менялся — выход без side effects.
+      // pop: URL уже другой — откат и согласование UI см. TSDoc navigateTo / processor.
       return;
     }
 
-    if (ok) {
-      this.prevMatchedRouteInfo = to;
-      // scroll после render — контент уже на месте
-      if (hash) {
-        this.scrollToHash(hash);
-      }
+    if (options.syncHistory) {
+      this.updateBrowserHistory(relativeUrl, options);
+    }
+
+    this.prevMatchedRouteInfo = to;
+    if (hash) {
+      this.scrollToHash(hash);
     }
   }
 

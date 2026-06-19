@@ -6,6 +6,7 @@ import {
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
 import type { RouteInstance, RouteLifecycleContext } from '../../aura-route-hooks/core';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-engine';
 
 export interface AURARouteConfigureOptions {
   contentLoaderService?: ContentLoaderService;
@@ -241,40 +242,48 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   }
 
 
-  public onEnter(ctx: RouteLifecycleContext): void {
+  public onEnter(ctx: MatchedRouteInfo): void {
     // lifecycle: enter phase
     console.log(ctx);
   }
 
-  public onLoad(ctx: RouteLifecycleContext): void {
+  public onLoad(ctx: MatchedRouteInfo): void {
     // lifecycle: load phase — prefetch route data before render
-    console.log(`load ${this.path}`, ctx.to.path);
+    console.log(`load ${this.path}`, ctx.url);
   }
 
-  public onEntering(ctx: RouteLifecycleContext): void {
+  public onEntering(ctx: MatchedRouteInfo): void {
     // lifecycle: entering phase — transition in before render
-    console.log(`entering ${this.path}`, ctx.to.path);
+    console.log(`entering ${this.path}`, ctx.url);
   }
 
-  public onEntered(ctx: RouteLifecycleContext): void {
-    console.log(`entered ${this.path}`, ctx.to.path);
+  public onEntered(ctx: MatchedRouteInfo): void {
+    console.log(`entered ${this.path}`, ctx.url);
   }
 
-  public onLeaving(ctx: RouteLifecycleContext): void {
+  public beforeLeave(context: MatchedRouteInfo): void {
+    console.log(`afterLeave ${this.path}`, context.url);
+  }
+
+  public afterLeave(context: MatchedRouteInfo): void {
+    console.log(`afterLeave ${this.path}`, context.url);
+  }
+
+  public onLeaving(ctx: MatchedRouteInfo): void {
     // lifecycle: leaving phase — transition out before teardown
-    console.log(`leaving ${this.path}`, ctx.to.path);
+    console.log(`leaving ${this.path}`, ctx.url);
   }
 
-  public onLeft(ctx: RouteLifecycleContext): void {
+  public onLeft(ctx: MatchedRouteInfo): void {
     this.isActive = false;
     this.abortController?.abort();
     this.hidden = true;
-    console.log(`left ${this.path}`, ctx.to.path);
+    console.log(`left ${this.path}`, ctx.url);
     if (!this.preserveState) this.textContent = ''; // todo or move to memory template, to restore after
   }
 
-  public onReentered(ctx: RouteLifecycleContext): void {
-    console.log(`reentered ${this.path}`, ctx.to.path);
+  public onReentered(ctx: MatchedRouteInfo): void {
+    console.log(`reentered ${this.path}`, ctx.url);
   }
 
   public onError(ctx: RouteLifecycleContext): void {

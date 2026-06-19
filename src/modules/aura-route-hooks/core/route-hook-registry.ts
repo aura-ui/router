@@ -1,9 +1,9 @@
 import type {
   RouteHookDefinition,
   RouteHookContext,
-  RouteLifecycleContext,
 } from './types';
 import { ROUTER_VERSION, satisfies } from './version';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-engine';
 
 interface StoredHook {
   fn: RouteHookDefinition['fn'];
@@ -40,20 +40,21 @@ export class RouteHookRegistry {
 
   /** Runs hooks in order; stops on first cancel (`false`) or redirect URL (`string`). */
   static async run(
+    phase: string,
     names: string[],
-    ctx: RouteLifecycleContext,
-    options?: { isStale?: () => boolean }
+    routeInfo: MatchedRouteInfo,
+    options?: { isJobActive?: () => boolean }
   ): Promise<boolean | void | string> {
-    const hookCtx: RouteHookContext = { ...ctx, options: {} };
-    const routePath = ctx.route.path;
+    const hookCtx: RouteHookContext = { ...routeInfo, options: {} };
+    const {routePath} = routeInfo;
 
     for (const name of names) {
-      if (options?.isStale?.()) return undefined;
+      if (!options?.isJobActive?.()) return undefined;
 
       const entry = this.registry.get(name);
 
       if (!entry) {
-        console.warn(`Unknown hook "${name}" on route ${routePath} (phase ${ctx.phase})`);
+        console.warn(`Unknown hook "${name}" on route ${routePath} (phase ${phase})`);
         continue;
       }
 
@@ -61,7 +62,7 @@ export class RouteHookRegistry {
 
       const result = await entry.fn(hookCtx);
 
-      if (options?.isStale?.()) return undefined;
+      if (!options?.isJobActive?.()) return undefined;
 
       if (isTerminalResult(result)) {
         return result;

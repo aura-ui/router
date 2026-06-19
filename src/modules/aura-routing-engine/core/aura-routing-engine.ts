@@ -15,13 +15,17 @@ import { parsePath, parseQuery } from '../../aura-utils/misc/url';
  * - `pop` — Back/Forward; URL уже изменён браузером до вызова processor (см. {@link AuraRoutingEngine.navigateTo}).
  * - `system` — начальная загрузка / `start()`; URL в адресной строке уже актуален.
  */
-export type NavigationIntent = 'push' | 'replace' | 'pop' | 'system';
+export type HistoryAction = 'push' | 'replace' | 'pop' | 'system';
 
 export interface MatchedRouteInfo {
   /** Resolved URL pathname, e.g. `/user/42`. */
   url: string;
+  pathname: string;
+  search: string;
+  hash: string;
   /** Registered route pattern, e.g. `/user/:id`. */
   routePath: string;
+  route: AURARoute;
   params?: Record<string, string>;
   query?: Record<string, string>;
 }
@@ -111,10 +115,22 @@ export class AuraRoutingEngine {
     return Boolean(sameRoute && hash && hash !== current.hash);
   }
 
-  getMatchedRouteInfo(url: string, routePath: string, params: any, search: string): MatchedRouteInfo {
+  getMatchedRouteInfo({ url, pathname, search, hash, route, routePath, params }: {
+    url: string;
+    pathname: string;
+    search: string;
+    hash: string;
+    route: AURARoute;
+    routePath: string;
+    params?: Record<string, string>;
+  }): MatchedRouteInfo {
     const query = parseQuery(search);
     return {
       url,
+      pathname,
+      search,
+      hash,
+      route,
       routePath,
       ...(params && Object.keys(params).length > 0 && { params }),
       ...(query && Object.keys(query).length > 0 && { query }),
@@ -148,14 +164,14 @@ export class AuraRoutingEngine {
    *   механический возврат к `from`.
    *
    * @param href — pathname + search (+ hash).
-   * @param intent — способ инициации; для `pop` и `system` передаётся `syncHistory: false`.
+   * @param action — способ инициации; для `pop` и `system` передаётся `syncHistory: false`.
    * @param options.replace — `replaceState` вместо `pushState` (только при `syncHistory: true`).
    * @param options.syncHistory — обновлять history после успешного commit; `false` для `pop`
    *   и начальной загрузки, когда URL уже задан браузером.
    */
   private async navigateTo(
     href: string,
-    intent: NavigationIntent,
+    action: HistoryAction,
     options: {
       replace: boolean;
       syncHistory: boolean
@@ -179,11 +195,19 @@ export class AuraRoutingEngine {
       return;
     }
 
-    const to = this.getMatchedRouteInfo(relativeUrl, found.routePath, found.params, search);
+    const to = this.getMatchedRouteInfo({
+      url: relativeUrl,
+      pathname,
+      search,
+      hash,
+      route: this.routes.get(found.routePath) as AURARoute,
+      routePath: found.routePath,
+      params: found.params,
+    });
 
     const from = this.prevMatchedRouteInfo || null;
 
-    const result = await this.processor.run({ from, to, intent });
+    const result = await this.processor.run({ from, to, action });
 
     switch (result.status) {
       case 'committed':

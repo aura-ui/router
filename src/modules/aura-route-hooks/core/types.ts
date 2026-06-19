@@ -1,3 +1,5 @@
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-engine';
+
 export type RoutePhase =
   | 'enter'
   | 'entering'
@@ -27,13 +29,13 @@ export interface RouteInstance {
   left: string[] | null;
   reentered: string[] | null;
   error: string[] | null;
-  onEnter(ctx: RouteLifecycleContext): void;
-  onEntering(ctx: RouteLifecycleContext): void;
-  onLoad(ctx: RouteLifecycleContext): void;
-  onEntered(ctx: RouteLifecycleContext): void;
-  onLeaving(ctx: RouteLifecycleContext): void;
-  onLeft(ctx: RouteLifecycleContext): void;
-  onReentered(ctx: RouteLifecycleContext): void;
+  onEnter(ctx: MatchedRouteInfo): void;
+  onEntering(ctx: MatchedRouteInfo): void;
+  onLoad(ctx: MatchedRouteInfo): void;
+  onEntered(ctx: MatchedRouteInfo): void;
+  onLeaving(ctx: MatchedRouteInfo): void;
+  onLeft(ctx: MatchedRouteInfo): void;
+  onReentered(ctx: MatchedRouteInfo): void;
   onError(ctx: RouteLifecycleContext): void;
 }
 
@@ -72,6 +74,6 @@ export function defineRouteHook(def: RouteHookDefinition): Readonly<RouteHookDef
   return Object.freeze({ ...def, fn: def.fn });
 }
 
-export interface RouteHookContext extends RouteLifecycleContext {
+export interface RouteHookContext extends MatchedRouteInfo {
   options: Record<string, unknown>;
 }

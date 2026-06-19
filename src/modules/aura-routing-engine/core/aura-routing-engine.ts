@@ -39,6 +39,8 @@ export class AuraRoutingEngine {
   private processor: any;
   private prevMatchedRouteInfo: MatchedRouteInfo | null;
 
+  private notFoundHandler: Function | null;
+
   //DI
   constructor(processor: any) {
     this.processor = processor;
@@ -252,8 +254,8 @@ export class AuraRoutingEngine {
     });
   }
 
-  notFoundHandler(_options: any) {
-
+  setNotFoundHandler(callback: Function): void {
+    this.notFoundHandler = callback;
   }
 
   findBestMatchRoute(pathname: string, routesPaths: Iterable<string>): {
@@ -295,10 +297,3 @@ export class AuraRoutingEngine {
     }
   }
 }
-
-
-// const reentered =
-// from !== null &&
-// from.pattern === to.pattern &&
-// from.path === to.path; // &&
-//hash === current.hash; // опционально: сменился только hash → не reentered

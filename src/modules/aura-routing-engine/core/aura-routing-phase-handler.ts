@@ -21,7 +21,7 @@ export class AuraRoutingPhaseHandler {
     job.signal.addEventListener('abort', onAbort, { once: true });
 
     try {
-      await route.render();
+      await route.render(routeInfo);
     } finally {
       job.signal.removeEventListener('abort', onAbort);
     }

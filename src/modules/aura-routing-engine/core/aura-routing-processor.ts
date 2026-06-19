@@ -128,7 +128,9 @@ export class AuraRoutingProcessor {
           return  { status: 'cancelled'}
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, isJobActive);
+        console.error(`render phase failed:`, error);
+        return undefined;
+       //return this.failWithError(routeInfo, error, isJobActive);
       }
     }
   }

@@ -7,15 +7,8 @@
 import type { AURARoute } from '../../aura-route/core/aura-route';
 import { bind } from '../../aura-utils/misc/bind';
 import { parsePath, parseQuery } from '../../aura-utils/misc/url';
-
-/**
- * Способ инициации навигации.
- *
- * - `push` / `replace` — программный или клик по ссылке; URL меняет engine после успешного commit.
- * - `pop` — Back/Forward; URL уже изменён браузером до вызова processor (см. {@link AuraRoutingEngine.navigateTo}).
- * - `system` — начальная загрузка / `start()`; URL в адресной строке уже актуален.
- */
-export type HistoryAction = 'push' | 'replace' | 'pop' | 'system';
+import { AuraRoutingHistoryNavigator, type HistoryAction } from './aura-routing-history-navigator';
+import type { AuraRoutingProcessor } from './aura-routing-processor';
 
 export interface MatchedRouteInfo {
   /** Resolved URL pathname, e.g. `/user/42`. */
@@ -33,17 +26,25 @@ export interface MatchedRouteInfo {
 export class AuraRoutingEngine {
 
   private readonly config: any;
+  private readonly navigator: AuraRoutingHistoryNavigator;
 
   private routes = new Map<string, AURARoute>();
   public isRunning = false;
-  private processor: any;
+  private processor: AuraRoutingProcessor;
   private prevMatchedRouteInfo: MatchedRouteInfo | null;
 
   private notFoundHandler: Function | null;
 
   //DI
-  constructor(processor: any) {
+  constructor(processor: AuraRoutingProcessor, config: any = {}) {
     this.processor = processor;
+    this.config = config;
+
+    this.navigator = new AuraRoutingHistoryNavigator({
+      onPopNavigate: (href) => {
+        void this.navigateTo(href, 'pop', { replace: true, syncHistory: false });
+      },
+    });
   }
 
   registerRoutes(routes: AURARoute[]): void {
@@ -56,17 +57,14 @@ export class AuraRoutingEngine {
     }
   }
 
-  get currentLocationHref(): string {
-    return window.location.pathname + window.location.search + window.location.hash;
-  }
-
   start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
-    window.addEventListener('popstate', this.onPopState);
+    this.navigator.listen();
+
     document.addEventListener('click', this.onDocumentClick, { capture: true });
 
-    void this.navigateTo(this.currentLocationHref, 'system', {
+    void this.navigateTo(this.navigator.currentHref, 'system', {
       replace: true,
       syncHistory: false,
     });
@@ -75,7 +73,7 @@ export class AuraRoutingEngine {
   stop() {
     this.isRunning = false;
     this.processor.stop();
-    window.removeEventListener('popstate', this.onPopState);
+    this.navigator.unlisten();
     document.removeEventListener('click', this.onDocumentClick, { capture: true });
   }
 
@@ -83,17 +81,6 @@ export class AuraRoutingEngine {
     this.stop();
     this.routes.clear();
     this.prevMatchedRouteInfo = null;
-  }
-
-  /**
-   * Обработчик Back/Forward. Браузер меняет URL до `popstate`, поэтому `syncHistory: false`.
-   *
-   * При отмене перехода (`processor.run` → `false`) engine не откатывает history — это
-   * ответственность processor/render. См. {@link AuraRoutingEngine.navigateTo}.
-   */
-  @bind
-  protected onPopState() {
-    void this.navigateTo(this.currentLocationHref, 'pop', { replace: true, syncHistory: false });
   }
 
   @bind
@@ -113,7 +100,7 @@ export class AuraRoutingEngine {
   }
 
   private isHashAnchorNavigation(pathname: string, search: string, hash: string): boolean {
-    const current = parsePath(this.currentLocationHref);
+    const current = parsePath(this.navigator.currentHref);
     const sameRoute = pathname === current.pathname && search === current.search;
     return Boolean(sameRoute && hash && hash !== current.hash);
   }
@@ -214,16 +201,14 @@ export class AuraRoutingEngine {
 
     switch (result.status) {
       case 'committed':
-        if (options.syncHistory) this.updateBrowserHistory(relativeUrl, options);
+        this.navigator.commit(relativeUrl, options);
         this.prevMatchedRouteInfo = to;
-        if (hash) {
-          this.scrollToHash(hash);
-        }
+        if (hash) this.scrollToHash(hash);
         break;
 
       case 'cancelled':
         if (action === 'pop' && from) {
-          history.replaceState(null, '', from.url); // pop: URL уже другой
+          this.navigator.rollback(from.url); // pop: URL уже другой
         }
         break;
 

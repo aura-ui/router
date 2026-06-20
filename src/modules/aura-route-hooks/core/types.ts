@@ -1,6 +1,7 @@
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-url-matcher';
+import type { HistoryAction } from '../../aura-routing-engine/core/aura-routing-history-navigator';
 
-export type { MatchedRouteInfo };
+export type { MatchedRouteInfo, HistoryAction };
 
 export type RoutePhase =
   | 'enter'
@@ -30,6 +31,8 @@ export interface RouteLifecycleContext {
   from: RouteInfo | null;
   router: RouterInstance;
   route: RouteInstance;
+  /** Как инициирован переход: push | replace | pop | system. */
+  action: HistoryAction;
   jobId: number;
   signal: AbortSignal;
   error?: unknown;

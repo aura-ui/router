@@ -178,6 +178,7 @@ export class AuraRoutingEngine {
           to: { path: m.pathname, ...(m.params && { params: m.params }), ...(m.query && { query: m.query }) },
           router: this.router,
           route: m.route,
+          action,
           jobId: 0,
           signal: new AbortController().signal,
         });
@@ -245,12 +246,14 @@ export class AuraRoutingEngine {
         }
         break;
 
-      case 'redirect':
-        void this.navigateTo(result.url, 'replace', {
-          replace: result.replace ?? false,
+      case 'redirect': {
+        const replace = result.replace ?? ctx.action === 'pop';
+        void this.navigateTo(result.url, replace ? 'replace' : 'push', {
+          replace,
           syncHistory: true,
         });
         break;
+      }
     }
   }
 

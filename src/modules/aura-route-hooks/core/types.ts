@@ -13,8 +13,29 @@ export type RoutePhase =
   | 'reentered'
   | 'error';
 
-/** Error phase: matched route snapshot + thrown error. */
-export type RouteErrorContext = MatchedRouteInfo & {
+export interface RouteInfo {
+  path: string;
+  params?: Record<string, string>;
+  query?: Record<string, string>;
+}
+
+/** Minimal router surface exposed to route hooks. */
+export interface RouterInstance {
+  navigate(path: string, options?: { replace?: boolean; syncHistory?: boolean }): void;
+}
+
+export interface RouteLifecycleContext {
+  phase: RoutePhase;
+  to: RouteInfo;
+  from: RouteInfo | null;
+  router: RouterInstance;
+  route: RouteInstance;
+  jobId: number;
+  signal: AbortSignal;
+  error?: unknown;
+}
+
+export type RouteErrorContext = RouteLifecycleContext & {
   error: unknown;
 };
 
@@ -30,24 +51,20 @@ export interface RouteInstance {
   left: string[] | null;
   reentered: string[] | null;
   error: string[] | null;
-  onEnter(ctx: MatchedRouteInfo): void;
-  onEntering(ctx: MatchedRouteInfo): void;
-  onLoad(ctx: MatchedRouteInfo): void;
-  onEntered(ctx: MatchedRouteInfo): void;
-  onLeave(ctx: MatchedRouteInfo): void;
-  onLeaving(ctx: MatchedRouteInfo): void;
-  onLeft(ctx: MatchedRouteInfo): void;
-  onReentered(ctx: MatchedRouteInfo): void;
+  onEnter(ctx: RouteLifecycleContext): void;
+  onEntering(ctx: RouteLifecycleContext): void;
+  onLoad(ctx: RouteLifecycleContext): void;
+  onEntered(ctx: RouteLifecycleContext): void;
+  onLeave(ctx: RouteLifecycleContext): void;
+  onLeaving(ctx: RouteLifecycleContext): void;
+  onLeft(ctx: RouteLifecycleContext): void;
+  onReentered(ctx: RouteLifecycleContext): void;
   onError(ctx: RouteErrorContext): void;
 }
 
-
-
-/** Hook context: {@link MatchedRouteInfo} + plugin options from `AuraRouter.use(hook, options)`. */
-export interface RouteHookContext extends MatchedRouteInfo {
+/** Hook context: lifecycle + plugin options from `AuraRouter.use(hook, options)`. */
+export interface RouteHookContext extends RouteLifecycleContext {
   options: Record<string, unknown>;
-  /** Set on the `error` phase when load or render fails. */
-  error?: unknown;
 }
 
 /** Логика hook — без фазы */

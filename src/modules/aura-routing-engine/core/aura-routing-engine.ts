@@ -17,6 +17,7 @@ import {
 } from './aura-routing-url-matcher';
 
 import type { TransitionPolicy } from './aura-routing-transition-policy';
+import type { RouterInstance } from '../../aura-route-hooks/core';
 
 export type { MatchedRouteInfo };
 
@@ -44,12 +45,18 @@ export class AuraRoutingEngine {
   public isRunning = false;
   private processor: AuraRoutingProcessor;
   private prev: MatchedRouteInfo | null;
+  private readonly router: RouterInstance;
 
   private notFoundHandler: NotFoundFallbackHandler | null = null;
 
   //DI
-  constructor(processor: AuraRoutingProcessor, config: AuraRoutingEngineConfig = {}) {
+  constructor(
+    processor: AuraRoutingProcessor,
+    router: RouterInstance,
+    config: AuraRoutingEngineConfig = {},
+  ) {
     this.processor = processor;
+    this.router = router;
     this.config = config;
 
     this.navigator = new AuraRoutingHistoryNavigator({
@@ -163,7 +170,18 @@ export class AuraRoutingEngine {
     const found = this.matcher.match(pathname, routesPaths);
     if (!found) {
       // Fallback: нет <aura-route path="*"> — thin UI + event (см. AuraRouterNotFoundController)
-      this.prev?.route.onLeft(this.prev);
+      if (this.prev) {
+        const m = this.prev; // todo Прогнать not-found через processor
+        m.route.onLeft({
+          phase: 'left',
+          from: null,
+          to: { path: m.pathname, ...(m.params && { params: m.params }), ...(m.query && { query: m.query }) },
+          router: this.router,
+          route: m.route,
+          jobId: 0,
+          signal: new AbortController().signal,
+        });
+      }
       this.notFoundHandler?.(relativeUrl);
       if (options.syncHistory && (action === 'push' || action === 'replace')) {
         this.navigator.commit(relativeUrl, options);
@@ -179,7 +197,7 @@ export class AuraRoutingEngine {
 
     const from = this.prev;
 
-    const result = await this.processor.run({ from, to, action });
+    const result = await this.processor.run({ from, to, action, router: this.router });
 
     this.finalizeNavigation(result, {
       action,

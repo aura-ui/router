@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo } from './aura-routing-engine';
+import type { MatchedRouteInfo } from './aura-routing-url-matcher';
 
 export interface TransitionMap {
   exitRoutes: MatchedRouteInfo[];

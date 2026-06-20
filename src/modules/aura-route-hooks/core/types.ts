@@ -1,4 +1,6 @@
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-engine';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-url-matcher';
+
+export type { MatchedRouteInfo };
 
 export type RoutePhase =
   | 'enter'
@@ -11,11 +13,10 @@ export type RoutePhase =
   | 'reentered'
   | 'error';
 
-export interface RouteInfo {
-  path: string;
-  params?: Record<string, string>;
-  query?: Record<string, string>;
-}
+/** Error phase: matched route snapshot + thrown error. */
+export type RouteErrorContext = MatchedRouteInfo & {
+  error: unknown;
+};
 
 /** Minimal route surface required by hooks and the routing engine. */
 export interface RouteInstance {
@@ -36,7 +37,7 @@ export interface RouteInstance {
   onLeaving(ctx: MatchedRouteInfo): void;
   onLeft(ctx: MatchedRouteInfo): void;
   onReentered(ctx: MatchedRouteInfo): void;
-  onError(ctx: RouteLifecycleContext): void;
+  onError(ctx: RouteErrorContext): void;
 }
 
 /** Minimal router surface exposed to route hooks. */
@@ -44,14 +45,9 @@ export interface RouterInstance {
   navigate(path: string): void;
 }
 
-export interface RouteLifecycleContext {
-  phase: RoutePhase;
-  to: RouteInfo;
-  from: RouteInfo | null;
-  router: RouterInstance;
-  route: RouteInstance;
-  jobId: number;
-  signal: AbortSignal;
+/** Hook context: {@link MatchedRouteInfo} + plugin options from `AuraRouter.use(hook, options)`. */
+export interface RouteHookContext extends MatchedRouteInfo {
+  options: Record<string, unknown>;
   /** Set on the `error` phase when load or render fails. */
   error?: unknown;
 }
@@ -72,10 +68,4 @@ export function defineRouteHook(def: RouteHookDefinition): Readonly<RouteHookDef
     throw new Error(`Invalid hook name: "${def.name}"`);
   }
   return Object.freeze({ ...def, fn: def.fn });
-}
-
-export interface RouteHookContext extends MatchedRouteInfo {
-  options: Record<string, unknown>;
-  /** Только для фазы `error` — исходное исключение из load/render/guard throw */
-  error?: unknown;
 }

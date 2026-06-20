@@ -17,3 +17,6 @@ export type {
 } from './core/types';
 
 export { PHASE_PIPELINE } from './core/types';
+
+export type { MatchedRouteInfo } from './core/aura-routing-url-matcher';
+export { AuraRoutingProcessor } from './core/aura-routing-processor';

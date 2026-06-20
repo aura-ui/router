@@ -12,6 +12,7 @@ import type { AuraRoutingProcessor } from './aura-routing-processor';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-regestry';
 import { AuraRoutingUrlMatcher, type MatchedRouteInfo } from './aura-routing-url-matcher';
 
+export type { MatchedRouteInfo };
 
 export class AuraRoutingEngine {
   private readonly registry = new AuraRoutingRouteRegistry();

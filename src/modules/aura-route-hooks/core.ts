@@ -1,9 +1,9 @@
 export type {
   RoutePhase,
-  RouteInfo,
+  MatchedRouteInfo,
+  RouteErrorContext,
   RouteInstance,
   RouterInstance,
-  RouteLifecycleContext,
   RouteHookContext,
   RouteHookDefinition,
 } from './core/types';

@@ -1,26 +1,35 @@
 import { attr } from '../../aura-utils/decorators';
-import { AURARoute, type AURARouteConfigureOptions } from '../../aura-route/core';
+
+import {
+  AURARoute,
+  type AURARouteConfigureOptions,
+} from '../../aura-route/core';
+
 import { RouteHookRegistry } from '../../aura-route-hooks/core';
 import type { RouteHookDefinition } from '../../aura-route-hooks/core';
 import {
   AuraRoutingEngine,
   type AuraRoutingEngineConfig,
-  type NotFoundHandler,
 } from '../../aura-routing-engine/core/aura-routing-engine';
+import { isCatchAllRoute } from '../../aura-routing-engine/core/aura-routing-url-matcher';
 import { AuraRoutingProcessor } from '../../aura-routing-engine/core/aura-routing-processor';
 import type {
   HistoryAction,
   NavigateHistoryOptions,
 } from '../../aura-routing-engine/core/aura-routing-history-navigator';
-import {
-  AuraRouterNotFoundController,
-  AURA_ROUTER_NOT_FOUND,
-} from './aura-router-not-found-controller';
+import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
+import type { NotFoundHandler } from './aura-router-not-found.types';
 
-export { AURA_ROUTER_NOT_FOUND };
+export {
+  AURA_ROUTER_NOT_FOUND,
+  type NotFoundHandler,
+  type NotFoundSource,
+  type AuraRouterNotFoundEventDetail,
+  type AuraRouterNotFoundEvent,
+} from './aura-router-not-found.types';
 
 export interface AuraRouterConfigureOptions extends AURARouteConfigureOptions {
-  /** Глобальный handler 404. Перекрывает not-found-template. */
+  /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;
 }
 
@@ -32,13 +41,18 @@ export interface RouterInstance {
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
+  /** Fallback template id — когда нет `<aura-route path="*">`. */
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
-  @attr({ dataAttr: true, defaultValue: '[data-router-link]' }) linksSelector: string;
+  @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
+  linksSelector: string;
 
   private engine?: AuraRoutingEngine;
   private readonly notFound = new AuraRouterNotFoundController(this);
 
-  static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
+  static use(
+    hook: RouteHookDefinition,
+    options?: Record<string, unknown>
+  ): void {
     RouteHookRegistry.register(hook, options);
   }
 
@@ -49,13 +63,13 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     AURARoute.configure(options);
   }
 
-  /** Per-instance override (перекрывает configure и template). */
+  /** Per-instance override (перекрывает configure и template). Только fallback. */
   setNotFoundHandler(handler: NotFoundHandler | null): void {
     this.notFound.setHandler(handler);
     this.ensureEngine().setNotFoundHandler((url) => this.notFound.handle(url));
   }
 
-  get routes(){
+  get routes() {
     return this.querySelectorAll<AURARoute>(AURARoute.is);
   }
 
@@ -76,7 +90,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (!this.engine) {
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
-        onRouteMatched: () => this.notFound.hide(),
+        onNavigationCommitted: (to) => {
+          this.notFound.hide();
+          if (isCatchAllRoute(to.routePath)) {
+            AuraRouterNotFoundController.emit(this, to.url, 'route');
+          }
+        },
       };
       this.engine = new AuraRoutingEngine(new AuraRoutingProcessor(), config);
       this.engine.setNotFoundHandler((url) => this.notFound.handle(url));
@@ -88,7 +107,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
-  navigate(path: string, options: NavigateHistoryOptions): void {
+  navigate(path: string, options: Partial<NavigateHistoryOptions> = {}): void {
     const replace = options.replace ?? false;
     const syncHistory = options.syncHistory ?? true;
     const action: HistoryAction = replace ? 'replace' : 'push';

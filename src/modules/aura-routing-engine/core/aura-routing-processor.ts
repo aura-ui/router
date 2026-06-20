@@ -6,20 +6,17 @@
 // 4. обработка фаз идет в phase-dispatcher компоненте (он вызывает хуки роута конкретного)
 // необходимо будет заранее обработать какие хуки существуют, чтобы не гонять их все если они пустые
 
-
 import { buildRoadMap } from './aura-routing-transition-map';
 import type { MatchedRouteInfo } from './aura-routing-engine';
 import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';
 import { AuraRoutingProcessorJobManager } from './aura-routing-processor-job-manager';
 import type { GuardResult } from './types';
-import type { HistoryAction } from './aura-routing-history-navigator';
 
 type ProcessorResponse =
   | { status: 'committed' }
   | { status: 'cancelled';}
   | { status: 'redirect'; url: string; replace?: boolean }
   | { status: 'error'; error: unknown };
-
 
 export class AuraRoutingProcessor {
   private jobManager: AuraRoutingProcessorJobManager;
@@ -28,10 +25,10 @@ export class AuraRoutingProcessor {
     this.jobManager = new AuraRoutingProcessorJobManager();
   }
 
-  async run({ from, to, action }: {from: MatchedRouteInfo | null, to :MatchedRouteInfo, action:HistoryAction}):Promise<ProcessorResponse>{
+  async run({ from, to }: {from: MatchedRouteInfo | null, to :MatchedRouteInfo}):Promise<ProcessorResponse>{
     const {exitRoutes, enterRoutes, reentered} = buildRoadMap(from, to);
 
-    const job = this.jobManager.begin(action);
+    const job = this.jobManager.begin();
     const generation = this.jobManager.routerGeneration;
     const isJobActive  = () => !this.jobManager.isJobSuperseded(job, generation);
 

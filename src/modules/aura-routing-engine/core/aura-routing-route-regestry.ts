@@ -16,9 +16,7 @@ export class AuraRoutingRouteRegistry {
 
   replace(routes: AURARoute[]): void {
     this.routes.clear();
-    for (const route of routes) {
-      if (route.path) this.routes.set(route.path, route);
-    }
+    this.register(routes);
   }
 
   get(path: string): AURARoute | undefined {

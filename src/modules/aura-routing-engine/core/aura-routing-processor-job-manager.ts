@@ -1,5 +1,4 @@
 import { AuraRoutingProcessorJob } from './aura-routing-processor-job';
-import type { HistoryAction } from './aura-routing-engine';
 
 /**
  * Creates and tracks the active {@link AuraRoutingProcessorJob}.
@@ -41,9 +40,9 @@ export class AuraRoutingProcessorJobManager {
    * Abort the previous job and start a new one.
    * Call at the start of a navigation pipeline (`leave`, `enter` without prior leave, `reentered`).
    */
-  begin(intent: HistoryAction  = 'system'): AuraRoutingProcessorJob {
+  begin(): AuraRoutingProcessorJob {
     this._active?.abort();
-    const job = new AuraRoutingProcessorJob(++this.nextId, intent);
+    const job = new AuraRoutingProcessorJob(++this.nextId);
     this._active = job;
     return job;
   }

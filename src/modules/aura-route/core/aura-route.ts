@@ -281,12 +281,9 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     console.log(`entered ${this.path}`, ctx.url);
   }
 
-  public beforeLeave(context: MatchedRouteInfo): void {
-    console.log(`afterLeave ${this.path}`, context.url);
-  }
-
-  public afterLeave(context: MatchedRouteInfo): void {
-    console.log(`afterLeave ${this.path}`, context.url);
+  public onLeave(ctx: MatchedRouteInfo): void {
+    // lifecycle: leave phase — guard before teardown
+    console.log(`leave ${this.path}`, ctx.url);
   }
 
   public onLeaving(ctx: MatchedRouteInfo): void {

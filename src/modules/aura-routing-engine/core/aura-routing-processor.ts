@@ -5,7 +5,7 @@ import {
   type TransactionResult,
 } from './aura-routing-phase-executor';
 import type { MatchedRouteInfo } from './aura-routing-url-matcher';
-import type { HistoryAction } from './aura-routing-history-navigator';
+import type { HistoryAction } from './navigation-provider.types';
 import type { RouterInstance } from '../../aura-route-hooks/core';
 import { AuraRoutingProcessorJobManager } from './aura-routing-processor-job-manager';
 import {

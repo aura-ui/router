@@ -1,5 +1,5 @@
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-url-matcher';
-import type { HistoryAction } from '../../aura-routing-engine/core/aura-routing-history-navigator';
+import type { HistoryAction } from '../../aura-routing-engine/core/navigation-provider.types';
 
 export type { MatchedRouteInfo, HistoryAction };
 

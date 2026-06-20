@@ -1,13 +1,13 @@
 // 1. передаем роуты, запоминаем их
-// 2. делаем механизм прослушивания кликов по документу и popstate
+// 2. provider слушает клики и popstate
 // 3. когда отловленно событие spa перехода - выбираем самый подходящий патерн соответствующий href
-// 4. вызываем следующий слой обработчика (processor) - передаем в него from и to (этот слой будет запускать все необходимык фазы для ротеру)
-// 5. если фазы благополучно прошли - нам необходимо поменять урл (атомарность перехода)
+// 4. вызываем processor - передаем from и to
+// 5. если фазы благополучно прошли - commit URL (атомарность перехода)
 
 import type { AURARoute } from '../../aura-route/core/aura-route';
-import { bind } from '../../aura-utils/misc/bind';
+import type { RouterInstance } from '../../aura-route-hooks/core';
 import { parsePath } from '../../aura-utils/misc/url';
-import { AuraRoutingHistoryNavigator, type HistoryAction, type NavigateHistoryOptions } from './aura-routing-history-navigator';
+
 import type { AuraRoutingProcessor } from './aura-routing-processor';
 import type { TransactionResult } from './aura-routing-phase-executor';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-regestry';
@@ -15,11 +15,16 @@ import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './aura-routing-url-matcher';
-
 import type { TransitionPolicy } from './aura-routing-transition-policy';
-import type { RouterInstance } from '../../aura-route-hooks/core';
+import { BrowserHistoryProvider } from './browser-history-provider';
+import type {
+  HistoryAction,
+  NavigateHistoryOptions,
+  NavigationProvider,
+} from './navigation-provider.types';
 
 export type { MatchedRouteInfo };
+export type { HistoryAction, NavigateHistoryOptions } from './navigation-provider.types';
 
 /** Engine fallback when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (url: string) => void;
@@ -33,15 +38,16 @@ export interface AuraRoutingEngineConfig {
   transitionPolicy?: TransitionPolicy;
   /** Вызывается после успешного commit navigation (в т.ч. catch-all). */
   onNavigationCommitted?: (to: MatchedRouteInfo) => void;
+  /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
+  provider?: NavigationProvider;
 }
 
 export class AuraRoutingEngine {
   private readonly registry = new AuraRoutingRouteRegistry();
   private readonly matcher = new AuraRoutingUrlMatcher();
-  private readonly navigator: AuraRoutingHistoryNavigator;
+  private readonly provider: NavigationProvider;
   private readonly config: AuraRoutingEngineConfig;
 
-  //private routes = new Map<string, AURARoute>();
   public isRunning = false;
   private processor: AuraRoutingProcessor;
   private prev: MatchedRouteInfo | null;
@@ -49,7 +55,6 @@ export class AuraRoutingEngine {
 
   private notFoundHandler: NotFoundFallbackHandler | null = null;
 
-  //DI
   constructor(
     processor: AuraRoutingProcessor,
     router: RouterInstance,
@@ -59,10 +64,15 @@ export class AuraRoutingEngine {
     this.router = router;
     this.config = config;
 
-    this.navigator = new AuraRoutingHistoryNavigator({
-      onPopNavigate: (href) => {
-        void this.navigateTo(href, 'pop', { replace: true, syncHistory: false });
-      },
+    this.provider =
+      config.provider ??
+      new BrowserHistoryProvider({ linksSelector: config.linksSelector });
+
+    this.provider.onNavigation((request) => {
+      void this.navigateTo(request.href, request.action, {
+        replace: request.replace,
+        syncHistory: request.syncHistory,
+      });
     });
   }
 
@@ -77,11 +87,9 @@ export class AuraRoutingEngine {
   start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
-    this.navigator.listen();
+    this.provider.start();
 
-    document.addEventListener('click', this.onDocumentClick, { capture: true });
-
-    void this.navigateTo(this.navigator.currentHref, 'system', {
+    void this.navigateTo(this.provider.currentHref, 'system', {
       replace: true,
       syncHistory: false,
     });
@@ -90,30 +98,13 @@ export class AuraRoutingEngine {
   stop() {
     this.isRunning = false;
     this.processor.stop();
-    this.navigator.unlisten();
-    document.removeEventListener('click', this.onDocumentClick, { capture: true });
+    this.provider.destroy();
   }
 
   destroy(): void {
     this.stop();
     this.registry.clear();
     this.prev = null;
-  }
-
-  @bind
-  protected onDocumentClick(event: MouseEvent) {
-    const { target } = event;
-    if (!(target instanceof Element)) return;
-
-    const selector = this.config?.linksSelector ?? '[data-router-link]';
-    const anchor = target.closest('a');
-    if (!anchor || !anchor.matches(selector)) return;
-
-    const href = anchor.getAttribute('href');
-    if (!href || href.startsWith('http') || href.startsWith('//') || href.startsWith('#')) return;
-
-    event.preventDefault();
-    void this.navigateTo(href, 'push', { replace: false, syncHistory: true });
   }
 
   /**
@@ -151,14 +142,12 @@ export class AuraRoutingEngine {
   public async navigateTo(
     href: string,
     action: HistoryAction,
-    options: {
-      replace: boolean;
-      syncHistory: boolean
-    }): Promise<void> {
+    options: NavigateHistoryOptions,
+  ): Promise<void> {
     const { pathname, search, hash } = parsePath(href);
     const relativeUrl = pathname + search + hash;
 
-    const current = this.navigator.currentHref;
+    const current = this.provider.currentHref;
 
     // Только якорь на том же route — без полного transition
     if (this.matcher.isHashOnly(relativeUrl, current)) {
@@ -171,7 +160,7 @@ export class AuraRoutingEngine {
     if (!found) {
       // Fallback: нет <aura-route path="*"> — thin UI + event (см. AuraRouterNotFoundController)
       if (this.prev) {
-        const m = this.prev; // todo Прогнать not-found через processor
+        const m = this.prev;
         m.route.onLeft({
           phase: 'left',
           from: null,
@@ -185,7 +174,7 @@ export class AuraRoutingEngine {
       }
       this.notFoundHandler?.(relativeUrl);
       if (options.syncHistory && (action === 'push' || action === 'replace')) {
-        this.navigator.commit(relativeUrl, options);
+        this.provider.commit(relativeUrl, options);
       }
       this.prev = null;
       return;
@@ -193,8 +182,15 @@ export class AuraRoutingEngine {
 
     const route = this.registry.get(found.routePath) as AURARoute;
 
-    const to = this.matcher.toRouteInfo(relativeUrl,  pathname,     search,
-      hash, found.routePath, route, found.params);
+    const to = this.matcher.toRouteInfo(
+      relativeUrl,
+      pathname,
+      search,
+      hash,
+      found.routePath,
+      route,
+      found.params,
+    );
 
     const from = this.prev;
 
@@ -233,7 +229,7 @@ export class AuraRoutingEngine {
   ): void {
     switch (result.status) {
       case 'committed':
-        this.navigator.commit(ctx.url, ctx.options);
+        this.provider.commit(ctx.url, ctx.options);
         this.prev = ctx.to;
         this.config.onNavigationCommitted?.(ctx.to);
         if (ctx.hash) this.scrollToHash(ctx.hash);
@@ -242,7 +238,7 @@ export class AuraRoutingEngine {
       case 'cancelled':
       case 'error':
         if (ctx.action === 'pop' && ctx.from) {
-          this.navigator.rollback(ctx.from.url);
+          this.provider.rollback(ctx.from.url);
         }
         break;
 
@@ -263,7 +259,7 @@ export class AuraRoutingEngine {
     options: NavigateHistoryOptions,
     hash: string,
   ): void {
-    this.navigator.commit(url, options);
+    this.provider.commit(url, options);
     if (this.prev) this.prev.url = url;
     if (hash) this.scrollToHash(hash);
   }

@@ -14,6 +14,18 @@ export interface MatchedRouteInfo {
   query?: Record<string, string>;
 }
 
+/** Declarative 404: <aura-route path="*"> */
+export const CATCH_ALL_ROUTE_PATH = '*' as const;
+export function isCatchAllRoute(routePath: string): boolean {
+  return routePath === CATCH_ALL_ROUTE_PATH || routePath === '/*';
+}
+/** Catch-all всегда проигрывает конкретным routes */
+function routeScore(routePath: string): number {
+  return isCatchAllRoute(routePath)
+    ? -1
+    : routePath.split('/').filter(Boolean).length;
+}
+
 export class AuraRoutingUrlMatcher {
 
 
@@ -27,7 +39,7 @@ export class AuraRoutingUrlMatcher {
     for (const routePath of routesPaths) {
       const params = this.getPathParams(pathname, routePath);
       if (params === null) continue;
-      const score = routePath.split('/').filter(Boolean).length;
+      const score = routeScore(routePath);
       if (!best || score > best.score) {
         best = { routePath, params, score };
       }
@@ -40,6 +52,14 @@ export class AuraRoutingUrlMatcher {
   * Returns captured groups or null when no match.
 */
   getPathParams(pathname: string, routePath: string): Record<string, string> | null {
+  // --- catch-all: matчит любой pathname ---
+  if (isCatchAllRoute(routePath)) {
+    // /users/42 → { splat: 'users/42' }
+    // /         → { splat: '' }
+    const splat = pathname.replace(/^\//, '');
+    return { splat };
+  }
+
     try {
       const urlPattern = new URLPattern({ pathname: routePath });
       const result = urlPattern.exec({ pathname });

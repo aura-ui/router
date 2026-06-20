@@ -12,8 +12,25 @@ import type { AuraRoutingProcessor } from './aura-routing-processor';
 import type { TransactionResult } from './aura-routing-phase-executor';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-regestry';
 import { AuraRoutingUrlMatcher, type MatchedRouteInfo } from './aura-routing-url-matcher';
+import type { AuraRouter } from '../../aura-router/core/aura-router';
 
 export type { MatchedRouteInfo };
+
+export type NotFoundHandler = (url: string, router: AuraRouter) => void;
+export interface AuraRouterNotFoundEventDetail {
+  url: string;
+  router: AuraRouter;
+}
+/** CustomEvent: `not-found` */
+export type AuraRouterNotFoundEvent = CustomEvent<AuraRouterNotFoundEventDetail>;
+
+export interface AuraRoutingEngineConfig{
+  /** Selector for in-app links to intercept. Default: `'[data-router-link]'`. */
+  linksSelector?: string;
+  /** Use hash-based routing. Default: `false`. */
+  hash?: boolean;
+  onRouteMatched?: () => void;
+}
 
 export class AuraRoutingEngine {
   private readonly registry = new AuraRoutingRouteRegistry();
@@ -26,10 +43,10 @@ export class AuraRoutingEngine {
   private processor: AuraRoutingProcessor;
   private prev: MatchedRouteInfo | null;
 
-  private notFoundHandler: Function | null;
+  private notFoundHandler: NotFoundHandler | null = null;
 
   //DI
-  constructor(processor: AuraRoutingProcessor, config: any = {}) {
+  constructor(processor: AuraRoutingProcessor, config: AuraRoutingEngineConfig = {}) {
     this.processor = processor;
     this.config = config;
 
@@ -143,7 +160,15 @@ export class AuraRoutingEngine {
     const routesPaths = this.registry.routesPath();
     const found = this.matcher.match(pathname, routesPaths);
     if (!found) {
+      // 1. UI
+      this.prev?.route.onLeft(this.prev);
       this.notFoundHandler?.(relativeUrl);
+      // 2. URL — как в обычном SPA
+      if (options.syncHistory && (action === 'push' || action === 'replace')) {
+        this.navigator.commit(relativeUrl, options);
+      }
+      // 3. состояние engine: активного route нет
+      this.prev = null;
       return;
     }
 
@@ -191,6 +216,7 @@ export class AuraRoutingEngine {
       case 'committed':
         this.navigator.commit(ctx.url, ctx.options);
         this.prev = ctx.to;
+        this.config.onRouteMatched?.();
         if (ctx.hash) this.scrollToHash(ctx.hash);
         break;
 
@@ -218,6 +244,7 @@ export class AuraRoutingEngine {
   ): void {
     this.navigator.commit(url, options);
     if (this.prev) this.prev.url = url;
+    this.config.onRouteMatched?.();
     if (hash) this.scrollToHash(hash);
   }
 
@@ -229,7 +256,7 @@ export class AuraRoutingEngine {
     });
   }
 
-  setNotFoundHandler(callback: Function): void {
+  setNotFoundHandler(callback: NotFoundHandler): void {
     this.notFoundHandler = callback;
   }
 }

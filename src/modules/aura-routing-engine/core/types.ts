@@ -17,14 +17,6 @@ export type NavigateOptions = {
   replace?: boolean;
 };
 
-/** Engine-level config shared by all providers. Passed once via {@link RoutingProviderRegistry.create}. */
-export interface RoutingEngineConfig {
-  /** Selector for in-app links to intercept. Default: `'[data-router-link]'`. */
-  linksSelector?: string;
-  /** Use hash-based routing. Default: `false`. */
-  hash?: boolean;
-}
-
 export type RedirectTarget =
   | string
   | { url: string; replace?: boolean };
@@ -67,9 +59,6 @@ export type RoutePhaseHandlers = Partial<Record<RoutePhase, PhaseHandler>>;
 
 /** Called when a route pattern matches and content should render. */
 export type RouteRenderHandler = (match: RouteMatch) => void | Promise<void>;
-
-/** Called when no registered route matches the URL. */
-export type NotFoundHandler = (url: string) => void;
 
 export type NavigationIntent = 'push' | 'replace' | 'pop' | 'system';
 

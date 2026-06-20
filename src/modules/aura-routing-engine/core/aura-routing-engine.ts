@@ -11,39 +11,37 @@ import { AuraRoutingHistoryNavigator, type HistoryAction, type NavigateHistoryOp
 import type { AuraRoutingProcessor } from './aura-routing-processor';
 import type { TransactionResult } from './aura-routing-phase-executor';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-regestry';
-import { AuraRoutingUrlMatcher, type MatchedRouteInfo } from './aura-routing-url-matcher';
-import type { AuraRouter } from '../../aura-router/core/aura-router';
+import {
+  AuraRoutingUrlMatcher,
+  type MatchedRouteInfo,
+} from './aura-routing-url-matcher';
 
 export type { MatchedRouteInfo };
 
-export type NotFoundHandler = (url: string, router: AuraRouter) => void;
-export interface AuraRouterNotFoundEventDetail {
-  url: string;
-  router: AuraRouter;
-}
-/** CustomEvent: `not-found` */
-export type AuraRouterNotFoundEvent = CustomEvent<AuraRouterNotFoundEventDetail>;
+/** Engine fallback when match returns null (no `path="*"` route). */
+export type NotFoundFallbackHandler = (url: string) => void;
 
-export interface AuraRoutingEngineConfig{
+export interface AuraRoutingEngineConfig {
   /** Selector for in-app links to intercept. Default: `'[data-router-link]'`. */
   linksSelector?: string;
   /** Use hash-based routing. Default: `false`. */
   hash?: boolean;
-  onRouteMatched?: () => void;
+  /** Вызывается после успешного commit navigation (в т.ч. catch-all). */
+  onNavigationCommitted?: (to: MatchedRouteInfo) => void;
 }
 
 export class AuraRoutingEngine {
   private readonly registry = new AuraRoutingRouteRegistry();
   private readonly matcher = new AuraRoutingUrlMatcher();
   private readonly navigator: AuraRoutingHistoryNavigator;
-  private readonly config: any;
+  private readonly config: AuraRoutingEngineConfig;
 
   //private routes = new Map<string, AURARoute>();
   public isRunning = false;
   private processor: AuraRoutingProcessor;
   private prev: MatchedRouteInfo | null;
 
-  private notFoundHandler: NotFoundHandler | null = null;
+  private notFoundHandler: NotFoundFallbackHandler | null = null;
 
   //DI
   constructor(processor: AuraRoutingProcessor, config: AuraRoutingEngineConfig = {}) {
@@ -160,14 +158,12 @@ export class AuraRoutingEngine {
     const routesPaths = this.registry.routesPath();
     const found = this.matcher.match(pathname, routesPaths);
     if (!found) {
-      // 1. UI
+      // Fallback: нет <aura-route path="*"> — thin UI + event (см. AuraRouterNotFoundController)
       this.prev?.route.onLeft(this.prev);
       this.notFoundHandler?.(relativeUrl);
-      // 2. URL — как в обычном SPA
       if (options.syncHistory && (action === 'push' || action === 'replace')) {
         this.navigator.commit(relativeUrl, options);
       }
-      // 3. состояние engine: активного route нет
       this.prev = null;
       return;
     }
@@ -216,7 +212,7 @@ export class AuraRoutingEngine {
       case 'committed':
         this.navigator.commit(ctx.url, ctx.options);
         this.prev = ctx.to;
-        this.config.onRouteMatched?.();
+        this.config.onNavigationCommitted?.(ctx.to);
         if (ctx.hash) this.scrollToHash(ctx.hash);
         break;
 
@@ -244,7 +240,6 @@ export class AuraRoutingEngine {
   ): void {
     this.navigator.commit(url, options);
     if (this.prev) this.prev.url = url;
-    this.config.onRouteMatched?.();
     if (hash) this.scrollToHash(hash);
   }
 
@@ -256,7 +251,7 @@ export class AuraRoutingEngine {
     });
   }
 
-  setNotFoundHandler(callback: NotFoundHandler): void {
+  setNotFoundHandler(callback: NotFoundFallbackHandler): void {
     this.notFoundHandler = callback;
   }
 }

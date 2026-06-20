@@ -1,9 +1,9 @@
-import type { NotFoundHandler } from '../../aura-routing-engine/core/aura-routing-engine';
+import type { NotFoundHandler, NotFoundSource } from './aura-router-not-found.types';
+import { AURA_ROUTER_NOT_FOUND } from './aura-router-not-found.types';
 import { AuraRouterOutlet } from '../../aura-router-outlet/core';
 import { dispatchCustomEvent } from '../../aura-utils/misc';
-import type { AuraRouter } from './aura-router';
 
-export const AURA_ROUTER_NOT_FOUND = 'not-found';
+export { AURA_ROUTER_NOT_FOUND };
 
 export interface AuraRouterNotFoundHost extends HTMLElement {
   notFoundTemplate: string;
@@ -14,11 +14,21 @@ let configuredNotFoundHandler: NotFoundHandler | null | undefined;
 export class AuraRouterNotFoundController {
   private instanceHandler?: NotFoundHandler | null;
   private notFoundOutlet?: AuraRouterOutlet;
+  private readonly router: AuraRouterNotFoundHost;
 
-  constructor(private readonly router: AuraRouterNotFoundHost) {}
+  constructor(router: AuraRouterNotFoundHost) {
+    this.router = router;
+  }
 
   static configure(handler: NotFoundHandler | null | undefined): void {
     configuredNotFoundHandler = handler ?? null;
+  }
+
+  /** Dispatches `not-found` (cancelable). Returns false when defaultPrevented. */
+  static emit(router: HTMLElement, url: string, source: NotFoundSource): boolean {
+    return dispatchCustomEvent(router, AURA_ROUTER_NOT_FOUND, {
+      detail: { url, router, source },
+    });
   }
 
   setHandler(handler: NotFoundHandler | null): void {
@@ -29,32 +39,28 @@ export class AuraRouterNotFoundController {
     this.notFoundOutlet = undefined;
   }
 
-  /** Вызывать при успешном match — скрывает 404. */
+  /** Скрывает fallback outlet (не используется при declarative `path="*"`). */
   hide(): void {
     if (!this.notFoundOutlet) return;
     this.notFoundOutlet.hidden = true;
     this.notFoundOutlet.clear();
   }
 
+  /** Thin fallback: когда в registry нет `<aura-route path="*">`. */
   handle(url: string): void {
-    console.log('handel no found');
+    if (!AuraRouterNotFoundController.emit(this.router, url, 'fallback')) return;
 
-    const allowed = dispatchCustomEvent(this.router, AURA_ROUTER_NOT_FOUND, {
-      detail: { url, router: this.router },
-    });
-    if (!allowed) return;
-    console.log('handel no found1');
     const handler = this.instanceHandler ?? configuredNotFoundHandler;
     if (handler) {
-      handler(url, this.router as AuraRouter);
+      handler(url, this.router);
       return;
     }
-    console.log('handel no found2');
+
     if (this.router.notFoundTemplate) {
       this.renderTemplate(this.router.notFoundTemplate, url);
       return;
     }
-    console.log('handel no found3');
+
     this.renderFallback(url);
   }
 
@@ -73,15 +79,11 @@ export class AuraRouterNotFoundController {
   }
 
   private renderTemplate(templateId: string, url: string): void {
-   console.log('renderTemplate');
     const outlet = this.getNotFoundOutlet();
     outlet.hidden = false;
+    outlet.removeAttribute('template');
     outlet.template = templateId;
-    console.log(templateId);
-    console.log(outlet);
-    outlet.querySelectorAll('[data-not-found-url]').forEach((el) => {
-      el.textContent = url;
-    });
+    this.applyNotFoundUrl(outlet, url);
   }
 
   private renderFallback(url: string): void {
@@ -89,5 +91,12 @@ export class AuraRouterNotFoundController {
     outlet.hidden = false;
     outlet.removeAttribute('template');
     outlet.replaceChildren(document.createTextNode(`Page not found: ${url}`));
+  }
+
+  /** Только fallback outlet — `[data-not-found-url]` не часть AURARoute. */
+  private applyNotFoundUrl(root: ParentNode, url: string): void {
+    root.querySelectorAll('[data-not-found-url]').forEach((el) => {
+      el.textContent = url;
+    });
   }
 }

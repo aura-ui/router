@@ -1,7 +1,14 @@
 export type {
+  NotFoundFallbackHandler,
+  AuraRoutingEngineConfig,
+} from './core/aura-routing-engine';
+
+export { AuraRoutingEngine } from './core/aura-routing-engine';
+export { AuraRoutingProcessor } from './core/aura-routing-processor';
+
+export type {
   RouteMatch,
   NavigateOptions,
-  RoutingEngineConfig,
   GuardResult,
   NavigationContext,
   NavigationEvent,
@@ -9,7 +16,6 @@ export type {
   PhaseHandler,
   RoutePhaseHandlers,
   RouteRenderHandler,
-  NotFoundHandler,
   NavigationTransition,
   RouteRegistration,
   ProviderRouteRegistration,
@@ -18,5 +24,8 @@ export type {
 
 export { PHASE_PIPELINE } from './core/types';
 
-export type { MatchedRouteInfo } from './core/aura-routing-url-matcher';
-export { AuraRoutingProcessor } from './core/aura-routing-processor';
+export type {
+  MatchedRouteInfo,
+  CATCH_ALL_ROUTE_PATH,
+} from './core/aura-routing-url-matcher';
+export { isCatchAllRoute } from './core/aura-routing-url-matcher';

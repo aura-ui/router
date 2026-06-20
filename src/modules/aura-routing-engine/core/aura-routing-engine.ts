@@ -9,6 +9,7 @@ import { bind } from '../../aura-utils/misc/bind';
 import { parsePath, parseQuery } from '../../aura-utils/misc/url';
 import { AuraRoutingHistoryNavigator, type HistoryAction } from './aura-routing-history-navigator';
 import type { AuraRoutingProcessor } from './aura-routing-processor';
+import { AuraRoutingRouteRegistry } from './aura-routing-route-regestry';
 
 export interface MatchedRouteInfo {
   /** Resolved URL pathname, e.g. `/user/42`. */
@@ -24,11 +25,11 @@ export interface MatchedRouteInfo {
 }
 
 export class AuraRoutingEngine {
-
-  private readonly config: any;
+  private readonly registry = new AuraRoutingRouteRegistry();
   private readonly navigator: AuraRoutingHistoryNavigator;
+  private readonly config: any;
 
-  private routes = new Map<string, AURARoute>();
+  //private routes = new Map<string, AURARoute>();
   public isRunning = false;
   private processor: AuraRoutingProcessor;
   private prevMatchedRouteInfo: MatchedRouteInfo | null;
@@ -47,14 +48,12 @@ export class AuraRoutingEngine {
     });
   }
 
-  registerRoutes(routes: AURARoute[]): void {
-    for (let route of routes) {
-      const { path } = route;
-      if (this.routes.has(path)) {
-        console.warn(`Duplicate route path "${path}" — previous route will be overwritten`);
-      }
-      this.routes.set(path, route);
-    }
+  registerRoutes(routes: Parameters<AuraRoutingRouteRegistry['register']>[0]) {
+    this.registry.register(routes);
+  }
+
+  replaceRoutes(routes: Parameters<AuraRoutingRouteRegistry['replace']>[0]) {
+    this.registry.replace(routes);
   }
 
   start(): void {
@@ -79,7 +78,7 @@ export class AuraRoutingEngine {
 
   destroy(): void {
     this.stop();
-    this.routes.clear();
+    this.registry.clear();
     this.prevMatchedRouteInfo = null;
   }
 
@@ -171,13 +170,13 @@ export class AuraRoutingEngine {
 
     // Только якорь на том же route — без полного transition
     if (this.isHashAnchorNavigation(pathname, search, hash)) {
-      this.updateBrowserHistory(relativeUrl, options);
+      this.navigator.commit(relativeUrl, options);
       this.prevMatchedRouteInfo && (this.prevMatchedRouteInfo.url = relativeUrl);
       this.scrollToHash(hash);
       return;
     }
 
-    const routesPaths = [...this.routes.keys()];
+    const routesPaths = this.registry.routesPath();
     const found = this.findBestMatchRoute(pathname, routesPaths);
 
     if (!found) {
@@ -190,7 +189,7 @@ export class AuraRoutingEngine {
       pathname,
       search,
       hash,
-      route: this.routes.get(found.routePath) as AURARoute,
+      route: this.registry.get(found.routePath) as AURARoute,
       routePath: found.routePath,
       params: found.params,
     });
@@ -218,16 +217,6 @@ export class AuraRoutingEngine {
 
       case 'error':
       // history не трогаем или политика по intent
-    }
-  }
-
-  updateBrowserHistory(url: string, options: any): void {
-    if (options.syncHistory) {
-      if (options.replace) {
-        history.replaceState(null, '', url);
-      } else {
-        history.pushState(null, '', url);
-      }
     }
   }
 

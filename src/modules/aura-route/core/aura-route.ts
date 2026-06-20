@@ -107,7 +107,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
         await this.preloadContent();
 
       } catch (error) {
-        console.log(error);
+        console.error(error);
       }
       // todo clean on attr change
     }
@@ -156,8 +156,6 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
   public async render(routeInfo?: MatchedRouteInfo): Promise<void> {
     try {
-      console.log(`Rendering started ${this.path}`);
-
       this.isActive = true;
       this.hidden = false;
       this.resetAbortController();
@@ -205,8 +203,6 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       }
 
       throw error;
-    } finally {
-      console.log('Rendering finished');
     }
   }
 

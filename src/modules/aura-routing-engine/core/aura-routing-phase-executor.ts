@@ -47,8 +47,7 @@ export class PhaseExecutor {
 
         if (route.reentered?.length) {
           const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
-          const redirect = this.applyRedirect(result);
-          if (redirect) return redirect;
+          this.warnIgnoredTerminalResult('reentered', result);
         }
       } catch (error) {
         return this.failWithError(routeInfo, error, phaseContext);
@@ -147,7 +146,8 @@ export class PhaseExecutor {
 
       route.onLeft(lifecycleContext);
       if (route.left?.length) {
-        await this.runPhaseSafe(lifecycleContext, phaseContext);
+        const result = await this.runPhaseSafe(lifecycleContext, phaseContext);
+        this.warnIgnoredTerminalResult('left', result);
       }
     }
 
@@ -159,8 +159,7 @@ export class PhaseExecutor {
 
       if (route.entered?.length) {
         const result = await this.runPhaseSafe(lifecycleContext, phaseContext);
-        const redirect = this.applyRedirect(result);
-        if (redirect) return redirect;
+        this.warnIgnoredTerminalResult('entered', result);
       }
     }
 
@@ -207,7 +206,8 @@ export class PhaseExecutor {
       try {
         route.onLeaving(lifecycleContext);
         if (route.leaving?.length) {
-          await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+          const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+          this.warnIgnoredTerminalResult('leaving', result);
         }
       } catch (error) {
         return this.failWithError(routeInfo, error, phaseContext);
@@ -225,7 +225,8 @@ export class PhaseExecutor {
       try {
         route.onEntering(lifecycleContext);
         if (route.entering?.length) {
-          await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+          const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+          this.warnIgnoredTerminalResult('entering', result);
         }
       } catch (error) {
         return this.failWithError(routeInfo, error, phaseContext);
@@ -273,6 +274,19 @@ export class PhaseExecutor {
     }
 
     return false;
+  }
+
+  /** Post-commit: cancel/redirect не меняют траекторию навигации (NAVIGATION_TRANSACTION_MODEL). */
+  private warnIgnoredTerminalResult(phase: RoutePhase, result: GuardResult): void {
+    if (result === false) {
+      console.warn(`[${phase}] hook returned false after commit — ignored`);
+      return;
+    }
+
+    const redirect = this.applyRedirect(result);
+    if (redirect) {
+      console.warn(`[${phase}] hook returned redirect after commit — ignored: ${redirect.url}`);
+    }
   }
 
   private async failWithError(

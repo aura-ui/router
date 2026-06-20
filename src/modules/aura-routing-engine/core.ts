@@ -6,6 +6,9 @@ export type {
 export { AuraRoutingEngine } from './core/aura-routing-engine';
 export { AuraRoutingProcessor } from './core/aura-routing-processor';
 
+export type { TransitionPolicy } from './core/aura-routing-transition-policy';
+export { DEFAULT_TRANSITION_POLICY, parseTransitionPolicy } from './core/aura-routing-transition-policy';
+
 export type {
   RouteMatch,
   NavigateOptions,

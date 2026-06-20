@@ -13,8 +13,8 @@ export type {
   NavigationRequest,
 } from './core/navigation-provider.types';
 
-export { BrowserHistoryProvider } from './core/browser-history-provider';
-export { FakeHistoryProvider } from './core/fake-history-provider';
+export { BrowserHistoryProvider } from './core/providers/browser-history-provider';
+export { FakeHistoryProvider } from './core/providers/fake-history-provider';
 
 export type { TransitionPolicy } from './core/aura-routing-transition-policy';
 export { DEFAULT_TRANSITION_POLICY, parseTransitionPolicy } from './core/aura-routing-transition-policy';

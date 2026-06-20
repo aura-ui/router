@@ -1,10 +1,10 @@
-import { bind } from '../../aura-utils/misc/bind';
+import { bind } from '../../../aura-utils/misc/bind';
 
 import type {
   NavigationHandler,
   NavigationProvider,
   NavigateHistoryOptions,
-} from './navigation-provider.types';
+} from '../navigation-provider.types';
 
 export interface BrowserHistoryProviderConfig {
   linksSelector?: string;

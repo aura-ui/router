@@ -16,7 +16,7 @@ import {
   type MatchedRouteInfo,
 } from './aura-routing-url-matcher';
 import type { TransitionPolicy } from './aura-routing-transition-policy';
-import { BrowserHistoryProvider } from './browser-history-provider';
+import { BrowserHistoryProvider } from './providers/browser-history-provider';
 import type {
   HistoryAction,
   NavigateHistoryOptions,

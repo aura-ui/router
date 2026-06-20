@@ -5,7 +5,7 @@
 // Lifecycle — всегда; hooks — только при непустом attr на route.
 
 import type { MatchedRouteInfo } from './aura-routing-url-matcher';
-import type { HistoryAction } from './aura-routing-history-navigator';
+import type { HistoryAction } from './navigation-provider.types';
 import type { TransitionMap } from './aura-routing-transition-map';
 import type { AuraRoutingProcessorJob } from './aura-routing-processor-job';
 import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';

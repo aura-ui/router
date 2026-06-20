@@ -1,10 +1,20 @@
 export type {
   NotFoundFallbackHandler,
   AuraRoutingEngineConfig,
+  HistoryAction,
+  NavigateHistoryOptions,
 } from './core/aura-routing-engine';
 
 export { AuraRoutingEngine } from './core/aura-routing-engine';
 export { AuraRoutingProcessor } from './core/aura-routing-processor';
+
+export type {
+  NavigationProvider,
+  NavigationRequest,
+} from './core/navigation-provider.types';
+
+export { BrowserHistoryProvider } from './core/browser-history-provider';
+export { FakeHistoryProvider } from './core/fake-history-provider';
 
 export type { TransitionPolicy } from './core/aura-routing-transition-policy';
 export { DEFAULT_TRANSITION_POLICY, parseTransitionPolicy } from './core/aura-routing-transition-policy';

@@ -3,7 +3,6 @@ export type {
   MatchedRouteInfo,
   RouteErrorContext,
   RouteInstance,
-  RouterInstance,
   RouteHookContext,
   RouteHookDefinition,
 } from './core/types';

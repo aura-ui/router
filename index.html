@@ -22,8 +22,18 @@
 <template id="app">Шаблон</template>
 <template id="loading-template">Загрузка, ожидаем</template>
 <template id="error-template">Ой что-то пошло не так, попробуйте позже</template>
+<template id="404-template">
+  <h1>404</h1>
+  <p>URL: <span data-not-found-url></span></p>
+</template>
 
-<aura-router error-template="error-template"
+<template id="404-template1">
+  <h1>4041111111111111</h1>
+  <p>URL: <span data-not-found-url></span></p>
+</template>
+
+<aura-router not-found-template="404-template"
+             error-template="error-template"
              loading-template="loading-template">
   <aura-route path="/a" source="html" enter="auth, analytics" data-content='<a href="/c" data-router-link>load template</a>'></aura-route>
   <aura-route path="/b" source="html-src" entered="analytics" data-content="index2.html" preload></aura-route>
@@ -33,6 +43,7 @@
   <aura-route path="/users" source="html-src" data-content="user.html"></aura-route>
   <aura-route path="/custom-loader" source="custom-loader" data-content="user.html"></aura-route>
   <aura-route path="/user/:id" source="component-src" data-content='examples/demo/components/test-element' preload></aura-route>
+  <aura-route path="23*" source="template" data-content="404-template1"></aura-route>
 </aura-router>
 
 <!--<aura-route path="/b" loader='html-src' content="index2.html" preload></aura-route>-->

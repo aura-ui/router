@@ -27,10 +27,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   connectedCallback(): void {
     if (!this.engine) {
       const processor = new AuraRoutingProcessor();
-      this.engine = new AuraRoutingEngine(processor);
+      this.engine = new AuraRoutingEngine(processor,{linksSelector: '[data-router-link]'} );
     }
     this.engine.isRunning && this.engine.stop();
-    this.engine.registerRoutes(Array.from(this.routes));
+    this.engine.replaceRoutes(Array.from(this.routes));
     this.engine!.setNotFoundHandler((path: string) => {
       this.innerHTML = 'page not found: ' + path;
     });

@@ -6,33 +6,23 @@
 
 import type { AURARoute } from '../../aura-route/core/aura-route';
 import { bind } from '../../aura-utils/misc/bind';
-import { parsePath, parseQuery } from '../../aura-utils/misc/url';
+import { parsePath } from '../../aura-utils/misc/url';
 import { AuraRoutingHistoryNavigator, type HistoryAction } from './aura-routing-history-navigator';
 import type { AuraRoutingProcessor } from './aura-routing-processor';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-regestry';
+import { AuraRoutingUrlMatcher, type MatchedRouteInfo } from './aura-routing-url-matcher';
 
-export interface MatchedRouteInfo {
-  /** Resolved URL pathname, e.g. `/user/42`. */
-  url: string;
-  pathname: string;
-  search: string;
-  hash: string;
-  /** Registered route pattern, e.g. `/user/:id`. */
-  routePath: string;
-  route: AURARoute;
-  params?: Record<string, string>;
-  query?: Record<string, string>;
-}
 
 export class AuraRoutingEngine {
   private readonly registry = new AuraRoutingRouteRegistry();
+  private readonly matcher = new AuraRoutingUrlMatcher();
   private readonly navigator: AuraRoutingHistoryNavigator;
   private readonly config: any;
 
   //private routes = new Map<string, AURARoute>();
   public isRunning = false;
   private processor: AuraRoutingProcessor;
-  private prevMatchedRouteInfo: MatchedRouteInfo | null;
+  private prev: MatchedRouteInfo | null;
 
   private notFoundHandler: Function | null;
 
@@ -79,7 +69,7 @@ export class AuraRoutingEngine {
   destroy(): void {
     this.stop();
     this.registry.clear();
-    this.prevMatchedRouteInfo = null;
+    this.prev = null;
   }
 
   @bind
@@ -96,34 +86,6 @@ export class AuraRoutingEngine {
 
     event.preventDefault();
     void this.navigateTo(href, 'push', { replace: false, syncHistory: true });
-  }
-
-  private isHashAnchorNavigation(pathname: string, search: string, hash: string): boolean {
-    const current = parsePath(this.navigator.currentHref);
-    const sameRoute = pathname === current.pathname && search === current.search;
-    return Boolean(sameRoute && hash && hash !== current.hash);
-  }
-
-  getMatchedRouteInfo({ url, pathname, search, hash, route, routePath, params }: {
-    url: string;
-    pathname: string;
-    search: string;
-    hash: string;
-    route: AURARoute;
-    routePath: string;
-    params?: Record<string, string>;
-  }): MatchedRouteInfo {
-    const query = parseQuery(search);
-    return {
-      url,
-      pathname,
-      search,
-      hash,
-      route,
-      routePath,
-      ...(params && Object.keys(params).length > 0 && { params }),
-      ...(query && Object.keys(query).length > 0 && { query }),
-    };
   }
 
   /**
@@ -168,40 +130,36 @@ export class AuraRoutingEngine {
     const { pathname, search, hash } = parsePath(href);
     const relativeUrl = pathname + search + hash;
 
+    const current = this.navigator.currentHref;
+
     // Только якорь на том же route — без полного transition
-    if (this.isHashAnchorNavigation(pathname, search, hash)) {
+    if (this.matcher.isHashOnly(relativeUrl, current)){
       this.navigator.commit(relativeUrl, options);
-      this.prevMatchedRouteInfo && (this.prevMatchedRouteInfo.url = relativeUrl);
+      if (this.prev) this.prev.url = relativeUrl;
       this.scrollToHash(hash);
       return;
     }
 
     const routesPaths = this.registry.routesPath();
-    const found = this.findBestMatchRoute(pathname, routesPaths);
-
+    const found = this.matcher.match(pathname, routesPaths);
     if (!found) {
       this.notFoundHandler?.(relativeUrl);
       return;
     }
 
-    const to = this.getMatchedRouteInfo({
-      url: relativeUrl,
-      pathname,
-      search,
-      hash,
-      route: this.registry.get(found.routePath) as AURARoute,
-      routePath: found.routePath,
-      params: found.params,
-    });
+    const route = this.registry.get(found.routePath) as AURARoute;
 
-    const from = this.prevMatchedRouteInfo || null;
+    const to = this.matcher.toRouteInfo(relativeUrl,  pathname,     search,
+      hash, found.routePath, route, found.params);
 
-    const result = await this.processor.run({ from, to, action });
+    const from = this.prev;
+
+    const result = await this.processor.run({ from, to });
 
     switch (result.status) {
       case 'committed':
         this.navigator.commit(relativeUrl, options);
-        this.prevMatchedRouteInfo = to;
+        this.prev = to;
         if (hash) this.scrollToHash(hash);
         break;
 
@@ -230,44 +188,5 @@ export class AuraRoutingEngine {
 
   setNotFoundHandler(callback: Function): void {
     this.notFoundHandler = callback;
-  }
-
-  findBestMatchRoute(pathname: string, routesPaths: Iterable<string>): {
-    routePath: string;
-    params: Record<string, string>
-  } | null {
-    let best: { routePath: string; params: Record<string, string>; score: number } | null = null;
-
-    for (const routePath of routesPaths) {
-      const params = this.getPathParams(pathname, routePath);
-      if (params === null) continue;
-      const score = routePath.split('/').filter(Boolean).length;
-      if (!best || score > best.score) {
-        best = { routePath, params, score };
-      }
-    }
-
-    return best ? { routePath: best.routePath, params: best.params } : null;
-  }
-
-  /**
-   * Match pathname against an Express-style pattern using URLPattern.
-   * Returns captured groups or null when no match.
-   */
-  getPathParams(pathname: string, routePath: string): Record<string, string> | null {
-    try {
-      const urlPattern = new URLPattern({ pathname: routePath });
-      const result = urlPattern.exec({ pathname });
-      if (!result) return null;
-
-      const groups: Record<string, string> = {};
-      for (const [key, value] of Object.entries(result.pathname.groups)) {
-        if (value !== undefined) groups[key] = value;
-      }
-
-      return groups;
-    } catch {
-      return pathname === routePath ? {} : null;
-    }
   }
 }

@@ -10,7 +10,7 @@ import type { TransitionMap } from './aura-routing-transition-map';
 import type { AuraRoutingProcessorJob } from './aura-routing-processor-job';
 import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';
 import type { GuardResult } from './types';
-import type { RoutePhase } from '../../aura-route-hooks/core';
+import type { RoutePhase, RouteInfo, RouteLifecycleContext, RouterInstance } from '../../aura-route-hooks/core';
 import type { TransitionPolicy } from './aura-routing-transition-policy';
 
 export interface NavigationTransaction {
@@ -24,6 +24,7 @@ export interface NavigationTransaction {
 export interface PhaseContext {
   tx: NavigationTransaction;
   job: AuraRoutingProcessorJob;
+  router: RouterInstance;
   isJobActive: () => boolean;
 }
 
@@ -36,82 +37,82 @@ export type TransactionResult =
 type PhaseOutcome = TransactionResult | null;
 
 export class PhaseExecutor {
-  async runReentered(ctx: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of ctx.tx.plan.enterRoutes) {
+  async runReentered(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of phaseContext.tx.plan.enterRoutes) {
       const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('reentered', routeInfo, phaseContext);
 
       try {
-        route.onReentered(routeInfo);
+        route.onReentered(lifecycleContext);
 
         if (route.reentered?.length) {
-          const result = await AuraRoutingPhaseHandler.runPhase(
-            'reentered',
-            routeInfo,
-            ctx.isJobActive,
-          );
+          const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
           const redirect = this.applyRedirect(result);
           if (redirect) return redirect;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
+        return this.failWithError(routeInfo, error, phaseContext);
       }
     }
 
     return null;
   }
 
-  async runGuards(ctx: PhaseContext): Promise<PhaseOutcome> {
-    const { plan } = ctx.tx;
+  async runGuards(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    const { plan } = phaseContext.tx;
 
     for (const routeInfo of plan.exitRoutes) {
       const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('leave', routeInfo, phaseContext);
 
       try {
-        route.onLeave(routeInfo);
+        route.onLeave(lifecycleContext);
         if (route.leave?.length) {
           const blocked = await this.runBlockingPhase(
-            () => AuraRoutingPhaseHandler.runPhase('leave', routeInfo, ctx.isJobActive),
+            () => AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive),
           );
           if (blocked) return blocked;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
+        return this.failWithError(routeInfo, error, phaseContext);
       }
     }
 
     for (const routeInfo of plan.enterRoutes) {
       const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('enter', routeInfo, phaseContext);
 
       try {
-        route.onEnter(routeInfo);
+        route.onEnter(lifecycleContext);
         if (route.enter?.length) {
           const outcome = await this.runBlockingPhase(
-            () => AuraRoutingPhaseHandler.runPhase('enter', routeInfo, ctx.isJobActive),
+            () => AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive),
           );
           if (outcome) return outcome;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
+        return this.failWithError(routeInfo, error, phaseContext);
       }
     }
 
     return null;
   }
 
-  async runLoads(ctx: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of ctx.tx.plan.enterRoutes) {
+  async runLoads(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of phaseContext.tx.plan.enterRoutes) {
       const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('load', routeInfo, phaseContext);
 
       try {
-        route.onLoad(routeInfo);
+        route.onLoad(lifecycleContext);
         if (route.load?.length) {
           const outcome = await this.runBlockingPhase(
-            () => AuraRoutingPhaseHandler.runPhase('load', routeInfo, ctx.isJobActive),
+            () => AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive),
           );
           if (outcome) return outcome;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
+        return this.failWithError(routeInfo, error, phaseContext);
       }
     }
 
@@ -125,37 +126,39 @@ export class PhaseExecutor {
    * in-out:     render → entering → leaving
    * parallel:   render → leaving ‖ entering
    */
-  async runTransition(ctx: PhaseContext): Promise<PhaseOutcome> {
-    switch (ctx.tx.transitionPolicy) {
+  async runTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    switch (phaseContext.tx.transitionPolicy) {
       case 'out-in':
-        return this.runOutIn(ctx);
+        return this.runOutIn(phaseContext);
       case 'in-out':
-        return this.runInOut(ctx);
+        return this.runInOut(phaseContext);
       case 'parallel':
-        return this.runParallel(ctx);
+        return this.runParallel(phaseContext);
     }
   }
 
   /** Cleanup после commit: `left`, `entered`. */
-  async runPostCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
-    const { plan } = ctx.tx;
+  async runPostCommit(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    const { plan } = phaseContext.tx;
 
     for (const routeInfo of plan.exitRoutes) {
       const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('left', routeInfo, phaseContext);
 
-      route.onLeft(routeInfo);
+      route.onLeft(lifecycleContext);
       if (route.left?.length) {
-        await this.runPhaseSafe('left', routeInfo, ctx);
+        await this.runPhaseSafe(lifecycleContext, phaseContext);
       }
     }
 
     for (const routeInfo of plan.enterRoutes) {
       const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('entered', routeInfo, phaseContext);
 
-      route.onEntered(routeInfo);
+      route.onEntered(lifecycleContext);
 
       if (route.entered?.length) {
-        const result = await this.runPhaseSafe('entered', routeInfo, ctx);
+        const result = await this.runPhaseSafe(lifecycleContext, phaseContext);
         const redirect = this.applyRedirect(result);
         if (redirect) return redirect;
       }
@@ -164,82 +167,84 @@ export class PhaseExecutor {
     return null;
   }
 
-  private async runOutIn(ctx: PhaseContext): Promise<PhaseOutcome> {
-    const leaving = await this.runExitTransition(ctx);
+  private async runOutIn(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    const leaving = await this.runExitTransition(phaseContext);
     if (leaving) return leaving;
 
-    const commit = await this.runCommit(ctx);
+    const commit = await this.runCommit(phaseContext);
     if (commit) return commit;
 
-    return this.runEnterTransition(ctx);
+    return this.runEnterTransition(phaseContext);
   }
 
-  private async runInOut(ctx: PhaseContext): Promise<PhaseOutcome> {
-    const commit = await this.runCommit(ctx);
+  private async runInOut(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    const commit = await this.runCommit(phaseContext);
     if (commit) return commit;
 
-    const entering = await this.runEnterTransition(ctx);
+    const entering = await this.runEnterTransition(phaseContext);
     if (entering) return entering;
 
-    return this.runExitTransition(ctx);
+    return this.runExitTransition(phaseContext);
   }
 
-  private async runParallel(ctx: PhaseContext): Promise<PhaseOutcome> {
-    const commit = await this.runCommit(ctx);
+  private async runParallel(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    const commit = await this.runCommit(phaseContext);
     if (commit) return commit;
 
     const [leaving, entering] = await Promise.all([
-      this.runExitTransition(ctx),
-      this.runEnterTransition(ctx),
+      this.runExitTransition(phaseContext),
+      this.runEnterTransition(phaseContext),
     ]);
 
     return leaving ?? entering ?? null;
   }
 
-  private async runExitTransition(ctx: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of ctx.tx.plan.exitRoutes) {
+  private async runExitTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of phaseContext.tx.plan.exitRoutes) {
       const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('leaving', routeInfo, phaseContext);
 
       try {
-        route.onLeaving(routeInfo);
+        route.onLeaving(lifecycleContext);
         if (route.leaving?.length) {
-          await AuraRoutingPhaseHandler.runPhase('leaving', routeInfo, ctx.isJobActive);
+          await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
+        return this.failWithError(routeInfo, error, phaseContext);
       }
     }
 
     return null;
   }
 
-  private async runEnterTransition(ctx: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of ctx.tx.plan.enterRoutes) {
+  private async runEnterTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of phaseContext.tx.plan.enterRoutes) {
       const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('entering', routeInfo, phaseContext);
 
       try {
-        route.onEntering(routeInfo);
+        route.onEntering(lifecycleContext);
         if (route.entering?.length) {
-          await AuraRoutingPhaseHandler.runPhase('entering', routeInfo, ctx.isJobActive);
+          await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
+        return this.failWithError(routeInfo, error, phaseContext);
       }
     }
 
     return null;
   }
 
-  private async runCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of ctx.tx.plan.enterRoutes) {
+  private async runCommit(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of phaseContext.tx.plan.enterRoutes) {
       try {
-        const response = await AuraRoutingPhaseHandler.runRenderPhase(routeInfo, ctx.job);
+        const response = await AuraRoutingPhaseHandler.runRenderPhase(routeInfo, phaseContext.job);
 
-        if (response === 'aborted' || !ctx.isJobActive()) {
+        if (response === 'aborted' || !phaseContext.isJobActive()) {
           return { status: 'cancelled' };
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
+        return this.failWithError(routeInfo, error, phaseContext);
       }
     }
 
@@ -273,13 +278,14 @@ export class PhaseExecutor {
   private async failWithError(
     routeInfo: MatchedRouteInfo,
     error: unknown,
-    ctx: PhaseContext,
+    phaseContext: PhaseContext,
   ): Promise<TransactionResult> {
-    routeInfo.route.onError({ ...routeInfo, error });
+    const lifecycleContext = toLifecycleContext('error', routeInfo, phaseContext, error);
+    routeInfo.route.onError({ ...lifecycleContext, error });
 
     if (routeInfo.route.error?.length) {
       try {
-        await AuraRoutingPhaseHandler.runPhase('error', routeInfo, ctx.isJobActive, { error });
+        await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
       } catch (hookError) {
         console.error(hookError);
       }
@@ -289,15 +295,40 @@ export class PhaseExecutor {
   }
 
   private async runPhaseSafe(
-    phase: RoutePhase,
-    routeInfo: MatchedRouteInfo,
-    ctx: PhaseContext,
+    lifecycleContext: RouteLifecycleContext,
+    phaseContext: PhaseContext,
   ): Promise<GuardResult> {
     try {
-      return await AuraRoutingPhaseHandler.runPhase(phase, routeInfo, ctx.isJobActive);
+      return await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
     } catch (error) {
-      console.error(`[${phase}] hook failed after commit:`, error);
+      console.error(`[${lifecycleContext.phase}] hook failed after commit:`, error);
       return undefined;
     }
   }
+}
+
+function toRouteInfo(m: MatchedRouteInfo): RouteInfo {
+  return {
+    path: m.pathname,
+    ...(m.params && { params: m.params }),
+    ...(m.query && { query: m.query }),
+  };
+}
+
+export function toLifecycleContext(
+  phase: RoutePhase,
+  routeInfo: MatchedRouteInfo,
+  phaseContext: PhaseContext,
+  error?: unknown,
+): RouteLifecycleContext {
+  return {
+    phase,
+    from: phaseContext.tx.from ? toRouteInfo(phaseContext.tx.from) : null,
+    to: toRouteInfo(routeInfo),
+    router: phaseContext.router,
+    route: routeInfo.route,
+    jobId: phaseContext.job.id,
+    signal: phaseContext.job.signal,
+    ...(error !== undefined && { error }),
+  };
 }

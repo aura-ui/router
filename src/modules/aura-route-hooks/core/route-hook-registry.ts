@@ -1,9 +1,9 @@
 import type {
   RouteHookDefinition,
   RouteHookContext,
+  RouteLifecycleContext,
 } from './types';
 import { ROUTER_VERSION, satisfies } from './version';
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-url-matcher';
 import type { RedirectTarget } from '../../aura-routing-engine/core/types';
 
 interface StoredHook {
@@ -49,26 +49,19 @@ export class RouteHookRegistry {
 
   /** Runs hooks in order; stops on first cancel (`false`) or redirect URL (`string`). */
   static async run(
-    phase: string,
+    lifecycleCtx: RouteLifecycleContext,
     names: string[],
-    routeInfo: MatchedRouteInfo,
-    options?: { isJobActive?: () => boolean; error?: unknown },
+    isJobActive?: () => boolean,
   ): Promise<boolean | void | string> {
-    const hookCtx: RouteHookContext = {
-      ...routeInfo,
-      options: {},
-      ...(options?.error !== undefined && { error: options.error }),
-    };
-
-    const {routePath} = routeInfo;
+    const hookCtx: RouteHookContext = { ...lifecycleCtx, options: {} };
 
     for (const name of names) {
-      if (!options?.isJobActive?.()) return undefined;
+      if (!isJobActive?.()) return undefined;
 
       const entry = this.registry.get(name);
 
       if (!entry) {
-        console.warn(`Unknown hook "${name}" on route ${routePath} (phase ${phase})`);
+        console.warn(`Unknown hook "${name}" on route ${lifecycleCtx.route.path} (phase ${lifecycleCtx.phase})`);
         continue;
       }
 
@@ -76,7 +69,7 @@ export class RouteHookRegistry {
 
       const result = await entry.fn(hookCtx);
 
-      if (!options?.isJobActive?.()) return undefined;
+      if (!isJobActive?.()) return undefined;
 
       if (isTerminalResult(result)) {
         return result;

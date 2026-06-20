@@ -6,6 +6,7 @@ import {
 } from './aura-routing-phase-executor';
 import type { MatchedRouteInfo } from './aura-routing-url-matcher';
 import type { HistoryAction } from './aura-routing-history-navigator';
+import type { RouterInstance } from '../../aura-route-hooks/core';
 import { AuraRoutingProcessorJobManager } from './aura-routing-processor-job-manager';
 import {
   DEFAULT_TRANSITION_POLICY,
@@ -25,6 +26,7 @@ export class AuraRoutingProcessor {
     from: MatchedRouteInfo | null;
     to: MatchedRouteInfo;
     action: HistoryAction;
+    router: RouterInstance;
   }): Promise<TransactionResult> {
     const tx: NavigationTransaction = {
       ...input,
@@ -37,6 +39,7 @@ export class AuraRoutingProcessor {
     const ctx = {
       tx,
       job,
+      router: input.router,
       isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
     };
 

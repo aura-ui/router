@@ -6,7 +6,7 @@ import {
 } from '../../aura-route/core';
 
 import { RouteHookRegistry } from '../../aura-route-hooks/core';
-import type { RouteHookDefinition } from '../../aura-route-hooks/core';
+import type { RouteHookDefinition, RouterInstance } from '../../aura-route-hooks/core';
 import {
   AuraRoutingEngine,
   type AuraRoutingEngineConfig,
@@ -34,10 +34,7 @@ export interface AuraRouterConfigureOptions extends AURARouteConfigureOptions {
   notFoundHandler?: NotFoundHandler | null;
 }
 
-/** Minimal router surface exposed to route hooks. */
-export interface RouterInstance {
-  navigate(path: string, options?: Partial<NavigateHistoryOptions>): void;
-}
+export type { RouterInstance } from '../../aura-route-hooks/core';
 
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
@@ -105,6 +102,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       };
       this.engine = new AuraRoutingEngine(
         new AuraRoutingProcessor(transitionPolicy),
+        this,
         config,
       );
       this.engine.setNotFoundHandler((url) => this.notFound.handle(url));

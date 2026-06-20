@@ -16,6 +16,8 @@ import {
   type MatchedRouteInfo,
 } from './aura-routing-url-matcher';
 
+import type { TransitionPolicy } from './aura-routing-transition-policy';
+
 export type { MatchedRouteInfo };
 
 /** Engine fallback when match returns null (no `path="*"` route). */
@@ -26,6 +28,8 @@ export interface AuraRoutingEngineConfig {
   linksSelector?: string;
   /** Use hash-based routing. Default: `false`. */
   hash?: boolean;
+  /** `out-in` | `in-out` | `parallel`. Default: `out-in`. */
+  transitionPolicy?: TransitionPolicy;
   /** Вызывается после успешного commit navigation (в т.ч. catch-all). */
   onNavigationCommitted?: (to: MatchedRouteInfo) => void;
 }

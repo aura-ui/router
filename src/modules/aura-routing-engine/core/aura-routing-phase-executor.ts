@@ -1,14 +1,8 @@
 // Выполняет фазы navigation transaction.
 //
-// Processor вызывает:
-//   runReentered(ctx)
-//   runGuards(ctx)
-//   runLoads(ctx)
-//   runPreCommit(ctx)
-//   runCommit(ctx)
-//   runPostCommit(ctx)
+// Processor: runGuards → runLoads → runTransition → runPostCommit
 //
-// Lifecycle (onEnter, onLoad, …) — всегда; hooks — только при непустом attr на route.
+// Lifecycle — всегда; hooks — только при непустом attr на route.
 
 import type { MatchedRouteInfo } from './aura-routing-url-matcher';
 import type { HistoryAction } from './aura-routing-history-navigator';
@@ -17,16 +11,14 @@ import type { AuraRoutingProcessorJob } from './aura-routing-processor-job';
 import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';
 import type { GuardResult } from './types';
 import type { RoutePhase } from '../../aura-route-hooks/core';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import type { TransitionPolicy } from './aura-routing-transition-policy';
 
 export interface NavigationTransaction {
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;
   action: HistoryAction;
   plan: TransitionMap;
+  transitionPolicy: TransitionPolicy;
 }
 
 export interface PhaseContext {
@@ -41,12 +33,7 @@ export type TransactionResult =
   | { status: 'redirect'; url: string; replace?: boolean }
   | { status: 'error'; error: unknown };
 
-/** Non-null = navigation must stop (cancel / redirect / error). */
 type PhaseOutcome = TransactionResult | null;
-
-// ---------------------------------------------------------------------------
-// Executor
-// ---------------------------------------------------------------------------
 
 export class PhaseExecutor {
   async runReentered(ctx: PhaseContext): Promise<PhaseOutcome> {
@@ -73,11 +60,6 @@ export class PhaseExecutor {
     return null;
   }
 
-  /**
-   * Guards (pre-commit, blocking):
-   *   deactivate: leave
-   *   activate:   enter
-   */
   async runGuards(ctx: PhaseContext): Promise<PhaseOutcome> {
     const { plan } = ctx.tx;
 
@@ -116,9 +98,6 @@ export class PhaseExecutor {
     return null;
   }
 
-  /**
-   * Loads (pre-commit, blocking): activate branch — load.
-   */
   async runLoads(ctx: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of ctx.tx.plan.enterRoutes) {
       const { route } = routeInfo;
@@ -139,50 +118,30 @@ export class PhaseExecutor {
     return null;
   }
 
-  async runPreCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of ctx.tx.plan.enterRoutes) {
-      const { route } = routeInfo;
-
-      try {
-        route.onEntering(routeInfo);
-
-        if (route.entering?.length) {
-          await AuraRoutingPhaseHandler.runPhase('entering', routeInfo, ctx.isJobActive);
-        }
-      } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
-      }
+  /**
+   * Render + transition effects (`leaving` / `entering`) по {@link TransitionPolicy}.
+   *
+   * out-in:     leaving → render → entering
+   * in-out:     render → entering → leaving
+   * parallel:   render → leaving ‖ entering
+   */
+  async runTransition(ctx: PhaseContext): Promise<PhaseOutcome> {
+    switch (ctx.tx.transitionPolicy) {
+      case 'out-in':
+        return this.runOutIn(ctx);
+      case 'in-out':
+        return this.runInOut(ctx);
+      case 'parallel':
+        return this.runParallel(ctx);
     }
-
-    return null;
   }
 
-  async runCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of ctx.tx.plan.enterRoutes) {
-      try {
-        const response = await AuraRoutingPhaseHandler.runRenderPhase(routeInfo, ctx.job);
-
-        if (response === 'aborted' || !ctx.isJobActive()) {
-          return { status: 'cancelled' };
-        }
-      } catch (error) {
-        return this.failWithError(routeInfo, error, ctx);
-      }
-    }
-
-    return null;
-  }
-
+  /** Cleanup после commit: `left`, `entered`. */
   async runPostCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
     const { plan } = ctx.tx;
 
     for (const routeInfo of plan.exitRoutes) {
       const { route } = routeInfo;
-
-      route.onLeaving(routeInfo);
-      if (route.leaving?.length) {
-        await this.runPhaseSafe('leaving', routeInfo, ctx);
-      }
 
       route.onLeft(routeInfo);
       if (route.left?.length) {
@@ -205,9 +164,87 @@ export class PhaseExecutor {
     return null;
   }
 
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
+  private async runOutIn(ctx: PhaseContext): Promise<PhaseOutcome> {
+    const leaving = await this.runExitTransition(ctx);
+    if (leaving) return leaving;
+
+    const commit = await this.runCommit(ctx);
+    if (commit) return commit;
+
+    return this.runEnterTransition(ctx);
+  }
+
+  private async runInOut(ctx: PhaseContext): Promise<PhaseOutcome> {
+    const commit = await this.runCommit(ctx);
+    if (commit) return commit;
+
+    const entering = await this.runEnterTransition(ctx);
+    if (entering) return entering;
+
+    return this.runExitTransition(ctx);
+  }
+
+  private async runParallel(ctx: PhaseContext): Promise<PhaseOutcome> {
+    const commit = await this.runCommit(ctx);
+    if (commit) return commit;
+
+    const [leaving, entering] = await Promise.all([
+      this.runExitTransition(ctx),
+      this.runEnterTransition(ctx),
+    ]);
+
+    return leaving ?? entering ?? null;
+  }
+
+  private async runExitTransition(ctx: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of ctx.tx.plan.exitRoutes) {
+      const { route } = routeInfo;
+
+      try {
+        route.onLeaving(routeInfo);
+        if (route.leaving?.length) {
+          await AuraRoutingPhaseHandler.runPhase('leaving', routeInfo, ctx.isJobActive);
+        }
+      } catch (error) {
+        return this.failWithError(routeInfo, error, ctx);
+      }
+    }
+
+    return null;
+  }
+
+  private async runEnterTransition(ctx: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of ctx.tx.plan.enterRoutes) {
+      const { route } = routeInfo;
+
+      try {
+        route.onEntering(routeInfo);
+        if (route.entering?.length) {
+          await AuraRoutingPhaseHandler.runPhase('entering', routeInfo, ctx.isJobActive);
+        }
+      } catch (error) {
+        return this.failWithError(routeInfo, error, ctx);
+      }
+    }
+
+    return null;
+  }
+
+  private async runCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of ctx.tx.plan.enterRoutes) {
+      try {
+        const response = await AuraRoutingPhaseHandler.runRenderPhase(routeInfo, ctx.job);
+
+        if (response === 'aborted' || !ctx.isJobActive()) {
+          return { status: 'cancelled' };
+        }
+      } catch (error) {
+        return this.failWithError(routeInfo, error, ctx);
+      }
+    }
+
+    return null;
+  }
 
   private async runBlockingPhase(
     run: () => Promise<GuardResult>,

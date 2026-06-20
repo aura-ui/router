@@ -13,6 +13,7 @@ import {
 } from '../../aura-routing-engine/core/aura-routing-engine';
 import { isCatchAllRoute } from '../../aura-routing-engine/core/aura-routing-url-matcher';
 import { AuraRoutingProcessor } from '../../aura-routing-engine/core/aura-routing-processor';
+import { parseTransitionPolicy } from '../../aura-routing-engine/core/aura-routing-transition-policy';
 import type {
   HistoryAction,
   NavigateHistoryOptions,
@@ -45,6 +46,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
+  /** `out-in` | `in-out` | `parallel` — порядок leaving/entering относительно render. */
+  @attr({ dataAttr: true, defaultValue: 'out-in' })
+  transition: string;
 
   private engine?: AuraRoutingEngine;
   private readonly notFound = new AuraRouterNotFoundController(this);
@@ -88,8 +92,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   private ensureEngine(): AuraRoutingEngine {
     if (!this.engine) {
+      const transitionPolicy = parseTransitionPolicy(this.transition);
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
+        transitionPolicy,
         onNavigationCommitted: (to) => {
           this.notFound.hide();
           if (isCatchAllRoute(to.routePath)) {
@@ -97,7 +103,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           }
         },
       };
-      this.engine = new AuraRoutingEngine(new AuraRoutingProcessor(), config);
+      this.engine = new AuraRoutingEngine(
+        new AuraRoutingProcessor(transitionPolicy),
+        config,
+      );
       this.engine.setNotFoundHandler((url) => this.notFound.handle(url));
     }
     return this.engine;

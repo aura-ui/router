@@ -1,12 +1,3 @@
-// 1. Получает from и to роут - его задача прогнать все фазы from и to роута
-// 2. Запускает механизм построение маршрута транзакций (отдельный компонент TransitionPath)
-// этот механизм возвращает массив роутов с которых надо уйти и масив роутов в которые надо войти
-// 3. запускает фазы роутов согласно общей схеме жизненного цикла
-// guards-> pre-handler -> handler -> post-handler
-// 4. обработка фаз идет в phase-dispatcher компоненте (он вызывает хуки роута конкретного)
-// необходимо будет заранее обработать какие хуки существуют, чтобы не гонять их все если они пустые
-// aura-routing-processor.ts — для контекста, не часть phase-executor
-
 import { buildRoadMap } from './aura-routing-transition-map';
 import {
   PhaseExecutor,
@@ -45,7 +36,8 @@ export class AuraRoutingProcessor {
     }
 
     const steps = [
-      () => this.phases.runPrepare(ctx),
+      () => this.phases.runGuards(ctx),
+      () => this.phases.runLoads(ctx),
       () => this.phases.runPreCommit(ctx),
       () => this.phases.runCommit(ctx),
       () => this.phases.runPostCommit(ctx),

@@ -28,7 +28,7 @@ export class AuraRoutingProcessor {
     action: HistoryAction;
     router: RouterInstance;
   }): Promise<TransactionResult> {
-    const tx: NavigationTransaction = {
+    const transaction: NavigationTransaction = {
       ...input,
       plan: buildRoadMap(input.from, input.to),
       transitionPolicy: this.transitionPolicy,
@@ -36,23 +36,23 @@ export class AuraRoutingProcessor {
 
     const job = this.jobManager.begin();
     const generation = this.jobManager.routerGeneration;
-    const ctx = {
-      tx,
+    const phaseContext = {
+      transaction,
       job,
       router: input.router,
       isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
     };
 
-    if (tx.plan.reentered) {
-      const early = await this.phases.runReentered(ctx);
+    if (transaction.plan.reentered) {
+      const early = await this.phases.runReentered(phaseContext);
       return early ?? { status: 'committed' };
     }
 
     const steps = [
-      () => this.phases.runGuards(ctx),
-      () => this.phases.runLoads(ctx),
-      () => this.phases.runTransition(ctx),
-      () => this.phases.runPostCommit(ctx),
+      () => this.phases.runGuards(phaseContext),
+      () => this.phases.runLoads(phaseContext),
+      () => this.phases.runTransition(phaseContext),
+      () => this.phases.runPostCommit(phaseContext),
     ] as const;
 
     for (const step of steps) {

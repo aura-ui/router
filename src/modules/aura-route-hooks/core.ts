@@ -1,6 +1,7 @@
 export type {
   RoutePhase,
   MatchedRouteInfo,
+  HistoryAction,
   RouteInfo,
   RouterInstance,
   RouteLifecycleContext,

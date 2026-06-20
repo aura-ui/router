@@ -136,7 +136,7 @@ export class AuraRoutingEngine {
 
     // Только якорь на том же route — без полного transition
     if (this.matcher.isHashOnly(relativeUrl, current)) {
-      this.applyHashOnlyTransition(relativeUrl, options, hash);
+      this.finalizeAnchorNavigation(relativeUrl, options, hash);
       return;
     }
 
@@ -156,7 +156,7 @@ export class AuraRoutingEngine {
 
     const result = await this.processor.run({ from, to, action });
 
-    this.applyTransitionResult(result, {
+    this.finalizeNavigation(result, {
       action,
       url: relativeUrl,
       options,
@@ -176,7 +176,7 @@ export class AuraRoutingEngine {
    * | pop     | prev only              | rollback(from.url)      |
    * | system  | prev only              | ничего                  |
    */
-  private applyTransitionResult(
+  private finalizeNavigation(
     result: TransactionResult,
     ctx: {
       action: HistoryAction;
@@ -211,7 +211,7 @@ export class AuraRoutingEngine {
   }
 
   /** Hash-only на том же path — без processor. */
-  private applyHashOnlyTransition(
+  private finalizeAnchorNavigation(
     url: string,
     options: NavigateHistoryOptions,
     hash: string,

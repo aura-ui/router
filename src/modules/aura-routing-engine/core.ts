@@ -9,23 +9,7 @@ export { AuraRoutingProcessor } from './core/aura-routing-processor';
 export type { TransitionPolicy } from './core/aura-routing-transition-policy';
 export { DEFAULT_TRANSITION_POLICY, parseTransitionPolicy } from './core/aura-routing-transition-policy';
 
-export type {
-  RouteMatch,
-  NavigateOptions,
-  GuardResult,
-  NavigationContext,
-  NavigationEvent,
-  NavigationIntent,
-  PhaseHandler,
-  RoutePhaseHandlers,
-  RouteRenderHandler,
-  NavigationTransition,
-  RouteRegistration,
-  ProviderRouteRegistration,
-  RoutingEngineBinding,
-} from './core/types';
-
-export { PHASE_PIPELINE } from './core/types';
+export type { GuardResult, RedirectTarget } from './core/types';
 
 export type {
   MatchedRouteInfo,

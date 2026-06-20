@@ -1,9 +1,9 @@
 // Выполняет фазы navigation transaction.
-// Не знает протокол prepare → commit → post — только «как» выполнить каждый блок.
 //
 // Processor вызывает:
 //   runReentered(ctx)
-//   runPrepare(ctx)
+//   runGuards(ctx)
+//   runLoads(ctx)
 //   runPreCommit(ctx)
 //   runCommit(ctx)
 //   runPostCommit(ctx)
@@ -49,10 +49,6 @@ type PhaseOutcome = TransactionResult | null;
 // ---------------------------------------------------------------------------
 
 export class PhaseExecutor {
-  /**
-   * Reentered: lifecycle + optional `reentered` hooks.
-   * Вызывается когда plan.reentered === true.
-   */
   async runReentered(ctx: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of ctx.tx.plan.enterRoutes) {
       const { route } = routeInfo;
@@ -78,14 +74,13 @@ export class PhaseExecutor {
   }
 
   /**
-   * PREPARE (pre-commit, blocking):
+   * Guards (pre-commit, blocking):
    *   deactivate: leave
-   *   activate:   enter + load
+   *   activate:   enter
    */
-  async runPrepare(ctx: PhaseContext): Promise<PhaseOutcome> {
+  async runGuards(ctx: PhaseContext): Promise<PhaseOutcome> {
     const { plan } = ctx.tx;
 
-    // ——— Exit guards (bubble: leaf → LCA) ———
     for (const routeInfo of plan.exitRoutes) {
       const { route } = routeInfo;
 
@@ -102,7 +97,6 @@ export class PhaseExecutor {
       }
     }
 
-    // ——— Enter + load (capture: LCA → leaf) ———
     for (const routeInfo of plan.enterRoutes) {
       const { route } = routeInfo;
 
@@ -114,7 +108,22 @@ export class PhaseExecutor {
           );
           if (outcome) return outcome;
         }
+      } catch (error) {
+        return this.failWithError(routeInfo, error, ctx);
+      }
+    }
 
+    return null;
+  }
+
+  /**
+   * Loads (pre-commit, blocking): activate branch — load.
+   */
+  async runLoads(ctx: PhaseContext): Promise<PhaseOutcome> {
+    for (const routeInfo of ctx.tx.plan.enterRoutes) {
+      const { route } = routeInfo;
+
+      try {
         route.onLoad(routeInfo);
         if (route.load?.length) {
           const outcome = await this.runBlockingPhase(
@@ -130,9 +139,6 @@ export class PhaseExecutor {
     return null;
   }
 
-  /**
-   * PRE-COMMIT: entering (non-blocking hooks, blocking errors).
-   */
   async runPreCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of ctx.tx.plan.enterRoutes) {
       const { route } = routeInfo;
@@ -151,9 +157,6 @@ export class PhaseExecutor {
     return null;
   }
 
-  /**
-   * COMMIT: render — точка невозврата.
-   */
   async runCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of ctx.tx.plan.enterRoutes) {
       try {
@@ -170,11 +173,6 @@ export class PhaseExecutor {
     return null;
   }
 
-  /**
-   * POST-COMMIT (effects / cleanup, non-blocking):
-   *   deactivate: leaving → left
-   *   activate:   entered
-   */
   async runPostCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
     const { plan } = ctx.tx;
 
@@ -211,7 +209,6 @@ export class PhaseExecutor {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  /** Blocking guard: cancel или redirect. */
   private async runBlockingPhase(
     run: () => Promise<GuardResult>,
   ): Promise<TransactionResult | false> {
@@ -254,7 +251,6 @@ export class PhaseExecutor {
     return { status: 'error', error };
   }
 
-  /** Post-commit hooks: ошибки логируются, не отменяют transition. */
   private async runPhaseSafe(
     phase: RoutePhase,
     routeInfo: MatchedRouteInfo,

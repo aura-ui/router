@@ -6,7 +6,7 @@ import {
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
 import type { RouteInstance } from '../../aura-route-hooks/core';
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-engine';
+import type { MatchedRouteInfo, RouteErrorContext } from '../../aura-route-hooks/core';
 
 export interface AURARouteConfigureOptions {
   contentLoaderService?: ContentLoaderService;
@@ -306,7 +306,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     console.log(`reentered ${this.path}`, ctx.url);
   }
 
-  public onError(ctx: any): void {
+  public onError(ctx: RouteErrorContext): void {
     console.error(`error ${this.path}`, ctx.error);
   }
 

@@ -3,7 +3,7 @@ import type {
   RouteHookContext,
 } from './types';
 import { ROUTER_VERSION, satisfies } from './version';
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-engine';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core/aura-routing-url-matcher';
 import type { RedirectTarget } from '../../aura-routing-engine/core/types';
 
 interface StoredHook {

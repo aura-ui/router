@@ -8,10 +8,11 @@
 
 
 import { buildRoadMap } from './aura-routing-transition-map';
-import type { MatchedRouteInfo, HistoryAction } from './aura-routing-engine';
+import type { MatchedRouteInfo } from './aura-routing-engine';
 import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';
 import { AuraRoutingProcessorJobManager } from './aura-routing-processor-job-manager';
 import type { GuardResult } from './types';
+import type { HistoryAction } from './aura-routing-history-navigator';
 
 type ProcessorResponse =
   | { status: 'committed' }
@@ -27,7 +28,7 @@ export class AuraRoutingProcessor {
     this.jobManager = new AuraRoutingProcessorJobManager();
   }
 
-  async run({ from, to, action }: {from: MatchedRouteInfo, to :MatchedRouteInfo, action:HistoryAction}):Promise<ProcessorResponse>{
+  async run({ from, to, action }: {from: MatchedRouteInfo | null, to :MatchedRouteInfo, action:HistoryAction}):Promise<ProcessorResponse>{
     const {exitRoutes, enterRoutes, reentered} = buildRoadMap(from, to);
 
     const job = this.jobManager.begin(action);

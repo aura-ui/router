@@ -34,6 +34,7 @@ export interface RouteInstance {
   onEntering(ctx: MatchedRouteInfo): void;
   onLoad(ctx: MatchedRouteInfo): void;
   onEntered(ctx: MatchedRouteInfo): void;
+  onLeave(ctx: MatchedRouteInfo): void;
   onLeaving(ctx: MatchedRouteInfo): void;
   onLeft(ctx: MatchedRouteInfo): void;
   onReentered(ctx: MatchedRouteInfo): void;

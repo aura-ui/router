@@ -90,16 +90,13 @@ export class PhaseExecutor {
       const { route } = routeInfo;
 
       try {
-        route.beforeLeave(routeInfo);
-
+        route.onLeave(routeInfo);
         if (route.leave?.length) {
           const blocked = await this.runBlockingPhase(
             () => AuraRoutingPhaseHandler.runPhase('leave', routeInfo, ctx.isJobActive),
           );
           if (blocked) return blocked;
         }
-
-        route.afterLeave(routeInfo);
       } catch (error) {
         return this.failWithError(routeInfo, error, ctx);
       }

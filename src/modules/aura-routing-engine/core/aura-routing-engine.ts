@@ -7,8 +7,9 @@
 import type { AURARoute } from '../../aura-route/core/aura-route';
 import { bind } from '../../aura-utils/misc/bind';
 import { parsePath } from '../../aura-utils/misc/url';
-import { AuraRoutingHistoryNavigator, type HistoryAction } from './aura-routing-history-navigator';
+import { AuraRoutingHistoryNavigator, type HistoryAction, type NavigateHistoryOptions } from './aura-routing-history-navigator';
 import type { AuraRoutingProcessor } from './aura-routing-processor';
+import type { TransactionResult } from './aura-routing-phase-executor';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-regestry';
 import { AuraRoutingUrlMatcher, type MatchedRouteInfo } from './aura-routing-url-matcher';
 
@@ -134,10 +135,8 @@ export class AuraRoutingEngine {
     const current = this.navigator.currentHref;
 
     // Только якорь на том же route — без полного transition
-    if (this.matcher.isHashOnly(relativeUrl, current)){
-      this.navigator.commit(relativeUrl, options);
-      if (this.prev) this.prev.url = relativeUrl;
-      this.scrollToHash(hash);
+    if (this.matcher.isHashOnly(relativeUrl, current)) {
+      this.applyHashOnlyTransition(relativeUrl, options, hash);
       return;
     }
 
@@ -157,26 +156,69 @@ export class AuraRoutingEngine {
 
     const result = await this.processor.run({ from, to, action });
 
+    this.applyTransitionResult(result, {
+      action,
+      url: relativeUrl,
+      options,
+      from,
+      to,
+      hash,
+    });
+  }
+
+  /**
+   * Протокол commit / rollback history после processor (или hash-only).
+   *
+   * | action  | committed              | cancelled / error (pop)   |
+   * |---------|------------------------|-------------------------|
+   * | push    | pushState (syncHistory)| ничего                  |
+   * | replace | replaceState           | ничего                  |
+   * | pop     | prev only              | rollback(from.url)      |
+   * | system  | prev only              | ничего                  |
+   */
+  private applyTransitionResult(
+    result: TransactionResult,
+    ctx: {
+      action: HistoryAction;
+      url: string;
+      options: NavigateHistoryOptions;
+      from: MatchedRouteInfo | null;
+      to: MatchedRouteInfo;
+      hash: string;
+    },
+  ): void {
     switch (result.status) {
       case 'committed':
-        this.navigator.commit(relativeUrl, options);
-        this.prev = to;
-        if (hash) this.scrollToHash(hash);
+        this.navigator.commit(ctx.url, ctx.options);
+        this.prev = ctx.to;
+        if (ctx.hash) this.scrollToHash(ctx.hash);
         break;
 
       case 'cancelled':
-        if (action === 'pop' && from) {
-          this.navigator.rollback(from.url); // pop: URL уже другой
+      case 'error':
+        if (ctx.action === 'pop' && ctx.from) {
+          this.navigator.rollback(ctx.from.url);
         }
         break;
 
       case 'redirect':
-        void this.navigateTo(result.url, 'replace', { replace: result.replace ?? false, syncHistory: true });
+        void this.navigateTo(result.url, 'replace', {
+          replace: result.replace ?? false,
+          syncHistory: true,
+        });
         break;
-
-      case 'error':
-      // history не трогаем или политика по intent
     }
+  }
+
+  /** Hash-only на том же path — без processor. */
+  private applyHashOnlyTransition(
+    url: string,
+    options: NavigateHistoryOptions,
+    hash: string,
+  ): void {
+    this.navigator.commit(url, options);
+    if (this.prev) this.prev.url = url;
+    if (hash) this.scrollToHash(hash);
   }
 
   private scrollToHash(hash: string): void {

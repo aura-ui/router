@@ -40,10 +40,7 @@ export interface RouteInstance {
   onError(ctx: RouteErrorContext): void;
 }
 
-/** Minimal router surface exposed to route hooks. */
-export interface RouterInstance {
-  navigate(path: string): void;
-}
+
 
 /** Hook context: {@link MatchedRouteInfo} + plugin options from `AuraRouter.use(hook, options)`. */
 export interface RouteHookContext extends MatchedRouteInfo {

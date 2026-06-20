@@ -7,6 +7,8 @@
 //   runPreCommit(ctx)
 //   runCommit(ctx)
 //   runPostCommit(ctx)
+//
+// Lifecycle (onEnter, onLoad, …) — всегда; hooks — только при непустом attr на route.
 
 import type { MatchedRouteInfo } from './aura-routing-url-matcher';
 import type { HistoryAction } from './aura-routing-history-navigator';
@@ -14,6 +16,7 @@ import type { TransitionMap } from './aura-routing-transition-map';
 import type { AuraRoutingProcessorJob } from './aura-routing-processor-job';
 import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';
 import type { GuardResult } from './types';
+import type { RoutePhase } from '../../aura-route-hooks/core';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,24 +50,25 @@ type PhaseOutcome = TransactionResult | null;
 
 export class PhaseExecutor {
   /**
-   * Reentered: только `reentered` hooks + lifecycle.
+   * Reentered: lifecycle + optional `reentered` hooks.
    * Вызывается когда plan.reentered === true.
    */
   async runReentered(ctx: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of ctx.tx.plan.enterRoutes) {
       const { route } = routeInfo;
-      if (!route.reentered) continue;
 
       try {
-        const result = await AuraRoutingPhaseHandler.runPhase(
-          'reentered',
-          routeInfo,
-          ctx.isJobActive,
-        );
         route.onReentered(routeInfo);
 
-        const redirect = this.applyRedirect(result);
-        if (redirect) return redirect;
+        if (route.reentered?.length) {
+          const result = await AuraRoutingPhaseHandler.runPhase(
+            'reentered',
+            routeInfo,
+            ctx.isJobActive,
+          );
+          const redirect = this.applyRedirect(result);
+          if (redirect) return redirect;
+        }
       } catch (error) {
         return this.failWithError(routeInfo, error, ctx);
       }
@@ -85,13 +89,15 @@ export class PhaseExecutor {
     for (const routeInfo of plan.exitRoutes) {
       const { route } = routeInfo;
 
-      if (!route.leave) continue;
-
       try {
-        const blocked = await this.runBlockingPhase(
-          () => AuraRoutingPhaseHandler.runPhase('leave', routeInfo, ctx.isJobActive),
-        );
-        if (blocked) return blocked;
+        route.beforeLeave(routeInfo);
+
+        if (route.leave?.length) {
+          const blocked = await this.runBlockingPhase(
+            () => AuraRoutingPhaseHandler.runPhase('leave', routeInfo, ctx.isJobActive),
+          );
+          if (blocked) return blocked;
+        }
 
         route.afterLeave(routeInfo);
       } catch (error) {
@@ -103,28 +109,24 @@ export class PhaseExecutor {
     for (const routeInfo of plan.enterRoutes) {
       const { route } = routeInfo;
 
-      if (route.enter) {
+      try {
         route.onEnter(routeInfo);
-        try {
+        if (route.enter?.length) {
           const outcome = await this.runBlockingPhase(
             () => AuraRoutingPhaseHandler.runPhase('enter', routeInfo, ctx.isJobActive),
           );
           if (outcome) return outcome;
-        } catch (error) {
-          return this.failWithError(routeInfo, error, ctx);
         }
-      }
 
-      if (route.load) {
         route.onLoad(routeInfo);
-        try {
+        if (route.load?.length) {
           const outcome = await this.runBlockingPhase(
             () => AuraRoutingPhaseHandler.runPhase('load', routeInfo, ctx.isJobActive),
           );
           if (outcome) return outcome;
-        } catch (error) {
-          return this.failWithError(routeInfo, error, ctx);
         }
+      } catch (error) {
+        return this.failWithError(routeInfo, error, ctx);
       }
     }
 
@@ -137,12 +139,13 @@ export class PhaseExecutor {
   async runPreCommit(ctx: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of ctx.tx.plan.enterRoutes) {
       const { route } = routeInfo;
-      if (!route.entering) continue;
-
-      route.onEntering(routeInfo);
 
       try {
-        await AuraRoutingPhaseHandler.runPhase('entering', routeInfo, ctx.isJobActive);
+        route.onEntering(routeInfo);
+
+        if (route.entering?.length) {
+          await AuraRoutingPhaseHandler.runPhase('entering', routeInfo, ctx.isJobActive);
+        }
       } catch (error) {
         return this.failWithError(routeInfo, error, ctx);
       }
@@ -163,10 +166,6 @@ export class PhaseExecutor {
           return { status: 'cancelled' };
         }
       } catch (error) {
-        // В текущем processor — return undefined (баг: transition считается committed).
-        // Здесь — явный error:
-        //console.error(`render phase failed:`, error);
-        //return undefined;
         return this.failWithError(routeInfo, error, ctx);
       }
     }
@@ -185,27 +184,27 @@ export class PhaseExecutor {
     for (const routeInfo of plan.exitRoutes) {
       const { route } = routeInfo;
 
-      if (route.leaving) {
+      route.onLeaving(routeInfo);
+      if (route.leaving?.length) {
         await this.runPhaseSafe('leaving', routeInfo, ctx);
-        route.onLeaving(routeInfo);
-      }
-
-      if (route.left) {
-        await this.runPhaseSafe('left', routeInfo, ctx);
       }
 
       route.onLeft(routeInfo);
+      if (route.left?.length) {
+        await this.runPhaseSafe('left', routeInfo, ctx);
+      }
     }
 
     for (const routeInfo of plan.enterRoutes) {
       const { route } = routeInfo;
-      if (!route.entered) continue;
 
-      const result = await this.runPhaseSafe('entered', routeInfo, ctx);
       route.onEntered(routeInfo);
 
-      const redirect = this.applyRedirect(result);
-      if (redirect) return redirect;
+      if (route.entered?.length) {
+        const result = await this.runPhaseSafe('entered', routeInfo, ctx);
+        const redirect = this.applyRedirect(result);
+        if (redirect) return redirect;
+      }
     }
 
     return null;
@@ -247,10 +246,12 @@ export class PhaseExecutor {
   ): Promise<TransactionResult> {
     routeInfo.route.onError({ ...routeInfo, error });
 
-    try {
-      await AuraRoutingPhaseHandler.runPhase('error', routeInfo, ctx.isJobActive, { error });
-    } catch (hookError) {
-      console.error(hookError);
+    if (routeInfo.route.error?.length) {
+      try {
+        await AuraRoutingPhaseHandler.runPhase('error', routeInfo, ctx.isJobActive, { error });
+      } catch (hookError) {
+        console.error(hookError);
+      }
     }
 
     return { status: 'error', error };
@@ -258,7 +259,7 @@ export class PhaseExecutor {
 
   /** Post-commit hooks: ошибки логируются, не отменяют transition. */
   private async runPhaseSafe(
-    phase: string,
+    phase: RoutePhase,
     routeInfo: MatchedRouteInfo,
     ctx: PhaseContext,
   ): Promise<GuardResult> {

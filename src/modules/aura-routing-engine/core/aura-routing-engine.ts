@@ -154,7 +154,7 @@ export class AuraRoutingEngine {
 
     const from = this.prev;
 
-    const result = await this.processor.run({ from, to });
+    const result = await this.processor.run({ from, to, action });
 
     switch (result.status) {
       case 'committed':

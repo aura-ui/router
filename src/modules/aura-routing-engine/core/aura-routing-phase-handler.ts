@@ -1,5 +1,5 @@
-import type { MatchedRouteInfo } from './aura-routing-engine';
 import { RouteHookRegistry } from '../../aura-route-hooks/core/route-hook-registry';
+import type { MatchedRouteInfo } from './aura-routing-url-matcher';
 
 export class AuraRoutingPhaseHandler {
 

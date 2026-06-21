@@ -5,7 +5,7 @@ export interface TransitionMap {
   exitRoutes: MatchedRouteInfo[];
   enterRoutes: MatchedRouteInfo[];
   lca: MatchedRouteInfo | null;
-  reentered: boolean;
+  reenter: boolean;
 }
 
 export function buildRoadMap(from: MatchedRouteInfo | null, to: MatchedRouteInfo): TransitionMap {

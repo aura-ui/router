@@ -38,7 +38,7 @@ export class AuraRoutingProcessorJobManager {
 
   /**
    * Abort the previous job and start a new one.
-   * Call at the start of a navigation pipeline (`leave`, `enter` without prior leave, `reentered`).
+   * Call at the start of a navigation pipeline (`leave`, `enter` without prior leave, `reenter`).
    */
   begin(): AuraRoutingProcessorJob {
     this._active?.abort();

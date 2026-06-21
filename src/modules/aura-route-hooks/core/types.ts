@@ -5,13 +5,13 @@ export type { MatchedRouteInfo, HistoryAction };
 
 export type RoutePhase =
   | 'enter'
-  | 'entering'
+  | 'transitionIn'
   | 'load'
   | 'entered'
   | 'leave'
-  | 'leaving'
+  | 'transitionOut'
   | 'left'
-  | 'reentered'
+  | 'reenter'
   | 'error';
 
 export interface RouteInfo {
@@ -46,22 +46,22 @@ export type RouteErrorContext = RouteLifecycleContext & {
 export interface RouteInstance {
   path: string;
   enter: string[] | null;
-  entering: string[] | null;
+  transitionIn: string[] | null;
   load: string[] | null;
   entered: string[] | null;
   leave: string[] | null;
-  leaving: string[] | null;
+  transitionOut: string[] | null;
   left: string[] | null;
-  reentered: string[] | null;
+  reenter: string[] | null;
   error: string[] | null;
   onEnter(ctx: RouteLifecycleContext): void;
-  onEntering(ctx: RouteLifecycleContext): void;
+  onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;
   onEntered(ctx: RouteLifecycleContext): void;
   onLeave(ctx: RouteLifecycleContext): void;
-  onLeaving(ctx: RouteLifecycleContext): void;
+  onTransitionOut(ctx: RouteLifecycleContext): void;
   onLeft(ctx: RouteLifecycleContext): void;
-  onReentered(ctx: RouteLifecycleContext): void;
+  onReenter(ctx: RouteLifecycleContext): void;
   onError(ctx: RouteErrorContext): void;
 }
 

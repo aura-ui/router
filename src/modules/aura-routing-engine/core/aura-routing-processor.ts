@@ -43,8 +43,8 @@ export class AuraRoutingProcessor {
       isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
     };
 
-    if (transaction.plan.reentered) {
-      const early = await this.phases.runReentered(phaseContext);
+    if (transaction.plan.reenter) {
+      const early = await this.phases.runReenter(phaseContext);
       return early ?? { status: 'committed' };
     }
 

@@ -7,10 +7,10 @@ import {
 import { getActiveChain, getLeafMatch, isSameRouteMatch } from './matched-chain';
 
 /**
- * Строит TransitionMap для processor: exitRoutes, enterRoutes, lca, reentered.
+ * Строит TransitionMap для processor: exitRoutes, enterRoutes, lca, reenter.
  * @example null → profile: enter [settings, profile], exit []
  * @example profile → security: exit [profile], enter [security], lca settings
- * @example profile → profile (same url): reentered true
+ * @example profile → profile (same url): reenter true
  */
 export function buildTreeRoadMap(from: MatchedRouteInfo | null, to: MatchedRouteInfo) {
   if (!from) {
@@ -18,7 +18,7 @@ export function buildTreeRoadMap(from: MatchedRouteInfo | null, to: MatchedRoute
       exitRoutes: [],
       enterRoutes: getActiveChain(to),
       lca: null,
-      reentered: false,
+      reenter: false,
     };
   }
 
@@ -28,7 +28,7 @@ export function buildTreeRoadMap(from: MatchedRouteInfo | null, to: MatchedRoute
       exitRoutes: [],
       enterRoutes: [leaf],
       lca: leaf,
-      reentered: true,
+      reenter: true,
     };
   }
 
@@ -40,12 +40,12 @@ export function buildTreeRoadMap(from: MatchedRouteInfo | null, to: MatchedRoute
     exitRoutes: buildExitRoutes(fromChain, lcaIndex),
     enterRoutes: buildEnterRoutes(toChain, lcaIndex),
     lca: lcaIndex >= 0 ? fromChain[lcaIndex]! : null, // NOTE: in future for incremental render vs data cache
-    reentered: false,
+    reenter: false,
   };
 }
 
 /**
- * Тот же URL (pathname + search) и тот же leaf route — shortcut reentered.
+ * Тот же URL (pathname + search) и тот же leaf route — shortcut reenter.
  * @example `/settings/profile` → `/settings/profile` → true
  */
 function isSameNavigationTarget(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {

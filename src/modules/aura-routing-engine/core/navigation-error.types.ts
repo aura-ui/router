@@ -1,14 +1,15 @@
 import type { MatchedRouteInfo } from './aura-routing-url-matcher';
 
-/** Фаза pipeline, на которой упала навигация (не lifecycle `error`). */
 export type NavigationErrorPhase =
-  | 'reentered'
   | 'leave'
   | 'enter'
   | 'load'
-  | 'leaving'
+  | 'reenter'
   | 'render'
-  | 'entering';
+  | 'transitionOut'
+  | 'transitionIn'
+  | 'left'
+  | 'entered';
 
 export interface NavigationErrorDetail {
   error: unknown;
@@ -16,6 +17,5 @@ export interface NavigationErrorDetail {
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;
   phase: NavigationErrorPhase;
-  /** `true` только после failed `render` — URL и UI целевого route закоммичены. */
   committed: boolean;
 }

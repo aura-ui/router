@@ -27,14 +27,14 @@ export interface AURARouteInterface {
 }
 
 type AuraRouteGuards = 'leave'|'enter'|'load';
-type AuraRoutePreRenderEffects = 'entering';
-type AuraRoutePostRenderEffects = 'leaving'|'left'|'entered';
+type AuraRouteTransitionEffects = 'transitionIn'|'transitionOut';
+type AuraRoutePostShowEffects = 'left'|'entered';
 
 export interface AuraRouteInfo{
   path: string;
   guards: Record<AuraRouteGuards, string[]>;
-  preRenders: Record<AuraRoutePreRenderEffects, string[]>;
-  postRenders: Record<AuraRoutePostRenderEffects, string[]>;
+  transitions: Record<AuraRouteTransitionEffects, string[]>;
+  postShow: Record<AuraRoutePostShowEffects, string[]>;
 }
 // AURARoute.setDefaultOptions({
 //   reserveState: true, // значения по умолчанию для всех маршрутов
@@ -60,13 +60,13 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   @attr({ readonly: true, dataAttr: true }) content: string;
 
   @attr({ parser: parseCommaSeparated }) enter: string[] | null;
-  @attr({ parser: parseCommaSeparated }) entering: string[] | null;
+  @attr({ parser: parseCommaSeparated }) transitionIn: string[] | null;
   @attr({ parser: parseCommaSeparated }) load: string[] | null;
   @attr({ parser: parseCommaSeparated }) entered: string[] | null;
   @attr({ parser: parseCommaSeparated }) leave: string[] | null;
-  @attr({ parser: parseCommaSeparated }) leaving: string[] | null;
+  @attr({ parser: parseCommaSeparated }) transitionOut: string[] | null;
   @attr({ parser: parseCommaSeparated }) left: string[] | null;
-  @attr({ parser: parseCommaSeparated }) reentered: string[] | null;
+  @attr({ parser: parseCommaSeparated }) reenter: string[] | null;
   @attr({ parser: parseCommaSeparated }) error: string[] | null;
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
@@ -260,15 +260,15 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
   public onEnter(_ctx: RouteLifecycleContext): void {}
 
-  public onLoad(_ctx: RouteLifecycleContext): void {}
+  public onTransitionIn(_ctx: RouteLifecycleContext): void {}
 
-  public onEntering(_ctx: RouteLifecycleContext): void {}
+  public onLoad(_ctx: RouteLifecycleContext): void {}
 
   public onEntered(_ctx: RouteLifecycleContext): void {}
 
   public onLeave(_ctx: RouteLifecycleContext): void {}
 
-  public onLeaving(_ctx: RouteLifecycleContext): void {}
+  public onTransitionOut(_ctx: RouteLifecycleContext): void {}
 
   public onLeft(_ctx: RouteLifecycleContext): void {
     this.isActive = false;
@@ -277,7 +277,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     if (!this.preserveState) this.textContent = '';
   }
 
-  public onReentered(_ctx: RouteLifecycleContext): void {}
+  public onReenter(_ctx: RouteLifecycleContext): void {}
 
   public onError(_ctx: RouteErrorContext): void {}
 

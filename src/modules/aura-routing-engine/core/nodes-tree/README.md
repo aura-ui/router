@@ -138,13 +138,13 @@ interface TransitionMap {
   exitRoutes: MatchedRouteInfo[];
   enterRoutes: MatchedRouteInfo[];
   lca: MatchedRouteInfo | null;
-  reentered: boolean;
+  reenter: boolean;
 }
 ```
 
 Три сценария:
 
-| Сценарий | Условие | exit | enter | reentered |
+| Сценарий | Условие | exit | enter | reenter |
 |----------|---------|------|-------|-----------|
 | Cold enter | `from === null` | `[]` | вся `to.chain` | `false` |
 | Reentered | тот же pathname + search + leaf | `[]` | `[leaf]` | `true` |
@@ -223,7 +223,7 @@ lca:         null
 
 exitRoutes:  []
 enterRoutes: [ profile ]
-reentered:   true
+reenter:   true
 ```
 
 Processor идёт в `runReentered` без leave/enter/load/render.

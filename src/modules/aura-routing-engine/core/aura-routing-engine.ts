@@ -21,7 +21,9 @@ import type {
   NavigateHistoryOptions,
   NavigationProvider,
 } from './navigation-provider.types';
+import type { NavigationErrorDetail } from './navigation-error.types';
 
+export type { NavigationErrorDetail, NavigationErrorPhase } from './navigation-error.types';
 export type { MatchedRouteInfo };
 export type { HistoryAction, NavigateHistoryOptions } from './navigation-provider.types';
 
@@ -37,13 +39,8 @@ export interface AuraRoutingEngineConfig {
   transitionPolicy?: TransitionPolicy;
   /** Вызывается после успешного commit navigation (в т.ч. catch-all). */
   onNavigationCommitted?: (to: MatchedRouteInfo) => void;
-  /** Вызывается после render-error (URL commit + cleanup from). */
-  onNavigationError?: (detail: {
-    error: unknown;
-    url: string;
-    from: MatchedRouteInfo | null;
-    to: MatchedRouteInfo;
-  }) => void;
+  /** Вызывается при любой ошибке navigation transaction. */
+  onNavigationError?: (detail: NavigationErrorDetail) => void;
   /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
   provider?: NavigationProvider;
 }
@@ -248,18 +245,18 @@ export class AuraRoutingEngine {
         break;
 
       case 'error':
-        if (result.renderFailed) {
+        this.config.onNavigationError?.({
+          error: result.error,
+          url: ctx.url,
+          from: ctx.from,
+          to: ctx.to,
+          phase: result.phase,
+          committed: result.committed,
+        });
+        if (result.committed) {
           this.provider.commit(ctx.url, ctx.options);
           this.prev = ctx.to;
-          this.config.onNavigationError?.({
-            error: result.error,
-            url: ctx.url,
-            from: ctx.from,
-            to: ctx.to,
-          });
-          break;
-        }
-        if (ctx.action === 'pop' && ctx.from) {
+        } else if (ctx.action === 'pop' && ctx.from) {
           this.provider.rollback(ctx.from.url);
         }
         break;

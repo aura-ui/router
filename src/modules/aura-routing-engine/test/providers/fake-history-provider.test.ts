@@ -112,11 +112,16 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(fromLeft).toHaveBeenCalledTimes(1);
     expect(provider.currentHref).toBe('/d');
     expect(onNavigationError).toHaveBeenCalledWith(
-      expect.objectContaining({ error: renderError, url: '/d' }),
+      expect.objectContaining({
+        error: renderError,
+        url: '/d',
+        phase: 'render',
+        committed: true,
+      }),
     );
   });
 
-  it('при ошибке до render не вызывает onLeft и не коммитит URL', async () => {
+  it('при ошибке до render вызывает onNavigationError без commit URL', async () => {
     const fromLeft = jest.fn();
     const enterError = new Error('guard failed');
     const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
@@ -141,6 +146,13 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
     expect(fromLeft).not.toHaveBeenCalled();
     expect(provider.currentHref).toBe('/a');
-    expect(onNavigationError).not.toHaveBeenCalled();
+    expect(onNavigationError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: enterError,
+        url: '/d',
+        phase: 'enter',
+        committed: false,
+      }),
+    );
   });
 });

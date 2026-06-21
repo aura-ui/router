@@ -4,7 +4,7 @@ import type { AURARoute } from '../../../aura-route/core/aura-route';
 export interface RouteNode {
   route: AURARoute;
   /** Значение attr `path` (может быть relative или absolute). @example `'profile'` */
-  segmentPath: string;
+  routePath: string;
   /** Resolved URL для match/registry. @example `'/settings/profile'` */
   fullPath: string;
   parent: RouteNode | null;
@@ -34,7 +34,7 @@ export interface RouteTreeSnapshot {
    * Используется registry: `get(path)`, `getNode(fullPath)`, проверка дубликатов.
    * @example `Map { '/settings' → settingsNode, '/settings/profile' → profileNode }`
    */
-  byFullPath: Map<string, RouteNode>;
+  nodesByFullPath: Map<string, RouteNode>;
 
   /**
    * Подмножество узлов, по которым `AuraRoutingUrlMatcher.matchPath()` сопоставляет pathname.

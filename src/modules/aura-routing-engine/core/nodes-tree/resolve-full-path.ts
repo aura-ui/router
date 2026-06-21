@@ -1,28 +1,47 @@
-const CATCH_ALL = new Set(['*', '/*']);
+const CATCH_ALL_SEGMENT = new Set(['*', '/*']);
+const SCOPED_CATCH_ALL_SUFFIX = '/*';
 
 /**
- * Склеивает segment `path` с fullPath родителя в итоговый URL-паттерн.
+ * Склеивает `routePath` (attr path) с fullPath родителя в итоговый URL-паттерн.
  * @example resolveFullPath('/settings', 'profile') → '/settings/profile'
  * @example resolveFullPath('/settings', '/users') → '/users' (absolute child)
  * @example resolveFullPath('/settings', '') → '/settings' (index child)
+ * @example resolveFullPath('/users', '*') → '/users/*' (scoped catch-all)
+ * @example resolveFullPath(null, '*') → '*' (global catch-all)
  */
-export function resolveFullPath(parentFullPath: string | null, segmentPath: string): string {
-  if (CATCH_ALL.has(segmentPath)) return '*';
+export function resolveFullPath(parentFullPath: string | null, routePath: string): string {
+  if (CATCH_ALL_SEGMENT.has(routePath)) {
+    if (!parentFullPath || parentFullPath === '/') return '*';
+    return normalizePath(`${trimTrailingSlash(parentFullPath)}${SCOPED_CATCH_ALL_SUFFIX}`);
+  }
 
-  if (segmentPath === '') {
+  //index path
+  if (routePath === '') {
     return parentFullPath ?? '/';
   }
 
-  if (segmentPath.startsWith('/')) {
-    return normalizePath(segmentPath);
+  //absolute path
+  if (routePath.startsWith('/')) {
+    return normalizePath(routePath);
   }
 
+  //relative path
   const base = parentFullPath ?? '';
   if (!base || base === '/') {
-    return normalizePath(`/${segmentPath}`);
+    return normalizePath(`/${routePath}`);
   }
 
-  return normalizePath(`${trimTrailingSlash(base)}/${segmentPath}`);
+  return normalizePath(`${trimTrailingSlash(base)}/${routePath}`);
+}
+
+/** Глобальный catch-all: `<aura-route path="*">` на корне. */
+export function isGlobalCatchAllFullPath(fullPath: string): boolean {
+  return fullPath === '*' || fullPath === '/*';
+}
+
+/** Scoped catch-all внутри ветки: `/users/*`, не матчит URL вне prefix. */
+export function isScopedCatchAllFullPath(fullPath: string): boolean {
+  return fullPath.endsWith(SCOPED_CATCH_ALL_SUFFIX) && !isGlobalCatchAllFullPath(fullPath);
 }
 
 /** Убирает лишние слэши и trailing `/` (кроме корня `/`). @example '//a//b/' → '/a/b' */

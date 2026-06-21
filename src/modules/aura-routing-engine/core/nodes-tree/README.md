@@ -13,7 +13,7 @@
 | Файл | Роль |
 |------|------|
 | `route-node.types.ts` | `RouteNode`, `RouteTreeSnapshot` |
-| `resolve-full-path.ts` | segment `path` + parent → `fullPath` |
+| `resolve-full-path.ts` | `routePath` + parent → `fullPath` |
 | `build-route-tree.ts` | flat/DOM `<aura-route>` → дерево |
 | `matched-chain.ts` | `MatchedRouteInfo.chain`, leaf, ключи сравнения |
 | `branch-diff.ts` | LCA + `exitRoutes` / `enterRoutes` |
@@ -33,7 +33,8 @@
 | `profile` | `/settings` | `/settings/profile` |
 | `/users` | `/settings` | `/users` (absolute, prefix родителя не добавляется) |
 | `""` | `/settings` | `/settings` (index child) |
-| `*` | любой | `*` (catch-all) |
+| `*` | `/users` | `/users/*` (scoped catch-all) |
+| `*` | `null` / `/` | `*` (global catch-all) |
 
 ```html
 <aura-route path="/settings">
@@ -51,11 +52,11 @@
 ```text
 buildRouteTree(routes[])
   │
-  ├─ buildChildIndex()     один проход: parent → children (O(n))
-  │    roots = routes без parent в input-set
+  ├─ buildParentChildHierarchy()  один проход: parent → children (O(n))
+  │    rootRoutes = routes без parent в knownRoutes
   │
-  └─ attachNode()          рекурсия по children
-       ├─ fullPath = resolveFullPath(parent, segment)
+  └─ buildRouteNode()      рекурсия по children
+       ├─ fullPath = resolveFullPath(parent, routePath)
        ├─ node.branch = parent.branch + [node]
        └─ matchableNodes: листья + index children
 ```
@@ -72,7 +73,7 @@ Parent с детьми, но без index, сам по себе не matchable (
 **На выходе `RouteTreeSnapshot`:**
 
 - `roots` — верхний уровень под router;
-- `byFullPath` — lookup `Map`;
+- `nodesByFullPath` — lookup `Map`;
 - `matchableNodes` — паттерны для matcher.
 
 `AuraRoutingRouteRegistry.buildTree()` сохраняет snapshot и кэширует `routesPath()`.
@@ -249,7 +250,7 @@ flowchart LR
 AuraRouter.refreshRoutes()
   └─ registry.replace(routes)
        └─ buildRouteTree()
-            └─ byFullPath, matchableNodes, branch
+            └─ nodesByFullPath, matchableNodes, branch
 
 navigate(from, to)
   └─ matchPath(pathname, registry.getMatchableNodes())

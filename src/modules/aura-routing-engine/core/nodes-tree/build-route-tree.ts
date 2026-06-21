@@ -29,12 +29,20 @@ export function buildRouteTree(routes: AURARoute[]): RouteTreeSnapshot {
 }
 
 /**
- * Все узлы поддерева в порядке обхода depth-first.
- * @example root `/settings` → [settings, profile, security]
+ * Собирает все `RouteNode` поддерева от переданного узла в плоский массив (flatten).
+ *
+ * В массив попадает сам `node` и каждый его потомок — depth-first, pre-order (как
+ * `walkRouteSubtree`). Это не все узлы forest: соседние ветки и другие корни из `roots`
+ * не включаются. `node` не обязан быть top-level root — можно передать любой узел, например
+ * `settings`, и получить `[settings, profile, security]`.
+ *
+ * Для lookup любого узла всего снимка без обхода используй `RouteTreeSnapshot.nodesByFullPath`.
+ *
+ * @example collectRouteSubtreeNodes(settingsNode) → [settings, profile, security]
  */
-export function collectRouteNodes(root: RouteNode): RouteNode[] {
+export function collectRouteSubtreeNodes(node: RouteNode): RouteNode[] {
   const nodes: RouteNode[] = [];
-  walkRouteTree(root, (node) => nodes.push(node));
+  walkRouteSubtree(node, (n) => nodes.push(n));
   return nodes;
 }
 
@@ -74,7 +82,7 @@ function findParentRoute(route: AURARoute, knownRoutes: Set<AURARoute>): AURARou
   const closestMethod = route.parentElement?.closest;
   if (typeof closestMethod !== 'function') return null;
 
-  const parentRoute = route.parentElement.closest(AURARoute.is) as AURARoute | null;
+  const parentRoute = route.parentElement?.closest(AURARoute.is) as AURARoute | null;
   return parentRoute && knownRoutes.has(parentRoute) ? parentRoute : null;
 }
 
@@ -180,10 +188,21 @@ function registerMatchableNode(node: RouteNode, matchableNodes: RouteNode[]): vo
   }
 }
 
-/** Обход дерева с callback на каждый узел. */
-function walkRouteTree(node: RouteNode, visit: (node: RouteNode) => void): void {
+/**
+ * Depth-first обход поддерева от заданного узла: сам `node` и все его потомки по `children`.
+ *
+ * Не обходит весь forest и не выходит за пределы переданного поддерева — соседние ветки
+ * и другие корни из `roots` не затрагиваются. Порядок pre-order: сначала текущий узел,
+ * затем каждый child слева направо, рекурсивно.
+ *
+ * Используется как общий примитив обхода; публичный flatten — `collectRouteSubtreeNodes()`.
+ * Для всех узлов всего снимка без обхода — `RouteTreeSnapshot.nodesByFullPath`.
+ *
+ * @example walkRouteSubtree(settings, visit) → settings, profile, security (если такие children)
+ */
+function walkRouteSubtree(node: RouteNode, visit: (node: RouteNode) => void): void {
   visit(node);
   for (const child of node.children) {
-    walkRouteTree(child, visit);
+    walkRouteSubtree(child, visit);
   }
 }

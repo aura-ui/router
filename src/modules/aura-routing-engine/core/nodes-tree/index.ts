@@ -2,7 +2,7 @@ export type { RouteNode, RouteTreeSnapshot } from './route-node.types';
 
 export { resolveFullPath } from './resolve-full-path';
 
-export { buildRouteTree, collectRouteNodes } from './build-route-tree';
+export { buildRouteTree, collectRouteSubtreeNodes } from './build-route-tree';
 
 export {
   routeMatchKey,

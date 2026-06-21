@@ -24,14 +24,14 @@ export interface RouteNode {
 export interface RouteTreeSnapshot {
   /**
    * Верхний уровень дерева — маршруты без parent `<aura-route>` (прямые дети `<aura-router>`).
-   * Используется для обхода структуры (`getTree()`), nested lifecycle и branch diff.
+   * Используется для обхода структуры (`getRootNodes()`), nested lifecycle и branch diff.
    * @example `[ RouteNode('/') , RouteNode('/settings' → profile, security) ]`
    */
   roots: RouteNode[];
 
   /**
    * Индекс всех узлов по resolved URL (`fullPath`) — O(1) lookup.
-   * Используется registry: `get(path)`, `getNode(fullPath)`, проверка дубликатов.
+   * Используется registry: `getRoute(fullPath)`, `getNode(fullPath)`, проверка дубликатов.
    * @example `Map { '/settings' → settingsNode, '/settings/profile' → profileNode }`
    */
   nodesByFullPath: Map<string, RouteNode>;
@@ -40,7 +40,7 @@ export interface RouteTreeSnapshot {
    * Подмножество узлов, по которым `AuraRoutingUrlMatcher.matchPath()` сопоставляет pathname.
    * Сюда попадают: листья, index child (`path=""`), parent без index child.
    * Parent с index child не включается — тот же URL обрабатывает index.
-   * @example `['/settings/profile', '/settings/security', '/settings']` → registry `routesPath()`
+   * @example `['/settings/profile', '/settings/security', '/settings']` → registry `getMatchablePaths()`
    */
   matchableNodes: RouteNode[];
 }

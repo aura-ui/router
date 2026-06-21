@@ -1,33 +1,56 @@
 import type { AURARoute } from '../../aura-route/core/aura-route';
+import { buildRouteTree } from './nodes-tree';
+import type { RouteNode } from './nodes-tree';
 
 export class AuraRoutingRouteRegistry {
-  private readonly routes = new Map<string, AURARoute>();
+  private roots: RouteNode[] = [];
+  private nodesByFullPath = new Map<string, RouteNode>();
+  private matchableNodes: RouteNode[] = [];
+  private matchablePaths: readonly string[] = [];
+  private routes: AURARoute[] = [];
 
   register(routes: AURARoute[]): void {
-    for (const route of routes) {
-      const { path } = route;
-      if (!path) continue;
-      if (this.routes.has(path)) {
-        console.warn(`Duplicate route path "${path}" — previous route will be overwritten`);
-      }
-      this.routes.set(path, route);
-    }
+    this.rebuildSnapshot([...this.routes, ...routes]);
   }
 
   replace(routes: AURARoute[]): void {
-    this.routes.clear();
-    this.register(routes);
+    this.rebuildSnapshot(routes);
   }
 
-  get(path: string): AURARoute | undefined {
-    return this.routes.get(path);
+  private rebuildSnapshot(routes: AURARoute[]): void {
+    this.routes = routes;
+    const snapshot = buildRouteTree(routes);
+    this.roots = snapshot.roots;
+    this.nodesByFullPath = snapshot.nodesByFullPath;
+    this.matchableNodes = snapshot.matchableNodes;
+    this.matchablePaths = snapshot.matchableNodes.map((node) => node.fullPath);
   }
 
-  routesPath(): string[] {
-    return [...this.routes.keys()];
+  getRoute(fullPath: string): AURARoute | undefined {
+    return this.nodesByFullPath.get(fullPath)?.route;
+  }
+
+  getNode(fullPath: string): RouteNode | undefined {
+    return this.nodesByFullPath.get(fullPath);
+  }
+
+  getRootNodes(): readonly RouteNode[] {
+    return this.roots;
+  }
+
+  getMatchableNodes(): readonly RouteNode[] {
+    return this.matchableNodes;
+  }
+
+  getMatchablePaths(): readonly string[] {
+    return this.matchablePaths;
   }
 
   clear(): void {
-    this.routes.clear();
+    this.roots = [];
+    this.nodesByFullPath.clear();
+    this.matchableNodes = [];
+    this.matchablePaths = [];
+    this.routes = [];
   }
 }

@@ -36,6 +36,7 @@ export {
   AURA_ROUTER_NAVIGATION_ERROR,
   type AuraRouterNavigationErrorEventDetail,
   type AuraRouterNavigationErrorEvent,
+  type NavigationErrorPhase,
 } from './aura-router-navigation-error.types';
 
 export interface AuraRouterConfigureOptions extends AURARouteConfigureOptions {
@@ -109,7 +110,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           }
         },
         onNavigationError: (detail) => {
-          this.notFound.hide();
+          if (detail.committed) {
+            this.notFound.hide();
+          }
           dispatchCustomEvent(this, AURA_ROUTER_NAVIGATION_ERROR, {
             detail: {
               error: detail.error,
@@ -117,6 +120,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
               router: this,
               from: detail.from?.pathname ?? null,
               to: detail.to.pathname,
+              phase: detail.phase,
+              committed: detail.committed,
             } satisfies AuraRouterNavigationErrorEventDetail,
           });
         },

@@ -3,6 +3,8 @@ export type {
   AuraRoutingEngineConfig,
   HistoryAction,
   NavigateHistoryOptions,
+  NavigationErrorDetail,
+  NavigationErrorPhase,
 } from './core/aura-routing-engine';
 
 export { AuraRoutingEngine } from './core/aura-routing-engine';

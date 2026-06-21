@@ -12,6 +12,7 @@ import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';
 import type { GuardResult } from './types';
 import type { RoutePhase, RouteInfo, RouteLifecycleContext, RouterInstance } from '../../aura-route-hooks/core';
 import type { TransitionPolicy } from './aura-routing-transition-policy';
+import type { NavigationErrorPhase } from './navigation-error.types';
 
 export interface NavigationTransaction {
   from: MatchedRouteInfo | null;
@@ -32,9 +33,11 @@ export type TransactionResult =
   | { status: 'committed' }
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
-  | { status: 'error'; error: unknown; renderFailed?: boolean };
+  | { status: 'error'; error: unknown; phase: NavigationErrorPhase; committed: boolean };
 
 type PhaseOutcome = TransactionResult | null;
+
+type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 
 export class PhaseExecutor {
   async runReentered(phaseContext: PhaseContext): Promise<PhaseOutcome> {
@@ -50,7 +53,7 @@ export class PhaseExecutor {
           this.warnIgnoredTerminalResult('reentered', result);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext);
+        return this.failWithError(routeInfo, error, phaseContext, 'reentered');
       }
     }
 
@@ -73,7 +76,7 @@ export class PhaseExecutor {
           if (blocked) return blocked;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext);
+        return this.failWithError(routeInfo, error, phaseContext, 'leave');
       }
     }
 
@@ -90,7 +93,7 @@ export class PhaseExecutor {
           if (outcome) return outcome;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext);
+        return this.failWithError(routeInfo, error, phaseContext, 'enter');
       }
     }
 
@@ -111,7 +114,7 @@ export class PhaseExecutor {
           if (outcome) return outcome;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext);
+        return this.failWithError(routeInfo, error, phaseContext, 'load');
       }
     }
 
@@ -199,7 +202,7 @@ export class PhaseExecutor {
           this.warnIgnoredTerminalResult('leaving', result);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext);
+        return this.failWithError(routeInfo, error, phaseContext, 'leaving');
       }
     }
 
@@ -218,7 +221,7 @@ export class PhaseExecutor {
           this.warnIgnoredTerminalResult('entering', result);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext);
+        return this.failWithError(routeInfo, error, phaseContext, 'entering');
       }
     }
 
@@ -235,8 +238,7 @@ export class PhaseExecutor {
         }
       } catch (error) {
         await this.runExitCleanup(phaseContext);
-        const result = await this.failWithError(routeInfo, error, phaseContext);
-        return { ...result, renderFailed: true };
+        return this.failWithError(routeInfo, error, phaseContext, 'render');
       }
     }
 
@@ -265,7 +267,7 @@ export class PhaseExecutor {
     return this.applyRedirect(result);
   }
 
-  private applyRedirect(result: GuardResult): TransactionResult | false {
+  private applyRedirect(result: GuardResult): RedirectResult | false {
     if (typeof result === 'string') {
       return { status: 'redirect', url: result };
     }
@@ -298,19 +300,25 @@ export class PhaseExecutor {
     routeInfo: MatchedRouteInfo,
     error: unknown,
     phaseContext: PhaseContext,
-  ): Promise<TransactionResult> {
-    const lifecycleContext = toLifecycleContext('error', routeInfo, phaseContext, error);
-    routeInfo.route.onError({ ...lifecycleContext, error });
+    failedPhase: NavigationErrorPhase,
+  ): Promise<Extract<TransactionResult, { status: 'error' }>> {
+    const errorContext = toLifecycleContext('error', routeInfo, phaseContext, error);
+    routeInfo.route.onError({ ...errorContext, error });
 
     if (routeInfo.route.error?.length) {
       try {
-        await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+        await AuraRoutingPhaseHandler.runPhase(errorContext, phaseContext.isJobActive);
       } catch (hookError) {
         console.error(hookError);
       }
     }
 
-    return { status: 'error', error };
+    return {
+      status: 'error',
+      error,
+      phase: failedPhase,
+      committed: failedPhase === 'render',
+    };
   }
 
   private async runPhaseSafe(

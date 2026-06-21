@@ -2,7 +2,7 @@
 // 2. provider слушает клики и popstate
 // 3. когда отловленно событие spa перехода - выбираем самый подходящий патерн соответствующий href
 // 4. вызываем processor - передаем from и to
-// 5. если фазы благополучно прошли - commit URL (атомарность перехода)
+// 5. если фазы благополучно прошли — history commit URL (provider.commit; атомарность перехода)
 import type { RouterInstance } from '../../aura-route-hooks/core';
 import { parsePath } from '../../aura-utils/misc/url';
 
@@ -37,7 +37,7 @@ export interface AuraRoutingEngineConfig {
   hash?: boolean;
   /** `out-in` | `in-out` | `parallel`. Default: `out-in`. */
   transitionPolicy?: TransitionPolicy;
-  /** Вызывается после успешного commit navigation (в т.ч. catch-all). */
+  /** Вызывается после history commit navigation (в т.ч. catch-all). */
   onNavigationCommitted?: (to: MatchedRouteInfo) => void;
   /** Вызывается при любой ошибке navigation transaction. */
   onNavigationError?: (detail: NavigationErrorDetail) => void;
@@ -111,11 +111,11 @@ export class AuraRoutingEngine {
   }
 
   /**
-   * Центральный метод навигации: match → processor → commit URL и состояния.
+   * Центральный метод навигации: match → processor (view commit внутри) → history commit URL.
    *
-   * **Порядок commit URL (атомарность перехода):**
-   * 1. `processor.run({ from, to, intent })` — guards, load, render.
-   * 2. При `ok` и `syncHistory: true` — `pushState` / `replaceState`.
+   * **Порядок history commit (атомарность перехода):**
+   * 1. `processor.run({ from, to, action })` — guards, load, view commit (`runRender`), effects.
+   * 2. При `status: 'committed'` и `syncHistory: true` — `provider.commit()` (`pushState` / `replaceState`).
    * 3. Обновление `prevMatchedRouteInfo`.
    *
    * **Отмена при `push` / `replace`:** URL ещё не менялся — engine просто выходит.
@@ -139,7 +139,7 @@ export class AuraRoutingEngine {
    * @param href — pathname + search (+ hash).
    * @param action — способ инициации; для `pop` и `system` передаётся `syncHistory: false`.
    * @param options.replace — `replaceState` вместо `pushState` (только при `syncHistory: true`).
-   * @param options.syncHistory — обновлять history после успешного commit; `false` для `pop`
+   * @param options.syncHistory — history commit после успешного processor; `false` для `pop`
    *   и начальной загрузки, когда URL уже задан браузером.
    */
   public async navigateTo(
@@ -210,7 +210,9 @@ export class AuraRoutingEngine {
   }
 
   /**
-   * Протокол commit / rollback history после processor (или hash-only).
+   * History commit / rollback после processor (или hash-only navigation).
+   *
+   * View commit (`runRender`) уже произошёл внутри processor до `status: 'committed'`.
    *
    * | action  | committed              | cancelled / error (pop)   |
    * |---------|------------------------|-------------------------|

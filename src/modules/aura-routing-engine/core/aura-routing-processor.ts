@@ -51,8 +51,8 @@ export class AuraRoutingProcessor {
     const steps = [
       () => this.phases.runGuards(phaseContext),
       () => this.phases.runLoads(phaseContext),
-      () => this.phases.runTransition(phaseContext),
-      () => this.phases.runPostCommit(phaseContext),
+      () => this.phases.runRenderWithTransition(phaseContext),
+      () => this.phases.runAfterRender(phaseContext),
     ] as const;
 
     for (const step of steps) {

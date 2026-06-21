@@ -1,6 +1,10 @@
 // Выполняет фазы navigation transaction.
 //
-// Processor: runGuards → runLoads → runTransition → runPostCommit
+// Processor: runGuards → runLoads → runRenderWithTransition → runAfterRender
+//
+// Термины:
+// - **view commit** — `runRender()` → `route.render()`; пользователь видит `to`
+// - **history commit** — `NavigationProvider.commit()` после успешного processor (см. AuraRoutingEngine)
 //
 // Lifecycle — всегда; hooks — только при непустом attr на route.
 
@@ -128,7 +132,7 @@ export class PhaseExecutor {
    * in-out:     render → transition-in → transition-out
    * parallel:   render → transition-out ‖ transition-in
    */
-  async runTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+  async runRenderWithTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     switch (phaseContext.transaction.transitionPolicy) {
       case 'out-in':
         return this.runOutIn(phaseContext);
@@ -139,8 +143,8 @@ export class PhaseExecutor {
     }
   }
 
-  /** Cleanup после commit: `left`, `entered`. */
-  async runPostCommit(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+  /** Effects после view commit: `left`, `entered`. */
+  async runAfterRender(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     await this.runExitCleanup(phaseContext);
 
     for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
@@ -162,15 +166,15 @@ export class PhaseExecutor {
     const transitionOut = await this.runExitTransition(phaseContext);
     if (transitionOut) return transitionOut;
 
-    const commit = await this.runCommit(phaseContext);
-    if (commit) return commit;
+    const renderOutcome = await this.runRender(phaseContext);
+    if (renderOutcome) return renderOutcome;
 
     return this.runEnterTransition(phaseContext);
   }
 
   private async runInOut(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    const commit = await this.runCommit(phaseContext);
-    if (commit) return commit;
+    const renderOutcome = await this.runRender(phaseContext);
+    if (renderOutcome) return renderOutcome;
 
     const transitionIn = await this.runEnterTransition(phaseContext);
     if (transitionIn) return transitionIn;
@@ -179,8 +183,8 @@ export class PhaseExecutor {
   }
 
   private async runParallel(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    const commit = await this.runCommit(phaseContext);
-    if (commit) return commit;
+    const renderOutcome = await this.runRender(phaseContext);
+    if (renderOutcome) return renderOutcome;
 
     const [transitionOut, transitionIn] = await Promise.all([
       this.runExitTransition(phaseContext),
@@ -228,7 +232,8 @@ export class PhaseExecutor {
     return null;
   }
 
-  private async runCommit(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+  /** View commit: `route.render()` для activate-ветки (не history commit). */
+  private async runRender(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
       try {
         const response = await AuraRoutingPhaseHandler.runRenderPhase(routeInfo, phaseContext.job);
@@ -283,16 +288,16 @@ export class PhaseExecutor {
     return false;
   }
 
-  /** Post-commit: cancel/redirect не меняют траекторию навигации (NAVIGATION_TRANSACTION_MODEL). */
+  /** После view commit: cancel/redirect не меняют траекторию навигации (NAVIGATION_TRANSACTION_MODEL). */
   private warnIgnoredTerminalResult(phase: RoutePhase, result: GuardResult): void {
     if (result === false) {
-      console.warn(`[${phase}] hook returned false after commit — ignored`);
+      console.warn(`[${phase}] hook returned false after view commit — ignored`);
       return;
     }
 
     const redirect = this.applyRedirect(result);
     if (redirect) {
-      console.warn(`[${phase}] hook returned redirect after commit — ignored: ${redirect.url}`);
+      console.warn(`[${phase}] hook returned redirect after view commit — ignored: ${redirect.url}`);
     }
   }
 
@@ -328,7 +333,7 @@ export class PhaseExecutor {
     try {
       return await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
     } catch (error) {
-      console.error(`[${lifecycleContext.phase}] hook failed after commit:`, error);
+      console.error(`[${lifecycleContext.phase}] hook failed after view commit:`, error);
       return undefined;
     }
   }

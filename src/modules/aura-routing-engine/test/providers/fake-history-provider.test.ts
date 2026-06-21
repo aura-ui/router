@@ -87,4 +87,60 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
     expect(provider.currentHref).toBe('/about');
   });
+
+  it('при ошибке render вызывает onLeft у from и коммитит URL', async () => {
+    const fromLeft = jest.fn();
+    const renderError = new Error('load failed');
+    const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
+    const toRoute = createTestRoute('/d', {
+      render: jest.fn().mockRejectedValue(renderError),
+    });
+    const onNavigationError = jest.fn();
+
+    const provider = new FakeHistoryProvider('/a');
+    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+      provider,
+      onNavigationError,
+    });
+
+    engine.registerRoutes([fromRoute, toRoute]);
+    provider.start();
+
+    await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });
+    await engine.navigateTo('/d', 'push', { replace: false, syncHistory: true });
+
+    expect(fromLeft).toHaveBeenCalledTimes(1);
+    expect(provider.currentHref).toBe('/d');
+    expect(onNavigationError).toHaveBeenCalledWith(
+      expect.objectContaining({ error: renderError, url: '/d' }),
+    );
+  });
+
+  it('при ошибке до render не вызывает onLeft и не коммитит URL', async () => {
+    const fromLeft = jest.fn();
+    const enterError = new Error('guard failed');
+    const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
+    const toRoute = createTestRoute('/d', {
+      onEnter: () => {
+        throw enterError;
+      },
+    });
+    const onNavigationError = jest.fn();
+
+    const provider = new FakeHistoryProvider('/a');
+    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+      provider,
+      onNavigationError,
+    });
+
+    engine.registerRoutes([fromRoute, toRoute]);
+    provider.start();
+
+    await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });
+    await engine.navigateTo('/d', 'push', { replace: false, syncHistory: true });
+
+    expect(fromLeft).not.toHaveBeenCalled();
+    expect(provider.currentHref).toBe('/a');
+    expect(onNavigationError).not.toHaveBeenCalled();
+  });
 });

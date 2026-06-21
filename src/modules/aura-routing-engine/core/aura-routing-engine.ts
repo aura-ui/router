@@ -37,6 +37,13 @@ export interface AuraRoutingEngineConfig {
   transitionPolicy?: TransitionPolicy;
   /** Вызывается после успешного commit navigation (в т.ч. catch-all). */
   onNavigationCommitted?: (to: MatchedRouteInfo) => void;
+  /** Вызывается после render-error (URL commit + cleanup from). */
+  onNavigationError?: (detail: {
+    error: unknown;
+    url: string;
+    from: MatchedRouteInfo | null;
+    to: MatchedRouteInfo;
+  }) => void;
   /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
   provider?: NavigationProvider;
 }
@@ -235,7 +242,23 @@ export class AuraRoutingEngine {
         break;
 
       case 'cancelled':
+        if (ctx.action === 'pop' && ctx.from) {
+          this.provider.rollback(ctx.from.url);
+        }
+        break;
+
       case 'error':
+        if (result.renderFailed) {
+          this.provider.commit(ctx.url, ctx.options);
+          this.prev = ctx.to;
+          this.config.onNavigationError?.({
+            error: result.error,
+            url: ctx.url,
+            from: ctx.from,
+            to: ctx.to,
+          });
+          break;
+        }
         if (ctx.action === 'pop' && ctx.from) {
           this.provider.rollback(ctx.from.url);
         }

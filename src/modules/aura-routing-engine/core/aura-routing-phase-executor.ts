@@ -32,7 +32,7 @@ export type TransactionResult =
   | { status: 'committed' }
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
-  | { status: 'error'; error: unknown };
+  | { status: 'error'; error: unknown; renderFailed?: boolean };
 
 type PhaseOutcome = TransactionResult | null;
 
@@ -138,20 +138,9 @@ export class PhaseExecutor {
 
   /** Cleanup после commit: `left`, `entered`. */
   async runPostCommit(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    const { plan } = phaseContext.transaction;
+    await this.runExitCleanup(phaseContext);
 
-    for (const routeInfo of plan.exitRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('left', routeInfo, phaseContext);
-
-      route.onLeft(lifecycleContext);
-      if (route.left?.length) {
-        const result = await this.runPhaseSafe(lifecycleContext, phaseContext);
-        this.warnIgnoredTerminalResult('left', result);
-      }
-    }
-
-    for (const routeInfo of plan.enterRoutes) {
+    for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
       const { route } = routeInfo;
       const lifecycleContext = toLifecycleContext('entered', routeInfo, phaseContext);
 
@@ -245,11 +234,27 @@ export class PhaseExecutor {
           return { status: 'cancelled' };
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext);
+        await this.runExitCleanup(phaseContext);
+        const result = await this.failWithError(routeInfo, error, phaseContext);
+        return { ...result, renderFailed: true };
       }
     }
 
     return null;
+  }
+
+  /** Скрывает deactivate-ветку после успешного render или render-error. */
+  private async runExitCleanup(phaseContext: PhaseContext): Promise<void> {
+    for (const routeInfo of phaseContext.transaction.plan.exitRoutes) {
+      const { route } = routeInfo;
+      const lifecycleContext = toLifecycleContext('left', routeInfo, phaseContext);
+
+      route.onLeft(lifecycleContext);
+      if (route.left?.length) {
+        const result = await this.runPhaseSafe(lifecycleContext, phaseContext);
+        this.warnIgnoredTerminalResult('left', result);
+      }
+    }
   }
 
   private async runBlockingPhase(

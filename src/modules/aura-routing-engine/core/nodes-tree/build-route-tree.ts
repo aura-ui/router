@@ -4,19 +4,28 @@ import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
 
 /**
  * Собирает in-memory дерево из списка `<aura-route>` (вложенных или flat).
- * @example [home, settings→profile] → roots, byFullPath, matchableNodes
+ *
+ * Единого synthetic root-node нет — верхний уровень это forest: массив `roots` (top-level
+ * `RouteNode` без `<aura-route>`-родителя). Каждый `AURARoute` превращается в `RouteNode`
+ * (обогащённая обёртка: `fullPath`, `depth`, `branch`, `parent`/`children`).
+ *
+ * В `rootNodes` попадают только корни (`.map` по `rootRoutes`), но все узлы создаются:
+ * `buildRouteNode` рекурсивно вкладывает детей в `node.children`, а side-effect —
+ * `nodesByFullPath` (плоский индекс всех узлов) и `matchableNodes`.
+ *
+ * @example [home, settings→profile] → roots: [homeNode, settingsNode], settingsNode.children: [profileNode]
  */
 export function buildRouteTree(routes: AURARoute[]): RouteTreeSnapshot {
-  const inSet = new Set(routes);
-  const { roots, childrenOf } = buildChildIndex(routes, inSet);
-  const byFullPath = new Map<string, RouteNode>();
+  const knownRoutes = new Set(routes);
+  const { rootRoutes, childRoutesByParent } = buildParentChildHierarchy(routes, knownRoutes);
+  const nodesByFullPath = new Map<string, RouteNode>();
   const matchableNodes: RouteNode[] = [];
 
-  const rootNodes = roots.map((route) =>
-    attachNode(route, null, 0, byFullPath, matchableNodes, childrenOf),
+  const rootNodes = rootRoutes.map((rootRoute) =>
+    buildRouteNode(rootRoute, null, 0, nodesByFullPath, matchableNodes, childRoutesByParent),
   );
 
-  return { roots: rootNodes, byFullPath, matchableNodes };
+  return { roots: rootNodes, nodesByFullPath, matchableNodes };
 }
 
 /**
@@ -25,116 +34,146 @@ export function buildRouteTree(routes: AURARoute[]): RouteTreeSnapshot {
  */
 export function collectRouteNodes(root: RouteNode): RouteNode[] {
   const nodes: RouteNode[] = [];
-  walkTree(root, (node) => nodes.push(node));
+  walkRouteTree(root, (node) => nodes.push(node));
   return nodes;
 }
 
 /**
- * Один проход: кто root, у кого какие дети (без querySelectorAll на каждый узел).
+ * Строит иерархию parent → children из flat-списка (один проход, без querySelectorAll на каждый узел).
  * @example settings.parent=null; profile.parent=settings
  */
-function buildChildIndex(
+function buildParentChildHierarchy(
   routes: AURARoute[],
-  inSet: Set<AURARoute>,
-): { roots: AURARoute[]; childrenOf: Map<AURARoute, AURARoute[]> } {
-  const childrenOf = new Map<AURARoute, AURARoute[]>();
-  const roots: AURARoute[] = [];
+  knownRoutes: Set<AURARoute>,
+): { rootRoutes: AURARoute[]; childRoutesByParent: Map<AURARoute, AURARoute[]> } {
+  const childRoutesByParent = new Map<AURARoute, AURARoute[]>();
+  const rootRoutes: AURARoute[] = [];
 
   for (const route of routes) {
-    const parent = findParentRoute(route, inSet);
-    if (parent) {
-      let siblings = childrenOf.get(parent);
+    const parentRoute = findParentRoute(route, knownRoutes);
+    if (parentRoute) {
+      let siblings = childRoutesByParent.get(parentRoute);
       if (!siblings) {
         siblings = [];
-        childrenOf.set(parent, siblings);
+        childRoutesByParent.set(parentRoute, siblings);
       }
       siblings.push(route);
     } else {
-      roots.push(route);
+      rootRoutes.push(route);
     }
   }
 
-  return { roots, childrenOf };
+  return { rootRoutes, childRoutesByParent };
 }
 
 /**
- * Ближайший `<aura-route>`-родитель из input-set (не router).
+ * Ближайший `<aura-route>`-родитель из knownRoutes (не router).
  * @example profile внутри settings → settings; top-level → null
  */
-function findParentRoute(route: AURARoute, inSet: Set<AURARoute>): AURARoute | null {
-  const closest = route.parentElement?.closest;
-  if (typeof closest !== 'function') return null;
+function findParentRoute(route: AURARoute, knownRoutes: Set<AURARoute>): AURARoute | null {
+  const closestMethod = route.parentElement?.closest;
+  if (typeof closestMethod !== 'function') return null;
 
-  const parent = route.parentElement.closest(AURARoute.is) as AURARoute | null;
-  return parent && inSet.has(parent) ? parent : null;
+  const parentRoute = route.parentElement.closest(AURARoute.is) as AURARoute | null;
+  return parentRoute && knownRoutes.has(parentRoute) ? parentRoute : null;
 }
 
 /**
- * Дочерние routes: сначала из index, иначе DOM fallback `:scope > aura-route`.
- * @example settings → [profile, security]
+ * Прямые дочерние `<aura-route>` того же уровня (siblings) для `parentRoute`.
+ *
+ * Основной источник — `childRoutesByParent` из `buildParentChildHierarchy`: все элементы
+ * из входного `routes[]`, у которых родитель есть в `knownRoutes`.
+ *
+ * DOM fallback (`queryDirectChildRoutes`) нужен, когда в `routes[]` передан только parent,
+ * а дети существуют в разметке, но не попали в массив — их нет в `knownRoutes` и map.
+ * @example buildRouteTree([settings]) при `<aura-route path="profile">` внутри settings в DOM
+ *
+ * В production (`AuraRouter.refreshRoutes`) массив полный — `querySelectorAll` собирает все
+ * `<aura-route>`, поэтому для родителей с детьми достаточно map. Fallback всё равно вызывается
+ * на листьях (map пуст → `querySelectorAll` → `[]`) — это ожидаемо и безопасно.
  */
-function getChildRoutes(
-  route: AURARoute,
-  childrenOf: Map<AURARoute, AURARoute[]>,
+function getDirectChildRoutes(
+  parentRoute: AURARoute,
+  childRoutesByParent: Map<AURARoute, AURARoute[]>,
 ): AURARoute[] {
-  const indexed = childrenOf.get(route);
-  if (indexed?.length) return indexed;
-  return directChildRoutes(route);
+  const siblings = childRoutesByParent.get(parentRoute);
+  if (siblings?.length) return siblings;
+  return queryDirectChildRoutes(parentRoute);
 }
 
-/** Прямые дочерние `<aura-route>` в DOM (если не переданы в flat-списке). */
-function directChildRoutes(parent: AURARoute): AURARoute[] {
-  if (typeof parent.querySelectorAll !== 'function') return [];
-  return Array.from(parent.querySelectorAll<AURARoute>(`:scope > ${AURARoute.is}`));
+/** DOM fallback: `:scope > aura-route`, когда дети не были переданы во flat `routes[]`. */
+function queryDirectChildRoutes(parentRoute: AURARoute): AURARoute[] {
+  if (typeof parentRoute.querySelectorAll !== 'function') return [];
+  return Array.from(parentRoute.querySelectorAll<AURARoute>(`:scope > ${AURARoute.is}`));
 }
 
 /**
- * Создаёт RouteNode, branch, индексирует byFullPath, регистрирует matchable endpoints.
+ * Создаёт RouteNode, branch, индексирует nodesByFullPath, регистрирует matchable endpoints.
  * @example settings + child profile → fullPath `/settings/profile`, branch [settings, profile]
  */
-function attachNode(
+function buildRouteNode(
   route: AURARoute,
-  parent: RouteNode | null,
+  parentNode: RouteNode | null,
   depth: number,
-  byFullPath: Map<string, RouteNode>,
+  nodesByFullPath: Map<string, RouteNode>,
   matchableNodes: RouteNode[],
-  childrenOf: Map<AURARoute, AURARoute[]>,
+  childRoutesByParent: Map<AURARoute, AURARoute[]>,
 ): RouteNode {
-  const segmentPath = route.path ?? '';
-  const fullPath = resolveFullPath(parent?.fullPath ?? null, segmentPath);
+  const routePath = route.path ?? '';
+  const fullPath = resolveFullPath(parentNode?.fullPath ?? null, routePath);
 
-  if (byFullPath.has(fullPath)) {
+  if (nodesByFullPath.has(fullPath)) {
     console.warn(`Duplicate route fullPath "${fullPath}" — previous route will be overwritten`);
   }
 
   const node: RouteNode = {
     route,
-    segmentPath,
+    routePath,
     fullPath,
-    parent,
+    parent: parentNode,
     children: [],
     depth,
-    isIndex: segmentPath === '',
+    isIndex: routePath === '',
     branch: [],
   };
 
-  node.branch = parent ? parent.branch.concat(node) : [node];
-  byFullPath.set(fullPath, node);
+  node.branch = parentNode ? parentNode.branch.concat(node) : [node];
+  nodesByFullPath.set(fullPath, node);
 
-  for (const childRoute of getChildRoutes(route, childrenOf)) {
-    node.children.push(attachNode(childRoute, node, depth + 1, byFullPath, matchableNodes, childrenOf));
+  for (const childRoute of getDirectChildRoutes(route, childRoutesByParent)) {
+    node.children.push(
+      buildRouteNode(childRoute, node, depth + 1, nodesByFullPath, matchableNodes, childRoutesByParent),
+    );
   }
 
-  registerMatchable(node, matchableNodes);
+  registerMatchableNode(node, matchableNodes);
 
   return node;
 }
 
 /**
- * Endpoint для URL matcher: leaf, index child, или parent без index child.
- * Parent с index не регистрируем — тот же fullPath обрабатывает index (как React Router).
+ * Решает, участвует ли узел в URL-matching, и при необходимости добавляет его в `matchableNodes`.
+ *
+ * `matchableNodes` — подмножество всех `RouteNode`, по которым `AuraRoutingUrlMatcher.matchPath()`
+ * сопоставляет pathname. Не каждый узел дерева matchable: layout-родитель с index child
+ * покрывает тот же URL, что и ребёнок с `path=""`, поэтому дублировать parent в matcher не нужно
+ * (модель как в React Router).
+ *
+ * Узел регистрируется, если выполняется хотя бы одно условие:
+ * - **лист** (`children.length === 0`) — конечный endpoint, например `/settings/profile`;
+ * - **index child** (`isIndex`, т.е. `path=""`) — URL совпадает с родителем, например `/settings`;
+ * - **родитель без index child** — у узла есть дети, но ни один не index; тогда URL родителя
+ *   (`/settings`) matchable сам по себе, без отдельного index route.
+ *
+ * Узел НЕ регистрируется, если у него есть дети и среди них есть index child: тот же `fullPath`
+ * обрабатывает index, parent остаётся layout-only для nested lifecycle/outlet.
+ *
+ * @example settings + profile + security (без index)
+ *   matchable: `/settings`, `/settings/profile`, `/settings/security`
+ * @example settings + index (`path=""`)
+ *   matchable: только `/settings` (index); parent settings не попадает в matcher
  */
-function registerMatchable(node: RouteNode, matchableNodes: RouteNode[]): void {
+function registerMatchableNode(node: RouteNode, matchableNodes: RouteNode[]): void {
   const hasIndexChild = node.children.some((child) => child.isIndex);
   if (node.children.length === 0 || node.isIndex || !hasIndexChild) {
     matchableNodes.push(node);
@@ -142,9 +181,9 @@ function registerMatchable(node: RouteNode, matchableNodes: RouteNode[]): void {
 }
 
 /** Обход дерева с callback на каждый узел. */
-function walkTree(node: RouteNode, visit: (node: RouteNode) => void): void {
+function walkRouteTree(node: RouteNode, visit: (node: RouteNode) => void): void {
   visit(node);
   for (const child of node.children) {
-    walkTree(child, visit);
+    walkRouteTree(child, visit);
   }
 }

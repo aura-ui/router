@@ -18,6 +18,11 @@ import { AuraRoutingProcessor } from '../../aura-routing-engine/core/aura-routin
 import { parseTransitionPolicy } from '../../aura-routing-engine/core/aura-routing-transition-policy';
 import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
 import type { NotFoundHandler } from './aura-router-not-found.types';
+import {
+  AURA_ROUTER_NAVIGATION_ERROR,
+  type AuraRouterNavigationErrorEventDetail,
+} from './aura-router-navigation-error.types';
+import { dispatchCustomEvent } from '../../aura-utils/misc';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -26,6 +31,12 @@ export {
   type AuraRouterNotFoundEventDetail,
   type AuraRouterNotFoundEvent,
 } from './aura-router-not-found.types';
+
+export {
+  AURA_ROUTER_NAVIGATION_ERROR,
+  type AuraRouterNavigationErrorEventDetail,
+  type AuraRouterNavigationErrorEvent,
+} from './aura-router-navigation-error.types';
 
 export interface AuraRouterConfigureOptions extends AURARouteConfigureOptions {
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
@@ -96,6 +107,18 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           if (isCatchAllRoute(to.routePath)) {
             AuraRouterNotFoundController.emit(this, to.url, 'route');
           }
+        },
+        onNavigationError: (detail) => {
+          this.notFound.hide();
+          dispatchCustomEvent(this, AURA_ROUTER_NAVIGATION_ERROR, {
+            detail: {
+              error: detail.error,
+              url: detail.url,
+              router: this,
+              from: detail.from?.pathname ?? null,
+              to: detail.to.pathname,
+            } satisfies AuraRouterNavigationErrorEventDetail,
+          });
         },
       };
       this.engine = new AuraRoutingEngine(

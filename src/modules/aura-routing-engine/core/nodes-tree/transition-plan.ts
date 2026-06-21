@@ -39,7 +39,7 @@ export function buildTreeRoadMap(from: MatchedRouteInfo | null, to: MatchedRoute
   return {
     exitRoutes: buildExitRoutes(fromChain, lcaIndex),
     enterRoutes: buildEnterRoutes(toChain, lcaIndex),
-    lca: lcaIndex >= 0 ? fromChain[lcaIndex]! : null,
+    lca: lcaIndex >= 0 ? fromChain[lcaIndex]! : null, // NOTE: in future for incremental render vs data cache
     reentered: false,
   };
 }

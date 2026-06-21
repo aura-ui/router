@@ -76,7 +76,7 @@ Parent с детьми, но без index, сам по себе не matchable (
 - `nodesByFullPath` — lookup `Map`;
 - `matchableNodes` — паттерны для matcher.
 
-`AuraRoutingRouteRegistry.buildTree()` сохраняет snapshot и кэширует `routesPath()`.
+`AuraRoutingRouteRegistry.buildTree()` сохраняет snapshot и кэширует `getMatchablePaths()`.
 
 ---
 

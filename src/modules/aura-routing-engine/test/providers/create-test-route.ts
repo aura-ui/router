@@ -1,33 +1,28 @@
-import type { AURARoute } from '../../../aura-route/core/aura-route';
-import type { RouteLifecycleContext, RouteErrorContext } from '../../../aura-route-hooks/core';
+import type { RouteInstance } from '../../aura-route-hooks/core';
 
 const noop = (): void => {};
 
-/** Минимальный route для engine-тестов без DOM. */
-export function createTestRoute(path: string, overrides: Partial<AURARoute> = {}): AURARoute {
-  const base = {
+export function createTestRoute(path: string, overrides: Partial<RouteInstance> = {}): RouteInstance {
+  return {
     path,
     enter: null,
-    entering: null,
+    transitionIn: null,
     load: null,
     entered: null,
     leave: null,
-    leaving: null,
+    transitionOut: null,
     left: null,
-    reentered: null,
+    reenter: null,
     error: null,
-    onEnter: noop as (ctx: RouteLifecycleContext) => void,
-    onEntering: noop,
+    onEnter: noop,
+    onTransitionIn: noop,
     onLoad: noop,
     onEntered: noop,
     onLeave: noop,
-    onLeaving: noop,
+    onTransitionOut: noop,
     onLeft: noop,
-    onReentered: noop,
-    onError: noop as (ctx: RouteErrorContext) => void,
-    render: async () => {},
-    cancelPendingRender: noop,
+    onReenter: noop,
+    onError: noop,
+    ...overrides,
   };
-
-  return { ...base, ...overrides } as unknown as AURARoute;
 }

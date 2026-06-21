@@ -53,7 +53,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
-  /** `out-in` | `in-out` | `parallel` — порядок leaving/entering относительно render. */
+  /** `out-in` | `in-out` | `parallel` — порядок transition-out/transition-in относительно render. */
   @attr({ dataAttr: true, defaultValue: 'out-in' })
   transition: string;
 

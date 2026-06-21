@@ -40,20 +40,20 @@ type PhaseOutcome = TransactionResult | null;
 type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 
 export class PhaseExecutor {
-  async runReentered(phaseContext: PhaseContext): Promise<PhaseOutcome> {
+  async runReenter(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
       const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('reentered', routeInfo, phaseContext);
+      const lifecycleContext = toLifecycleContext('reenter', routeInfo, phaseContext);
 
       try {
-        route.onReentered(lifecycleContext);
+        route.onReenter(lifecycleContext);
 
-        if (route.reentered?.length) {
+        if (route.reenter?.length) {
           const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
-          this.warnIgnoredTerminalResult('reentered', result);
+          this.warnIgnoredTerminalResult('reenter', result);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'reentered');
+        return this.failWithError(routeInfo, error, phaseContext, 'reenter');
       }
     }
 
@@ -122,11 +122,11 @@ export class PhaseExecutor {
   }
 
   /**
-   * Render + transition effects (`leaving` / `entering`) по {@link TransitionPolicy}.
+   * View commit (render) + transition effects (`transition-out` / `transition-in`) по {@link TransitionPolicy}.
    *
-   * out-in:     leaving → render → entering
-   * in-out:     render → entering → leaving
-   * parallel:   render → leaving ‖ entering
+   * out-in:     transition-out → render → transition-in
+   * in-out:     render → transition-in → transition-out
+   * parallel:   render → transition-out ‖ transition-in
    */
   async runTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     switch (phaseContext.transaction.transitionPolicy) {
@@ -159,8 +159,8 @@ export class PhaseExecutor {
   }
 
   private async runOutIn(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    const leaving = await this.runExitTransition(phaseContext);
-    if (leaving) return leaving;
+    const transitionOut = await this.runExitTransition(phaseContext);
+    if (transitionOut) return transitionOut;
 
     const commit = await this.runCommit(phaseContext);
     if (commit) return commit;
@@ -172,8 +172,8 @@ export class PhaseExecutor {
     const commit = await this.runCommit(phaseContext);
     if (commit) return commit;
 
-    const entering = await this.runEnterTransition(phaseContext);
-    if (entering) return entering;
+    const transitionIn = await this.runEnterTransition(phaseContext);
+    if (transitionIn) return transitionIn;
 
     return this.runExitTransition(phaseContext);
   }
@@ -182,27 +182,27 @@ export class PhaseExecutor {
     const commit = await this.runCommit(phaseContext);
     if (commit) return commit;
 
-    const [leaving, entering] = await Promise.all([
+    const [transitionOut, transitionIn] = await Promise.all([
       this.runExitTransition(phaseContext),
       this.runEnterTransition(phaseContext),
     ]);
 
-    return leaving ?? entering ?? null;
+    return transitionOut ?? transitionIn ?? null;
   }
 
   private async runExitTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of phaseContext.transaction.plan.exitRoutes) {
       const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('leaving', routeInfo, phaseContext);
+      const lifecycleContext = toLifecycleContext('transitionOut', routeInfo, phaseContext);
 
       try {
-        route.onLeaving(lifecycleContext);
-        if (route.leaving?.length) {
+        route.onTransitionOut(lifecycleContext);
+        if (route.transitionOut?.length) {
           const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
-          this.warnIgnoredTerminalResult('leaving', result);
+          this.warnIgnoredTerminalResult('transitionOut', result);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'leaving');
+        return this.failWithError(routeInfo, error, phaseContext, 'transitionOut');
       }
     }
 
@@ -212,16 +212,16 @@ export class PhaseExecutor {
   private async runEnterTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
       const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('entering', routeInfo, phaseContext);
+      const lifecycleContext = toLifecycleContext('transitionIn', routeInfo, phaseContext);
 
       try {
-        route.onEntering(lifecycleContext);
-        if (route.entering?.length) {
+        route.onTransitionIn(lifecycleContext);
+        if (route.transitionIn?.length) {
           const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
-          this.warnIgnoredTerminalResult('entering', result);
+          this.warnIgnoredTerminalResult('transitionIn', result);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'entering');
+        return this.failWithError(routeInfo, error, phaseContext, 'transitionIn');
       }
     }
 

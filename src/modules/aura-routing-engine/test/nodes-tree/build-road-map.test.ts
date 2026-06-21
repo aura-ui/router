@@ -75,7 +75,7 @@ describe('buildTreeRoadMap', () => {
     expect(plan.exitRoutes.map(routeMatchKey)).toEqual(['/a']);
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/b']);
     expect(plan.lca).toBeNull();
-    expect(plan.reentered).toBe(false);
+    expect(plan.reenter).toBe(false);
   });
 
   it('builds sibling nested transition through shared parent LCA', () => {
@@ -119,14 +119,14 @@ describe('buildTreeRoadMap', () => {
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/']);
   });
 
-  it('detects reentered navigation', () => {
+  it('detects reenter navigation', () => {
     const chain = chainFromPaths(['/settings', '/settings/profile']);
     const from = chain[1]!;
     const to = { ...from };
 
     const plan = buildTreeRoadMap(from, to);
 
-    expect(plan.reentered).toBe(true);
+    expect(plan.reenter).toBe(true);
     expect(plan.exitRoutes).toEqual([]);
     expect(plan.enterRoutes).toEqual([chain[1]]);
   });

@@ -33,17 +33,23 @@ export interface NodePathMatch {
 /** Declarative 404: `<aura-route path="*">` (global) or nested `path="*"` → `/prefix/*`. */
 export const CATCH_ALL_ROUTE_PATH = '*' as const;
 
-export function isCatchAllRoute(routePath: string): boolean {
-  return isGlobalCatchAllFullPath(routePath) || isScopedCatchAllFullPath(routePath);
+/** Global catch-all — lowest match priority. */
+const SCORE_GLOBAL_CATCH_ALL = -1;
+
+/** Scoped `*` ranks below a static sibling at the same segment depth. */
+const SCORE_SCOPED_CATCH_ALL_DEPTH_BIAS = 0.5;
+
+export function isCatchAllRoute(fullPath: string): boolean {
+  return isGlobalCatchAllFullPath(fullPath) || isScopedCatchAllFullPath(fullPath);
 }
 
-function routeScore(routePath: string): number {
-  if (isGlobalCatchAllFullPath(routePath)) return -1;
-  if (isScopedCatchAllFullPath(routePath)) {
-    const prefix = routePath.slice(0, -2);
-    return prefix.split('/').filter(Boolean).length - 0.5;
+function routeScore(fullPath: string): number {
+  if (isGlobalCatchAllFullPath(fullPath)) return SCORE_GLOBAL_CATCH_ALL;
+  if (isScopedCatchAllFullPath(fullPath)) {
+    const prefix = fullPath.slice(0, -2);
+    return prefix.split('/').filter(Boolean).length - SCORE_SCOPED_CATCH_ALL_DEPTH_BIAS;
   }
-  return routePath.split('/').filter(Boolean).length;
+  return fullPath.split('/').filter(Boolean).length;
 }
 
 export class AuraRoutingUrlMatcher {

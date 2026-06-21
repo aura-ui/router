@@ -3,8 +3,6 @@
 // 3. когда отловленно событие spa перехода - выбираем самый подходящий патерн соответствующий href
 // 4. вызываем processor - передаем from и to
 // 5. если фазы благополучно прошли - commit URL (атомарность перехода)
-
-import type { AURARoute } from '../../aura-route/core/aura-route';
 import type { RouterInstance } from '../../aura-route-hooks/core';
 import { parsePath } from '../../aura-utils/misc/url';
 
@@ -15,6 +13,7 @@ import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './aura-routing-url-matcher';
+import { getLeafMatch, syncChainUrl } from './nodes-tree';
 import type { TransitionPolicy } from './aura-routing-transition-policy';
 import { BrowserHistoryProvider } from './providers/browser-history-provider';
 import type {
@@ -155,18 +154,21 @@ export class AuraRoutingEngine {
       return;
     }
 
-    const routesPaths = this.registry.routesPath();
-    const found = this.matcher.match(pathname, routesPaths);
+    const found = this.matcher.matchPath(pathname, this.registry.getMatchableNodes());
     if (!found) {
       // Fallback: нет <aura-route path="*"> — thin UI + event (см. AuraRouterNotFoundController)
       if (this.prev) {
-        const m = this.prev;
-        m.route.onLeft({
+        const leaf = getLeafMatch(this.prev);
+        leaf.route.onLeft({
           phase: 'left',
           from: null,
-          to: { path: m.pathname, ...(m.params && { params: m.params }), ...(m.query && { query: m.query }) },
+          to: {
+            path: leaf.pathname,
+            ...(leaf.params && { params: leaf.params }),
+            ...(leaf.query && { query: leaf.query }),
+          },
           router: this.router,
-          route: m.route,
+          route: leaf.route,
           action,
           jobId: 0,
           signal: new AbortController().signal,
@@ -180,15 +182,12 @@ export class AuraRoutingEngine {
       return;
     }
 
-    const route = this.registry.get(found.routePath) as AURARoute;
-
     const to = this.matcher.toRouteInfo(
       relativeUrl,
       pathname,
       search,
       hash,
-      found.routePath,
-      route,
+      found.node,
       found.params,
     );
 
@@ -260,7 +259,7 @@ export class AuraRoutingEngine {
     hash: string,
   ): void {
     this.provider.commit(url, options);
-    if (this.prev) this.prev.url = url;
+    if (this.prev) syncChainUrl(this.prev, url, hash);
     if (hash) this.scrollToHash(hash);
   }
 

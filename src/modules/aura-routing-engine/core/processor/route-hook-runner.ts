@@ -3,7 +3,7 @@ import type { RouteLifecycleContext } from '../../../aura-route-hooks/core';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { AuraRoutingProcessorJob } from './job';
 
-export class AuraRoutingPhaseHandler {
+export class RouteHookRunner {
 
   static async runPhase(
     lifecycleContext: RouteLifecycleContext,

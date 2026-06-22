@@ -1,9 +1,9 @@
 import { buildTransitionPlan } from '../transition/plan';
 import {
-  PhaseExecutor,
+  ProcessorPipeline,
   type NavigationTransaction,
   type TransactionResult,
-} from './phase-executor';
+} from './processor-pipeline';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { HistoryAction } from '../history/provider.types';
 import type { RouterInstance } from '../../../aura-route-hooks/core';
@@ -15,7 +15,7 @@ import {
 
 export class AuraRoutingProcessor {
   private readonly jobManager = new AuraRoutingProcessorJobManager();
-  private readonly phases = new PhaseExecutor();
+  private readonly pipeline = new ProcessorPipeline();
   private readonly transitionPolicy: TransitionPolicy;
 
   constructor(transitionPolicy: TransitionPolicy = DEFAULT_TRANSITION_POLICY) {
@@ -44,15 +44,15 @@ export class AuraRoutingProcessor {
     };
 
     if (transaction.plan.reenter) {
-      const early = await this.phases.runReenter(phaseContext);
+      const early = await this.pipeline.runReenter(phaseContext);
       return early ?? { status: 'committed' };
     }
 
     const steps = [
-      () => this.phases.runGuards(phaseContext),
-      () => this.phases.runLoads(phaseContext),
-      () => this.phases.runRenderWithTransition(phaseContext),
-      () => this.phases.runAfterRender(phaseContext),
+      () => this.pipeline.runGuards(phaseContext),
+      () => this.pipeline.runLoads(phaseContext),
+      () => this.pipeline.runRenderWithTransition(phaseContext),
+      () => this.pipeline.runAfterRender(phaseContext),
     ] as const;
 
     for (const step of steps) {

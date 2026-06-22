@@ -7,7 +7,7 @@ import type { RouterInstance } from '../../aura-route-hooks/core';
 import { parsePath } from '../../aura-utils/misc/url';
 
 import type { AuraRoutingProcessor } from './processor/processor';
-import type { TransactionResult } from './processor/phase-executor';
+import type { TransactionResult } from './processor/processor-pipeline';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import {
   AuraRoutingUrlMatcher,

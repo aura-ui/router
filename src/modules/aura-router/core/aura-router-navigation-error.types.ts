@@ -12,7 +12,7 @@ export interface AuraRouterNavigationErrorEventDetail {
   from: string | null;
   to: string;
   phase: NavigationErrorPhase;
-  committed: boolean;
+  viewCommitted: boolean;
 }
 
 export type AuraRouterNavigationErrorEvent = CustomEvent<AuraRouterNavigationErrorEventDetail>;

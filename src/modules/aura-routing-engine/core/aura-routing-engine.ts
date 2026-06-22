@@ -96,7 +96,7 @@ export class AuraRoutingEngine {
 
   stop() {
     this.isRunning = false;
-    this.processor.stop();
+    this.processor.invalidate();
     this.provider.destroy();
   }
 
@@ -111,7 +111,7 @@ export class AuraRoutingEngine {
    *
    * **Порядок history commit (атомарность перехода):**
    * 1. `processor.run({ from, to, action })` — guards, load, view commit (`runRender`), effects.
-   * 2. При `status: 'committed'` и `syncHistory: true` — `provider.commit()` (`pushState` / `replaceState`).
+   * 2. При `status: 'viewCommitted'` и `syncHistory: true` — `provider.commit()` (`pushState` / `replaceState`).
    * 3. Обновление `prevMatchedRouteInfo`.
    *
    * **Отмена при `push` / `replace`:** URL ещё не менялся — engine просто выходит.
@@ -208,9 +208,9 @@ export class AuraRoutingEngine {
   /**
    * History commit / rollback после processor (или hash-only navigation).
    *
-   * View commit (`runRender`) уже произошёл внутри processor до `status: 'committed'`.
+   * View commit (`runRender`) уже произошёл внутри processor до `status: 'viewCommitted'`.
    *
-   * | action  | committed              | cancelled / error (pop)   |
+   * | action  | viewCommitted          | cancelled / error (pop)   |
    * |---------|------------------------|-------------------------|
    * | push    | pushState (syncHistory)| ничего                  |
    * | replace | replaceState           | ничего                  |
@@ -229,7 +229,7 @@ export class AuraRoutingEngine {
     },
   ): void {
     switch (result.status) {
-      case 'committed':
+      case 'viewCommitted':
         this.provider.commit(ctx.url, ctx.options);
         this.prev = ctx.to;
         this.config.onNavigationCommitted?.(ctx.to);
@@ -249,9 +249,9 @@ export class AuraRoutingEngine {
           from: ctx.from,
           to: ctx.to,
           phase: result.phase,
-          committed: result.committed,
+          viewCommitted: result.viewCommitted,
         });
-        if (result.committed) {
+        if (result.viewCommitted) {
           this.provider.commit(ctx.url, ctx.options);
           this.prev = ctx.to;
         } else if (ctx.action === 'pop' && ctx.from) {

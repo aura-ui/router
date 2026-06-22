@@ -1,15 +1,5 @@
-// Pipeline шагов navigation transaction внутри AuraRoutingProcessor.
-//
-// Processor: runGuards → runLoads → runRenderWithTransition → runAfterRender
-//
-// Термины:
-// - **view commit** — `runRender()` → `route.render()`; пользователь видит `to`
-// - **history commit** — `NavigationProvider.commit()` после успешного processor (см. AuraRoutingEngine)
-//
-// Lifecycle — всегда; hooks — только при непустом attr на route.
-
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { HistoryAction } from '../history/provider.types';
+import type { HistoryAction } from '../history';
 import type { TransitionMap } from '../transition/plan';
 import type { AuraRoutingProcessorJob } from './job';
 import { RouteHookRunner } from './route-hook-runner';
@@ -18,6 +8,7 @@ import type { RoutePhase, RouteInfo, RouteLifecycleContext, RouterInstance } fro
 import type { TransitionPolicy } from '../transition/policy';
 import type { NavigationErrorPhase } from './navigation-error.types';
 
+/** Input for a single navigation run: matched routes, history action, and transition plan. */
 export interface NavigationTransaction {
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;
@@ -26,99 +17,111 @@ export interface NavigationTransaction {
   transitionPolicy: TransitionPolicy;
 }
 
-export interface PhaseContext {
+/** Shared ctx for all {@link ProcessorPipeline} steps (transaction, job, router). */
+export interface PipelineContext {
   transaction: NavigationTransaction;
   job: AuraRoutingProcessorJob;
   router: RouterInstance;
   isJobActive: () => boolean;
 }
 
+/** Terminal processor outcome returned to {@link AuraRoutingProcessor}. */
 export type TransactionResult =
   | { status: 'committed' }
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
   | { status: 'error'; error: unknown; phase: NavigationErrorPhase; committed: boolean };
 
-type PhaseOutcome = TransactionResult | null;
+/** Pipeline step result: terminal {@link TransactionResult}, or `null` to continue. */
+type PipelineOutcome = TransactionResult | null;
 
 type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 
+/**
+ * Navigation transaction pipeline inside {@link AuraRoutingProcessor}.
+ *
+ * Steps: `runGuards` → `runLoads` → `runRenderWithTransition` → `runAfterRender`.
+ * View commit (`runRender`) is not a lifecycle hook; history commit happens after the processor succeeds.
+ */
 export class ProcessorPipeline {
-  async runReenter(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('reenter', routeInfo, phaseContext);
+  /** Shortcut path when only query/params change on the same route (`reenter`). */
+  async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext('reenter', matchedRoute, pipelineContext);
 
       try {
         route.onReenter(lifecycleContext);
 
         if (route.reenter?.length) {
-          const result = await RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive);
-          this.warnIgnoredTerminalResult('reenter', result);
+          const hookResult = await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
+          this.warnIgnoredTerminalResult('reenter', hookResult);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'reenter');
+        return this.failWithError(matchedRoute, error, pipelineContext, 'reenter');
       }
     }
 
     return null;
   }
 
-  async runGuards(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    const { plan } = phaseContext.transaction;
+  /** Pre-commit guards: `leave` on exit branch, then `enter` on activate branch. */
+  async runGuards(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    const { plan } = pipelineContext.transaction;
 
-    for (const routeInfo of plan.exitRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('leave', routeInfo, phaseContext);
+    for (const matchedRoute of plan.exitRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext('leave', matchedRoute, pipelineContext);
 
       try {
         route.onLeave(lifecycleContext);
         if (route.leave?.length) {
-          const blocked = await this.runBlockingPhase(
-            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive),
+          const terminalResult = await this.evaluateGuardResult(
+            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive),
           );
-          if (blocked) return blocked;
+          if (terminalResult) return terminalResult;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'leave');
+        return this.failWithError(matchedRoute, error, pipelineContext, 'leave');
       }
     }
 
-    for (const routeInfo of plan.enterRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('enter', routeInfo, phaseContext);
+    for (const matchedRoute of plan.enterRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
 
       try {
         route.onEnter(lifecycleContext);
         if (route.enter?.length) {
-          const outcome = await this.runBlockingPhase(
-            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive),
+          const terminalResult = await this.evaluateGuardResult(
+            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive),
           );
-          if (outcome) return outcome;
+          if (terminalResult) return terminalResult;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'enter');
+        return this.failWithError(matchedRoute, error, pipelineContext, 'enter');
       }
     }
 
     return null;
   }
 
-  async runLoads(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('load', routeInfo, phaseContext);
+  /** Pre-commit data loading: `load` on activate branch. */
+  async runLoads(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext('load', matchedRoute, pipelineContext);
 
       try {
         route.onLoad(lifecycleContext);
         if (route.load?.length) {
-          const outcome = await this.runBlockingPhase(
-            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive),
+          const terminalResult = await this.evaluateGuardResult(
+            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive),
           );
-          if (outcome) return outcome;
+          if (terminalResult) return terminalResult;
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'load');
+        return this.failWithError(matchedRoute, error, pipelineContext, 'load');
       }
     }
 
@@ -126,193 +129,200 @@ export class ProcessorPipeline {
   }
 
   /**
-   * View commit (render) + transition effects (`transition-out` / `transition-in`) по {@link TransitionPolicy}.
+   * View commit plus `transition-out` / `transition-in` ordered by {@link TransitionPolicy}.
    *
-   * out-in:     transition-out → render → transition-in
-   * in-out:     render → transition-in → transition-out
-   * parallel:   render → transition-out ‖ transition-in
+   * out-in: transition-out → render → transition-in
+   * in-out: render → transition-in → transition-out
+   * parallel: render → transition-out ‖ transition-in
    */
-  async runRenderWithTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    switch (phaseContext.transaction.transitionPolicy) {
+  async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    switch (pipelineContext.transaction.transitionPolicy) {
       case 'out-in':
-        return this.runOutIn(phaseContext);
+        return this.runOutIn(pipelineContext);
       case 'in-out':
-        return this.runInOut(phaseContext);
+        return this.runInOut(pipelineContext);
       case 'parallel':
-        return this.runParallel(phaseContext);
+        return this.runParallel(pipelineContext);
     }
   }
 
-  /** Effects после view commit: `left`, `entered`. */
-  async runAfterRender(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    await this.runExitCleanup(phaseContext);
+  /** Post-commit effects on activate branch: `entered` (after `left` cleanup on exit branch). */
+  async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    await this.runExitCleanup(pipelineContext);
 
-    for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('entered', routeInfo, phaseContext);
+    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext('entered', matchedRoute, pipelineContext);
 
       route.onEntered(lifecycleContext);
 
       if (route.entered?.length) {
-        const result = await this.runPhaseSafe(lifecycleContext, phaseContext);
-        this.warnIgnoredTerminalResult('entered', result);
+        const hookResult = await this.runPostCommitHooks(lifecycleContext, pipelineContext);
+        this.warnIgnoredTerminalResult('entered', hookResult);
       }
     }
 
     return null;
   }
 
-  private async runOutIn(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    const transitionOut = await this.runExitTransition(phaseContext);
-    if (transitionOut) return transitionOut;
+  private async runOutIn(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    const exitTransitionOutcome = await this.runExitTransition(pipelineContext);
+    if (exitTransitionOutcome) return exitTransitionOutcome;
 
-    const renderOutcome = await this.runRender(phaseContext);
-    if (renderOutcome) return renderOutcome;
+    const viewCommitOutcome = await this.runRender(pipelineContext);
+    if (viewCommitOutcome) return viewCommitOutcome;
 
-    return this.runEnterTransition(phaseContext);
+    return this.runEnterTransition(pipelineContext);
   }
 
-  private async runInOut(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    const renderOutcome = await this.runRender(phaseContext);
-    if (renderOutcome) return renderOutcome;
+  private async runInOut(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    const viewCommitOutcome = await this.runRender(pipelineContext);
+    if (viewCommitOutcome) return viewCommitOutcome;
 
-    const transitionIn = await this.runEnterTransition(phaseContext);
-    if (transitionIn) return transitionIn;
+    const enterTransitionOutcome = await this.runEnterTransition(pipelineContext);
+    if (enterTransitionOutcome) return enterTransitionOutcome;
 
-    return this.runExitTransition(phaseContext);
+    return this.runExitTransition(pipelineContext);
   }
 
-  private async runParallel(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    const renderOutcome = await this.runRender(phaseContext);
-    if (renderOutcome) return renderOutcome;
+  private async runParallel(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    const viewCommitOutcome = await this.runRender(pipelineContext);
+    if (viewCommitOutcome) return viewCommitOutcome;
 
-    const [transitionOut, transitionIn] = await Promise.all([
-      this.runExitTransition(phaseContext),
-      this.runEnterTransition(phaseContext),
+    const [exitTransitionOutcome, enterTransitionOutcome] = await Promise.all([
+      this.runExitTransition(pipelineContext),
+      this.runEnterTransition(pipelineContext),
     ]);
 
-    return transitionOut ?? transitionIn ?? null;
+    return exitTransitionOutcome ?? enterTransitionOutcome ?? null;
   }
 
-  private async runExitTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of phaseContext.transaction.plan.exitRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('transitionOut', routeInfo, phaseContext);
+  /** `transition-out` hooks on the deactivate branch. */
+  private async runExitTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    for (const matchedRoute of pipelineContext.transaction.plan.exitRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext('transitionOut', matchedRoute, pipelineContext);
 
       try {
         route.onTransitionOut(lifecycleContext);
         if (route.transitionOut?.length) {
-          const result = await RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive);
-          this.warnIgnoredTerminalResult('transitionOut', result);
+          const hookResult = await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
+          this.warnIgnoredTerminalResult('transitionOut', hookResult);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'transitionOut');
+        return this.failWithError(matchedRoute, error, pipelineContext, 'transitionOut');
       }
     }
 
     return null;
   }
 
-  private async runEnterTransition(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('transitionIn', routeInfo, phaseContext);
+  /** `transition-in` hooks on the activate branch. */
+  private async runEnterTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext('transitionIn', matchedRoute, pipelineContext);
 
       try {
         route.onTransitionIn(lifecycleContext);
         if (route.transitionIn?.length) {
-          const result = await RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive);
-          this.warnIgnoredTerminalResult('transitionIn', result);
+          const hookResult = await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
+          this.warnIgnoredTerminalResult('transitionIn', hookResult);
         }
       } catch (error) {
-        return this.failWithError(routeInfo, error, phaseContext, 'transitionIn');
+        return this.failWithError(matchedRoute, error, pipelineContext, 'transitionIn');
       }
     }
 
     return null;
   }
 
-  /** View commit: `route.render()` для activate-ветки (не history commit). */
-  private async runRender(phaseContext: PhaseContext): Promise<PhaseOutcome> {
-    for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
+  /** View commit: {@link RouteHookRunner.runViewCommit} for each activate-branch route. */
+  private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
       try {
-        const viewCommit = await RouteHookRunner.runViewCommit(routeInfo, phaseContext.job);
+        const viewCommit = await RouteHookRunner.runViewCommit(matchedRoute, pipelineContext.job);
 
-        if (viewCommit === 'aborted' || !phaseContext.isJobActive()) {
+        if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
           return { status: 'cancelled' };
         }
       } catch (error) {
-        await this.runExitCleanup(phaseContext);
-        return this.failWithError(routeInfo, error, phaseContext, 'render');
+        await this.runExitCleanup(pipelineContext);
+        return this.failWithError(matchedRoute, error, pipelineContext, 'render');
       }
     }
 
     return null;
   }
 
-  /** Скрывает deactivate-ветку после успешного render или render-error. */
-  private async runExitCleanup(phaseContext: PhaseContext): Promise<void> {
-    for (const routeInfo of phaseContext.transaction.plan.exitRoutes) {
-      const { route } = routeInfo;
-      const lifecycleContext = toLifecycleContext('left', routeInfo, phaseContext);
+  /** `left` lifecycle on deactivate branch after view commit or render error. */
+  private async runExitCleanup(pipelineContext: PipelineContext): Promise<void> {
+    for (const matchedRoute of pipelineContext.transaction.plan.exitRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext('left', matchedRoute, pipelineContext);
 
       route.onLeft(lifecycleContext);
       if (route.left?.length) {
-        const result = await this.runPhaseSafe(lifecycleContext, phaseContext);
-        this.warnIgnoredTerminalResult('left', result);
+        const hookResult = await this.runPostCommitHooks(lifecycleContext, pipelineContext);
+        this.warnIgnoredTerminalResult('left', hookResult);
       }
     }
   }
 
-  private async runBlockingPhase(
-    run: () => Promise<GuardResult>,
+  /**
+   * Maps blocking hook result to a terminal {@link TransactionResult}, or `false` to continue.
+   * @param runHooks - typically {@link RouteHookRunner.runLifecycleHooks}
+   */
+  private async evaluateGuardResult(
+    runHooks: () => Promise<GuardResult>,
   ): Promise<TransactionResult | false> {
-    const result = await run();
-    if (result === false) return { status: 'cancelled' };
-    return this.applyRedirect(result);
+    const hookResult = await runHooks();
+    if (hookResult === false) return { status: 'cancelled' };
+    return this.toRedirectResult(hookResult);
   }
 
-  private applyRedirect(result: GuardResult): RedirectResult | false {
-    if (typeof result === 'string') {
-      return { status: 'redirect', url: result };
+  /** Extracts redirect from {@link GuardResult}; returns `false` when navigation should continue. */
+  private toRedirectResult(hookResult: GuardResult): RedirectResult | false {
+    if (typeof hookResult === 'string') {
+      return { status: 'redirect', url: hookResult };
     }
 
-    if (result && typeof result === 'object' && 'url' in result) {
+    if (hookResult && typeof hookResult === 'object' && 'url' in hookResult) {
       return {
         status: 'redirect',
-        url: result.url,
-        ...(result.replace !== undefined && { replace: result.replace }),
+        url: hookResult.url,
+        ...(hookResult.replace !== undefined && { replace: hookResult.replace }),
       };
     }
 
     return false;
   }
 
-  /** После view commit: cancel/redirect не меняют траекторию навигации (NAVIGATION_TRANSACTION_MODEL). */
-  private warnIgnoredTerminalResult(phase: RoutePhase, result: GuardResult): void {
-    if (result === false) {
-      console.warn(`[${phase}] hook returned false after view commit — ignored`);
+  /** After view commit: cancel/redirect from hooks are logged and ignored (NAVIGATION_TRANSACTION_MODEL). */
+  private warnIgnoredTerminalResult(lifecyclePhase: RoutePhase, hookResult: GuardResult): void {
+    if (hookResult === false) {
+      console.warn(`[${lifecyclePhase}] hook returned false after view commit — ignored`);
       return;
     }
 
-    const redirect = this.applyRedirect(result);
+    const redirect = this.toRedirectResult(hookResult);
     if (redirect) {
-      console.warn(`[${phase}] hook returned redirect after view commit — ignored: ${redirect.url}`);
+      console.warn(`[${lifecyclePhase}] hook returned redirect after view commit — ignored: ${redirect.url}`);
     }
   }
 
   private async failWithError(
-    routeInfo: MatchedRouteInfo,
+    matchedRoute: MatchedRouteInfo,
     error: unknown,
-    phaseContext: PhaseContext,
-    failedPhase: NavigationErrorPhase,
+    pipelineContext: PipelineContext,
+    failedAt: NavigationErrorPhase,
   ): Promise<Extract<TransactionResult, { status: 'error' }>> {
-    const errorContext = toLifecycleContext('error', routeInfo, phaseContext, error);
-    routeInfo.route.onError({ ...errorContext, error });
+    const errorContext = toLifecycleContext('error', matchedRoute, pipelineContext, error);
+    matchedRoute.route.onError({ ...errorContext, error });
 
-    if (routeInfo.route.error?.length) {
+    if (matchedRoute.route.error?.length) {
       try {
-        await RouteHookRunner.runLifecycleHooks(errorContext, phaseContext.isJobActive);
+        await RouteHookRunner.runLifecycleHooks(errorContext, pipelineContext.isJobActive);
       } catch (hookError) {
         console.error(hookError);
       }
@@ -321,17 +331,18 @@ export class ProcessorPipeline {
     return {
       status: 'error',
       error,
-      phase: failedPhase,
-      committed: failedPhase === 'render',
+      phase: failedAt,
+      committed: failedAt === 'render',
     };
   }
 
-  private async runPhaseSafe(
+  /** Runs post-commit hooks; hook errors are logged and do not fail the transaction. */
+  private async runPostCommitHooks(
     lifecycleContext: RouteLifecycleContext,
-    phaseContext: PhaseContext,
+    pipelineContext: PipelineContext,
   ): Promise<GuardResult> {
     try {
-      return await RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive);
+      return await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
     } catch (error) {
       console.error(`[${lifecycleContext.phase}] hook failed after view commit:`, error);
       return undefined;
@@ -339,29 +350,36 @@ export class ProcessorPipeline {
   }
 }
 
-function toRouteInfo(m: MatchedRouteInfo): RouteInfo {
+/** {@link RouteInfo} slice for hook ctx (`to` / `from`). */
+function toRouteInfo(matchedRoute: MatchedRouteInfo): RouteInfo {
   return {
-    path: m.pathname,
-    ...(m.params && { params: m.params }),
-    ...(m.query && { query: m.query }),
+    path: matchedRoute.pathname,
+    ...(matchedRoute.params && { params: matchedRoute.params }),
+    ...(matchedRoute.query && { query: matchedRoute.query }),
   };
 }
 
+/**
+ * Builds {@link RouteLifecycleContext} for a route on the current branch.
+ * @param lifecyclePhase - `ctx.phase` passed to hooks (`leave`, `enter`, `load`, …)
+ * @param matchedRoute - route instance on the exit or enter branch
+ * @param pipelineContext - active navigation run
+ */
 export function toLifecycleContext(
-  phase: RoutePhase,
-  routeInfo: MatchedRouteInfo,
-  phaseContext: PhaseContext,
+  lifecyclePhase: RoutePhase,
+  matchedRoute: MatchedRouteInfo,
+  pipelineContext: PipelineContext,
   error?: unknown,
 ): RouteLifecycleContext {
   return {
-    phase,
-    from: phaseContext.transaction.from ? toRouteInfo(phaseContext.transaction.from) : null,
-    to: toRouteInfo(routeInfo),
-    router: phaseContext.router,
-    route: routeInfo.route,
-    action: phaseContext.transaction.action,
-    jobId: phaseContext.job.id,
-    signal: phaseContext.job.signal,
+    phase: lifecyclePhase,
+    from: pipelineContext.transaction.from ? toRouteInfo(pipelineContext.transaction.from) : null,
+    to: toRouteInfo(matchedRoute),
+    router: pipelineContext.router,
+    route: matchedRoute.route,
+    action: pipelineContext.transaction.action,
+    jobId: pipelineContext.job.id,
+    signal: pipelineContext.job.signal,
     ...(error !== undefined && { error }),
   };
 }

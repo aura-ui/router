@@ -36,7 +36,7 @@ export class AuraRoutingProcessor {
 
     const job = this.jobManager.begin();
     const generation = this.jobManager.routerGeneration;
-    const phaseContext = {
+    const pipelineContext = {
       transaction,
       job,
       router: input.router,
@@ -44,20 +44,20 @@ export class AuraRoutingProcessor {
     };
 
     if (transaction.plan.reenter) {
-      const early = await this.pipeline.runReenter(phaseContext);
-      return early ?? { status: 'committed' };
+      const reenterOutcome = await this.pipeline.runReenter(pipelineContext);
+      return reenterOutcome ?? { status: 'committed' };
     }
 
     const steps = [
-      () => this.pipeline.runGuards(phaseContext),
-      () => this.pipeline.runLoads(phaseContext),
-      () => this.pipeline.runRenderWithTransition(phaseContext),
-      () => this.pipeline.runAfterRender(phaseContext),
+      () => this.pipeline.runGuards(pipelineContext),
+      () => this.pipeline.runLoads(pipelineContext),
+      () => this.pipeline.runRenderWithTransition(pipelineContext),
+      () => this.pipeline.runAfterRender(pipelineContext),
     ] as const;
 
     for (const step of steps) {
-      const result = await step();
-      if (result) return result;
+      const stepOutcome = await step();
+      if (stepOutcome) return stepOutcome;
     }
 
     return { status: 'committed' };

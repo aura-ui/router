@@ -1,6 +1,8 @@
-import { AuraRoutingEngine } from '../core/aura-routing-engine';
-import type { AuraRoutingProcessor } from '../core/processor/processor';
-import { FakeHistoryProvider } from '../core/history/fake-provider';
+import {
+  AuraRoutingEngine,
+  FakeHistoryProvider,
+  type AuraRoutingProcessor,
+} from '../core';
 import { createDomRoute, collectRoutesFromDom } from './helpers/test-route-dom';
 import type { RouterInstance } from '../../aura-route-hooks/core/types';
 

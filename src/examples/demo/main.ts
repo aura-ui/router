@@ -13,6 +13,7 @@ AuraRouter.use(analyticsHook);
 
 AURARoute.registerLoader('custom-loader', CustomLoader);
 
+
+customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);
 customElements.define(AURARoute.is, AURARoute);
 customElements.define(AuraRouter.is, AuraRouter);
-customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);

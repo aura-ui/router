@@ -4,7 +4,7 @@ import type {
   RouteLifecycleContext,
 } from './types';
 import { ROUTER_VERSION, satisfies } from './version';
-import type { RedirectTarget } from '../../aura-routing-engine/core/guard.types';
+import type { RedirectTarget } from '../../aura-routing-engine/core';
 
 interface StoredHook {
   fn: RouteHookDefinition['fn'];

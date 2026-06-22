@@ -23,10 +23,6 @@ import {
 } from './history';
 import type { NavigationErrorDetail } from './processor/navigation-error.types';
 
-export type { NavigationErrorDetail, NavigationErrorPhase } from './processor/navigation-error.types';
-export type { MatchedRouteInfo };
-export type { HistoryAction, NavigateHistoryOptions } from './history';
-
 /** Engine fallback when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (url: string) => void;
 

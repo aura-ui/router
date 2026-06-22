@@ -20,6 +20,7 @@ export type {
 export { AuraRoutingEngine } from './core/aura-routing-engine';
 
 export { AuraRoutingProcessor } from './core/processor/processor';
+export type { ProcessorRunInput } from './core/processor/processor';
 
 export type { NavigationErrorDetail, NavigationErrorPhase } from './core/processor/navigation-error.types';
 

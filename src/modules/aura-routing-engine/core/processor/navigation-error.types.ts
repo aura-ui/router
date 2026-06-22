@@ -17,5 +17,6 @@ export interface NavigationErrorDetail {
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;
   phase: NavigationErrorPhase;
-  committed: boolean;
+  /** True when the error occurred after view commit (`runRender`). */
+  viewCommitted: boolean;
 }

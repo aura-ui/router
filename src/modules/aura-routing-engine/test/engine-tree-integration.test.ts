@@ -8,7 +8,7 @@ import type { RouterInstance } from '../../aura-route-hooks/core/types';
 
 function createMockProcessor() {
   return {
-    run: jest.fn().mockResolvedValue({ status: 'committed' }),
+    run: jest.fn().mockResolvedValue({ status: 'viewCommitted' }),
     stop: jest.fn(),
   } as unknown as AuraRoutingProcessor;
 }

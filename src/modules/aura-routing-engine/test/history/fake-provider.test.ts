@@ -118,7 +118,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
         error: renderError,
         url: '/d',
         phase: 'render',
-        committed: true,
+        viewCommitted: true,
       }),
     );
   });
@@ -153,7 +153,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
         error: enterError,
         url: '/d',
         phase: 'enter',
-        committed: false,
+        viewCommitted: false,
       }),
     );
   });

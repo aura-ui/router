@@ -110,7 +110,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           }
         },
         onNavigationError: (detail) => {
-          if (detail.committed) {
+          if (detail.viewCommitted) {
             this.notFound.hide();
           }
           dispatchCustomEvent(this, AURA_ROUTER_NAVIGATION_ERROR, {
@@ -121,7 +121,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
               from: detail.from?.pathname ?? null,
               to: detail.to.pathname,
               phase: detail.phase,
-              committed: detail.committed,
+              viewCommitted: detail.viewCommitted,
             } satisfies AuraRouterNavigationErrorEventDetail,
           });
         },

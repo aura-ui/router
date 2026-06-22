@@ -2,17 +2,16 @@ import { buildTransitionPlan } from '../transition/plan';
 import {
   ProcessorPipeline,
   type NavigationTransaction,
+  type ProcessorRunInput,
   type TransactionResult,
 } from './processor-pipeline';
-import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { HistoryAction } from '../history/provider.types';
-import type { RouterInstance } from '../../../aura-route-hooks/core';
 import { AuraRoutingProcessorJobManager } from './job-manager';
 import {
   DEFAULT_TRANSITION_POLICY,
   type TransitionPolicy,
 } from '../transition/policy';
 
+export type { ProcessorRunInput };
 export class AuraRoutingProcessor {
   private readonly jobManager = new AuraRoutingProcessorJobManager();
   private readonly pipeline = new ProcessorPipeline();
@@ -22,12 +21,7 @@ export class AuraRoutingProcessor {
     this.transitionPolicy = transitionPolicy;
   }
 
-  async run(input: {
-    from: MatchedRouteInfo | null;
-    to: MatchedRouteInfo;
-    action: HistoryAction;
-    router: RouterInstance;
-  }): Promise<TransactionResult> {
+  async run(input: ProcessorRunInput): Promise<TransactionResult> {
     const transaction: NavigationTransaction = {
       ...input,
       plan: buildTransitionPlan(input.from, input.to),
@@ -45,7 +39,7 @@ export class AuraRoutingProcessor {
     });
   }
 
-  stop(): void {
+  invalidate(): void {
     this.jobManager.invalidate();
   }
 }

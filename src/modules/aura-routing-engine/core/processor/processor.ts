@@ -36,31 +36,13 @@ export class AuraRoutingProcessor {
 
     const job = this.jobManager.begin();
     const generation = this.jobManager.routerGeneration;
-    const pipelineContext = {
+
+    return this.pipeline.run({
       transaction,
       job,
       router: input.router,
       isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
-    };
-
-    if (transaction.plan.reenter) {
-      const reenterOutcome = await this.pipeline.runReenter(pipelineContext);
-      return reenterOutcome ?? { status: 'committed' };
-    }
-
-    const steps = [
-      () => this.pipeline.runGuards(pipelineContext),
-      () => this.pipeline.runLoads(pipelineContext),
-      () => this.pipeline.runRenderWithTransition(pipelineContext),
-      () => this.pipeline.runAfterRender(pipelineContext),
-    ] as const;
-
-    for (const step of steps) {
-      const stepOutcome = await step();
-      if (stepOutcome) return stepOutcome;
-    }
-
-    return { status: 'committed' };
+    });
   }
 
   stop(): void {

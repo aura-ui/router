@@ -53,7 +53,7 @@ export class ProcessorPipeline {
         route.onReenter(lifecycleContext);
 
         if (route.reenter?.length) {
-          const result = await RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive);
+          const result = await RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive);
           this.warnIgnoredTerminalResult('reenter', result);
         }
       } catch (error) {
@@ -75,7 +75,7 @@ export class ProcessorPipeline {
         route.onLeave(lifecycleContext);
         if (route.leave?.length) {
           const blocked = await this.runBlockingPhase(
-            () => RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive),
+            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive),
           );
           if (blocked) return blocked;
         }
@@ -92,7 +92,7 @@ export class ProcessorPipeline {
         route.onEnter(lifecycleContext);
         if (route.enter?.length) {
           const outcome = await this.runBlockingPhase(
-            () => RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive),
+            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive),
           );
           if (outcome) return outcome;
         }
@@ -113,7 +113,7 @@ export class ProcessorPipeline {
         route.onLoad(lifecycleContext);
         if (route.load?.length) {
           const outcome = await this.runBlockingPhase(
-            () => RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive),
+            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive),
           );
           if (outcome) return outcome;
         }
@@ -202,7 +202,7 @@ export class ProcessorPipeline {
       try {
         route.onTransitionOut(lifecycleContext);
         if (route.transitionOut?.length) {
-          const result = await RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive);
+          const result = await RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive);
           this.warnIgnoredTerminalResult('transitionOut', result);
         }
       } catch (error) {
@@ -221,7 +221,7 @@ export class ProcessorPipeline {
       try {
         route.onTransitionIn(lifecycleContext);
         if (route.transitionIn?.length) {
-          const result = await RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive);
+          const result = await RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive);
           this.warnIgnoredTerminalResult('transitionIn', result);
         }
       } catch (error) {
@@ -236,9 +236,9 @@ export class ProcessorPipeline {
   private async runRender(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
       try {
-        const response = await RouteHookRunner.runRenderPhase(routeInfo, phaseContext.job);
+        const viewCommit = await RouteHookRunner.runViewCommit(routeInfo, phaseContext.job);
 
-        if (response === 'aborted' || !phaseContext.isJobActive()) {
+        if (viewCommit === 'aborted' || !phaseContext.isJobActive()) {
           return { status: 'cancelled' };
         }
       } catch (error) {
@@ -312,7 +312,7 @@ export class ProcessorPipeline {
 
     if (routeInfo.route.error?.length) {
       try {
-        await RouteHookRunner.runPhase(errorContext, phaseContext.isJobActive);
+        await RouteHookRunner.runLifecycleHooks(errorContext, phaseContext.isJobActive);
       } catch (hookError) {
         console.error(hookError);
       }
@@ -331,7 +331,7 @@ export class ProcessorPipeline {
     phaseContext: PhaseContext,
   ): Promise<GuardResult> {
     try {
-      return await RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive);
+      return await RouteHookRunner.runLifecycleHooks(lifecycleContext, phaseContext.isJobActive);
     } catch (error) {
       console.error(`[${lifecycleContext.phase}] hook failed after view commit:`, error);
       return undefined;

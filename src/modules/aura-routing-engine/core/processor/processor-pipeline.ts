@@ -39,6 +39,8 @@ export type TransactionResult =
 /** Pipeline step result: terminal {@link TransactionResult}, or `null` to continue. */
 type PipelineOutcome = TransactionResult | null;
 
+type PipelineStep = (pipelineContext: PipelineContext) => Promise<PipelineOutcome>;
+
 type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 
 /**
@@ -48,6 +50,33 @@ type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
  * View commit (`runRender`) is not a lifecycle hook; history commit happens after the processor succeeds.
  */
 export class ProcessorPipeline {
+  private readonly steps: PipelineStep[] = [
+    (ctx) => this.runGuards(ctx),
+    (ctx) => this.runLoads(ctx),
+    (ctx) => this.runRenderWithTransition(ctx),
+    (ctx) => this.runAfterRender(ctx),
+  ];
+
+  /**
+   * Runs the full navigation transaction pipeline.
+   * @param pipelineContext - transaction, job, and stale-job guard (built by {@link AuraRoutingProcessor})
+   */
+  async run(pipelineContext: PipelineContext): Promise<TransactionResult> {
+    const { transaction } = pipelineContext;
+
+    if (transaction.plan.reenter) {
+      const reenterOutcome = await this.runReenter(pipelineContext);
+      return reenterOutcome ?? { status: 'committed' };
+    }
+
+    for (const step of this.steps) {
+      const stepOutcome = await step(pipelineContext);
+      if (stepOutcome) return stepOutcome;
+    }
+
+    return { status: 'committed' };
+  }
+
   /** Shortcut path when only query/params change on the same route (`reenter`). */
   async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(LIFECYCLE_STEPS.reenter, pipelineContext);

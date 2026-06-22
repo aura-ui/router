@@ -12,50 +12,57 @@ import {
   type LifecycleStepDef,
 } from './lifecycle-step';
 
-/** Input for a single navigation run: matched routes, history action, and transition plan. */
-export interface NavigationTransaction {
+/** Arguments for {@link AuraRoutingProcessor.run} (plan and policy are added by the processor). */
+export interface ProcessorRunInput {
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;
   action: HistoryAction;
+  router: RouterInstance;
+}
+
+/** Enriched navigation run: {@link ProcessorRunInput} + transition plan and policy. */
+export interface NavigationTransaction extends ProcessorRunInput {
   plan: TransitionMap;
   transitionPolicy: TransitionPolicy;
 }
 
-/** Shared ctx for all {@link ProcessorPipeline} steps (transaction, job, router). */
+/** Shared ctx for all {@link ProcessorPipeline} steps. */
 export interface PipelineContext {
   transaction: NavigationTransaction;
   job: AuraRoutingProcessorJob;
   router: RouterInstance;
+  /** False when the navigation job was superseded or the router was torn down. */
   isJobActive: () => boolean;
 }
 
-/** Terminal processor outcome returned to {@link AuraRoutingProcessor}. */
+/**
+ * Terminal processor outcome returned to {@link AuraRoutingProcessor}.
+ *
+ * `viewCommitted` means view/render succeeded — history URL commit is done by {@link AuraRoutingEngine} after this.
+ */
 export type TransactionResult =
-  | { status: 'committed' }
+  | { status: 'viewCommitted' }
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
-  | { status: 'error'; error: unknown; phase: NavigationErrorPhase; committed: boolean };
+  | { status: 'error'; error: unknown; phase: NavigationErrorPhase; viewCommitted: boolean };
 
 /** Pipeline step result: terminal {@link TransactionResult}, or `null` to continue. */
 type PipelineOutcome = TransactionResult | null;
 
+/** Async sub-step; returns terminal outcome or `null` to continue the sequence. */
 type PipelineStep = (pipelineContext: PipelineContext) => Promise<PipelineOutcome>;
 
+/** Redirect branch of {@link TransactionResult}. */
 type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 
 /**
  * Navigation transaction pipeline inside {@link AuraRoutingProcessor}.
  *
- * Orchestrates route lifecycle phases from guards through view commit to post-render cleanup.
- * View commit (`runRender`) is not a lifecycle hook; history commit happens after the processor succeeds.
- *
- * ## Main flow
- *
  * ```mermaid
  * flowchart TD
  *   START([run]) --> REENTER{plan.reenter?}
  *   REENTER -->|yes| RENTER[runReenter]
- *   RENTER --> DONE([committed / terminal])
+ *   RENTER --> DONE([viewCommitted / terminal])
  *   REENTER -->|no| GUARDS[runGuards]
  *   GUARDS --> LOADS[runLoads]
  *   LOADS --> RENDER_TX[runRenderWithTransition]
@@ -74,9 +81,9 @@ type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
  *   LEFT --> ENTERED[entered · enterRoutes]
  * ```
  *
- * Terminal outcomes (`cancelled`, `redirect`, `error`) short-circuit the pipeline at the step that produced them.
+ * View commit (`runRender`) is not a lifecycle hook; URL commit happens after the processor succeeds.
  * Blocking hooks (`leave`, `enter`, `load`) may cancel or redirect before view commit.
- * Post-commit hooks (`transitionOut`, `transitionIn`, `left`, `entered`) log cancel/redirect and continue.
+ * Post-commit hooks log cancel/redirect and continue.
  */
 export class ProcessorPipeline {
   private readonly steps: PipelineStep[] = [
@@ -88,21 +95,21 @@ export class ProcessorPipeline {
 
   /**
    * Runs the full navigation transaction pipeline.
-   * @param pipelineContext - transaction, job, and stale-job guard (built by {@link AuraRoutingProcessor})
+   * @param pipelineContext - transaction, job, and stale-job guard from {@link AuraRoutingProcessor}
    */
   async run(pipelineContext: PipelineContext): Promise<TransactionResult> {
     const { transaction } = pipelineContext;
 
     if (transaction.plan.reenter) {
       const reenterOutcome = await this.runReenter(pipelineContext);
-      return reenterOutcome ?? { status: 'committed' };
+      return reenterOutcome ?? { status: 'viewCommitted' };
     }
 
     const outcome = await this.runUntilTerminal(this.steps, pipelineContext);
-    return outcome ?? { status: 'committed' };
+    return outcome ?? { status: 'viewCommitted' };
   }
 
-  /** Shortcut path when only query/params change on the same route (`reenter`). */
+  /** Reenter shortcut when only query/params change on the same route. */
   async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(LIFECYCLE_STEPS.reenter, pipelineContext);
   }
@@ -124,11 +131,11 @@ export class ProcessorPipeline {
   }
 
   /**
-   * View commit plus `transition-out` / `transition-in` ordered by {@link TransitionPolicy}.
+   * View commit plus transitions ordered by {@link TransitionPolicy}.
    *
-   * out-in: transition-out → render → transition-in
-   * in-out: render → transition-in → transition-out
-   * parallel: render → transition-out ‖ transition-in
+   * out-in: transitionOut → render → transitionIn
+   * in-out: render → transitionIn → transitionOut
+   * parallel: render → transitionOut ‖ transitionIn
    */
   async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     const { transitionPolicy } = pipelineContext.transaction;
@@ -153,7 +160,7 @@ export class ProcessorPipeline {
     return this.runUntilTerminal(sequentialSteps[transitionPolicy], pipelineContext);
   }
 
-  /** parallel: render → transition-out ‖ transition-in */
+  /** Parallel policy: render, then transitionOut and transitionIn concurrently. */
   private async runParallelRenderWithTransition(
     pipelineContext: PipelineContext,
   ): Promise<PipelineOutcome> {
@@ -168,21 +175,26 @@ export class ProcessorPipeline {
     return firstTerminalOutcome(exitTransitionOutcome, enterTransitionOutcome);
   }
 
-  /** Post-commit effects on activate branch: `entered` (after `left` cleanup on exit branch). */
+  /** Post-commit: `left` on exit branch, then `entered` on activate branch. */
   async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     await this.runExitCleanup(pipelineContext);
     return this.runLifecycleStep(LIFECYCLE_STEPS.entered, pipelineContext);
   }
 
+  /** `transitionOut` on exit branch. */
   private async runExitTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(LIFECYCLE_STEPS.transitionOut, pipelineContext);
   }
 
+  /** `transitionIn` on activate branch. */
   private async runEnterTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(LIFECYCLE_STEPS.transitionIn, pipelineContext);
   }
 
-  /** View commit: {@link RouteHookRunner.runViewCommit} for each activate-branch route. */
+  /**
+   * View commit via {@link RouteHookRunner.runViewCommit} for each activate-branch route.
+   * On render error runs exit cleanup (`left`) before returning `{ status: 'error' }`.
+   */
   private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
       try {
@@ -200,14 +212,14 @@ export class ProcessorPipeline {
     return null;
   }
 
-  /** `left` lifecycle on deactivate branch after view commit or render error. */
+  /** `left` on exit branch after view commit or render error. */
   private async runExitCleanup(pipelineContext: PipelineContext): Promise<void> {
     await this.runLifecycleStep(LIFECYCLE_STEPS.left, pipelineContext);
   }
 
   /**
-   * Runs steps in order; stops at the first terminal {@link PipelineOutcome}.
-   * @param steps - sub-steps within a pipeline or transition-policy sequence
+   * Runs sub-steps in order; stops at the first terminal outcome.
+   * @param steps - guards sequence, transition-policy sequence, etc.
    */
   private async runUntilTerminal(
     steps: PipelineStep[],
@@ -222,7 +234,7 @@ export class ProcessorPipeline {
   }
 
   /**
-   * Runs a {@link LifecycleStepDef} over the plan branch (exit or enter routes).
+   * Runs one {@link LifecycleStepDef} over `exitRoutes` or `enterRoutes`.
    * @param step - row from {@link LIFECYCLE_STEPS}
    */
   private async runLifecycleStep(
@@ -239,7 +251,7 @@ export class ProcessorPipeline {
     return null;
   }
 
-  /** Runs lifecycle callback and hooks for a single route on the step's branch. */
+  /** One route: lifecycle callback, then blocking or post-commit hooks. */
   private async runLifecycleStepForRoute(
     step: LifecycleStepDef,
     matchedRoute: MatchedRouteInfo,
@@ -263,7 +275,10 @@ export class ProcessorPipeline {
     }
   }
 
-  /** Blocking hooks: cancel/redirect ends the transaction; otherwise continue to the next route. */
+  /**
+   * Blocking hooks (`leave`, `enter`, `load`): `false` cancels, redirect URL stops navigation.
+   * {@link RouteHookRunner.runLifecycleHooks} on stale job also yields cancel.
+   */
   private async runBlockingHooks(
     lifecycleContext: RouteLifecycleContext,
     pipelineContext: PipelineContext,
@@ -279,7 +294,10 @@ export class ProcessorPipeline {
     return redirect || null;
   }
 
-  /** Post-commit hooks: terminal results are logged and ignored. */
+  /**
+   * Post-commit hooks: runs hooks and logs ignored cancel/redirect.
+   * Steps with `hookErrors: 'log'` swallow hook throws.
+   */
   private async runPostCommitHooksWithWarnings(
     step: LifecycleStepDef,
     lifecycleContext: RouteLifecycleContext,
@@ -294,7 +312,7 @@ export class ProcessorPipeline {
     return null;
   }
 
-  /** Extracts redirect from {@link GuardResult}; returns `false` when navigation should continue. */
+  /** Maps {@link GuardResult} to redirect outcome; `false` means continue. */
   private toRedirectResult(hookResult: GuardResult): RedirectResult | false {
     if (typeof hookResult === 'string') {
       return { status: 'redirect', url: hookResult };
@@ -311,7 +329,7 @@ export class ProcessorPipeline {
     return false;
   }
 
-  /** After view commit: cancel/redirect from hooks are logged and ignored (NAVIGATION_TRANSACTION_MODEL). */
+  /** Logs cancel/redirect from post-commit hooks; navigation already committed. */
   private warnIgnoredTerminalResult(lifecyclePhase: RoutePhase, hookResult: GuardResult): void {
     if (hookResult === false) {
       console.warn(`[${lifecyclePhase}] hook returned false after view commit — ignored`);
@@ -324,6 +342,10 @@ export class ProcessorPipeline {
     }
   }
 
+  /**
+   * Invokes `route.onError` and `error` hooks; returns `{ status: 'error' }`.
+   * `viewCommitted` is true when failure happened during view commit.
+   */
   private async failWithError(
     matchedRoute: MatchedRouteInfo,
     error: unknown,
@@ -345,11 +367,11 @@ export class ProcessorPipeline {
       status: 'error',
       error,
       phase: failedAt,
-      committed: failedAt === 'render',
+      viewCommitted: failedAt === 'render',
     };
   }
 
-  /** Runs post-commit hooks; hook errors are logged and do not fail the transaction. */
+  /** Post-commit hooks with `hookErrors: 'log'`; errors are logged, not propagated. */
   private async runPostCommitHooks(
     lifecycleContext: RouteLifecycleContext,
     pipelineContext: PipelineContext,
@@ -363,7 +385,7 @@ export class ProcessorPipeline {
   }
 }
 
-/** Returns the first terminal pipeline outcome, or `null` when all are non-terminal. */
+/** First non-null terminal outcome among parallel sub-step results. */
 function firstTerminalOutcome(...outcomes: PipelineOutcome[]): PipelineOutcome {
   for (const outcome of outcomes) {
     if (outcome) return outcome;
@@ -383,9 +405,10 @@ function toRouteInfo(matchedRoute: MatchedRouteInfo): RouteInfo {
 
 /**
  * Builds {@link RouteLifecycleContext} for a route on the current branch.
- * @param lifecyclePhase - `ctx.phase` passed to hooks (`leave`, `enter`, `load`, …)
- * @param matchedRoute - route instance on the exit or enter branch
+ * @param lifecyclePhase - `ctx.phase` for hooks (`leave`, `enter`, `load`, …)
+ * @param matchedRoute - matched route on exit or enter branch
  * @param pipelineContext - active navigation run
+ * @param error - set for `error` phase callbacks
  */
 export function toLifecycleContext(
   lifecyclePhase: RoutePhase,

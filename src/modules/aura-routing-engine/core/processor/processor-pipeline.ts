@@ -46,8 +46,37 @@ type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 /**
  * Navigation transaction pipeline inside {@link AuraRoutingProcessor}.
  *
- * Steps: `runGuards` → `runLoads` → `runRenderWithTransition` → `runAfterRender`.
+ * Orchestrates route lifecycle phases from guards through view commit to post-render cleanup.
  * View commit (`runRender`) is not a lifecycle hook; history commit happens after the processor succeeds.
+ *
+ * ## Main flow
+ *
+ * ```mermaid
+ * flowchart TD
+ *   START([run]) --> REENTER{plan.reenter?}
+ *   REENTER -->|yes| RENTER[runReenter]
+ *   RENTER --> DONE([committed / terminal])
+ *   REENTER -->|no| GUARDS[runGuards]
+ *   GUARDS --> LOADS[runLoads]
+ *   LOADS --> RENDER_TX[runRenderWithTransition]
+ *   RENDER_TX --> AFTER[runAfterRender]
+ *   AFTER --> DONE
+ *
+ *   GUARDS --> LEAVE[leave · exitRoutes]
+ *   LEAVE --> ENTER[enter · enterRoutes]
+ *
+ *   RENDER_TX --> POLICY{transitionPolicy}
+ *   POLICY -->|out-in| OUTIN["transitionOut → render → transitionIn"]
+ *   POLICY -->|in-out| INOUT["render → transitionIn → transitionOut"]
+ *   POLICY -->|parallel| PAR["render → transitionOut ‖ transitionIn"]
+ *
+ *   AFTER --> LEFT[left · exitRoutes]
+ *   LEFT --> ENTERED[entered · enterRoutes]
+ * ```
+ *
+ * Terminal outcomes (`cancelled`, `redirect`, `error`) short-circuit the pipeline at the step that produced them.
+ * Blocking hooks (`leave`, `enter`, `load`) may cancel or redirect before view commit.
+ * Post-commit hooks (`transitionOut`, `transitionIn`, `left`, `entered`) log cancel/redirect and continue.
  */
 export class ProcessorPipeline {
   private readonly steps: PipelineStep[] = [
@@ -80,10 +109,13 @@ export class ProcessorPipeline {
 
   /** Pre-commit guards: `leave` on exit branch, then `enter` on activate branch. */
   async runGuards(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    const leaveOutcome = await this.runLifecycleStep(LIFECYCLE_STEPS.leave, pipelineContext);
-    if (leaveOutcome) return leaveOutcome;
-
-    return this.runLifecycleStep(LIFECYCLE_STEPS.enter, pipelineContext);
+    return this.runUntilTerminal(
+      [
+        (ctx) => this.runLifecycleStep(LIFECYCLE_STEPS.leave, ctx),
+        (ctx) => this.runLifecycleStep(LIFECYCLE_STEPS.enter, ctx),
+      ],
+      pipelineContext,
+    );
   }
 
   /** Pre-commit data loading: `load` on activate branch. */
@@ -99,37 +131,41 @@ export class ProcessorPipeline {
    * parallel: render → transition-out ‖ transition-in
    */
   async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    switch (pipelineContext.transaction.transitionPolicy) {
-      case 'out-in':
-        return this.runUntilTerminal(
-          [
-            (ctx) => this.runExitTransition(ctx),
-            (ctx) => this.runRender(ctx),
-            (ctx) => this.runEnterTransition(ctx),
-          ],
-          pipelineContext,
-        );
-      case 'in-out':
-        return this.runUntilTerminal(
-          [
-            (ctx) => this.runRender(ctx),
-            (ctx) => this.runEnterTransition(ctx),
-            (ctx) => this.runExitTransition(ctx),
-          ],
-          pipelineContext,
-        );
-      case 'parallel': {
-        const viewCommitOutcome = await this.runRender(pipelineContext);
-        if (viewCommitOutcome) return viewCommitOutcome;
+    const { transitionPolicy } = pipelineContext.transaction;
 
-        const [exitTransitionOutcome, enterTransitionOutcome] = await Promise.all([
-          this.runExitTransition(pipelineContext),
-          this.runEnterTransition(pipelineContext),
-        ]);
-
-        return exitTransitionOutcome ?? enterTransitionOutcome ?? null;
-      }
+    if (transitionPolicy === 'parallel') {
+      return this.runParallelRenderWithTransition(pipelineContext);
     }
+
+    const sequentialSteps: Record<Exclude<TransitionPolicy, 'parallel'>, PipelineStep[]> = {
+      'out-in': [
+        (ctx) => this.runExitTransition(ctx),
+        (ctx) => this.runRender(ctx),
+        (ctx) => this.runEnterTransition(ctx),
+      ],
+      'in-out': [
+        (ctx) => this.runRender(ctx),
+        (ctx) => this.runEnterTransition(ctx),
+        (ctx) => this.runExitTransition(ctx),
+      ],
+    };
+
+    return this.runUntilTerminal(sequentialSteps[transitionPolicy], pipelineContext);
+  }
+
+  /** parallel: render → transition-out ‖ transition-in */
+  private async runParallelRenderWithTransition(
+    pipelineContext: PipelineContext,
+  ): Promise<PipelineOutcome> {
+    const viewCommitOutcome = await this.runRender(pipelineContext);
+    if (viewCommitOutcome) return viewCommitOutcome;
+
+    const [exitTransitionOutcome, enterTransitionOutcome] = await Promise.all([
+      this.runExitTransition(pipelineContext),
+      this.runEnterTransition(pipelineContext),
+    ]);
+
+    return firstTerminalOutcome(exitTransitionOutcome, enterTransitionOutcome);
   }
 
   /** Post-commit effects on activate branch: `entered` (after `left` cleanup on exit branch). */
@@ -196,48 +232,66 @@ export class ProcessorPipeline {
     const matchedRoutes = pipelineContext.transaction.plan[step.branch];
 
     for (const matchedRoute of matchedRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext(step.lifecyclePhase, matchedRoute, pipelineContext);
-
-      try {
-        step.onRoute(route, lifecycleContext);
-
-        const hookNames = route[step.lifecyclePhase];
-        if (!hookNames?.length) continue;
-
-        if (step.hooks.kind === 'blocking') {
-          const terminalResult = await this.evaluateGuardResult(
-            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive),
-          );
-          if (terminalResult) return terminalResult;
-          continue;
-        }
-
-        const hookResult =
-          step.hooks.hookErrors === 'log'
-            ? await this.runPostCommitHooks(lifecycleContext, pipelineContext)
-            : await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
-
-        this.warnIgnoredTerminalResult(step.lifecyclePhase, hookResult);
-      } catch (error) {
-        if (!step.failOnLifecycleError) throw error;
-        return this.failWithError(matchedRoute, error, pipelineContext, step.lifecyclePhase);
-      }
+      const outcome = await this.runLifecycleStepForRoute(step, matchedRoute, pipelineContext);
+      if (outcome) return outcome;
     }
 
     return null;
   }
 
-  /**
-   * Maps blocking hook result to a terminal {@link TransactionResult}, or `false` to continue.
-   * @param runHooks - typically {@link RouteHookRunner.runLifecycleHooks}
-   */
-  private async evaluateGuardResult(
-    runHooks: () => Promise<GuardResult>,
-  ): Promise<TransactionResult | false> {
-    const hookResult = await runHooks();
+  /** Runs lifecycle callback and hooks for a single route on the step's branch. */
+  private async runLifecycleStepForRoute(
+    step: LifecycleStepDef,
+    matchedRoute: MatchedRouteInfo,
+    pipelineContext: PipelineContext,
+  ): Promise<PipelineOutcome> {
+    const { route } = matchedRoute;
+    const lifecycleContext = toLifecycleContext(step.lifecyclePhase, matchedRoute, pipelineContext);
+
+    try {
+      step.onRoute(route, lifecycleContext);
+
+      const hookNames = route[step.lifecyclePhase];
+      if (!hookNames?.length) return null;
+
+      return step.hooks.kind === 'blocking'
+        ? this.runBlockingHooks(lifecycleContext, pipelineContext)
+        : this.runPostCommitHooksWithWarnings(step, lifecycleContext, pipelineContext);
+    } catch (error) {
+      if (!step.failOnLifecycleError) throw error;
+      return this.failWithError(matchedRoute, error, pipelineContext, step.lifecyclePhase);
+    }
+  }
+
+  /** Blocking hooks: cancel/redirect ends the transaction; otherwise continue to the next route. */
+  private async runBlockingHooks(
+    lifecycleContext: RouteLifecycleContext,
+    pipelineContext: PipelineContext,
+  ): Promise<PipelineOutcome> {
+    const hookResult = await RouteHookRunner.runLifecycleHooks(
+      lifecycleContext,
+      pipelineContext.isJobActive,
+    );
+
     if (hookResult === false) return { status: 'cancelled' };
-    return this.toRedirectResult(hookResult);
+
+    const redirect = this.toRedirectResult(hookResult);
+    return redirect || null;
+  }
+
+  /** Post-commit hooks: terminal results are logged and ignored. */
+  private async runPostCommitHooksWithWarnings(
+    step: LifecycleStepDef,
+    lifecycleContext: RouteLifecycleContext,
+    pipelineContext: PipelineContext,
+  ): Promise<PipelineOutcome> {
+    const hookResult =
+      step.hooks.kind === 'postCommit' && step.hooks.hookErrors === 'log'
+        ? await this.runPostCommitHooks(lifecycleContext, pipelineContext)
+        : await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
+
+    this.warnIgnoredTerminalResult(step.lifecyclePhase, hookResult);
+    return null;
   }
 
   /** Extracts redirect from {@link GuardResult}; returns `false` when navigation should continue. */
@@ -307,6 +361,15 @@ export class ProcessorPipeline {
       return undefined;
     }
   }
+}
+
+/** Returns the first terminal pipeline outcome, or `null` when all are non-terminal. */
+function firstTerminalOutcome(...outcomes: PipelineOutcome[]): PipelineOutcome {
+  for (const outcome of outcomes) {
+    if (outcome) return outcome;
+  }
+
+  return null;
 }
 
 /** {@link RouteInfo} slice for hook ctx (`to` / `from`). */

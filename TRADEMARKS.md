@@ -9,4 +9,4 @@ You may use the code under MIT terms, but you may not use the Aura UI name,
 logos, or branding in a way that implies endorsement, affiliation, or official status
 without prior written permission.
 
-For trademark usage requests, contact: aura.ui.kit@gmail.com
+For trademark usage requests, contact: contacts@aura-ui.dev

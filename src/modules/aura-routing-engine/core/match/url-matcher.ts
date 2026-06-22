@@ -1,11 +1,11 @@
-import type { AURARoute } from '../../aura-route/core/aura-route';
-import { parsePath, parseQuery } from '../../aura-utils/misc/url';
+import type { AURARoute } from '../../../aura-route/core/aura-route';
+import { parsePath, parseQuery } from '../../../aura-utils/misc/url';
 import {
   isGlobalCatchAllFullPath,
   isScopedCatchAllFullPath,
-} from './nodes-tree/resolve-full-path';
-import { attachNavigationChain } from './nodes-tree';
-import type { RouteNode } from './nodes-tree';
+} from '../route-tree/resolve-full-path';
+import { attachNavigationChain } from '../route-tree';
+import type { RouteNode } from '../route-tree';
 
 export interface MatchedRouteInfo {
   /** Resolved URL pathname, e.g. `/user/42`. */

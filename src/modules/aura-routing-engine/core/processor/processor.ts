@@ -1,17 +1,17 @@
-import { buildRoadMap } from './aura-routing-transition-map';
+import { buildTransitionPlan } from '../transition/plan';
 import {
   PhaseExecutor,
   type NavigationTransaction,
   type TransactionResult,
-} from './aura-routing-phase-executor';
-import type { MatchedRouteInfo } from './aura-routing-url-matcher';
-import type { HistoryAction } from './navigation-provider.types';
-import type { RouterInstance } from '../../aura-route-hooks/core';
-import { AuraRoutingProcessorJobManager } from './aura-routing-processor-job-manager';
+} from './phase-executor';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { HistoryAction } from '../history/provider.types';
+import type { RouterInstance } from '../../../aura-route-hooks/core';
+import { AuraRoutingProcessorJobManager } from './job-manager';
 import {
   DEFAULT_TRANSITION_POLICY,
   type TransitionPolicy,
-} from './aura-routing-transition-policy';
+} from '../transition/policy';
 
 export class AuraRoutingProcessor {
   private readonly jobManager = new AuraRoutingProcessorJobManager();
@@ -30,7 +30,7 @@ export class AuraRoutingProcessor {
   }): Promise<TransactionResult> {
     const transaction: NavigationTransaction = {
       ...input,
-      plan: buildRoadMap(input.from, input.to),
+      plan: buildTransitionPlan(input.from, input.to),
       transitionPolicy: this.transitionPolicy,
     };
 

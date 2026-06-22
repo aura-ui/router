@@ -22,4 +22,4 @@ export {
   buildEnterRoutes,
 } from './branch-diff';
 
-export { buildTreeRoadMap } from './transition-plan';
+export { buildTransitionPlan } from './transition-plan';

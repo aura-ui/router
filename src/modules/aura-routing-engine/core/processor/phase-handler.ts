@@ -1,7 +1,7 @@
-import { RouteHookRegistry } from '../../aura-route-hooks/core/route-hook-registry';
-import type { RouteLifecycleContext } from '../../aura-route-hooks/core';
-import type { MatchedRouteInfo } from './aura-routing-url-matcher';
-import type { AuraRoutingProcessorJob } from './aura-routing-processor-job';
+import { RouteHookRegistry } from '../../../aura-route-hooks/core/route-hook-registry';
+import type { RouteLifecycleContext } from '../../../aura-route-hooks/core';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { AuraRoutingProcessorJob } from './job';
 
 export class AuraRoutingPhaseHandler {
 

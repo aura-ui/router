@@ -4,7 +4,7 @@ import type {
   NavigationHandler,
   NavigationProvider,
   NavigateHistoryOptions,
-} from '../navigation-provider.types';
+} from './provider.types';
 
 export interface BrowserHistoryProviderConfig {
   linksSelector?: string;

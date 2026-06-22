@@ -8,14 +8,14 @@
 //
 // Lifecycle — всегда; hooks — только при непустом attr на route.
 
-import type { MatchedRouteInfo } from './aura-routing-url-matcher';
-import type { HistoryAction } from './navigation-provider.types';
-import type { TransitionMap } from './aura-routing-transition-map';
-import type { AuraRoutingProcessorJob } from './aura-routing-processor-job';
-import { AuraRoutingPhaseHandler } from './aura-routing-phase-handler';
-import type { GuardResult } from './types';
-import type { RoutePhase, RouteInfo, RouteLifecycleContext, RouterInstance } from '../../aura-route-hooks/core';
-import type { TransitionPolicy } from './aura-routing-transition-policy';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { HistoryAction } from '../history/provider.types';
+import type { TransitionMap } from '../transition/plan';
+import type { AuraRoutingProcessorJob } from './job';
+import { AuraRoutingPhaseHandler } from './phase-handler';
+import type { GuardResult } from '../guard.types';
+import type { RoutePhase, RouteInfo, RouteLifecycleContext, RouterInstance } from '../../../aura-route-hooks/core';
+import type { TransitionPolicy } from '../transition/policy';
 import type { NavigationErrorPhase } from './navigation-error.types';
 
 export interface NavigationTransaction {

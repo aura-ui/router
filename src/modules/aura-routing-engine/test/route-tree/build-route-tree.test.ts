@@ -1,4 +1,4 @@
-import { buildTreeFromDom, createDomRoute } from './test-route-dom';
+import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('buildRouteTree', () => {
   it('builds nested tree with resolved fullPath', () => {

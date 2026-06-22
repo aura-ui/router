@@ -1,4 +1,4 @@
-# nodes-tree
+# route-tree
 
 Модуль nested route tree и **branch diff** для `TransitionMap`.
 
@@ -17,10 +17,10 @@
 | `build-route-tree.ts` | flat/DOM `<aura-route>` → дерево |
 | `matched-chain.ts` | `MatchedRouteInfo.chain`, leaf, ключи сравнения |
 | `branch-diff.ts` | LCA + `exitRoutes` / `enterRoutes` |
-| `transition-plan.ts` | `buildTreeRoadMap()` → `TransitionMap` |
+| `transition-plan.ts` | `buildTransitionPlan()` → `TransitionMap` |
 | `index.ts` | public exports модуля |
 
-Снаружи engine вызывает только `buildRoadMap()` из `aura-routing-transition-map.ts`, который делегирует сюда.
+Публичная точка — `buildTransitionPlan()` из `transition/plan.ts` (реализация здесь).
 
 ---
 
@@ -131,7 +131,7 @@ lca = chain[0]
 
 ## Фаза 5: transition plan
 
-`buildTreeRoadMap(from, to)` → `TransitionMap`:
+`buildTransitionPlan(from, to)` → `TransitionMap`:
 
 ```typescript
 interface TransitionMap {
@@ -213,7 +213,7 @@ enterRoutes: [ b ]
 lca:         null
 ```
 
-Поведение совпадает с flat `buildRoadMap` до nested.
+Поведение совпадает с flat `buildTransitionPlan` до nested.
 
 ### 5. Reentered
 
@@ -238,7 +238,7 @@ flowchart LR
   TREE["buildRouteTree"]
   REG["RouteRegistry"]
   MATCH["UrlMatcher + chain"]
-  PLAN["buildTreeRoadMap"]
+  PLAN["buildTransitionPlan"]
   PROC["PhaseExecutor"]
 
   DOM --> TREE --> REG
@@ -255,7 +255,7 @@ AuraRouter.refreshRoutes()
 navigate(from, to)
   └─ matchPath(pathname, registry.getMatchableNodes())
   └─ toRouteInfo(..., node) → MatchedRouteInfo + chain
-  └─ buildRoadMap(from, to) → branch diff
+  └─ buildTransitionPlan(from, to) → branch diff
   └─ processor.run({ plan })
 ```
 
@@ -264,12 +264,19 @@ navigate(from, to)
 ## Тесты
 
 ```
-test/nodes-tree/
-  resolve-full-path.test.ts
-  route-tree-builder.test.ts   (DOM nested tree)
-  branch-diff.test.ts          (LCA, findLcaNodes)
-  build-road-map.test.ts       (transition scenarios)
-  route-registry.test.ts
+test/
+  helpers/                     (create-test-route, test-route-dom)
+  route-tree/
+    resolve-full-path.test.ts
+    build-route-tree.test.ts   (DOM nested tree)
+    branch-diff.test.ts        (LCA, findLcaNodes)
+    transition-plan.test.ts    (transition scenarios)
+  match/
+    url-matcher-tree.test.ts
+  history/
+    fake-provider.test.ts
+  registry.test.ts
+  engine-tree-integration.test.ts
 ```
 
 Запуск: `npm test` из корня репозитория.

@@ -9,13 +9,13 @@ import { RouteHookRegistry } from '../../aura-route-hooks/core';
 import type { RouteHookDefinition, RouterInstance } from '../../aura-route-hooks/core';
 import {
   AuraRoutingEngine,
+  AuraRoutingProcessor,
+  isCatchAllRoute,
+  parseTransitionPolicy,
   type AuraRoutingEngineConfig,
   type HistoryAction,
   type NavigateHistoryOptions,
 } from '../../aura-routing-engine/core';
-import { isCatchAllRoute } from '../../aura-routing-engine/core/aura-routing-url-matcher';
-import { AuraRoutingProcessor } from '../../aura-routing-engine/core/aura-routing-processor';
-import { parseTransitionPolicy } from '../../aura-routing-engine/core/aura-routing-transition-policy';
 import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
 import type { NotFoundHandler } from './aura-router-not-found.types';
 import {

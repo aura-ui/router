@@ -1,6 +1,6 @@
-import { AuraRoutingRouteRegistry } from '../../core/aura-routing-route-regestry';
-import { createTestRoute } from '../providers/create-test-route';
-import { buildTreeFromDom, createDomRoute } from './test-route-dom';
+import { AuraRoutingRouteRegistry } from '../core/aura-routing-route-registry';
+import { createTestRoute } from './helpers/create-test-route';
+import { buildTreeFromDom, createDomRoute } from './helpers/test-route-dom';
 
 describe('AuraRoutingRouteRegistry.buildTree', () => {
   it('indexes flat routes by fullPath', () => {

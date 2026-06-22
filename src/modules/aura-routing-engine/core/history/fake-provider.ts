@@ -2,7 +2,7 @@ import type {
   NavigationHandler,
   NavigationProvider,
   NavigateHistoryOptions,
-} from '../navigation-provider.types';
+} from './provider.types';
 
 /**
  * In-memory history для unit-тестов — без window/history/DOM.

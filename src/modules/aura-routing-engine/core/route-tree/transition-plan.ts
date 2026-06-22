@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo } from '../aura-routing-url-matcher';
+import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
   buildEnterRoutes,
   buildExitRoutes,
@@ -12,7 +12,7 @@ import { getActiveChain, getLeafMatch, isSameRouteMatch } from './matched-chain'
  * @example profile → security: exit [profile], enter [security], lca settings
  * @example profile → profile (same url): reenter true
  */
-export function buildTreeRoadMap(from: MatchedRouteInfo | null, to: MatchedRouteInfo) {
+export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRouteInfo) {
   if (!from) {
     return {
       exitRoutes: [],

@@ -1,7 +1,7 @@
-import { AuraRoutingProcessorJob } from './aura-routing-processor-job';
+import { AuraRoutingProcessorJob } from './job';
 
 /**
- * Creates and tracks the active {@link AuraRoutingProcessorJob}.
+ * Creates and tracks the active {@link Job}.
  *
  * Two independent stale guards:
  * - **job** (`id`, `signal`) — superseded by a newer navigation (A→B→C)
@@ -18,7 +18,7 @@ export class AuraRoutingProcessorJobManager {
    * Use in `runHooks`: capture before `await`, compare after; if changed, ignore hook result
    * (no redirect / cancel on a dead or re-created router).
    *
-   * Unlike {@link AuraRoutingProcessorJob}, does not abort in-flight fetch inside the hook —
+   * Unlike {@link Job}, does not abort in-flight fetch inside the hook —
    * only discards side effects after `await` (React `useEffect` cleanup pattern).
    */
   private _routerGeneration = 0;

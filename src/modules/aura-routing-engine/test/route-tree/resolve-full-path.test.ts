@@ -1,4 +1,4 @@
-import { resolveFullPath } from '../../core/nodes-tree/resolve-full-path';
+import { resolveFullPath } from '../../core/route-tree/resolve-full-path';
 
 describe('resolveFullPath', () => {
   it('resolves absolute child path without parent prefix', () => {

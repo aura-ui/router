@@ -1,9 +1,9 @@
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
-import { AuraRoutingProcessor } from '../../core/aura-routing-processor';
-import { FakeHistoryProvider } from '../../core/providers/fake-history-provider';
+import { AuraRoutingProcessor } from '../../core/processor/processor';
+import { FakeHistoryProvider } from '../../core/history/fake-provider';
 import type { RouterInstance } from '../../../aura-route-hooks/core';
 
-import { createTestRoute } from './create-test-route';
+import { createTestRoute } from '../helpers/create-test-route';
 
 describe('FakeHistoryProvider', () => {
   it('push + commit обновляет стек URL', () => {

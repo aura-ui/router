@@ -1,8 +1,8 @@
-import { createTestRoute } from '../providers/create-test-route';
-import { buildTreeRoadMap } from '../../core/nodes-tree/transition-plan';
-import { buildMatchedChain, routeMatchKey } from '../../core/nodes-tree/matched-chain';
-import type { MatchedRouteInfo } from '../../core/aura-routing-url-matcher';
-import type { RouteNode } from '../../core/nodes-tree';
+import { createTestRoute } from '../helpers/create-test-route';
+import { buildTransitionPlan } from '../../core/transition/plan';
+import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { RouteNode } from '../../core/route-tree';
 
 function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
   return {
@@ -41,7 +41,7 @@ function chainFromPaths(paths: string[]): MatchedRouteInfo[] {
   return buildMatchedChain(nodes, (node) => createMatch(node, node.fullPath));
 }
 
-describe('buildTreeRoadMap', () => {
+describe('buildTransitionPlan', () => {
   it('keeps flat A → B transition', () => {
     const from = createMatch(
       {
@@ -70,7 +70,7 @@ describe('buildTreeRoadMap', () => {
       '/b',
     );
 
-    const plan = buildTreeRoadMap(from, to);
+    const plan = buildTransitionPlan(from, to);
 
     expect(plan.exitRoutes.map(routeMatchKey)).toEqual(['/a']);
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/b']);
@@ -82,7 +82,7 @@ describe('buildTreeRoadMap', () => {
     const fromChain = chainFromPaths(['/settings', '/settings/profile']);
     const toChain = chainFromPaths(['/settings', '/settings/security']);
 
-    const plan = buildTreeRoadMap(fromChain[1]!, toChain[1]!);
+    const plan = buildTransitionPlan(fromChain[1]!, toChain[1]!);
 
     expect(plan.exitRoutes.map(routeMatchKey)).toEqual(['/settings/profile']);
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/settings/security']);
@@ -91,7 +91,7 @@ describe('buildTreeRoadMap', () => {
 
   it('cold enter activates full branch', () => {
     const toChain = chainFromPaths(['/settings', '/settings/profile']);
-    const plan = buildTreeRoadMap(null, toChain[1]!);
+    const plan = buildTransitionPlan(null, toChain[1]!);
 
     expect(plan.exitRoutes).toEqual([]);
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/settings', '/settings/profile']);
@@ -113,7 +113,7 @@ describe('buildTreeRoadMap', () => {
       '/',
     );
 
-    const plan = buildTreeRoadMap(fromChain[1]!, to);
+    const plan = buildTransitionPlan(fromChain[1]!, to);
 
     expect(plan.exitRoutes.map(routeMatchKey)).toEqual(['/settings/profile', '/settings']);
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/']);
@@ -124,7 +124,7 @@ describe('buildTreeRoadMap', () => {
     const from = chain[1]!;
     const to = { ...from };
 
-    const plan = buildTreeRoadMap(from, to);
+    const plan = buildTransitionPlan(from, to);
 
     expect(plan.reenter).toBe(true);
     expect(plan.exitRoutes).toEqual([]);

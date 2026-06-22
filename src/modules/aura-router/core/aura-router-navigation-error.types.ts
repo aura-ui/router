@@ -1,4 +1,4 @@
-import type { NavigationErrorPhase } from '../../aura-routing-engine/core/navigation-error.types';
+import type { NavigationErrorPhase } from '../../aura-routing-engine/core';
 
 /** CustomEvent name: `navigation-error` */
 export const AURA_ROUTER_NAVIGATION_ERROR = 'navigation-error';

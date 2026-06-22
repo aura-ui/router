@@ -1,13 +1,13 @@
-import { createTestRoute } from '../providers/create-test-route';
+import { createTestRoute } from '../helpers/create-test-route';
 import {
   buildExitRoutes,
   buildEnterRoutes,
   findBranchLcaIndex,
   findLcaNodes,
-} from '../../core/nodes-tree/branch-diff';
-import { buildMatchedChain } from '../../core/nodes-tree/matched-chain';
-import type { MatchedRouteInfo } from '../../core/aura-routing-url-matcher';
-import type { RouteNode } from '../../core/nodes-tree';
+} from '../../core/route-tree/branch-diff';
+import { buildMatchedChain } from '../../core/route-tree/matched-chain';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { RouteNode } from '../../core/route-tree';
 
 function createMatch(node: RouteNode): MatchedRouteInfo {
   return {

@@ -6,26 +6,26 @@
 import type { RouterInstance } from '../../aura-route-hooks/core';
 import { parsePath } from '../../aura-utils/misc/url';
 
-import type { AuraRoutingProcessor } from './aura-routing-processor';
-import type { TransactionResult } from './aura-routing-phase-executor';
-import { AuraRoutingRouteRegistry } from './aura-routing-route-regestry';
+import type { AuraRoutingProcessor } from './processor/processor';
+import type { TransactionResult } from './processor/phase-executor';
+import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
-} from './aura-routing-url-matcher';
-import { getLeafMatch, syncChainUrl } from './nodes-tree';
-import type { TransitionPolicy } from './aura-routing-transition-policy';
-import { BrowserHistoryProvider } from './providers/browser-history-provider';
-import type {
-  HistoryAction,
-  NavigateHistoryOptions,
-  NavigationProvider,
-} from './navigation-provider.types';
-import type { NavigationErrorDetail } from './navigation-error.types';
+} from './match/url-matcher';
+import { getLeafMatch, syncChainUrl } from './route-tree';
+import type { TransitionPolicy } from './transition/policy';
+import {
+  BrowserHistoryProvider,
+  type HistoryAction,
+  type NavigateHistoryOptions,
+  type NavigationProvider,
+} from './history';
+import type { NavigationErrorDetail } from './processor/navigation-error.types';
 
-export type { NavigationErrorDetail, NavigationErrorPhase } from './navigation-error.types';
+export type { NavigationErrorDetail, NavigationErrorPhase } from './processor/navigation-error.types';
 export type { MatchedRouteInfo };
-export type { HistoryAction, NavigateHistoryOptions } from './navigation-provider.types';
+export type { HistoryAction, NavigateHistoryOptions } from './history';
 
 /** Engine fallback when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (url: string) => void;

@@ -1,6 +1,7 @@
 import type { AURARoute } from '../../../aura-route/core/aura-route';
-import { createTestRoute } from '../providers/create-test-route';
-import { buildRouteTree } from '../../core/nodes-tree/build-route-tree';
+import { buildRouteTree } from '../../core/route-tree/build-route-tree';
+
+import { createTestRoute } from './create-test-route';
 
 class TestRoute extends HTMLElement {
   path = '';

@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo } from '../aura-routing-url-matcher';
+import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouteNode } from './route-node.types';
 
 /**

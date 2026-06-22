@@ -1,6 +1,6 @@
-import { AuraRoutingUrlMatcher } from '../../core/aura-routing-url-matcher';
-import { buildRouteTree } from '../../core/nodes-tree/build-route-tree';
-import { createDomRoute, collectRoutesFromDom } from './test-route-dom';
+import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
+import { buildRouteTree } from '../../core/route-tree/build-route-tree';
+import { createDomRoute, collectRoutesFromDom } from '../helpers/test-route-dom';
 
 describe('AuraRoutingUrlMatcher + route tree', () => {
   const matcher = new AuraRoutingUrlMatcher();

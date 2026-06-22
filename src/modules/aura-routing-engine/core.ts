@@ -6,7 +6,7 @@
  * **Not exported** (module-internal — import only from inside `core/`):
  * - `route-tree/` — nested tree, branch diff, `buildTransitionPlan` implementation
  * - `aura-routing-route-registry.ts` — route catalog snapshot
- * - `processor/phase-executor.ts`, `PhaseExecutor`, jobs, phase pipeline
+ * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, `RouteHookRunner`, jobs
  * - `transition/plan.ts` — `TransitionMap`, `buildTransitionPlan` (used by processor only)
  */
 

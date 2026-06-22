@@ -150,7 +150,7 @@ interface TransitionMap {
 | Reentered | тот же pathname + search + leaf | `[]` | `[leaf]` | `true` |
 | Branch diff | иначе | `buildExitRoutes` | `buildEnterRoutes` | `false` |
 
-`PhaseExecutor` уже итерирует `exitRoutes` / `enterRoutes` — nested не требует новых фаз pipeline.
+`ProcessorPipeline` уже итерирует `exitRoutes` / `enterRoutes` — nested не требует новых фаз pipeline.
 
 ---
 
@@ -239,7 +239,7 @@ flowchart LR
   REG["RouteRegistry"]
   MATCH["UrlMatcher + chain"]
   PLAN["buildTransitionPlan"]
-  PROC["PhaseExecutor"]
+  PROC["ProcessorPipeline"]
 
   DOM --> TREE --> REG
   REG --> MATCH

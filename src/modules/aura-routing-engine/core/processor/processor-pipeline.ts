@@ -1,4 +1,4 @@
-// Выполняет фазы navigation transaction.
+// Pipeline шагов navigation transaction внутри AuraRoutingProcessor.
 //
 // Processor: runGuards → runLoads → runRenderWithTransition → runAfterRender
 //
@@ -12,7 +12,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { HistoryAction } from '../history/provider.types';
 import type { TransitionMap } from '../transition/plan';
 import type { AuraRoutingProcessorJob } from './job';
-import { AuraRoutingPhaseHandler } from './phase-handler';
+import { RouteHookRunner } from './route-hook-runner';
 import type { GuardResult } from '../guard.types';
 import type { RoutePhase, RouteInfo, RouteLifecycleContext, RouterInstance } from '../../../aura-route-hooks/core';
 import type { TransitionPolicy } from '../transition/policy';
@@ -43,7 +43,7 @@ type PhaseOutcome = TransactionResult | null;
 
 type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 
-export class PhaseExecutor {
+export class ProcessorPipeline {
   async runReenter(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
       const { route } = routeInfo;
@@ -53,7 +53,7 @@ export class PhaseExecutor {
         route.onReenter(lifecycleContext);
 
         if (route.reenter?.length) {
-          const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+          const result = await RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive);
           this.warnIgnoredTerminalResult('reenter', result);
         }
       } catch (error) {
@@ -75,7 +75,7 @@ export class PhaseExecutor {
         route.onLeave(lifecycleContext);
         if (route.leave?.length) {
           const blocked = await this.runBlockingPhase(
-            () => AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive),
+            () => RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive),
           );
           if (blocked) return blocked;
         }
@@ -92,7 +92,7 @@ export class PhaseExecutor {
         route.onEnter(lifecycleContext);
         if (route.enter?.length) {
           const outcome = await this.runBlockingPhase(
-            () => AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive),
+            () => RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive),
           );
           if (outcome) return outcome;
         }
@@ -113,7 +113,7 @@ export class PhaseExecutor {
         route.onLoad(lifecycleContext);
         if (route.load?.length) {
           const outcome = await this.runBlockingPhase(
-            () => AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive),
+            () => RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive),
           );
           if (outcome) return outcome;
         }
@@ -202,7 +202,7 @@ export class PhaseExecutor {
       try {
         route.onTransitionOut(lifecycleContext);
         if (route.transitionOut?.length) {
-          const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+          const result = await RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive);
           this.warnIgnoredTerminalResult('transitionOut', result);
         }
       } catch (error) {
@@ -221,7 +221,7 @@ export class PhaseExecutor {
       try {
         route.onTransitionIn(lifecycleContext);
         if (route.transitionIn?.length) {
-          const result = await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+          const result = await RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive);
           this.warnIgnoredTerminalResult('transitionIn', result);
         }
       } catch (error) {
@@ -236,7 +236,7 @@ export class PhaseExecutor {
   private async runRender(phaseContext: PhaseContext): Promise<PhaseOutcome> {
     for (const routeInfo of phaseContext.transaction.plan.enterRoutes) {
       try {
-        const response = await AuraRoutingPhaseHandler.runRenderPhase(routeInfo, phaseContext.job);
+        const response = await RouteHookRunner.runRenderPhase(routeInfo, phaseContext.job);
 
         if (response === 'aborted' || !phaseContext.isJobActive()) {
           return { status: 'cancelled' };
@@ -312,7 +312,7 @@ export class PhaseExecutor {
 
     if (routeInfo.route.error?.length) {
       try {
-        await AuraRoutingPhaseHandler.runPhase(errorContext, phaseContext.isJobActive);
+        await RouteHookRunner.runPhase(errorContext, phaseContext.isJobActive);
       } catch (hookError) {
         console.error(hookError);
       }
@@ -331,7 +331,7 @@ export class PhaseExecutor {
     phaseContext: PhaseContext,
   ): Promise<GuardResult> {
     try {
-      return await AuraRoutingPhaseHandler.runPhase(lifecycleContext, phaseContext.isJobActive);
+      return await RouteHookRunner.runPhase(lifecycleContext, phaseContext.isJobActive);
     } catch (error) {
       console.error(`[${lifecycleContext.phase}] hook failed after view commit:`, error);
       return undefined;

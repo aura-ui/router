@@ -69,12 +69,8 @@ export class ProcessorPipeline {
       return reenterOutcome ?? { status: 'committed' };
     }
 
-    for (const step of this.steps) {
-      const stepOutcome = await step(pipelineContext);
-      if (stepOutcome) return stepOutcome;
-    }
-
-    return { status: 'committed' };
+    const outcome = await this.runUntilTerminal(this.steps, pipelineContext);
+    return outcome ?? { status: 'committed' };
   }
 
   /** Shortcut path when only query/params change on the same route (`reenter`). */
@@ -105,11 +101,34 @@ export class ProcessorPipeline {
   async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     switch (pipelineContext.transaction.transitionPolicy) {
       case 'out-in':
-        return this.runOutIn(pipelineContext);
+        return this.runUntilTerminal(
+          [
+            (ctx) => this.runExitTransition(ctx),
+            (ctx) => this.runRender(ctx),
+            (ctx) => this.runEnterTransition(ctx),
+          ],
+          pipelineContext,
+        );
       case 'in-out':
-        return this.runInOut(pipelineContext);
-      case 'parallel':
-        return this.runParallel(pipelineContext);
+        return this.runUntilTerminal(
+          [
+            (ctx) => this.runRender(ctx),
+            (ctx) => this.runEnterTransition(ctx),
+            (ctx) => this.runExitTransition(ctx),
+          ],
+          pipelineContext,
+        );
+      case 'parallel': {
+        const viewCommitOutcome = await this.runRender(pipelineContext);
+        if (viewCommitOutcome) return viewCommitOutcome;
+
+        const [exitTransitionOutcome, enterTransitionOutcome] = await Promise.all([
+          this.runExitTransition(pipelineContext),
+          this.runEnterTransition(pipelineContext),
+        ]);
+
+        return exitTransitionOutcome ?? enterTransitionOutcome ?? null;
+      }
     }
   }
 
@@ -117,38 +136,6 @@ export class ProcessorPipeline {
   async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     await this.runExitCleanup(pipelineContext);
     return this.runLifecycleStep(LIFECYCLE_STEPS.entered, pipelineContext);
-  }
-
-  private async runOutIn(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    const exitTransitionOutcome = await this.runExitTransition(pipelineContext);
-    if (exitTransitionOutcome) return exitTransitionOutcome;
-
-    const viewCommitOutcome = await this.runRender(pipelineContext);
-    if (viewCommitOutcome) return viewCommitOutcome;
-
-    return this.runEnterTransition(pipelineContext);
-  }
-
-  private async runInOut(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    const viewCommitOutcome = await this.runRender(pipelineContext);
-    if (viewCommitOutcome) return viewCommitOutcome;
-
-    const enterTransitionOutcome = await this.runEnterTransition(pipelineContext);
-    if (enterTransitionOutcome) return enterTransitionOutcome;
-
-    return this.runExitTransition(pipelineContext);
-  }
-
-  private async runParallel(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    const viewCommitOutcome = await this.runRender(pipelineContext);
-    if (viewCommitOutcome) return viewCommitOutcome;
-
-    const [exitTransitionOutcome, enterTransitionOutcome] = await Promise.all([
-      this.runExitTransition(pipelineContext),
-      this.runEnterTransition(pipelineContext),
-    ]);
-
-    return exitTransitionOutcome ?? enterTransitionOutcome ?? null;
   }
 
   private async runExitTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
@@ -180,6 +167,22 @@ export class ProcessorPipeline {
   /** `left` lifecycle on deactivate branch after view commit or render error. */
   private async runExitCleanup(pipelineContext: PipelineContext): Promise<void> {
     await this.runLifecycleStep(LIFECYCLE_STEPS.left, pipelineContext);
+  }
+
+  /**
+   * Runs steps in order; stops at the first terminal {@link PipelineOutcome}.
+   * @param steps - sub-steps within a pipeline or transition-policy sequence
+   */
+  private async runUntilTerminal(
+    steps: PipelineStep[],
+    pipelineContext: PipelineContext,
+  ): Promise<PipelineOutcome> {
+    for (const step of steps) {
+      const outcome = await step(pipelineContext);
+      if (outcome) return outcome;
+    }
+
+    return null;
   }
 
   /**

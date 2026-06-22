@@ -1,8 +1,11 @@
 {
-  "name": "aura-ui-router",
+  "name": "@aura-ui-web/router",
   "version": "0.0.1",
-  "description": "Framework-agnostic Web Components router for SSR-first apps with seamless SPA transitions and predictable route lifecycle hooks.",
+  "description": "SSR-first router for Aura UI Web Components. Docs: https://aura-ui.dev",
   "main": "index.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -22,17 +25,19 @@
     "url": "git+https://github.com/aura-ui/router.git"
   },
   "keywords": [
-    "Web Components",
-    "SPA",
-    "SSR",
-    "Aura UI"
+    "aura-ui",
+    "web-components",
+    "custom-elements",
+    "router",
+    "ssr",
+    "spa"
   ],
   "author": "Aleksandr Buryakov",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/aura-ui/router/issues"
   },
-  "homepage": "https://github.com/aura-ui/router#readme",
+  "homepage": "https://aura-ui.dev",
   "devDependencies": {
     "@commitlint/cli": "^20.5.2",
     "@commitlint/config-conventional": "^20.5.0",

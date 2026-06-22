@@ -7,6 +7,10 @@ import type { GuardResult } from '../guard.types';
 import type { RoutePhase, RouteInfo, RouteLifecycleContext, RouterInstance } from '../../../aura-route-hooks/core';
 import type { TransitionPolicy } from '../transition/policy';
 import type { NavigationErrorPhase } from './navigation-error.types';
+import {
+  LIFECYCLE_STEPS,
+  type LifecycleStepDef,
+} from './lifecycle-step';
 
 /** Input for a single navigation run: matched routes, history action, and transition plan. */
 export interface NavigationTransaction {
@@ -46,86 +50,20 @@ type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 export class ProcessorPipeline {
   /** Shortcut path when only query/params change on the same route (`reenter`). */
   async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext('reenter', matchedRoute, pipelineContext);
-
-      try {
-        route.onReenter(lifecycleContext);
-
-        if (route.reenter?.length) {
-          const hookResult = await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
-          this.warnIgnoredTerminalResult('reenter', hookResult);
-        }
-      } catch (error) {
-        return this.failWithError(matchedRoute, error, pipelineContext, 'reenter');
-      }
-    }
-
-    return null;
+    return this.runLifecycleStep(LIFECYCLE_STEPS.reenter, pipelineContext);
   }
 
   /** Pre-commit guards: `leave` on exit branch, then `enter` on activate branch. */
   async runGuards(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    const { plan } = pipelineContext.transaction;
+    const leaveOutcome = await this.runLifecycleStep(LIFECYCLE_STEPS.leave, pipelineContext);
+    if (leaveOutcome) return leaveOutcome;
 
-    for (const matchedRoute of plan.exitRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext('leave', matchedRoute, pipelineContext);
-
-      try {
-        route.onLeave(lifecycleContext);
-        if (route.leave?.length) {
-          const terminalResult = await this.evaluateGuardResult(
-            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive),
-          );
-          if (terminalResult) return terminalResult;
-        }
-      } catch (error) {
-        return this.failWithError(matchedRoute, error, pipelineContext, 'leave');
-      }
-    }
-
-    for (const matchedRoute of plan.enterRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
-
-      try {
-        route.onEnter(lifecycleContext);
-        if (route.enter?.length) {
-          const terminalResult = await this.evaluateGuardResult(
-            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive),
-          );
-          if (terminalResult) return terminalResult;
-        }
-      } catch (error) {
-        return this.failWithError(matchedRoute, error, pipelineContext, 'enter');
-      }
-    }
-
-    return null;
+    return this.runLifecycleStep(LIFECYCLE_STEPS.enter, pipelineContext);
   }
 
   /** Pre-commit data loading: `load` on activate branch. */
   async runLoads(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext('load', matchedRoute, pipelineContext);
-
-      try {
-        route.onLoad(lifecycleContext);
-        if (route.load?.length) {
-          const terminalResult = await this.evaluateGuardResult(
-            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive),
-          );
-          if (terminalResult) return terminalResult;
-        }
-      } catch (error) {
-        return this.failWithError(matchedRoute, error, pipelineContext, 'load');
-      }
-    }
-
-    return null;
+    return this.runLifecycleStep(LIFECYCLE_STEPS.load, pipelineContext);
   }
 
   /**
@@ -149,20 +87,7 @@ export class ProcessorPipeline {
   /** Post-commit effects on activate branch: `entered` (after `left` cleanup on exit branch). */
   async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     await this.runExitCleanup(pipelineContext);
-
-    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext('entered', matchedRoute, pipelineContext);
-
-      route.onEntered(lifecycleContext);
-
-      if (route.entered?.length) {
-        const hookResult = await this.runPostCommitHooks(lifecycleContext, pipelineContext);
-        this.warnIgnoredTerminalResult('entered', hookResult);
-      }
-    }
-
-    return null;
+    return this.runLifecycleStep(LIFECYCLE_STEPS.entered, pipelineContext);
   }
 
   private async runOutIn(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
@@ -197,44 +122,12 @@ export class ProcessorPipeline {
     return exitTransitionOutcome ?? enterTransitionOutcome ?? null;
   }
 
-  /** `transition-out` hooks on the deactivate branch. */
   private async runExitTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    for (const matchedRoute of pipelineContext.transaction.plan.exitRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext('transitionOut', matchedRoute, pipelineContext);
-
-      try {
-        route.onTransitionOut(lifecycleContext);
-        if (route.transitionOut?.length) {
-          const hookResult = await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
-          this.warnIgnoredTerminalResult('transitionOut', hookResult);
-        }
-      } catch (error) {
-        return this.failWithError(matchedRoute, error, pipelineContext, 'transitionOut');
-      }
-    }
-
-    return null;
+    return this.runLifecycleStep(LIFECYCLE_STEPS.transitionOut, pipelineContext);
   }
 
-  /** `transition-in` hooks on the activate branch. */
   private async runEnterTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext('transitionIn', matchedRoute, pipelineContext);
-
-      try {
-        route.onTransitionIn(lifecycleContext);
-        if (route.transitionIn?.length) {
-          const hookResult = await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
-          this.warnIgnoredTerminalResult('transitionIn', hookResult);
-        }
-      } catch (error) {
-        return this.failWithError(matchedRoute, error, pipelineContext, 'transitionIn');
-      }
-    }
-
-    return null;
+    return this.runLifecycleStep(LIFECYCLE_STEPS.transitionIn, pipelineContext);
   }
 
   /** View commit: {@link RouteHookRunner.runViewCommit} for each activate-branch route. */
@@ -257,16 +150,50 @@ export class ProcessorPipeline {
 
   /** `left` lifecycle on deactivate branch after view commit or render error. */
   private async runExitCleanup(pipelineContext: PipelineContext): Promise<void> {
-    for (const matchedRoute of pipelineContext.transaction.plan.exitRoutes) {
-      const { route } = matchedRoute;
-      const lifecycleContext = toLifecycleContext('left', matchedRoute, pipelineContext);
+    await this.runLifecycleStep(LIFECYCLE_STEPS.left, pipelineContext);
+  }
 
-      route.onLeft(lifecycleContext);
-      if (route.left?.length) {
-        const hookResult = await this.runPostCommitHooks(lifecycleContext, pipelineContext);
-        this.warnIgnoredTerminalResult('left', hookResult);
+  /**
+   * Runs a {@link LifecycleStepDef} over the plan branch (exit or enter routes).
+   * @param step - row from {@link LIFECYCLE_STEPS}
+   */
+  private async runLifecycleStep(
+    step: LifecycleStepDef,
+    pipelineContext: PipelineContext,
+  ): Promise<PipelineOutcome> {
+    const matchedRoutes = pipelineContext.transaction.plan[step.branch];
+
+    for (const matchedRoute of matchedRoutes) {
+      const { route } = matchedRoute;
+      const lifecycleContext = toLifecycleContext(step.lifecyclePhase, matchedRoute, pipelineContext);
+
+      try {
+        step.onRoute(route, lifecycleContext);
+
+        const hookNames = route[step.lifecyclePhase];
+        if (!hookNames?.length) continue;
+
+        if (step.hooks.kind === 'blocking') {
+          const terminalResult = await this.evaluateGuardResult(
+            () => RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive),
+          );
+          if (terminalResult) return terminalResult;
+          continue;
+        }
+
+        const hookResult =
+          step.hooks.hookErrors === 'log'
+            ? await this.runPostCommitHooks(lifecycleContext, pipelineContext)
+            : await RouteHookRunner.runLifecycleHooks(lifecycleContext, pipelineContext.isJobActive);
+
+        this.warnIgnoredTerminalResult(step.lifecyclePhase, hookResult);
+      } catch (error) {
+        if (!step.failOnLifecycleError) throw error;
+        return this.failWithError(matchedRoute, error, pipelineContext, step.lifecyclePhase);
       }
     }
+
+    return null;
   }
 
   /**

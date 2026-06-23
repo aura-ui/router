@@ -28,9 +28,9 @@ describe('aura-dom/patch', () => {
     expect(container.textContent).toBe('frag');
   });
 
-  it('updateInner sets data-aura-key', () => {
-    updateInner(container, '<i>x</i>', { key: '/about' });
-    expect(container.dataset.auraKey).toBe('/about');
+  it('updateInner replaces children', () => {
+    updateInner(container, '<i>x</i>');
+    expect(container.querySelector('i')?.textContent).toBe('x');
   });
 
   it('updateInner skips work when signal is aborted', () => {

@@ -26,6 +26,5 @@ export function updateInner(
 
   replaceInner(container, next);
 
-  if (opts?.key) container.dataset.auraKey = opts.key;
   return { incremental: false };
 }

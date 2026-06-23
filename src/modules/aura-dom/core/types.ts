@@ -3,8 +3,6 @@ export type PatchSource = Node | DocumentFragment | string;
 
 /** Options for {@link updateInner}. */
 export type DomUpdateOptions = {
-  /** View identity; stored on container as `data-aura-key`. */
-  key?: string;
   signal?: AbortSignal;
 };
 

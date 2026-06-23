@@ -1,4 +1,4 @@
-import { bind } from '../../../aura-utils/misc/bind';
+import { bind } from '../../../aura-utils/decorators/bind';
 
 import type {
   NavigationHandler,

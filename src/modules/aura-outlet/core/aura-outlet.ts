@@ -4,7 +4,10 @@ import type { PatchSource } from '../../aura-dom/core/types';
 /** Outlet DOM update strategy. */
 export type OutletStrategy = 'replace' | 'patch' | 'stage';
 
-/** Wrapper element for a mounted view (`div.aura-view`). */
+/** Attribute on auto-created view wrapper (`[data-aura-view-root]`). */
+export const AURA_VIEW_ROOT_ATTR = 'data-aura-view-root';
+
+/** Wrapper element for a mounted view (`[data-aura-view-root]`). */
 export type ViewRoot = HTMLElement;
 
 /** Inner content for patch updates. */
@@ -16,7 +19,7 @@ export type OutletApplyInput = ViewRoot | ViewContent;
 export type OutletApplyOptions = {
   /** Default `replace`. */
   strategy?: OutletStrategy;
-  /** View identity for patch reuse. */
+  /** Optional view metadata for handle / cache; strategy is chosen upstream. */
   key?: string;
   signal?: AbortSignal;
 };
@@ -28,7 +31,7 @@ export type ViewHandle = {
   outlet: AuraOutlet;
   key?: string;
   /** Remove root from DOM and clear its children. */
-  dispose(): void;
+  destroy(): void;
   /** Remove root from outlet; keep subtree for reattach. */
   detach(): ViewRoot;
   /** Patch content inside `root`. */
@@ -74,11 +77,11 @@ export class AuraOutlet extends AuraDom {
 
   /** Nested `<aura-outlet>` inside a layout view root. */
   findNestedOutlet(root: ParentNode = this.activeRoot ?? this): AuraOutlet | null {
-    return super.findNestedOutlet(root) as AuraOutlet | null;
+    return root.querySelector(AuraOutlet.is) as AuraOutlet | null;
   }
 
   private applyReplace(root: ViewRoot, key?: string): ViewHandle {
-    this.clearStagedRoot();
+    this.stagedRoot = undefined;
     this.replaceChildren(root);
     this.activeRoot = root;
     this.activeKey = key;
@@ -90,12 +93,6 @@ export class AuraOutlet extends AuraDom {
     const content = payload as ViewContent;
 
     if (!this.activeRoot) {
-      const root = this.createViewRoot();
-      this.updateInner(root, content, { key, signal });
-      return this.applyReplace(root, key);
-    }
-
-    if (key && this.activeKey && key !== this.activeKey) {
       const root = this.createViewRoot();
       this.updateInner(root, content, { key, signal });
       return this.applyReplace(root, key);
@@ -128,16 +125,9 @@ export class AuraOutlet extends AuraDom {
     return root;
   }
 
-  private clearStagedRoot(): void {
-    if (this.stagedRoot) {
-      this.stagedRoot.remove();
-      this.stagedRoot = undefined;
-    }
-  }
-
   private createViewRoot(): HTMLDivElement {
     const root = document.createElement('div');
-    root.className = 'aura-view';
+    root.setAttribute(AURA_VIEW_ROOT_ATTR, '');
     return root;
   }
 
@@ -146,7 +136,7 @@ export class AuraOutlet extends AuraDom {
       root,
       outlet: this,
       key: this.activeKey,
-      dispose: () => {
+      destroy: () => {
         root.replaceChildren();
         root.remove();
         if (this.activeRoot === root) {

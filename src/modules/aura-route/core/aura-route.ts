@@ -175,8 +175,8 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
   private mountContext(routeInfo?: MatchedRouteInfo): RouteMountContext {
     return {
-      appOutlet: this.router.rootOutlet,
       routePath: routeInfo?.routePath,
+      appOutlet: this.router.rootOutlet,
       parentResolvedOutlet: routeInfo?.node?.parent?.route.resolvedOutlet ?? null,
       signal: this.renderSignal.signal,
     };
@@ -190,11 +190,11 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   ): void {
     if (!this.isActive) return;
 
-    const result = RouteMount.mount(
-      this.mountContext(routeInfo),
-      payload,
-      this.previousMount,
-    );
+    const result = RouteMount.mount({
+      ctx: this.mountContext(routeInfo),
+      content: payload,
+      previous: this.previousMount,
+    });
 
     this.activeHandle = result.activeHandle;
     this.resolvedOutlet = result.resolvedOutlet;

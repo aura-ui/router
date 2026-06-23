@@ -1,4 +1,4 @@
-import type { AuraOutlet, ViewHandle } from '../../aura-outlet/core/aura-outlet';
+import type { AuraOutlet, OutletStrategy, ViewHandle } from '../../aura-outlet/core/aura-outlet';
 
 export type RouteMountType = 'layout' | 'content';
 
@@ -9,6 +9,11 @@ export type RouteMountResult = {
   resolvedOutlet: AuraOutlet | null;
 };
 
+export const EMPTY_MOUNT: RouteMountResult = {
+  activeHandle: null,
+  resolvedOutlet: null,
+};
+
 export type RouteMountContext = {
   appOutlet: AuraOutlet;
   /** Outlet apply key; omitted → cleared on the view root. */
@@ -16,7 +21,51 @@ export type RouteMountContext = {
   /** Parent layout's `resolvedOutlet`; flat routes omit and fall back to `appOutlet`. */
   parentResolvedOutlet?: AuraOutlet | null;
   signal?: AbortSignal;
+  /** Defaults to `replace`; `stage` for transition flows. */
+  strategy?: Extract<OutletStrategy, 'replace' | 'stage'>;
 };
+
+export type RouteMountRequest = {
+  ctx: RouteMountContext;
+  content: Node | string;
+  previous: RouteMountResult;
+};
+
+type MountSkipPolicy = (prev: RouteMountResult) => boolean;
+
+const MOUNT_SKIP_POLICIES: Record<RouteMountType, MountSkipPolicy> = {
+  content: (prev) => !!prev.activeHandle,
+  layout: (prev) => !!(prev.activeHandle && prev.resolvedOutlet),
+};
+
+function resolveTargetOutlet(ctx: RouteMountContext): AuraOutlet {
+  return ensureAuraOutlet(ctx.parentResolvedOutlet ?? ctx.appOutlet);
+}
+
+function toMountResult(handle: ViewHandle): RouteMountResult {
+  return {
+    activeHandle: handle,
+    resolvedOutlet: handle.findChildOutlet(),
+  };
+}
+
+function ensureAuraOutlet(outlet: Element | null): AuraOutlet {
+  if (!outlet) {
+    throw new DOMException(
+      '<aura-router> must contain <aura-outlet>',
+      'NotFoundError',
+    );
+  }
+
+  if (typeof (outlet as AuraOutlet).apply !== 'function') {
+    throw new DOMException(
+      '<aura-outlet> is not upgraded — register with customElements.define(AuraOutlet.is, AuraOutlet)',
+      'InvalidStateError',
+    );
+  }
+
+  return outlet as AuraOutlet;
+}
 
 /**
  * Outlet mount/unmount for `<aura-route>`.
@@ -29,34 +78,22 @@ export class RouteMount {
     mountType: RouteMountType,
     prevMountResult: RouteMountResult,
   ): boolean {
-    return keepAlive && this.isPrevMountActive(mountType, prevMountResult);
-  }
-
-  private static isPrevMountActive(mountType: RouteMountType, prevMountResult: RouteMountResult) {
-    return mountType === 'layout'
-      ? !!(prevMountResult.activeHandle && prevMountResult.resolvedOutlet)
-      : !!prevMountResult.activeHandle;
+    return keepAlive && MOUNT_SKIP_POLICIES[mountType](prevMountResult);
   }
 
   /** Put `content` into resolved outlet; returns updated mount result. */
-  static mount(
-    ctx: RouteMountContext,
-    content: Node | string,
-    prevMountResult: RouteMountResult,
-  ): RouteMountResult {
-    const mountOutlet = this.ensureAuraOutlet(ctx.parentResolvedOutlet ?? ctx.appOutlet);
+  static mount(request: RouteMountRequest): RouteMountResult {
+    const { ctx, content, previous } = request;
+    const mountOutlet = resolveTargetOutlet(ctx);
     const handle = mountOutlet.apply(content, {
-      strategy: 'replace',
+      strategy: ctx.strategy ?? 'replace',
       key: ctx.routePath,
       signal: ctx.signal,
     });
 
-    if (!handle) return prevMountResult;
+    if (!handle) return previous;
 
-    return {
-      activeHandle: handle,
-      resolvedOutlet: handle.findChildOutlet(),
-    };
+    return toMountResult(handle);
   }
 
   /** keepAlive → detach handle (reuse later); otherwise destroy. */
@@ -64,23 +101,5 @@ export class RouteMount {
     if (!handle) return;
     if (keepAlive) handle.detach();
     else handle.destroy();
-  }
-
-  private static ensureAuraOutlet(outlet: Element | null): AuraOutlet {
-    if (!outlet) {
-      throw new DOMException(
-        '<aura-router> must contain <aura-outlet>',
-        'NotFoundError',
-      );
-    }
-
-    if (typeof (outlet as AuraOutlet).apply !== 'function') {
-      throw new DOMException(
-        '<aura-outlet> is not upgraded — register with customElements.define(AuraOutlet.is, AuraOutlet)',
-        'InvalidStateError',
-      );
-    }
-
-    return outlet as AuraOutlet;
   }
 }

@@ -36,6 +36,15 @@ describe('AuraOutlet', () => {
     expect(outlet.textContent).toBe('home');
   });
 
+  it('apply replace sets data-aura-view-root on explicit roots', () => {
+    const outlet = createOutlet();
+    const root = document.createElement('div');
+    root.textContent = 'plain';
+
+    outlet.apply(root, { strategy: 'replace' });
+    expect(root.hasAttribute(AURA_VIEW_ROOT_ATTR)).toBe(true);
+  });
+
   it('apply patch updates content in active root', () => {
     const outlet = createOutlet();
     outlet.apply('<span>old</span>', { strategy: 'replace', key: '/a' });
@@ -72,9 +81,63 @@ describe('AuraOutlet', () => {
     expect(newRoot.dataset.auraKey).toBe('/b');
     outlet.commitStage(newRoot);
     expect(outlet.children).toHaveLength(1);
+    expect(newHandle?.key).toBe('/b');
     expect(outlet.textContent).toBe('new');
     oldHandle?.destroy();
     newHandle?.destroy();
+  });
+
+  it('commitStage clears activeKey when staged root has no key', () => {
+    const outlet = createOutlet();
+    const oldRoot = createViewRoot();
+    outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
+
+    const newRoot = createViewRoot();
+    outlet.apply(newRoot, { strategy: 'stage' });
+    outlet.commitStage(newRoot);
+
+    expect(newRoot.dataset.auraKey).toBeUndefined();
+  });
+
+  it('staged handle has no key when staged root has no key', () => {
+    const outlet = createOutlet();
+    outlet.apply(createViewRoot(), { strategy: 'replace', key: '/a' });
+
+    const stagedHandle = outlet.apply(createViewRoot(), { strategy: 'stage' });
+    expect(stagedHandle?.key).toBeUndefined();
+  });
+
+  it('replace without key clears data-aura-key on explicit root', () => {
+    const outlet = createOutlet();
+    const root = createViewRoot();
+    root.dataset.auraKey = '/old';
+
+    const handle = outlet.apply(root, { strategy: 'replace' });
+    expect(root.dataset.auraKey).toBeUndefined();
+    expect(handle?.key).toBeUndefined();
+  });
+
+  it('commitStage throws when root is not a direct child', () => {
+    const outlet = createOutlet();
+    const foreign = createViewRoot();
+    expect(() => outlet.commitStage(foreign)).toThrow(DOMException);
+  });
+
+  it('cancelStage removes staged root and keeps active view', () => {
+    const outlet = createOutlet();
+    const oldRoot = createViewRoot();
+    oldRoot.textContent = 'old';
+    outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
+
+    const newRoot = createViewRoot();
+    newRoot.textContent = 'new';
+    outlet.apply(newRoot, { strategy: 'stage', key: '/b' });
+    expect(outlet.children).toHaveLength(2);
+
+    outlet.cancelStage();
+    expect(outlet.children).toHaveLength(1);
+    expect(outlet.textContent).toBe('old');
+    expect(oldRoot.dataset.auraKey).toBe('/a');
   });
 
   it('destroy clears root children, detach preserves them', () => {
@@ -86,15 +149,59 @@ describe('AuraOutlet', () => {
     expect(outlet.children).toHaveLength(0);
 
     const handle2 = outlet.apply('<i>x</i>', { strategy: 'replace', key: '/y' });
+    expect(handle2?.key).toBe('/y');
+    handle2?.destroy();
+    expect(handle2?.root.children).toHaveLength(0);
+  });
+
+  it('destroy and detach are idempotent', () => {
+    const outlet = createOutlet();
+    const handle = outlet.apply('<span>x</span>', { strategy: 'replace', key: '/x' });
+
+    handle?.detach();
+    handle?.detach();
+    expect(outlet.children).toHaveLength(0);
+
+    const handle2 = outlet.apply('<span>y</span>', { strategy: 'replace' });
+    handle2?.destroy();
     handle2?.destroy();
     expect(handle2?.root.children).toHaveLength(0);
   });
 
   it('returns null when signal is aborted', () => {
     const outlet = createOutlet();
-    const signal = new AbortController();
-    signal.abort();
-    expect(outlet.apply('<span>x</span>', { signal: signal.signal })).toBeNull();
+    const controller = new AbortController();
+    controller.abort();
+    expect(outlet.apply('<span>x</span>', { signal: controller.signal })).toBeNull();
+    expect(outlet.apply('<span>x</span>', { strategy: 'patch', signal: controller.signal })).toBeNull();
+    expect(outlet.apply('<span>x</span>', { strategy: 'stage', signal: controller.signal })).toBeNull();
+  });
+
+  it('apply patch returns null and leaves DOM unchanged when signal is aborted', () => {
+    const outlet = createOutlet();
+    outlet.apply('<span>old</span>', { strategy: 'replace', key: '/a' });
+
+    const controller = new AbortController();
+    controller.abort();
+    const handle = outlet.apply('<span>new</span>', {
+      strategy: 'patch',
+      signal: controller.signal,
+    });
+
+    expect(handle).toBeNull();
+    expect(outlet.querySelector('span')?.textContent).toBe('old');
+    expect(outlet.querySelector('[data-aura-view-root]')?.getAttribute('data-aura-key')).toBe('/a');
+  });
+
+  it('disconnectedCallback clears outlet state', () => {
+    const outlet = createOutlet();
+    outlet.apply('<span>x</span>', { strategy: 'replace', key: '/x' });
+    outlet.remove();
+    document.body.append(outlet);
+
+    const handle = outlet.apply('<span>y</span>', { strategy: 'patch' });
+    expect(handle?.root.querySelector('span')?.textContent).toBe('y');
+    expect(outlet.children).toHaveLength(1);
   });
 
   it('findNestedOutlet finds nested aura-outlet', () => {

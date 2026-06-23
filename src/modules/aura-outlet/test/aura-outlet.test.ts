@@ -29,9 +29,9 @@ describe('AuraOutlet', () => {
     root.textContent = 'home';
 
     const handle = outlet.apply(root, { strategy: 'replace', key: '/' });
-    expect(handle?.root).toBe(root);
+    expect(handle?.viewRoot).toBe(root);
     expect(handle?.key).toBe('/');
-    expect(handle?.root.dataset.auraKey).toBe('/');
+    expect(handle?.viewRoot.dataset.auraKey).toBe('/');
     expect(outlet.children).toHaveLength(1);
     expect(outlet.textContent).toBe('home');
   });
@@ -50,7 +50,7 @@ describe('AuraOutlet', () => {
     outlet.apply('<span>old</span>', { strategy: 'replace', key: '/a' });
     const handle = outlet.apply('<span>new</span>', { strategy: 'patch', key: '/a' });
 
-    expect(handle?.root.hasAttribute(AURA_VIEW_ROOT_ATTR)).toBe(true);
+    expect(handle?.viewRoot.hasAttribute(AURA_VIEW_ROOT_ATTR)).toBe(true);
     expect(outlet.querySelector('span')?.textContent).toBe('new');
     expect(outlet.children).toHaveLength(1);
   });
@@ -60,7 +60,7 @@ describe('AuraOutlet', () => {
     const first = outlet.apply('<span>a</span>', { strategy: 'replace', key: '/a' });
     const second = outlet.apply('<span>b</span>', { strategy: 'patch', key: '/b' });
 
-    expect(second?.root).toBe(first?.root);
+    expect(second?.viewRoot).toBe(first?.viewRoot);
     expect(outlet.querySelector('span')?.textContent).toBe('b');
     expect(second?.key).toBe('/b');
   });
@@ -71,7 +71,7 @@ describe('AuraOutlet', () => {
 
     const handle = outlet.apply('<span>b</span>', { strategy: 'patch' });
     expect(handle?.key).toBeUndefined();
-    expect(handle?.root.dataset.auraKey).toBeUndefined();
+    expect(handle?.viewRoot.dataset.auraKey).toBeUndefined();
   });
 
   it('apply stage keeps two roots until commitStage', () => {
@@ -140,7 +140,7 @@ describe('AuraOutlet', () => {
     oldHandle?.destroy();
 
     const handle = outlet.apply('<span>patched</span>', { strategy: 'patch', key: '/b' });
-    expect(handle?.root).toBe(newRoot);
+    expect(handle?.viewRoot).toBe(newRoot);
     expect(newRoot.querySelector('span')?.textContent).toBe('patched');
     expect(outlet.children).toHaveLength(1);
   });
@@ -189,7 +189,7 @@ describe('AuraOutlet', () => {
     const handle2 = outlet.apply('<i>x</i>', { strategy: 'replace', key: '/y' });
     expect(handle2?.key).toBe('/y');
     handle2?.destroy();
-    expect(handle2?.root.children).toHaveLength(0);
+    expect(handle2?.viewRoot.children).toHaveLength(0);
   });
 
   it('destroy and detach are idempotent', () => {
@@ -203,7 +203,7 @@ describe('AuraOutlet', () => {
     const handle2 = outlet.apply('<span>y</span>', { strategy: 'replace' });
     handle2?.destroy();
     handle2?.destroy();
-    expect(handle2?.root.children).toHaveLength(0);
+    expect(handle2?.viewRoot.children).toHaveLength(0);
   });
 
   it('returns null when signal is aborted', () => {
@@ -238,7 +238,7 @@ describe('AuraOutlet', () => {
     document.body.append(outlet);
 
     const handle = outlet.apply('<span>y</span>', { strategy: 'patch' });
-    expect(handle?.root.querySelector('span')?.textContent).toBe('y');
+    expect(handle?.viewRoot.querySelector('span')?.textContent).toBe('y');
     expect(outlet.children).toHaveLength(1);
   });
 
@@ -247,7 +247,7 @@ describe('AuraOutlet', () => {
     const handle = outlet.apply('<p>page</p>', { strategy: 'replace', key: '/p' });
 
     expect(outlet.children).toHaveLength(1);
-    expect(handle?.root.hasAttribute(AURA_VIEW_ROOT_ATTR)).toBe(true);
+    expect(handle?.viewRoot.hasAttribute(AURA_VIEW_ROOT_ATTR)).toBe(true);
     expect(outlet.querySelector('p')?.textContent).toBe('page');
   });
 
@@ -276,13 +276,13 @@ describe('AuraOutlet', () => {
     const handle = outlet.apply('<span>x</span>', { strategy: 'replace' });
     handle?.detach();
     handle?.destroy();
-    expect(handle?.root.children).toHaveLength(0);
+    expect(handle?.viewRoot.children).toHaveLength(0);
   });
 
   it('detach after destroy is no-op', () => {
     const outlet = createOutlet();
     const handle = outlet.apply('<span>x</span>', { strategy: 'replace' });
-    const root = handle?.root;
+    const root = handle?.viewRoot;
     handle?.destroy();
     expect(handle?.detach()).toBe(root);
     expect(root?.children).toHaveLength(0);
@@ -337,7 +337,7 @@ describe('AuraOutlet', () => {
       expect(outlet.textContent).toBe('new');
 
       const handle = outlet.apply('<i>ok</i>', { strategy: 'patch' });
-      expect(handle?.root).toBe(newRoot);
+      expect(handle?.viewRoot).toBe(newRoot);
       expect(newRoot.querySelector('i')?.textContent).toBe('ok');
     });
 
@@ -357,7 +357,7 @@ describe('AuraOutlet', () => {
       expect(oldRoot.dataset.auraKey).toBe('/a');
 
       const handle = outlet.apply('<em>x</em>', { strategy: 'patch', key: '/a' });
-      expect(handle?.root).toBe(oldRoot);
+      expect(handle?.viewRoot).toBe(oldRoot);
       expect(oldRoot.querySelector('em')?.textContent).toBe('x');
     });
 

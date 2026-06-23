@@ -1,22 +1,20 @@
 import type { AuraOutlet, ViewHandle } from '../../aura-outlet/core/aura-outlet';
-import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 
 export type RouteMountType = 'layout' | 'content';
 
-/** Result of mounting a route in an outlet (handle + nested outlet after layout). */
+/** Result of mounting a route in an outlet (handle + slot for child routes). */
 export type RouteMountResult = {
   activeHandle: ViewHandle | null;
+  /** Nested `<aura-outlet>` inside mounted view; null when route exposes no child slot. */
   resolvedOutlet: AuraOutlet | null;
 };
 
-/** Minimal router surface needed to locate the mount outlet. */
-export type RouteOutletHost = {
-  readonly rootOutlet: AuraOutlet | null;
-};
-
 export type RouteMountContext = {
-  host: RouteOutletHost;
-  routeInfo?: MatchedRouteInfo;
+  appOutlet: AuraOutlet;
+  /** Outlet apply key; omitted → cleared on the view root. */
+  routePath?: string;
+  /** Parent layout's `resolvedOutlet`; flat routes omit and fall back to `appOutlet`. */
+  parentResolvedOutlet?: AuraOutlet | null;
   signal?: AbortSignal;
 };
 
@@ -29,42 +27,36 @@ export class RouteMount {
   static shouldSkipRender(
     keepAlive: boolean,
     mountType: RouteMountType,
-    mountResult: RouteMountResult,
+    prevMountResult: RouteMountResult,
   ): boolean {
-    if (!keepAlive) return false;
+    return keepAlive && this.isPrevMountActive(mountType, prevMountResult);
+  }
+
+  private static isPrevMountActive(mountType: RouteMountType, prevMountResult: RouteMountResult) {
     return mountType === 'layout'
-      ? !!(mountResult.activeHandle && mountResult.resolvedOutlet)
-      : !!mountResult.activeHandle;
+      ? !!(prevMountResult.activeHandle && prevMountResult.resolvedOutlet)
+      : !!prevMountResult.activeHandle;
   }
 
   /** Put `content` into resolved outlet; returns updated mount result. */
   static mount(
     ctx: RouteMountContext,
     content: Node | string,
-    mountType: RouteMountType,
-    mountResult: RouteMountResult,
+    prevMountResult: RouteMountResult,
   ): RouteMountResult {
-    const outlet = RouteMount.getMountOutlet(ctx.host, ctx.routeInfo);
-    const handle = outlet.apply(content, {
+    const mountOutlet = this.ensureAuraOutlet(ctx.parentResolvedOutlet ?? ctx.appOutlet);
+    const handle = mountOutlet.apply(content, {
       strategy: 'replace',
-      key: ctx.routeInfo?.routePath,
+      key: ctx.routePath,
       signal: ctx.signal,
     });
 
-    if (!handle) return mountResult;
+    if (!handle) return prevMountResult;
 
-    if (mountType === 'content') {
-      return { activeHandle: handle, resolvedOutlet: mountResult.resolvedOutlet };
-    }
-
-    const nestedOutlet = outlet.findNestedOutlet(handle.root);
-
-    return { activeHandle: handle, resolvedOutlet: nestedOutlet };
-  }
-
-  private static getMountOutlet(host: RouteOutletHost, routeInfo?: MatchedRouteInfo): AuraOutlet {
-    const routeOutlet = routeInfo?.node?.parent?.route.resolvedOutlet;
-    return RouteMount.ensureAuraOutlet( routeOutlet || host.rootOutlet);
+    return {
+      activeHandle: handle,
+      resolvedOutlet: handle.findChildOutlet(),
+    };
   }
 
   /** keepAlive → detach handle (reuse later); otherwise destroy. */

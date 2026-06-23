@@ -14,7 +14,7 @@ import type {
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import type { AuraOutlet, ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import { RouteRenderSignal } from './render-signal';
-import { RouteMount, type RouteMountType } from './route-mount';
+import { RouteMount, type RouteMountContext, type RouteMountType, type RouteMountResult } from './route-mount';
 
 export interface AURARouteConfigureOptions {
   contentLoaderService?: ContentLoaderService;
@@ -132,10 +132,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       this.isActive = true;
       this.renderSignal.begin(parentSignal);
 
-      if (RouteMount.shouldSkipRender(this.keepAlive, this.mountType, {
-        activeHandle: this.activeHandle,
-        resolvedOutlet: this.resolvedOutlet,
-      })) return;
+      if (RouteMount.shouldSkipRender(this.keepAlive, this.mountType, this.previousMount)) return;
 
       if (this.loadingTemplate) {
         this.show(getTemplate(this.loadingTemplate), routeInfo);
@@ -172,6 +169,19 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     return this.layout ? 'layout' : 'content';
   }
 
+  private get previousMount(): RouteMountResult {
+    return { activeHandle: this.activeHandle, resolvedOutlet: this.resolvedOutlet };
+  }
+
+  private mountContext(routeInfo?: MatchedRouteInfo): RouteMountContext {
+    return {
+      appOutlet: this.router.rootOutlet,
+      routePath: routeInfo?.routePath,
+      parentResolvedOutlet: routeInfo?.node?.parent?.route.resolvedOutlet ?? null,
+      signal: this.renderSignal.signal,
+    };
+  }
+
   /** Sync step: put ready payload into outlet. */
   private show(
     payload: Node | string,
@@ -181,14 +191,9 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     if (!this.isActive) return;
 
     const result = RouteMount.mount(
-      {
-        host: this.router,
-        routeInfo,
-        signal: this.renderSignal.signal,
-      },
+      this.mountContext(routeInfo),
       payload,
-      mountType,
-      { activeHandle: this.activeHandle, resolvedOutlet: this.resolvedOutlet },
+      this.previousMount,
     );
 
     this.activeHandle = result.activeHandle;

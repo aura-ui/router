@@ -5,12 +5,16 @@ import {
   ContentLoaderService,
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
-import type { RouteInstance } from '../../aura-route-hooks/core';
-import type { MatchedRouteInfo, RouteErrorContext, RouteLifecycleContext } from '../../aura-route-hooks/core';
+import type {
+  MatchedRouteInfo,
+  RouteErrorContext,
+  RouteInstance,
+  RouteLifecycleContext,
+} from '../../aura-route-hooks/core';
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import type { AuraOutlet, ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import { RouteRenderSignal } from './render-signal';
-import { RouteMount, type RouteMountType, type RouteMountResult } from './route-mount';
+import { RouteMount, type RouteMountType } from './route-mount';
 
 export interface AURARouteConfigureOptions {
   contentLoaderService?: ContentLoaderService;
@@ -29,21 +33,6 @@ export interface AURARouteInterface {
   keepAlive?: boolean;
   cache?: boolean;
 }
-
-type AuraRouteGuards = 'leave' | 'enter' | 'load';
-type AuraRouteTransitionEffects = 'transitionIn' | 'transitionOut';
-type AuraRoutePostShowEffects = 'left' | 'entered';
-
-export interface AuraRouteInfo {
-  path: string;
-  guards: Record<AuraRouteGuards, string[]>;
-  transitions: Record<AuraRouteTransitionEffects, string[]>;
-  postShow: Record<AuraRoutePostShowEffects, string[]>;
-}
-
-// AURARoute.setDefaultOptions({
-//   keepAlive: true, // значения по умолчанию для всех маршрутов
-// })
 
 let sharedContentLoaderService: ContentLoaderService | undefined;
 
@@ -82,16 +71,11 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   @boolAttr({ readonly: true }) keepAlive: boolean;
   @boolAttr({ readonly: true }) restoreScroll: boolean;
 
-  // cache-timeout
   @boolAttr() cache: boolean; //todo add times in seconds how many to store?
 
   private isActive: boolean;
 
- // private cachedContent: Node | string;
-
   private readonly renderSignal = new RouteRenderSignal();
-
- // private cachedHtml: string;
 
   private router: AuraRouter;
 
@@ -100,19 +84,12 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   /** Nested `<aura-outlet>` inside mounted layout; children render here. */
   resolvedOutlet: AuraOutlet | null = null;
 
-  // private cachedTemplate: HTMLTemplateElement
-
   private static resolveContentLoaderService(): ContentLoaderService {
     sharedContentLoaderService ??= new ContentLoaderService(false);
     return sharedContentLoaderService;
   }
 
   async connectedCallback(): Promise<void> {
-    // this.cachedTemplate = document.createElement('template')
-    // call them for executing getters decorators before routes will be unmount from DOM
-    // this.loadingTemplate
-    // this.errorTemplate
-
     this.router = this.parentElement?.closest(AuraRouter.is) as AuraRouter;
 
     if (!this.router) {
@@ -123,15 +100,13 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     }
 
     this.validateAttributes();
-    // todo Retry-механизмы для загрузки контента.
+
     if (this.preload) {
       try {
         await this.preloadContent();
-
       } catch (error) {
         console.error(error);
       }
-      // todo clean on attr change
     }
   }
 
@@ -144,36 +119,12 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     }
   }
 
-  get guards(): Record<AuraRouteGuards, string[]> {
-    const result = {} as Record<AuraRouteGuards, string[]>;
-    this.leave && (result.leave = this.leave);
-    this.enter && (result.enter = this.enter);
-    this.load && (result.load = this.load);
-    return result;
-  }
-
-  get preRendersEffects() {
-    return {};
-  }
-
-  get postRendersEffects() {
-    return {};
-  }
-
   disconnectedCallback(): void {
     this.renderSignal.cancel();
-    /*if (!this.keepAlive) {
-      this.textContent = '';
-    }
-    if (this.renderDebounce) {
-      clearTimeout(this.renderDebounce);
-    }*/
   }
 
   protected async preloadContent() {
     // todo
-    // if (this.componentSrc) return await loadAndRegisterComponent(this.componentSrc);
-    // if (this.htmlSrc) return await this.loadHtml();
   }
 
   public async render(routeInfo?: MatchedRouteInfo, parentSignal?: AbortSignal): Promise<void> {
@@ -181,14 +132,16 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       this.isActive = true;
       this.renderSignal.begin(parentSignal);
 
-      if (RouteMount.shouldSkipRender(this.keepAlive, this.mountType, this.mountResult)) return;
+      if (RouteMount.shouldSkipRender(this.keepAlive, this.mountType, {
+        activeHandle: this.activeHandle,
+        resolvedOutlet: this.resolvedOutlet,
+      })) return;
 
       if (this.loadingTemplate) {
         this.show(getTemplate(this.loadingTemplate), routeInfo);
       }
 
       const payload = await this.resolvePayload(routeInfo);
-
       if (this.renderSignal.aborted) return;
 
       if (this.mountType === 'content' && !payload) {
@@ -219,18 +172,6 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     return this.layout ? 'layout' : 'content';
   }
 
-  private get mountResult(): RouteMountResult {
-    return { activeHandle: this.activeHandle, resolvedOutlet: this.resolvedOutlet };
-  }
-
-  private mountContext(routeInfo?: MatchedRouteInfo) {
-    return {
-      host: this.router,
-      routeInfo,
-      signal: this.renderSignal.signal,
-    };
-  }
-
   /** Sync step: put ready payload into outlet. */
   private show(
     payload: Node | string,
@@ -238,8 +179,21 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     mountType: RouteMountType = this.mountType,
   ): void {
     if (!this.isActive) return;
-    const result = RouteMount.mount(this.mountContext(routeInfo), payload, mountType, this.mountResult);
-    this.applyMountResult(result);
+
+    const result = RouteMount.mount(
+      {
+        host: this.router,
+        routeInfo,
+        signal: this.renderSignal.signal,
+      },
+      payload,
+      mountType,
+      { activeHandle: this.activeHandle, resolvedOutlet: this.resolvedOutlet },
+    );
+
+    this.activeHandle = result.activeHandle;
+    this.resolvedOutlet = result.resolvedOutlet;
+
     if (mountType === 'layout' && !result.resolvedOutlet) {
       console.warn(
         `AURARoute layout "${this.layout}" (path: ${this.path}) has no <aura-outlet>`,
@@ -247,18 +201,12 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     }
   }
 
-  private applyMountResult(result: RouteMountResult): void {
-    this.activeHandle = result.activeHandle;
-    this.resolvedOutlet = result.resolvedOutlet;
-  }
-
   private async resolvePayload(routeInfo?: MatchedRouteInfo): Promise<Node | string | null> {
-    if (this.layout) return getTemplate(this.layout);
+    if (this.mountType === 'layout') return getTemplate(this.layout);
     return this.loadContent(routeInfo);
   }
 
   protected async loadContent(routeInfo?: MatchedRouteInfo): Promise<Node | string> {
-    // todo add static, cached loaders loader
     const loader = ContentLoaderRegistry.create(this.source, AURARoute.resolveContentLoaderService());
 
     try {
@@ -277,82 +225,48 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   private buildComponentOptions(routeInfo?: MatchedRouteInfo): Record<string, unknown> {
     if (!routeInfo) return {};
 
-    const options: Record<string, unknown> = {
+    return {
       url: routeInfo.url,
       routePath: routeInfo.routePath,
+      ...(routeInfo.params && { params: routeInfo.params }),
+      ...(routeInfo.query && { query: routeInfo.query }),
     };
-
-    if (routeInfo.params) options.params = routeInfo.params;
-    if (routeInfo.query) options.query = routeInfo.query;
-
-    return options;
   }
 
-  /** Abort in-flight content load for the current render. */
   cancelPendingRender(): void {
     this.renderSignal.cancel();
   }
 
-  public onEnter(_ctx: RouteLifecycleContext): void {
-  }
-
-  public onTransitionIn(_ctx: RouteLifecycleContext): void {
-  }
-
-  public onLoad(_ctx: RouteLifecycleContext): void {
-  }
-
-  public onEntered(_ctx: RouteLifecycleContext): void {
-  }
-
-  public onLeave(_ctx: RouteLifecycleContext): void {
-  }
-
-  public onTransitionOut(_ctx: RouteLifecycleContext): void {
-  }
+  public onEnter(_ctx: RouteLifecycleContext): void {}
+  public onTransitionIn(_ctx: RouteLifecycleContext): void {}
+  public onLoad(_ctx: RouteLifecycleContext): void {}
+  public onEntered(_ctx: RouteLifecycleContext): void {}
+  public onLeave(_ctx: RouteLifecycleContext): void {}
+  public onTransitionOut(_ctx: RouteLifecycleContext): void {}
 
   public onLeft(_ctx: RouteLifecycleContext): void {
     this.isActive = false;
     this.renderSignal.cancel();
     RouteMount.unmount(this.activeHandle, this.keepAlive);
     this.activeHandle = null;
-    if (this.layout) this.resolvedOutlet = null;
+    if (this.mountType === 'layout') this.resolvedOutlet = null;
   }
 
-  public onReenter(_ctx: RouteLifecycleContext): void {
-  }
-
-  public onError(_ctx: RouteErrorContext): void {
-  }
-
-  /*
-  \
-    protected async loadHtml(): Promise<string> {
-      if (this.cachedHtml) return this.cachedHtml;
-      this.renderSignal.begin();
-      const signal = this.renderSignal.signal;
-      this.cachedHtml = await loadContent(`${window.location.origin}/${this.htmlSrc}`, signal);
-      return this.cachedHtml;
-    }
-  */
+  public onReenter(_ctx: RouteLifecycleContext): void {}
+  public onError(_ctx: RouteErrorContext): void {}
 
   private handleRenderError(error: unknown): void {
     console.error(`Error rendering AURARoute (path: ${this.path}):`, error);
 
     if (!this.isActive) return;
 
-    let errorMessage = 'Error loading content';
-    let stackTrace = '';
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      stackTrace = error.stack || '';
-    }
+    const message = error instanceof Error ? error.message : 'Error loading content';
+    const stackTrace = error instanceof Error ? error.stack : '';
 
     this.show(
       `<div class="aura-route-error">
       <h2>Content Loading Error</h2>
-      <p>${errorMessage}</p>
+      <p>${message}</p>
       ${stackTrace ? `<pre class="error-stack">${stackTrace}</pre>` : ''}
     </div>`,
       undefined,

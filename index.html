@@ -29,6 +29,7 @@
 
 <aura-router error-template="error-template"
              loading-template="loading-template">
+  <aura-outlet></aura-outlet>
   <aura-route path="/a" source="html" enter="auth, analytics" data-content='<a href="/c" data-router-link>load template</a>'></aura-route>
   <aura-route path="/b" source="html-src" entered="analytics" data-content="index2.html" preload></aura-route>
   <aura-route path="/c" source="template" data-content="app"></aura-route>

@@ -7,6 +7,9 @@ import {
 } from '../../aura-content-loaders/core';
 import type { RouteInstance } from '../../aura-route-hooks/core';
 import type { MatchedRouteInfo, RouteErrorContext, RouteLifecycleContext } from '../../aura-route-hooks/core';
+import { AuraRouter } from '../../aura-router/core/aura-router';
+import type { ViewHandle } from '../../aura-outlet/core/aura-outlet';
+import { RouteViewController } from './view-controller';
 
 export interface AURARouteConfigureOptions {
   contentLoaderService?: ContentLoaderService;
@@ -87,6 +90,10 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
   private cachedHtml: string;
 
+  private router: AuraRouter;
+
+  private activeHandle: ViewHandle | null = null;
+
   // private cachedTemplate: HTMLTemplateElement
 
   private static resolveContentLoaderService(): ContentLoaderService {
@@ -99,6 +106,15 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     // call them for executing getters decorators before routes will be unmount from DOM
     // this.loadingTemplate
     // this.errorTemplate
+
+    this.router = this.parentElement?.closest(AuraRouter.is) as AuraRouter;
+
+    if(!this.router){
+      throw new DOMException(
+        'aura-route should be inside aura-router',
+        'NotFoundError',
+      );
+    }
 
     this.validateAttributes();
     // todo Retry-механизмы для загрузки контента.
@@ -160,8 +176,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       this.hidden = false;
       this.resetAbortController();
 
-      // do not make rerender with preserveState flag
-      if (this.preserveState && this.innerHTML) return;
+      if (this.preserveState && this.activeHandle) return;
 
       /*
             if (this.cachedContent) {
@@ -173,7 +188,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
       //todo add delay, to prevent blink effect
       if (this.loadingTemplate) {
-        this.setContent(getTemplate(this.loadingTemplate));
+        this.commitView(getTemplate(this.loadingTemplate), routeInfo);
       }
 
       const content = await this.getContent(routeInfo);
@@ -182,18 +197,17 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       if (this.abortController?.signal.aborted) return;
 
       if (!content) {
-        this.setContent('<div>No content to display</div>');
+        this.commitView('<div>No content to display</div>', routeInfo);
         return;
       }
 
-      //  this.cachedContent = content
-      this.setContent(content as DocumentFragment);
+      this.commitView(content, routeInfo);
     } catch (error) {
       if (this.abortController?.signal.aborted) return;
 
       if (this.errorTemplate) {
         try {
-          this.setContent(getTemplate(this.errorTemplate));
+          this.commitView(getTemplate(this.errorTemplate), routeInfo);
         } catch (templateError) {
           console.warn(`Failed to render errorTemplate for route "${this.path}":`, templateError);
           this.handleRenderError(error);
@@ -247,14 +261,17 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     this.abortController?.abort();
   }
 
-  protected setContent($content: Node | string) {
+  private commitView(content: Node | string, routeInfo?: MatchedRouteInfo): void {
     if (!this.isActive) return;
-    if ($content instanceof Node) {
-      this.innerHTML = '';
-      this.appendChild($content);
-    } else {
-      this.innerHTML = $content;
-    }
+
+    const handle = RouteViewController.commit({
+      router: this.router,
+      routeInfo,
+      content,
+      signal: this.abortController?.signal,
+    });
+
+    if (handle) this.activeHandle = handle;
   }
 
 
@@ -273,8 +290,8 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   public onLeft(_ctx: RouteLifecycleContext): void {
     this.isActive = false;
     this.abortController?.abort();
-    this.hidden = true;
-    if (!this.preserveState) this.textContent = '';
+    RouteViewController.teardown(this.activeHandle, this.preserveState);
+    this.activeHandle = null;
   }
 
   public onReenter(_ctx: RouteLifecycleContext): void {}
@@ -305,12 +322,12 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       stackTrace = error.stack || '';
     }
 
-    this.innerHTML = `
-    <div class="aura-route-error">
+    this.commitView(
+      `<div class="aura-route-error">
       <h2>Content Loading Error</h2>
       <p>${errorMessage}</p>
       ${stackTrace ? `<pre class="error-stack">${stackTrace}</pre>` : ''}
-    </div>
-  `;
+    </div>`,
+    );
   }
 }

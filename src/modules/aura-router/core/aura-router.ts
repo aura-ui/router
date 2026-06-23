@@ -23,6 +23,7 @@ import {
   type AuraRouterNavigationErrorEventDetail,
 } from './aura-router-navigation-error.types';
 import { dispatchCustomEvent } from '../../aura-utils/misc';
+import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -82,6 +83,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   get routes() {
     return this.querySelectorAll<AURARoute>(AURARoute.is);
+  }
+
+  get rootOutlet(): AuraOutlet {
+    return this.querySelector(AuraOutlet.is) as AuraOutlet;
+     // ?? this.#ensureDefaultOutlet();
   }
 
   connectedCallback(): void {

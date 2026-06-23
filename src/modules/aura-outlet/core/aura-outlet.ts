@@ -1,63 +1,69 @@
 import { AuraDom } from '../../aura-dom/core/aura-dom';
 import type { PatchSource } from '../../aura-dom/core/types';
 
-/** Outlet DOM update strategy. */
+/** `replace` — swap view root; `patch` — update inner content; `stage` — append next root for transitions. */
 export type OutletStrategy = 'replace' | 'patch' | 'stage';
 
-/** Attribute on auto-created view wrapper (`[data-aura-view-root]`). */
+/** Marks auto-created or adopted view wrapper elements. */
 export const AURA_VIEW_ROOT_ATTR = 'data-aura-view-root';
 
-/** Wrapper element for a mounted view (`[data-aura-view-root]`). */
+/** Mounted view wrapper (`[data-aura-view-root]`). */
 export type ViewRoot = HTMLElement;
 
-/**
- * Inner content for patch updates (not a view root wrapper).
- * `string` | `DocumentFragment` | non-`HTMLElement` `Node` (e.g. `Text`, `SVGElement`).
- */
+/** Inner content for `patch` (not a view root). */
 export type ViewContent = Exclude<PatchSource, HTMLElement>;
 
-/** `replace` / `stage`: mount payload; `patch`: inner content only. */
+/** Payload for `replace` / `stage`; inner content for `patch`. */
 export type OutletApplyInput = ViewRoot | ViewContent;
 
 export type OutletReplaceOptions = {
   strategy?: Extract<OutletStrategy, 'replace' | 'stage'>;
+  /** Route/view id; omitted → `data-aura-key` is cleared. */
   key?: string;
   signal?: AbortSignal;
 };
 
 export type OutletPatchOptions = {
   strategy: Extract<OutletStrategy, 'patch'>;
+  /** Route/view id; omitted → `data-aura-key` is cleared. */
   key?: string;
   signal?: AbortSignal;
 };
 
 export type OutletApplyOptions = OutletReplaceOptions | OutletPatchOptions;
 
-/** Programmatic handle to a mounted view subtree. */
+/** Handle to a mounted view; used for transitions and teardown. */
 export type ViewHandle = {
-  /** Animation / morph target. */
   root: ViewRoot;
   outlet: AuraOutlet;
+  /** Snapshot of `data-aura-key` at handle creation. */
   key?: string;
-  /** Remove root from DOM and clear its children. Idempotent. */
+  /** Remove from DOM and clear children. Idempotent. */
   destroy(): void;
-  /** Remove root from outlet; keep subtree for reattach. Idempotent. */
+  /** Remove from outlet; keep subtree. Idempotent. */
   detach(): ViewRoot;
 };
 
-/** DOM mount slot; executes replace / patch / stage strategies. */
+/**
+ * DOM slot for routed views.
+ * Strategies: `replace`, `patch`, `stage` + `commitStage` / `cancelStage`.
+ */
 export class AuraOutlet extends AuraDom {
   static is = 'aura-outlet';
 
   private activeRoot?: ViewRoot;
   private stagedRoot?: ViewRoot;
 
+  /** Clears internal refs; DOM children stay on the element. */
   disconnectedCallback(): void {
     this.stagedRoot = undefined;
     this.activeRoot = undefined;
   }
 
-  /** Mount or update view; `null` when `signal` is already aborted. */
+  /**
+   * Mount or update a view.
+   * @returns `null` if `signal` is already aborted.
+   */
   apply(content: ViewContent, opts: OutletPatchOptions): ViewHandle | null;
   apply(payload: OutletApplyInput, opts?: OutletReplaceOptions): ViewHandle | null;
   apply(payload: OutletApplyInput, opts: OutletApplyOptions = {}): ViewHandle | null {
@@ -79,10 +85,7 @@ export class AuraOutlet extends AuraDom {
     }
   }
 
-  /**
-   * After transition: drop other children, keep `root`.
-   * Active key is taken from `root` only (`data-aura-key`).
-   */
+  /** Finish transition: remove sibling roots, keep `root` (must be a direct child). */
   commitStage(root: ViewRoot): void {
     if (root.parentElement !== this) {
       throw new DOMException(
@@ -98,18 +101,19 @@ export class AuraOutlet extends AuraDom {
     this.stagedRoot = undefined;
   }
 
-  /** Drop staged root without changing the active view. */
+  /** Abort transition: remove staged root, keep active view. */
   cancelStage(): void {
     if (!this.stagedRoot) return;
     this.stagedRoot.remove();
     this.stagedRoot = undefined;
   }
 
-  /** Nested `<aura-outlet>` inside a layout view root. */
+  /** First nested `<aura-outlet>` in staged, active, or this element. */
   findNestedOutlet(root: ParentNode = this.stagedRoot ?? this.activeRoot ?? this): AuraOutlet | null {
     return root.querySelector(AuraOutlet.is) as AuraOutlet | null;
   }
 
+  /** Replace outlet content with a single view root. */
   private applyReplace(root: ViewRoot, key?: string): ViewHandle {
     this.stagedRoot = undefined;
     this.replaceChildren(root);
@@ -118,6 +122,7 @@ export class AuraOutlet extends AuraDom {
     return this.makeHandle(root);
   }
 
+  /** Update inner content of the active root (or bootstrap one). */
   private applyPatch(content: ViewContent, key?: string, signal?: AbortSignal): ViewHandle {
     if (!this.activeRoot) {
       const root = this.createViewRoot();
@@ -130,10 +135,7 @@ export class AuraOutlet extends AuraDom {
     return this.makeHandle(this.activeRoot);
   }
 
-  /**
-   * Append next root while keeping the current one visible until {@link commitStage}.
-   * Key is stored on the staged root only until commit.
-   */
+  /** Append next root; active root stays until `commitStage`. */
   private applyStage(payload: OutletApplyInput, key?: string): ViewHandle {
     const root = this.asRoot(payload);
     if (!this.activeRoot) {
@@ -147,8 +149,12 @@ export class AuraOutlet extends AuraDom {
     return this.makeHandle(root);
   }
 
+  /** Resolve mount payload to a view root (wrap content when needed). */
   private asRoot(payload: ViewRoot | ViewContent): ViewRoot {
     if (payload instanceof HTMLElement) {
+      if (!payload.hasAttribute(AURA_VIEW_ROOT_ATTR)) {
+        payload.setAttribute(AURA_VIEW_ROOT_ATTR, '');
+      }
       return payload;
     }
 
@@ -188,7 +194,6 @@ export class AuraOutlet extends AuraDom {
     };
   }
 
-  /** Set `data-aura-key` on `root`, or clear it when `key` is omitted. */
   private applyKey(root: ViewRoot, key?: string): void {
     if (key) this.setRootKey(root, key);
     else delete root.dataset.auraKey;
@@ -198,16 +203,7 @@ export class AuraOutlet extends AuraDom {
     root.dataset.auraKey = key;
   }
 
-  /**
-   * Keep `activeRoot` / `stagedRoot` in sync after a view root leaves the outlet
-   * (`destroy` / `detach` on a {@link ViewHandle}).
-   *
-   * - Staged root removed → clear `stagedRoot` only; active view unchanged.
-   * - Active root removed while a staged sibling exists → staged becomes active
-   *   (transition-out removed the old view; the incoming view is already in the DOM).
-   * - Active root removed with no staged sibling → clear `activeRoot`.
-   * - Unknown / already detached root → no-op.
-   */
+  /** Sync refs after handle teardown; promotes staged root if active was removed mid-transition. */
   private syncStateAfterRootRemoved(root: ViewRoot): void {
     if (this.stagedRoot === root) {
       this.stagedRoot = undefined;

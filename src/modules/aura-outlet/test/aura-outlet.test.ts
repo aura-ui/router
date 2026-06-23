@@ -242,6 +242,74 @@ describe('AuraOutlet', () => {
     expect(outlet.children).toHaveLength(1);
   });
 
+  it('apply replace wraps string content in view root', () => {
+    const outlet = createOutlet();
+    const handle = outlet.apply('<p>page</p>', { strategy: 'replace', key: '/p' });
+
+    expect(outlet.children).toHaveLength(1);
+    expect(handle?.root.hasAttribute(AURA_VIEW_ROOT_ATTR)).toBe(true);
+    expect(outlet.querySelector('p')?.textContent).toBe('page');
+  });
+
+  it('apply stage without active view falls back to replace', () => {
+    const outlet = createOutlet();
+    const handle = outlet.apply('<span>only</span>', { strategy: 'stage', key: '/only' });
+
+    expect(outlet.children).toHaveLength(1);
+    expect(handle?.key).toBe('/only');
+    expect(outlet.textContent).toBe('only');
+  });
+
+  it('cancelStage is no-op when nothing is staged', () => {
+    const outlet = createOutlet();
+    const root = createViewRoot();
+    root.textContent = 'stay';
+    outlet.apply(root, { strategy: 'replace', key: '/a' });
+
+    outlet.cancelStage();
+    expect(outlet.children).toHaveLength(1);
+    expect(outlet.textContent).toBe('stay');
+  });
+
+  it('destroy after detach still clears detached root children', () => {
+    const outlet = createOutlet();
+    const handle = outlet.apply('<span>x</span>', { strategy: 'replace' });
+    handle?.detach();
+    handle?.destroy();
+    expect(handle?.root.children).toHaveLength(0);
+  });
+
+  it('detach after destroy is no-op', () => {
+    const outlet = createOutlet();
+    const handle = outlet.apply('<span>x</span>', { strategy: 'replace' });
+    const root = handle?.root;
+    handle?.destroy();
+    expect(handle?.detach()).toBe(root);
+    expect(root?.children).toHaveLength(0);
+  });
+
+  it('findNestedOutlet returns null when no nested outlet', () => {
+    const outlet = createOutlet();
+    outlet.apply('<div>plain</div>', { strategy: 'replace' });
+    expect(outlet.findNestedOutlet()).toBeNull();
+  });
+
+  it('disconnected during stage resets state; replace mounts fresh view', () => {
+    const outlet = createOutlet();
+    outlet.apply(createViewRoot(), { strategy: 'replace', key: '/a' });
+    outlet.apply(createViewRoot(), { strategy: 'stage', key: '/b' });
+    expect(outlet.children).toHaveLength(2);
+
+    outlet.remove();
+    document.body.append(outlet);
+    expect(outlet.children).toHaveLength(2);
+
+    const handle = outlet.apply('<span>fresh</span>', { strategy: 'replace', key: '/c' });
+    expect(outlet.children).toHaveLength(1);
+    expect(handle?.key).toBe('/c');
+    expect(outlet.textContent).toBe('fresh');
+  });
+
   it('findNestedOutlet finds nested aura-outlet', () => {
     const outlet = createOutlet();
     const layoutRoot = document.createElement('div');

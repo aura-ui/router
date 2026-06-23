@@ -1,9 +1,15 @@
-import { AuraOutlet } from '../core/aura-outlet';
+import { AuraOutlet, AURA_VIEW_ROOT_ATTR } from '../core/aura-outlet';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
   document.body.append(outlet);
   return outlet;
+}
+
+function createViewRoot(): HTMLDivElement {
+  const root = document.createElement('div');
+  root.setAttribute(AURA_VIEW_ROOT_ATTR, '');
+  return root;
 }
 
 describe('AuraOutlet', () => {
@@ -17,10 +23,9 @@ describe('AuraOutlet', () => {
     document.body.replaceChildren();
   });
 
-  it('apply replace mounts aura-view root', () => {
+  it('apply replace mounts view root', () => {
     const outlet = createOutlet();
-    const root = document.createElement('div');
-    root.className = 'aura-view';
+    const root = createViewRoot();
     root.textContent = 'home';
 
     const handle = outlet.apply(root, { strategy: 'replace', key: '/' });
@@ -30,34 +35,33 @@ describe('AuraOutlet', () => {
     expect(outlet.textContent).toBe('home');
   });
 
-  it('apply patch updates content for same key', () => {
+  it('apply patch updates content in active root', () => {
     const outlet = createOutlet();
     outlet.apply('<span>old</span>', { strategy: 'replace', key: '/a' });
     const handle = outlet.apply('<span>new</span>', { strategy: 'patch', key: '/a' });
 
-    expect(handle?.root.className).toBe('aura-view');
+    expect(handle?.root.hasAttribute(AURA_VIEW_ROOT_ATTR)).toBe(true);
     expect(outlet.querySelector('span')?.textContent).toBe('new');
     expect(outlet.children).toHaveLength(1);
   });
 
-  it('apply patch with different key replaces root', () => {
+  it('apply patch reuses active root; route change uses replace upstream', () => {
     const outlet = createOutlet();
     const first = outlet.apply('<span>a</span>', { strategy: 'replace', key: '/a' });
     const second = outlet.apply('<span>b</span>', { strategy: 'patch', key: '/b' });
 
-    expect(second?.root).not.toBe(first?.root);
+    expect(second?.root).toBe(first?.root);
     expect(outlet.querySelector('span')?.textContent).toBe('b');
+    expect(second?.key).toBe('/b');
   });
 
   it('apply stage keeps two roots until commitStage', () => {
     const outlet = createOutlet();
-    const oldRoot = document.createElement('div');
-    oldRoot.className = 'aura-view';
+    const oldRoot = createViewRoot();
     oldRoot.textContent = 'old';
     const oldHandle = outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
 
-    const newRoot = document.createElement('div');
-    newRoot.className = 'aura-view';
+    const newRoot = createViewRoot();
     newRoot.textContent = 'new';
     const newHandle = outlet.apply(newRoot, { strategy: 'stage' });
 
@@ -65,11 +69,11 @@ describe('AuraOutlet', () => {
     outlet.commitStage(newRoot);
     expect(outlet.children).toHaveLength(1);
     expect(outlet.textContent).toBe('new');
-    oldHandle?.dispose();
-    newHandle?.dispose();
+    oldHandle?.destroy();
+    newHandle?.destroy();
   });
 
-  it('dispose clears root children, detach preserves them', () => {
+  it('destroy clears root children, detach preserves them', () => {
     const outlet = createOutlet();
     const handle = outlet.apply('<span>keep</span>', { strategy: 'replace', key: '/x' });
     const detached = handle?.detach();
@@ -78,7 +82,7 @@ describe('AuraOutlet', () => {
     expect(outlet.children).toHaveLength(0);
 
     const handle2 = outlet.apply('<i>x</i>', { strategy: 'replace', key: '/y' });
-    handle2?.dispose();
+    handle2?.destroy();
     expect(handle2?.root.children).toHaveLength(0);
   });
 

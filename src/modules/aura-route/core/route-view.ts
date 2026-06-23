@@ -1,20 +1,21 @@
 import type { AuraOutlet, ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 
-export type RenderMode = 'layout' | 'content';
+export type RouteMountType = 'layout' | 'content';
 
-/** DOM mount state for one route (handle + nested outlet after layout). */
-export type RouteMountState = {
+/** Result of mounting a route in an outlet (handle + nested outlet after layout). */
+export type RouteMountResult = {
   activeHandle: ViewHandle | null;
   resolvedOutlet: AuraOutlet | null;
 };
 
-export type RouteViewRouter = {
+/** Minimal router surface needed to locate the mount outlet. */
+export type RouteOutletHost = {
   readonly rootOutlet: AuraOutlet | null;
 };
 
 export type RouteMountContext = {
-  router: RouteViewRouter;
+  host: RouteOutletHost;
   routeInfo?: MatchedRouteInfo;
   signal?: AbortSignal;
   /** Layout-only: missing-outlet warning. */
@@ -26,35 +27,40 @@ export type RouteMountContext = {
  * Flat → root outlet; nested child → parent `resolvedOutlet`.
  */
 export class RouteView {
-  static modeFrom(layout?: string | null): RenderMode {
+  static getMountType(layout?: string | null): RouteMountType {
     return layout ? 'layout' : 'content';
   }
 
-  static shouldSkip(preserveState: boolean, mode: RenderMode, state: RouteMountState): boolean {
-    if (!preserveState) return false;
-    return mode === 'layout'
-      ? !!(state.activeHandle && state.resolvedOutlet)
-      : !!state.activeHandle;
+  /** keepAlive + existing mount → skip a full render pass. */
+  static shouldSkipRender(
+    keepAlive: boolean,
+    mountType: RouteMountType,
+    mountResult: RouteMountResult,
+  ): boolean {
+    if (!keepAlive) return false;
+    return mountType === 'layout'
+      ? !!(mountResult.activeHandle && mountResult.resolvedOutlet)
+      : !!mountResult.activeHandle;
   }
 
-  /** Put `payload` into resolved outlet; returns updated mount state. */
+  /** Put `content` into resolved outlet; returns updated mount result. */
   static mount(
     ctx: RouteMountContext,
-    payload: Node | string,
-    mode: RenderMode,
-    state: RouteMountState,
-  ): RouteMountState {
-    const outlet = RouteView.resolveOutlet(ctx.router, ctx.routeInfo);
-    const handle = outlet.apply(payload, {
+    content: Node | string,
+    mountType: RouteMountType,
+    mountResult: RouteMountResult,
+  ): RouteMountResult {
+    const outlet = RouteView.getMountOutlet(ctx.host, ctx.routeInfo);
+    const handle = outlet.apply(content, {
       strategy: 'replace',
       key: ctx.routeInfo?.routePath,
       signal: ctx.signal,
     });
 
-    if (!handle) return state;
+    if (!handle) return mountResult;
 
-    if (mode === 'content') {
-      return { activeHandle: handle, resolvedOutlet: state.resolvedOutlet };
+    if (mountType === 'content') {
+      return { activeHandle: handle, resolvedOutlet: mountResult.resolvedOutlet };
     }
 
     const nestedOutlet = outlet.findNestedOutlet(handle.root);
@@ -67,21 +73,22 @@ export class RouteView {
     return { activeHandle: handle, resolvedOutlet: nestedOutlet };
   }
 
-  static resolveOutlet(router: RouteViewRouter, routeInfo?: MatchedRouteInfo): AuraOutlet {
-    const parentOutlet = routeInfo?.node?.parent?.route.resolvedOutlet;
-    if (parentOutlet) {
-      return RouteView.assertAuraOutlet(parentOutlet);
+  static getMountOutlet(host: RouteOutletHost, routeInfo?: MatchedRouteInfo): AuraOutlet {
+    const parentResolvedOutlet = routeInfo?.node?.parent?.route.resolvedOutlet;
+    if (parentResolvedOutlet) {
+      return RouteView.ensureAuraOutlet(parentResolvedOutlet);
     }
-    return RouteView.assertAuraOutlet(router.rootOutlet);
+    return RouteView.ensureAuraOutlet(host.rootOutlet);
   }
 
-  static unmount(handle: ViewHandle | null | undefined, preserveState: boolean): void {
+  /** keepAlive → detach handle (reuse later); otherwise destroy. */
+  static unmount(handle: ViewHandle | null | undefined, keepAlive: boolean): void {
     if (!handle) return;
-    if (preserveState) handle.detach();
+    if (keepAlive) handle.detach();
     else handle.destroy();
   }
 
-  private static assertAuraOutlet(outlet: Element | null): AuraOutlet {
+  private static ensureAuraOutlet(outlet: Element | null): AuraOutlet {
     if (!outlet) {
       throw new DOMException(
         '<aura-router> must contain <aura-outlet>',

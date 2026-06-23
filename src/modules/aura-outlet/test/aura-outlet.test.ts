@@ -31,6 +31,7 @@ describe('AuraOutlet', () => {
     const handle = outlet.apply(root, { strategy: 'replace', key: '/' });
     expect(handle?.root).toBe(root);
     expect(handle?.key).toBe('/');
+    expect(handle?.root.dataset.auraKey).toBe('/');
     expect(outlet.children).toHaveLength(1);
     expect(outlet.textContent).toBe('home');
   });
@@ -63,9 +64,12 @@ describe('AuraOutlet', () => {
 
     const newRoot = createViewRoot();
     newRoot.textContent = 'new';
-    const newHandle = outlet.apply(newRoot, { strategy: 'stage' });
+    const newHandle = outlet.apply(newRoot, { strategy: 'stage', key: '/b' });
 
     expect(outlet.children).toHaveLength(2);
+    expect(oldHandle?.key).toBe('/a');
+    expect(newHandle?.key).toBe('/b');
+    expect(newRoot.dataset.auraKey).toBe('/b');
     outlet.commitStage(newRoot);
     expect(outlet.children).toHaveLength(1);
     expect(outlet.textContent).toBe('new');

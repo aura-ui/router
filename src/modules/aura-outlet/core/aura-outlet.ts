@@ -26,7 +26,7 @@ export type OutletApplyOptions = {
 
 /** Programmatic handle to a mounted view subtree. */
 export type ViewHandle = {
-  /** Patch / animation target. */
+  /** Animation / morph target. */
   root: ViewRoot;
   outlet: AuraOutlet;
   key?: string;
@@ -34,8 +34,6 @@ export type ViewHandle = {
   destroy(): void;
   /** Remove root from outlet; keep subtree for reattach. */
   detach(): ViewRoot;
-  /** Patch content inside `root`. */
-  patch(content: ViewContent): void;
 };
 
 /** DOM mount slot; executes replace / patch / stage strategies. */
@@ -58,7 +56,7 @@ export class AuraOutlet extends AuraDom {
       case 'patch':
         return this.applyPatch(payload, key, signal);
       case 'stage':
-        return this.applyStage(payload);
+        return this.applyStage(payload, key);
       case 'replace':
       default:
         return this.applyReplace(this.asRoot(payload), key);
@@ -72,7 +70,7 @@ export class AuraOutlet extends AuraDom {
     }
     this.activeRoot = root;
     this.stagedRoot = undefined;
-    this.activeKey = root.dataset.auraKey ?? this.activeKey;
+    this.activeKey = root.dataset.auraKey || this.activeKey;
   }
 
   /** Nested `<aura-outlet>` inside a layout view root. */
@@ -84,8 +82,8 @@ export class AuraOutlet extends AuraDom {
     this.stagedRoot = undefined;
     this.replaceChildren(root);
     this.activeRoot = root;
-    this.activeKey = key;
-    if (key) root.dataset.auraKey = key;
+    if (key) this.setViewKey(root, key);
+    else this.activeKey = undefined;
     return this.makeHandle(root);
   }
 
@@ -94,22 +92,23 @@ export class AuraOutlet extends AuraDom {
 
     if (!this.activeRoot) {
       const root = this.createViewRoot();
-      this.updateInner(root, content, { key, signal });
+      this.updateInner(root, content, { signal });
       return this.applyReplace(root, key);
     }
 
-    this.updateInner(this.activeRoot, content, { key, signal });
-    if (key) this.activeKey = key;
+    this.updateInner(this.activeRoot, content, { signal });
+    if (key) this.setViewKey(this.activeRoot, key);
     return this.makeHandle(this.activeRoot);
   }
 
-  private applyStage(payload: OutletApplyInput): ViewHandle {
+  private applyStage(payload: OutletApplyInput, key?: string): ViewHandle {
     const root = this.asRoot(payload);
     if (!this.activeRoot) {
-      return this.applyReplace(root);
+      return this.applyReplace(root, key);
     }
 
     if (this.stagedRoot) this.stagedRoot.remove();
+    if (key) this.setRootKey(root, key);
     this.stagedRoot = root;
     this.appendChild(root);
     return this.makeHandle(root);
@@ -135,7 +134,7 @@ export class AuraOutlet extends AuraDom {
     return {
       root,
       outlet: this,
-      key: this.activeKey,
+      key: root.dataset.auraKey || this.activeKey,
       destroy: () => {
         root.replaceChildren();
         root.remove();
@@ -151,9 +150,15 @@ export class AuraOutlet extends AuraDom {
         if (this.stagedRoot === root) this.stagedRoot = undefined;
         return root;
       },
-      patch: (content: ViewContent) => {
-        this.updateInner(root, content, { key: this.activeKey });
-      },
     };
+  }
+
+  private setRootKey(root: ViewRoot, key: string): void {
+    root.dataset.auraKey = key;
+  }
+
+  private setViewKey(root: ViewRoot, key: string): void {
+    this.activeKey = key;
+    this.setRootKey(root, key);
   }
 }

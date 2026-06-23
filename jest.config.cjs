@@ -2,7 +2,11 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  roots: ['<rootDir>/src/modules/aura-routing-engine/test'],
+  roots: [
+    '<rootDir>/src/modules/aura-routing-engine/test',
+    '<rootDir>/src/modules/aura-dom/test',
+    '<rootDir>/src/modules/aura-outlet/test',
+  ],
   testMatch: ['**/*.test.ts'],
   transform: {
     '^.+\\.ts$': [

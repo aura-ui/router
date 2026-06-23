@@ -18,8 +18,6 @@ export type RouteMountContext = {
   host: RouteOutletHost;
   routeInfo?: MatchedRouteInfo;
   signal?: AbortSignal;
-  /** Layout-only: missing-outlet warning. */
-  layoutMeta?: { templateId: string; path: string };
 };
 
 /**
@@ -27,10 +25,6 @@ export type RouteMountContext = {
  * Flat → root outlet; nested child → parent `resolvedOutlet`.
  */
 export class RouteView {
-  static getMountType(layout?: string | null): RouteMountType {
-    return layout ? 'layout' : 'content';
-  }
-
   /** keepAlive + existing mount → skip a full render pass. */
   static shouldSkipRender(
     keepAlive: boolean,
@@ -64,11 +58,6 @@ export class RouteView {
     }
 
     const nestedOutlet = outlet.findNestedOutlet(handle.root);
-    if (!nestedOutlet && ctx.layoutMeta) {
-      console.warn(
-        `AURARoute layout "${ctx.layoutMeta.templateId}" (path: ${ctx.layoutMeta.path}) has no <aura-outlet>`,
-      );
-    }
 
     return { activeHandle: handle, resolvedOutlet: nestedOutlet };
   }

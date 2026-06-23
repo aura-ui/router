@@ -10,7 +10,7 @@ import type { MatchedRouteInfo, RouteErrorContext, RouteLifecycleContext } from 
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import type { AuraOutlet, ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import { RouteRenderSignal } from './render-signal';
-import { RouteView, type RenderMode, type RouteMountState } from './route-view';
+import { RouteView, type RouteMountType, type RouteMountResult } from './route-view';
 
 export interface AURARouteConfigureOptions {
   contentLoaderService?: ContentLoaderService;
@@ -26,7 +26,7 @@ export interface AURARouteInterface {
   loadingTemplate?: string;
   errorTemplate?: string;
   preload?: boolean;
-  preserveState?: boolean;
+  keepAlive?: boolean;
   cache?: boolean;
 }
 
@@ -42,7 +42,7 @@ export interface AuraRouteInfo {
 }
 
 // AURARoute.setDefaultOptions({
-//   reserveState: true, // значения по умолчанию для всех маршрутов
+//   keepAlive: true, // значения по умолчанию для всех маршрутов
 // })
 
 let sharedContentLoaderService: ContentLoaderService | undefined;
@@ -79,7 +79,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
 
   @boolAttr({ readonly: true }) preload: boolean;
-  @boolAttr({ readonly: true }) preserveState: boolean;
+  @boolAttr({ readonly: true }) keepAlive: boolean;
   @boolAttr({ readonly: true }) restoreScroll: boolean;
 
   // cache-timeout
@@ -162,7 +162,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
   disconnectedCallback(): void {
     this.renderSignal.cancel();
-    /*if (!this.preserveState) {
+    /*if (!this.keepAlive) {
       this.textContent = '';
     }
     if (this.renderDebounce) {
@@ -177,28 +177,26 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   }
 
   public async render(routeInfo?: MatchedRouteInfo, parentSignal?: AbortSignal): Promise<void> {
-    const mode = RouteView.modeFrom(this.layout);
-
     try {
       this.isActive = true;
       this.renderSignal.begin(parentSignal);
 
-      if (RouteView.shouldSkip(this.preserveState, mode, this.mountState)) return;
+      if (RouteView.shouldSkipRender(this.keepAlive, this.mountType, this.mountResult)) return;
 
       if (this.loadingTemplate) {
-        this.show(getTemplate(this.loadingTemplate), routeInfo, mode);
+        this.show(getTemplate(this.loadingTemplate), routeInfo);
       }
 
-      const payload = await this.resolvePayload(mode, routeInfo);
+      const payload = await this.resolvePayload(routeInfo);
 
       if (this.renderSignal.aborted) return;
 
-      if (mode === 'content' && !payload) {
-        this.show('<div>No content to display</div>', routeInfo, mode);
+      if (this.mountType === 'content' && !payload) {
+        this.show('<div>No content to display</div>', routeInfo);
         return;
       }
 
-      this.show(payload!, routeInfo, mode);
+      this.show(payload!, routeInfo);
     } catch (error) {
       if (this.renderSignal.aborted) return;
 
@@ -217,34 +215,45 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     }
   }
 
-  private get mountState(): RouteMountState {
+  private get mountType(): RouteMountType {
+    return this.layout ? 'layout' : 'content';
+  }
+
+  private get mountResult(): RouteMountResult {
     return { activeHandle: this.activeHandle, resolvedOutlet: this.resolvedOutlet };
   }
 
   private mountContext(routeInfo?: MatchedRouteInfo) {
     return {
-      router: this.router,
+      host: this.router,
       routeInfo,
       signal: this.renderSignal.signal,
-      layoutMeta: this.layout ? { templateId: this.layout, path: this.path } : undefined,
     };
   }
 
   /** Sync step: put ready payload into outlet. */
-  private show(payload: Node | string, routeInfo: MatchedRouteInfo | undefined, mode: RenderMode): void {
+  private show(
+    payload: Node | string,
+    routeInfo?: MatchedRouteInfo,
+    mountType: RouteMountType = this.mountType,
+  ): void {
     if (!this.isActive) return;
-    this.assignMountState(
-      RouteView.mount(this.mountContext(routeInfo), payload, mode, this.mountState),
-    );
+    const result = RouteView.mount(this.mountContext(routeInfo), payload, mountType, this.mountResult);
+    this.applyMountResult(result);
+    if (mountType === 'layout' && !result.resolvedOutlet) {
+      console.warn(
+        `AURARoute layout "${this.layout}" (path: ${this.path}) has no <aura-outlet>`,
+      );
+    }
   }
 
-  private assignMountState(state: RouteMountState): void {
-    this.activeHandle = state.activeHandle;
-    this.resolvedOutlet = state.resolvedOutlet;
+  private applyMountResult(result: RouteMountResult): void {
+    this.activeHandle = result.activeHandle;
+    this.resolvedOutlet = result.resolvedOutlet;
   }
 
-  private async resolvePayload(mode: RenderMode, routeInfo?: MatchedRouteInfo): Promise<Node | string | null> {
-    if (mode === 'layout') return getTemplate(this.layout);
+  private async resolvePayload(routeInfo?: MatchedRouteInfo): Promise<Node | string | null> {
+    if (this.layout) return getTemplate(this.layout);
     return this.loadContent(routeInfo);
   }
 
@@ -305,7 +314,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   public onLeft(_ctx: RouteLifecycleContext): void {
     this.isActive = false;
     this.renderSignal.cancel();
-    RouteView.unmount(this.activeHandle, this.preserveState);
+    RouteView.unmount(this.activeHandle, this.keepAlive);
     this.activeHandle = null;
     if (this.layout) this.resolvedOutlet = null;
   }

@@ -55,7 +55,7 @@ describe('AuraOutlet', () => {
     expect(outlet.children).toHaveLength(1);
   });
 
-  it('apply patch reuses active root; route change uses replace upstream', () => {
+  it('apply patch reuses active root; route change passes key explicitly', () => {
     const outlet = createOutlet();
     const first = outlet.apply('<span>a</span>', { strategy: 'replace', key: '/a' });
     const second = outlet.apply('<span>b</span>', { strategy: 'patch', key: '/b' });
@@ -63,6 +63,15 @@ describe('AuraOutlet', () => {
     expect(second?.root).toBe(first?.root);
     expect(outlet.querySelector('span')?.textContent).toBe('b');
     expect(second?.key).toBe('/b');
+  });
+
+  it('apply patch without key clears data-aura-key', () => {
+    const outlet = createOutlet();
+    outlet.apply('<span>a</span>', { strategy: 'replace', key: '/a' });
+
+    const handle = outlet.apply('<span>b</span>', { strategy: 'patch' });
+    expect(handle?.key).toBeUndefined();
+    expect(handle?.root.dataset.auraKey).toBeUndefined();
   });
 
   it('apply stage keeps two roots until commitStage', () => {
@@ -105,6 +114,35 @@ describe('AuraOutlet', () => {
 
     const stagedHandle = outlet.apply(createViewRoot(), { strategy: 'stage' });
     expect(stagedHandle?.key).toBeUndefined();
+  });
+
+  it('stage without key clears stale data-aura-key on explicit root', () => {
+    const outlet = createOutlet();
+    outlet.apply(createViewRoot(), { strategy: 'replace', key: '/a' });
+
+    const stagedRoot = createViewRoot();
+    stagedRoot.dataset.auraKey = '/stale';
+    const handle = outlet.apply(stagedRoot, { strategy: 'stage' });
+
+    expect(stagedRoot.dataset.auraKey).toBeUndefined();
+    expect(handle?.key).toBeUndefined();
+  });
+
+  it('destroying active handle during stage promotes staged view', () => {
+    const outlet = createOutlet();
+    const oldRoot = createViewRoot();
+    oldRoot.textContent = 'old';
+    const oldHandle = outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
+
+    const newRoot = createViewRoot();
+    newRoot.textContent = 'new';
+    outlet.apply(newRoot, { strategy: 'stage', key: '/b' });
+    oldHandle?.destroy();
+
+    const handle = outlet.apply('<span>patched</span>', { strategy: 'patch', key: '/b' });
+    expect(handle?.root).toBe(newRoot);
+    expect(newRoot.querySelector('span')?.textContent).toBe('patched');
+    expect(outlet.children).toHaveLength(1);
   });
 
   it('replace without key clears data-aura-key on explicit root', () => {
@@ -212,5 +250,143 @@ describe('AuraOutlet', () => {
 
     outlet.apply(layoutRoot, { strategy: 'replace', key: '/layout' });
     expect(outlet.findNestedOutlet()).toBe(nested);
+  });
+
+  describe('transitions', () => {
+    it('detach active during stage promotes staged view', () => {
+      const outlet = createOutlet();
+      const oldRoot = createViewRoot();
+      oldRoot.textContent = 'old';
+      const oldHandle = outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
+
+      const newRoot = createViewRoot();
+      newRoot.textContent = 'new';
+      outlet.apply(newRoot, { strategy: 'stage', key: '/b' });
+
+      const detached = oldHandle?.detach();
+      expect(detached).toBe(oldRoot);
+      expect(outlet.children).toHaveLength(1);
+      expect(outlet.textContent).toBe('new');
+
+      const handle = outlet.apply('<i>ok</i>', { strategy: 'patch' });
+      expect(handle?.root).toBe(newRoot);
+      expect(newRoot.querySelector('i')?.textContent).toBe('ok');
+    });
+
+    it('destroy staged handle during stage keeps active view', () => {
+      const outlet = createOutlet();
+      const oldRoot = createViewRoot();
+      oldRoot.textContent = 'old';
+      outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
+
+      const newRoot = createViewRoot();
+      newRoot.textContent = 'new';
+      const stagedHandle = outlet.apply(newRoot, { strategy: 'stage', key: '/b' });
+      stagedHandle?.destroy();
+
+      expect(outlet.children).toHaveLength(1);
+      expect(outlet.textContent).toBe('old');
+      expect(oldRoot.dataset.auraKey).toBe('/a');
+
+      const handle = outlet.apply('<em>x</em>', { strategy: 'patch', key: '/a' });
+      expect(handle?.root).toBe(oldRoot);
+      expect(oldRoot.querySelector('em')?.textContent).toBe('x');
+    });
+
+    it('detach staged handle during stage keeps active view', () => {
+      const outlet = createOutlet();
+      const oldRoot = createViewRoot();
+      oldRoot.textContent = 'old';
+      outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
+
+      const newRoot = createViewRoot();
+      newRoot.textContent = 'new';
+      const stagedHandle = outlet.apply(newRoot, { strategy: 'stage', key: '/b' });
+      const detached = stagedHandle?.detach();
+
+      expect(detached).toBe(newRoot);
+      expect(outlet.children).toHaveLength(1);
+      expect(outlet.textContent).toBe('old');
+    });
+
+    it('replace during stage drops staged view and mounts new root', () => {
+      const outlet = createOutlet();
+      outlet.apply(createViewRoot(), { strategy: 'replace', key: '/a' });
+      const stagedRoot = createViewRoot();
+      stagedRoot.textContent = 'staged';
+      outlet.apply(stagedRoot, { strategy: 'stage', key: '/b' });
+
+      const handle = outlet.apply('<b>final</b>', { strategy: 'replace', key: '/c' });
+      expect(outlet.children).toHaveLength(1);
+      expect(outlet.textContent).toBe('final');
+      expect(handle?.key).toBe('/c');
+    });
+
+    it('patch during stage updates active root, not staged', () => {
+      const outlet = createOutlet();
+      const oldRoot = createViewRoot();
+      oldRoot.textContent = 'old';
+      outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
+
+      const newRoot = createViewRoot();
+      newRoot.textContent = 'new';
+      outlet.apply(newRoot, { strategy: 'stage', key: '/b' });
+
+      outlet.apply('<mark>patch</mark>', { strategy: 'patch' });
+      expect(oldRoot.querySelector('mark')?.textContent).toBe('patch');
+      expect(newRoot.textContent).toBe('new');
+      expect(outlet.children).toHaveLength(2);
+    });
+
+    it('commitStage on active root removes staged sibling', () => {
+      const outlet = createOutlet();
+      const oldRoot = createViewRoot();
+      oldRoot.textContent = 'old';
+      outlet.apply(oldRoot, { strategy: 'replace', key: '/a' });
+
+      const newRoot = createViewRoot();
+      newRoot.textContent = 'new';
+      outlet.apply(newRoot, { strategy: 'stage', key: '/b' });
+
+      outlet.commitStage(oldRoot);
+      expect(outlet.children).toHaveLength(1);
+      expect(outlet.textContent).toBe('old');
+      expect(oldRoot.dataset.auraKey).toBe('/a');
+    });
+
+    it('re-stage replaces previous staged root', () => {
+      const outlet = createOutlet();
+      const activeRoot = createViewRoot();
+      activeRoot.textContent = 'active';
+      outlet.apply(activeRoot, { strategy: 'replace', key: '/a' });
+
+      const firstStaged = createViewRoot();
+      firstStaged.textContent = 'first';
+      outlet.apply(firstStaged, { strategy: 'stage', key: '/b' });
+
+      const secondStaged = createViewRoot();
+      secondStaged.textContent = 'second';
+      outlet.apply(secondStaged, { strategy: 'stage', key: '/c' });
+
+      expect(outlet.children).toHaveLength(2);
+      expect(outlet.textContent).toBe('activesecond');
+      expect(firstStaged.isConnected).toBe(false);
+    });
+
+    it('findNestedOutlet prefers staged layout during transition', () => {
+      const outlet = createOutlet();
+      const oldLayout = document.createElement('div');
+      const oldNested = document.createElement(AuraOutlet.is);
+      oldLayout.append(oldNested);
+      outlet.apply(oldLayout, { strategy: 'replace', key: '/a' });
+
+      const newLayout = document.createElement('div');
+      const newNested = document.createElement(AuraOutlet.is);
+      newLayout.append(newNested);
+      outlet.apply(newLayout, { strategy: 'stage', key: '/b' });
+
+      expect(outlet.findNestedOutlet()).toBe(newNested);
+      expect(outlet.findNestedOutlet(oldLayout)).toBe(oldNested);
+    });
   });
 });

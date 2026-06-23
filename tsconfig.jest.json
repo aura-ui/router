@@ -5,5 +5,10 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["src/modules/aura-routing-engine/test/**/*.ts"]
+  "include": [
+    "src/modules/aura-routing-engine/test/**/*.ts",
+    "src/modules/aura-dom/test/**/*.ts",
+    "src/modules/aura-outlet/test/**/*.ts"
+  ],
+  "exclude": []
 }

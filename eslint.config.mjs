@@ -40,4 +40,13 @@ export default [
       'unicorn/prefer-node-protocol': 'error',
     },
   },
+  {
+    files: ['**/test/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.jest.json',
+        projectService: false,
+      },
+    },
+  },
 ]

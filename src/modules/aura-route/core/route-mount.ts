@@ -24,7 +24,7 @@ export type RouteMountContext = {
  * Outlet mount/unmount for `<aura-route>`.
  * Flat → root outlet; nested child → parent `resolvedOutlet`.
  */
-export class RouteView {
+export class RouteMount {
   /** keepAlive + existing mount → skip a full render pass. */
   static shouldSkipRender(
     keepAlive: boolean,
@@ -44,7 +44,7 @@ export class RouteView {
     mountType: RouteMountType,
     mountResult: RouteMountResult,
   ): RouteMountResult {
-    const outlet = RouteView.getMountOutlet(ctx.host, ctx.routeInfo);
+    const outlet = RouteMount.getMountOutlet(ctx.host, ctx.routeInfo);
     const handle = outlet.apply(content, {
       strategy: 'replace',
       key: ctx.routeInfo?.routePath,
@@ -62,12 +62,9 @@ export class RouteView {
     return { activeHandle: handle, resolvedOutlet: nestedOutlet };
   }
 
-  static getMountOutlet(host: RouteOutletHost, routeInfo?: MatchedRouteInfo): AuraOutlet {
-    const parentResolvedOutlet = routeInfo?.node?.parent?.route.resolvedOutlet;
-    if (parentResolvedOutlet) {
-      return RouteView.ensureAuraOutlet(parentResolvedOutlet);
-    }
-    return RouteView.ensureAuraOutlet(host.rootOutlet);
+  private static getMountOutlet(host: RouteOutletHost, routeInfo?: MatchedRouteInfo): AuraOutlet {
+    const routeOutlet = routeInfo?.node?.parent?.route.resolvedOutlet;
+    return RouteMount.ensureAuraOutlet( routeOutlet || host.rootOutlet);
   }
 
   /** keepAlive → detach handle (reuse later); otherwise destroy. */

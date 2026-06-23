@@ -10,7 +10,7 @@ import type { MatchedRouteInfo, RouteErrorContext, RouteLifecycleContext } from 
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import type { AuraOutlet, ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import { RouteRenderSignal } from './render-signal';
-import { RouteView, type RouteMountType, type RouteMountResult } from './route-view';
+import { RouteMount, type RouteMountType, type RouteMountResult } from './route-mount';
 
 export interface AURARouteConfigureOptions {
   contentLoaderService?: ContentLoaderService;
@@ -87,11 +87,11 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
 
   private isActive: boolean;
 
-  private cachedContent: Node | string;
+ // private cachedContent: Node | string;
 
   private readonly renderSignal = new RouteRenderSignal();
 
-  private cachedHtml: string;
+ // private cachedHtml: string;
 
   private router: AuraRouter;
 
@@ -181,7 +181,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       this.isActive = true;
       this.renderSignal.begin(parentSignal);
 
-      if (RouteView.shouldSkipRender(this.keepAlive, this.mountType, this.mountResult)) return;
+      if (RouteMount.shouldSkipRender(this.keepAlive, this.mountType, this.mountResult)) return;
 
       if (this.loadingTemplate) {
         this.show(getTemplate(this.loadingTemplate), routeInfo);
@@ -238,7 +238,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
     mountType: RouteMountType = this.mountType,
   ): void {
     if (!this.isActive) return;
-    const result = RouteView.mount(this.mountContext(routeInfo), payload, mountType, this.mountResult);
+    const result = RouteMount.mount(this.mountContext(routeInfo), payload, mountType, this.mountResult);
     this.applyMountResult(result);
     if (mountType === 'layout' && !result.resolvedOutlet) {
       console.warn(
@@ -314,7 +314,7 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
   public onLeft(_ctx: RouteLifecycleContext): void {
     this.isActive = false;
     this.renderSignal.cancel();
-    RouteView.unmount(this.activeHandle, this.keepAlive);
+    RouteMount.unmount(this.activeHandle, this.keepAlive);
     this.activeHandle = null;
     if (this.layout) this.resolvedOutlet = null;
   }

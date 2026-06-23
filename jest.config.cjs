@@ -6,6 +6,7 @@ module.exports = {
     '<rootDir>/src/modules/aura-routing-engine/test',
     '<rootDir>/src/modules/aura-dom/test',
     '<rootDir>/src/modules/aura-outlet/test',
+    '<rootDir>/src/modules/aura-route/test',
   ],
   testMatch: ['**/*.test.ts'],
   transform: {

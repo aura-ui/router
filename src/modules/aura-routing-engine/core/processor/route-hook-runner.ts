@@ -27,7 +27,7 @@ export class RouteHookRunner {
   /**
    * View commit: `route.render()` for the activate branch (not a lifecycle hook).
    * @param matchedRoute - match info passed to `route.render()`
-   * @param job - navigation job; abort cancels in-flight render via `cancelPendingRender`
+   * @param job - navigation job; `job.signal` is passed into `route.render()` for cancellation
    */
   static async runViewCommit(
     matchedRoute: MatchedRouteInfo,
@@ -35,15 +35,7 @@ export class RouteHookRunner {
   ): Promise<ViewCommitResult> {
     if (job.aborted) return 'aborted';
 
-    const { route } = matchedRoute;
-    const cancelRenderOnAbort = () => route.cancelPendingRender();
-    job.signal.addEventListener('abort', cancelRenderOnAbort, { once: true });
-
-    try {
-      await route.render(matchedRoute);
-    } finally {
-      job.signal.removeEventListener('abort', cancelRenderOnAbort);
-    }
+    await matchedRoute.route.render(matchedRoute, job.signal);
 
     return job.aborted ? 'aborted' : 'ok';
   }

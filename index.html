@@ -14,7 +14,8 @@
   <a href="/c" data-router-link>link template</a>
   <a href="/d" data-router-link>link component-src 1 (error)</a>
   <a href="/f" data-router-link>link component-src 2</a>
-  <a href="/users" data-router-link>Users (html-src)</a>
+  <a href="/users" data-router-link>Users layout</a>
+  <a href="/users/about" data-router-link>Users / about</a>
   <a href="/about.html">About</a>
   <a href="/custom-loader" data-router-link>Custom Loader</a>
 </nav>
@@ -26,6 +27,10 @@
   <h1>404</h1>
   <p>URL: <span data-not-found-url></span></p>
 </template>
+<template id="users-layout">
+  <nav style="padding:8px;background:#eee">Users section</nav>
+  <aura-outlet></aura-outlet>
+</template>
 
 <aura-router error-template="error-template"
              loading-template="loading-template">
@@ -35,7 +40,7 @@
   <aura-route path="/c" source="template" data-content="app"></aura-route>
   <aura-route path="/d" source="component-src" data-content='examples/demo/components/test-element1'></aura-route>
   <aura-route path="/f" source="component-src" data-content='examples/demo/components/test-element' preserve-state></aura-route>
-  <aura-route path="/users" source="html-src" data-content="user.html">
+  <aura-route path="/users" layout="users-layout">
     <aura-route path="about" source="html-src" data-content="user.html"></aura-route>
   </aura-route>
   <aura-route path="/custom-loader" source="custom-loader" data-content="user.html"></aura-route>

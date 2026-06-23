@@ -34,10 +34,14 @@ export type OutletApplyOptions = OutletReplaceOptions | OutletPatchOptions;
 
 /** Handle to a mounted view; used for transitions and teardown. */
 export type ViewHandle = {
-  root: ViewRoot;
-  outlet: AuraOutlet;
+  /** DOM wrapper mounted inside the outlet (`[data-aura-view-root]`). */
+  viewRoot: ViewRoot;
+  /** Outlet that owns this view. */
+  mountOutlet: AuraOutlet;
   /** Snapshot of `data-aura-key` at handle creation. */
   key?: string;
+  /** First nested `<aura-outlet>` inside this view root (layout shell). */
+  findChildOutlet(): AuraOutlet | null;
   /** Remove from DOM and clear children. Idempotent. */
   destroy(): void;
   /** Remove from outlet; keep subtree. Idempotent. */
@@ -169,27 +173,28 @@ export class AuraOutlet extends AuraDom {
     return root;
   }
 
-  private makeHandle(root: ViewRoot): ViewHandle {
+  private makeHandle(viewRoot: ViewRoot): ViewHandle {
     let destroyed = false;
     let detached = false;
 
     return {
-      root,
-      outlet: this,
-      key: root.dataset.auraKey || undefined,
+      viewRoot,
+      mountOutlet: this,
+      key: viewRoot.dataset.auraKey || undefined,
+      findChildOutlet: () => this.findNestedOutlet(viewRoot),
       destroy: () => {
         if (destroyed) return;
         destroyed = true;
-        root.replaceChildren();
-        root.remove();
-        this.syncStateAfterRootRemoved(root);
+        viewRoot.replaceChildren();
+        viewRoot.remove();
+        this.syncStateAfterRootRemoved(viewRoot);
       },
       detach: () => {
-        if (detached || destroyed) return root;
+        if (detached || destroyed) return viewRoot;
         detached = true;
-        root.remove();
-        this.syncStateAfterRootRemoved(root);
-        return root;
+        viewRoot.remove();
+        this.syncStateAfterRootRemoved(viewRoot);
+        return viewRoot;
       },
     };
   }

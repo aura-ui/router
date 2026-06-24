@@ -1,4 +1,4 @@
-export type { AURARouteContentType, BuiltInContentType, LoaderOptions } from './core/types';
+export type { AuraRouteContentType, BuiltInContentType, LoaderOptions } from './core/types';
 export type { BaseLoaderInterface } from './core/base-loader';
 export { BaseLoader } from './core/base-loader';
 export { ContentLoaderService } from './core/content-loader-service';

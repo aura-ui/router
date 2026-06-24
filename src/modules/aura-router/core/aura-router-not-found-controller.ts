@@ -93,7 +93,7 @@ export class AuraRouterNotFoundController {
     outlet.replaceChildren(document.createTextNode(`Page not found: ${url}`));
   }
 
-  /** Только fallback outlet — `[data-not-found-url]` не часть AURARoute. */
+  /** Только fallback outlet — `[data-not-found-url]` не часть AuraRoute. */
   private applyNotFoundUrl(root: ParentNode, url: string): void {
     root.querySelectorAll('[data-not-found-url]').forEach((el) => {
       el.textContent = url;

@@ -1,4 +1,4 @@
-import { AURARoute } from '../../../aura-route/core/aura-route';
+import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { resolveFullPath } from './resolve-full-path';
 import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
 
@@ -6,7 +6,7 @@ import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
  * Собирает in-memory дерево из списка `<aura-route>` (вложенных или flat).
  *
  * Единого synthetic root-node нет — верхний уровень это forest: массив `roots` (top-level
- * `RouteNode` без `<aura-route>`-родителя). Каждый `AURARoute` превращается в `RouteNode`
+ * `RouteNode` без `<aura-route>`-родителя). Каждый `AuraRoute` превращается в `RouteNode`
  * (обогащённая обёртка: `fullPath`, `depth`, `branch`, `parent`/`children`).
  *
  * В `rootNodes` попадают только корни (`.map` по `rootRoutes`), но все узлы создаются:
@@ -15,7 +15,7 @@ import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
  *
  * @example [home, settings→profile] → roots: [homeNode, settingsNode], settingsNode.children: [profileNode]
  */
-export function buildRouteTree(routes: AURARoute[]): RouteTreeSnapshot {
+export function buildRouteTree(routes: AuraRoute[]): RouteTreeSnapshot {
   const knownRoutes = new Set(routes);
   const { rootRoutes, childRoutesByParent } = buildParentChildHierarchy(routes, knownRoutes);
   const nodesByFullPath = new Map<string, RouteNode>();
@@ -51,11 +51,11 @@ export function collectRouteSubtreeNodes(node: RouteNode): RouteNode[] {
  * @example settings.parent=null; profile.parent=settings
  */
 function buildParentChildHierarchy(
-  routes: AURARoute[],
-  knownRoutes: Set<AURARoute>,
-): { rootRoutes: AURARoute[]; childRoutesByParent: Map<AURARoute, AURARoute[]> } {
-  const childRoutesByParent = new Map<AURARoute, AURARoute[]>();
-  const rootRoutes: AURARoute[] = [];
+  routes: AuraRoute[],
+  knownRoutes: Set<AuraRoute>,
+): { rootRoutes: AuraRoute[]; childRoutesByParent: Map<AuraRoute, AuraRoute[]> } {
+  const childRoutesByParent = new Map<AuraRoute, AuraRoute[]>();
+  const rootRoutes: AuraRoute[] = [];
 
   for (const route of routes) {
     const parentRoute = findParentRoute(route, knownRoutes);
@@ -78,11 +78,11 @@ function buildParentChildHierarchy(
  * Ближайший `<aura-route>`-родитель из knownRoutes (не router).
  * @example profile внутри settings → settings; top-level → null
  */
-function findParentRoute(route: AURARoute, knownRoutes: Set<AURARoute>): AURARoute | null {
+function findParentRoute(route: AuraRoute, knownRoutes: Set<AuraRoute>): AuraRoute | null {
   const closestMethod = route.parentElement?.closest;
   if (typeof closestMethod !== 'function') return null;
 
-  const parentRoute = route.parentElement?.closest(AURARoute.is) as AURARoute | null;
+  const parentRoute = route.parentElement?.closest(AuraRoute.is) as AuraRoute | null;
   return parentRoute && knownRoutes.has(parentRoute) ? parentRoute : null;
 }
 
@@ -101,18 +101,18 @@ function findParentRoute(route: AURARoute, knownRoutes: Set<AURARoute>): AURARou
  * на листьях (map пуст → `querySelectorAll` → `[]`) — это ожидаемо и безопасно.
  */
 function getDirectChildRoutes(
-  parentRoute: AURARoute,
-  childRoutesByParent: Map<AURARoute, AURARoute[]>,
-): AURARoute[] {
+  parentRoute: AuraRoute,
+  childRoutesByParent: Map<AuraRoute, AuraRoute[]>,
+): AuraRoute[] {
   const siblings = childRoutesByParent.get(parentRoute);
   if (siblings?.length) return siblings;
   return queryDirectChildRoutes(parentRoute);
 }
 
 /** DOM fallback: `:scope > aura-route`, когда дети не были переданы во flat `routes[]`. */
-function queryDirectChildRoutes(parentRoute: AURARoute): AURARoute[] {
+function queryDirectChildRoutes(parentRoute: AuraRoute): AuraRoute[] {
   if (typeof parentRoute.querySelectorAll !== 'function') return [];
-  return Array.from(parentRoute.querySelectorAll<AURARoute>(`:scope > ${AURARoute.is}`));
+  return Array.from(parentRoute.querySelectorAll<AuraRoute>(`:scope > ${AuraRoute.is}`));
 }
 
 /**
@@ -120,12 +120,12 @@ function queryDirectChildRoutes(parentRoute: AURARoute): AURARoute[] {
  * @example settings + child profile → fullPath `/settings/profile`, branch [settings, profile]
  */
 function buildRouteNode(
-  route: AURARoute,
+  route: AuraRoute,
   parentNode: RouteNode | null,
   depth: number,
   nodesByFullPath: Map<string, RouteNode>,
   matchableNodes: RouteNode[],
-  childRoutesByParent: Map<AURARoute, AURARoute[]>,
+  childRoutesByParent: Map<AuraRoute, AuraRoute[]>,
 ): RouteNode {
   const routePath = route.path ?? '';
   const fullPath = resolveFullPath(parentNode?.fullPath ?? null, routePath);

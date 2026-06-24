@@ -11,8 +11,9 @@ import {
   unmountRoute,
   type RouteMountContext,
   type RouteMountResult,
-  type RouteMountType,
 } from './route-mount';
+
+type RouteViewKind = 'layout' | 'content';
 
 export type RouteRenderOptions = {
   signal?: AbortSignal;
@@ -38,8 +39,8 @@ export interface RouteContentPort {
 
 /** Outlet access for nested route trees. */
 export interface RouteOutletPort {
-  resolveAppOutlet: () => AuraOutlet;
-  parentResolvedOutlet(routeInfo?: MatchedRouteInfo): AuraOutlet | null;
+  resolveRootOutlet: () => AuraOutlet;
+  parentOutlet(routeInfo?: MatchedRouteInfo): AuraOutlet | null;
 }
 
 /**
@@ -83,11 +84,11 @@ export class AuraRouteViewController {
     return this.renderSignal.aborted;
   }
 
-  private get mountType(): RouteMountType {
+  private get viewKind(): RouteViewKind {
     return this.config.layout ? 'layout' : 'content';
   }
 
-  private get requiresChildOutlet(): boolean {
+  private get isLayout(): boolean {
     return !!this.config.layout;
   }
 
@@ -119,23 +120,23 @@ export class AuraRouteViewController {
         return;
       }
 
-      if (shouldSkipRouteRender(this.config.keepAlive, this.requiresChildOutlet, this.snapshot())) {
+      if (shouldSkipRouteRender(this.config.keepAlive, this.isLayout, this.snapshot())) {
         return;
       }
 
       if (this.config.loadingTemplate) {
-        this.show(getTemplate(this.config.loadingTemplate), routeInfo, this.mountType, transitionPolicy);
+        this.show(getTemplate(this.config.loadingTemplate), routeInfo, this.viewKind, transitionPolicy);
       }
 
       const payload = await this.resolvePayload(routeInfo);
       if (this.renderSignal.aborted) return;
 
-      if (this.mountType === 'content' && !payload) {
+      if (this.viewKind === 'content' && !payload) {
         this.show('<div>No content to display</div>', routeInfo, 'content', transitionPolicy);
         return;
       }
 
-      this.show(payload!, routeInfo, this.mountType, transitionPolicy);
+      this.show(payload!, routeInfo, this.viewKind, transitionPolicy);
     } catch (error) {
       if (this.renderSignal.aborted) return;
 
@@ -169,7 +170,7 @@ export class AuraRouteViewController {
       this.lastMountStrategy = 'replace';
     }
 
-    this.detachedRoot = unmountRoute({ handle: this.activeHandle, keepAlive: this.config.keepAlive });
+    this.detachedRoot = unmountRoute(this.activeHandle, this.config.keepAlive);
     this.activeHandle = null;
 
     if (!this.config.keepAlive) {
@@ -199,8 +200,8 @@ export class AuraRouteViewController {
   ): RouteMountContext {
     return {
       routePath: routeInfo?.routePath ?? routePath,
-      appOutlet: this.outlets.resolveAppOutlet(),
-      parentResolvedOutlet: this.outlets.parentResolvedOutlet(routeInfo),
+      rootOutlet: this.outlets.resolveRootOutlet(),
+      parentOutlet: this.outlets.parentOutlet(routeInfo),
       signal: this.renderSignal.signal,
       transitionPolicy,
     };
@@ -212,15 +213,15 @@ export class AuraRouteViewController {
     routePath?: string,
   ): void {
     if (!this.detachedRoot) return;
-    this.show(this.detachedRoot, routeInfo, this.mountType, transitionPolicy, routePath);
+    this.show(this.detachedRoot, routeInfo, this.viewKind, transitionPolicy, routePath);
   }
 
-  private applyMountResult(result: RouteMountResult, mountType: RouteMountType = this.mountType): void {
+  private applyMountResult(result: RouteMountResult, viewKind: RouteViewKind = this.viewKind): void {
     this.activeHandle = result.activeHandle;
     this.resolvedOutlet = result.resolvedOutlet;
     this.detachedRoot = result.detachedRoot;
 
-    if (mountType === 'layout' && !result.resolvedOutlet) {
+    if (viewKind === 'layout' && !result.resolvedOutlet) {
       console.warn(
         `AuraRoute layout "${this.config.layout}" (path: ${this.config.path}) has no <aura-outlet>`,
       );
@@ -230,24 +231,20 @@ export class AuraRouteViewController {
   private show(
     payload: Node | string,
     routeInfo?: MatchedRouteInfo,
-    mountType: RouteMountType = this.mountType,
+    viewKind: RouteViewKind = this.viewKind,
     transitionPolicy?: TransitionPolicy,
     routePath?: string,
   ): void {
     if (!this.isActive) return;
 
-    const result = mountRoute({
-      ctx: this.mountContext(routeInfo, transitionPolicy, routePath),
-      content: payload,
-      previous: this.snapshot(),
-    });
+    const result = mountRoute(this.mountContext(routeInfo, transitionPolicy, routePath), payload, this.snapshot());
 
     this.lastMountStrategy = result.appliedStrategy ?? 'replace';
-    this.applyMountResult(result, mountType);
+    this.applyMountResult(result, viewKind);
   }
 
   private async resolvePayload(routeInfo?: MatchedRouteInfo): Promise<Node | string | null> {
-    if (this.mountType === 'layout') {
+    if (this.viewKind === 'layout') {
       return getTemplate(this.config.layout!);
     }
 
@@ -306,8 +303,8 @@ export function createAuraRouteViewController(
       errorTemplate: host.errorTemplate || undefined,
     }),
     {
-      resolveAppOutlet: resolveRootOutlet,
-      parentResolvedOutlet: (routeInfo) =>
+      resolveRootOutlet: resolveRootOutlet,
+      parentOutlet: (routeInfo) =>
         routeInfo?.node?.parent?.route.resolvedOutlet ?? null,
     },
     new RouteContentLoader(

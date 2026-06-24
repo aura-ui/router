@@ -51,6 +51,16 @@ describe('AuraCacheStore', () => {
       expect(cache.size).toBe(0);
     });
 
+    it('removes expired entries on lookup without a stale phase', () => {
+      cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.lookup('a')).toEqual({ status: 'missing' });
+      expect(cache.size).toBe(0);
+    });
+
     it('removes expired entries on has and isStale', () => {
       cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
       cache.set('a', 'one');
@@ -182,6 +192,26 @@ describe('AuraCacheStore', () => {
       expect(cache.get('a')).toBe('one');
       expect(cache.lookup('a')).toEqual({ status: 'stale', value: 'one' });
     });
+
+    it('isStale evicts GC-expired manual stale entries like get and lookup', () => {
+      cache = new AuraCacheStore<string>({
+        staleTime: 500,
+        gcTime: 2_000,
+        gcSweepInterval: false,
+      });
+      cache.set('a', 'one');
+      cache.invalidate('a', 'stale');
+
+      expect(cache.isStale('a')).toBe(true);
+
+      jest.advanceTimersByTime(2_001);
+
+      expect(cache.isStale('a')).toBe(false);
+      expect(cache.has('a')).toBe(false);
+      expect(cache.get('a')).toBeUndefined();
+      expect(cache.lookup('a')).toEqual({ status: 'missing' });
+      expect(cache.size).toBe(0);
+    });
   });
 
   describe('LRU max', () => {
@@ -229,6 +259,18 @@ describe('AuraCacheStore', () => {
 
       expect(cache.has('b')).toBe(false);
       expect(cache.get('a')).toBe('A');
+    });
+
+    it('lookup without touch does not promote LRU order', () => {
+      cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.lookup('a');
+      cache.set('c', 'C');
+
+      expect(cache.has('a')).toBe(false);
+      expect(cache.get('b')).toBe('B');
+      expect(cache.get('c')).toBe('C');
     });
 
     it('has does not promote LRU order', () => {
@@ -309,14 +351,25 @@ describe('AuraCacheStore', () => {
       cache.set('a', 'one');
       cache.clear();
 
-      jest.advanceTimersByTime(5_000);
-      expect(cache.size).toBe(0);
-
       cache.set('b', 'two');
       jest.advanceTimersByTime(500);
-
       expect(cache.size).toBe(1);
-      expect(cache.get('b')).toBe('two');
+
+      jest.advanceTimersByTime(1_001);
+      expect(cache.size).toBe(0);
+      expect(cache.get('b')).toBeUndefined();
+    });
+
+    it('background sweep stops when the last entry is removed', () => {
+      cache = new AuraCacheStore<string>({
+        gcTime: 10_000,
+        gcSweepInterval: 500,
+      });
+      cache.set('a', 'one');
+      cache.delete('a');
+
+      jest.advanceTimersByTime(5_000);
+      expect(cache.size).toBe(0);
     });
   });
 
@@ -346,6 +399,22 @@ describe('AuraCacheStore', () => {
 
       expect(cache.size).toBe(0);
       expect(evicted).toEqual(['a', 'b']);
+    });
+
+    it('destroy releases the store like clear', () => {
+      const evicted: string[] = [];
+      cache = new AuraCacheStore<string>({
+        gcTime: 1_000,
+        gcSweepInterval: 500,
+        onEvict: (key) => evicted.push(key),
+      });
+      cache.set('a', '1');
+
+      cache.destroy();
+
+      expect(cache.size).toBe(0);
+      expect(evicted).toEqual(['a']);
+      expect(cache.get('a')).toBeUndefined();
     });
   });
 

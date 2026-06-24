@@ -1,27 +1,27 @@
-/** How {@link LRUCacheStore.invalidate} affects matching entries. */
+/** How {@link AuraCacheStore.invalidate} affects matching entries. */
 export type InvalidatePolicy = 'remove' | 'stale';
 
-/** Result of {@link LRUCacheStore.lookup}. */
+/** Status returned by {@link AuraCacheStore.lookup}. */
 export type CacheEntryStatus = 'fresh' | 'stale' | 'missing';
 
-/** Cache read result with SWR status. */
+/** Result of {@link AuraCacheStore.lookup}. */
 export type CacheLookup<T> =
   | { status: 'missing' }
   | { status: 'fresh'; value: T }
   | { status: 'stale'; value: T };
 
-/** Configuration for {@link LRUCacheStore}. */
+/** Configuration for {@link AuraCacheStore}. */
 export type CacheStoreOptions<T> = {
-  /** Max entries; least recently used key is evicted first. */
+  /** Max entries; evicts least recently used key first. */
   max?: number;
   /**
-   * SWR fresh window in ms. After this, entries are stale but still readable
-   * until `gcTime` elapses.
+   * SWR fresh window in ms. After this, entries become stale but remain readable.
+   * When `gcTime` is set, stale entries are evicted after `gcTime` elapses.
    */
   staleTime?: number;
   /**
-   * Max age in ms since `storedAt` before an entry is removed on read.
-   * Without `staleTime`, expired entries are removed with no stale phase.
+   * Max age in ms since `storedAt` before an entry is evicted.
+   * Without `staleTime`, expired entries are evicted on access (no stale phase).
    */
   gcTime?: number;
   /**
@@ -29,16 +29,16 @@ export type CacheStoreOptions<T> = {
    *
    * - `undefined` — auto when `gcTime` is set: `clamp(gcTime / 2, 5s … 60s)`
    * - `number` — sweep every N ms
-   * - `false` — disabled (lazy GC on read only)
+   * - `false` — disabled (lazy eviction on access; call {@link AuraCacheStore.purgeExpired} manually)
    */
   gcSweepInterval?: number | false;
-  /** Default policy for {@link LRUCacheStore.invalidate} and bulk invalidation. */
+  /** Default policy for {@link AuraCacheStore.invalidate} and bulk invalidation. */
   invalidatePolicy?: InvalidatePolicy;
-  /** Called when an entry is evicted (LRU, GC, delete, clear, invalidate remove). */
+  /** Called when an entry is evicted (LRU, GC, `delete`, `clear`, or `invalidate` with `remove`). */
   onEvict?: (key: string, value: T) => void;
 };
 
-/** Doubly-linked list node used by {@link LRUCacheStore}. */
+/** Doubly-linked list node used by {@link AuraCacheStore}. */
 interface Node<T> {
   key: string;
   value: T;
@@ -54,14 +54,15 @@ interface Node<T> {
  * Uses a `Map` for O(1) lookup and a doubly-linked list for O(1) LRU
  * promotion and eviction.
  *
- * **Simple mode** (`gcTime` only): expired entries are removed on read.
+ * **Simple mode** (`gcTime` without `staleTime`): expired entries are evicted on access.
  *
- * **SWR mode** (`staleTime` set): entries move through `fresh` → `stale`
- * → removed (when `gcTime` elapses). Use {@link lookup} to decide
- * whether a background revalidate is needed.
+ * **SWR mode** (`staleTime` set): entries go `fresh` → `stale` → evicted
+ * when `gcTime` elapses (if configured). Without `gcTime`, stale entries stay
+ * until LRU eviction or explicit removal. Use {@link AuraCacheStore.lookup} to
+ * decide whether a background revalidate is needed.
  *
- * GC expiry is lazy on read and proactive via {@link purgeExpired} /
- * optional background sweep (`gcSweepInterval`).
+ * GC runs lazily on access and proactively via {@link AuraCacheStore.purgeExpired}
+ * or an optional background sweep (`gcSweepInterval`).
  *
  * `has` does not promote LRU order.
  */
@@ -93,10 +94,10 @@ export class AuraCacheStore<T> {
   /**
    * Returns a cached value when present (fresh or stale) and promotes LRU order.
    *
-   * In simple GC mode, expired entries are removed and `undefined` is returned.
+   * In simple GC mode, expired entries are evicted and `undefined` is returned.
    *
    * @param key - Cache key.
-   * @returns The stored value, or `undefined` if missing or GC expired.
+   * @returns The stored value, or `undefined` if missing or GC-expired.
    */
   get(key: string): T | undefined {
     const node = this.map.get(key);
@@ -115,10 +116,11 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Reads an entry with SWR status without removing stale-but-readable data.
+   * Reads an entry with SWR status without evicting stale-but-readable data.
    *
    * @param key - Cache key.
-   * @param touch - Promote the entry in the LRU list when `true`. Default `false`.
+   * @param touch - When `true`, promote the entry in the LRU list. Default `false`.
+   * @returns Lookup result with `fresh`, `stale`, or `missing` status.
    */
   lookup(key: string, touch = false): CacheLookup<T> {
     const now = Date.now();
@@ -184,11 +186,12 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Checks whether a readable (fresh or stale) non-GC-expired entry exists.
+   * Returns whether a readable, non-GC-expired entry exists.
    *
-   * Does not promote the entry in the LRU list.
+   * Does not promote LRU order. GC-expired entries are evicted and return `false`.
    *
    * @param key - Cache key.
+   * @returns `true` if the entry exists and is readable.
    */
   has(key: string): boolean {
     const node = this.map.get(key);
@@ -197,9 +200,12 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Returns whether an entry is stale (auto or manual) but still readable.
+   * Returns whether an entry is stale (by age or manual invalidation) but still readable.
+   *
+   * Returns `false` when the key is missing or GC-expired.
    *
    * @param key - Cache key.
+   * @returns `true` if the entry is stale and readable.
    */
   isStale(key: string): boolean {
     const now = Date.now();
@@ -210,7 +216,7 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Removes all GC-expired entries.
+   * Evicts all GC-expired entries. No-op when `gcTime` is not configured.
    *
    * @returns Number of evicted entries.
    */
@@ -222,7 +228,7 @@ export class AuraCacheStore<T> {
    * Invalidates a single entry.
    *
    * @param key - Cache key.
-   * @param policy - `remove` deletes immediately; `stale` keeps value for SWR reads.
+   * @param policy - `remove` deletes immediately; `stale` keeps value for SWR reads. Defaults to `invalidatePolicy`.
    * @returns `true` if an entry was affected.
    */
   invalidate(key: string, policy: InvalidatePolicy = this.defaultInvalidatePolicy): boolean {
@@ -238,8 +244,10 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Invalidates entries whose keys satisfy `predicate`.
+   * Invalidates entries whose keys match `predicate`.
    *
+   * @param predicate - Key filter.
+   * @param policy - `remove` deletes immediately; `stale` keeps value for SWR reads. Defaults to `invalidatePolicy`.
    * @returns Number of affected entries.
    */
   invalidateMatch(
@@ -262,8 +270,9 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Invalidates all entries.
+   * Invalidates every entry.
    *
+   * @param policy - `remove` deletes immediately; `stale` keeps values for SWR reads. Defaults to `invalidatePolicy`.
    * @returns Number of affected entries.
    */
   invalidateAll(policy: InvalidatePolicy = this.defaultInvalidatePolicy): number {
@@ -292,7 +301,7 @@ export class AuraCacheStore<T> {
     return true;
   }
 
-  /** Removes all entries, stops the background sweep, and invokes `onEvict` for each when configured. */
+  /** Removes all entries, stops the background sweep, and invokes `onEvict` for each entry when configured. */
   clear(): void {
     this.stopSweep();
 
@@ -310,7 +319,7 @@ export class AuraCacheStore<T> {
     this.tail = null;
   }
 
-  /** Stops the background sweep and clears all entries. */
+  /** Same as {@link AuraCacheStore.clear}. */
   destroy(): void {
     this.clear();
   }
@@ -320,7 +329,7 @@ export class AuraCacheStore<T> {
     return this.map.size;
   }
 
-  /** Returns `true` when the entry exceeded `gcTime` and was evicted. */
+  /** Evicts the entry when it exceeded `gcTime`; returns whether eviction happened. */
   private checkAndEvictGc(node: Node<T>, now: number): boolean {
     if (this.gcTimeMs === undefined) return false;
     if (now - node.storedAt <= this.gcTimeMs) return false;

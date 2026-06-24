@@ -7,13 +7,12 @@ import { analyticsHook } from './hooks/analytics.hook';
 import { CustomLoader } from './loaders/custom-loader';
 import { AuraOutlet } from '../../modules/aura-outlet/core/aura-outlet';
 
-AURARoute.configure({ contentLoaderService: new ContentLoaderService(false) });
+AuraRouter.configure({ contentLoaderService: new ContentLoaderService(false) });
 
 AuraRouter.use(authHook, { redirect: '/login' } satisfies AuthHookOptions);
 AuraRouter.use(analyticsHook);
 
-AURARoute.registerLoader('custom-loader', CustomLoader);
-
+AuraRouter.registerLoader('custom-loader', CustomLoader);
 
 customElements.define(AuraOutlet.is, AuraOutlet);
 customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);

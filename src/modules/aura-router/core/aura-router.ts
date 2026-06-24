@@ -1,9 +1,12 @@
 import { attr } from '../../aura-utils/decorators';
 
+import { AURARoute } from '../../aura-route/core';
+import { configureRouteContentLoader } from '../../aura-route/core/route-content-loader';
 import {
-  AURARoute,
-  type AURARouteConfigureOptions,
-} from '../../aura-route/core';
+  ContentLoaderRegistry,
+  type ContentLoaderService,
+  type LoaderConstructor,
+} from '../../aura-content-loaders/core';
 
 import { RouteHookRegistry } from '../../aura-route-hooks/core';
 import type { RouteHookDefinition, RouterInstance } from '../../aura-route-hooks/core';
@@ -40,7 +43,9 @@ export {
   type NavigationErrorPhase,
 } from './aura-router-navigation-error.types';
 
-export interface AuraRouterConfigureOptions extends AURARouteConfigureOptions {
+export interface AuraRouterConfigureOptions {
+  /** Shared loader service for all `<aura-route>` elements. */
+  contentLoaderService?: ContentLoaderService;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;
 }
@@ -72,7 +77,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);
     }
-    AURARoute.configure(options);
+    if (options.contentLoaderService) {
+      configureRouteContentLoader(options.contentLoaderService);
+    }
+  }
+
+  /** Registers a custom content loader type for `source` on any `<aura-route>`. */
+  static registerLoader(type: string, loaderClass: LoaderConstructor): void {
+    ContentLoaderRegistry.register(type, loaderClass);
   }
 
   /** Per-instance override (перекрывает configure и template). Только fallback. */

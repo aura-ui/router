@@ -1,0 +1,354 @@
+import { AuraCacheStore } from '../core/aura-cache-store';
+
+describe('AuraCacheStore', () => {
+  let cache: AuraCacheStore<unknown> | undefined;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    cache?.destroy();
+    cache = undefined;
+    jest.useRealTimers();
+  });
+
+  describe('basics', () => {
+    it('returns undefined for missing keys', () => {
+      cache = new AuraCacheStore<string>();
+      expect(cache.get('missing')).toBeUndefined();
+      expect(cache.has('missing')).toBe(false);
+      expect(cache.isStale('missing')).toBe(false);
+    });
+
+    it('stores and reads values without gcTime', () => {
+      cache = new AuraCacheStore<string>();
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(60_000);
+
+      expect(cache.get('a')).toBe('one');
+      expect(cache.size).toBe(1);
+    });
+  });
+
+  describe('gcTime without SWR', () => {
+    it('removes expired entries on get', () => {
+      cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.get('a')).toBeUndefined();
+      expect(cache.size).toBe(0);
+    });
+
+    it('removes expired entries on has and isStale', () => {
+      cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.has('a')).toBe(false);
+      expect(cache.isStale('a')).toBe(false);
+      expect(cache.size).toBe(0);
+    });
+  });
+
+  describe('SWR mode', () => {
+    it('returns fresh then stale without removing value', () => {
+      cache = new AuraCacheStore<string>({
+        staleTime: 1_000,
+        gcTime: 10_000,
+        gcSweepInterval: false,
+      });
+      cache.set('a', 'one');
+
+      expect(cache.lookup('a')).toEqual({ status: 'fresh', value: 'one' });
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.get('a')).toBe('one');
+      expect(cache.lookup('a')).toEqual({ status: 'stale', value: 'one' });
+      expect(cache.isStale('a')).toBe(true);
+      expect(cache.has('a')).toBe(true);
+    });
+
+    it('removes entry after gcTime', () => {
+      cache = new AuraCacheStore<string>({
+        staleTime: 500,
+        gcTime: 2_000,
+        gcSweepInterval: false,
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(2_001);
+
+      expect(cache.lookup('a')).toEqual({ status: 'missing' });
+      expect(cache.size).toBe(0);
+    });
+
+    it('set clears stale flag after manual invalidation', () => {
+      cache = new AuraCacheStore<string>({ staleTime: 1_000 });
+      cache.set('a', 'one');
+      cache.invalidate('a', 'stale');
+
+      expect(cache.lookup('a').status).toBe('stale');
+
+      cache.set('a', 'two');
+
+      expect(cache.lookup('a')).toEqual({ status: 'fresh', value: 'two' });
+    });
+
+    it('treats staleTime 0 as stale after the fresh window elapses', () => {
+      cache = new AuraCacheStore<string>({ staleTime: 0, gcSweepInterval: false });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1);
+
+      expect(cache.lookup('a')).toEqual({ status: 'stale', value: 'one' });
+    });
+
+    it('keeps entries fresh when staleTime is Infinity', () => {
+      cache = new AuraCacheStore<string>({
+        staleTime: Infinity,
+        gcTime: 10_000,
+        gcSweepInterval: false,
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(9_000);
+
+      expect(cache.lookup('a')).toEqual({ status: 'fresh', value: 'one' });
+    });
+
+    it('marks manual stale without staleTime configured', () => {
+      cache = new AuraCacheStore<string>({ gcSweepInterval: false });
+      cache.set('a', 'one');
+      cache.invalidate('a', 'stale');
+
+      expect(cache.get('a')).toBe('one');
+      expect(cache.lookup('a')).toEqual({ status: 'stale', value: 'one' });
+    });
+  });
+
+  describe('LRU max', () => {
+    it('evicts least recently used entry when max is exceeded', () => {
+      cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.set('c', 'C');
+
+      expect(cache.has('a')).toBe(false);
+      expect(cache.get('b')).toBe('B');
+      expect(cache.get('c')).toBe('C');
+      expect(cache.size).toBe(2);
+    });
+
+    it('promotes accessed keys so they are not evicted first', () => {
+      cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.get('a');
+      cache.set('c', 'C');
+
+      expect(cache.has('b')).toBe(false);
+      expect(cache.get('a')).toBe('A');
+      expect(cache.get('c')).toBe('C');
+    });
+
+    it('does not trim when updating an existing key', () => {
+      cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.set('a', 'A2');
+
+      expect(cache.size).toBe(2);
+      expect(cache.get('a')).toBe('A2');
+      expect(cache.get('b')).toBe('B');
+    });
+
+    it('lookup with touch promotes LRU order like get', () => {
+      cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.lookup('a', true);
+      cache.set('c', 'C');
+
+      expect(cache.has('b')).toBe(false);
+      expect(cache.get('a')).toBe('A');
+    });
+
+    it('has does not promote LRU order', () => {
+      cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      expect(cache.has('a')).toBe(true);
+      cache.set('c', 'C');
+
+      expect(cache.has('a')).toBe(false);
+      expect(cache.get('b')).toBe('B');
+    });
+  });
+
+  describe('proactive GC', () => {
+    it('purgeExpired removes expired entries without read', () => {
+      cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('a', 'one');
+      cache.set('b', 'two');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.purgeExpired()).toBe(2);
+      expect(cache.size).toBe(0);
+    });
+
+    it('background sweep removes expired entries', () => {
+      cache = new AuraCacheStore<string>({
+        gcTime: 1_000,
+        gcSweepInterval: 500,
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_501);
+
+      expect(cache.size).toBe(0);
+      expect(cache.get('a')).toBeUndefined();
+    });
+
+    it('clear stops background sweep until a new entry is stored', () => {
+      cache = new AuraCacheStore<string>({
+        gcTime: 1_000,
+        gcSweepInterval: 500,
+      });
+      cache.set('a', 'one');
+      cache.clear();
+
+      jest.advanceTimersByTime(5_000);
+      expect(cache.size).toBe(0);
+
+      cache.set('b', 'two');
+      jest.advanceTimersByTime(500);
+
+      expect(cache.size).toBe(1);
+      expect(cache.get('b')).toBe('two');
+    });
+  });
+
+  describe('delete and clear', () => {
+    it('delete removes an existing entry and calls onEvict', () => {
+      const evicted: string[] = [];
+      cache = new AuraCacheStore<string>({ onEvict: (key) => evicted.push(key) });
+      cache.set('a', 'one');
+
+      expect(cache.delete('a')).toBe(true);
+      expect(cache.get('a')).toBeUndefined();
+      expect(evicted).toEqual(['a']);
+    });
+
+    it('delete returns false for missing keys', () => {
+      cache = new AuraCacheStore<string>();
+      expect(cache.delete('missing')).toBe(false);
+    });
+
+    it('clear removes all entries and calls onEvict for each', () => {
+      const evicted: string[] = [];
+      cache = new AuraCacheStore<string>({ onEvict: (key) => evicted.push(key) });
+      cache.set('a', '1');
+      cache.set('b', '2');
+
+      cache.clear();
+
+      expect(cache.size).toBe(0);
+      expect(evicted).toEqual(['a', 'b']);
+    });
+  });
+
+  describe('invalidate', () => {
+    it('stale policy keeps value readable', () => {
+      cache = new AuraCacheStore<number>({ staleTime: 60_000 });
+      cache.set('x', 1);
+
+      cache.invalidate('x', 'stale');
+
+      expect(cache.get('x')).toBe(1);
+      expect(cache.isStale('x')).toBe(true);
+      expect(cache.size).toBe(1);
+    });
+
+    it('remove policy deletes entry', () => {
+      const evicted: string[] = [];
+      cache = new AuraCacheStore<number>({
+        staleTime: 60_000,
+        onEvict: (key) => evicted.push(key),
+      });
+      cache.set('x', 1);
+
+      cache.invalidate('x', 'remove');
+
+      expect(cache.get('x')).toBeUndefined();
+      expect(evicted).toEqual(['x']);
+    });
+
+    it('returns false when invalidating a missing key', () => {
+      cache = new AuraCacheStore<string>();
+      expect(cache.invalidate('missing')).toBe(false);
+    });
+
+    it('uses default invalidatePolicy when policy is omitted', () => {
+      cache = new AuraCacheStore<string>({ invalidatePolicy: 'remove' });
+      cache.set('a', 'one');
+
+      expect(cache.invalidate('a')).toBe(true);
+      expect(cache.has('a')).toBe(false);
+    });
+
+    it('invalidateMatch respects predicate and default policy', () => {
+      cache = new AuraCacheStore<string>({
+        staleTime: 60_000,
+        invalidatePolicy: 'remove',
+      });
+      cache.set('data:a', 'A');
+      cache.set('data:b', 'B');
+      cache.set('content:a', 'HTML');
+
+      const count = cache.invalidateMatch((key) => key.startsWith('data:'));
+
+      expect(count).toBe(2);
+      expect(cache.has('data:a')).toBe(false);
+      expect(cache.has('content:a')).toBe(true);
+    });
+
+    it('invalidateMatch with stale policy marks matching entries', () => {
+      cache = new AuraCacheStore<string>({ staleTime: 60_000 });
+      cache.set('data:a', 'A');
+      cache.set('content:a', 'HTML');
+
+      expect(cache.invalidateMatch((key) => key.startsWith('data:'), 'stale')).toBe(1);
+      expect(cache.isStale('data:a')).toBe(true);
+      expect(cache.isStale('content:a')).toBe(false);
+    });
+
+    it('invalidateAll with stale policy marks every entry stale', () => {
+      cache = new AuraCacheStore<string>({ staleTime: 60_000 });
+      cache.set('a', '1');
+      cache.set('b', '2');
+
+      expect(cache.invalidateAll('stale')).toBe(2);
+      expect(cache.isStale('a')).toBe(true);
+      expect(cache.isStale('b')).toBe(true);
+      expect(cache.size).toBe(2);
+    });
+
+    it('invalidateAll with remove policy deletes every entry', () => {
+      const evicted: string[] = [];
+      cache = new AuraCacheStore<string>({ onEvict: (key) => evicted.push(key) });
+      cache.set('a', '1');
+      cache.set('b', '2');
+
+      expect(cache.invalidateAll('remove')).toBe(2);
+      expect(cache.size).toBe(0);
+      expect(evicted).toEqual(['a', 'b']);
+    });
+  });
+});

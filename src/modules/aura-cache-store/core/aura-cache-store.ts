@@ -65,7 +65,7 @@ interface Node<T> {
  *
  * `has` does not promote LRU order.
  */
-export class LRUCacheStore<T> {
+export class AuraCacheStore<T> {
   private readonly max?: number;
   private readonly swrEnabled: boolean;
   private readonly staleTimeMs?: number;
@@ -361,9 +361,8 @@ export class LRUCacheStore<T> {
   }
 
   private ensureSweepRunning(): void {
-    if (this.map.size > 0) {
-      this.startSweep();
-    }
+    if (this.gcSweepIntervalMs === null || this.map.size === 0) return;
+    this.startSweep();
   }
 
   private startSweep(): void {

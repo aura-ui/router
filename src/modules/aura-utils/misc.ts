@@ -1,4 +1,3 @@
-export * from './misc/cache-store';
 export * from './misc/component';
 export * from './misc/dom';
 export * from './misc/events';

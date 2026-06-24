@@ -24,6 +24,14 @@ export type CacheStoreOptions<T> = {
    * Without `staleTime`, expired entries are removed with no stale phase.
    */
   gcTime?: number;
+  /**
+   * Background GC sweep interval in ms.
+   *
+   * - `undefined` — auto when `gcTime` is set: `clamp(gcTime / 2, 5s … 60s)`
+   * - `number` — sweep every N ms
+   * - `false` — disabled (lazy GC on read only)
+   */
+  gcSweepInterval?: number | false;
   /** Default policy for {@link LRUCacheStore.invalidate} and bulk invalidation. */
   invalidatePolicy?: InvalidatePolicy;
   /** Called when an entry is evicted (LRU, GC, delete, clear, invalidate remove). */
@@ -52,19 +60,24 @@ interface Node<T> {
  * → removed (when `gcTime` elapses). Use {@link lookup} to decide
  * whether a background revalidate is needed.
  *
- * `has` does not promote LRU order. GC expiry is lazy (on read).
+ * GC expiry is lazy on read and proactive via {@link purgeExpired} /
+ * optional background sweep (`gcSweepInterval`).
+ *
+ * `has` does not promote LRU order.
  */
 export class LRUCacheStore<T> {
   private readonly max?: number;
   private readonly swrEnabled: boolean;
   private readonly staleTimeMs?: number;
   private readonly gcTimeMs?: number;
+  private readonly gcSweepIntervalMs: number | null;
   private readonly defaultInvalidatePolicy: InvalidatePolicy;
   private readonly onEvict?: (key: string, value: T) => void;
 
   private readonly map = new Map<string, Node<T>>();
   private head: Node<T> | null = null;
   private tail: Node<T> | null = null;
+  private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
   /** @param options - Cache limits, SWR timings, and eviction callback. */
   constructor(options: CacheStoreOptions<T> = {}) {
@@ -72,6 +85,7 @@ export class LRUCacheStore<T> {
     this.swrEnabled = options.staleTime !== undefined;
     this.staleTimeMs = options.staleTime;
     this.gcTimeMs = options.gcTime;
+    this.gcSweepIntervalMs = resolveGcSweepInterval(options.gcTime, options.gcSweepInterval);
     this.defaultInvalidatePolicy = options.invalidatePolicy ?? 'stale';
     this.onEvict = options.onEvict;
   }
@@ -145,6 +159,8 @@ export class LRUCacheStore<T> {
       if (existingNode !== this.tail) {
         this.moveToEnd(existingNode);
       }
+
+      this.ensureSweepRunning();
       return;
     }
 
@@ -163,6 +179,8 @@ export class LRUCacheStore<T> {
     if (this.max !== undefined && this.map.size > this.max) {
       this.evictHead();
     }
+
+    this.ensureSweepRunning();
   }
 
   /**
@@ -189,6 +207,15 @@ export class LRUCacheStore<T> {
     if (!node || this.checkAndEvictGc(node, now)) return false;
 
     return this.readStatus(node, now) === 'stale';
+  }
+
+  /**
+   * Removes all GC-expired entries.
+   *
+   * @returns Number of evicted entries.
+   */
+  purgeExpired(): number {
+    return this.sweepExpired();
   }
 
   /**
@@ -265,8 +292,10 @@ export class LRUCacheStore<T> {
     return true;
   }
 
-  /** Removes all entries and invokes `onEvict` for each when configured. */
+  /** Removes all entries, stops the background sweep, and invokes `onEvict` for each when configured. */
   clear(): void {
+    this.stopSweep();
+
     const onEvict = this.onEvict;
     if (onEvict) {
       let current = this.head;
@@ -279,6 +308,11 @@ export class LRUCacheStore<T> {
     this.map.clear();
     this.head = null;
     this.tail = null;
+  }
+
+  /** Stops the background sweep and clears all entries. */
+  destroy(): void {
+    this.clear();
   }
 
   /** Number of entries currently stored (including stale and not-yet-GC-evicted). */
@@ -304,6 +338,47 @@ export class LRUCacheStore<T> {
     if (staleTime === Infinity) return 'fresh';
 
     return now - node.storedAt > staleTime! ? 'stale' : 'fresh';
+  }
+
+  private sweepExpired(): number {
+    const gcTimeMs = this.gcTimeMs;
+    if (gcTimeMs === undefined) return 0;
+
+    const now = Date.now();
+    let count = 0;
+    let current = this.head;
+
+    while (current) {
+      const next = current.next;
+      if (now - current.storedAt > gcTimeMs) {
+        this.evictNode(current);
+        count++;
+      }
+      current = next;
+    }
+
+    return count;
+  }
+
+  private ensureSweepRunning(): void {
+    if (this.map.size > 0) {
+      this.startSweep();
+    }
+  }
+
+  private startSweep(): void {
+    if (this.gcSweepIntervalMs === null || this.sweepTimer !== null) return;
+    if (typeof setInterval === 'undefined') return;
+
+    this.sweepTimer = setInterval(() => {
+      this.sweepExpired();
+    }, this.gcSweepIntervalMs);
+  }
+
+  private stopSweep(): void {
+    if (this.sweepTimer === null) return;
+    clearInterval(this.sweepTimer);
+    this.sweepTimer = null;
   }
 
   private invalidateMatchRemove(predicate: (key: string) => boolean): number {
@@ -362,10 +437,25 @@ export class LRUCacheStore<T> {
 
     const onEvict = this.onEvict;
     if (onEvict) onEvict(key, value);
+
+    if (this.map.size === 0) {
+      this.stopSweep();
+    }
   }
 
   private evictHead(): void {
     if (!this.head) return;
     this.evictNode(this.head);
   }
+}
+
+function resolveGcSweepInterval(
+  gcTime: number | undefined,
+  gcSweepInterval: number | false | undefined,
+): number | null {
+  if (gcSweepInterval === false) return null;
+  if (gcSweepInterval !== undefined) return gcSweepInterval;
+  if (gcTime === undefined) return null;
+
+  return Math.min(Math.max(gcTime / 2, 5_000), 60_000);
 }

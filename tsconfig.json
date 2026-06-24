@@ -9,7 +9,7 @@
     "moduleResolution": "bundler",
     "target": "ES6",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "node", "jest"],
 
     /* Emit */
     "sourceMap": true,
@@ -19,7 +19,7 @@
     /* Type Checking */
     "strict": true,
     "noUncheckedIndexedAccess": true,
-//    "exactOptionalPropertyTypes": true,
+    //    "exactOptionalPropertyTypes": true,
 
     /* Bundler mode */
     "verbatimModuleSyntax": true,

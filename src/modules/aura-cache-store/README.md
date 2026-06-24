@@ -39,7 +39,9 @@ Methods: `invalidate(key)`, `invalidateMatch(predicate)`, `invalidateAll()`.
 
 `gcTime: Infinity` disables TTL eviction — entries stay until LRU or explicit removal.
 
-GC runs lazily on access (`get`, `has`, `lookup`, `isStale`) and proactively via `purgeExpired()` or background sweep. `has` does not promote LRU order.
+GC runs lazily on access (`get`, `has`, `lookup`, `isStale`) and proactively via `purgeExpired()` or background sweep. `has`, `isStale`, and `lookup` without `touch` do not promote LRU order.
+
+The diagram below shows the **SWR** lifecycle (`staleTime` set). In simple GC mode (`gcTime` only), entries skip the `stale` phase and go straight to `missing` once TTL elapses and the entry is accessed or swept.
 
 ```mermaid
 stateDiagram-v2
@@ -75,24 +77,31 @@ type CacheStoreOptions<T> = {
 ### `gcSweepInterval`
 
 - `undefined` — auto when `gcTime` is set: `clamp(gcTime / 2, 5s … 60s)`
-- `number` — run `purgeExpired()` every N ms
+- `number` — run `purgeExpired()` every N ms (no-op without `gcTime`)
 - `false` — disabled; eviction on access or manual `purgeExpired()` only
+
+Background sweep lifecycle:
+
+- **Start** — on the first `set()` while the store is non-empty
+- **Stop** — when the store becomes empty (last entry evicted) or on `clear()` / `destroy()`
+- **Restart** — on the next `set()` after `clear()`
 
 ## API
 
 | Method | LRU | Description |
 |--------|:---:|-------------|
 | `get(key)` | yes | Returns value (fresh or stale), or `undefined` if missing/GC-expired |
-| `lookup(key, touch?)` | if `touch` | `{ status: 'fresh' \| 'stale' \| 'missing', value? }` — use for SWR revalidate decisions |
+| `lookup(key, touch?)` | if `touch` | `{ status: 'fresh' \| 'stale' \| 'missing', value? }` — evicts GC-expired entries; use for SWR revalidate decisions |
 | `set(key, value)` | yes | Resets stale flag and `storedAt`. Update in place skips LRU trim |
 | `has(key)` | no | `true` if readable entry exists; evicts GC-expired |
 | `isStale(key)` | no | `true` if stale and readable; `false` if missing, fresh, or GC-expired |
-| `invalidate(key, policy?)` | — | Mark outdated (`'stale'`) or delete (`'remove'`). Default: `invalidatePolicy` |
-| `invalidateMatch(predicate, policy?)` | — | Same as `invalidate`, for keys matching a filter |
-| `invalidateAll(policy?)` | — | Same as `invalidate`, for every entry |
+| `invalidate(key, policy?)` | no | Mark outdated (`'stale'`) or delete (`'remove'`). Returns `false` if key missing. Default: `invalidatePolicy` |
+| `invalidateMatch(predicate, policy?)` | no | Same as `invalidate`, for keys matching a filter |
+| `invalidateAll(policy?)` | no | Same as `invalidate`, for every entry |
 | `delete(key)` | — | Remove one entry; invokes `onEvict` |
 | `purgeExpired()` | — | Evict all GC-expired entries; returns count. No-op without `gcTime` |
-| `clear()` / `destroy()` | — | Remove all entries and stop background sweep |
+| `clear()` / `destroy()` | — | Remove all entries and stop background sweep; `destroy()` is an alias for `clear()` |
+| `size` | — | Entry count (includes stale and not-yet-swept entries) |
 
 ## Examples
 
@@ -228,3 +237,14 @@ type CacheLookup<T> =
 ```bash
 npx jest src/modules/aura-cache-store/test/aura-cache-store.test.ts
 ```
+
+## Benchmark
+
+```bash
+npm run bench:cache
+npm run bench:cache:gc   # with --expose-gc
+```
+
+## Comparison with SPA router caches
+
+See [docs/comparison/CACHE_STORE_COMPARISON.md](../../docs/comparison/CACHE_STORE_COMPARISON.md) — SWR/LRU parity with TanStack Router, ratings (7/10 as engine), benchmark numbers, roadmap to router integration.

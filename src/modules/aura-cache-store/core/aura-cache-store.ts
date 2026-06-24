@@ -32,8 +32,11 @@ export type CacheStoreOptions<T> = {
    * Background GC sweep interval in ms.
    *
    * - `undefined` — auto when `gcTime` is set: `clamp(gcTime / 2, 5s … 60s)`
-   * - `number` — run {@link AuraCacheStore.purgeExpired} every N ms
+   * - `number` — run {@link AuraCacheStore.purgeExpired} every N ms (no-op without `gcTime`)
    * - `false` — disabled; eviction on access or manual {@link AuraCacheStore.purgeExpired} only
+   *
+   * Timer starts on the first `set()` while the store is non-empty, stops when the store
+   * becomes empty or on {@link AuraCacheStore.clear}, and restarts on the next `set()`.
    */
   gcSweepInterval?: number | false;
   /** Default invalidation policy. See {@link InvalidatePolicy}. */
@@ -70,8 +73,9 @@ interface Node<T> {
  * Lifecycle: `fresh` → `stale` → evicted after `gcTime` (default {@link DEFAULT_GC_TIME}).
  * Use {@link AuraCacheStore.lookup} to read status. `gcTime: Infinity` disables TTL eviction.
  *
- * GC is lazy on access and proactive via {@link AuraCacheStore.purgeExpired}
- * or background sweep (`gcSweepInterval`). `has` does not promote LRU order.
+ * GC is lazy on access (`get`, `has`, `lookup`, `isStale`) and proactive via
+ * {@link AuraCacheStore.purgeExpired} or background sweep (`gcSweepInterval`).
+ * `has`, `isStale`, and `lookup` without `touch` do not promote LRU order.
  */
 export class AuraCacheStore<T> {
   private readonly max?: number;
@@ -127,8 +131,11 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Reads an entry with stale-while-revalidate (SWR) status.
-   * Does not evict stale-but-readable data.
+   * Reads an entry with `fresh` / `stale` / `missing` status.
+   *
+   * In SWR mode (`staleTime`), age past `staleTime` yields `stale` while the entry
+   * remains readable. GC-expired entries are evicted on access (same as {@link get}).
+   * Stale-but-readable entries are not removed by this method.
    *
    * @param key - Cache key.
    * @param touch - When `true`, promote the entry in the LRU list. Default `false`.
@@ -260,6 +267,7 @@ export class AuraCacheStore<T> {
 
   /**
    * Marks an entry outdated or removes it. Use after mutations or route changes.
+   * Does not promote LRU order.
    *
    * @param key - Cache key.
    * @param policy - `'stale'` keeps value for SWR reads; `'remove'` deletes immediately.
@@ -338,6 +346,7 @@ export class AuraCacheStore<T> {
 
   /**
    * Removes all entries, stops the background sweep, and invokes `onEvict` for each when configured.
+   * The store can be reused; the next `set()` restarts the background sweep when configured.
    */
   clear(): void {
     this.stopSweep();

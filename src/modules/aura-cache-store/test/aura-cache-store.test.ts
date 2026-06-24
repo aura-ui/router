@@ -1,7 +1,7 @@
 import { AuraCacheStore } from '../core/aura-cache-store';
 
 describe('AuraCacheStore', () => {
-  let cache: AuraCacheStore<unknown> | undefined;
+  let cache: AuraCacheStore<any> | undefined;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -19,6 +19,14 @@ describe('AuraCacheStore', () => {
       expect(cache.get('missing')).toBeUndefined();
       expect(cache.has('missing')).toBe(false);
       expect(cache.isStale('missing')).toBe(false);
+      expect(cache.lookup('missing')).toEqual({ status: 'missing' });
+    });
+
+    it('lookup returns fresh in simple mode without staleTime', () => {
+      cache = new AuraCacheStore<string>({ gcSweepInterval: false });
+      cache.set('a', 'one');
+
+      expect(cache.lookup('a')).toEqual({ status: 'fresh', value: 'one' });
     });
 
     it('stores and reads values without gcTime', () => {
@@ -51,6 +59,22 @@ describe('AuraCacheStore', () => {
 
       expect(cache.has('a')).toBe(false);
       expect(cache.isStale('a')).toBe(false);
+      expect(cache.size).toBe(0);
+    });
+
+    it('calls onEvict when GC evicts on read', () => {
+      const evicted: Array<[string, string]> = [];
+      cache = new AuraCacheStore<string>({
+        gcTime: 1_000,
+        gcSweepInterval: false,
+        onEvict: (key, value) => evicted.push([key, value]),
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+      cache.get('a');
+
+      expect(evicted).toEqual([['a', 'one']]);
       expect(cache.size).toBe(0);
     });
   });
@@ -189,9 +213,32 @@ describe('AuraCacheStore', () => {
       expect(cache.has('a')).toBe(false);
       expect(cache.get('b')).toBe('B');
     });
+
+    it('calls onEvict when LRU evicts the least recently used entry', () => {
+      const evicted: Array<[string, string]> = [];
+      cache = new AuraCacheStore<string>({
+        max: 2,
+        gcSweepInterval: false,
+        onEvict: (key, value) => evicted.push([key, value]),
+      });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.set('c', 'C');
+
+      expect(evicted).toEqual([['a', 'A']]);
+      expect(cache.size).toBe(2);
+    });
   });
 
   describe('proactive GC', () => {
+    it('purgeExpired returns 0 when gcTime is not configured', () => {
+      cache = new AuraCacheStore<string>({ gcSweepInterval: false });
+      cache.set('a', 'one');
+
+      expect(cache.purgeExpired()).toBe(0);
+      expect(cache.size).toBe(1);
+    });
+
     it('purgeExpired removes expired entries without read', () => {
       cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
       cache.set('a', 'one');
@@ -211,6 +258,16 @@ describe('AuraCacheStore', () => {
       cache.set('a', 'one');
 
       jest.advanceTimersByTime(1_501);
+
+      expect(cache.size).toBe(0);
+      expect(cache.get('a')).toBeUndefined();
+    });
+
+    it('background sweep uses auto interval when gcSweepInterval is omitted', () => {
+      cache = new AuraCacheStore<string>({ gcTime: 1_000 });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(5_001);
 
       expect(cache.size).toBe(0);
       expect(cache.get('a')).toBeUndefined();
@@ -335,6 +392,17 @@ describe('AuraCacheStore', () => {
       cache.set('b', '2');
 
       expect(cache.invalidateAll('stale')).toBe(2);
+      expect(cache.isStale('a')).toBe(true);
+      expect(cache.isStale('b')).toBe(true);
+      expect(cache.size).toBe(2);
+    });
+
+    it('invalidateAll uses default stale policy when policy is omitted', () => {
+      cache = new AuraCacheStore<string>({ staleTime: 60_000 });
+      cache.set('a', '1');
+      cache.set('b', '2');
+
+      expect(cache.invalidateAll()).toBe(2);
       expect(cache.isStale('a')).toBe(true);
       expect(cache.isStale('b')).toBe(true);
       expect(cache.size).toBe(2);

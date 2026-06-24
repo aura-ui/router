@@ -373,6 +373,39 @@ describe('AuraCacheStore', () => {
     });
   });
 
+  describe('extract', () => {
+    it('returns value and removes entry without onEvict', () => {
+      const evicted: string[] = [];
+      cache = new AuraCacheStore<string>({ onEvict: (key) => evicted.push(key) });
+      cache.set('a', 'one');
+
+      expect(cache.extract('a')).toBe('one');
+      expect(cache.get('a')).toBeUndefined();
+      expect(cache.size).toBe(0);
+      expect(evicted).toEqual([]);
+    });
+
+    it('returns undefined for missing keys', () => {
+      cache = new AuraCacheStore<string>();
+      expect(cache.extract('missing')).toBeUndefined();
+    });
+
+    it('calls onEvict when GC-expired on extract', () => {
+      const evicted: Array<[string, string]> = [];
+      cache = new AuraCacheStore<string>({
+        gcTime: 1_000,
+        gcSweepInterval: false,
+        onEvict: (key, value) => evicted.push([key, value]),
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.extract('a')).toBeUndefined();
+      expect(evicted).toEqual([['a', 'one']]);
+    });
+  });
+
   describe('delete and clear', () => {
     it('delete removes an existing entry and calls onEvict', () => {
       const evicted: string[] = [];

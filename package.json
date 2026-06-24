@@ -11,6 +11,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "jest",
+    "bench:cache": "tsx src/modules/aura-cache-store/bench/aura-cache-store.bench.ts",
+    "bench:cache:gc": "node --expose-gc node_modules/tsx/dist/cli.mjs src/modules/aura-cache-store/bench/aura-cache-store.bench.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:watch": "chokidar \"src/**/*.{ts,tsx}\" -c \"npm run lint\"",
@@ -54,6 +56,7 @@
     "jest-environment-jsdom": "^30.4.1",
     "prettier": "^3.8.3",
     "ts-jest": "^29.4.11",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.1",
     "vite": "^8.0.10"

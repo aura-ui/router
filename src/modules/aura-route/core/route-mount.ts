@@ -4,18 +4,18 @@ import type {
   ViewHandle,
   ViewRoot,
 } from '../../aura-outlet/core/aura-outlet';
+import type { TransitionPolicy } from '../../aura-routing-engine/core/transition/policy';
 
-export type RouteMountType = 'layout' | 'content';
+type MountStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
-/** Result of mounting a route in an outlet (handle + slot for child routes). */
+/** Last mount state for one route (handle, child slot, optional keepAlive cache). */
 export type RouteMountResult = {
   activeHandle: ViewHandle | null;
-  /** Nested `<aura-outlet>` inside mounted view; null when route exposes no child slot. */
+  /** Nested `<aura-outlet>` in a layout view; null for content-only routes. */
   resolvedOutlet: AuraOutlet | null;
-  /** Detached view kept for keepAlive re-attach; cleared after remount. */
+  /** Detached view for keepAlive; cleared after re-mount. */
   detachedRoot: ViewRoot | null;
-  /** Strategy applied by the last {@link mountRoute} call. */
-  appliedStrategy?: Extract<OutletStrategy, 'replace' | 'stage'>;
+  appliedStrategy?: MountStrategy;
 };
 
 export const EMPTY_MOUNT: RouteMountResult = {
@@ -25,115 +25,97 @@ export const EMPTY_MOUNT: RouteMountResult = {
 };
 
 export type RouteMountContext = {
-  appOutlet: AuraOutlet;
-  /** Outlet apply key; omitted → cleared on the view root. */
+  /** Router root outlet — fallback when `parentOutlet` is omitted. */
+  rootOutlet: AuraOutlet;
+  /** Parent layout's `resolvedOutlet`; nested routes set this. */
+  parentOutlet?: AuraOutlet | null;
   routePath?: string;
-  /** Parent layout's `resolvedOutlet`; flat routes omit and fall back to `appOutlet`. */
-  parentResolvedOutlet?: AuraOutlet | null;
   signal?: AbortSignal;
-  /** Defaults via {@link resolveMountStrategy}; explicit value wins. */
-  strategy?: Extract<OutletStrategy, 'replace' | 'stage'>;
-  /**
-   * When `out-in` / `in-out`, stage into a non-empty outlet so exit views stay until
-   * {@link commitStagedMount} runs after transition-in.
-   */
-  transitionPolicy?: 'out-in' | 'in-out' | 'parallel';
+  strategy?: MountStrategy;
+  transitionPolicy?: TransitionPolicy;
 };
 
-export type RouteMountRequest = {
-  ctx: RouteMountContext;
-  content: Node | string;
-  previous: RouteMountResult;
-};
-
-export type RouteUnmountRequest = {
-  handle: ViewHandle | null | undefined;
-  keepAlive: boolean;
-};
-
-function isPrevMountActive(requiresChildOutlet: boolean, prev: RouteMountResult): boolean {
-  return requiresChildOutlet
+function hasActiveMount(isLayout: boolean, prev: RouteMountResult): boolean {
+  return isLayout
     ? !!(prev.activeHandle && prev.resolvedOutlet)
     : !!prev.activeHandle;
 }
 
-/** keepAlive + valid active mount → skip a full render pass. Detached roots always re-attach. */
+/** keepAlive + live mount → skip reload. Detached roots always go through re-mount. */
 export function shouldSkipRouteRender(
   keepAlive: boolean,
-  requiresChildOutlet: boolean,
+  isLayout: boolean,
   prev: RouteMountResult,
 ): boolean {
   if (!keepAlive || prev.detachedRoot) return false;
-  return isPrevMountActive(requiresChildOutlet, prev);
+  return hasActiveMount(isLayout, prev);
 }
 
 export function resolveMountStrategy(
   ctx: RouteMountContext,
-  previous: RouteMountResult,
-): Extract<OutletStrategy, 'replace' | 'stage'> {
-  if (previous.detachedRoot) return 'replace';
+  prev: RouteMountResult,
+  targetOutlet: AuraOutlet,
+): MountStrategy {
+  if (prev.detachedRoot) return 'replace';
   if (ctx.strategy) return ctx.strategy;
 
   const policy = ctx.transitionPolicy;
   if (policy !== 'out-in' && policy !== 'in-out') return 'replace';
 
-  const outlet = resolveTargetOutlet(ctx);
-  return outlet.children.length > 0 ? 'stage' : 'replace';
+  return targetOutlet.children.length > 0 ? 'stage' : 'replace';
 }
 
-/** Put `content` into resolved outlet; re-attaches `previous.detachedRoot` when present. */
-export function mountRoute(request: RouteMountRequest): RouteMountResult {
-  const { ctx, content, previous } = request;
+/** Mount `content` into the resolved outlet; re-uses `prev.detachedRoot` when present. */
+export function mountRoute(
+  ctx: RouteMountContext,
+  content: Node | string,
+  prev: RouteMountResult = EMPTY_MOUNT,
+): RouteMountResult {
+  if (ctx.signal?.aborted) return prev;
 
-  if (ctx.signal?.aborted) return previous;
+  const outlet = resolveTargetOutlet(ctx);
+  const strategy = resolveMountStrategy(ctx, prev, outlet);
+  const payload = prev.detachedRoot ?? content;
 
-  const mountOutlet = resolveTargetOutlet(ctx);
-  const strategy = resolveMountStrategy(ctx, previous);
-  const payload = previous.detachedRoot ?? content;
-
-  const handle = mountOutlet.apply(payload, {
+  const handle = outlet.apply(payload, {
     strategy,
     key: ctx.routePath,
     signal: ctx.signal,
   });
 
-  if (!handle) return previous;
+  if (!handle) return prev;
 
   return {
-    ...toMountResult(handle),
+    activeHandle: handle,
+    resolvedOutlet: handle.findChildOutlet(),
     detachedRoot: null,
     appliedStrategy: strategy,
   };
 }
 
-/** keepAlive → detach and return root; otherwise destroy. */
-export function unmountRoute(request: RouteUnmountRequest): ViewRoot | null {
-  const { handle, keepAlive } = request;
+/** keepAlive → detach; otherwise destroy. Returns detached root or null. */
+export function unmountRoute(
+  handle: ViewHandle | null | undefined,
+  keepAlive: boolean,
+): ViewRoot | null {
   if (!handle) return null;
   if (keepAlive) return handle.detach();
   handle.destroy();
   return null;
 }
 
-/** Finalize a staged mount after transition-in (no-op for replace). */
-export function commitStagedMount(result: RouteMountResult): void {
-  const handle = result.activeHandle;
+/** Commit staged view after transition-in. */
+export function commitStagedMount(mount: RouteMountResult): void {
+  const handle = mount.activeHandle;
   if (!handle) return;
   handle.mountOutlet.commitStage(handle.viewRoot);
 }
 
 function resolveTargetOutlet(ctx: RouteMountContext): AuraOutlet {
-  return ensureAuraOutlet(ctx.parentResolvedOutlet ?? ctx.appOutlet);
+  return asAuraOutlet(ctx.parentOutlet ?? ctx.rootOutlet);
 }
 
-function toMountResult(handle: ViewHandle): Pick<RouteMountResult, 'activeHandle' | 'resolvedOutlet'> {
-  return {
-    activeHandle: handle,
-    resolvedOutlet: handle.findChildOutlet(),
-  };
-}
-
-function ensureAuraOutlet(outlet: Element | null): AuraOutlet {
+function asAuraOutlet(outlet: Element | null): AuraOutlet {
   if (!outlet) {
     throw new DOMException(
       '<aura-router> must contain <aura-outlet>',

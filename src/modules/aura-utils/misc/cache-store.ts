@@ -56,8 +56,9 @@ interface Node<T> {
  */
 export class LRUCacheStore<T> {
   private readonly max?: number;
-  private readonly staleTime?: number;
-  private readonly gcTime?: number;
+  private readonly swrEnabled: boolean;
+  private readonly staleTimeMs?: number;
+  private readonly gcTimeMs?: number;
   private readonly defaultInvalidatePolicy: InvalidatePolicy;
   private readonly onEvict?: (key: string, value: T) => void;
 
@@ -68,8 +69,9 @@ export class LRUCacheStore<T> {
   /** @param options - Cache limits, SWR timings, and eviction callback. */
   constructor(options: CacheStoreOptions<T> = {}) {
     this.max = options.max;
-    this.staleTime = options.staleTime;
-    this.gcTime = options.gcTime;
+    this.swrEnabled = options.staleTime !== undefined;
+    this.staleTimeMs = options.staleTime;
+    this.gcTimeMs = options.gcTime;
     this.defaultInvalidatePolicy = options.invalidatePolicy ?? 'stale';
     this.onEvict = options.onEvict;
   }
@@ -83,8 +85,19 @@ export class LRUCacheStore<T> {
    * @returns The stored value, or `undefined` if missing or GC expired.
    */
   get(key: string): T | undefined {
-    const lookup = this.lookup(key, true);
-    return lookup.status === 'missing' ? undefined : lookup.value;
+    const node = this.map.get(key);
+    if (!node) return undefined;
+
+    const now = Date.now();
+    if (this.checkAndEvictGc(node, now)) {
+      return undefined;
+    }
+
+    if (node !== this.tail) {
+      this.moveToEnd(node);
+    }
+
+    return node.value;
   }
 
   /**
@@ -94,13 +107,10 @@ export class LRUCacheStore<T> {
    * @param touch - Promote the entry in the LRU list when `true`. Default `false`.
    */
   lookup(key: string, touch = false): CacheLookup<T> {
-    const node = this.map.get(key);
-    if (!node) return { status: 'missing' };
-
     const now = Date.now();
+    const node = this.map.get(key);
 
-    if (this.isGcExpired(node, now)) {
-      this.evictNode(node);
+    if (!node || this.checkAndEvictGc(node, now)) {
       return { status: 'missing' };
     }
 
@@ -116,6 +126,9 @@ export class LRUCacheStore<T> {
 
   /**
    * Stores a value under `key`, clearing manual stale flag and refreshing timestamps.
+   *
+   * Updates an existing entry in place without trimming. New entries are
+   * appended and the least recently used entry is evicted when `max` is exceeded.
    *
    * @param key - Cache key.
    * @param value - Value to store.
@@ -160,7 +173,9 @@ export class LRUCacheStore<T> {
    * @param key - Cache key.
    */
   has(key: string): boolean {
-    return this.lookup(key).status !== 'missing';
+    const node = this.map.get(key);
+    if (!node) return false;
+    return !this.checkAndEvictGc(node, Date.now());
   }
 
   /**
@@ -169,7 +184,11 @@ export class LRUCacheStore<T> {
    * @param key - Cache key.
    */
   isStale(key: string): boolean {
-    return this.lookup(key).status === 'stale';
+    const now = Date.now();
+    const node = this.map.get(key);
+    if (!node || this.checkAndEvictGc(node, now)) return false;
+
+    return this.readStatus(node, now) === 'stale';
   }
 
   /**
@@ -188,7 +207,6 @@ export class LRUCacheStore<T> {
     } else {
       node.stale = true;
     }
-
     return true;
   }
 
@@ -201,13 +219,18 @@ export class LRUCacheStore<T> {
     predicate: (key: string) => boolean,
     policy: InvalidatePolicy = this.defaultInvalidatePolicy,
   ): number {
-    let count = 0;
-
-    for (const key of [...this.map.keys()]) {
-      if (!predicate(key)) continue;
-      if (this.invalidate(key, policy)) count++;
+    if (policy === 'remove') {
+      return this.invalidateMatchRemove(predicate);
     }
 
+    let count = 0;
+
+    for (const [key, node] of this.map) {
+      if (predicate(key)) {
+        node.stale = true;
+        count++;
+      }
+    }
     return count;
   }
 
@@ -217,6 +240,15 @@ export class LRUCacheStore<T> {
    * @returns Number of affected entries.
    */
   invalidateAll(policy: InvalidatePolicy = this.defaultInvalidatePolicy): number {
+    if (policy === 'stale') {
+      let count = 0;
+      for (const node of this.map.values()) {
+        node.stale = true;
+        count++;
+      }
+      return count;
+    }
+
     return this.invalidateMatch(() => true, policy);
   }
 
@@ -235,11 +267,12 @@ export class LRUCacheStore<T> {
 
   /** Removes all entries and invokes `onEvict` for each when configured. */
   clear(): void {
-    if (this.onEvict) {
+    const onEvict = this.onEvict;
+    if (onEvict) {
       let current = this.head;
       while (current) {
         const next = current.next;
-        this.onEvict(current.key, current.value);
+        onEvict(current.key, current.value);
         current = next;
       }
     }
@@ -253,32 +286,39 @@ export class LRUCacheStore<T> {
     return this.map.size;
   }
 
-  private swrEnabled(): boolean {
-    return this.staleTime !== undefined;
-  }
+  /** Returns `true` when the entry exceeded `gcTime` and was evicted. */
+  private checkAndEvictGc(node: Node<T>, now: number): boolean {
+    if (this.gcTimeMs === undefined) return false;
+    if (now - node.storedAt <= this.gcTimeMs) return false;
 
-  private resolveGcLimit(): number | undefined {
-    return this.gcTime;
-  }
-
-  private isGcExpired(node: Node<T>, now: number): boolean {
-    const gcLimit = this.resolveGcLimit();
-    if (gcLimit === undefined) return false;
-    return now - node.storedAt > gcLimit;
+    this.evictNode(node);
+    return true;
   }
 
   private readStatus(node: Node<T>, now: number): 'fresh' | 'stale' {
     if (node.stale) return 'stale';
 
-    if (!this.swrEnabled()) {
-      return 'fresh';
-    }
+    if (!this.swrEnabled) return 'fresh';
 
-    if (this.staleTime === Infinity) {
-      return 'fresh';
-    }
+    const staleTime = this.staleTimeMs;
+    if (staleTime === Infinity) return 'fresh';
 
-    return now - node.storedAt > this.staleTime! ? 'stale' : 'fresh';
+    return now - node.storedAt > staleTime! ? 'stale' : 'fresh';
+  }
+
+  private invalidateMatchRemove(predicate: (key: string) => boolean): number {
+    let count = 0;
+    let current = this.head;
+
+    while (current) {
+      const next = current.next;
+      if (predicate(current.key)) {
+        this.evictNode(current);
+        count++;
+      }
+      current = next;
+    }
+    return count;
   }
 
   private moveToEnd(node: Node<T>): void {
@@ -290,9 +330,7 @@ export class LRUCacheStore<T> {
     if (prev) prev.next = next;
     if (next) next.prev = prev;
 
-    if (node === this.head) {
-      this.head = next;
-    }
+    if (node === this.head) this.head = next;
 
     this.addToEnd(node);
   }
@@ -321,7 +359,9 @@ export class LRUCacheStore<T> {
     if (node === this.tail) this.tail = prev;
 
     this.map.delete(key);
-    this.onEvict?.(key, value);
+
+    const onEvict = this.onEvict;
+    if (onEvict) onEvict(key, value);
   }
 
   private evictHead(): void {

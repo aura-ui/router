@@ -81,6 +81,8 @@ export class AuraCacheStore<T> {
   private readonly gcSweepIntervalMs: number | null;
   private readonly defaultInvalidatePolicy: InvalidatePolicy;
   private readonly onEvict?: (key: string, value: T) => void;
+  /** Whether entries need `storedAt` / age checks (`staleTime` or `gcTime`). */
+  private readonly trackAge: boolean;
 
   private readonly map = new Map<string, Node<T>>();
   private head: Node<T> | null = null;
@@ -99,6 +101,7 @@ export class AuraCacheStore<T> {
     this.gcSweepIntervalMs = resolveGcSweepInterval(this.gcTimeMs, options.gcSweepInterval);
     this.defaultInvalidatePolicy = options.invalidatePolicy ?? 'stale';
     this.onEvict = options.onEvict;
+    this.trackAge = this.gcTimeMs !== undefined || this.swrEnabled;
   }
 
   /**
@@ -112,8 +115,7 @@ export class AuraCacheStore<T> {
     const node = this.map.get(key);
     if (!node) return undefined;
 
-    const now = Date.now();
-    if (this.checkAndEvictGc(node, now)) {
+    if (this.gcTimeMs !== undefined && this.checkAndEvictGc(node, Date.now())) {
       return undefined;
     }
 
@@ -133,21 +135,37 @@ export class AuraCacheStore<T> {
    * @returns Lookup result with `fresh`, `stale`, or `missing` status.
    */
   lookup(key: string, touch = false): CacheLookup<T> {
-    const now = Date.now();
     const node = this.map.get(key);
 
-    if (!node || this.checkAndEvictGc(node, now)) {
+    if (!node) {
       return { status: 'missing' };
+    }
+
+    if (this.trackAge) {
+      const now = Date.now();
+      if (this.gcTimeMs !== undefined && this.checkAndEvictGc(node, now)) {
+        return { status: 'missing' };
+      }
+
+      if (touch && node !== this.tail) {
+        this.moveToEnd(node);
+      }
+
+      const status = this.readStatus(node, now);
+      return status === 'fresh'
+        ? { status: 'fresh', value: node.value }
+        : { status: 'stale', value: node.value };
     }
 
     if (touch && node !== this.tail) {
       this.moveToEnd(node);
     }
 
-    const status = this.readStatus(node, now);
-    return status === 'fresh'
-      ? { status: 'fresh', value: node.value }
-      : { status: 'stale', value: node.value };
+    if (node.stale) {
+      return { status: 'stale', value: node.value };
+    }
+
+    return { status: 'fresh', value: node.value };
   }
 
   /**
@@ -161,12 +179,14 @@ export class AuraCacheStore<T> {
    */
   set(key: string, value: T): void {
     const existingNode = this.map.get(key);
-    const now = Date.now();
+    const now = this.trackAge ? Date.now() : 0;
 
     if (existingNode) {
       existingNode.value = value;
-      existingNode.storedAt = now;
       existingNode.stale = false;
+      if (this.trackAge) {
+        existingNode.storedAt = now;
+      }
 
       if (existingNode !== this.tail) {
         this.moveToEnd(existingNode);
@@ -206,6 +226,7 @@ export class AuraCacheStore<T> {
   has(key: string): boolean {
     const node = this.map.get(key);
     if (!node) return false;
+    if (this.gcTimeMs === undefined) return true;
     return !this.checkAndEvictGc(node, Date.now());
   }
 
@@ -216,9 +237,14 @@ export class AuraCacheStore<T> {
    * @returns `true` if stale and readable; `false` if missing, fresh, or GC-expired.
    */
   isStale(key: string): boolean {
-    const now = Date.now();
     const node = this.map.get(key);
-    if (!node || this.checkAndEvictGc(node, now)) return false;
+    if (!node) return false;
+
+    const now = Date.now();
+    if (this.gcTimeMs !== undefined && this.checkAndEvictGc(node, now)) return false;
+
+    if (node.stale) return true;
+    if (!this.swrEnabled) return false;
 
     return this.readStatus(node, now) === 'stale';
   }

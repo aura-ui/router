@@ -1,4 +1,4 @@
-import { AuraCacheStore } from '../core/aura-cache-store';
+import { AuraCacheStore, DEFAULT_GC_TIME } from '../core/aura-cache-store';
 
 describe('AuraCacheStore', () => {
   let cache: AuraCacheStore<any> | undefined;
@@ -113,7 +113,7 @@ describe('AuraCacheStore', () => {
     });
 
     it('set clears stale flag after manual invalidation', () => {
-      cache = new AuraCacheStore<string>({ staleTime: 1_000 });
+      cache = new AuraCacheStore<string>({ staleTime: 1_000, gcSweepInterval: false });
       cache.set('a', 'one');
       cache.invalidate('a', 'stale');
 
@@ -122,6 +122,34 @@ describe('AuraCacheStore', () => {
       cache.set('a', 'two');
 
       expect(cache.lookup('a')).toEqual({ status: 'fresh', value: 'two' });
+    });
+
+    it('applies default gcTime when staleTime is set without gcTime', () => {
+      cache = new AuraCacheStore<string>({
+        staleTime: 1_000,
+        gcSweepInterval: false,
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(DEFAULT_GC_TIME + 1);
+
+      expect(cache.lookup('a')).toEqual({ status: 'missing' });
+      expect(cache.size).toBe(0);
+    });
+
+    it('keeps entries when gcTime is Infinity in SWR mode', () => {
+      cache = new AuraCacheStore<string>({
+        staleTime: 1_000,
+        gcTime: Infinity,
+        gcSweepInterval: false,
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+      expect(cache.lookup('a')).toEqual({ status: 'stale', value: 'one' });
+
+      jest.advanceTimersByTime(DEFAULT_GC_TIME);
+      expect(cache.has('a')).toBe(true);
     });
 
     it('treats staleTime 0 as stale after the fresh window elapses', () => {
@@ -323,7 +351,7 @@ describe('AuraCacheStore', () => {
 
   describe('invalidate', () => {
     it('stale policy keeps value readable', () => {
-      cache = new AuraCacheStore<number>({ staleTime: 60_000 });
+      cache = new AuraCacheStore<number>({ staleTime: 60_000, gcSweepInterval: false });
       cache.set('x', 1);
 
       cache.invalidate('x', 'stale');
@@ -337,6 +365,7 @@ describe('AuraCacheStore', () => {
       const evicted: string[] = [];
       cache = new AuraCacheStore<number>({
         staleTime: 60_000,
+        gcSweepInterval: false,
         onEvict: (key) => evicted.push(key),
       });
       cache.set('x', 1);
@@ -363,6 +392,7 @@ describe('AuraCacheStore', () => {
     it('invalidateMatch respects predicate and default policy', () => {
       cache = new AuraCacheStore<string>({
         staleTime: 60_000,
+        gcSweepInterval: false,
         invalidatePolicy: 'remove',
       });
       cache.set('data:a', 'A');
@@ -377,7 +407,7 @@ describe('AuraCacheStore', () => {
     });
 
     it('invalidateMatch with stale policy marks matching entries', () => {
-      cache = new AuraCacheStore<string>({ staleTime: 60_000 });
+      cache = new AuraCacheStore<string>({ staleTime: 60_000, gcSweepInterval: false });
       cache.set('data:a', 'A');
       cache.set('content:a', 'HTML');
 
@@ -387,7 +417,7 @@ describe('AuraCacheStore', () => {
     });
 
     it('invalidateAll with stale policy marks every entry stale', () => {
-      cache = new AuraCacheStore<string>({ staleTime: 60_000 });
+      cache = new AuraCacheStore<string>({ staleTime: 60_000, gcSweepInterval: false });
       cache.set('a', '1');
       cache.set('b', '2');
 
@@ -398,7 +428,7 @@ describe('AuraCacheStore', () => {
     });
 
     it('invalidateAll uses default stale policy when policy is omitted', () => {
-      cache = new AuraCacheStore<string>({ staleTime: 60_000 });
+      cache = new AuraCacheStore<string>({ staleTime: 60_000, gcSweepInterval: false });
       cache.set('a', '1');
       cache.set('b', '2');
 

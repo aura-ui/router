@@ -1,10 +1,10 @@
-import type { AURARouteContentType } from './types';
+import type { AuraRouteContentType } from './types';
 import { BaseLoader } from './base-loader';
 
 export class HtmlLoader extends BaseLoader {
   static readonly type = 'html' as const;
 
-  get type(): AURARouteContentType {
+  get type(): AuraRouteContentType {
     return HtmlLoader.type;
   }
 

@@ -1,8 +1,8 @@
-import type { AURARoute } from '../../../aura-route/core/aura-route';
+import type { AuraRoute } from '../../../aura-route/core/aura-route';
 
 /** Узел дерева маршрутов, собранного из DOM. @example fullPath `/settings/profile`, branch [settings, profile] */
 export interface RouteNode {
-  route: AURARoute;
+  route: AuraRoute;
   /** Значение attr `path` (может быть relative или absolute). @example `'profile'` */
   routePath: string;
   /** Resolved URL для match/registry. @example `'/settings/profile'` */

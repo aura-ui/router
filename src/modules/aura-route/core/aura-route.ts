@@ -16,21 +16,21 @@ import {
 
 export type { RouteRenderOptions };
 
-export interface AURARouteInterface {
+/** Public surface of `<aura-route>` element attributes. */
+export interface AuraRouteInterface {
   path: string;
-  html?: string;
-  htmlSrc?: string;
-  component?: string;
-  componentSrc?: string;
-  template?: string;
-  loadingTemplate?: string;
-  errorTemplate?: string;
-  preload?: boolean;
-  keepAlive?: boolean;
-  cache?: boolean;
+  layout: string;
+  source: string;
+  content: string;
+  loadingTemplate: string;
+  errorTemplate: string;
+  preload: boolean;
+  keepAlive: boolean;
+  restoreScroll: boolean;
+  cache: boolean;
 }
 
-export class AURARoute extends HTMLElement implements AURARouteInterface, RouteInstance {
+export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
   static is = 'aura-route';
 
   @attr({ readonly: true }) path: string;
@@ -69,9 +69,9 @@ export class AURARoute extends HTMLElement implements AURARouteInterface, RouteI
       throw new DOMException('aura-route should be inside aura-router', 'NotFoundError');
     }
 
-    if (!this.path) throw new Error('AURARoute must have a path attribute');
+    if (!this.path) throw new Error('AuraRoute must have a path attribute');
     if (!this.content && !this.layout) {
-      console.warn(`AURARoute with path "${this.path}" has no content specified`);
+      console.warn(`AuraRoute with path "${this.path}" has no content specified`);
     }
 
     this.view = createAuraRouteViewController(this, () => router.rootOutlet);

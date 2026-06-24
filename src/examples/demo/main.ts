@@ -1,6 +1,6 @@
 import { AuraRouter } from '../../modules/aura-router/core';
 import { AuraRouterOutlet } from '../../modules/aura-router-outlet/core';
-import { AURARoute } from '../../modules/aura-route/core';
+import { AuraRoute } from '../../modules/aura-route/core';
 import { ContentLoaderService } from '../../modules/aura-content-loaders/core';
 import { authHook, type AuthHookOptions } from './hooks/auth.hook';
 import { analyticsHook } from './hooks/analytics.hook';
@@ -16,5 +16,5 @@ AuraRouter.registerLoader('custom-loader', CustomLoader);
 
 customElements.define(AuraOutlet.is, AuraOutlet);
 customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);
-customElements.define(AURARoute.is, AURARoute);
+customElements.define(AuraRoute.is, AuraRoute);
 customElements.define(AuraRouter.is, AuraRouter);

@@ -1,4 +1,4 @@
-import type { AURARoute } from '../../../aura-route/core/aura-route';
+import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import { buildRouteTree } from '../../core/route-tree/build-route-tree';
 
 import { createTestRoute } from './create-test-route';
@@ -26,11 +26,11 @@ export function createDomRoute(path: string, children: TestRoute[] = []): TestRo
   return route;
 }
 
-export function collectRoutesFromDom(...roots: TestRoute[]): AURARoute[] {
-  const routes: AURARoute[] = [];
+export function collectRoutesFromDom(...roots: TestRoute[]): AuraRoute[] {
+  const routes: AuraRoute[] = [];
 
   function walk(route: TestRoute): void {
-    routes.push(route as unknown as AURARoute);
+    routes.push(route as unknown as AuraRoute);
     for (const child of route.querySelectorAll(`:scope > ${ROUTE_TAG}`)) {
       walk(child as TestRoute);
     }

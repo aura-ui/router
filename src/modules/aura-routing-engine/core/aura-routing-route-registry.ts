@@ -1,4 +1,4 @@
-import type { AURARoute } from '../../aura-route/core/aura-route';
+import type { AuraRoute } from '../../aura-route/core/aura-route';
 import { buildRouteTree } from './route-tree';
 import type { RouteNode } from './route-tree';
 
@@ -7,17 +7,17 @@ export class AuraRoutingRouteRegistry {
   private nodesByFullPath = new Map<string, RouteNode>();
   private matchableNodes: RouteNode[] = [];
   private matchablePaths: readonly string[] = [];
-  private routes: AURARoute[] = [];
+  private routes: AuraRoute[] = [];
 
-  register(routes: AURARoute[]): void {
+  register(routes: AuraRoute[]): void {
     this.rebuildSnapshot([...this.routes, ...routes]);
   }
 
-  replace(routes: AURARoute[]): void {
+  replace(routes: AuraRoute[]): void {
     this.rebuildSnapshot(routes);
   }
 
-  private rebuildSnapshot(routes: AURARoute[]): void {
+  private rebuildSnapshot(routes: AuraRoute[]): void {
     this.routes = routes;
     const snapshot = buildRouteTree(routes);
     this.roots = snapshot.roots;
@@ -26,7 +26,7 @@ export class AuraRoutingRouteRegistry {
     this.matchablePaths = snapshot.matchableNodes.map((node) => node.fullPath);
   }
 
-  getRoute(fullPath: string): AURARoute | undefined {
+  getRoute(fullPath: string): AuraRoute | undefined {
     return this.nodesByFullPath.get(fullPath)?.route;
   }
 

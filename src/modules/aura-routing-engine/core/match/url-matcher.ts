@@ -1,4 +1,4 @@
-import type { AURARoute } from '../../../aura-route/core/aura-route';
+import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import { parsePath, parseQuery } from '../../../aura-utils/misc/url';
 import {
   isGlobalCatchAllFullPath,
@@ -15,7 +15,7 @@ export interface MatchedRouteInfo {
   hash: string;
   /** Registered route pattern, e.g. `/user/:id`. */
   routePath: string;
-  route: AURARoute;
+  route: AuraRoute;
   /** Path params: `:id` из URLPattern; catch-all `*` → `{ splat: 'foo/bar' }`. */
   params?: Record<string, string>;
   query?: Record<string, string>;

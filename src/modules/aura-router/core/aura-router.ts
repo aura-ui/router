@@ -1,6 +1,6 @@
 import { attr } from '../../aura-utils/decorators';
 
-import { AURARoute } from '../../aura-route/core';
+import { AuraRoute } from '../../aura-route/core';
 import { configureRouteContentLoader } from '../../aura-route/core/route-content-loader';
 import {
   ContentLoaderRegistry,
@@ -94,7 +94,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   get routes() {
-    return this.querySelectorAll<AURARoute>(AURARoute.is);
+    return this.querySelectorAll<AuraRoute>(AuraRoute.is);
   }
 
   get rootOutlet(): AuraOutlet {

@@ -43,7 +43,7 @@ export interface RouteOutletPort {
 }
 
 /**
- * View state and render orchestration for {@link AURARoute}.
+ * View state and render orchestration for {@link AuraRoute}.
  * Mount primitives stay in {@link route-mount}; content loading is injected via {@link RouteContentPort}.
  */
 export class AuraRouteViewController {
@@ -222,7 +222,7 @@ export class AuraRouteViewController {
 
     if (mountType === 'layout' && !result.resolvedOutlet) {
       console.warn(
-        `AURARoute layout "${this.config.layout}" (path: ${this.config.path}) has no <aura-outlet>`,
+        `AuraRoute layout "${this.config.layout}" (path: ${this.config.path}) has no <aura-outlet>`,
       );
     }
   }
@@ -263,7 +263,7 @@ export class AuraRouteViewController {
   }
 
   private handleRenderError(error: unknown): void {
-    console.error(`Error rendering AURARoute (path: ${this.config.path}):`, error);
+    console.error(`Error rendering AuraRoute (path: ${this.config.path}):`, error);
 
     if (!this.isActive) return;
 

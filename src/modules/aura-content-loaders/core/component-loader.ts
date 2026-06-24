@@ -1,10 +1,10 @@
-import type { AURARouteContentType, LoaderOptions } from './types';
+import type { AuraRouteContentType, LoaderOptions } from './types';
 import { BaseLoader } from './base-loader';
 
 export class ComponentLoader extends BaseLoader {
   static readonly type = 'component' as const;
 
-  get type(): AURARouteContentType {
+  get type(): AuraRouteContentType {
     return ComponentLoader.type;
   }
 

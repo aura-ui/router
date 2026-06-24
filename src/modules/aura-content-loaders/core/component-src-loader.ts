@@ -1,11 +1,11 @@
 import { loadAndRegisterComponent } from '../../aura-utils/misc';
-import type { AURARouteContentType, LoaderOptions } from './types';
+import type { AuraRouteContentType, LoaderOptions } from './types';
 import { BaseLoader } from './base-loader';
 
 export class ComponentSrcLoader extends BaseLoader {
   static readonly type = 'component-src' as const;
 
-  get type(): AURARouteContentType {
+  get type(): AuraRouteContentType {
     return ComponentSrcLoader.type;
   }
 

@@ -189,6 +189,9 @@ export class AuraCacheStore<T> {
     const now = this.trackAge ? Date.now() : 0;
 
     if (existingNode) {
+      // TODO: перезапись без onEvict — старое value может стать orphan (напр. stash дважды
+      // с одним ключом без take между ними). В lifecycle route view (onLeft → take → onLeft)
+      // этого не должно быть, но store должен вызывать onEvict на заменяемом значении.
       existingNode.value = value;
       existingNode.stale = false;
       if (this.trackAge) {
@@ -329,6 +332,26 @@ export class AuraCacheStore<T> {
     }
 
     return this.invalidateMatch(() => true, policy);
+  }
+
+  /**
+   * Returns a cached value and removes the entry without invoking `onEvict`.
+   * GC-expired entries are evicted normally (with `onEvict` when configured).
+   *
+   * @param key - Cache key.
+   * @returns The stored value, or `undefined` if missing or GC-expired.
+   */
+  extract(key: string): T | undefined {
+    const node = this.map.get(key);
+    if (!node) return undefined;
+
+    if (this.gcTimeMs !== undefined && this.checkAndEvictGc(node, Date.now())) {
+      return undefined;
+    }
+
+    const value = node.value;
+    this.removeNode(node);
+    return value;
   }
 
   /**
@@ -524,8 +547,8 @@ export class AuraCacheStore<T> {
    *
    * @param node - Entry to evict.
    */
-  private evictNode(node: Node<T>): void {
-    const { key, value } = node;
+  private removeNode(node: Node<T>): void {
+    const { key } = node;
 
     const prev = node.prev;
     const next = node.next;
@@ -538,12 +561,17 @@ export class AuraCacheStore<T> {
 
     this.map.delete(key);
 
-    const onEvict = this.onEvict;
-    if (onEvict) onEvict(key, value);
-
     if (this.map.size === 0) {
       this.stopSweep();
     }
+  }
+
+  private evictNode(node: Node<T>): void {
+    const { key, value } = node;
+    this.removeNode(node);
+
+    const onEvict = this.onEvict;
+    if (onEvict) onEvict(key, value);
   }
 
   /** Evicts the least recently used entry (LRU head). */

@@ -1,6 +1,7 @@
 import { RouteHookRegistry } from '../../../aura-route-hooks/core/route-hook-registry';
 import type { RouteLifecycleContext } from '../../../aura-route-hooks/core';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { TransitionPolicy } from '../transition/policy';
 import type { GuardResult } from '../guard.types';
 import type { AuraRoutingProcessorJob } from './job';
 
@@ -28,14 +29,16 @@ export class RouteHookRunner {
    * View commit: `route.render()` for the activate branch (not a lifecycle hook).
    * @param matchedRoute - match info passed to `route.render()`
    * @param job - navigation job; `job.signal` is passed into `route.render()` for cancellation
+   * @param transitionPolicy - router transition policy; enables staged outlet mounts when applicable
    */
   static async runViewCommit(
     matchedRoute: MatchedRouteInfo,
     job: AuraRoutingProcessorJob,
+    transitionPolicy?: TransitionPolicy,
   ): Promise<ViewCommitResult> {
     if (job.aborted) return 'aborted';
 
-    await matchedRoute.route.render(matchedRoute, job.signal);
+    await matchedRoute.route.render(matchedRoute, { signal: job.signal, transitionPolicy });
 
     return job.aborted ? 'aborted' : 'ok';
   }

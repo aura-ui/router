@@ -198,7 +198,11 @@ export class ProcessorPipeline {
   private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
       try {
-        const viewCommit = await RouteHookRunner.runViewCommit(matchedRoute, pipelineContext.job);
+        const viewCommit = await RouteHookRunner.runViewCommit(
+          matchedRoute,
+          pipelineContext.job,
+          pipelineContext.transaction.transitionPolicy,
+        );
 
         if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
           return { status: 'cancelled' };

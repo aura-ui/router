@@ -1,10 +1,5 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
-import {
-  ContentLoaderRegistry,
-  ContentLoaderService,
-  type LoaderConstructor,
-} from '../../aura-content-loaders/core';
 import type {
   MatchedRouteInfo,
   RouteErrorContext,
@@ -18,13 +13,8 @@ import {
   type AuraRouteViewController,
   type RouteRenderOptions,
 } from './aura-route-view-controller';
-import { configureRouteContentLoader } from './route-content-loader';
 
 export type { RouteRenderOptions };
-
-export interface AURARouteConfigureOptions {
-  contentLoaderService?: ContentLoaderService;
-}
 
 export interface AURARouteInterface {
   path: string;
@@ -42,16 +32,6 @@ export interface AURARouteInterface {
 
 export class AURARoute extends HTMLElement implements AURARouteInterface, RouteInstance {
   static is = 'aura-route';
-
-  static configure(options: AURARouteConfigureOptions): void {
-    if (options.contentLoaderService) {
-      configureRouteContentLoader(options.contentLoaderService);
-    }
-  }
-
-  static registerLoader(type: string, loaderClass: LoaderConstructor): void {
-    ContentLoaderRegistry.register(type, loaderClass);
-  }
 
   @attr({ readonly: true }) path: string;
   @attr({ readonly: true }) layout: string;

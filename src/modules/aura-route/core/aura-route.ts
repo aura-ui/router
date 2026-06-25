@@ -1,10 +1,11 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 import { AuraRouter } from '../../aura-router/core/aura-router';
-import { createRouteViewController } from './view/view-controller.creator';
 import type { MatchedRouteInfo, RouteErrorContext, RouteInstance, RouteLifecycleContext } from '../../aura-route-hooks/core';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import type { AuraRouteViewController, RouteRenderOptions } from './view/view-controller';
+import { AuraRouteViewController, type RouteRenderOptions } from './view/view-controller';
+import { resolveRouteContentLoaderService, RouteContentLoader } from './route-content-loader';
+import { defaultRouteViewCache } from './view/view-cache';
 
 export type { RouteRenderOptions };
 
@@ -56,8 +57,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   private view!: AuraRouteViewController;
   private viewLifecycleToken = 0;
 
-  get childOutlet(): AuraOutlet | null {
-    return this.view?.childOutlet ?? null;
+  get nestedOutlet(): AuraOutlet | null {
+    return this.view?.nestedOutlet ?? null;
   }
 
   async connectedCallback(): Promise<void> {
@@ -71,8 +72,11 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
       console.warn(`AuraRoute with path "${this.path}" has no content specified`);
     }
 
-    this.view = createRouteViewController(this,
-      () => router.defaultOutlet,
+    this.view = new AuraRouteViewController(this,
+      new RouteContentLoader(this, resolveRouteContentLoaderService()),
+      defaultRouteViewCache,
+      () => router.appOutlet,
+      (routeInfo) => routeInfo?.node?.parent?.route.nestedOutlet ?? null,
       () => this.viewLifecycleToken);
 
     if (this.preload) {

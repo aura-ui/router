@@ -10,19 +10,19 @@ type MountStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 /** Snapshot of the mounted view inside an outlet (handle and nested slot). */
 export type ViewMountState = {
   activeHandle: ViewHandle | null;
-  childOutlet: AuraOutlet | null;
+  nestedOutlet: AuraOutlet | null;
   appliedStrategy?: MountStrategy;
 };
 
 export const EMPTY_VIEW_MOUNT: ViewMountState = {
   activeHandle: null,
-  childOutlet: null,
+  nestedOutlet: null,
 };
 
 /** Inputs for {@link mountRoute}: outlets, pattern key, signal, stage flag. */
 export type ViewMountContext = {
-  defaultOutlet: AuraOutlet;
-  parentOutlet?: AuraOutlet | null;
+  appOutlet: AuraOutlet;
+  mountOutlet?: AuraOutlet | null;
   pattern?: string;
   signal?: AbortSignal;
   strategy?: MountStrategy;
@@ -32,7 +32,7 @@ export type ViewMountContext = {
 
 function hasActiveMount(isLayout: boolean, prev: ViewMountState): boolean {
   return isLayout
-    ? !!(prev.activeHandle && prev.childOutlet)
+    ? !!(prev.activeHandle && prev.nestedOutlet)
     : !!prev.activeHandle;
 }
 
@@ -61,7 +61,7 @@ export function resolveMountStrategy(
   return targetOutlet.children.length > 0 ? 'stage' : 'replace';
 }
 
-/** Mount new content into `parentOutlet ?? defaultOutlet`. */
+/** Mount new content into `mountOutlet ?? appOutlet`. */
 export function mountRoute(
   ctx: ViewMountContext,
   content: Node | string,
@@ -69,7 +69,7 @@ export function mountRoute(
 ): ViewMountState {
   if (ctx.signal?.aborted) return prev;
 
-  const outlet = asAuraOutlet(ctx.parentOutlet ?? ctx.defaultOutlet);
+  const outlet = asAuraOutlet(ctx.mountOutlet ?? ctx.appOutlet);
   const strategy = resolveMountStrategy(ctx, prev, outlet);
 
   const handle = outlet.apply(content, {
@@ -82,7 +82,7 @@ export function mountRoute(
 
   return {
     activeHandle: handle,
-    childOutlet: handle.findChildOutlet(),
+    nestedOutlet: handle.findChildOutlet(),
     appliedStrategy: strategy,
   };
 }
@@ -94,7 +94,7 @@ export function reattachRoute(
 ): ViewMountState | null {
   if (ctx.signal?.aborted) return null;
 
-  const outlet = asAuraOutlet(ctx.parentOutlet ?? ctx.defaultOutlet);
+  const outlet = asAuraOutlet(ctx.mountOutlet ?? ctx.appOutlet);
 
   const handle = outlet.apply(cachedRoot, {
     strategy: 'replace',
@@ -106,7 +106,7 @@ export function reattachRoute(
 
   return {
     activeHandle: handle,
-    childOutlet: handle.findChildOutlet(),
+    nestedOutlet: handle.findChildOutlet(),
     appliedStrategy: 'replace',
   };
 }

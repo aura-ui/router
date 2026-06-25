@@ -42,8 +42,8 @@ export class AuraRouteViewController {
   private readonly content: RouteContentPort;
   private readonly renderSignal: RouteRenderSignal;
   private readonly viewCache: RouteViewCachePort;
-  private readonly getDefaultOutlet: () => AuraOutlet;
-  private readonly getParentOutlet: (routeInfo?: MatchedRouteInfo) => AuraOutlet | null;
+  private readonly getAppOutlet: () => AuraOutlet;
+  private readonly getMountOutlet: (routeInfo?: MatchedRouteInfo) => AuraOutlet | null;
   private readonly getLifecycleToken: () => number;
 
   private lastMount: RouteLastMount = { ...EMPTY_ROUTE_LAST_MOUNT };
@@ -53,21 +53,21 @@ export class AuraRouteViewController {
   private lastCacheKey: string | null = null;
 
   /** Nested `<aura-outlet>` inside mounted layout; children render here. */
-  childOutlet: AuraOutlet | null = null;
+  nestedOutlet: AuraOutlet | null = null;
 
   constructor(
     route: AuraRouteInterface,
     content: RouteContentPort,
     viewCache: RouteViewCachePort,
-    getDefaultOutlet: () => AuraOutlet,
-    getParentOutlet: (routeInfo?: MatchedRouteInfo) => AuraOutlet | null,
+    getAppOutlet: () => AuraOutlet,
+    getMountOutlet: (routeInfo?: MatchedRouteInfo) => AuraOutlet | null,
     getLifecycleToken: () => number = () => 0,
   ) {
     this.route = route;
     this.content = content;
     this.viewCache = viewCache;
-    this.getDefaultOutlet = getDefaultOutlet;
-    this.getParentOutlet = getParentOutlet;
+    this.getAppOutlet = getAppOutlet;
+    this.getMountOutlet = getMountOutlet;
     this.getLifecycleToken = getLifecycleToken;
     this.renderSignal = new RouteRenderSignal();
   }
@@ -175,7 +175,7 @@ export class AuraRouteViewController {
     if (config.keepAlive && detached) {
       this.viewCache.put(this.lastCacheKey ?? this.route.path, detached);
     } else {
-      this.childOutlet = null;
+      this.nestedOutlet = null;
     }
   }
 
@@ -211,15 +211,15 @@ export class AuraRouteViewController {
   private currentMountState(): ViewMountState {
     return {
       activeHandle: this.lastMount.handle,
-      childOutlet: this.childOutlet,
+      nestedOutlet: this.nestedOutlet,
     };
   }
 
   private buildMountContext(routeInfo?: MatchedRouteInfo): ViewMountContext {
     return {
       pattern: routeInfo?.pattern,
-      defaultOutlet: this.getDefaultOutlet(),
-      parentOutlet: this.getParentOutlet(routeInfo),
+      appOutlet: this.getAppOutlet(),
+      mountOutlet: this.getMountOutlet(routeInfo),
       signal: this.renderSignal.signal,
       stageMount: this.stageMount,
     };
@@ -255,9 +255,9 @@ export class AuraRouteViewController {
       strategy: result.appliedStrategy ?? 'replace',
       handle: result.activeHandle,
     };
-    this.childOutlet = result.childOutlet;
+    this.nestedOutlet = result.nestedOutlet;
 
-    if (viewKind === 'layout' && !result.childOutlet) {
+    if (viewKind === 'layout' && !result.nestedOutlet) {
       console.warn(
         `AuraRoute layout "${this.route.layout}" (path: ${this.route.path}) has no <aura-outlet>`,
       );
@@ -271,11 +271,11 @@ export class AuraRouteViewController {
 
     if (this.stageOutgoingHandle) {
       this.lastMount.handle = this.stageOutgoingHandle;
-      this.childOutlet = this.stageOutgoingHandle.findChildOutlet();
+      this.nestedOutlet = this.stageOutgoingHandle.findChildOutlet();
       this.stageOutgoingHandle = null;
     } else {
       this.lastMount.handle = null;
-      this.childOutlet = null;
+      this.nestedOutlet = null;
     }
   }
 

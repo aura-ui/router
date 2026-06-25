@@ -67,6 +67,18 @@ describe('AuraCacheStore', () => {
       expect(cache.get('a')).toBe(value);
     });
 
+    it('set keeps previous value when onRemove throws during overwrite', () => {
+      const localCache = new AuraCacheStore<string>({
+        onRemove: () => {
+          throw new Error('cleanup failed');
+        },
+      });
+      localCache.set('a', 'one');
+
+      expect(() => localCache.set('a', 'two')).toThrow('cleanup failed');
+      expect(localCache.get('a')).toBe('one');
+    });
+
     it('keys returns a snapshot without promoting LRU or removing entries', () => {
       cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
       cache.set('a', 'A');

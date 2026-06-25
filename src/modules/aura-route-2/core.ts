@@ -5,7 +5,7 @@ export {
   defaultViewCache,
   cacheKey,
   destroyViewRoot,
-} from './view/view-cache';
+} from './core/view/view-cache';
 export type {
   ContentResolverPort,
   ViewCachePort,
@@ -13,10 +13,10 @@ export type {
   ViewRenderPlugin,
   RouteViewConfig,
   ViewPayload,
-} from './view/ports';
-export { RouteViewController } from './view/view-controller';
-export { createRenderPass, isStale, type RenderPass } from './view/render-pass';
-export { loadingBodyClass, loadingEvent } from './view/plugins';
+} from './core/view/ports';
+export { RouteViewController } from './core/view/view-controller';
+export { createRenderPass, isStale, type RenderPass } from './core/view/render-pass';
+export { loadingBodyClass, loadingEvent } from './core/view/plugins';
 export {
   configureRouteContentLoader,
   resolveRouteContentLoaderService,

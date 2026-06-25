@@ -1,9 +1,9 @@
-import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
-import type { AuraOutlet, ViewRoot } from '../../aura-outlet/core/aura-outlet';
-import type { RouteRenderOptions } from '../core/types';
+import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
+import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import type { RouteRenderOptions } from '../types';
 import type { ViewPayload, RouteViewConfig } from './ports';
 import { createRenderPass, isStale, type RenderPass } from './render-pass';
-import { RenderSignal } from './signal';
+import { RenderSignal } from './render-signal';
 import {
   EMPTY_MOUNT,
   commitStaged,

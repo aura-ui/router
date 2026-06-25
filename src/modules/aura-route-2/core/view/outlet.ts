@@ -3,7 +3,7 @@ import type {
   OutletStrategy,
   ViewHandle,
   ViewRoot,
-} from '../../aura-outlet/core/aura-outlet';
+} from '../../../aura-outlet/core/aura-outlet';
 
 type StageStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 

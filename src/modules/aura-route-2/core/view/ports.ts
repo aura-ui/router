@@ -1,5 +1,5 @@
-import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
-import type { AuraOutlet, ViewRoot } from '../../aura-outlet/core/aura-outlet';
+import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
+import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import type { RenderPass } from './render-pass';
 
 export type ViewKind = 'layout' | 'content';
@@ -33,7 +33,7 @@ export interface ViewRenderPlugin {
 }
 
 export type RouteViewConfig = {
-  route: import('../core/types').AuraRouteInterface;
+  route: import('../types').AuraRouteInterface;
   content: ContentResolverPort;
   cache: ViewCachePort;
   mountTarget: MountTargetPort;

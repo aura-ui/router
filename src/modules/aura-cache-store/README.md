@@ -74,6 +74,8 @@ type CacheStoreOptions<T> = {
 | `invalidatePolicy` | Default for `invalidate`, `invalidateMatch`, `invalidateAll` |
 | `onRemove` | Called on LRU/GC removal, `set` overwrite, `delete`, `clear`, `invalidate(..., 'remove')`, and GC-expired `extract` / `peek` / `has` |
 
+When both `staleTime` and `gcTime` are finite, keep `staleTime <= gcTime`. If `staleTime > gcTime`, the entry is removed at `gcTime` while still `fresh` — the age-based stale phase never happens. Manual `invalidate(..., 'stale')` still marks entries stale.
+
 ### `gcSweepInterval`
 
 - `undefined` — auto when `gcTime` is a **finite** ms value: `clamp(gcTime / 2, 5s … 60s)`. Disabled when `gcTime` is omitted or `Infinity`

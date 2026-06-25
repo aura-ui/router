@@ -139,6 +139,9 @@ export class AuraCacheStore<T> {
    * Returns a cached value when present (fresh or stale) and promotes LRU order.
    * GC-expired entries are removed on access.
    *
+   * Does not report whether the entry is stale. In SWR mode (`staleTime`), use
+   * {@link AuraCacheStore.lookup} to decide whether to revalidate.
+   *
    * @param key - Cache key.
    * @returns The stored value, or `undefined` if missing or GC-expired.
    */

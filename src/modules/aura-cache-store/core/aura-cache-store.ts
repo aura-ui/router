@@ -184,8 +184,8 @@ export class AuraCacheStore<T> {
    * Stores a value under `key`, clearing stale flag and refreshing `storedAt`.
    *
    * Updates an existing entry in place without LRU trim. Overwriting invokes
-   * `onRemove` for the previous value when it differs. New entries may remove
-   * the least recently used key when `max` is exceeded.
+   * `onRemove` for the previous value when it differs, before the new value is stored.
+   * New entries may remove the least recently used key when `max` is exceeded.
    *
    * @param key - Cache key.
    * @param value - Value to store.
@@ -197,6 +197,10 @@ export class AuraCacheStore<T> {
     if (existingNode) {
       const previous = existingNode.value;
 
+      if (previous !== value) {
+        this.onRemove?.(key, previous);
+      }
+
       existingNode.value = value;
       existingNode.stale = false;
       if (this.trackAge) {
@@ -205,10 +209,6 @@ export class AuraCacheStore<T> {
 
       if (existingNode !== this.tail) {
         this.moveToEnd(existingNode);
-      }
-
-      if (previous !== value) {
-        this.onRemove?.(key, previous);
       }
 
       this.ensureSweepRunning();

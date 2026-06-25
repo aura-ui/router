@@ -9,6 +9,7 @@ import {
   defaultRouteViewCache,
   type RouteViewCachePort,
   type ViewCacheRouteRef,
+  type ViewCacheRouteSource,
 } from './route-view-cache';
 import {
   commitStagedMount,
@@ -123,9 +124,10 @@ export class AuraRouteViewController {
     try {
       this.isActive = true;
       this.renderSignal.begin(signal);
+      this.syncStashKey(routeInfo);
 
       if (this.config.keepAlive) {
-        const cached = this.viewCache.extract(this.cacheKey(routeInfo as any));
+        const cached = this.viewCache.extract(this.cacheKey(routeInfo));
         if (cached) {
           this.reattach(routeInfo, transitionPolicy, undefined, cached);
           return;
@@ -186,7 +188,7 @@ export class AuraRouteViewController {
     this.activeHandle = null;
 
     if (this.config.keepAlive && detached) {
-      this.viewCache.put(this.lastStashKey ?? this.config.path, detached);
+      this.viewCache.put(this.stashKey(), detached);
     } else {
       this.resolvedOutlet = null;
     }
@@ -210,8 +212,17 @@ export class AuraRouteViewController {
     };
   }
 
-  private cacheKey(route?: ViewCacheRouteRef): string {
+  private cacheKey(route?: ViewCacheRouteSource): string {
     return RouteViewCache.buildKey(route, this.config.path);
+  }
+
+  private syncStashKey(route?: ViewCacheRouteSource): void {
+    if (route === undefined) return;
+    this.lastStashKey = this.cacheKey(route);
+  }
+
+  private stashKey(): string {
+    return this.lastStashKey ?? this.config.path;
   }
 
   private mountContext(
@@ -269,7 +280,7 @@ export class AuraRouteViewController {
 
     this.lastMountStrategy = result.appliedStrategy ?? 'replace';
     this.applyMountResult(result, viewKind);
-    this.lastStashKey = this.cacheKey(routeInfo as any);
+    this.syncStashKey(routeInfo);
   }
 
   private async resolvePayload(routeInfo?: MatchedRouteInfo): Promise<Node | string | null> {

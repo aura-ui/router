@@ -4,4 +4,5 @@ export {
   defaultRouteViewCache,
   type RouteViewCachePort,
   type ViewCacheRouteRef,
+  type ViewCacheRouteSource,
 } from './core/route-view-cache';

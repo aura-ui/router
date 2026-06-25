@@ -1,10 +1,14 @@
-import type { RouteInfo } from '../../aura-route-hooks/core';
+import type { MatchedRouteInfo, RouteInfo } from '../../aura-route-hooks/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { AuraCacheStore, type CacheStoreOptions } from '../../aura-cache-store/core';
 
 export type ViewCacheRouteRef = Pick<RouteInfo, 'path' | 'query'>;
 
+export type ViewCacheRouteSource = ViewCacheRouteRef | MatchedRouteInfo | undefined;
+
 export interface RouteViewCachePort {
+  /** Returns whether a readable entry exists (non-destructive; does not extract). */
+  has(key: string): boolean;
   /** Returns the cached view and removes the entry (full extract, not a peek). */
   extract(key: string): ViewRoot | undefined;
   put(key: string, root: ViewRoot): void;
@@ -19,12 +23,26 @@ const DEFAULT_OPTIONS: CacheStoreOptions<ViewRoot> = {
 };
 
 /**
- * LRU cache for keep-alive route views (`detach` → put → take → reattach).
+ * LRU cache for keep-alive route views (`detach` → put → extract → reattach).
  *
  * One shared store per app — configure via {@link RouteViewCache.configure}.
  */
 export class RouteViewCache implements RouteViewCachePort {
   private static store: AuraCacheStore<ViewRoot> | undefined;
+
+  /** Normalizes {@link MatchedRouteInfo} / {@link RouteInfo} into a cache key ref. */
+  static toRouteRef(route: ViewCacheRouteSource): ViewCacheRouteRef | undefined {
+    if (!route) return undefined;
+
+    if ('pathname' in route) {
+      return {
+        path: route.pathname,
+        ...(route.query && { query: route.query }),
+      };
+    }
+
+    return route;
+  }
 
   /**
    * Stable keep-alive key for a route view instance.
@@ -32,12 +50,13 @@ export class RouteViewCache implements RouteViewCachePort {
    * Base segment: `path` (pathname) → `fallbackPath` (route attr). Params are omitted —
    * they are always consistent with `path` on {@link RouteInfo}.
    */
-  static buildKey(route: ViewCacheRouteRef | undefined, fallbackPath: string): string {
-    const base = route?.path ?? fallbackPath;
+  static buildKey(route: ViewCacheRouteSource, fallbackPath: string): string {
+    const ref = RouteViewCache.toRouteRef(route);
+    const base = ref?.path ?? fallbackPath;
     const parts = [base];
 
-    if (route?.query && Object.keys(route.query).length > 0) {
-      parts.push(RouteViewCache.serializeRecord(route.query));
+    if (ref?.query && Object.keys(ref.query).length > 0) {
+      parts.push(RouteViewCache.serializeRecord(ref.query));
     }
 
     return parts.join('|');
@@ -51,6 +70,15 @@ export class RouteViewCache implements RouteViewCachePort {
       ...options,
       onRemove: options.onRemove ?? DEFAULT_OPTIONS.onRemove,
     });
+  }
+
+  /** Snapshot of stash keys for devtools / debugging. */
+  static keys(): string[] {
+    return RouteViewCache.getStore().keys();
+  }
+
+  has(key: string): boolean {
+    return RouteViewCache.getStore().has(key);
   }
 
   /** Returns the cached view and removes the entry (full extract, not a peek). */

@@ -41,7 +41,7 @@ export type CacheStoreOptions<T> = {
   gcSweepInterval?: number | false;
   /** Default invalidation policy. See {@link InvalidatePolicy}. */
   invalidatePolicy?: InvalidatePolicy;
-  /** Called when an entry is removed (LRU, GC, `delete`, `clear`, or `invalidate` with `remove`). */
+  /** Called when an entry is removed (LRU, GC, `set` overwrite, `delete`, `clear`, or `invalidate` with `remove`). */
   onRemove?: (key: string, value: T) => void;
 };
 
@@ -406,6 +406,16 @@ export class AuraCacheStore<T> {
    */
   get size(): number {
     return this.map.size;
+  }
+
+  /**
+   * Snapshot of cache keys (includes stale and not-yet-GC-removed entries).
+   * Order is arbitrary. Does not promote LRU or remove expired entries.
+   *
+   * @returns All keys currently in the store.
+   */
+  keys(): string[] {
+    return Array.from(this.map.keys());
   }
 
   /**

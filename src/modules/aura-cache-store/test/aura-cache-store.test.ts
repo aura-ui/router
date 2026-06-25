@@ -66,6 +66,20 @@ describe('AuraCacheStore', () => {
       expect(removed).toEqual([]);
       expect(cache.get('a')).toBe(value);
     });
+
+    it('keys returns a snapshot without promoting LRU or removing entries', () => {
+      cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+
+      expect(cache.keys().sort()).toEqual(['a', 'b']);
+
+      cache.lookup('a');
+      cache.set('c', 'C');
+
+      expect(cache.has('a')).toBe(false);
+      expect(cache.keys().sort()).toEqual(['b', 'c']);
+    });
   });
 
   describe('gcTime without SWR', () => {

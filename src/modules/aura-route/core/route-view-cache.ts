@@ -7,7 +7,7 @@ export interface RouteViewCachePort {
   has(key: string): boolean;
   /** Returns a cached view without extracting or promoting LRU (may remove GC-expired entries). */
   peek(key: string): ViewRoot | undefined;
-  /** Returns the cached view and removes the entry (full extract, not a peek). */
+  /** Checkout: live entry without `onRemove`; GC-expired runs `onRemove` first. */
   extract(key: string): ViewRoot | undefined;
   put(key: string, root: ViewRoot): void;
   /** Removes one entry and invokes `onRemove`. */

@@ -31,8 +31,8 @@ export type CacheStoreOptions<T> = {
   /**
    * Background GC sweep interval in ms.
    *
-   * - `undefined` — auto when `gcTime` is set: `clamp(gcTime / 2, 5s … 60s)`
-   * - `number` — run {@link AuraCacheStore.purgeExpired} every N ms (no-op without `gcTime`)
+   * - `undefined` — auto when `gcTime` is a finite positive ms value: `clamp(gcTime / 2, 5s … 60s)`
+   * - `number` — run {@link AuraCacheStore.purgeExpired} every N ms (requires finite `gcTime`)
    * - `false` — disabled; removal on access or manual {@link AuraCacheStore.purgeExpired} only
    *
    * Timer starts on the first `set()` while the store is non-empty, stops when the store
@@ -107,11 +107,28 @@ export class AuraCacheStore<T> {
       throw new Error(`AuraCacheStore: max must be >= 1, got ${options.max}`);
     }
 
+    assertTiming('staleTime', options.staleTime);
+    assertTiming('gcTime', options.gcTime);
+    if (options.gcSweepInterval !== undefined && options.gcSweepInterval !== false) {
+      assertPositiveInterval('gcSweepInterval', options.gcSweepInterval);
+    }
+
     this.max = options.max;
     this.swrEnabled = options.staleTime !== undefined;
     this.staleTimeMs = options.staleTime;
     this.gcTimeMs =
       options.gcTime ?? (options.staleTime !== undefined ? DEFAULT_GC_TIME : undefined);
+
+    if (
+      options.gcSweepInterval !== undefined &&
+      options.gcSweepInterval !== false &&
+      !isFiniteGcTime(this.gcTimeMs)
+    ) {
+      throw new Error(
+        'AuraCacheStore: gcSweepInterval requires a finite gcTime (Infinity disables TTL removal)',
+      );
+    }
+
     this.gcSweepIntervalMs = resolveGcSweepInterval(this.gcTimeMs, options.gcSweepInterval);
     this.defaultInvalidatePolicy = options.invalidatePolicy ?? 'stale';
     this.onRemove = options.onRemove;
@@ -365,8 +382,10 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Returns a cached value and removes the entry without invoking `onRemove`.
-   * GC-expired entries are removed normally (with `onRemove` when configured).
+   * Removes the entry and returns the value (keep-alive checkout).
+   *
+   * Live entry: no `onRemove` — value can be reattached. GC-expired: `onRemove` runs,
+   * returns `undefined`. Missing key: `undefined`.
    *
    * @param key - Cache key.
    * @returns The stored value, or `undefined` if missing or GC-expired.
@@ -638,8 +657,28 @@ function resolveGcSweepInterval(
   gcSweepInterval: number | false | undefined,
 ): number | null {
   if (gcSweepInterval === false) return null;
+  if (!isFiniteGcTime(gcTime)) return null;
   if (gcSweepInterval !== undefined) return gcSweepInterval;
-  if (gcTime === undefined) return null;
 
   return Math.min(Math.max(gcTime / 2, 5_000), 60_000);
+}
+
+/** `true` when `gcTime` enables TTL removal (finite, non-negative). */
+function isFiniteGcTime(gcTime: number | undefined): gcTime is number {
+  return gcTime !== undefined && Number.isFinite(gcTime);
+}
+
+/** Validates `staleTime` / `gcTime`: non-negative number or `Infinity`. */
+function assertTiming(name: string, value: number | undefined): void {
+  if (value === undefined) return;
+  if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
+    throw new Error(`AuraCacheStore: ${name} must be >= 0 or Infinity, got ${value}`);
+  }
+}
+
+/** Validates explicit `gcSweepInterval` ms value. */
+function assertPositiveInterval(name: string, value: number): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`AuraCacheStore: ${name} must be a positive number, got ${value}`);
+  }
 }

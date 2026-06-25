@@ -39,7 +39,7 @@ Methods: `invalidate(key)`, `invalidateMatch(predicate)`, `invalidateAll()`.
 
 `gcTime: Infinity` disables TTL removal — entries stay until LRU or explicit removal.
 
-GC runs lazily on access (`get`, `has`, `lookup`, `isStale`) and proactively via `purgeExpired()` or background sweep. `has`, `isStale`, and `lookup` without `touch` do not promote LRU order.
+GC runs lazily on access (`get`, `has`, `lookup`, `isStale`) and proactively via `purgeExpired()` or background sweep. `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order. See [Read API](#read-api-has-vs-peek-vs-extract-vs-get) for `has` / `peek` / `extract`.
 
 The diagram below shows the **SWR** lifecycle (`staleTime` set). In simple GC mode (`gcTime` only), entries skip the `stale` phase and go straight to `missing` once TTL elapses and the entry is accessed or swept.
 
@@ -105,6 +105,34 @@ Background sweep lifecycle:
 | `clear()` / `destroy()` | — | Remove all entries and stop background sweep; `destroy()` is an alias for `clear()` |
 | `keys()` | — | Snapshot of all keys (includes stale / not-yet-GC-removed; no LRU promote, no lazy GC) |
 | `size` | — | Entry count (includes stale and not-yet-swept entries) |
+
+### Read API: `has` vs `peek` vs `extract` vs `get`
+
+Use this table to pick the right read path. **`RouteViewCache`** (`has` / `peek` / `extract`) follows the same rules via `AuraCacheStore`.
+
+| Method | Returns value | Promotes LRU | Removes entry | Calls `onRemove` | GC-expired entry |
+|--------|:-------------:|:------------:|:-------------:|:----------------:|------------------|
+| `get` | yes | yes | no | on lazy GC only | removed on read → `undefined` |
+| `has` | no (`boolean`) | no | no | on lazy GC only | removed on read → `false` |
+| `peek` | yes | no | no | no | stays in store → `undefined` |
+| `extract` | yes | no | yes | no | removed via `onRemove` → `undefined` |
+| `delete` | no | — | yes | yes | — |
+
+**When to use what**
+
+- **`get`** — normal cache hit; stale values in SWR mode are still returned; promotes LRU.
+- **`has`** — cheap existence check when promotion is unwanted; still triggers lazy GC (and `onRemove` on expired entries).
+- **`peek`** — inspect without side effects: no LRU touch, no eviction, no `onRemove`. Prefer for devtools and “is it still there?” probes. Expired entries look missing but remain until `get` / `has` / `purgeExpired`.
+- **`extract`** — take ownership (keep-alive checkout): value leaves the cache **without** `onRemove` so the caller can remount it. GC-expired entries are removed with `onRemove` and return `undefined`.
+
+```ts
+// keep-alive: detach → stash → take → reattach
+const root = cache.extract(key); // ownership transfer, DOM not destroyed
+cache.put(key, newRoot);         // overwrite calls onRemove on previous value
+
+// probe without mutating LRU or destroying DOM
+if (cache.peek(key)) { /* still stashed */ }
+```
 
 ## Examples
 

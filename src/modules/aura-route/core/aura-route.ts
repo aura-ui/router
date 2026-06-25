@@ -12,7 +12,7 @@ import {
   createAuraRouteViewController,
   type AuraRouteViewController,
   type RouteRenderOptions,
-} from './aura-route-view-controller';
+} from './view/view-controller';
 
 export type { RouteRenderOptions };
 
@@ -78,6 +78,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
     if (this.preload) {
       await this.view.preload().catch(console.error);
+      // todo also preload data by processor
+      // todo also add links hover on preload
     }
   }
 

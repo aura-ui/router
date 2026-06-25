@@ -1,14 +1,13 @@
-import { getTemplate } from '../../aura-utils/misc';
-import type { MatchedRouteInfo, RouteInfo } from '../../aura-route-hooks/core';
-import type { TransitionPolicy } from '../../aura-routing-engine/core/transition/policy';
-import type { AuraOutlet, OutletStrategy, ViewHandle, ViewRoot } from '../../aura-outlet/core/aura-outlet';
-import { RouteRenderSignal } from './render-signal';
-import { RouteContentLoader, resolveRouteContentLoaderService } from './route-content-loader';
+import { getTemplate } from '../../../aura-utils/misc';
+import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
+import type { TransitionPolicy } from '../../../aura-routing-engine/core/transition/policy';
+import type { AuraOutlet, OutletStrategy, ViewHandle, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import { RouteRenderSignal } from '../render-signal';
+import { RouteContentLoader, resolveRouteContentLoaderService } from '../route-content-loader';
 import {
-  RouteViewCache,
   defaultRouteViewCache,
   type RouteViewCachePort,
-} from './route-view-cache';
+} from './view-cache';
 import { viewCacheKey, type ViewCacheKeySource } from './view-cache-key';
 import {
   commitStagedMount,
@@ -17,7 +16,7 @@ import {
   unmountRoute,
   type RouteMountContext,
   type RouteMountResult,
-} from './route-mount';
+} from '../route-mount';
 
 type RouteViewKind = 'layout' | 'content';
 

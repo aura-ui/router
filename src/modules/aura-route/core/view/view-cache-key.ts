@@ -1,23 +1,12 @@
 import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
 
-/** URL slice used to build a keep-alive stash key (`pathname` + optional `query`). */
-export type ViewCacheKeyInput = {
-  pathname: string;
-  query?: Record<string, string>;
-};
+export type ViewCacheKeySource = MatchedRouteInfo | RouteInfo | undefined;
 
-export type ViewCacheKeySource = ViewCacheKeyInput | MatchedRouteInfo | RouteInfo | undefined;
-
-/** Maps lifecycle / matcher navigation data to a {@link ViewCacheKeyInput}. */
-export function toViewCacheKeyInput(source: ViewCacheKeySource): ViewCacheKeyInput | undefined {
+/** Maps lifecycle / matcher navigation data to pathname + optional query. */
+export function toViewCacheKeyInput(
+  source: ViewCacheKeySource,
+): Pick<RouteInfo, 'pathname'> & Partial<Pick<RouteInfo, 'query'>> | undefined {
   if (!source) return undefined;
-
-  if ('href' in source) {
-    return {
-      pathname: source.pathname,
-      ...(source.query && { query: source.query }),
-    };
-  }
 
   return {
     pathname: source.pathname,
@@ -31,7 +20,10 @@ export function toViewCacheKeyInput(source: ViewCacheKeySource): ViewCacheKeyInp
  * Base: `input.pathname` (browser pathname) → `fallbackPath` (route attr when no input).
  * Query is appended when present.
  */
-export function buildViewCacheKey(input: ViewCacheKeyInput | undefined, fallbackPath: string): string {
+export function buildViewCacheKey(
+  input: Pick<RouteInfo, 'pathname'> & Partial<Pick<RouteInfo, 'query'>> | undefined,
+  fallbackPath: string,
+): string {
   const base = input?.pathname ?? fallbackPath;
   const parts = [base];
 

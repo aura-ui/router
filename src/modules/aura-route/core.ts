@@ -8,6 +8,5 @@ export {
   buildViewCacheKey,
   toViewCacheKeyInput,
   viewCacheKey,
-  type ViewCacheKeyInput,
   type ViewCacheKeySource,
 } from './core/view/view-cache-key';

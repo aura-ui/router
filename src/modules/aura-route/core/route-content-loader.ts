@@ -3,14 +3,8 @@ import {
   ContentLoaderService,
 } from '../../aura-content-loaders/core';
 import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
+import type { AuraRouteInterface } from './aura-route';
 import type { RouteContentPort } from './view/view-controller.types';
-
-export type RouteContentSource = {
-  path: string;
-  source: string;
-  content: string;
-  cache: boolean;
-};
 
 let sharedContentLoaderService: ContentLoaderService | undefined;
 
@@ -24,11 +18,11 @@ export function resolveRouteContentLoaderService(): ContentLoaderService {
 }
 
 export class RouteContentLoader implements RouteContentPort {
-  private readonly source: () => RouteContentSource;
+  private readonly route: AuraRouteInterface;
   private readonly loaderService: ContentLoaderService;
 
-  constructor(source: () => RouteContentSource, loaderService: ContentLoaderService) {
-    this.source = source;
+  constructor(route: AuraRouteInterface, loaderService: ContentLoaderService) {
+    this.route = route;
     this.loaderService = loaderService;
   }
 
@@ -37,19 +31,19 @@ export class RouteContentLoader implements RouteContentPort {
   }
 
   readCache(_routeInfo: MatchedRouteInfo | undefined): Node | string | null {
-    if (!this.source().cache) return null;
+    if (!this.route.cache) return null;
     return null;
   }
 
   writeCache(_routeInfo: MatchedRouteInfo, _payload: Node | string): void {
-    if (!this.source().cache) return;
+    if (!this.route.cache) return;
   }
 
   async resolve(
     routeInfo: MatchedRouteInfo | undefined,
     signal: AbortSignal,
   ): Promise<Node | string | null> {
-    const route = this.source();
+    const route = this.route;
     const loader = ContentLoaderRegistry.create(route.source, this.loaderService);
 
     try {

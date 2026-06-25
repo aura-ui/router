@@ -1,36 +1,22 @@
+import type { AuraRoute } from '../aura-route';
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 
 import { RouteContentLoader, resolveRouteContentLoaderService } from '../route-content-loader';
 import { defaultRouteViewCache } from './view-cache';
 import { AuraRouteViewController } from './view-controller';
-import type { AuraRouteViewHost } from './view-controller.types';
 
 export function createAuraRouteViewController(
-  host: AuraRouteViewHost,
-  resolveRootOutlet: () => AuraOutlet,
+  route: AuraRoute,
+  getDefaultOutlet: () => AuraOutlet,
   getLifecycleToken: () => number = () => 0,
 ): AuraRouteViewController {
   return new AuraRouteViewController(
-    () => ({
-      path: host.path,
-      layout: host.layout || undefined,
-      keepAlive: host.keepAlive,
-      loadingTemplate: host.loadingTemplate || undefined,
-      errorTemplate: host.errorTemplate || undefined,
-    }),
+    route,
     {
-      resolveRootOutlet,
+      getDefaultOutlet,
       parentOutlet: (routeInfo) => routeInfo?.node?.parent?.route.childOutlet ?? null,
     },
-    new RouteContentLoader(
-      () => ({
-        path: host.path,
-        source: host.source,
-        content: host.content,
-        cache: host.cache,
-      }),
-      resolveRouteContentLoaderService(),
-    ),
+    new RouteContentLoader(route, resolveRouteContentLoaderService()),
     defaultRouteViewCache,
     getLifecycleToken,
   );

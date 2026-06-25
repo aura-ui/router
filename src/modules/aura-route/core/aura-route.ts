@@ -80,7 +80,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     }
 
     this.view = createAuraRouteViewController(this,
-      () => router.rootOutlet,
+      () => router.defaultOutlet,
       () => this.viewLifecycleToken);
 
     if (this.preload) {

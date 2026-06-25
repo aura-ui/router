@@ -30,7 +30,7 @@ export class RouteContentLoader implements RouteContentPort {
     // todo
   }
 
-  readCache(_routeInfo: MatchedRouteInfo | undefined): Node | string | null {
+  readCache(_routeInfo: MatchedRouteInfo): Node | string | null {
     if (!this.route.cache) return null;
     return null;
   }
@@ -40,7 +40,7 @@ export class RouteContentLoader implements RouteContentPort {
   }
 
   async resolve(
-    routeInfo: MatchedRouteInfo | undefined,
+    routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
   ): Promise<Node | string | null> {
     const route = this.route;

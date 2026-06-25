@@ -34,7 +34,7 @@ export class RouteHookRunner {
   ): Promise<ViewCommitResult> {
     if (job.aborted) return 'aborted';
 
-    await matchedRoute.route.render(matchedRoute, { signal: job.signal });
+    await matchedRoute.route.render(matchedRoute, { parentSignal: job.signal });
 
     return job.aborted ? 'aborted' : 'ok';
   }

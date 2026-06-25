@@ -98,6 +98,7 @@ Background sweep lifecycle:
 | `invalidate(key, policy?)` | no | Mark outdated (`'stale'`) or delete (`'remove'`). Returns `false` if key missing. Default: `invalidatePolicy` |
 | `invalidateMatch(predicate, policy?)` | no | Same as `invalidate`, for keys matching a filter |
 | `invalidateAll(policy?)` | no | Same as `invalidate`, for every entry |
+| `extract(key)` | — | Returns value and removes entry without `onEvict` (ownership transfer) |
 | `delete(key)` | — | Remove one entry; invokes `onEvict` |
 | `purgeExpired()` | — | Evict all GC-expired entries; returns count. No-op without `gcTime` |
 | `clear()` / `destroy()` | — | Remove all entries and stop background sweep; `destroy()` is an alias for `clear()` |

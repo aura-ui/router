@@ -100,6 +100,6 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   onTransitionOut(_ctx: RouteLifecycleContext): void {}
   onTransitionIn(_ctx: RouteLifecycleContext): void { this.view.onTransitionIn(); }
   onLeft(_ctx: RouteLifecycleContext): void { this.view.onLeft(); }
-  onReenter(ctx: RouteLifecycleContext): void { this.view.onReenter(ctx.to.path); }
+  onReenter(ctx: RouteLifecycleContext): void { this.view.onReenter(ctx.to); }
   onError(_ctx: RouteErrorContext): void {}
 }

@@ -14,6 +14,7 @@ export type RoutePhase =
   | 'error';
 
 export interface RouteInfo {
+  /** Browser pathname (no `search` / `hash`), e.g. `/user/42`. */
   path: string;
   params?: Record<string, string>;
   query?: Record<string, string>;

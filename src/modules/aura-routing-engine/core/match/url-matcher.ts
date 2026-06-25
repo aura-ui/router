@@ -13,7 +13,7 @@ export interface MatchedRouteInfo {
   pathname: string;
   search: string;
   hash: string;
-  /** Registered route pattern, e.g. `/user/:id`. */
+  /** Resolved full path in the route tree (`node.fullPath`). May include `:param` segments, e.g. `/user/:id` or `/settings/profile`. */
   routePath: string;
   route: AuraRoute;
   /** Path params: `:id` из URLPattern; catch-all `*` → `{ splat: 'foo/bar' }`. */

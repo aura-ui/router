@@ -47,11 +47,14 @@ export class RouteViewCoordinator {
   }
 
   async render(pass: RenderPass): Promise<void> {
-    this.emit('onPassStart', pass);
+    let loadingHooks = false;
 
     try {
       if (this.tryStashRestore(pass)) return;
       if (this.shouldSkipKeepAlive(pass)) return;
+
+      this.emit('onPassStart', pass);
+      loadingHooks = true;
       await this.resolveAndMount(pass);
     } catch (error) {
       if (this.stale(pass)) return;
@@ -59,7 +62,9 @@ export class RouteViewCoordinator {
       this.applyMount(pass, resolveError(this.config.route, error), 'content');
       throw error;
     } finally {
-      this.emit('onPassEnd', pass);
+      if (loadingHooks) {
+        this.emit('onPassEnd', pass);
+      }
     }
   }
 
@@ -95,11 +100,10 @@ export class RouteViewCoordinator {
   private tryStashRestore(pass: RenderPass): boolean {
     if (!this.config.route.keepAlive) return false;
 
-    const cached = this.config.stash.extract(pass.cacheKey);
-    if (!cached) return false;
+    const cachedRoot = this.config.stash.extract(pass.cacheKey);
+    if (!cachedRoot) return false;
 
-    this.applyMount(pass, cached, pass.viewKind, cached);
-    return true;
+    return this.applyMount(pass, cachedRoot, pass.viewKind, cachedRoot);
   }
 
   private shouldSkipKeepAlive(pass: RenderPass): boolean {
@@ -130,19 +134,20 @@ export class RouteViewCoordinator {
     payload: ViewPayload | ViewRoot,
     viewKind: RenderPass['viewKind'],
     cachedRoot?: ViewRoot,
-  ): void {
-    if (this.stale(pass)) return;
+  ): boolean {
+    if (this.stale(pass)) return false;
 
     const ctx = this.mountContext(pass);
     const slice = cachedRoot
       ? reattachContent(ctx, cachedRoot)
-      : mountContent(ctx, payload, toMountSlice(this.mount));
+      : mountContent(ctx, payload as ViewPayload);
 
-    if (!slice) return;
+    if (!slice?.activeHandle) return false;
 
     this.mount = mergeMount(this.mount, slice);
     warnMissingLayoutOutlet(this.config.route, viewKind, slice.nestedOutlet);
     this.emit('onMounted', pass);
+    return true;
   }
 
   private mountContext(pass: RenderPass): MountContext {

@@ -68,9 +68,8 @@ export function resolveStageStrategy(
 export function mountContent(
   ctx: MountContext,
   payload: Node | string,
-  current: MountSlice = { activeHandle: null, nestedOutlet: null },
-): MountSlice {
-  if (ctx.signal?.aborted) return current;
+): MountSlice | null {
+  if (ctx.signal?.aborted) return null;
 
   const outlet = resolveOutlet(ctx);
   const strategy = resolveStageStrategy(ctx, outlet);
@@ -80,7 +79,7 @@ export function mountContent(
     signal: ctx.signal,
   });
 
-  if (!handle) return current;
+  if (!handle) return null;
 
   return {
     activeHandle: handle,

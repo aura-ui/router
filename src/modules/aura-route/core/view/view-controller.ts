@@ -57,7 +57,7 @@ export class AuraRouteViewController {
 
   private activeHandle: ViewHandle | null = null;
   private lastMountStrategy: Extract<OutletStrategy, 'replace' | 'stage'> = 'replace';
-  private lastStashKey: string | null = null;
+  private lastCacheKey: string | null = null;
 
   /** Nested `<aura-outlet>` inside mounted layout; children render here. */
   childOutlet: AuraOutlet | null = null;
@@ -95,7 +95,7 @@ export class AuraRouteViewController {
   }
 
   cancelPendingRender(): void {
-    this.cancelStagedMountIfAny();
+    this.cancelStagedMount();
     this.renderSignal.cancel();
   }
 
@@ -113,7 +113,7 @@ export class AuraRouteViewController {
 
     try {
       this.renderSignal.begin(signal);
-      this.syncStashKey(routeInfo);
+      this.rememberCacheKey(routeInfo);
       if (!this.isTokenCurrent(token)) return;
 
       if (this.tryRestoreFromCache(token, routeInfo, viewKind, transitionPolicy)) return;
@@ -167,14 +167,14 @@ export class AuraRouteViewController {
 
   onLeft(): void {
     this.renderSignal.cancel();
-    this.cancelStagedMountIfAny();
+    this.cancelStagedMount();
 
     const config = this.config;
     const detached = unmountRoute(this.activeHandle, config.keepAlive);
     this.activeHandle = null;
 
     if (config.keepAlive && detached) {
-      this.viewCache.put(this.stashKey(), detached);
+      this.viewCache.put(this.lastCacheKey ?? this.config.path, detached);
     } else {
       this.childOutlet = null;
     }
@@ -223,13 +223,9 @@ export class AuraRouteViewController {
     return viewCacheKey(source, this.config.path);
   }
 
-  private syncStashKey(source?: ViewCacheKeySource): void {
+  private rememberCacheKey(source?: ViewCacheKeySource): void {
     if (source === undefined) return;
-    this.lastStashKey = this.cacheKey(source);
-  }
-
-  private stashKey(): string {
-    return this.lastStashKey ?? this.config.path;
+    this.lastCacheKey = this.cacheKey(source);
   }
 
   // --- Private: mount ---
@@ -290,7 +286,7 @@ export class AuraRouteViewController {
 
     this.lastMountStrategy = result.appliedStrategy ?? 'replace';
     this.applyMountResult(result, input.viewKind);
-    this.syncStashKey(input.routeInfo);
+    this.rememberCacheKey(input.routeInfo);
   }
 
   private applyMountResult(result: RouteMountResult, viewKind: RouteViewKind): void {
@@ -304,7 +300,7 @@ export class AuraRouteViewController {
     }
   }
 
-  private cancelStagedMountIfAny(): void {
+  private cancelStagedMount(): void {
     if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
     this.activeHandle.mountOutlet.cancelStage();
     this.lastMountStrategy = 'replace';

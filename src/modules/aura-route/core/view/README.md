@@ -41,7 +41,7 @@ cancel / onLeft early    →  outlet.cancelStage()                →  staged ro
 | `render()` | `render` → `placeView` → `mountRoute` | `apply` |
 | `onTransitionIn()` | `onTransitionIn` | `commitStage` |
 | `cancelPendingRender()` | `cancelStagedMount` + abort signal | `cancelStage` |
-| `onLeft()` | `cancelStagedMount`, `unmountRoute` | `destroy` / `detach` |
+| `onLeft()` | drop staged view if any, `unmountRoute` on leaving view | `cancelStage`, then `destroy` / `detach` |
 | `onReenter()` | reattach from `view-cache` | `apply` (replace) |
 
 ## Vocabulary

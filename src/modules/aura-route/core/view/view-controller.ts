@@ -56,6 +56,8 @@ export class AuraRouteViewController {
   private readonly getLifecycleToken: () => number;
 
   private activeHandle: ViewMountState['activeHandle'] = null;
+  /** Pre-stage handle while a transition is pending (`lastMountStrategy === 'stage'`). */
+  private previousHandle: ViewMountState['activeHandle'] = null;
   private lastMountStrategy: Extract<OutletStrategy, 'replace' | 'stage'> = 'replace';
   private lastCacheKey: string | null = null;
 
@@ -163,14 +165,23 @@ export class AuraRouteViewController {
     if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
     this.activeHandle.mountOutlet.commitStage(this.activeHandle.viewRoot);
     this.lastMountStrategy = 'replace';
+    this.previousHandle = null;
   }
 
   onLeft(): void {
     this.renderSignal.cancel();
-    this.cancelStagedMount();
 
     const config = this.config;
-    const detached = unmountRoute(this.activeHandle, config.keepAlive);
+    let detached: ViewRoot | null = null;
+
+    if (this.lastMountStrategy === 'stage') {
+      this.dropStagedView();
+      detached = unmountRoute(this.previousHandle, config.keepAlive);
+      this.previousHandle = null;
+    } else {
+      detached = unmountRoute(this.activeHandle, config.keepAlive);
+    }
+
     this.activeHandle = null;
 
     if (config.keepAlive && detached) {
@@ -290,6 +301,12 @@ export class AuraRouteViewController {
   }
 
   private applyMountResult(result: ViewMountState, viewKind: RouteViewKind): void {
+    if (result.appliedStrategy === 'stage') {
+      this.previousHandle = this.activeHandle;
+    } else {
+      this.previousHandle = null;
+    }
+
     this.activeHandle = result.activeHandle;
     this.childOutlet = result.childOutlet;
 
@@ -300,7 +317,23 @@ export class AuraRouteViewController {
     }
   }
 
+  /** Cancel pending stage and restore the pre-transition active view in controller state. */
   private cancelStagedMount(): void {
+    if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
+    this.dropStagedView();
+
+    if (this.previousHandle) {
+      this.activeHandle = this.previousHandle;
+      this.childOutlet = this.previousHandle.findChildOutlet();
+      this.previousHandle = null;
+    } else {
+      this.activeHandle = null;
+      this.childOutlet = null;
+    }
+  }
+
+  /** Remove staged DOM only; does not restore controller handles (used when leaving the route). */
+  private dropStagedView(): void {
     if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
     this.activeHandle.mountOutlet.cancelStage();
     this.lastMountStrategy = 'replace';

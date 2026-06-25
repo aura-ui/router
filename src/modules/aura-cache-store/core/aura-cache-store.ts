@@ -15,17 +15,17 @@ export type CacheLookup<T> =
 
 /** Configuration for {@link AuraCacheStore}. */
 export type CacheStoreOptions<T> = {
-  /** Max entries; evicts least recently used key first. */
+  /** Max entries; removes least recently used key first. */
   max?: number;
   /**
    * SWR fresh window in ms (stale-while-revalidate).
-   * Enables SWR mode: after this age entries become stale but stay readable until evicted.
+   * Enables SWR mode: after this age entries become stale but stay readable until removed.
    */
   staleTime?: number;
   /**
-   * Max age in ms since `storedAt` before an entry is evicted.
-   * With `staleTime`, defaults to {@link DEFAULT_GC_TIME}. Pass `Infinity` to disable TTL eviction.
-   * Without `staleTime`, expired entries are evicted on access (no stale phase).
+   * Max age in ms since `storedAt` before an entry is removed.
+   * With `staleTime`, defaults to {@link DEFAULT_GC_TIME}. Pass `Infinity` to disable TTL removal.
+   * Without `staleTime`, expired entries are removed on access (no stale phase).
    */
   gcTime?: number;
   /**
@@ -33,7 +33,7 @@ export type CacheStoreOptions<T> = {
    *
    * - `undefined` — auto when `gcTime` is set: `clamp(gcTime / 2, 5s … 60s)`
    * - `number` — run {@link AuraCacheStore.purgeExpired} every N ms (no-op without `gcTime`)
-   * - `false` — disabled; eviction on access or manual {@link AuraCacheStore.purgeExpired} only
+   * - `false` — disabled; removal on access or manual {@link AuraCacheStore.purgeExpired} only
    *
    * Timer starts on the first `set()` while the store is non-empty, stops when the store
    * becomes empty or on {@link AuraCacheStore.clear}, and restarts on the next `set()`.
@@ -41,8 +41,8 @@ export type CacheStoreOptions<T> = {
   gcSweepInterval?: number | false;
   /** Default invalidation policy. See {@link InvalidatePolicy}. */
   invalidatePolicy?: InvalidatePolicy;
-  /** Called when an entry is evicted (LRU, GC, `delete`, `clear`, or `invalidate` with `remove`). */
-  onEvict?: (key: string, value: T) => void;
+  /** Called when an entry is removed (LRU, GC, `delete`, `clear`, or `invalidate` with `remove`). */
+  onRemove?: (key: string, value: T) => void;
 };
 
 /** Doubly-linked list node for LRU order. */
@@ -64,14 +64,14 @@ interface Node<T> {
 /**
  * String-key in-memory cache for content/DOM snapshots.
  *
- * `Map` + doubly-linked list: O(1) lookup, LRU promotion, and eviction.
+ * `Map` + doubly-linked list: O(1) lookup, LRU promotion, and removal.
  *
- * **Simple GC** (`gcTime` without `staleTime`): evict on access after TTL.
+ * **Simple GC** (`gcTime` without `staleTime`): remove on access after TTL.
  *
  * **SWR** (`staleTime`, stale-while-revalidate): serve cached data immediately;
  * when outdated, keep serving stale value and revalidate in the background.
- * Lifecycle: `fresh` → `stale` → evicted after `gcTime` (default {@link DEFAULT_GC_TIME}).
- * Use {@link AuraCacheStore.lookup} to read status. `gcTime: Infinity` disables TTL eviction.
+ * Lifecycle: `fresh` → `stale` → removed after `gcTime` (default {@link DEFAULT_GC_TIME}).
+ * Use {@link AuraCacheStore.lookup} to read status. `gcTime: Infinity` disables TTL removal.
  *
  * GC is lazy on access (`get`, `has`, `lookup`, `isStale`) and proactive via
  * {@link AuraCacheStore.purgeExpired} or background sweep (`gcSweepInterval`).
@@ -84,7 +84,7 @@ export class AuraCacheStore<T> {
   private readonly gcTimeMs?: number;
   private readonly gcSweepIntervalMs: number | null;
   private readonly defaultInvalidatePolicy: InvalidatePolicy;
-  private readonly onEvict?: (key: string, value: T) => void;
+  private readonly onRemove?: (key: string, value: T) => void;
   /** Whether entries need `storedAt` / age checks (`staleTime` or `gcTime`). */
   private readonly trackAge: boolean;
 
@@ -94,7 +94,7 @@ export class AuraCacheStore<T> {
   private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
   /**
-   * @param options - Cache limits, SWR timings, invalidation defaults, and eviction callback.
+   * @param options - Cache limits, SWR timings, invalidation defaults, and removal callback.
    */
   constructor(options: CacheStoreOptions<T> = {}) {
     this.max = options.max;
@@ -104,13 +104,13 @@ export class AuraCacheStore<T> {
       options.gcTime ?? (options.staleTime !== undefined ? DEFAULT_GC_TIME : undefined);
     this.gcSweepIntervalMs = resolveGcSweepInterval(this.gcTimeMs, options.gcSweepInterval);
     this.defaultInvalidatePolicy = options.invalidatePolicy ?? 'stale';
-    this.onEvict = options.onEvict;
+    this.onRemove = options.onRemove;
     this.trackAge = this.gcTimeMs !== undefined || this.swrEnabled;
   }
 
   /**
    * Returns a cached value when present (fresh or stale) and promotes LRU order.
-   * GC-expired entries are evicted on access.
+   * GC-expired entries are removed on access.
    *
    * @param key - Cache key.
    * @returns The stored value, or `undefined` if missing or GC-expired.
@@ -119,7 +119,7 @@ export class AuraCacheStore<T> {
     const node = this.map.get(key);
     if (!node) return undefined;
 
-    if (this.gcTimeMs !== undefined && this.checkAndEvictGc(node, Date.now())) {
+    if (this.gcTimeMs !== undefined && this.removeIfExpired(node, Date.now())) {
       return undefined;
     }
 
@@ -134,7 +134,7 @@ export class AuraCacheStore<T> {
    * Reads an entry with `fresh` / `stale` / `missing` status.
    *
    * In SWR mode (`staleTime`), age past `staleTime` yields `stale` while the entry
-   * remains readable. GC-expired entries are evicted on access (same as {@link get}).
+   * remains readable. GC-expired entries are removed on access (same as {@link get}).
    * Stale-but-readable entries are not removed by this method.
    *
    * @param key - Cache key.
@@ -150,7 +150,7 @@ export class AuraCacheStore<T> {
 
     if (this.trackAge) {
       const now = Date.now();
-      if (this.gcTimeMs !== undefined && this.checkAndEvictGc(node, now)) {
+      if (this.gcTimeMs !== undefined && this.removeIfExpired(node, now)) {
         return { status: 'missing' };
       }
 
@@ -178,7 +178,7 @@ export class AuraCacheStore<T> {
   /**
    * Stores a value under `key`, clearing stale flag and refreshing `storedAt`.
    *
-   * Updates an existing entry in place without LRU trim. New entries may evict
+   * Updates an existing entry in place without LRU trim. New entries may remove
    * the least recently used key when `max` is exceeded.
    *
    * @param key - Cache key.
@@ -189,9 +189,9 @@ export class AuraCacheStore<T> {
     const now = this.trackAge ? Date.now() : 0;
 
     if (existingNode) {
-      // TODO: перезапись без onEvict — старое value может стать orphan (напр. stash дважды
+      // TODO: перезапись без onRemove — старое value может стать orphan (напр. stash дважды
       // с одним ключом без take между ними). В lifecycle route view (onLeft → take → onLeft)
-      // этого не должно быть, но store должен вызывать onEvict на заменяемом значении.
+      // этого не должно быть, но store должен вызывать onRemove на заменяемом значении.
       existingNode.value = value;
       existingNode.stale = false;
       if (this.trackAge) {
@@ -219,7 +219,7 @@ export class AuraCacheStore<T> {
     this.map.set(key, newNode);
 
     if (this.max !== undefined && this.map.size > this.max) {
-      this.evictHead();
+      this.removeLruHead();
     }
 
     this.ensureSweepRunning();
@@ -228,7 +228,7 @@ export class AuraCacheStore<T> {
   /**
    * Returns whether a readable, non-GC-expired entry exists.
    *
-   * Does not promote LRU order. GC-expired entries are evicted and return `false`.
+   * Does not promote LRU order. GC-expired entries are removed and return `false`.
    *
    * @param key - Cache key.
    * @returns `true` if the entry exists and is readable.
@@ -237,7 +237,7 @@ export class AuraCacheStore<T> {
     const node = this.map.get(key);
     if (!node) return false;
     if (this.gcTimeMs === undefined) return true;
-    return !this.checkAndEvictGc(node, Date.now());
+    return !this.removeIfExpired(node, Date.now());
   }
 
   /**
@@ -251,7 +251,7 @@ export class AuraCacheStore<T> {
     if (!node) return false;
 
     const now = Date.now();
-    if (this.gcTimeMs !== undefined && this.checkAndEvictGc(node, now)) return false;
+    if (this.gcTimeMs !== undefined && this.removeIfExpired(node, now)) return false;
 
     if (node.stale) return true;
     if (!this.swrEnabled) return false;
@@ -260,9 +260,9 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Evicts all GC-expired entries.
+   * Removes all GC-expired entries.
    *
-   * @returns Number of evicted entries. No-op when `gcTime` is not configured.
+   * @returns Number of removed entries. No-op when `gcTime` is not configured.
    */
   purgeExpired(): number {
     return this.sweepExpired();
@@ -282,7 +282,7 @@ export class AuraCacheStore<T> {
     if (!node) return false;
 
     if (policy === 'remove') {
-      this.evictNode(node);
+      this.removeNode(node);
     } else {
       node.stale = true;
     }
@@ -335,8 +335,8 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Returns a cached value and removes the entry without invoking `onEvict`.
-   * GC-expired entries are evicted normally (with `onEvict` when configured).
+   * Returns a cached value and removes the entry without invoking `onRemove`.
+   * GC-expired entries are removed normally (with `onRemove` when configured).
    *
    * @param key - Cache key.
    * @returns The stored value, or `undefined` if missing or GC-expired.
@@ -345,17 +345,17 @@ export class AuraCacheStore<T> {
     const node = this.map.get(key);
     if (!node) return undefined;
 
-    if (this.gcTimeMs !== undefined && this.checkAndEvictGc(node, Date.now())) {
+    if (this.gcTimeMs !== undefined && this.removeIfExpired(node, Date.now())) {
       return undefined;
     }
 
     const value = node.value;
-    this.removeNode(node);
+    this.unlinkNode(node);
     return value;
   }
 
   /**
-   * Removes an entry and invokes `onEvict` when configured.
+   * Removes an entry and invokes `onRemove` when configured.
    *
    * @param key - Cache key.
    * @returns `true` if an entry was removed.
@@ -363,23 +363,23 @@ export class AuraCacheStore<T> {
   delete(key: string): boolean {
     const node = this.map.get(key);
     if (!node) return false;
-    this.evictNode(node);
+    this.removeNode(node);
     return true;
   }
 
   /**
-   * Removes all entries, stops the background sweep, and invokes `onEvict` for each when configured.
+   * Removes all entries, stops the background sweep, and invokes `onRemove` for each when configured.
    * The store can be reused; the next `set()` restarts the background sweep when configured.
    */
   clear(): void {
     this.stopSweep();
 
-    const onEvict = this.onEvict;
-    if (onEvict) {
+    const onRemove = this.onRemove;
+    if (onRemove) {
       let current = this.head;
       while (current) {
         const next = current.next;
-        onEvict(current.key, current.value);
+        onRemove(current.key, current.value);
         current = next;
       }
     }
@@ -396,7 +396,7 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Number of entries stored (including stale and not-yet-GC-evicted).
+   * Number of entries stored (including stale and not-yet-GC-removed).
    *
    * @returns Current entry count.
    */
@@ -405,17 +405,17 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Evicts the entry when it exceeded `gcTime`.
+   * Removes the entry when it exceeded `gcTime`.
    *
    * @param node - Entry to check.
    * @param now - Current timestamp.
-   * @returns `true` if the entry was evicted.
+   * @returns `true` if the entry was removed.
    */
-  private checkAndEvictGc(node: Node<T>, now: number): boolean {
+  private removeIfExpired(node: Node<T>, now: number): boolean {
     if (this.gcTimeMs === undefined) return false;
     if (now - node.storedAt <= this.gcTimeMs) return false;
 
-    this.evictNode(node);
+    this.removeNode(node);
     return true;
   }
 
@@ -438,9 +438,9 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Walks the LRU list and evicts all GC-expired entries.
+   * Walks the LRU list and removes all GC-expired entries.
    *
-   * @returns Number of evicted entries.
+   * @returns Number of removed entries.
    */
   private sweepExpired(): number {
     const gcTimeMs = this.gcTimeMs;
@@ -453,7 +453,7 @@ export class AuraCacheStore<T> {
     while (current) {
       const next = current.next;
       if (now - current.storedAt > gcTimeMs) {
-        this.evictNode(current);
+        this.removeNode(current);
         count++;
       }
       current = next;
@@ -486,7 +486,7 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Removes entries matching `predicate` and invokes `onEvict` for each.
+   * Removes entries matching `predicate` and invokes `onRemove` for each.
    *
    * @param predicate - Key filter.
    * @returns Number of removed entries.
@@ -498,7 +498,7 @@ export class AuraCacheStore<T> {
     while (current) {
       const next = current.next;
       if (predicate(current.key)) {
-        this.evictNode(current);
+        this.removeNode(current);
         count++;
       }
       current = next;
@@ -542,12 +542,12 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Removes `node` from the map and LRU list; invokes `onEvict` when configured.
+   * Detaches `node` from the map and LRU list without invoking `onRemove`.
    * Stops background sweep when the store becomes empty.
    *
-   * @param node - Entry to evict.
+   * @param node - Entry to unlink.
    */
-  private removeNode(node: Node<T>): void {
+  private unlinkNode(node: Node<T>): void {
     const { key } = node;
 
     const prev = node.prev;
@@ -566,18 +566,19 @@ export class AuraCacheStore<T> {
     }
   }
 
-  private evictNode(node: Node<T>): void {
+  /** Unlinks `node` and invokes `onRemove` when configured. */
+  private removeNode(node: Node<T>): void {
     const { key, value } = node;
-    this.removeNode(node);
+    this.unlinkNode(node);
 
-    const onEvict = this.onEvict;
-    if (onEvict) onEvict(key, value);
+    const onRemove = this.onRemove;
+    if (onRemove) onRemove(key, value);
   }
 
-  /** Evicts the least recently used entry (LRU head). */
-  private evictHead(): void {
+  /** Removes the least recently used entry (LRU head). */
+  private removeLruHead(): void {
     if (!this.head) return;
-    this.evictNode(this.head);
+    this.removeNode(this.head);
   }
 }
 

@@ -185,14 +185,14 @@ function sleep(ms: number): Promise<void> {
 
 const correctnessChecks: CorrectnessCheck[] = [
   {
-    label: 'LRU: promoted key survives eviction',
+    label: 'LRU: promoted key survives removal',
     run: () => {
       const cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
       cache.set('a', 'A');
       cache.set('b', 'B');
       cache.get('a');
       cache.set('c', 'C');
-      if (cache.has('b')) throw new Error('expected b evicted');
+      if (cache.has('b')) throw new Error('expected b removed');
       if (!cache.has('a') || !cache.has('c')) throw new Error('expected a,c present');
     },
   },
@@ -204,7 +204,7 @@ const correctnessChecks: CorrectnessCheck[] = [
       cache.set('b', 'B');
       cache.has('a');
       cache.set('c', 'C');
-      if (cache.has('a')) throw new Error('expected a evicted after has() without promotion');
+      if (cache.has('a')) throw new Error('expected a removed after has() without promotion');
     },
   },
   {
@@ -250,7 +250,7 @@ const correctnessChecks: CorrectnessCheck[] = [
         fill(cache, 3);
         for (let i = 0; i < 3; i++) cache.get(`route:${i}`);
         cache.set('route:99', 'new');
-        if (cache.get('route:0') !== undefined) throw new Error('route:0 should be evicted');
+        if (cache.get('route:0') !== undefined) throw new Error('route:0 should be removed');
         if (cache.get('route:1') === undefined || cache.get('route:2') === undefined) {
           throw new Error('route:1,2 should survive');
         }
@@ -365,7 +365,7 @@ runScenario('set update same key', lruFactories, (cache) => cache.set('route:hot
   cache.set('route:hot', `v${i}`);
 });
 
-runScenario('set insert + evict', lruFactories, () => {}, (cache, i) => {
+runScenario('set insert + remove', lruFactories, () => {}, (cache, i) => {
   cache.set(`route:${i}`, `payload-${i}`);
 });
 

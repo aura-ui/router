@@ -1,6 +1,6 @@
 # aura-cache-store
 
-String-key in-memory cache for content and DOM snapshots. `Map` + doubly-linked list for O(1) lookup, LRU promotion, and eviction.
+String-key in-memory cache for content and DOM snapshots. `Map` + doubly-linked list for O(1) lookup, LRU promotion, and removal.
 
 ```ts
 import { AuraCacheStore, DEFAULT_GC_TIME } from './modules/aura-cache-store/core';
@@ -34,10 +34,10 @@ Methods: `invalidate(key)`, `invalidateMatch(predicate)`, `invalidateAll()`.
 | Mode | Options | Behavior |
 |------|---------|----------|
 | Unlimited | none | Entries never expire. `max` still limits size. |
-| Simple GC | `gcTime` | Evict on access after TTL. No stale phase. |
-| SWR | `staleTime` | Stale-while-revalidate: `fresh` → `stale` (still served) → evicted after `gcTime`. Default `gcTime` is 5 min. |
+| Simple GC | `gcTime` | Remove on access after TTL. No stale phase. |
+| SWR | `staleTime` | Stale-while-revalidate: `fresh` → `stale` (still served) → removed after `gcTime`. Default `gcTime` is 5 min. |
 
-`gcTime: Infinity` disables TTL eviction — entries stay until LRU or explicit removal.
+`gcTime: Infinity` disables TTL removal — entries stay until LRU or explicit removal.
 
 GC runs lazily on access (`get`, `has`, `lookup`, `isStale`) and proactively via `purgeExpired()` or background sweep. `has`, `isStale`, and `lookup` without `touch` do not promote LRU order.
 
@@ -62,28 +62,28 @@ type CacheStoreOptions<T> = {
   gcTime?: number;                     // max age since storedAt (ms)
   gcSweepInterval?: number | false;
   invalidatePolicy?: 'remove' | 'stale'; // default: 'stale'
-  onEvict?: (key: string, value: T) => void;
+  onRemove?: (key: string, value: T) => void;
 };
 ```
 
 | Option | Description |
 |--------|-------------|
-| `max` | LRU capacity; evicts least recently used key first |
+| `max` | LRU capacity; removes least recently used key first |
 | `staleTime` | Enables SWR. Entries become stale after this age but stay readable |
-| `gcTime` | Evict after max age since `storedAt`. Defaults to `DEFAULT_GC_TIME` (5 min) when `staleTime` is set. `Infinity` disables TTL |
+| `gcTime` | Remove after max age since `storedAt`. Defaults to `DEFAULT_GC_TIME` (5 min) when `staleTime` is set. `Infinity` disables TTL |
 | `invalidatePolicy` | Default for `invalidate`, `invalidateMatch`, `invalidateAll` |
-| `onEvict` | Called on LRU/GC eviction, `delete`, `clear`, `invalidate(..., 'remove')` |
+| `onRemove` | Called on LRU/GC removal, `delete`, `clear`, `invalidate(..., 'remove')` |
 
 ### `gcSweepInterval`
 
 - `undefined` — auto when `gcTime` is set: `clamp(gcTime / 2, 5s … 60s)`
 - `number` — run `purgeExpired()` every N ms (no-op without `gcTime`)
-- `false` — disabled; eviction on access or manual `purgeExpired()` only
+- `false` — disabled; removal on access or manual `purgeExpired()` only
 
 Background sweep lifecycle:
 
 - **Start** — on the first `set()` while the store is non-empty
-- **Stop** — when the store becomes empty (last entry evicted) or on `clear()` / `destroy()`
+- **Stop** — when the store becomes empty (last entry removed) or on `clear()` / `destroy()`
 - **Restart** — on the next `set()` after `clear()`
 
 ## API
@@ -91,16 +91,16 @@ Background sweep lifecycle:
 | Method | LRU | Description |
 |--------|:---:|-------------|
 | `get(key)` | yes | Returns value (fresh or stale), or `undefined` if missing/GC-expired |
-| `lookup(key, touch?)` | if `touch` | `{ status: 'fresh' \| 'stale' \| 'missing', value? }` — evicts GC-expired entries; use for SWR revalidate decisions |
+| `lookup(key, touch?)` | if `touch` | `{ status: 'fresh' \| 'stale' \| 'missing', value? }` — removes GC-expired entries; use for SWR revalidate decisions |
 | `set(key, value)` | yes | Resets stale flag and `storedAt`. Update in place skips LRU trim |
-| `has(key)` | no | `true` if readable entry exists; evicts GC-expired |
+| `has(key)` | no | `true` if readable entry exists; removes GC-expired |
 | `isStale(key)` | no | `true` if stale and readable; `false` if missing, fresh, or GC-expired |
 | `invalidate(key, policy?)` | no | Mark outdated (`'stale'`) or delete (`'remove'`). Returns `false` if key missing. Default: `invalidatePolicy` |
 | `invalidateMatch(predicate, policy?)` | no | Same as `invalidate`, for keys matching a filter |
 | `invalidateAll(policy?)` | no | Same as `invalidate`, for every entry |
-| `extract(key)` | — | Returns value and removes entry without `onEvict` (ownership transfer) |
-| `delete(key)` | — | Remove one entry; invokes `onEvict` |
-| `purgeExpired()` | — | Evict all GC-expired entries; returns count. No-op without `gcTime` |
+| `extract(key)` | — | Returns value and removes entry without `onRemove` (ownership transfer) |
+| `delete(key)` | — | Remove one entry; invokes `onRemove` |
+| `purgeExpired()` | — | Remove all GC-expired entries; returns count. No-op without `gcTime` |
 | `clear()` / `destroy()` | — | Remove all entries and stop background sweep; `destroy()` is an alias for `clear()` |
 | `size` | — | Entry count (includes stale and not-yet-swept entries) |
 
@@ -128,7 +128,7 @@ const cache = new AuraCacheStore<string>({
 
 cache.set('fragment', '<nav>...</nav>');
 // after 61s:
-cache.get('fragment'); // undefined — evicted on read
+cache.get('fragment'); // undefined — removed on read
 ```
 
 ### SWR: stale-while-revalidate
@@ -168,12 +168,12 @@ const cache = new AuraCacheStore<string>({ max: 2 });
 cache.set('a', 'A');
 cache.set('b', 'B');
 cache.get('a');      // promote 'a'
-cache.set('c', 'C'); // evicts 'b' (LRU)
+cache.set('c', 'C'); // removes 'b' (LRU)
 
 cache.has('b'); // false — has() does not promote LRU
 ```
 
-Use `get` or `lookup(key, true)` when access should protect an entry from eviction.
+Use `get` or `lookup(key, true)` when access should protect an entry from removal.
 
 ### Invalidation
 
@@ -210,12 +210,12 @@ cache.purgeExpired(); // or trigger manually
 cache.destroy();      // stop sweep and release all entries
 ```
 
-### `onEvict` callback
+### `onRemove` callback
 
 ```ts
 const cache = new AuraCacheStore<HTMLElement>({
   max: 10,
-  onEvict: (_key, el) => el.remove(),
+  onRemove: (_key, el) => el.remove(),
 });
 ```
 

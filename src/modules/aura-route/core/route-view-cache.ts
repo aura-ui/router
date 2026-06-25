@@ -2,7 +2,7 @@ import type { RouteInfo } from '../../aura-route-hooks/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { AuraCacheStore, type CacheStoreOptions } from '../../aura-cache-store/core';
 
-export type ViewCacheRouteRef = Pick<RouteInfo, 'path' | 'params' | 'query'>;
+export type ViewCacheRouteRef = Pick<RouteInfo, 'path' | 'query'>;
 
 export interface RouteViewCachePort {
   /** Returns the cached view and removes the entry (full extract, not a peek). */
@@ -15,7 +15,7 @@ const DEFAULT_OPTIONS: CacheStoreOptions<ViewRoot> = {
   gcTime: Infinity,
   gcSweepInterval: false,
   invalidatePolicy: 'remove',
-  onEvict: (_key, root) => RouteViewCache.destroyViewRoot(root),
+  onRemove: (_key, root) => RouteViewCache.destroyViewRoot(root),
 };
 
 /**
@@ -29,17 +29,12 @@ export class RouteViewCache implements RouteViewCachePort {
   /**
    * Stable keep-alive key for a route view instance.
    *
-   * Base segment: `routePath` (tree full path) → `path` (pathname) → `fallbackPath` (route attr).
-   * Callers that put and take must use the same base — lifecycle `RouteInfo` includes
-   * `routePath` from the matcher so `onReenter` keys match `render` / `onLeft`.
+   * Base segment: `path` (pathname) → `fallbackPath` (route attr). Params are omitted —
+   * they are always consistent with `path` on {@link RouteInfo}.
    */
   static buildKey(route: ViewCacheRouteRef | undefined, fallbackPath: string): string {
     const base = route?.path ?? fallbackPath;
     const parts = [base];
-
-    if (route?.params && Object.keys(route.params).length > 0) {
-      parts.push(RouteViewCache.serializeRecord(route.params));
-    }
 
     if (route?.query && Object.keys(route.query).length > 0) {
       parts.push(RouteViewCache.serializeRecord(route.query));
@@ -54,7 +49,7 @@ export class RouteViewCache implements RouteViewCachePort {
     RouteViewCache.store = new AuraCacheStore({
       ...DEFAULT_OPTIONS,
       ...options,
-      onEvict: options.onEvict ?? DEFAULT_OPTIONS.onEvict,
+      onRemove: options.onRemove ?? DEFAULT_OPTIONS.onRemove,
     });
   }
 

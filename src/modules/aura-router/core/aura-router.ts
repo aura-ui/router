@@ -1,8 +1,7 @@
 import { attr } from '../../aura-utils/decorators';
 
-import { AuraRoute } from '../../aura-route/core';
+import { AuraRoute, RouteViewCache } from '../../aura-route/core';
 import { configureRouteContentLoader } from '../../aura-route/core/route-content-loader';
-import { RouteViewCache } from '../../aura-route/core/route-view-cache';
 import type { CacheStoreOptions } from '../../aura-cache-store/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import {

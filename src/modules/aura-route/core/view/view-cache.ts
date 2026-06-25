@@ -1,5 +1,5 @@
-import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
-import { AuraCacheStore, type CacheStoreOptions } from '../../aura-cache-store/core';
+import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import { AuraCacheStore, type CacheStoreOptions } from '../../../aura-cache-store/core';
 
 /** String-key stash for detached keep-alive views. Key shape: see `view-cache-key`. */
 export interface RouteViewCachePort {

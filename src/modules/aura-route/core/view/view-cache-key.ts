@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo, RouteInfo } from '../../aura-route-hooks/core';
+import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
 
 /** URL slice used to build a keep-alive stash key (`pathname` + optional `query`). */
 export type ViewCacheKeyInput = {

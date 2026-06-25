@@ -5,9 +5,9 @@ import { getTemplate } from '../../../aura-utils/misc';
 import { RouteRenderSignal } from './render-signal';
 
 import {
+  hasActiveMount,
   mountRoute,
   reattachRoute,
-  shouldSkipRouteRender,
   unmountRoute,
   type ViewMountContext,
   type ViewMountState,
@@ -104,7 +104,7 @@ export class AuraRouteViewController {
       this.lastCacheKey = this.cacheKey(routeInfo);
 
       if (this.tryRestoreFromCache(token, routeInfo, viewKind)) return;
-      if (shouldSkipRouteRender(config.keepAlive, viewKind === 'layout', this.currentMountState())) return;
+      if (config.keepAlive && hasActiveMount(viewKind === 'layout', this.currentMountState())) return;
 
       //todo think about body classname and event
       if (config.loadingTemplate) {

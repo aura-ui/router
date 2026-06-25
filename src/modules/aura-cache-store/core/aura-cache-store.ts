@@ -178,7 +178,8 @@ export class AuraCacheStore<T> {
   /**
    * Stores a value under `key`, clearing stale flag and refreshing `storedAt`.
    *
-   * Updates an existing entry in place without LRU trim. New entries may remove
+   * Updates an existing entry in place without LRU trim. Overwriting invokes
+   * `onRemove` for the previous value when it differs. New entries may remove
    * the least recently used key when `max` is exceeded.
    *
    * @param key - Cache key.
@@ -189,9 +190,8 @@ export class AuraCacheStore<T> {
     const now = this.trackAge ? Date.now() : 0;
 
     if (existingNode) {
-      // TODO: перезапись без onRemove — старое value может стать orphan (напр. stash дважды
-      // с одним ключом без take между ними). В lifecycle route view (onLeft → take → onLeft)
-      // этого не должно быть, но store должен вызывать onRemove на заменяемом значении.
+      const previous = existingNode.value;
+
       existingNode.value = value;
       existingNode.stale = false;
       if (this.trackAge) {
@@ -200,6 +200,10 @@ export class AuraCacheStore<T> {
 
       if (existingNode !== this.tail) {
         this.moveToEnd(existingNode);
+      }
+
+      if (previous !== value) {
+        this.onRemove?.(key, previous);
       }
 
       this.ensureSweepRunning();

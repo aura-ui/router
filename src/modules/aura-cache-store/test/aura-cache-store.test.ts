@@ -38,6 +38,34 @@ describe('AuraCacheStore', () => {
       expect(cache.get('a')).toBe('one');
       expect(cache.size).toBe(1);
     });
+
+    it('set calls onRemove when overwriting with a different value', () => {
+      const removed: Array<[string, string]> = [];
+      cache = new AuraCacheStore<string>({
+        onRemove: (key, value) => removed.push([key, value]),
+      });
+
+      cache.set('a', 'one');
+      cache.set('a', 'two');
+
+      expect(cache.get('a')).toBe('two');
+      expect(cache.size).toBe(1);
+      expect(removed).toEqual([['a', 'one']]);
+    });
+
+    it('set does not call onRemove when overwriting with the same reference', () => {
+      const removed: string[] = [];
+      cache = new AuraCacheStore<string>({
+        onRemove: (key) => removed.push(key),
+      });
+      const value = 'one';
+
+      cache.set('a', value);
+      cache.set('a', value);
+
+      expect(removed).toEqual([]);
+      expect(cache.get('a')).toBe(value);
+    });
   });
 
   describe('gcTime without SWR', () => {

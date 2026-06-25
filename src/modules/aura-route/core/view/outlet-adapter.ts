@@ -23,7 +23,7 @@ export const EMPTY_VIEW_MOUNT: ViewMountState = {
 
 /** Inputs for {@link mountRoute}: outlets, pattern key, signal, stage flag. */
 export type ViewMountContext = {
-  rootOutlet: AuraOutlet;
+  defaultOutlet: AuraOutlet;
   parentOutlet?: AuraOutlet | null;
   pattern?: string;
   signal?: AbortSignal;
@@ -64,7 +64,7 @@ export function resolveMountStrategy(
   return targetOutlet.children.length > 0 ? 'stage' : 'replace';
 }
 
-/** Put content into `parentOutlet ?? rootOutlet`; uses `prev.detachedRoot` when set. */
+/** Put content into `parentOutlet ?? defaultOutlet`; uses `prev.detachedRoot` when set. */
 export function mountRoute(
   ctx: ViewMountContext,
   content: Node | string,
@@ -72,7 +72,7 @@ export function mountRoute(
 ): ViewMountState {
   if (ctx.signal?.aborted) return prev;
 
-  const outlet = asAuraOutlet(ctx.parentOutlet ?? ctx.rootOutlet);
+  const outlet = asAuraOutlet(ctx.parentOutlet ?? ctx.defaultOutlet);
   const strategy = resolveMountStrategy(ctx, prev, outlet);
   const payload = prev.detachedRoot ?? content;
 

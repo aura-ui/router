@@ -9,15 +9,6 @@ export type RouteRenderOptions = {
   stageMount?: boolean;
 };
 
-/** Static route view configuration (attrs), without HTMLElement coupling. */
-export type RouteViewConfig = {
-  path: string;
-  layout?: string;
-  keepAlive: boolean;
-  loadingTemplate?: string;
-  errorTemplate?: string;
-};
-
 /** Resolves route payload: layout template, loader, cache, preload. */
 export interface RouteContentPort {
   resolve(routeInfo: MatchedRouteInfo | undefined, signal: AbortSignal): Promise<Node | string | null>;
@@ -28,17 +19,6 @@ export interface RouteContentPort {
 
 /** Outlet access for nested route trees. */
 export interface RouteOutletPort {
-  resolveRootOutlet: () => AuraOutlet;
+  getDefaultOutlet: () => AuraOutlet;
   parentOutlet(routeInfo?: MatchedRouteInfo): AuraOutlet | null;
 }
-
-export type AuraRouteViewHost = {
-  readonly path: string;
-  readonly layout: string;
-  readonly source: string;
-  readonly content: string;
-  readonly cache: boolean;
-  readonly keepAlive: boolean;
-  readonly loadingTemplate: string;
-  readonly errorTemplate: string;
-};

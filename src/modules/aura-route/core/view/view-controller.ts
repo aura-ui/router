@@ -1,4 +1,5 @@
 import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
+import type { AuraRouteInterface } from '../aura-route';
 import type { AuraOutlet, OutletStrategy, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../../aura-utils/misc';
 import { RouteRenderSignal } from '../render-signal';
@@ -19,16 +20,13 @@ import type {
   RouteContentPort,
   RouteOutletPort,
   RouteRenderOptions,
-  RouteViewConfig,
   RouteViewKind,
 } from './view-controller.types';
 
 export type {
-  AuraRouteViewHost,
   RouteContentPort,
   RouteOutletPort,
   RouteRenderOptions,
-  RouteViewConfig,
 } from './view-controller.types';
 
 type PlaceViewInput = {
@@ -41,6 +39,13 @@ type PlaceViewInput = {
   detachedRoot?: ViewRoot;
 };
 
+type RouteLastMount = {
+  strategy: Extract<OutletStrategy, 'replace' | 'stage'>;
+  handle: ViewMountState['activeHandle'];
+};
+
+const EMPTY_ROUTE_LAST_MOUNT: RouteLastMount = { strategy: 'replace', handle: null };
+
 /**
  * View state and render orchestration for {@link AuraRoute}.
  * Outlet policy lives in {@link outlet-adapter}; stage lifecycle calls {@link AuraOutlet} directly.
@@ -48,29 +53,28 @@ type PlaceViewInput = {
  */
 export class AuraRouteViewController {
   private readonly renderSignal = new RouteRenderSignal();
-  private readonly getConfig: () => RouteViewConfig;
+  private readonly route: AuraRouteInterface;
   private readonly outlets: RouteOutletPort;
   private readonly content: RouteContentPort;
   private readonly viewCache: RouteViewCachePort;
   private readonly getLifecycleToken: () => number;
 
-  private activeHandle: ViewMountState['activeHandle'] = null;
-  /** Pre-stage handle while a transition is pending (`lastMountStrategy === 'stage'`). */
-  private previousHandle: ViewMountState['activeHandle'] = null;
-  private lastMountStrategy: Extract<OutletStrategy, 'replace' | 'stage'> = 'replace';
+  private lastMount: RouteLastMount = { ...EMPTY_ROUTE_LAST_MOUNT };
+  /** Outgoing view kept alive while `lastMount.strategy === 'stage'`. */
+  private stageOutgoingHandle: ViewMountState['activeHandle'] = null;
   private lastCacheKey: string | null = null;
 
   /** Nested `<aura-outlet>` inside mounted layout; children render here. */
   childOutlet: AuraOutlet | null = null;
 
   constructor(
-    getConfig: () => RouteViewConfig,
+    route: AuraRouteInterface,
     outlets: RouteOutletPort,
     content: RouteContentPort,
     viewCache: RouteViewCachePort = defaultRouteViewCache,
     getLifecycleToken: () => number = () => 0,
   ) {
-    this.getConfig = getConfig;
+    this.route = route;
     this.outlets = outlets;
     this.content = content;
     this.viewCache = viewCache;
@@ -78,10 +82,6 @@ export class AuraRouteViewController {
   }
 
   // --- Public: signal & cancellation ---
-
-  private get config(): RouteViewConfig {
-    return this.getConfig();
-  }
 
   get signal(): AbortSignal {
     return this.renderSignal.signal;
@@ -109,7 +109,7 @@ export class AuraRouteViewController {
   async render(routeInfo?: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     const { signal, stageMount } = options ?? {};
     const token = this.getLifecycleToken();
-    const config = this.config;
+    const config = this.route;
     const viewKind = viewKindOf(config);
 
     try {
@@ -166,37 +166,37 @@ export class AuraRouteViewController {
    * `commitEnterViews` after transition hooks, before exit `onLeft`.
    */
   commitStagedView(): void {
-    if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
-    this.activeHandle.mountOutlet.commitStage(this.activeHandle.viewRoot);
-    this.lastMountStrategy = 'replace';
-    this.previousHandle = null;
+    if (this.lastMount.strategy !== 'stage' || !this.lastMount.handle) return;
+    this.lastMount.handle.mountOutlet.commitStage(this.lastMount.handle.viewRoot);
+    this.lastMount.strategy = 'replace';
+    this.stageOutgoingHandle = null;
   }
 
   onLeft(): void {
     this.renderSignal.cancel();
 
-    const config = this.config;
+    const config = this.route;
     let detached: ViewRoot | null = null;
 
-    if (this.lastMountStrategy === 'stage') {
+    if (this.lastMount.strategy === 'stage') {
       this.dropStagedView();
-      detached = unmountRoute(this.previousHandle, config.keepAlive);
-      this.previousHandle = null;
+      detached = unmountRoute(this.stageOutgoingHandle, config.keepAlive);
+      this.stageOutgoingHandle = null;
     } else {
-      detached = unmountRoute(this.activeHandle, config.keepAlive);
+      detached = unmountRoute(this.lastMount.handle, config.keepAlive);
     }
 
-    this.activeHandle = null;
+    this.lastMount.handle = null;
 
     if (config.keepAlive && detached) {
-      this.viewCache.put(this.lastCacheKey ?? this.config.path, detached);
+      this.viewCache.put(this.lastCacheKey ?? this.route.path, detached);
     } else {
       this.childOutlet = null;
     }
   }
 
   onReenter(route: RouteInfo): void {
-    if (!this.config.keepAlive) return;
+    if (!this.route.keepAlive) return;
 
     const cached = this.viewCache.extract(this.cacheKey(route));
     if (!cached) return;
@@ -205,7 +205,7 @@ export class AuraRouteViewController {
       this.getLifecycleToken(),
       cached,
       undefined,
-      viewKindOf(this.config),
+      viewKindOf(this.route),
       undefined,
       route.pathname,
     );
@@ -225,7 +225,7 @@ export class AuraRouteViewController {
     viewKind: RouteViewKind,
     stageMount?: boolean,
   ): boolean {
-    if (!this.config.keepAlive) return false;
+    if (!this.route.keepAlive) return false;
 
     const cached = this.viewCache.extract(this.cacheKey(routeInfo));
     if (!cached) return false;
@@ -235,7 +235,7 @@ export class AuraRouteViewController {
   }
 
   private cacheKey(source?: ViewCacheKeySource): string {
-    return viewCacheKey(source, this.config.path);
+    return viewCacheKey(source, this.route.path);
   }
 
   private rememberCacheKey(source?: ViewCacheKeySource): void {
@@ -247,7 +247,7 @@ export class AuraRouteViewController {
 
   private currentMountState(): ViewMountState {
     return {
-      activeHandle: this.activeHandle,
+      activeHandle: this.lastMount.handle,
       childOutlet: this.childOutlet,
       detachedRoot: null,
     };
@@ -260,7 +260,7 @@ export class AuraRouteViewController {
   ): ViewMountContext {
     return {
       pattern: routeInfo?.pattern ?? pattern,
-      rootOutlet: this.outlets.resolveRootOutlet(),
+      defaultOutlet: this.outlets.getDefaultOutlet(),
       parentOutlet: this.outlets.parentOutlet(routeInfo),
       signal: this.renderSignal.signal,
       stageMount,
@@ -271,7 +271,7 @@ export class AuraRouteViewController {
     token: number,
     root: ViewRoot,
     routeInfo?: MatchedRouteInfo,
-    viewKind: RouteViewKind = viewKindOf(this.config),
+    viewKind: RouteViewKind = viewKindOf(this.route),
     stageMount?: boolean,
     pattern?: string,
   ): void {
@@ -299,48 +299,50 @@ export class AuraRouteViewController {
       previous,
     );
 
-    this.lastMountStrategy = result.appliedStrategy ?? 'replace';
     this.applyMountResult(result, input.viewKind);
     this.rememberCacheKey(input.routeInfo);
   }
 
   private applyMountResult(result: ViewMountState, viewKind: RouteViewKind): void {
     if (result.appliedStrategy === 'stage') {
-      this.previousHandle = this.activeHandle;
+      this.stageOutgoingHandle = this.lastMount.handle;
     } else {
-      this.previousHandle = null;
+      this.stageOutgoingHandle = null;
     }
 
-    this.activeHandle = result.activeHandle;
+    this.lastMount = {
+      strategy: result.appliedStrategy ?? 'replace',
+      handle: result.activeHandle,
+    };
     this.childOutlet = result.childOutlet;
 
     if (viewKind === 'layout' && !result.childOutlet) {
       console.warn(
-        `AuraRoute layout "${this.config.layout}" (path: ${this.config.path}) has no <aura-outlet>`,
+        `AuraRoute layout "${this.route.layout}" (path: ${this.route.path}) has no <aura-outlet>`,
       );
     }
   }
 
-  /** Cancel pending stage and restore the pre-transition active view in controller state. */
+  /** Cancel pending stage and restore `stageOutgoingHandle` as `lastMount.handle`. */
   private cancelStagedMount(): void {
-    if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
+    if (this.lastMount.strategy !== 'stage' || !this.lastMount.handle) return;
     this.dropStagedView();
 
-    if (this.previousHandle) {
-      this.activeHandle = this.previousHandle;
-      this.childOutlet = this.previousHandle.findChildOutlet();
-      this.previousHandle = null;
+    if (this.stageOutgoingHandle) {
+      this.lastMount.handle = this.stageOutgoingHandle;
+      this.childOutlet = this.stageOutgoingHandle.findChildOutlet();
+      this.stageOutgoingHandle = null;
     } else {
-      this.activeHandle = null;
+      this.lastMount.handle = null;
       this.childOutlet = null;
     }
   }
 
   /** Remove staged DOM only; does not restore controller handles (used when leaving the route). */
   private dropStagedView(): void {
-    if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
-    this.activeHandle.mountOutlet.cancelStage();
-    this.lastMountStrategy = 'replace';
+    if (this.lastMount.strategy !== 'stage' || !this.lastMount.handle) return;
+    this.lastMount.handle.mountOutlet.cancelStage();
+    this.lastMount.strategy = 'replace';
   }
 
   // --- Private: content resolution ---
@@ -349,7 +351,7 @@ export class AuraRouteViewController {
     viewKind: RouteViewKind,
     routeInfo?: MatchedRouteInfo,
   ): Promise<Node | string | null> {
-    const config = this.config;
+    const config = this.route;
 
     if (viewKind === 'layout') {
       return getTemplate(config.layout!);
@@ -374,7 +376,7 @@ export class AuraRouteViewController {
     routeInfo?: MatchedRouteInfo,
     stageMount?: boolean,
   ): void {
-    const config = this.config;
+    const config = this.route;
 
     if (config.errorTemplate) {
       try {
@@ -395,7 +397,7 @@ export class AuraRouteViewController {
   }
 
   private showFallbackError(token: number, error: unknown): void {
-    console.error(`Error rendering AuraRoute (path: ${this.config.path}):`, error);
+    console.error(`Error rendering AuraRoute (path: ${this.route.path}):`, error);
     if (!this.isTokenCurrent(token)) return;
 
     const message = escapeHtml(error instanceof Error ? error.message : 'Error loading content');
@@ -413,8 +415,8 @@ export class AuraRouteViewController {
   }
 }
 
-function viewKindOf(config: RouteViewConfig): RouteViewKind {
-  return config.layout ? 'layout' : 'content';
+function viewKindOf(route: AuraRouteInterface): RouteViewKind {
+  return route.layout ? 'layout' : 'content';
 }
 
 function escapeHtml(value: string): string {

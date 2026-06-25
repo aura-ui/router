@@ -9,12 +9,12 @@ import {
   EMPTY_ROUTE_MOUNT,
   finalizeLeaveMount,
   hasActiveMount,
-  mergeMountResult,
+  mergeMountSnapshot,
   mountRoute,
   reattachRoute,
   rollbackStagedMount,
   toViewMountState,
-  unmountMountOnLeave,
+  unmountOnLeave,
   type RouteMountSnapshot,
   type ViewMountContext,
   type ViewMountState,
@@ -122,11 +122,11 @@ export class AuraRouteViewController {
     this.renderSignal.cancel();
 
     const { keepAlive } = this.route;
-    const { state, detached } = unmountMountOnLeave(this.mount, keepAlive);
-    this.mount = finalizeLeaveMount(state, keepAlive, detached);
+    const { snapshot, detachedRoot } = unmountOnLeave(this.mount, keepAlive);
+    this.mount = finalizeLeaveMount(snapshot, keepAlive, detachedRoot);
 
-    if (keepAlive && detached) {
-      this.viewCache.put(this.lastCacheKey ?? this.route.path, detached);
+    if (keepAlive && detachedRoot) {
+      this.viewCache.put(this.lastCacheKey ?? this.route.path, detachedRoot);
     }
   }
 
@@ -165,7 +165,7 @@ export class AuraRouteViewController {
   private shouldSkipKeepAliveRender(): boolean {
     const viewKind = resolveViewKind(this.route);
     return this.route.keepAlive
-      && hasActiveMount(viewKind === 'layout', toViewMountState(this.mount));
+      && hasActiveMount(toViewMountState(this.mount), viewKind === 'layout');
   }
 
   /** Shows loading template, resolves content, and mounts the result. */
@@ -259,7 +259,7 @@ export class AuraRouteViewController {
     const mountResult = operation();
     if (!mountResult) return;
 
-    this.mount = mergeMountResult(this.mount, mountResult);
+    this.mount = mergeMountSnapshot(this.mount, mountResult);
     warnMissingLayoutOutlet(this.route, viewKind, mountResult);
   }
 

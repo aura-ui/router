@@ -7,7 +7,7 @@ import type {
 
 type MountStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
-/** Snapshot of the mounted view inside an outlet (handle and nested slot). */
+/** Result of a single outlet apply: active handle, nested slot, strategy used. */
 export type ViewMountState = {
   activeHandle: ViewHandle | null;
   nestedOutlet: AuraOutlet | null;
@@ -27,47 +27,55 @@ export type ViewMountContext = {
   signal?: AbortSignal;
   strategy?: MountStrategy;
   /** Staged crossfade when true (inherited `<aura-router data-transition>`). */
-  stageMount?: boolean;
+  useStagedMount?: boolean;
 };
 
 /** Whether a route view is already mounted (layout routes require a nested outlet). */
-export function hasActiveMount(isLayout: boolean, prev: ViewMountState): boolean {
-  return !!prev.activeHandle && (!isLayout || !!prev.nestedOutlet);
+export function hasActiveMount(mount: ViewMountState, isLayoutRoute: boolean): boolean {
+  return !!mount.activeHandle && (!isLayoutRoute || !!mount.nestedOutlet);
 }
 
 /**
- * `stage` when `stageMount` and outlet already has a view; else `replace`.
+ * `stage` when `useStagedMount` and outlet already has a view; else `replace`.
  * Phase order comes from `<aura-router data-transition>`, not from this flag.
  */
-export function resolveMountStrategy(ctx: ViewMountContext, targetOutlet: AuraOutlet): MountStrategy {
-  if (ctx.strategy) return ctx.strategy;
-  if (!ctx.stageMount) return 'replace';
+export function resolveMountStrategy(
+  mountContext: ViewMountContext,
+  targetOutlet: AuraOutlet,
+): MountStrategy {
+  if (mountContext.strategy) return mountContext.strategy;
+  if (!mountContext.useStagedMount) return 'replace';
 
   return targetOutlet.children.length > 0 ? 'stage' : 'replace';
 }
 
 /** Mount new content into `mountOutlet ?? appOutlet`. */
 export function mountRoute(
-  ctx: ViewMountContext,
-  content: Node | string,
-  prev: ViewMountState = EMPTY_VIEW_MOUNT,
+  mountContext: ViewMountContext,
+  viewContent: Node | string,
+  currentMount: ViewMountState = EMPTY_VIEW_MOUNT,
 ): ViewMountState {
-  if (ctx.signal?.aborted) return prev;
+  if (mountContext.signal?.aborted) return currentMount;
 
-  const outlet = resolveTargetOutlet(ctx);
-  const result = applyInOutlet(outlet, ctx, content, resolveMountStrategy(ctx, outlet));
+  const outlet = resolveTargetOutlet(mountContext);
+  const mountResult = applyInOutlet(
+    outlet,
+    mountContext,
+    viewContent,
+    resolveMountStrategy(mountContext, outlet),
+  );
 
-  return result ?? prev;
+  return mountResult ?? currentMount;
 }
 
 /** Re-insert a detached keep-alive root from view cache (always replace). */
 export function reattachRoute(
-  ctx: ViewMountContext,
+  mountContext: ViewMountContext,
   cachedRoot: ViewRoot,
 ): ViewMountState | null {
-  if (ctx.signal?.aborted) return null;
+  if (mountContext.signal?.aborted) return null;
 
-  return applyInOutlet(resolveTargetOutlet(ctx), ctx, cachedRoot, 'replace');
+  return applyInOutlet(resolveTargetOutlet(mountContext), mountContext, cachedRoot, 'replace');
 }
 
 /** keepAlive: detach view; otherwise destroy. */
@@ -96,6 +104,7 @@ export const EMPTY_ROUTE_MOUNT: RouteMountSnapshot = {
   nestedOutlet: null,
 };
 
+/** Projection of {@link RouteMountSnapshot} for outlet apply helpers. */
 export function toViewMountState(snapshot: RouteMountSnapshot): ViewMountState {
   return {
     activeHandle: snapshot.activeHandle,
@@ -103,76 +112,76 @@ export function toViewMountState(snapshot: RouteMountSnapshot): ViewMountState {
   };
 }
 
-/** Apply a mount/reattach result and preserve outgoing handle when staging. */
-export function mergeMountResult(
-  prev: RouteMountSnapshot,
-  result: ViewMountState,
+/** Fold an outlet apply result into the route mount snapshot. */
+export function mergeMountSnapshot(
+  snapshot: RouteMountSnapshot,
+  mountResult: ViewMountState,
 ): RouteMountSnapshot {
   return {
-    strategy: result.appliedStrategy ?? 'replace',
-    activeHandle: result.activeHandle,
-    stageOutgoingHandle: result.appliedStrategy === 'stage' ? prev.activeHandle : null,
-    nestedOutlet: result.nestedOutlet,
+    strategy: mountResult.appliedStrategy ?? 'replace',
+    activeHandle: mountResult.activeHandle,
+    stageOutgoingHandle: mountResult.appliedStrategy === 'stage' ? snapshot.activeHandle : null,
+    nestedOutlet: mountResult.nestedOutlet,
   };
 }
 
 /** Promote staged incoming view to the sole active root in the outlet. */
-export function commitStagedMount(state: RouteMountSnapshot): RouteMountSnapshot {
-  if (state.strategy !== 'stage' || !state.activeHandle) return state;
+export function commitStagedMount(snapshot: RouteMountSnapshot): RouteMountSnapshot {
+  if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
 
-  state.activeHandle.mountOutlet.commitStage(state.activeHandle.viewRoot);
+  snapshot.activeHandle.mountOutlet.commitStage(snapshot.activeHandle.viewRoot);
 
   return {
-    ...state,
+    ...snapshot,
     strategy: 'replace',
     stageOutgoingHandle: null,
   };
 }
 
-/** Remove staged DOM only; does not restore handles. */
-export function cancelStagedMountDom(state: RouteMountSnapshot): RouteMountSnapshot {
-  if (state.strategy !== 'stage' || !state.activeHandle) return state;
+/** Drop staged incoming DOM via `cancelStage`; does not restore outgoing handle. */
+export function cancelStagedIncoming(snapshot: RouteMountSnapshot): RouteMountSnapshot {
+  if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
 
-  state.activeHandle.mountOutlet.cancelStage();
+  snapshot.activeHandle.mountOutlet.cancelStage();
 
   return {
-    ...state,
+    ...snapshot,
     strategy: 'replace',
   };
 }
 
 /** Cancel pending stage and restore the outgoing view as active. */
-export function rollbackStagedMount(state: RouteMountSnapshot): RouteMountSnapshot {
-  if (state.strategy !== 'stage' || !state.activeHandle) return state;
+export function rollbackStagedMount(snapshot: RouteMountSnapshot): RouteMountSnapshot {
+  if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
 
-  const dropped = cancelStagedMountDom(state);
-  const outgoing = dropped.stageOutgoingHandle;
+  const afterStageCancel = cancelStagedIncoming(snapshot);
+  const outgoingHandle = afterStageCancel.stageOutgoingHandle;
 
   return {
     strategy: 'replace',
-    activeHandle: outgoing,
+    activeHandle: outgoingHandle,
     stageOutgoingHandle: null,
-    nestedOutlet: outgoing?.findChildOutlet() ?? null,
+    nestedOutlet: outgoingHandle?.findChildOutlet() ?? null,
   };
 }
 
-export type LeaveUnmountResult = {
-  state: RouteMountSnapshot;
-  detached: ViewRoot | null;
+export type RouteLeaveUnmountResult = {
+  snapshot: RouteMountSnapshot;
+  detachedRoot: ViewRoot | null;
 };
 
-/** Unmount the leaving route view; cancels staged DOM first when needed. */
-export function unmountMountOnLeave(
-  state: RouteMountSnapshot,
+/** Unmount the leaving route view; cancels staged incoming DOM first when needed. */
+export function unmountOnLeave(
+  snapshot: RouteMountSnapshot,
   keepAlive: boolean,
-): LeaveUnmountResult {
-  if (state.strategy === 'stage') {
-    const dropped = cancelStagedMountDom(state);
+): RouteLeaveUnmountResult {
+  if (snapshot.strategy === 'stage') {
+    const afterStageCancel = cancelStagedIncoming(snapshot);
 
     return {
-      detached: unmountRoute(dropped.stageOutgoingHandle, keepAlive),
-      state: {
-        ...dropped,
+      detachedRoot: unmountRoute(afterStageCancel.stageOutgoingHandle, keepAlive),
+      snapshot: {
+        ...afterStageCancel,
         activeHandle: null,
         stageOutgoingHandle: null,
       },
@@ -180,9 +189,9 @@ export function unmountMountOnLeave(
   }
 
   return {
-    detached: unmountRoute(state.activeHandle, keepAlive),
-    state: {
-      ...state,
+    detachedRoot: unmountRoute(snapshot.activeHandle, keepAlive),
+    snapshot: {
+      ...snapshot,
       activeHandle: null,
     },
   };
@@ -190,23 +199,23 @@ export function unmountMountOnLeave(
 
 /** Clear nested outlet unless the detached view is stashed for keep-alive. */
 export function finalizeLeaveMount(
-  state: RouteMountSnapshot,
+  snapshot: RouteMountSnapshot,
   keepAlive: boolean,
-  detached: ViewRoot | null,
+  detachedRoot: ViewRoot | null,
 ): RouteMountSnapshot {
-  return keepAlive && detached ? state : { ...state, nestedOutlet: null };
+  return keepAlive && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
 }
 
 function applyInOutlet(
   outlet: AuraOutlet,
-  ctx: ViewMountContext,
-  content: Node | string | ViewRoot,
+  mountContext: ViewMountContext,
+  viewContent: Node | string | ViewRoot,
   strategy: MountStrategy,
 ): ViewMountState | null {
-  const handle = outlet.apply(content, {
+  const handle = outlet.apply(viewContent, {
     strategy,
-    key: ctx.pattern,
-    signal: ctx.signal,
+    key: mountContext.pattern,
+    signal: mountContext.signal,
   });
 
   if (!handle) return null;
@@ -218,8 +227,8 @@ function applyInOutlet(
   };
 }
 
-function resolveTargetOutlet(ctx: ViewMountContext): AuraOutlet {
-  return asAuraOutlet(ctx.mountOutlet ?? ctx.appOutlet);
+function resolveTargetOutlet(mountContext: ViewMountContext): AuraOutlet {
+  return asAuraOutlet(mountContext.mountOutlet ?? mountContext.appOutlet);
 }
 
 /** Assert element is an upgraded `<aura-outlet>`. */

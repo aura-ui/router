@@ -5,7 +5,7 @@ import { AuraCacheStore, type CacheStoreOptions } from '../../aura-cache-store/c
 export interface RouteViewCachePort {
   /** Returns whether a readable entry exists (may remove GC-expired entries). */
   has(key: string): boolean;
-  /** Returns a cached view without extracting or promoting LRU. */
+  /** Returns a cached view without extracting or promoting LRU (may remove GC-expired entries). */
   peek(key: string): ViewRoot | undefined;
   /** Returns the cached view and removes the entry (full extract, not a peek). */
   extract(key: string): ViewRoot | undefined;

@@ -79,10 +79,9 @@ interface Node<T> {
  * Lifecycle: `fresh` → `stale` → removed after `gcTime` (default {@link DEFAULT_GC_TIME}).
  * Use {@link AuraCacheStore.lookup} to read status. `gcTime: Infinity` disables TTL removal.
  *
- * GC is lazy on access (`get`, `has`, `lookup`, `isStale`) and proactive via
- * {@link AuraCacheStore.purgeExpired} or background sweep (`gcSweepInterval`).
- * `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order.
- * `peek` and `keys` also do not remove GC-expired entries.
+ * GC is lazy on access (`get`, `has`, `peek`, `lookup`, `isStale`) and proactive via
+ * {@link AuraCacheStore.purgeExpired}, background sweep (`gcSweepInterval`), or introspection
+ * (`size`, `keys`). `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order.
  */
 export class AuraCacheStore<T> {
   private readonly max?: number;
@@ -241,15 +240,16 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Returns a cached value without promoting LRU order or removing GC-expired entries.
+   * Returns a cached value without promoting LRU order.
+   * GC-expired entries are removed on access (same as {@link has}), with `onRemove` when configured.
    *
    * @param key - Cache key.
-   * @returns The stored value, or `undefined` if missing or GC-expired (entry is kept until lazy GC).
+   * @returns The stored value, or `undefined` if missing or GC-expired.
    */
   peek(key: string): T | undefined {
     const node = this.map.get(key);
     if (!node) return undefined;
-    if (this.gcTimeMs !== undefined && Date.now() - node.storedAt > this.gcTimeMs) {
+    if (this.gcTimeMs !== undefined && this.removeIfExpired(node, Date.now())) {
       return undefined;
     }
     return node.value;
@@ -426,21 +426,23 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Number of entries stored (including stale and not-yet-GC-removed).
+   * Number of readable entries stored (includes stale; excludes GC-expired).
    *
-   * @returns Current entry count.
+   * @returns Current entry count after removing GC-expired entries when `gcTime` is configured.
    */
   get size(): number {
+    this.sweepExpired();
     return this.map.size;
   }
 
   /**
-   * Snapshot of cache keys (includes stale and not-yet-GC-removed entries).
-   * Order is arbitrary. Does not promote LRU or remove expired entries.
+   * Snapshot of cache keys (includes stale; excludes GC-expired).
+   * Order is arbitrary. Does not promote LRU. Removes GC-expired entries when `gcTime` is configured.
    *
-   * @returns All keys currently in the store.
+   * @returns All readable keys currently in the store.
    */
   keys(): string[] {
+    this.sweepExpired();
     return Array.from(this.map.keys());
   }
 
@@ -571,11 +573,13 @@ export class AuraCacheStore<T> {
    * @param node - Entry to append. `prev`/`next` are rewritten.
    */
   private addToEnd(node: Node<T>): void {
+    node.next = null;
     if (this.tail) {
       this.tail.next = node;
       node.prev = this.tail;
       this.tail = node;
     } else {
+      node.prev = null;
       this.head = node;
       this.tail = node;
     }

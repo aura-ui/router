@@ -1,12 +1,12 @@
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import type { TransitionPolicy } from '../../../aura-routing-engine/core/transition/policy';
 import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
 
 export type RouteViewKind = 'layout' | 'content';
 
 export type RouteRenderOptions = {
   signal?: AbortSignal;
-  transitionPolicy?: TransitionPolicy;
+  /** Inherited from `<aura-router data-transition>`; omit/false → outlet `replace`. */
+  stageMount?: boolean;
 };
 
 /** Static route view configuration (attrs), without HTMLElement coupling. */

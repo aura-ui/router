@@ -175,8 +175,9 @@ export class ProcessorPipeline {
     return firstTerminalOutcome(exitTransitionOutcome, enterTransitionOutcome);
   }
 
-  /** Post-commit: `left` on exit branch, then `entered` on activate branch. */
+  /** Post-commit: {@link commitEnterViews}, `left` on exit branch, then `entered`. */
   async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    this.commitEnterViews(pipelineContext);
     await this.runExitCleanup(pipelineContext);
     return this.runLifecycleStep(LIFECYCLE_STEPS.entered, pipelineContext);
   }
@@ -201,7 +202,6 @@ export class ProcessorPipeline {
         const viewCommit = await RouteHookRunner.runViewCommit(
           matchedRoute,
           pipelineContext.job,
-          pipelineContext.transaction.transitionPolicy,
         );
 
         if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
@@ -214,6 +214,27 @@ export class ProcessorPipeline {
     }
 
     return null;
+  }
+
+  /**
+   * Commits staged incoming views on the **enter** branch after `transitionIn` / `transitionOut`.
+   *
+   * Crossfade (`data-transition`) mounts the new route with outlet `stage` — two view roots may
+   * coexist until this step. Each enter route's {@link RouteInstance.commitStagedView} promotes
+   * its staged root via `outlet.commitStage`, drops the outgoing DOM sibling, and resets the
+   * route view controller from `stage` back to `replace`.
+   *
+   * No-op when render used `replace` (no staged mount). Must run on **enter** routes: exit
+   * `onLeft` owns a different {@link RouteInstance} and cannot commit the incoming view.
+   *
+   * Order: after transition hooks, **before** exit `left` — DOM swap is settled before exit cleanup.
+   *
+   * @param pipelineContext - active navigation run; iterates `transaction.plan.enterRoutes`
+   */
+  private commitEnterViews(pipelineContext: PipelineContext): void {
+    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
+      matchedRoute.route.commitStagedView?.();
+    }
   }
 
   /** `left` on exit branch after view commit or render error. */

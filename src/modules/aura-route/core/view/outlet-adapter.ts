@@ -4,7 +4,6 @@ import type {
   ViewHandle,
   ViewRoot,
 } from '../../../aura-outlet/core/aura-outlet';
-import type { TransitionPolicy } from '../../../aura-routing-engine/core/transition/policy';
 
 type MountStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
@@ -22,14 +21,15 @@ export const EMPTY_VIEW_MOUNT: ViewMountState = {
   detachedRoot: null,
 };
 
-/** Inputs for {@link mountRoute}: outlets, pattern key, signal, transition policy. */
+/** Inputs for {@link mountRoute}: outlets, pattern key, signal, stage flag. */
 export type ViewMountContext = {
   rootOutlet: AuraOutlet;
   parentOutlet?: AuraOutlet | null;
   pattern?: string;
   signal?: AbortSignal;
   strategy?: MountStrategy;
-  transitionPolicy?: TransitionPolicy;
+  /** Staged crossfade when true (inherited `<aura-router data-transition>`). */
+  stageMount?: boolean;
 };
 
 function hasActiveMount(isLayout: boolean, prev: ViewMountState): boolean {
@@ -48,7 +48,10 @@ export function shouldSkipRouteRender(
   return hasActiveMount(isLayout, prev);
 }
 
-/** `stage` when out-in/in-out and outlet already has a view; else `replace`. */
+/**
+ * `stage` when `stageMount` and outlet already has a view; else `replace`.
+ * Phase order comes from `<aura-router data-transition>`, not from this flag.
+ */
 export function resolveMountStrategy(
   ctx: ViewMountContext,
   prev: ViewMountState,
@@ -56,9 +59,7 @@ export function resolveMountStrategy(
 ): MountStrategy {
   if (prev.detachedRoot) return 'replace';
   if (ctx.strategy) return ctx.strategy;
-
-  const policy = ctx.transitionPolicy;
-  if (policy !== 'out-in' && policy !== 'in-out') return 'replace';
+  if (!ctx.stageMount) return 'replace';
 
   return targetOutlet.children.length > 0 ? 'stage' : 'replace';
 }

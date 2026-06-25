@@ -113,6 +113,122 @@ export function unmountRoute(
   return null;
 }
 
+/** Stage/replace mount snapshot tracked by {@link AuraRouteViewController}. */
+export type RouteMountSnapshot = {
+  strategy: MountStrategy;
+  activeHandle: ViewHandle | null;
+  stageOutgoingHandle: ViewHandle | null;
+  nestedOutlet: AuraOutlet | null;
+};
+
+export const EMPTY_ROUTE_MOUNT: RouteMountSnapshot = {
+  strategy: 'replace',
+  activeHandle: null,
+  stageOutgoingHandle: null,
+  nestedOutlet: null,
+};
+
+export function toViewMountState(snapshot: RouteMountSnapshot): ViewMountState {
+  return {
+    activeHandle: snapshot.activeHandle,
+    nestedOutlet: snapshot.nestedOutlet,
+  };
+}
+
+/** Apply a mount/reattach result and preserve outgoing handle when staging. */
+export function mergeMountResult(
+  prev: RouteMountSnapshot,
+  result: ViewMountState,
+): RouteMountSnapshot {
+  return {
+    strategy: result.appliedStrategy ?? 'replace',
+    activeHandle: result.activeHandle,
+    stageOutgoingHandle: result.appliedStrategy === 'stage' ? prev.activeHandle : null,
+    nestedOutlet: result.nestedOutlet,
+  };
+}
+
+/** Promote staged incoming view to the sole active root in the outlet. */
+export function commitStagedMount(state: RouteMountSnapshot): RouteMountSnapshot {
+  if (state.strategy !== 'stage' || !state.activeHandle) return state;
+
+  state.activeHandle.mountOutlet.commitStage(state.activeHandle.viewRoot);
+
+  return {
+    ...state,
+    strategy: 'replace',
+    stageOutgoingHandle: null,
+  };
+}
+
+/** Remove staged DOM only; does not restore handles. */
+export function cancelStagedMountDom(state: RouteMountSnapshot): RouteMountSnapshot {
+  if (state.strategy !== 'stage' || !state.activeHandle) return state;
+
+  state.activeHandle.mountOutlet.cancelStage();
+
+  return {
+    ...state,
+    strategy: 'replace',
+  };
+}
+
+/** Cancel pending stage and restore the outgoing view as active. */
+export function rollbackStagedMount(state: RouteMountSnapshot): RouteMountSnapshot {
+  if (state.strategy !== 'stage' || !state.activeHandle) return state;
+
+  const dropped = cancelStagedMountDom(state);
+
+  if (dropped.stageOutgoingHandle) {
+    return {
+      strategy: 'replace',
+      activeHandle: dropped.stageOutgoingHandle,
+      stageOutgoingHandle: null,
+      nestedOutlet: dropped.stageOutgoingHandle.findChildOutlet(),
+    };
+  }
+
+  return {
+    strategy: 'replace',
+    activeHandle: null,
+    stageOutgoingHandle: null,
+    nestedOutlet: null,
+  };
+}
+
+export type LeaveUnmountResult = {
+  state: RouteMountSnapshot;
+  detached: ViewRoot | null;
+};
+
+/** Unmount the leaving route view; cancels staged DOM first when needed. */
+export function unmountMountOnLeave(
+  state: RouteMountSnapshot,
+  keepAlive: boolean,
+): LeaveUnmountResult {
+  if (state.strategy === 'stage') {
+    const dropped = cancelStagedMountDom(state);
+    const detached = unmountRoute(dropped.stageOutgoingHandle, keepAlive);
+
+    return {
+      detached,
+      state: {
+        ...dropped,
+        activeHandle: null,
+        stageOutgoingHandle: null,
+      },
+    };
+  }
+
+  return {
+    detached: unmountRoute(state.activeHandle, keepAlive),
+    state: {
+      ...state,
+      activeHandle: null,
+    },
+  };
+}
+
 /** Assert element is an upgraded `<aura-outlet>`. */
 function asAuraOutlet(outlet: Element | null): AuraOutlet {
   if (!outlet) {

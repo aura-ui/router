@@ -7,18 +7,16 @@ import type {
 
 type MountStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
-/** Snapshot of the mounted view inside an outlet (handle, nested slot, optional detached root). */
+/** Snapshot of the mounted view inside an outlet (handle and nested slot). */
 export type ViewMountState = {
   activeHandle: ViewHandle | null;
   childOutlet: AuraOutlet | null;
-  detachedRoot: ViewRoot | null;
   appliedStrategy?: MountStrategy;
 };
 
 export const EMPTY_VIEW_MOUNT: ViewMountState = {
   activeHandle: null,
   childOutlet: null,
-  detachedRoot: null,
 };
 
 /** Inputs for {@link mountRoute}: outlets, pattern key, signal, stage flag. */
@@ -38,13 +36,13 @@ function hasActiveMount(isLayout: boolean, prev: ViewMountState): boolean {
     : !!prev.activeHandle;
 }
 
-/** keepAlive with an active view — skip reload (not when re-attaching detached root). */
+/** keepAlive with an active view — skip reload. */
 export function shouldSkipRouteRender(
   keepAlive: boolean,
   isLayout: boolean,
   prev: ViewMountState,
 ): boolean {
-  if (!keepAlive || prev.detachedRoot) return false;
+  if (!keepAlive) return false;
   return hasActiveMount(isLayout, prev);
 }
 
@@ -57,14 +55,13 @@ export function resolveMountStrategy(
   prev: ViewMountState,
   targetOutlet: AuraOutlet,
 ): MountStrategy {
-  if (prev.detachedRoot) return 'replace';
   if (ctx.strategy) return ctx.strategy;
   if (!ctx.stageMount) return 'replace';
 
   return targetOutlet.children.length > 0 ? 'stage' : 'replace';
 }
 
-/** Put content into `parentOutlet ?? defaultOutlet`; uses `prev.detachedRoot` when set. */
+/** Mount new content into `parentOutlet ?? defaultOutlet`. */
 export function mountRoute(
   ctx: ViewMountContext,
   content: Node | string,
@@ -74,9 +71,8 @@ export function mountRoute(
 
   const outlet = asAuraOutlet(ctx.parentOutlet ?? ctx.defaultOutlet);
   const strategy = resolveMountStrategy(ctx, prev, outlet);
-  const payload = prev.detachedRoot ?? content;
 
-  const handle = outlet.apply(payload, {
+  const handle = outlet.apply(content, {
     strategy,
     key: ctx.pattern,
     signal: ctx.signal,
@@ -87,8 +83,31 @@ export function mountRoute(
   return {
     activeHandle: handle,
     childOutlet: handle.findChildOutlet(),
-    detachedRoot: null,
     appliedStrategy: strategy,
+  };
+}
+
+/** Re-insert a detached keep-alive root from view cache (always replace). */
+export function reattachRoute(
+  ctx: ViewMountContext,
+  cachedRoot: ViewRoot,
+): ViewMountState | null {
+  if (ctx.signal?.aborted) return null;
+
+  const outlet = asAuraOutlet(ctx.parentOutlet ?? ctx.defaultOutlet);
+
+  const handle = outlet.apply(cachedRoot, {
+    strategy: 'replace',
+    key: ctx.pattern,
+    signal: ctx.signal,
+  });
+
+  if (!handle) return null;
+
+  return {
+    activeHandle: handle,
+    childOutlet: handle.findChildOutlet(),
+    appliedStrategy: 'replace',
   };
 }
 

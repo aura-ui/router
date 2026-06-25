@@ -11,8 +11,8 @@ export interface ContentResolverPort {
   preload?(signal: AbortSignal): Promise<void>;
 }
 
-/** Keep-alive detached DOM (`extract` checkout, `put` stash). */
-export interface ViewStashPort {
+/** Keep-alive detached DOM (`extract` checkout, `put` cache). */
+export interface ViewCachePort {
   extract(key: string): ViewRoot | undefined;
   put(key: string, root: ViewRoot): void;
 }
@@ -35,7 +35,7 @@ export interface ViewRenderPlugin {
 export type RouteViewConfig = {
   route: import('../core/types').AuraRouteInterface;
   content: ContentResolverPort;
-  stash: ViewStashPort;
+  cache: ViewCachePort;
   mountTarget: MountTargetPort;
   plugins?: readonly ViewRenderPlugin[];
 };

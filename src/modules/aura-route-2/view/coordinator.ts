@@ -21,7 +21,7 @@ import { emptyContent, resolveError, resolveLayout, warnMissingLayoutOutlet } fr
 
 type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 
-/** Orchestrates render passes: stash restore, resolve, single mount, plugins. */
+/** Orchestrates render passes: cache restore, resolve, single mount, plugins. */
 export class RouteViewCoordinator {
   private readonly config: RouteViewConfig;
   private readonly getPassId: () => number;
@@ -50,7 +50,7 @@ export class RouteViewCoordinator {
     let loadingHooks = false;
 
     try {
-      if (this.tryStashRestore(pass)) return;
+      if (this.tryCacheRestore(pass)) return;
       if (this.shouldSkipKeepAlive(pass)) return;
 
       this.emit('onPassStart', pass);
@@ -80,7 +80,7 @@ export class RouteViewCoordinator {
     this.mount = finalizeLeave(snapshot, keepAlive, detachedRoot);
 
     if (keepAlive && detachedRoot) {
-      this.config.stash.put(lastCacheKey ?? this.config.route.path, detachedRoot);
+      this.config.cache.put(lastCacheKey ?? this.config.route.path, detachedRoot);
     }
   }
 
@@ -97,10 +97,10 @@ export class RouteViewCoordinator {
     await this.config.content.preload?.(this.signal.signal);
   }
 
-  private tryStashRestore(pass: RenderPass): boolean {
+  private tryCacheRestore(pass: RenderPass): boolean {
     if (!this.config.route.keepAlive) return false;
 
-    const cachedRoot = this.config.stash.extract(pass.cacheKey);
+    const cachedRoot = this.config.cache.extract(pass.cacheKey);
     if (!cachedRoot) return false;
 
     return this.applyMount(pass, cachedRoot, pass.viewKind, cachedRoot);

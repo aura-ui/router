@@ -1,7 +1,7 @@
 import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 import type { AuraRouteInterface } from '../core/types';
 import type { ViewKind } from './ports';
-import { stashKey } from './stash';
+import { cacheKey } from './view-cache';
 
 export type RenderPass = {
   readonly id: number;
@@ -22,7 +22,7 @@ export function createRenderPass(
     id: passId,
     routeInfo,
     signal,
-    cacheKey: stashKey(routeInfo, route.path),
+    cacheKey: cacheKey(routeInfo, route.path),
     viewKind: route.layout.trim() ? 'layout' : 'content',
     useStagedMount: Boolean(route.crossfade?.trim()),
   };

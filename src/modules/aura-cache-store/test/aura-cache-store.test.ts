@@ -97,6 +97,27 @@ describe('AuraCacheStore', () => {
       expect(() => new AuraCacheStore<string>({ max: 0 })).toThrow('max must be >= 1');
       expect(() => new AuraCacheStore<string>({ max: -1 })).toThrow('max must be >= 1');
     });
+
+    it('throws when timings are negative or NaN', () => {
+      expect(() => new AuraCacheStore<string>({ staleTime: -1 })).toThrow('staleTime must be >= 0');
+      expect(() => new AuraCacheStore<string>({ gcTime: -1 })).toThrow('gcTime must be >= 0');
+      expect(() => new AuraCacheStore<string>({ gcTime: Number.NaN })).toThrow('gcTime must be >= 0');
+      expect(() => new AuraCacheStore<string>({ gcSweepInterval: -1 })).toThrow(
+        'gcSweepInterval must be a positive number',
+      );
+      expect(() => new AuraCacheStore<string>({ gcSweepInterval: 0 })).toThrow(
+        'gcSweepInterval must be a positive number',
+      );
+    });
+
+    it('throws when gcSweepInterval is set without finite gcTime', () => {
+      expect(() => new AuraCacheStore<string>({ gcSweepInterval: 500 })).toThrow(
+        'gcSweepInterval requires a finite gcTime',
+      );
+      expect(() =>
+        new AuraCacheStore<string>({ staleTime: 1_000, gcTime: Infinity, gcSweepInterval: 500 }),
+      ).toThrow('gcSweepInterval requires a finite gcTime');
+    });
   });
 
   describe('gcTime without SWR', () => {
@@ -466,6 +487,19 @@ describe('AuraCacheStore', () => {
 
       jest.advanceTimersByTime(5_000);
       expect(cache.size).toBe(0);
+    });
+
+    it('does not start auto background sweep when gcTime is Infinity', () => {
+      cache = new AuraCacheStore<string>({
+        staleTime: 1_000,
+        gcTime: Infinity,
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(120_000);
+
+      expect(cache.size).toBe(1);
+      expect(cache.get('a')).toBe('one');
     });
   });
 

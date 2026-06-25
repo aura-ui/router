@@ -39,7 +39,7 @@ Methods: `invalidate(key)`, `invalidateMatch(predicate)`, `invalidateAll()`.
 
 `gcTime: Infinity` disables TTL removal — entries stay until LRU or explicit removal.
 
-GC runs lazily on access (`get`, `has`, `lookup`, `isStale`) and proactively via `purgeExpired()` or background sweep. `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order. See [Read API](#read-api-has-vs-peek-vs-extract-vs-get) for `has` / `peek` / `extract`.
+GC runs lazily on access (`get`, `has`, `peek`, `lookup`, `isStale`) and proactively via `purgeExpired()`, background sweep, or introspection (`size`, `keys`). `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order. See [Read API](#read-api-has-vs-peek-vs-extract-vs-get) for `has` / `peek` / `extract`.
 
 The diagram below shows the **SWR** lifecycle (`staleTime` set). In simple GC mode (`gcTime` only), entries skip the `stale` phase and go straight to `missing` once TTL elapses and the entry is accessed or swept.
 
@@ -72,13 +72,15 @@ type CacheStoreOptions<T> = {
 | `staleTime` | Enables SWR. Entries become stale after this age but stay readable |
 | `gcTime` | Remove after max age since `storedAt`. Defaults to `DEFAULT_GC_TIME` (5 min) when `staleTime` is set. `Infinity` disables TTL |
 | `invalidatePolicy` | Default for `invalidate`, `invalidateMatch`, `invalidateAll` |
-| `onRemove` | Called on LRU/GC removal, `set` overwrite, `delete`, `clear`, `invalidate(..., 'remove')` |
+| `onRemove` | Called on LRU/GC removal, `set` overwrite, `delete`, `clear`, `invalidate(..., 'remove')`, and GC-expired `extract` / `peek` / `has` |
 
 ### `gcSweepInterval`
 
-- `undefined` — auto when `gcTime` is set: `clamp(gcTime / 2, 5s … 60s)`
-- `number` — run `purgeExpired()` every N ms (no-op without `gcTime`)
+- `undefined` — auto when `gcTime` is a **finite** ms value: `clamp(gcTime / 2, 5s … 60s)`. Disabled when `gcTime` is omitted or `Infinity`
+- `number` — run `purgeExpired()` every N ms; **requires** a finite `gcTime` (constructor throws otherwise)
 - `false` — disabled; removal on access or manual `purgeExpired()` only
+
+`staleTime`, `gcTime`, and explicit `gcSweepInterval` must be `>= 0` (or `Infinity` for the timings). Negative or `NaN` values throw at construction.
 
 Background sweep lifecycle:
 
@@ -91,7 +93,7 @@ Background sweep lifecycle:
 | Method | LRU | Description |
 |--------|:---:|-------------|
 | `get(key)` | yes | Returns value (fresh or stale), or `undefined` if missing/GC-expired |
-| `peek(key)` | no | Returns value without LRU promote; does not remove GC-expired entries |
+| `peek(key)` | no | Returns value without LRU promote; removes GC-expired entries (with `onRemove`) |
 | `lookup(key, touch?)` | if `touch` | `{ status: 'fresh' \| 'stale' \| 'missing', value? }` — removes GC-expired entries; use for SWR revalidate decisions |
 | `set(key, value)` | yes | Resets stale flag and `storedAt`. Overwrite invokes `onRemove` for the previous value when it differs |
 | `has(key)` | no | `true` if readable entry exists; removes GC-expired |
@@ -99,12 +101,12 @@ Background sweep lifecycle:
 | `invalidate(key, policy?)` | no | Mark outdated (`'stale'`) or delete (`'remove'`). Returns `false` if key missing. Default: `invalidatePolicy` |
 | `invalidateMatch(predicate, policy?)` | no | Same as `invalidate`, for keys matching a filter |
 | `invalidateAll(policy?)` | no | Same as `invalidate`, for every entry |
-| `extract(key)` | — | Returns value and removes entry without `onRemove` (ownership transfer) |
+| `extract(key)` | — | Keep-alive checkout; see [`extract`](#extract) |
 | `delete(key)` | — | Remove one entry; invokes `onRemove` |
 | `purgeExpired()` | — | Remove all GC-expired entries; returns count. No-op without `gcTime` |
 | `clear()` / `destroy()` | — | Remove all entries and stop background sweep; `destroy()` is an alias for `clear()` |
-| `keys()` | — | Snapshot of all keys (includes stale / not-yet-GC-removed; no LRU promote, no lazy GC) |
-| `size` | — | Entry count (includes stale and not-yet-swept entries) |
+| `keys()` | — | Snapshot of readable keys (includes stale; excludes GC-expired; no LRU promote) |
+| `size` | — | Readable entry count (includes stale; excludes GC-expired) |
 
 ### Read API: `has` vs `peek` vs `extract` vs `get`
 
@@ -114,24 +116,36 @@ Use this table to pick the right read path. **`RouteViewCache`** (`has` / `peek`
 |--------|:-------------:|:------------:|:-------------:|:----------------:|------------------|
 | `get` | yes | yes | no | on lazy GC only | removed on read → `undefined` |
 | `has` | no (`boolean`) | no | no | on lazy GC only | removed on read → `false` |
-| `peek` | yes | no | no | no | stays in store → `undefined` |
-| `extract` | yes | no | yes | no | removed via `onRemove` → `undefined` |
+| `peek` | yes | no | no | on lazy GC only | removed on read → `undefined` |
+| `extract` | yes | no | yes | only when GC-expired | removed via `onRemove` → `undefined` |
 | `delete` | no | — | yes | yes | — |
 
 **When to use what**
 
 - **`get`** — normal cache hit; stale values in SWR mode are still returned; promotes LRU.
 - **`has`** — cheap existence check when promotion is unwanted; still triggers lazy GC (and `onRemove` on expired entries).
-- **`peek`** — inspect without side effects: no LRU touch, no eviction, no `onRemove`. Prefer for devtools and “is it still there?” probes. Expired entries look missing but remain until `get` / `has` / `purgeExpired`.
-- **`extract`** — take ownership (keep-alive checkout): value leaves the cache **without** `onRemove` so the caller can remount it. GC-expired entries are removed with `onRemove` and return `undefined`.
+- **`peek`** — inspect without LRU promotion; still removes GC-expired entries (with `onRemove`). Prefer for devtools and “is it still there?” probes.
+- **`extract`** — keep-alive checkout; see [`extract`](#extract).
+
+### `extract`
+
+Removes the entry from the store. Unlike `delete`, a **live** checkout skips `onRemove` so the value can be reattached (e.g. detached DOM).
+
+| Result | `onRemove` |
+|--------|------------|
+| value returned | no |
+| `undefined` (missing) | no |
+| `undefined` (GC-expired) | yes |
+
+For most callers both `undefined` cases mean the same fallback (e.g. re-render). On the expired path cleanup already ran in `onRemove`.
 
 ```ts
-// keep-alive: detach → stash → take → reattach
-const root = cache.extract(key); // ownership transfer, DOM not destroyed
-cache.put(key, newRoot);         // overwrite calls onRemove on previous value
-
-// probe without mutating LRU or destroying DOM
-if (cache.peek(key)) { /* still stashed */ }
+const root = cache.extract(key);
+if (root) {
+  outlet.append(root);
+  return;
+}
+await renderFresh(key);
 ```
 
 ## Examples
@@ -258,7 +272,7 @@ const bad = new AuraCacheStore<HTMLElement>({
 });
 ```
 
-`extract` intentionally does **not** call `onRemove` — ownership moves to the caller (keep-alive checkout).
+Live `extract` skips `onRemove` (keep-alive reattach); GC-expired `extract` calls it. See [`extract`](#extract).
 
 ## Exported types
 

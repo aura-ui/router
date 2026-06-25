@@ -2,6 +2,9 @@ import { attr } from '../../aura-utils/decorators';
 
 import { AuraRoute } from '../../aura-route/core';
 import { configureRouteContentLoader } from '../../aura-route/core/route-content-loader';
+import { RouteViewCache } from '../../aura-route/core/route-view-cache';
+import type { CacheStoreOptions } from '../../aura-cache-store/core';
+import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import {
   ContentLoaderRegistry,
   type ContentLoaderService,
@@ -46,6 +49,8 @@ export {
 export interface AuraRouterConfigureOptions {
   /** Shared loader service for all `<aura-route>` elements. */
   contentLoaderService?: ContentLoaderService;
+  /** LRU cache for keep-alive route views (`detachedRoot` DOM). */
+  viewCache?: CacheStoreOptions<ViewRoot>;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;
 }
@@ -79,6 +84,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
     if (options.contentLoaderService) {
       configureRouteContentLoader(options.contentLoaderService);
+    }
+    if (options.viewCache) {
+      RouteViewCache.configure(options.viewCache);
     }
   }
 

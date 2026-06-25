@@ -1,9 +1,15 @@
 import { getTemplate } from '../../aura-utils/misc';
-import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
+import type { MatchedRouteInfo, RouteInfo } from '../../aura-route-hooks/core';
 import type { TransitionPolicy } from '../../aura-routing-engine/core/transition/policy';
 import type { AuraOutlet, OutletStrategy, ViewHandle, ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { RouteRenderSignal } from './render-signal';
 import { RouteContentLoader, resolveRouteContentLoaderService } from './route-content-loader';
+import {
+  RouteViewCache,
+  defaultRouteViewCache,
+  type RouteViewCachePort,
+  type ViewCacheRouteRef,
+} from './route-view-cache';
 import {
   commitStagedMount,
   mountRoute,
@@ -52,8 +58,8 @@ export class AuraRouteViewController {
   private readonly renderSignal = new RouteRenderSignal();
 
   private activeHandle: ViewHandle | null = null;
-  private detachedRoot: ViewRoot | null = null;
   private lastMountStrategy: Extract<OutletStrategy, 'replace' | 'stage'> = 'replace';
+  private lastStashKey: string | null = null;
 
   /** Nested `<aura-outlet>` inside mounted layout; children render here. */
   resolvedOutlet: AuraOutlet | null = null;
@@ -61,15 +67,18 @@ export class AuraRouteViewController {
   private readonly getConfig: () => RouteViewConfig;
   private readonly outlets: RouteOutletPort;
   private readonly content: RouteContentPort;
+  private readonly viewCache: RouteViewCachePort;
 
   constructor(
     getConfig: () => RouteViewConfig,
     outlets: RouteOutletPort,
     content: RouteContentPort,
+    viewCache: RouteViewCachePort = defaultRouteViewCache,
   ) {
     this.getConfig = getConfig;
     this.outlets = outlets;
     this.content = content;
+    this.viewCache = viewCache;
   }
 
   private get config(): RouteViewConfig {
@@ -115,9 +124,12 @@ export class AuraRouteViewController {
       this.isActive = true;
       this.renderSignal.begin(signal);
 
-      if (this.config.keepAlive && this.detachedRoot) {
-        this.reattach(routeInfo, transitionPolicy);
-        return;
+      if (this.config.keepAlive) {
+        const cached = this.viewCache.extract(this.cacheKey(routeInfo as any));
+        if (cached) {
+          this.reattach(routeInfo, transitionPolicy, undefined, cached);
+          return;
+        }
       }
 
       if (shouldSkipRouteRender(this.config.keepAlive, this.isLayout, this.snapshot())) {
@@ -170,27 +182,36 @@ export class AuraRouteViewController {
       this.lastMountStrategy = 'replace';
     }
 
-    this.detachedRoot = unmountRoute(this.activeHandle, this.config.keepAlive);
+    const detached = unmountRoute(this.activeHandle, this.config.keepAlive);
     this.activeHandle = null;
 
-    if (!this.config.keepAlive) {
-      this.detachedRoot = null;
+    if (this.config.keepAlive && detached) {
+      this.viewCache.put(this.lastStashKey ?? this.config.path, detached);
+    } else {
       this.resolvedOutlet = null;
     }
   }
 
-  onReenter(routePath: string): void {
-    if (!this.config.keepAlive || !this.detachedRoot) return;
+  onReenter(route: RouteInfo): void {
+    if (!this.config.keepAlive) return;
+
+    const cached = this.viewCache.extract(this.cacheKey(route));
+    if (!cached) return;
+
     this.isActive = true;
-    this.reattach(undefined, undefined, routePath);
+    this.reattach(undefined, undefined, route.path, cached, route);
   }
 
   private snapshot(): RouteMountResult {
     return {
       activeHandle: this.activeHandle,
       resolvedOutlet: this.resolvedOutlet,
-      detachedRoot: this.detachedRoot,
+      detachedRoot: null,
     };
+  }
+
+  private cacheKey(route?: ViewCacheRouteRef): string {
+    return RouteViewCache.buildKey(route, this.config.path);
   }
 
   private mountContext(
@@ -211,15 +232,16 @@ export class AuraRouteViewController {
     routeInfo?: MatchedRouteInfo,
     transitionPolicy?: TransitionPolicy,
     routePath?: string,
+    extractedRoot?: ViewRoot,
+    cacheRoute?: ViewCacheRouteRef,
   ): void {
-    if (!this.detachedRoot) return;
-    this.show(this.detachedRoot, routeInfo, this.viewKind, transitionPolicy, routePath);
+    if (!extractedRoot) return;
+    this.show(extractedRoot, routeInfo, this.viewKind, transitionPolicy, routePath, extractedRoot, cacheRoute);
   }
 
   private applyMountResult(result: RouteMountResult, viewKind: RouteViewKind = this.viewKind): void {
     this.activeHandle = result.activeHandle;
     this.resolvedOutlet = result.resolvedOutlet;
-    this.detachedRoot = result.detachedRoot;
 
     if (viewKind === 'layout' && !result.resolvedOutlet) {
       console.warn(
@@ -234,13 +256,20 @@ export class AuraRouteViewController {
     viewKind: RouteViewKind = this.viewKind,
     transitionPolicy?: TransitionPolicy,
     routePath?: string,
+    extractedRoot?: ViewRoot,
+    _cacheRoute?: ViewCacheRouteRef,
   ): void {
     if (!this.isActive) return;
 
-    const result = mountRoute(this.mountContext(routeInfo, transitionPolicy, routePath), payload, this.snapshot());
+    const previous: RouteMountResult = extractedRoot
+      ? { activeHandle: null, resolvedOutlet: null, detachedRoot: extractedRoot }
+      : this.snapshot();
+
+    const result = mountRoute(this.mountContext(routeInfo, transitionPolicy, routePath), payload, previous);
 
     this.lastMountStrategy = result.appliedStrategy ?? 'replace';
     this.applyMountResult(result, viewKind);
+    this.lastStashKey = this.cacheKey(routeInfo as any);
   }
 
   private async resolvePayload(routeInfo?: MatchedRouteInfo): Promise<Node | string | null> {

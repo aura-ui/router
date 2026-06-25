@@ -282,5 +282,5 @@ export class AuraRouteViewController {
 
 /** `layout` when the route declares a layout template; otherwise `content`. */
 function resolveViewKind(route: AuraRouteInterface): RouteViewKind {
-  return route.layout ? 'layout' : 'content';
+  return route.layout?.trim() ? 'layout' : 'content'; //todo move trim to parser
 }

@@ -23,8 +23,8 @@ export function createRenderPass(
     routeInfo,
     signal,
     cacheKey: stashKey(routeInfo, route.path),
-    viewKind: route.layout ? 'layout' : 'content',
-    useStagedMount: Boolean(route.crossfade),
+    viewKind: route.layout.trim() ? 'layout' : 'content',
+    useStagedMount: Boolean(route.crossfade?.trim()),
   };
 }
 

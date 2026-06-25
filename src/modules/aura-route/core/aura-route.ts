@@ -10,8 +10,10 @@ import { AuraRouter } from '../../aura-router/core/aura-router';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import {
   createAuraRouteViewController,
-  type AuraRouteViewController,
-  type RouteRenderOptions,
+} from './view/create-view-controller';
+import type {
+  AuraRouteViewController,
+  RouteRenderOptions,
 } from './view/view-controller';
 
 export type { RouteRenderOptions };

@@ -72,7 +72,7 @@ type CacheStoreOptions<T> = {
 | `staleTime` | Enables SWR. Entries become stale after this age but stay readable |
 | `gcTime` | Remove after max age since `storedAt`. Defaults to `DEFAULT_GC_TIME` (5 min) when `staleTime` is set. `Infinity` disables TTL |
 | `invalidatePolicy` | Default for `invalidate`, `invalidateMatch`, `invalidateAll` |
-| `onRemove` | Called on LRU/GC removal, `delete`, `clear`, `invalidate(..., 'remove')` |
+| `onRemove` | Called on LRU/GC removal, `set` overwrite, `delete`, `clear`, `invalidate(..., 'remove')` |
 
 ### `gcSweepInterval`
 
@@ -92,7 +92,7 @@ Background sweep lifecycle:
 |--------|:---:|-------------|
 | `get(key)` | yes | Returns value (fresh or stale), or `undefined` if missing/GC-expired |
 | `lookup(key, touch?)` | if `touch` | `{ status: 'fresh' \| 'stale' \| 'missing', value? }` — removes GC-expired entries; use for SWR revalidate decisions |
-| `set(key, value)` | yes | Resets stale flag and `storedAt`. Update in place skips LRU trim |
+| `set(key, value)` | yes | Resets stale flag and `storedAt`. Overwrite invokes `onRemove` for the previous value when it differs |
 | `has(key)` | no | `true` if readable entry exists; removes GC-expired |
 | `isStale(key)` | no | `true` if stale and readable; `false` if missing, fresh, or GC-expired |
 | `invalidate(key, policy?)` | no | Mark outdated (`'stale'`) or delete (`'remove'`). Returns `false` if key missing. Default: `invalidatePolicy` |
@@ -102,6 +102,7 @@ Background sweep lifecycle:
 | `delete(key)` | — | Remove one entry; invokes `onRemove` |
 | `purgeExpired()` | — | Remove all GC-expired entries; returns count. No-op without `gcTime` |
 | `clear()` / `destroy()` | — | Remove all entries and stop background sweep; `destroy()` is an alias for `clear()` |
+| `keys()` | — | Snapshot of all keys (includes stale / not-yet-GC-removed; no LRU promote, no lazy GC) |
 | `size` | — | Entry count (includes stale and not-yet-swept entries) |
 
 ## Examples

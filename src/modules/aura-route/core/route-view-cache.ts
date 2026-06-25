@@ -59,11 +59,7 @@ export class RouteViewCache implements RouteViewCachePort {
   }
 
   put(key: string, root: ViewRoot): void {
-    const store = RouteViewCache.getStore();
-    if (store.has(key)) {
-      store.delete(key);
-    }
-    store.set(key, root);
+    RouteViewCache.getStore().set(key, root);
   }
 
   private static getStore(): AuraCacheStore<ViewRoot> {

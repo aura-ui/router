@@ -11,23 +11,11 @@ import {
   type ViewMountContext,
   type ViewMountState,
 } from './outlet-adapter';
-import {
-  defaultRouteViewCache,
-  type RouteViewCachePort,
-} from './view-cache';
+import { type RouteViewCachePort } from './view-cache';
 import { viewCacheKey, type ViewCacheKeySource } from './view-cache-key';
-import type {
-  RouteContentPort,
-  RouteOutletPort,
-  RouteRenderOptions,
-  RouteViewKind,
-} from './view-controller.types';
+import type { RouteContentPort, RouteRenderOptions, RouteViewKind } from './view-controller.types';
 
-export type {
-  RouteContentPort,
-  RouteOutletPort,
-  RouteRenderOptions,
-} from './view-controller.types';
+export type { RouteContentPort, RouteRenderOptions } from './view-controller.types';
 
 type PlaceViewInput = {
   token: number;
@@ -52,11 +40,12 @@ const EMPTY_ROUTE_LAST_MOUNT: RouteLastMount = { strategy: 'replace', handle: nu
  * Content loading is injected via {@link RouteContentPort}.
  */
 export class AuraRouteViewController {
-  private readonly renderSignal = new RouteRenderSignal();
   private readonly route: AuraRouteInterface;
-  private readonly outlets: RouteOutletPort;
   private readonly content: RouteContentPort;
+  private readonly renderSignal: RouteRenderSignal;
   private readonly viewCache: RouteViewCachePort;
+  private readonly getDefaultOutlet: () => AuraOutlet;
+  private readonly getParentOutlet: (routeInfo?: MatchedRouteInfo) => AuraOutlet | null;
   private readonly getLifecycleToken: () => number;
 
   private lastMount: RouteLastMount = { ...EMPTY_ROUTE_LAST_MOUNT };
@@ -69,16 +58,19 @@ export class AuraRouteViewController {
 
   constructor(
     route: AuraRouteInterface,
-    outlets: RouteOutletPort,
     content: RouteContentPort,
-    viewCache: RouteViewCachePort = defaultRouteViewCache,
+    viewCache: RouteViewCachePort,
+    getDefaultOutlet: () => AuraOutlet,
+    getParentOutlet: (routeInfo?: MatchedRouteInfo) => AuraOutlet | null,
     getLifecycleToken: () => number = () => 0,
   ) {
     this.route = route;
-    this.outlets = outlets;
     this.content = content;
     this.viewCache = viewCache;
+    this.getDefaultOutlet = getDefaultOutlet;
+    this.getParentOutlet = getParentOutlet;
     this.getLifecycleToken = getLifecycleToken;
+    this.renderSignal = new RouteRenderSignal();
   }
 
   // --- Public: signal & cancellation ---
@@ -260,8 +252,8 @@ export class AuraRouteViewController {
   ): ViewMountContext {
     return {
       pattern: routeInfo?.pattern ?? pattern,
-      defaultOutlet: this.outlets.getDefaultOutlet(),
-      parentOutlet: this.outlets.parentOutlet(routeInfo),
+      defaultOutlet: this.getDefaultOutlet(),
+      parentOutlet: this.getParentOutlet(routeInfo),
       signal: this.renderSignal.signal,
       stageMount,
     };

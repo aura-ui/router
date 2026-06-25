@@ -1,20 +1,10 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
-import type {
-  MatchedRouteInfo,
-  RouteErrorContext,
-  RouteInstance,
-  RouteLifecycleContext,
-} from '../../aura-route-hooks/core';
 import { AuraRouter } from '../../aura-router/core/aura-router';
+import { createRouteViewController } from './view/view-controller.creator';
+import type { MatchedRouteInfo, RouteErrorContext, RouteInstance, RouteLifecycleContext } from '../../aura-route-hooks/core';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import {
-  createAuraRouteViewController,
-} from './view/create-view-controller';
-import type {
-  AuraRouteViewController,
-  RouteRenderOptions,
-} from './view/view-controller';
+import type { AuraRouteViewController, RouteRenderOptions } from './view/view-controller';
 
 export type { RouteRenderOptions };
 
@@ -79,7 +69,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
       console.warn(`AuraRoute with path "${this.path}" has no content specified`);
     }
 
-    this.view = createAuraRouteViewController(this,
+    this.view = createRouteViewController(this,
       () => router.defaultOutlet,
       () => this.viewLifecycleToken);
 

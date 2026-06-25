@@ -1,4 +1,3 @@
-import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
 
 export type RouteViewKind = 'layout' | 'content';
@@ -15,10 +14,4 @@ export interface RouteContentPort {
   preload?(signal: AbortSignal): Promise<void>;
   readCache?(routeInfo: MatchedRouteInfo | undefined): Node | string | null;
   writeCache?(routeInfo: MatchedRouteInfo, payload: Node | string): void;
-}
-
-/** Outlet access for nested route trees. */
-export interface RouteOutletPort {
-  getDefaultOutlet: () => AuraOutlet;
-  parentOutlet(routeInfo?: MatchedRouteInfo): AuraOutlet | null;
 }

@@ -4,8 +4,6 @@ export type RouteViewKind = 'layout' | 'content';
 
 export type RouteRenderOptions = {
   signal?: AbortSignal;
-  /** Inherited from `<aura-router data-transition>`; omit/false → outlet `replace`. */
-  stageMount?: boolean;
 };
 
 /** Resolves route payload: layout template, loader, cache, preload. */

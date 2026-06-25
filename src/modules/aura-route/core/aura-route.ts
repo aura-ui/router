@@ -20,6 +20,8 @@ export interface AuraRouteInterface {
   keepAlive: boolean;
   restoreScroll: boolean;
   cache: boolean;
+  /** Inherited from `<aura-router data-transition>`; empty → instant `replace` mount. */
+  transition: string;
 }
 
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
@@ -87,10 +89,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   render(routeInfo?: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     this.viewLifecycleToken++;
-    return this.view.render(routeInfo, {
-      ...options,
-      stageMount: options?.stageMount ?? this.stageMount,
-    });
+    return this.view.render(routeInfo, options);
   }
 
   cancelPendingRender(): void {
@@ -116,9 +115,4 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.view.onReenter(ctx.to);
   }
   onError(_ctx: RouteErrorContext): void {}
-
-  /** Staged crossfade when router exposes a non-empty `data-transition`. */
-  private get stageMount(): boolean {
-    return !!this.transition?.trim();
-  }
 }

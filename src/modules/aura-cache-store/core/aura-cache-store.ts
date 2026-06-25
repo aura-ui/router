@@ -41,7 +41,13 @@ export type CacheStoreOptions<T> = {
   gcSweepInterval?: number | false;
   /** Default invalidation policy. See {@link InvalidatePolicy}. */
   invalidatePolicy?: InvalidatePolicy;
-  /** Called when an entry is removed (LRU, GC, `set` overwrite, `delete`, `clear`, or `invalidate` with `remove`). */
+  /**
+   * Called when an entry is removed (LRU, GC, `set` overwrite, `delete`, `clear`, or `invalidate` with `remove`).
+   *
+   * **Do not call store methods from this callback** (`get`, `set`, `delete`, `clear`,
+   * `invalidate`, `extract`, etc.). The store may be mid-removal; reentrant mutations can
+   * corrupt the LRU list, skip entries, or recurse. Release the `value` only (e.g. DOM teardown).
+   */
   onRemove?: (key: string, value: T) => void;
 };
 

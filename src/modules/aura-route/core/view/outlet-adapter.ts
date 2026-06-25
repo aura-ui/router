@@ -229,6 +229,15 @@ export function unmountMountOnLeave(
   };
 }
 
+/** Clear nested outlet unless the detached view is stashed for keep-alive. */
+export function finalizeLeaveMount(
+  state: RouteMountSnapshot,
+  keepAlive: boolean,
+  detached: ViewRoot | null,
+): RouteMountSnapshot {
+  return keepAlive && detached ? state : { ...state, nestedOutlet: null };
+}
+
 /** Assert element is an upgraded `<aura-outlet>`. */
 function asAuraOutlet(outlet: Element | null): AuraOutlet {
   if (!outlet) {

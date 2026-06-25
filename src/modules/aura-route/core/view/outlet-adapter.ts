@@ -32,20 +32,14 @@ export type ViewMountContext = {
 
 /** Whether a route view is already mounted (layout routes require a nested outlet). */
 export function hasActiveMount(isLayout: boolean, prev: ViewMountState): boolean {
-  return isLayout
-    ? !!(prev.activeHandle && prev.nestedOutlet)
-    : !!prev.activeHandle;
+  return !!prev.activeHandle && (!isLayout || !!prev.nestedOutlet);
 }
 
 /**
  * `stage` when `stageMount` and outlet already has a view; else `replace`.
  * Phase order comes from `<aura-router data-transition>`, not from this flag.
  */
-export function resolveMountStrategy(
-  ctx: ViewMountContext,
-  prev: ViewMountState,
-  targetOutlet: AuraOutlet,
-): MountStrategy {
+export function resolveMountStrategy(ctx: ViewMountContext, targetOutlet: AuraOutlet): MountStrategy {
   if (ctx.strategy) return ctx.strategy;
   if (!ctx.stageMount) return 'replace';
 
@@ -60,22 +54,10 @@ export function mountRoute(
 ): ViewMountState {
   if (ctx.signal?.aborted) return prev;
 
-  const outlet = asAuraOutlet(ctx.mountOutlet ?? ctx.appOutlet);
-  const strategy = resolveMountStrategy(ctx, prev, outlet);
+  const outlet = resolveTargetOutlet(ctx);
+  const result = applyInOutlet(outlet, ctx, content, resolveMountStrategy(ctx, outlet));
 
-  const handle = outlet.apply(content, {
-    strategy,
-    key: ctx.pattern,
-    signal: ctx.signal,
-  });
-
-  if (!handle) return prev;
-
-  return {
-    activeHandle: handle,
-    nestedOutlet: handle.findChildOutlet(),
-    appliedStrategy: strategy,
-  };
+  return result ?? prev;
 }
 
 /** Re-insert a detached keep-alive root from view cache (always replace). */
@@ -85,21 +67,7 @@ export function reattachRoute(
 ): ViewMountState | null {
   if (ctx.signal?.aborted) return null;
 
-  const outlet = asAuraOutlet(ctx.mountOutlet ?? ctx.appOutlet);
-
-  const handle = outlet.apply(cachedRoot, {
-    strategy: 'replace',
-    key: ctx.pattern,
-    signal: ctx.signal,
-  });
-
-  if (!handle) return null;
-
-  return {
-    activeHandle: handle,
-    nestedOutlet: handle.findChildOutlet(),
-    appliedStrategy: 'replace',
-  };
+  return applyInOutlet(resolveTargetOutlet(ctx), ctx, cachedRoot, 'replace');
 }
 
 /** keepAlive: detach view; otherwise destroy. */
@@ -178,21 +146,13 @@ export function rollbackStagedMount(state: RouteMountSnapshot): RouteMountSnapsh
   if (state.strategy !== 'stage' || !state.activeHandle) return state;
 
   const dropped = cancelStagedMountDom(state);
-
-  if (dropped.stageOutgoingHandle) {
-    return {
-      strategy: 'replace',
-      activeHandle: dropped.stageOutgoingHandle,
-      stageOutgoingHandle: null,
-      nestedOutlet: dropped.stageOutgoingHandle.findChildOutlet(),
-    };
-  }
+  const outgoing = dropped.stageOutgoingHandle;
 
   return {
     strategy: 'replace',
-    activeHandle: null,
+    activeHandle: outgoing,
     stageOutgoingHandle: null,
-    nestedOutlet: null,
+    nestedOutlet: outgoing?.findChildOutlet() ?? null,
   };
 }
 
@@ -208,10 +168,9 @@ export function unmountMountOnLeave(
 ): LeaveUnmountResult {
   if (state.strategy === 'stage') {
     const dropped = cancelStagedMountDom(state);
-    const detached = unmountRoute(dropped.stageOutgoingHandle, keepAlive);
 
     return {
-      detached,
+      detached: unmountRoute(dropped.stageOutgoingHandle, keepAlive),
       state: {
         ...dropped,
         activeHandle: null,
@@ -236,6 +195,31 @@ export function finalizeLeaveMount(
   detached: ViewRoot | null,
 ): RouteMountSnapshot {
   return keepAlive && detached ? state : { ...state, nestedOutlet: null };
+}
+
+function applyInOutlet(
+  outlet: AuraOutlet,
+  ctx: ViewMountContext,
+  content: Node | string | ViewRoot,
+  strategy: MountStrategy,
+): ViewMountState | null {
+  const handle = outlet.apply(content, {
+    strategy,
+    key: ctx.pattern,
+    signal: ctx.signal,
+  });
+
+  if (!handle) return null;
+
+  return {
+    activeHandle: handle,
+    nestedOutlet: handle.findChildOutlet(),
+    appliedStrategy: strategy,
+  };
+}
+
+function resolveTargetOutlet(ctx: ViewMountContext): AuraOutlet {
+  return asAuraOutlet(ctx.mountOutlet ?? ctx.appOutlet);
 }
 
 /** Assert element is an upgraded `<aura-outlet>`. */

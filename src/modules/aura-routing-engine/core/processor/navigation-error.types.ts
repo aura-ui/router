@@ -13,7 +13,7 @@ export type NavigationErrorPhase =
 
 export interface NavigationErrorDetail {
   error: unknown;
-  url: string;
+  href: string;
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;
   phase: NavigationErrorPhase;

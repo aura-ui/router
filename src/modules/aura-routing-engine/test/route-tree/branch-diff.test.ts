@@ -11,21 +11,21 @@ import type { RouteNode } from '../../core/route-tree';
 
 function createMatch(node: RouteNode): MatchedRouteInfo {
   return {
-    url: node.fullPath,
-    pathname: node.fullPath,
+    href: node.pattern,
+    pathname: node.pattern,
     search: '',
     hash: '',
-    routePath: node.fullPath,
+    pattern: node.pattern,
     route: node.route,
     node,
   };
 }
 
-function buildChain(fullPaths: string[]): MatchedRouteInfo[] {
-  const nodes: RouteNode[] = fullPaths.map((fullPath, depth) => ({
-    route: createTestRoute(fullPath),
-    routePath: fullPath.split('/').pop() ?? fullPath,
-    fullPath,
+function buildChain(patterns: string[]): MatchedRouteInfo[] {
+  const nodes: RouteNode[] = patterns.map((pattern, depth) => ({
+    route: createTestRoute(pattern),
+    segment: pattern.split('/').pop() ?? pattern,
+    pattern,
     parent: null,
     children: [],
     depth,
@@ -52,8 +52,8 @@ describe('branch-diff', () => {
     const to = buildChain(['/settings', '/settings/security']);
 
     expect(findBranchLcaIndex(from, to)).toBe(0);
-    expect(buildExitRoutes(from, 0).map((info) => info.routePath)).toEqual(['/settings/profile']);
-    expect(buildEnterRoutes(to, 0).map((info) => info.routePath)).toEqual(['/settings/security']);
+    expect(buildExitRoutes(from, 0).map((info) => info.pattern)).toEqual(['/settings/profile']);
+    expect(buildEnterRoutes(to, 0).map((info) => info.pattern)).toEqual(['/settings/security']);
   });
 
   it('findBranchLcaIndex returns -1 for unrelated branches', () => {

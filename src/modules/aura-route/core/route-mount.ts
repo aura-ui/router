@@ -24,7 +24,7 @@ export const EMPTY_MOUNT: RouteMountResult = {
 export type RouteMountContext = {
   rootOutlet: AuraOutlet;
   parentOutlet?: AuraOutlet | null;
-  routePath?: string;
+  pattern?: string;
   signal?: AbortSignal;
   strategy?: MountStrategy;
   transitionPolicy?: TransitionPolicy;
@@ -75,7 +75,7 @@ export function mountRoute(
 
   const handle = outlet.apply(payload, {
     strategy,
-    key: ctx.routePath,
+    key: ctx.pattern,
     signal: ctx.signal,
   });
 

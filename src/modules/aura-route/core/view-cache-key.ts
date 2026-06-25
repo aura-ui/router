@@ -2,7 +2,7 @@ import type { MatchedRouteInfo, RouteInfo } from '../../aura-route-hooks/core';
 
 /** URL slice used to build a keep-alive stash key (`pathname` + optional `query`). */
 export type ViewCacheKeyInput = {
-  path: string;
+  pathname: string;
   query?: Record<string, string>;
 };
 
@@ -12,15 +12,15 @@ export type ViewCacheKeySource = ViewCacheKeyInput | MatchedRouteInfo | RouteInf
 export function toViewCacheKeyInput(source: ViewCacheKeySource): ViewCacheKeyInput | undefined {
   if (!source) return undefined;
 
-  if ('pathname' in source) {
+  if ('href' in source) {
     return {
-      path: source.pathname,
+      pathname: source.pathname,
       ...(source.query && { query: source.query }),
     };
   }
 
   return {
-    path: source.path,
+    pathname: source.pathname,
     ...(source.query && { query: source.query }),
   };
 }
@@ -28,11 +28,11 @@ export function toViewCacheKeyInput(source: ViewCacheKeySource): ViewCacheKeyInp
 /**
  * Stable keep-alive key for a detached view.
  *
- * Base: `input.path` (browser pathname) → `fallbackPath` (route attr when no input).
+ * Base: `input.pathname` (browser pathname) → `fallbackPath` (route attr when no input).
  * Query is appended when present.
  */
 export function buildViewCacheKey(input: ViewCacheKeyInput | undefined, fallbackPath: string): string {
-  const base = input?.path ?? fallbackPath;
+  const base = input?.pathname ?? fallbackPath;
   const parts = [base];
 
   if (input?.query && Object.keys(input.query).length > 0) {

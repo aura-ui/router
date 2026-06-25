@@ -1,20 +1,21 @@
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import { parsePath, parseQuery } from '../../../aura-utils/misc/url';
 import {
-  isGlobalCatchAllFullPath,
-  isScopedCatchAllFullPath,
-} from '../route-tree/resolve-full-path';
+  isGlobalCatchAllPattern,
+  isScopedCatchAllPattern,
+} from '../route-tree/resolve-pattern';
 import { attachNavigationChain } from '../route-tree';
 import type { RouteNode } from '../route-tree';
 
 export interface MatchedRouteInfo {
-  /** Resolved URL pathname, e.g. `/user/42`. */
-  url: string;
+  /** Relative browser href: `pathname + search + hash`, e.g. `/user/42?q=1#tab`. */
+  href: string;
+  /** Browser pathname without `search` / `hash`, e.g. `/user/42`. */
   pathname: string;
   search: string;
   hash: string;
-  /** Resolved full path in the route tree (`node.fullPath`). May include `:param` segments, e.g. `/user/:id` or `/settings/profile`. */
-  routePath: string;
+  /** Resolved route pattern in the tree (`node.pattern`). May include `:param` segments, e.g. `/user/:id`. */
+  pattern: string;
   route: AuraRoute;
   /** Path params: `:id` из URLPattern; catch-all `*` → `{ splat: 'foo/bar' }`. */
   params?: Record<string, string>;
@@ -31,7 +32,7 @@ export interface NodePathMatch {
 }
 
 /** Declarative 404: `<aura-route path="*">` (global) or nested `path="*"` → `/prefix/*`. */
-export const CATCH_ALL_ROUTE_PATH = '*' as const;
+export const CATCH_ALL_SEGMENT = '*' as const;
 
 /** Global catch-all — lowest match priority. */
 const SCORE_GLOBAL_CATCH_ALL = -1;
@@ -39,17 +40,17 @@ const SCORE_GLOBAL_CATCH_ALL = -1;
 /** Scoped `*` ranks below a static sibling at the same segment depth. */
 const SCORE_SCOPED_CATCH_ALL_DEPTH_BIAS = 0.5;
 
-export function isCatchAllRoute(fullPath: string): boolean {
-  return isGlobalCatchAllFullPath(fullPath) || isScopedCatchAllFullPath(fullPath);
+export function isCatchAllRoute(pattern: string): boolean {
+  return isGlobalCatchAllPattern(pattern) || isScopedCatchAllPattern(pattern);
 }
 
-function routeScore(fullPath: string): number {
-  if (isGlobalCatchAllFullPath(fullPath)) return SCORE_GLOBAL_CATCH_ALL;
-  if (isScopedCatchAllFullPath(fullPath)) {
-    const prefix = fullPath.slice(0, -2);
+function routeScore(pattern: string): number {
+  if (isGlobalCatchAllPattern(pattern)) return SCORE_GLOBAL_CATCH_ALL;
+  if (isScopedCatchAllPattern(pattern)) {
+    const prefix = pattern.slice(0, -2);
     return prefix.split('/').filter(Boolean).length - SCORE_SCOPED_CATCH_ALL_DEPTH_BIAS;
   }
-  return fullPath.split('/').filter(Boolean).length;
+  return pattern.split('/').filter(Boolean).length;
 }
 
 export class AuraRoutingUrlMatcher {
@@ -58,9 +59,9 @@ export class AuraRoutingUrlMatcher {
     let best: NodePathMatch & { score: number } | null = null;
 
     for (const node of nodes) {
-      const params = this.getPathParams(pathname, node.fullPath);
+      const params = this.getPathParams(pathname, node.pattern);
       if (params === null) continue;
-      const score = routeScore(node.fullPath);
+      const score = routeScore(node.pattern);
       if (!best || score > best.score) {
         best = { node, params, score };
       }
@@ -78,18 +79,18 @@ export class AuraRoutingUrlMatcher {
    * @example global `*` — `/foo/bar` → `{ splat: 'foo/bar' }`
    * @example scoped `/users/*` — `/users/unknown` → `{ splat: 'unknown' }`
    */
-  getPathParams(pathname: string, routePath: string): Record<string, string> | null {
-    if (isGlobalCatchAllFullPath(routePath)) {
+  getPathParams(pathname: string, pattern: string): Record<string, string> | null {
+    if (isGlobalCatchAllPattern(pattern)) {
       const splat = pathname.replace(/^\//, '');
       return { splat };
     }
 
-    if (isScopedCatchAllFullPath(routePath)) {
-      return matchScopedCatchAll(pathname, routePath);
+    if (isScopedCatchAllPattern(pattern)) {
+      return matchScopedCatchAll(pathname, pattern);
     }
 
     try {
-      const urlPattern = new URLPattern({ pathname: routePath });
+      const urlPattern = new URLPattern({ pathname: pattern });
       const result = urlPattern.exec({ pathname });
       if (!result) return null;
 
@@ -100,13 +101,13 @@ export class AuraRoutingUrlMatcher {
 
       return groups;
     } catch {
-      return pathname === routePath ? {} : null;
+      return pathname === pattern ? {} : null;
     }
   }
 
   /** MatchedRouteInfo leaf + `chain` из node.branch. */
   toRouteInfo(
-    url: string,
+    href: string,
     pathname: string,
     search: string,
     hash: string,
@@ -118,14 +119,14 @@ export class AuraRoutingUrlMatcher {
     return attachNavigationChain(
       node,
       {
-        url,
+        href,
         pathname,
         search,
         hash,
         ...(params && Object.keys(params).length > 0 && { params }),
         ...(query && Object.keys(query).length > 0 && { query }),
       },
-      (targetPathname, fullPath) => this.getPathParams(targetPathname, fullPath),
+      (targetPathname, targetPattern) => this.getPathParams(targetPathname, targetPattern),
     );
   }
 
@@ -142,8 +143,8 @@ export class AuraRoutingUrlMatcher {
  * Scoped catch-all: nested `path="*"` → `/users/*`.
  * splat — остаток pathname после prefix. Пример: `/users/unknown` → `{ splat: 'unknown' }`.
  */
-function matchScopedCatchAll(pathname: string, routePath: string): Record<string, string> | null {
-  const prefix = routePath.slice(0, -2);
+function matchScopedCatchAll(pathname: string, pattern: string): Record<string, string> | null {
+  const prefix = pattern.slice(0, -2);
   const prefixWithSlash = prefix.endsWith('/') ? prefix : `${prefix}/`;
   if (!pathname.startsWith(prefixWithSlash)) return null;
 

@@ -8,6 +8,6 @@ export const analyticsHook = defineRouteHook({
   name: 'analytics',
   version: '1.0.0',
   fn: async (ctx) => {
-    track('pageview', ctx.to.path);
+    track('pageview', ctx.to.pathname);
   },
 });

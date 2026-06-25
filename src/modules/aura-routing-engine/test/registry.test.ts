@@ -3,14 +3,14 @@ import { createTestRoute } from './helpers/create-test-route';
 import { buildTreeFromDom, createDomRoute } from './helpers/test-route-dom';
 
 describe('AuraRoutingRouteRegistry.buildTree', () => {
-  it('indexes flat routes by fullPath', () => {
+  it('indexes flat routes by pattern', () => {
     const registry = new AuraRoutingRouteRegistry();
     const home = createTestRoute('/');
     const users = createTestRoute('/users');
 
     registry.replace([home, users]);
 
-    expect(registry.getMatchablePaths()).toEqual(['/', '/users']);
+    expect(registry.getMatchablePatterns()).toEqual(['/', '/users']);
     expect(registry.getRoute('/users')).toBe(users);
     expect(registry.getNode('/users')?.depth).toBe(0);
   });
@@ -24,7 +24,7 @@ describe('AuraRoutingRouteRegistry.buildTree', () => {
     registry.replace([home, settings, profile] as never);
 
     expect(registry.getRootNodes()).toHaveLength(2);
-    expect(registry.getMatchableNodes().map((node) => node.fullPath)).toEqual([
+    expect(registry.getMatchableNodes().map((node) => node.pattern)).toEqual([
       '/',
       '/settings/profile',
       '/settings',
@@ -40,7 +40,7 @@ describe('AuraRoutingRouteRegistry.buildTree', () => {
     registry.replace([home]);
     registry.register([users]);
 
-    expect(registry.getMatchablePaths()).toEqual(['/', '/users']);
+    expect(registry.getMatchablePatterns()).toEqual(['/', '/users']);
   });
 
   it('clears tree state', () => {
@@ -49,6 +49,6 @@ describe('AuraRoutingRouteRegistry.buildTree', () => {
     registry.clear();
 
     expect(registry.getRootNodes()).toEqual([]);
-    expect(registry.getMatchablePaths()).toEqual([]);
+    expect(registry.getMatchablePatterns()).toEqual([]);
   });
 });

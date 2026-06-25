@@ -13,7 +13,7 @@
 | Файл | Роль |
 |------|------|
 | `route-node.types.ts` | `RouteNode`, `RouteTreeSnapshot` |
-| `resolve-full-path.ts` | `routePath` + parent → `fullPath` |
+| `resolve-pattern.ts` | `segment` + parent → `pattern` |
 | `build-route-tree.ts` | flat/DOM `<aura-route>` → дерево |
 | `matched-chain.ts` | `MatchedRouteInfo.chain`, leaf, ключи сравнения |
 | `branch-diff.ts` | LCA + `exitRoutes` / `enterRoutes` |
@@ -24,11 +24,11 @@
 
 ---
 
-## Фаза 1: resolve fullPath
+## Фаза 1: resolve pattern
 
 Правила склейки (см. [NESTED_ROUTES.md](../../../../docs/NESTED_ROUTES.md)):
 
-| Child `path` | Parent `fullPath` | Результат |
+| Child `path` | Parent `pattern` | Результат |
 |--------------|-------------------|-----------|
 | `profile` | `/settings` | `/settings/profile` |
 | `/users` | `/settings` | `/users` (absolute, prefix родителя не добавляется) |
@@ -43,7 +43,7 @@
 </aura-route>
 ```
 
-→ `fullPath`: `/settings/profile`, `/settings/security`.
+→ `pattern`: `/settings/profile`, `/settings/security`.
 
 ---
 
@@ -56,7 +56,7 @@ buildRouteTree(routes[])
   │    rootRoutes = routes без parent в knownRoutes
   │
   └─ buildRouteNode()      рекурсия по children
-       ├─ fullPath = resolveFullPath(parent, routePath)
+       ├─ pattern = resolvePattern(parent, segment)
        ├─ node.branch = parent.branch + [node]
        └─ matchableNodes: листья + index children
 ```
@@ -73,10 +73,10 @@ Parent с детьми, но без index, сам по себе не matchable (
 **На выходе `RouteTreeSnapshot`:**
 
 - `roots` — верхний уровень под router;
-- `nodesByFullPath` — lookup `Map`;
+- `nodesByPattern` — lookup `Map`;
 - `matchableNodes` — паттерны для matcher.
 
-`AuraRoutingRouteRegistry.buildTree()` сохраняет snapshot и кэширует `getMatchablePaths()`.
+`AuraRoutingRouteRegistry.buildTree()` сохраняет snapshot и кэширует `getMatchablePatterns()`.
 
 ---
 
@@ -86,7 +86,7 @@ Parent с детьми, но без index, сам по себе не matchable (
 
 ```typescript
 interface MatchedRouteInfo {
-  // ... url, pathname, route, params ...
+  // ... href, pathname, route, params ...
   node?: RouteNode;
   chain?: MatchedRouteInfo[];  // root → leaf активной ветки
 }
@@ -107,7 +107,7 @@ interface MatchedRouteInfo {
 /settings/security →  chain: [ settings, security ]
 ```
 
-**LCA** — deepest общий prefix по `fullPath`:
+**LCA** — deepest общий prefix по `pattern`:
 
 ```text
 findBranchLcaIndex → 0  (settings)
@@ -250,7 +250,7 @@ flowchart LR
 AuraRouter.refreshRoutes()
   └─ registry.replace(routes)
        └─ buildRouteTree()
-            └─ nodesByFullPath, matchableNodes, branch
+            └─ nodesByPattern, matchableNodes, branch
 
 navigate(from, to)
   └─ matchPath(pathname, registry.getMatchableNodes())
@@ -267,7 +267,7 @@ navigate(from, to)
 test/
   helpers/                     (create-test-route, test-route-dom)
   route-tree/
-    resolve-full-path.test.ts
+    resolve-pattern.test.ts
     build-route-tree.test.ts   (DOM nested tree)
     branch-diff.test.ts        (LCA, findLcaNodes)
     transition-plan.test.ts    (transition scenarios)

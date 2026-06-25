@@ -13,7 +13,7 @@ import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './match/url-matcher';
-import { getLeafMatch, syncChainUrl } from './route-tree';
+import { getLeafMatch, syncChainHref } from './route-tree';
 import type { TransitionPolicy } from './transition/policy';
 import {
   BrowserHistoryProvider,
@@ -24,7 +24,7 @@ import {
 import type { NavigationErrorDetail } from './processor/navigation-error.types';
 
 /** Engine fallback when match returns null (no `path="*"` route). */
-export type NotFoundFallbackHandler = (url: string) => void;
+export type NotFoundFallbackHandler = (href: string) => void;
 
 export interface AuraRoutingEngineConfig {
   /** Selector for in-app links to intercept. Default: `'[data-router-link]'`. */
@@ -126,7 +126,7 @@ export class AuraRoutingEngine {
    * выполнить **processor / render**, в зависимости от причины отмены:
    *
    * - **Guard отменил** (например, несохранённая форма): оставить UI на `from`, вернуть URL
-   *   через `replaceState(from.url)` или программный navigate с `replace: true`.
+   *   через `replaceState(from.href)` или программный navigate с `replace: true`.
    * - **Ошибка load/render**: показать error UI, fallback или redirect; при необходимости
    *   явно выровнять URL с отображаемым состоянием.
    * - **Redirect из guard**: navigate на целевой URL (часто с `replace: true`), а не
@@ -144,13 +144,13 @@ export class AuraRoutingEngine {
     options: NavigateHistoryOptions,
   ): Promise<void> {
     const { pathname, search, hash } = parsePath(href);
-    const relativeUrl = pathname + search + hash;
+    const relativeHref = pathname + search + hash;
 
     const current = this.provider.currentHref;
 
     // Только якорь на том же route — без полного transition
-    if (this.matcher.isHashOnly(relativeUrl, current)) {
-      this.finalizeAnchorNavigation(relativeUrl, options, hash);
+    if (this.matcher.isHashOnly(relativeHref, current)) {
+      this.finalizeAnchorNavigation(relativeHref, options, hash);
       return;
     }
 
@@ -163,7 +163,7 @@ export class AuraRoutingEngine {
           phase: 'left',
           from: null,
           to: {
-            path: leaf.pathname,
+            pathname: leaf.pathname,
             ...(leaf.params && { params: leaf.params }),
             ...(leaf.query && { query: leaf.query }),
           },
@@ -174,16 +174,16 @@ export class AuraRoutingEngine {
           signal: new AbortController().signal,
         });
       }
-      this.notFoundHandler?.(relativeUrl);
+      this.notFoundHandler?.(relativeHref);
       if (options.syncHistory && (action === 'push' || action === 'replace')) {
-        this.provider.commit(relativeUrl, options);
+        this.provider.commit(relativeHref, options);
       }
       this.prev = null;
       return;
     }
 
     const to = this.matcher.toRouteInfo(
-      relativeUrl,
+      relativeHref,
       pathname,
       search,
       hash,
@@ -197,7 +197,7 @@ export class AuraRoutingEngine {
 
     this.finalizeNavigation(result, {
       action,
-      url: relativeUrl,
+      href: relativeHref,
       options,
       from,
       to,
@@ -214,14 +214,14 @@ export class AuraRoutingEngine {
    * |---------|------------------------|-------------------------|
    * | push    | pushState (syncHistory)| ничего                  |
    * | replace | replaceState           | ничего                  |
-   * | pop     | prev only              | rollback(from.url)      |
+   * | pop     | prev only              | rollback(from.href)      |
    * | system  | prev only              | ничего                  |
    */
   private finalizeNavigation(
     result: TransactionResult,
     ctx: {
       action: HistoryAction;
-      url: string;
+      href: string;
       options: NavigateHistoryOptions;
       from: MatchedRouteInfo | null;
       to: MatchedRouteInfo;
@@ -230,7 +230,7 @@ export class AuraRoutingEngine {
   ): void {
     switch (result.status) {
       case 'viewCommitted':
-        this.provider.commit(ctx.url, ctx.options);
+        this.provider.commit(ctx.href, ctx.options);
         this.prev = ctx.to;
         this.config.onNavigationCommitted?.(ctx.to);
         if (ctx.hash) this.scrollToHash(ctx.hash);
@@ -238,24 +238,24 @@ export class AuraRoutingEngine {
 
       case 'cancelled':
         if (ctx.action === 'pop' && ctx.from) {
-          this.provider.rollback(ctx.from.url);
+          this.provider.rollback(ctx.from.href);
         }
         break;
 
       case 'error':
         this.config.onNavigationError?.({
           error: result.error,
-          url: ctx.url,
+          href: ctx.href,
           from: ctx.from,
           to: ctx.to,
           phase: result.phase,
           viewCommitted: result.viewCommitted,
         });
         if (result.viewCommitted) {
-          this.provider.commit(ctx.url, ctx.options);
+          this.provider.commit(ctx.href, ctx.options);
           this.prev = ctx.to;
         } else if (ctx.action === 'pop' && ctx.from) {
-          this.provider.rollback(ctx.from.url);
+          this.provider.rollback(ctx.from.href);
         }
         break;
 
@@ -272,12 +272,12 @@ export class AuraRoutingEngine {
 
   /** Hash-only на том же path — без processor. */
   private finalizeAnchorNavigation(
-    url: string,
+    href: string,
     options: NavigateHistoryOptions,
     hash: string,
   ): void {
-    this.provider.commit(url, options);
-    if (this.prev) syncChainUrl(this.prev, url, hash);
+    this.provider.commit(href, options);
+    if (this.prev) syncChainHref(this.prev, href, hash);
     if (hash) this.scrollToHash(hash);
   }
 

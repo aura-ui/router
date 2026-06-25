@@ -200,7 +200,7 @@ export class AuraRouteViewController {
     if (!cached) return;
 
     this.isActive = true;
-    this.reattach(undefined, undefined, route.path, cached, route);
+    this.reattach(undefined, undefined, route.pathname, cached, route);
   }
 
   private snapshot(): RouteMountResult {
@@ -227,10 +227,10 @@ export class AuraRouteViewController {
   private mountContext(
     routeInfo?: MatchedRouteInfo,
     transitionPolicy?: TransitionPolicy,
-    routePath?: string,
+    pattern?: string,
   ): RouteMountContext {
     return {
-      routePath: routeInfo?.routePath ?? routePath,
+      pattern: routeInfo?.pattern ?? pattern,
       rootOutlet: this.outlets.resolveRootOutlet(),
       parentOutlet: this.outlets.parentOutlet(routeInfo),
       signal: this.renderSignal.signal,
@@ -241,12 +241,12 @@ export class AuraRouteViewController {
   private reattach(
     routeInfo?: MatchedRouteInfo,
     transitionPolicy?: TransitionPolicy,
-    routePath?: string,
+    pattern?: string,
     extractedRoot?: ViewRoot,
     cacheRoute?: ViewCacheKeySource,
   ): void {
     if (!extractedRoot) return;
-    this.show(extractedRoot, routeInfo, this.viewKind, transitionPolicy, routePath, extractedRoot, cacheRoute);
+    this.show(extractedRoot, routeInfo, this.viewKind, transitionPolicy, pattern, extractedRoot, cacheRoute);
   }
 
   private applyMountResult(result: RouteMountResult, viewKind: RouteViewKind = this.viewKind): void {
@@ -265,7 +265,7 @@ export class AuraRouteViewController {
     routeInfo?: MatchedRouteInfo,
     viewKind: RouteViewKind = this.viewKind,
     transitionPolicy?: TransitionPolicy,
-    routePath?: string,
+    pattern?: string,
     extractedRoot?: ViewRoot,
     _cacheRoute?: ViewCacheKeySource,
   ): void {
@@ -275,7 +275,7 @@ export class AuraRouteViewController {
       ? { activeHandle: null, resolvedOutlet: null, detachedRoot: extractedRoot }
       : this.snapshot();
 
-    const result = mountRoute(this.mountContext(routeInfo, transitionPolicy, routePath), payload, previous);
+    const result = mountRoute(this.mountContext(routeInfo, transitionPolicy, pattern), payload, previous);
 
     this.lastMountStrategy = result.appliedStrategy ?? 'replace';
     this.applyMountResult(result, viewKind);

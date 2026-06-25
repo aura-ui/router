@@ -7,7 +7,7 @@ export type { NavigationErrorPhase };
 
 export interface AuraRouterNavigationErrorEventDetail {
   error: unknown;
-  url: string;
+  href: string;
   router: HTMLElement;
   from: string | null;
   to: string;

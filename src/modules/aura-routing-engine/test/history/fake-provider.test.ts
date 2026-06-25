@@ -116,7 +116,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(onNavigationError).toHaveBeenCalledWith(
       expect.objectContaining({
         error: renderError,
-        url: '/d',
+        href: '/d',
         phase: 'render',
         viewCommitted: true,
       }),
@@ -151,7 +151,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(onNavigationError).toHaveBeenCalledWith(
       expect.objectContaining({
         error: enterError,
-        url: '/d',
+        href: '/d',
         phase: 'enter',
         viewCommitted: false,
       }),

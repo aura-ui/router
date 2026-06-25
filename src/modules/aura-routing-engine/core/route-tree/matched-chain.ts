@@ -3,10 +3,10 @@ import type { RouteNode } from './route-node.types';
 
 /**
  * Стабильный ключ маршрута для сравнения в LCA diff.
- * @example info с node.fullPath `/settings/profile` → `'/settings/profile'`
+ * @example info с node.pattern `/settings/profile` → `'/settings/profile'`
  */
 export function routeMatchKey(info: MatchedRouteInfo): string {
-  return info.node?.fullPath ?? info.routePath;
+  return info.node?.pattern ?? info.pattern;
 }
 
 /**
@@ -15,7 +15,7 @@ export function routeMatchKey(info: MatchedRouteInfo): string {
  */
 export function isSameRouteMatch(a: MatchedRouteInfo, b: MatchedRouteInfo): boolean {
   if (a.node && b.node) return a.node === b.node;
-  return a.routePath === b.routePath && a.route === b.route;
+  return a.pattern === b.pattern && a.route === b.route;
 }
 
 /**
@@ -37,18 +37,18 @@ export function getLeafMatch(info: MatchedRouteInfo): MatchedRouteInfo {
 }
 
 /**
- * Синхронизирует `url` и `hash` на всех звеньях active chain после hash-only навигации.
+ * Синхронизирует `href` и `hash` на всех звеньях active chain после hash-only навигации.
  *
  * Nested chain — не несколько URL в браузере, а несколько `<aura-route>`, активных для
- * **одного** pathname. У parent (`/settings`) и leaf (`/settings/profile`) разные `routePath`
- * / `node.fullPath`, но одинаковые `url`, `pathname`, `search`, `hash` (см. `attachNavigationChain`).
+ * **одного** pathname. У parent (`/settings`) и leaf (`/settings/profile`) разные `pattern`
+ * / `node.pattern`, но одинаковые `href`, `pathname`, `search`, `hash` (см. `attachNavigationChain`).
  *
  * При переходе только якоря (`/settings/profile` → `/settings/profile#tab`) pathname не меняется,
  * processor и lifecycle не запускаются (`AuraRoutingEngine.finalizeAnchorNavigation`), но `prev`
  * должен отражать новый hash. Функция проходит `getActiveChain(info)` и ставит **один и тот же**
- * `url` и `hash` на parent, leaf и все промежуточные звенья — иначе часть chain устареет.
+ * `href` и `hash` на parent, leaf и все промежуточные звенья — иначе часть chain устареет.
  *
- * Обновляются только `entry.url` и `entry.hash`. `pathname`, `search`, `params`, `query` не
+ * Обновляются только `entry.href` и `entry.hash`. `pathname`, `search`, `params`, `query` не
  * трогаются — при hash-only они не менялись.
  *
  * @example
@@ -58,18 +58,18 @@ export function getLeafMatch(info: MatchedRouteInfo): MatchedRouteInfo {
  * </aura-route>
  * ```
  * URL `/settings/profile#tab` → chain [settings, profile]; у обоих:
- * `url = '/settings/profile#tab'`, `hash = '#tab'`
+ * `href = '/settings/profile#tab'`, `hash = '#tab'`
  */
-export function syncChainUrl(info: MatchedRouteInfo, url: string, hash: string): void {
+export function syncChainHref(info: MatchedRouteInfo, href: string, hash: string): void {
   for (const entry of getActiveChain(info)) {
-    entry.url = url;
+    entry.href = href;
     entry.hash = hash;
   }
 }
 
 /** Общие поля URL браузера и match-результат leaf — одинаковые для всех звеньев chain. */
 export interface NavigationChainBase {
-  url: string;
+  href: string;
   pathname: string;
   search: string;
   hash: string;
@@ -88,14 +88,14 @@ export interface NavigationChainBase {
  * (layout parent + content leaf), но в браузере один URL. Engine и branch diff нужен
  * не один match, а вся ветка — для `exitRoutes` / `enterRoutes` и lifecycle.
  *
- * **Что общее у всех звеньев** (из `base`): `url`, `pathname`, `search`, `hash` —
+ * **Что общее у всех звеньев** (из `base`): `href`, `pathname`, `search`, `hash` —
  * это snapshot текущей навигации; parent и leaf «живут» под одним pathname.
  *
- * **Что своё у каждого звена:** `routePath` (= `node.fullPath`), `route`, `node`.
- * У `/settings` и `/settings/profile` разные fullPath, но один pathname.
+ * **Что своё у каждого звена:** `pattern` (= `node.pattern`), `route`, `node`.
+ * У `/settings` и `/settings/profile` разные pattern, но один pathname.
  *
  * **Params:** leaf берёт готовые `base.params` из matcher; у предков в ветке —
- * через `resolveParams(pathname, node.fullPath)` (сегментные :param на каждом уровне).
+ * через `resolveParams(pathname, node.pattern)` (сегментные :param на каждом уровне).
  *
  * **Query:** только на leaf — search относится к конечному URL, не к layout-узлам.
  *
@@ -109,7 +109,7 @@ export interface NavigationChainBase {
  * </aura-route>
  * ```
  * pathname `/settings/profile` → leaf = profileNode, chain:
- * `[ { settings, url/pathname/... общие }, { profile, + params, + query } ]`
+ * `[ { settings, href/pathname/... общие }, { profile, + params, + query } ]`
  */
 export function attachNavigationChain(
   /** Конечный (deepest) RouteNode — результат `matchPath()`. */
@@ -117,7 +117,7 @@ export function attachNavigationChain(
   /** URL snapshot + params/query leaf из matcher. */
   base: NavigationChainBase,
   /** Path params для ancestor-узлов ветки (не leaf). */
-  resolveParams: (pathname: string, fullPath: string) => Record<string, string> | null,
+  resolveParams: (pathname: string, pattern: string) => Record<string, string> | null,
 ): MatchedRouteInfo {
   // leaf.branch уже содержит root → leaf (вычислено при buildRouteTree).
   const chain = leaf.branch.map((node, index) => {
@@ -125,16 +125,15 @@ export function attachNavigationChain(
 
     const params = isLeaf
       ? base.params
-      : resolveParams(base.pathname, node.fullPath) ?? undefined;
+      : resolveParams(base.pathname, node.pattern) ?? undefined;
 
     const info: MatchedRouteInfo = {
       // Браузерный URL — один на всю ветку.
-      url: base.url,
+      href: base.href,
       pathname: base.pathname,
       search: base.search,
       hash: base.hash,
-      // MatchedRouteInfo.routePath хранит resolved fullPath (не attr path).
-      routePath: node.fullPath,
+      pattern: node.pattern,
       route: node.route,
       node,
       ...(params && Object.keys(params).length > 0 && { params }),

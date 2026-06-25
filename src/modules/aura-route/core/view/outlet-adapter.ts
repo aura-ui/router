@@ -3,25 +3,27 @@ import type {
   OutletStrategy,
   ViewHandle,
   ViewRoot,
-} from '../../aura-outlet/core/aura-outlet';
-import type { TransitionPolicy } from '../../aura-routing-engine/core/transition/policy';
+} from '../../../aura-outlet/core/aura-outlet';
+import type { TransitionPolicy } from '../../../aura-routing-engine/core/transition/policy';
 
 type MountStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
-export type RouteMountResult = {
+/** Snapshot of the mounted view inside an outlet (handle, nested slot, optional detached root). */
+export type ViewMountState = {
   activeHandle: ViewHandle | null;
   childOutlet: AuraOutlet | null;
   detachedRoot: ViewRoot | null;
   appliedStrategy?: MountStrategy;
 };
 
-export const EMPTY_MOUNT: RouteMountResult = {
+export const EMPTY_VIEW_MOUNT: ViewMountState = {
   activeHandle: null,
   childOutlet: null,
   detachedRoot: null,
 };
 
-export type RouteMountContext = {
+/** Inputs for {@link mountRoute}: outlets, pattern key, signal, transition policy. */
+export type ViewMountContext = {
   rootOutlet: AuraOutlet;
   parentOutlet?: AuraOutlet | null;
   pattern?: string;
@@ -30,7 +32,7 @@ export type RouteMountContext = {
   transitionPolicy?: TransitionPolicy;
 };
 
-function hasActiveMount(isLayout: boolean, prev: RouteMountResult): boolean {
+function hasActiveMount(isLayout: boolean, prev: ViewMountState): boolean {
   return isLayout
     ? !!(prev.activeHandle && prev.childOutlet)
     : !!prev.activeHandle;
@@ -40,7 +42,7 @@ function hasActiveMount(isLayout: boolean, prev: RouteMountResult): boolean {
 export function shouldSkipRouteRender(
   keepAlive: boolean,
   isLayout: boolean,
-  prev: RouteMountResult,
+  prev: ViewMountState,
 ): boolean {
   if (!keepAlive || prev.detachedRoot) return false;
   return hasActiveMount(isLayout, prev);
@@ -48,8 +50,8 @@ export function shouldSkipRouteRender(
 
 /** `stage` when out-in/in-out and outlet already has a view; else `replace`. */
 export function resolveMountStrategy(
-  ctx: RouteMountContext,
-  prev: RouteMountResult,
+  ctx: ViewMountContext,
+  prev: ViewMountState,
   targetOutlet: AuraOutlet,
 ): MountStrategy {
   if (prev.detachedRoot) return 'replace';
@@ -63,10 +65,10 @@ export function resolveMountStrategy(
 
 /** Put content into `parentOutlet ?? rootOutlet`; uses `prev.detachedRoot` when set. */
 export function mountRoute(
-  ctx: RouteMountContext,
+  ctx: ViewMountContext,
   content: Node | string,
-  prev: RouteMountResult = EMPTY_MOUNT,
-): RouteMountResult {
+  prev: ViewMountState = EMPTY_VIEW_MOUNT,
+): ViewMountState {
   if (ctx.signal?.aborted) return prev;
 
   const outlet = asAuraOutlet(ctx.parentOutlet ?? ctx.rootOutlet);
@@ -98,13 +100,6 @@ export function unmountRoute(
   if (keepAlive) return handle.detach();
   handle.destroy();
   return null;
-}
-
-/** Swap staged view in after transition-in. */
-export function commitStagedMount(mount: RouteMountResult): void {
-  const handle = mount.activeHandle;
-  if (!handle) return;
-  handle.mountOutlet.commitStage(handle.viewRoot);
 }
 
 /** Assert element is an upgraded `<aura-outlet>`. */

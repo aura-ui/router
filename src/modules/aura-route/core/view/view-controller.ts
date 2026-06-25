@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
+import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
 import type { AuraRouteInterface } from '../aura-route';
 import type { AuraOutlet, OutletStrategy, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../../aura-utils/misc';
@@ -12,7 +12,7 @@ import {
   type ViewMountState,
 } from './outlet-adapter';
 import { type RouteViewCachePort } from './view-cache';
-import { viewCacheKey, type ViewCacheKeySource } from './view-cache-key';
+import { viewCacheKey } from './view-cache-key';
 import type { RouteContentPort, RouteRenderOptions, RouteViewKind } from './view-controller.types';
 
 export type { RouteContentPort, RouteRenderOptions } from './view-controller.types';
@@ -22,7 +22,6 @@ type PlaceViewInput = {
   payload: Node | string;
   routeInfo?: MatchedRouteInfo;
   viewKind: RouteViewKind;
-  pattern?: string;
   detachedRoot?: ViewRoot;
 };
 
@@ -50,6 +49,7 @@ export class AuraRouteViewController {
   private lastMount: RouteLastMount = { ...EMPTY_ROUTE_LAST_MOUNT };
   /** Outgoing view kept alive while `lastMount.strategy === 'stage'`. */
   private stageOutgoingHandle: ViewMountState['activeHandle'] = null;
+  /** Set at {@link render} commit; used by {@link onLeft} keep-alive stash. */
   private lastCacheKey: string | null = null;
 
   /** Nested `<aura-outlet>` inside mounted layout; children render here. */
@@ -78,10 +78,6 @@ export class AuraRouteViewController {
     return this.renderSignal.signal;
   }
 
-  get aborted(): boolean {
-    return this.renderSignal.aborted;
-  }
-
   cancel(): void {
     this.renderSignal.cancel();
   }
@@ -97,7 +93,7 @@ export class AuraRouteViewController {
 
   // --- Public: render pipeline ---
 
-  async render(routeInfo?: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
+  async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     const { signal } = options ?? {};
     const token = this.getLifecycleToken();
     const config = this.route;
@@ -105,8 +101,7 @@ export class AuraRouteViewController {
 
     try {
       this.renderSignal.begin(signal);
-      this.rememberCacheKey(routeInfo);
-      if (!this.isTokenCurrent(token)) return;
+      this.lastCacheKey = this.cacheKey(routeInfo);
 
       if (this.tryRestoreFromCache(token, routeInfo, viewKind)) return;
       if (shouldSkipRouteRender(config.keepAlive, viewKind === 'layout', this.currentMountState())) return;
@@ -183,21 +178,6 @@ export class AuraRouteViewController {
     }
   }
 
-  onReenter(route: RouteInfo): void {
-    if (!this.route.keepAlive) return;
-
-    const cached = this.viewCache.extract(this.cacheKey(route));
-    if (!cached) return;
-
-    this.reattachFromCache(
-      this.getLifecycleToken(),
-      cached,
-      undefined,
-      viewKindOf(this.route),
-      route.pathname,
-    );
-  }
-
   // --- Private: token guards ---
 
   private isTokenCurrent(token: number): boolean {
@@ -208,7 +188,7 @@ export class AuraRouteViewController {
 
   private tryRestoreFromCache(
     token: number,
-    routeInfo: MatchedRouteInfo | undefined,
+    routeInfo: MatchedRouteInfo,
     viewKind: RouteViewKind,
   ): boolean {
     if (!this.route.keepAlive) return false;
@@ -216,17 +196,18 @@ export class AuraRouteViewController {
     const cached = this.viewCache.extract(this.cacheKey(routeInfo));
     if (!cached) return false;
 
-    this.reattachFromCache(token, cached, routeInfo, viewKind);
+    this.placeView({
+      token,
+      payload: cached,
+      routeInfo,
+      viewKind,
+      detachedRoot: cached,
+    });
     return true;
   }
 
-  private cacheKey(source?: ViewCacheKeySource): string {
-    return viewCacheKey(source, this.route.path);
-  }
-
-  private rememberCacheKey(source?: ViewCacheKeySource): void {
-    if (source === undefined) return;
-    this.lastCacheKey = this.cacheKey(source);
+  private cacheKey(routeInfo: MatchedRouteInfo): string {
+    return viewCacheKey(routeInfo, this.route.path);
   }
 
   // --- Private: outlet mount ---
@@ -244,31 +225,14 @@ export class AuraRouteViewController {
     };
   }
 
-  private buildMountContext(routeInfo?: MatchedRouteInfo, pattern?: string): ViewMountContext {
+  private buildMountContext(routeInfo?: MatchedRouteInfo): ViewMountContext {
     return {
-      pattern: routeInfo?.pattern ?? pattern,
+      pattern: routeInfo?.pattern,
       defaultOutlet: this.getDefaultOutlet(),
       parentOutlet: this.getParentOutlet(routeInfo),
       signal: this.renderSignal.signal,
       stageMount: this.stageMount,
     };
-  }
-
-  private reattachFromCache(
-    token: number,
-    root: ViewRoot,
-    routeInfo?: MatchedRouteInfo,
-    viewKind: RouteViewKind = viewKindOf(this.route),
-    pattern?: string,
-  ): void {
-    this.placeView({
-      token,
-      payload: root,
-      routeInfo,
-      viewKind,
-      pattern,
-      detachedRoot: root,
-    });
   }
 
   private placeView(input: PlaceViewInput): void {
@@ -279,13 +243,12 @@ export class AuraRouteViewController {
       : this.currentMountState();
 
     const result = mountRoute(
-      this.buildMountContext(input.routeInfo, input.pattern),
+      this.buildMountContext(input.routeInfo),
       input.payload,
       previous,
     );
 
     this.applyMountResult(result, input.viewKind);
-    this.rememberCacheKey(input.routeInfo);
   }
 
   private applyMountResult(result: ViewMountState, viewKind: RouteViewKind): void {
@@ -334,7 +297,7 @@ export class AuraRouteViewController {
 
   private async resolvePayload(
     viewKind: RouteViewKind,
-    routeInfo?: MatchedRouteInfo,
+    routeInfo: MatchedRouteInfo,
   ): Promise<Node | string | null> {
     const config = this.route;
 
@@ -346,7 +309,7 @@ export class AuraRouteViewController {
     if (cached) return cached;
 
     const payload = await this.content.resolve(routeInfo, this.renderSignal.signal);
-    if (payload && routeInfo) {
+    if (payload) {
       this.content.writeCache?.(routeInfo, payload);
     }
 
@@ -358,7 +321,7 @@ export class AuraRouteViewController {
   private showRenderError(
     token: number,
     error: unknown,
-    routeInfo?: MatchedRouteInfo,
+    routeInfo: MatchedRouteInfo,
   ): void {
     const config = this.route;
 
@@ -381,7 +344,6 @@ export class AuraRouteViewController {
 
   private showFallbackError(token: number, error: unknown): void {
     console.error(`Error rendering AuraRoute (path: ${this.route.path}):`, error);
-    if (!this.isTokenCurrent(token)) return;
 
     const message = escapeHtml(error instanceof Error ? error.message : 'Error loading content');
     const stackTrace = escapeHtml(error instanceof Error ? error.stack ?? '' : '');

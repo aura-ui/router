@@ -87,7 +87,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.view?.cancel();
   }
 
-  render(routeInfo?: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
+  render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     this.viewLifecycleToken++;
     return this.view.render(routeInfo, options);
   }
@@ -110,9 +110,9 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.viewLifecycleToken++;
     this.view.onLeft();
   }
-  onReenter(ctx: RouteLifecycleContext): void {
+  onReenter(_ctx: RouteLifecycleContext): void {
     this.viewLifecycleToken++;
-    this.view.onReenter(ctx.to);
+    // no need to call view, it already the same
   }
   onError(_ctx: RouteErrorContext): void {}
 }

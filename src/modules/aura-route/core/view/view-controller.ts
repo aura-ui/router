@@ -6,6 +6,7 @@ import { RouteRenderSignal } from './render-signal';
 
 import {
   mountRoute,
+  reattachRoute,
   shouldSkipRouteRender,
   unmountRoute,
   type ViewMountContext,
@@ -22,7 +23,6 @@ type PlaceViewInput = {
   payload: Node | string;
   routeInfo?: MatchedRouteInfo;
   viewKind: RouteViewKind;
-  detachedRoot?: ViewRoot;
 };
 
 type RouteLastMount = {
@@ -106,6 +106,7 @@ export class AuraRouteViewController {
       if (this.tryRestoreFromCache(token, routeInfo, viewKind)) return;
       if (shouldSkipRouteRender(config.keepAlive, viewKind === 'layout', this.currentMountState())) return;
 
+      //todo think about body classname and event
       if (config.loadingTemplate) {
         this.placeView({
           token,
@@ -186,23 +187,13 @@ export class AuraRouteViewController {
 
   // --- Private: keep-alive cache ---
 
-  private tryRestoreFromCache(
-    token: number,
-    routeInfo: MatchedRouteInfo,
-    viewKind: RouteViewKind,
-  ): boolean {
+  private tryRestoreFromCache(token: number, routeInfo: MatchedRouteInfo, viewKind: RouteViewKind): boolean {
     if (!this.route.keepAlive) return false;
 
     const cached = this.viewCache.extract(this.cacheKey(routeInfo));
     if (!cached) return false;
 
-    this.placeView({
-      token,
-      payload: cached,
-      routeInfo,
-      viewKind,
-      detachedRoot: cached,
-    });
+    this.reattachCachedView(token, cached, routeInfo, viewKind);
     return true;
   }
 
@@ -221,7 +212,6 @@ export class AuraRouteViewController {
     return {
       activeHandle: this.lastMount.handle,
       childOutlet: this.childOutlet,
-      detachedRoot: null,
     };
   }
 
@@ -235,20 +225,23 @@ export class AuraRouteViewController {
     };
   }
 
-  private placeView(input: PlaceViewInput): void {
-    if (!this.isTokenCurrent(input.token)) return;
-
-    const previous: ViewMountState = input.detachedRoot
-      ? { activeHandle: null, childOutlet: null, detachedRoot: input.detachedRoot }
-      : this.currentMountState();
+  private placeView(data: PlaceViewInput): void {
+    if (!this.isTokenCurrent(data.token)) return;
 
     const result = mountRoute(
-      this.buildMountContext(input.routeInfo),
-      input.payload,
-      previous,
+      this.buildMountContext(data.routeInfo),
+      data.payload,
+      this.currentMountState(),
     );
 
-    this.applyMountResult(result, input.viewKind);
+    this.applyMountResult(result, data.viewKind);
+  }
+
+  private reattachCachedView(token: number, content: ViewRoot, routeInfo: MatchedRouteInfo, viewKind: RouteViewKind): void {
+    if (!this.isTokenCurrent(token)) return;
+    const result = reattachRoute(this.buildMountContext(routeInfo), content);
+    if (!result) return;
+    this.applyMountResult(result, viewKind);
   }
 
   private applyMountResult(result: ViewMountState, viewKind: RouteViewKind): void {

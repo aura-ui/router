@@ -93,16 +93,15 @@ export class AuraRouteViewController {
   async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     const { parentSignal } = options ?? {};
     const lifecycleToken = this.getLifecycleToken();
-    const viewKind = resolveViewKind(this.route);
 
     try {
       this.renderSignal.begin(parentSignal);
-      this.lastCacheKey = this.buildCacheKey(routeInfo);
+      this.lastCacheKey = viewCacheKey(routeInfo, this.route.path);
 
-      if (this.tryRestoreFromCache(lifecycleToken, routeInfo, viewKind)) return;
-      if (this.shouldSkipKeepAliveRender(viewKind)) return;
+      if (this.tryRestoreFromCache(lifecycleToken, routeInfo)) return;
+      if (this.shouldSkipKeepAliveRender()) return;
 
-      await this.renderWithoutCache(lifecycleToken, routeInfo, viewKind);
+      await this.renderWithoutCache(lifecycleToken, routeInfo);
     } catch (error) {
       if (this.isRenderStale(lifecycleToken)) return;
       this.mountRenderError(lifecycleToken, error, routeInfo);
@@ -144,76 +143,56 @@ export class AuraRouteViewController {
 
   // --- Private: guards ---
 
-  /** Whether the route lifecycle generation still matches `lifecycleToken`. */
-  private isLifecycleCurrent(lifecycleToken: LifecycleToken): boolean {
-    return this.getLifecycleToken() === lifecycleToken;
-  }
-
   /** Whether this render pass was aborted or superseded by a newer lifecycle. */
   private isRenderStale(lifecycleToken: LifecycleToken): boolean {
-    return this.renderSignal.aborted || !this.isLifecycleCurrent(lifecycleToken);
+    return this.renderSignal.aborted || this.getLifecycleToken() !== lifecycleToken;
   }
 
   // --- Private: render orchestration ---
 
-  /** Stable keep-alive stash key for a matched navigation. */
-  private buildCacheKey(routeInfo: MatchedRouteInfo): string {
-    return viewCacheKey(routeInfo, this.route.path);
-  }
-
   /** Reattaches a stashed view; returns whether cache restore handled the render. */
-  private tryRestoreFromCache(
-    lifecycleToken: LifecycleToken,
-    routeInfo: MatchedRouteInfo,
-    viewKind: RouteViewKind,
-  ): boolean {
+  private tryRestoreFromCache(lifecycleToken: LifecycleToken, routeInfo: MatchedRouteInfo): boolean {
     if (!this.route.keepAlive) return false;
 
-    const cachedRoot = this.viewCache.extract(this.buildCacheKey(routeInfo));
+    const cachedRoot = this.viewCache.extract(viewCacheKey(routeInfo, this.route.path));
     if (!cachedRoot) return false;
 
-    this.reattachCachedView(lifecycleToken, cachedRoot, routeInfo, viewKind);
+    this.reattachCachedView(lifecycleToken, cachedRoot, routeInfo);
     return true;
   }
 
   /** Skips reload when keep-alive is on and the current mount is still valid. */
-  private shouldSkipKeepAliveRender(viewKind: RouteViewKind): boolean {
+  private shouldSkipKeepAliveRender(): boolean {
+    const viewKind = resolveViewKind(this.route);
     return this.route.keepAlive
       && hasActiveMount(viewKind === 'layout', toViewMountState(this.mount));
   }
 
   /** Shows loading template, resolves content, and mounts the result. */
-  private async renderWithoutCache(
-    lifecycleToken: LifecycleToken,
-    routeInfo: MatchedRouteInfo,
-    viewKind: RouteViewKind,
-  ): Promise<void> {
+  private async renderWithoutCache(lifecycleToken: LifecycleToken, routeInfo: MatchedRouteInfo): Promise<void> {
     const { loadingTemplate } = this.route;
 
     // TODO: body className and loading event
     if (loadingTemplate) {
-      this.mountView(lifecycleToken, getTemplate(loadingTemplate), routeInfo, viewKind);
+      this.mountView(lifecycleToken, getTemplate(loadingTemplate), routeInfo);
     }
 
-    const viewContent = await this.resolveViewContent(viewKind, routeInfo);
+    const viewContent = await this.resolveViewContent(routeInfo);
     if (this.isRenderStale(lifecycleToken)) return;
 
     if (viewContent == null) {
-      if (viewKind === 'content') {
-        this.mountView(lifecycleToken, EMPTY_CONTENT_HTML, routeInfo, 'content');
+      if (resolveViewKind(this.route) === 'content') {
+        this.mountView(lifecycleToken, EMPTY_CONTENT_HTML, routeInfo);
       }
       return;
     }
 
-    this.mountView(lifecycleToken, viewContent, routeInfo, viewKind);
+    this.mountView(lifecycleToken, viewContent, routeInfo);
   }
 
   /** Layout template, content-loader result, or optional content cache entry. */
-  private async resolveViewContent(
-    viewKind: RouteViewKind,
-    routeInfo: MatchedRouteInfo,
-  ): Promise<Node | string | null> {
-    if (viewKind === 'layout') {
+  private async resolveViewContent(routeInfo: MatchedRouteInfo): Promise<Node | string | null> {
+    if (resolveViewKind(this.route) === 'layout') {
       return getTemplate(this.route.layout!);
     }
 
@@ -234,10 +213,13 @@ export class AuraRouteViewController {
     error: unknown,
     routeInfo: MatchedRouteInfo,
   ): void {
-    this.mountView(
+    this.runMount(
       lifecycleToken,
-      resolveErrorViewPayload(this.route, error),
-      routeInfo,
+      () => mountRoute(
+        this.buildMountContext(routeInfo),
+        resolveErrorViewPayload(this.route, error),
+        toViewMountState(this.mount),
+      ),
       'content',
     );
   }
@@ -249,9 +231,8 @@ export class AuraRouteViewController {
     lifecycleToken: LifecycleToken,
     viewContent: Node | string,
     routeInfo: MatchedRouteInfo,
-    viewKind: RouteViewKind,
   ): void {
-    this.runMount(lifecycleToken, routeInfo, viewKind, () =>
+    this.runMount(lifecycleToken, () =>
       mountRoute(this.buildMountContext(routeInfo), viewContent, toViewMountState(this.mount)),
     );
   }
@@ -261,9 +242,8 @@ export class AuraRouteViewController {
     lifecycleToken: LifecycleToken,
     cachedRoot: ViewRoot,
     routeInfo: MatchedRouteInfo,
-    viewKind: RouteViewKind,
   ): void {
-    this.runMount(lifecycleToken, routeInfo, viewKind, () =>
+    this.runMount(lifecycleToken, () =>
       reattachRoute(this.buildMountContext(routeInfo), cachedRoot),
     );
   }
@@ -271,11 +251,10 @@ export class AuraRouteViewController {
   /** Runs an outlet mount and merges the result into {@link mount}. */
   private runMount(
     lifecycleToken: LifecycleToken,
-    routeInfo: MatchedRouteInfo,
-    viewKind: RouteViewKind,
     operation: MountOperation,
+    viewKind: RouteViewKind = resolveViewKind(this.route),
   ): void {
-    if (!this.isLifecycleCurrent(lifecycleToken)) return;
+    if (this.getLifecycleToken() !== lifecycleToken) return;
 
     const mountResult = operation();
     if (!mountResult) return;

@@ -30,20 +30,11 @@ export type ViewMountContext = {
   stageMount?: boolean;
 };
 
-function hasActiveMount(isLayout: boolean, prev: ViewMountState): boolean {
+/** Whether a route view is already mounted (layout routes require a nested outlet). */
+export function hasActiveMount(isLayout: boolean, prev: ViewMountState): boolean {
   return isLayout
     ? !!(prev.activeHandle && prev.nestedOutlet)
     : !!prev.activeHandle;
-}
-
-/** keepAlive with an active view — skip reload. */
-export function shouldSkipRouteRender(
-  keepAlive: boolean,
-  isLayout: boolean,
-  prev: ViewMountState,
-): boolean {
-  if (!keepAlive) return false;
-  return hasActiveMount(isLayout, prev);
 }
 
 /**

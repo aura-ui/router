@@ -60,8 +60,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   private view!: AuraRouteViewController;
   private viewLifecycleToken = 0;
 
-  get resolvedOutlet(): AuraOutlet | null {
-    return this.view?.resolvedOutlet ?? null;
+  get childOutlet(): AuraOutlet | null {
+    return this.view?.childOutlet ?? null;
   }
 
   async connectedCallback(): Promise<void> {

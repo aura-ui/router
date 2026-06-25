@@ -60,7 +60,7 @@ export class AuraRouteViewController {
   private lastStashKey: string | null = null;
 
   /** Nested `<aura-outlet>` inside mounted layout; children render here. */
-  resolvedOutlet: AuraOutlet | null = null;
+  childOutlet: AuraOutlet | null = null;
 
   private readonly getConfig: () => RouteViewConfig;
   private readonly outlets: RouteOutletPort;
@@ -191,7 +191,7 @@ export class AuraRouteViewController {
     if (config.keepAlive && detached) {
       this.viewCache.put(this.stashKey(), detached);
     } else {
-      this.resolvedOutlet = null;
+      this.childOutlet = null;
     }
   }
 
@@ -210,7 +210,7 @@ export class AuraRouteViewController {
   private snapshot(): RouteMountResult {
     return {
       activeHandle: this.activeHandle,
-      resolvedOutlet: this.resolvedOutlet,
+      childOutlet: this.childOutlet,
       detachedRoot: null,
     };
   }
@@ -257,9 +257,9 @@ export class AuraRouteViewController {
 
   private applyMountResult(result: RouteMountResult, viewKind: RouteViewKind): void {
     this.activeHandle = result.activeHandle;
-    this.resolvedOutlet = result.resolvedOutlet;
+    this.childOutlet = result.childOutlet;
 
-    if (viewKind === 'layout' && !result.resolvedOutlet) {
+    if (viewKind === 'layout' && !result.childOutlet) {
       console.warn(
         `AuraRoute layout "${this.config.layout}" (path: ${this.config.path}) has no <aura-outlet>`,
       );
@@ -279,7 +279,7 @@ export class AuraRouteViewController {
     if (!this.isTokenCurrent(token)) return;
 
     const previous: RouteMountResult = extractedRoot
-      ? { activeHandle: null, resolvedOutlet: null, detachedRoot: extractedRoot }
+      ? { activeHandle: null, childOutlet: null, detachedRoot: extractedRoot }
       : this.snapshot();
 
     const result = mountRoute(this.mountContext(routeInfo, transitionPolicy, pattern), payload, previous);
@@ -368,7 +368,7 @@ export function createAuraRouteViewController(
     {
       resolveRootOutlet: resolveRootOutlet,
       parentOutlet: (routeInfo) =>
-        routeInfo?.node?.parent?.route.resolvedOutlet ?? null,
+        routeInfo?.node?.parent?.route.childOutlet ?? null,
     },
     new RouteContentLoader(
       () => ({

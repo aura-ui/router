@@ -10,14 +10,14 @@ type MountStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
 export type RouteMountResult = {
   activeHandle: ViewHandle | null;
-  resolvedOutlet: AuraOutlet | null;
+  childOutlet: AuraOutlet | null;
   detachedRoot: ViewRoot | null;
   appliedStrategy?: MountStrategy;
 };
 
 export const EMPTY_MOUNT: RouteMountResult = {
   activeHandle: null,
-  resolvedOutlet: null,
+  childOutlet: null,
   detachedRoot: null,
 };
 
@@ -32,7 +32,7 @@ export type RouteMountContext = {
 
 function hasActiveMount(isLayout: boolean, prev: RouteMountResult): boolean {
   return isLayout
-    ? !!(prev.activeHandle && prev.resolvedOutlet)
+    ? !!(prev.activeHandle && prev.childOutlet)
     : !!prev.activeHandle;
 }
 
@@ -83,7 +83,7 @@ export function mountRoute(
 
   return {
     activeHandle: handle,
-    resolvedOutlet: handle.findChildOutlet(),
+    childOutlet: handle.findChildOutlet(),
     detachedRoot: null,
     appliedStrategy: strategy,
   };

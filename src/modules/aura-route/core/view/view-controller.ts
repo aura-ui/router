@@ -26,6 +26,8 @@ import type { RouteContentPort, RouteRenderOptions, RouteViewKind } from './view
 
 export type { RouteContentPort, RouteRenderOptions } from './view-controller.types';
 
+const EMPTY_CONTENT_HTML = '<div>No content to display</div>';
+
 /**
  * View state and render orchestration for {@link AuraRoute}.
  * Outlet policy lives in {@link outlet-adapter}; stage lifecycle calls {@link AuraOutlet} directly.
@@ -34,7 +36,7 @@ export type { RouteContentPort, RouteRenderOptions } from './view-controller.typ
 export class AuraRouteViewController {
   private readonly route: AuraRouteInterface;
   private readonly content: RouteContentPort;
-  private readonly renderSignal: RouteRenderSignal;
+  private readonly renderSignal = new RouteRenderSignal();
   private readonly viewCache: RouteViewCachePort;
   private readonly getAppOutlet: () => AuraOutlet;
   private readonly getMountOutlet: (routeInfo?: MatchedRouteInfo) => AuraOutlet | null;
@@ -63,7 +65,6 @@ export class AuraRouteViewController {
     this.getAppOutlet = getAppOutlet;
     this.getMountOutlet = getMountOutlet;
     this.getLifecycleToken = getLifecycleToken;
-    this.renderSignal = new RouteRenderSignal();
   }
 
   // --- Public: signal & cancellation ---
@@ -90,30 +91,16 @@ export class AuraRouteViewController {
   async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     const { signal } = options ?? {};
     const token = this.getLifecycleToken();
-    const config = this.route;
-    const viewKind = viewKindOf(config);
+    const viewKind = viewKindOf(this.route);
 
     try {
       this.renderSignal.begin(signal);
       this.lastCacheKey = this.cacheKey(routeInfo);
 
       if (this.tryRestoreFromCache(token, routeInfo, viewKind)) return;
-      if (config.keepAlive && hasActiveMount(viewKind === 'layout', toViewMountState(this.mount))) return;
+      if (this.shouldKeepActiveMount(viewKind)) return;
 
-      //todo think about body classname and event
-      if (config.loadingTemplate) {
-        this.mountPayload(token, getTemplate(config.loadingTemplate), routeInfo, viewKind);
-      }
-
-      const payload = await this.resolvePayload(viewKind, routeInfo);
-      if (this.isRenderStale(token)) return;
-
-      if (viewKind === 'content' && !payload) {
-        this.mountPayload(token, '<div>No content to display</div>', routeInfo, 'content');
-        return;
-      }
-
-      this.mountPayload(token, payload as Node | string, routeInfo, viewKind);
+      await this.renderFresh(token, routeInfo, viewKind);
     } catch (error) {
       if (this.isRenderStale(token)) return;
       this.showRenderError(token, error, routeInfo);
@@ -135,11 +122,11 @@ export class AuraRouteViewController {
   onLeft(): void {
     this.renderSignal.cancel();
 
-    const config = this.route;
-    const { state, detached } = unmountMountOnLeave(this.mount, config.keepAlive);
-    this.mount = finalizeLeaveMount(state, config.keepAlive, detached);
+    const { keepAlive } = this.route;
+    const { state, detached } = unmountMountOnLeave(this.mount, keepAlive);
+    this.mount = finalizeLeaveMount(state, keepAlive, detached);
 
-    if (config.keepAlive && detached) {
+    if (keepAlive && detached) {
       this.viewCache.put(this.lastCacheKey ?? this.route.path, detached);
     }
   }
@@ -152,6 +139,38 @@ export class AuraRouteViewController {
 
   private isRenderStale(token: number): boolean {
     return this.renderSignal.aborted || !this.isTokenCurrent(token);
+  }
+
+  // --- Private: render pipeline ---
+
+  private shouldKeepActiveMount(viewKind: RouteViewKind): boolean {
+    return this.route.keepAlive
+      && hasActiveMount(viewKind === 'layout', toViewMountState(this.mount));
+  }
+
+  private async renderFresh(
+    token: number,
+    routeInfo: MatchedRouteInfo,
+    viewKind: RouteViewKind,
+  ): Promise<void> {
+    const { loadingTemplate } = this.route;
+
+    // TODO: body className and loading event
+    if (loadingTemplate) {
+      this.mountPayload(token, getTemplate(loadingTemplate), routeInfo, viewKind);
+    }
+
+    const payload = await this.resolvePayload(viewKind, routeInfo);
+    if (this.isRenderStale(token)) return;
+
+    if (payload == null) {
+      if (viewKind === 'content') {
+        this.mountPayload(token, EMPTY_CONTENT_HTML, routeInfo, 'content');
+      }
+      return;
+    }
+
+    this.mountPayload(token, payload, routeInfo, viewKind);
   }
 
   // --- Private: keep-alive cache ---
@@ -230,10 +249,8 @@ export class AuraRouteViewController {
     viewKind: RouteViewKind,
     routeInfo: MatchedRouteInfo,
   ): Promise<Node | string | null> {
-    const config = this.route;
-
     if (viewKind === 'layout') {
-      return getTemplate(config.layout!);
+      return getTemplate(this.route.layout!);
     }
 
     const cached = this.content.readCache?.(routeInfo);

@@ -1,11 +1,11 @@
 import type { MatchedRouteInfo, RouteInfo } from '../../aura-route-hooks/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { AuraCacheStore, type CacheStoreOptions } from '../../aura-cache-store/core';
-import type { ViewStashPort } from './ports';
+import type { ViewCachePort } from './ports';
 
-type StashKeySource = MatchedRouteInfo | RouteInfo | undefined;
+type CacheKeySource = MatchedRouteInfo | RouteInfo | undefined;
 
-export function stashKey(source: StashKeySource, fallbackPath: string): string {
+export function cacheKey(source: CacheKeySource, fallbackPath: string): string {
   const base = source?.pathname ?? fallbackPath;
   const query = source?.query;
 
@@ -21,39 +21,39 @@ export function stashKey(source: StashKeySource, fallbackPath: string): string {
   return `${base}|${qs}`;
 }
 
-const DEFAULT_STASH_OPTIONS: CacheStoreOptions<ViewRoot> = {
+const DEFAULT_CACHE_OPTIONS: CacheStoreOptions<ViewRoot> = {
   max: 10,
   gcTime: Infinity,
   gcSweepInterval: false,
   onRemove: (_key, root) => destroyViewRoot(root),
 };
 
-/** Shared LRU keep-alive stash. */
-export class RouteViewStash implements ViewStashPort {
+/** Shared LRU keep-alive view cache. */
+export class RouteViewCache implements ViewCachePort {
   private static store: AuraCacheStore<ViewRoot> | undefined;
 
   static configure(options: CacheStoreOptions<ViewRoot> = {}): void {
-    RouteViewStash.store?.destroy();
-    RouteViewStash.store = new AuraCacheStore({
-      ...DEFAULT_STASH_OPTIONS,
+    RouteViewCache.store?.destroy();
+    RouteViewCache.store = new AuraCacheStore({
+      ...DEFAULT_CACHE_OPTIONS,
       ...options,
-      onRemove: options.onRemove ?? DEFAULT_STASH_OPTIONS.onRemove,
+      onRemove: options.onRemove ?? DEFAULT_CACHE_OPTIONS.onRemove,
     });
   }
 
   extract(key: string): ViewRoot | undefined {
-    return RouteViewStash.storeOf().extract(key);
+    return RouteViewCache.storeOf().extract(key);
   }
 
   put(key: string, root: ViewRoot): void {
-    RouteViewStash.storeOf().set(key, root);
+    RouteViewCache.storeOf().set(key, root);
   }
 
   private static storeOf(): AuraCacheStore<ViewRoot> {
-    if (!RouteViewStash.store) {
-      RouteViewStash.configure();
+    if (!RouteViewCache.store) {
+      RouteViewCache.configure();
     }
-    return RouteViewStash.store!;
+    return RouteViewCache.store!;
   }
 }
 
@@ -62,4 +62,4 @@ export function destroyViewRoot(root: ViewRoot): void {
   root.remove();
 }
 
-export const defaultViewStash = new RouteViewStash();
+export const defaultViewCache = new RouteViewCache();

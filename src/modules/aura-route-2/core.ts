@@ -1,14 +1,14 @@
 export { AuraRoute2, type AuraRouteInterface } from './core/aura-route';
 export type { RouteRenderOptions, MatchedRouteInfo } from './core/types';
 export {
-  RouteViewStash,
-  defaultViewStash,
-  stashKey,
+  RouteViewCache,
+  defaultViewCache,
+  cacheKey,
   destroyViewRoot,
-} from './view/stash';
+} from './view/view-cache';
 export type {
   ContentResolverPort,
-  ViewStashPort,
+  ViewCachePort,
   MountTargetPort,
   ViewRenderPlugin,
   RouteViewConfig,

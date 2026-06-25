@@ -11,7 +11,7 @@ import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
 import { RouteContentLoader, resolveRouteContentLoaderService } from './route-content-loader';
 import { RouteView } from '../view/route-view';
-import { defaultViewStash } from '../view/stash';
+import { defaultViewCache } from '../view/view-cache';
 import { loadingBodyClass, loadingEvent } from '../view/plugins';
 import type { MountTargetPort } from '../view/ports';
 
@@ -75,7 +75,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
       {
         route: this,
         content: new RouteContentLoader(this, resolveRouteContentLoaderService()),
-        stash: defaultViewStash,
+        cache: defaultViewCache,
         mountTarget,
         plugins,
       },

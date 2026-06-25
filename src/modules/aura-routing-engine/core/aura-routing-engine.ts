@@ -31,7 +31,7 @@ export interface AuraRoutingEngineConfig {
   linksSelector?: string;
   /** Use hash-based routing. Default: `false`. */
   hash?: boolean;
-  /** `out-in` | `in-out` | `parallel`. Default: `out-in`. */
+  /** `out-in` | `in-out` | `parallel`. Default: `parallel`. */
   transitionPolicy?: TransitionPolicy;
   /** Вызывается после history commit navigation (в т.ч. catch-all). */
   onNavigationCommitted?: (to: MatchedRouteInfo) => void;

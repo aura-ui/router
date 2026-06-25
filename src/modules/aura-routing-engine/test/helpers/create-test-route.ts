@@ -23,6 +23,7 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
     onLeft: noop,
     onReenter: noop,
     onError: noop,
+    commitStagedView: noop,
     ...overrides,
   };
 }

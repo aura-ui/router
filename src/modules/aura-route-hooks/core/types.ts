@@ -63,6 +63,11 @@ export interface RouteInstance {
   onLeft(ctx: RouteLifecycleContext): void;
   onReenter(ctx: RouteLifecycleContext): void;
   onError(ctx: RouteErrorContext): void;
+  /**
+   * Commits a staged incoming view in the outlet (`commitStage`); no-op without staged mount.
+   * Invoked on the enter branch after transition hooks, before exit `onLeft`.
+   */
+  commitStagedView?(): void;
 }
 
 /** Hook context: lifecycle + plugin options from `AuraRouter.use(hook, options)`. */

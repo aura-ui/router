@@ -52,6 +52,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
+  /** Inherited from `<aura-router data-transition>`; empty → instant `replace` mount. */
+  @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) transition: string;
 
   @boolAttr({ readonly: true }) preload: boolean;
   @boolAttr({ readonly: true }) keepAlive: boolean;
@@ -95,11 +97,18 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   render(routeInfo?: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     this.viewLifecycleToken++;
-    return this.view.render(routeInfo, options);
+    return this.view.render(routeInfo, {
+      ...options,
+      stageMount: options?.stageMount ?? this.stageMount,
+    });
   }
 
   cancelPendingRender(): void {
     this.view.cancelPendingRender();
+  }
+
+  commitStagedView(): void {
+    this.view.commitStagedView();
   }
 
   onEnter(_ctx: RouteLifecycleContext): void {}
@@ -107,7 +116,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   onEntered(_ctx: RouteLifecycleContext): void {}
   onLeave(_ctx: RouteLifecycleContext): void {}
   onTransitionOut(_ctx: RouteLifecycleContext): void {}
-  onTransitionIn(_ctx: RouteLifecycleContext): void { this.view.onTransitionIn(); }
+  onTransitionIn(_ctx: RouteLifecycleContext): void {}
   onLeft(_ctx: RouteLifecycleContext): void {
     this.viewLifecycleToken++;
     this.view.onLeft();
@@ -117,4 +126,9 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.view.onReenter(ctx.to);
   }
   onError(_ctx: RouteErrorContext): void {}
+
+  /** Staged crossfade when router exposes a non-empty `data-transition`. */
+  private get stageMount(): boolean {
+    return !!this.transition?.trim();
+  }
 }

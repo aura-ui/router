@@ -1,5 +1,4 @@
 import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
-import type { TransitionPolicy } from '../../../aura-routing-engine/core/transition/policy';
 import type { AuraOutlet, OutletStrategy, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../../aura-utils/misc';
 import { RouteRenderSignal } from '../render-signal';
@@ -37,7 +36,7 @@ type PlaceViewInput = {
   payload: Node | string;
   routeInfo?: MatchedRouteInfo;
   viewKind: RouteViewKind;
-  transitionPolicy?: TransitionPolicy;
+  stageMount?: boolean;
   pattern?: string;
   detachedRoot?: ViewRoot;
 };
@@ -108,7 +107,7 @@ export class AuraRouteViewController {
   // --- Public: render pipeline ---
 
   async render(routeInfo?: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
-    const { signal, transitionPolicy } = options ?? {};
+    const { signal, stageMount } = options ?? {};
     const token = this.getLifecycleToken();
     const config = this.config;
     const viewKind = viewKindOf(config);
@@ -118,7 +117,7 @@ export class AuraRouteViewController {
       this.rememberCacheKey(routeInfo);
       if (!this.isTokenCurrent(token)) return;
 
-      if (this.tryRestoreFromCache(token, routeInfo, viewKind, transitionPolicy)) return;
+      if (this.tryRestoreFromCache(token, routeInfo, viewKind, stageMount)) return;
       if (shouldSkipRouteRender(config.keepAlive, viewKind === 'layout', this.currentMountState())) return;
 
       if (config.loadingTemplate) {
@@ -127,7 +126,7 @@ export class AuraRouteViewController {
           payload: getTemplate(config.loadingTemplate),
           routeInfo,
           viewKind,
-          transitionPolicy,
+          stageMount,
         });
       }
 
@@ -140,7 +139,7 @@ export class AuraRouteViewController {
           payload: '<div>No content to display</div>',
           routeInfo,
           viewKind: 'content',
-          transitionPolicy,
+          stageMount,
         });
         return;
       }
@@ -150,18 +149,23 @@ export class AuraRouteViewController {
         payload: payload as Node | string,
         routeInfo,
         viewKind,
-        transitionPolicy,
+        stageMount,
       });
     } catch (error) {
       if (this.renderSignal.aborted || !this.isTokenCurrent(token)) return;
-      this.showRenderError(token, error, routeInfo, transitionPolicy);
+      this.showRenderError(token, error, routeInfo, stageMount);
       throw error;
     }
   }
 
   // --- Public: route lifecycle ---
 
-  onTransitionIn(): void {
+  /**
+   * Promotes a staged incoming view to the sole active root in the outlet.
+   * No-op unless the last render used outlet `stage`. Called by the engine via
+   * `commitEnterViews` after transition hooks, before exit `onLeft`.
+   */
+  commitStagedView(): void {
     if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
     this.activeHandle.mountOutlet.commitStage(this.activeHandle.viewRoot);
     this.lastMountStrategy = 'replace';
@@ -219,14 +223,14 @@ export class AuraRouteViewController {
     token: number,
     routeInfo: MatchedRouteInfo | undefined,
     viewKind: RouteViewKind,
-    transitionPolicy?: TransitionPolicy,
+    stageMount?: boolean,
   ): boolean {
     if (!this.config.keepAlive) return false;
 
     const cached = this.viewCache.extract(this.cacheKey(routeInfo));
     if (!cached) return false;
 
-    this.reattachFromCache(token, cached, routeInfo, viewKind, transitionPolicy);
+    this.reattachFromCache(token, cached, routeInfo, viewKind, stageMount);
     return true;
   }
 
@@ -251,7 +255,7 @@ export class AuraRouteViewController {
 
   private buildMountContext(
     routeInfo?: MatchedRouteInfo,
-    transitionPolicy?: TransitionPolicy,
+    stageMount?: boolean,
     pattern?: string,
   ): ViewMountContext {
     return {
@@ -259,7 +263,7 @@ export class AuraRouteViewController {
       rootOutlet: this.outlets.resolveRootOutlet(),
       parentOutlet: this.outlets.parentOutlet(routeInfo),
       signal: this.renderSignal.signal,
-      transitionPolicy,
+      stageMount,
     };
   }
 
@@ -268,7 +272,7 @@ export class AuraRouteViewController {
     root: ViewRoot,
     routeInfo?: MatchedRouteInfo,
     viewKind: RouteViewKind = viewKindOf(this.config),
-    transitionPolicy?: TransitionPolicy,
+    stageMount?: boolean,
     pattern?: string,
   ): void {
     this.placeView({
@@ -276,7 +280,7 @@ export class AuraRouteViewController {
       payload: root,
       routeInfo,
       viewKind,
-      transitionPolicy,
+      stageMount,
       pattern,
       detachedRoot: root,
     });
@@ -290,7 +294,7 @@ export class AuraRouteViewController {
       : this.currentMountState();
 
     const result = mountRoute(
-      this.buildMountContext(input.routeInfo, input.transitionPolicy, input.pattern),
+      this.buildMountContext(input.routeInfo, input.stageMount, input.pattern),
       input.payload,
       previous,
     );
@@ -368,7 +372,7 @@ export class AuraRouteViewController {
     token: number,
     error: unknown,
     routeInfo?: MatchedRouteInfo,
-    transitionPolicy?: TransitionPolicy,
+    stageMount?: boolean,
   ): void {
     const config = this.config;
 
@@ -379,7 +383,7 @@ export class AuraRouteViewController {
           payload: getTemplate(config.errorTemplate),
           routeInfo,
           viewKind: 'content',
-          transitionPolicy,
+          stageMount,
         });
         return;
       } catch (templateError) {

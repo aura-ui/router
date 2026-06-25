@@ -104,7 +104,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.querySelectorAll<AuraRoute>(AuraRoute.is);
   }
 
-  get defaultOutlet(): AuraOutlet {
+  get appOutlet(): AuraOutlet {
     return this.querySelector(AuraOutlet.is) as AuraOutlet;
      // ?? this.#ensureDefaultOutlet();
   }

@@ -1,14 +1,20 @@
 import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
 import type { AuraRouteInterface } from '../aura-route';
-import type { AuraOutlet, OutletStrategy, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../../aura-utils/misc';
 import { RouteRenderSignal } from './render-signal';
 
 import {
+  commitStagedMount,
+  EMPTY_ROUTE_MOUNT,
   hasActiveMount,
+  mergeMountResult,
   mountRoute,
   reattachRoute,
-  unmountRoute,
+  rollbackStagedMount,
+  toViewMountState,
+  unmountMountOnLeave,
+  type RouteMountSnapshot,
   type ViewMountContext,
   type ViewMountState,
 } from './outlet-adapter';
@@ -25,13 +31,6 @@ type PlaceViewInput = {
   viewKind: RouteViewKind;
 };
 
-type RouteLastMount = {
-  strategy: Extract<OutletStrategy, 'replace' | 'stage'>;
-  handle: ViewMountState['activeHandle'];
-};
-
-const EMPTY_ROUTE_LAST_MOUNT: RouteLastMount = { strategy: 'replace', handle: null };
-
 /**
  * View state and render orchestration for {@link AuraRoute}.
  * Outlet policy lives in {@link outlet-adapter}; stage lifecycle calls {@link AuraOutlet} directly.
@@ -46,14 +45,14 @@ export class AuraRouteViewController {
   private readonly getMountOutlet: (routeInfo?: MatchedRouteInfo) => AuraOutlet | null;
   private readonly getLifecycleToken: () => number;
 
-  private lastMount: RouteLastMount = { ...EMPTY_ROUTE_LAST_MOUNT };
-  /** Outgoing view kept alive while `lastMount.strategy === 'stage'`. */
-  private stageOutgoingHandle: ViewMountState['activeHandle'] = null;
+  private mount: RouteMountSnapshot = { ...EMPTY_ROUTE_MOUNT };
   /** Set at {@link render} commit; used by {@link onLeft} keep-alive stash. */
   private lastCacheKey: string | null = null;
 
   /** Nested `<aura-outlet>` inside mounted layout; children render here. */
-  nestedOutlet: AuraOutlet | null = null;
+  get nestedOutlet(): AuraOutlet | null {
+    return this.mount.nestedOutlet;
+  }
 
   constructor(
     route: AuraRouteInterface,
@@ -83,7 +82,7 @@ export class AuraRouteViewController {
   }
 
   cancelPendingRender(): void {
-    this.cancelStagedMount();
+    this.mount = rollbackStagedMount(this.mount);
     this.renderSignal.cancel();
   }
 
@@ -104,7 +103,7 @@ export class AuraRouteViewController {
       this.lastCacheKey = this.cacheKey(routeInfo);
 
       if (this.tryRestoreFromCache(token, routeInfo, viewKind)) return;
-      if (config.keepAlive && hasActiveMount(viewKind === 'layout', this.currentMountState())) return;
+      if (config.keepAlive && hasActiveMount(viewKind === 'layout', toViewMountState(this.mount))) return;
 
       //todo think about body classname and event
       if (config.loadingTemplate) {
@@ -150,32 +149,20 @@ export class AuraRouteViewController {
    * `commitEnterViews` after transition hooks, before exit `onLeft`.
    */
   commitStagedView(): void {
-    if (this.lastMount.strategy !== 'stage' || !this.lastMount.handle) return;
-    this.lastMount.handle.mountOutlet.commitStage(this.lastMount.handle.viewRoot);
-    this.lastMount.strategy = 'replace';
-    this.stageOutgoingHandle = null;
+    this.mount = commitStagedMount(this.mount);
   }
 
   onLeft(): void {
     this.renderSignal.cancel();
 
     const config = this.route;
-    let detached: ViewRoot | null = null;
-
-    if (this.lastMount.strategy === 'stage') {
-      this.dropStagedView();
-      detached = unmountRoute(this.stageOutgoingHandle, config.keepAlive);
-      this.stageOutgoingHandle = null;
-    } else {
-      detached = unmountRoute(this.lastMount.handle, config.keepAlive);
-    }
-
-    this.lastMount.handle = null;
+    const { state, detached } = unmountMountOnLeave(this.mount, config.keepAlive);
+    this.mount = state;
 
     if (config.keepAlive && detached) {
       this.viewCache.put(this.lastCacheKey ?? this.route.path, detached);
     } else {
-      this.nestedOutlet = null;
+      this.mount = { ...this.mount, nestedOutlet: null };
     }
   }
 
@@ -208,13 +195,6 @@ export class AuraRouteViewController {
     return !!this.route.transition?.trim();
   }
 
-  private currentMountState(): ViewMountState {
-    return {
-      activeHandle: this.lastMount.handle,
-      nestedOutlet: this.nestedOutlet,
-    };
-  }
-
   private buildMountContext(routeInfo?: MatchedRouteInfo): ViewMountContext {
     return {
       pattern: routeInfo?.pattern,
@@ -231,7 +211,7 @@ export class AuraRouteViewController {
     const result = mountRoute(
       this.buildMountContext(data.routeInfo),
       data.payload,
-      this.currentMountState(),
+      toViewMountState(this.mount),
     );
 
     this.applyMountResult(result, data.viewKind);
@@ -245,45 +225,13 @@ export class AuraRouteViewController {
   }
 
   private applyMountResult(result: ViewMountState, viewKind: RouteViewKind): void {
-    if (result.appliedStrategy === 'stage') {
-      this.stageOutgoingHandle = this.lastMount.handle;
-    } else {
-      this.stageOutgoingHandle = null;
-    }
-
-    this.lastMount = {
-      strategy: result.appliedStrategy ?? 'replace',
-      handle: result.activeHandle,
-    };
-    this.nestedOutlet = result.nestedOutlet;
+    this.mount = mergeMountResult(this.mount, result);
 
     if (viewKind === 'layout' && !result.nestedOutlet) {
       console.warn(
         `AuraRoute layout "${this.route.layout}" (path: ${this.route.path}) has no <aura-outlet>`,
       );
     }
-  }
-
-  /** Cancel pending stage and restore `stageOutgoingHandle` as `lastMount.handle`. */
-  private cancelStagedMount(): void {
-    if (this.lastMount.strategy !== 'stage' || !this.lastMount.handle) return;
-    this.dropStagedView();
-
-    if (this.stageOutgoingHandle) {
-      this.lastMount.handle = this.stageOutgoingHandle;
-      this.nestedOutlet = this.stageOutgoingHandle.findChildOutlet();
-      this.stageOutgoingHandle = null;
-    } else {
-      this.lastMount.handle = null;
-      this.nestedOutlet = null;
-    }
-  }
-
-  /** Remove staged DOM only; does not restore controller handles (used when leaving the route). */
-  private dropStagedView(): void {
-    if (this.lastMount.strategy !== 'stage' || !this.lastMount.handle) return;
-    this.lastMount.handle.mountOutlet.cancelStage();
-    this.lastMount.strategy = 'replace';
   }
 
   // --- Private: content resolution ---

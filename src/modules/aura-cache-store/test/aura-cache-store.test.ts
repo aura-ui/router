@@ -72,19 +72,19 @@ describe('AuraCacheStore', () => {
       expect(cache.size).toBe(0);
     });
 
-    it('calls onEvict when GC evicts on read', () => {
-      const evicted: Array<[string, string]> = [];
+    it('calls onRemove when GC removes on read', () => {
+      const removed: Array<[string, string]> = [];
       cache = new AuraCacheStore<string>({
         gcTime: 1_000,
         gcSweepInterval: false,
-        onEvict: (key, value) => evicted.push([key, value]),
+        onRemove: (key, value) => removed.push([key, value]),
       });
       cache.set('a', 'one');
 
       jest.advanceTimersByTime(1_001);
       cache.get('a');
 
-      expect(evicted).toEqual([['a', 'one']]);
+      expect(removed).toEqual([['a', 'one']]);
       expect(cache.size).toBe(0);
     });
   });
@@ -193,7 +193,7 @@ describe('AuraCacheStore', () => {
       expect(cache.lookup('a')).toEqual({ status: 'stale', value: 'one' });
     });
 
-    it('isStale evicts GC-expired manual stale entries like get and lookup', () => {
+    it('isStale removes GC-expired manual stale entries like get and lookup', () => {
       cache = new AuraCacheStore<string>({
         staleTime: 500,
         gcTime: 2_000,
@@ -215,7 +215,7 @@ describe('AuraCacheStore', () => {
   });
 
   describe('LRU max', () => {
-    it('evicts least recently used entry when max is exceeded', () => {
+    it('removes least recently used entry when max is exceeded', () => {
       cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
       cache.set('a', 'A');
       cache.set('b', 'B');
@@ -227,7 +227,7 @@ describe('AuraCacheStore', () => {
       expect(cache.size).toBe(2);
     });
 
-    it('promotes accessed keys so they are not evicted first', () => {
+    it('promotes accessed keys so they are not removed first', () => {
       cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
       cache.set('a', 'A');
       cache.set('b', 'B');
@@ -284,18 +284,18 @@ describe('AuraCacheStore', () => {
       expect(cache.get('b')).toBe('B');
     });
 
-    it('calls onEvict when LRU evicts the least recently used entry', () => {
-      const evicted: Array<[string, string]> = [];
+    it('calls onRemove when LRU removes the least recently used entry', () => {
+      const removed: Array<[string, string]> = [];
       cache = new AuraCacheStore<string>({
         max: 2,
         gcSweepInterval: false,
-        onEvict: (key, value) => evicted.push([key, value]),
+        onRemove: (key, value) => removed.push([key, value]),
       });
       cache.set('a', 'A');
       cache.set('b', 'B');
       cache.set('c', 'C');
 
-      expect(evicted).toEqual([['a', 'A']]);
+      expect(removed).toEqual([['a', 'A']]);
       expect(cache.size).toBe(2);
     });
   });
@@ -374,15 +374,15 @@ describe('AuraCacheStore', () => {
   });
 
   describe('extract', () => {
-    it('returns value and removes entry without onEvict', () => {
-      const evicted: string[] = [];
-      cache = new AuraCacheStore<string>({ onEvict: (key) => evicted.push(key) });
+    it('returns value and removes entry without onRemove', () => {
+      const removed: string[] = [];
+      cache = new AuraCacheStore<string>({ onRemove: (key) => removed.push(key) });
       cache.set('a', 'one');
 
       expect(cache.extract('a')).toBe('one');
       expect(cache.get('a')).toBeUndefined();
       expect(cache.size).toBe(0);
-      expect(evicted).toEqual([]);
+      expect(removed).toEqual([]);
     });
 
     it('returns undefined for missing keys', () => {
@@ -390,31 +390,31 @@ describe('AuraCacheStore', () => {
       expect(cache.extract('missing')).toBeUndefined();
     });
 
-    it('calls onEvict when GC-expired on extract', () => {
-      const evicted: Array<[string, string]> = [];
+    it('calls onRemove when GC-expired on extract', () => {
+      const removed: Array<[string, string]> = [];
       cache = new AuraCacheStore<string>({
         gcTime: 1_000,
         gcSweepInterval: false,
-        onEvict: (key, value) => evicted.push([key, value]),
+        onRemove: (key, value) => removed.push([key, value]),
       });
       cache.set('a', 'one');
 
       jest.advanceTimersByTime(1_001);
 
       expect(cache.extract('a')).toBeUndefined();
-      expect(evicted).toEqual([['a', 'one']]);
+      expect(removed).toEqual([['a', 'one']]);
     });
   });
 
   describe('delete and clear', () => {
-    it('delete removes an existing entry and calls onEvict', () => {
-      const evicted: string[] = [];
-      cache = new AuraCacheStore<string>({ onEvict: (key) => evicted.push(key) });
+    it('delete removes an existing entry and calls onRemove', () => {
+      const removed: string[] = [];
+      cache = new AuraCacheStore<string>({ onRemove: (key) => removed.push(key) });
       cache.set('a', 'one');
 
       expect(cache.delete('a')).toBe(true);
       expect(cache.get('a')).toBeUndefined();
-      expect(evicted).toEqual(['a']);
+      expect(removed).toEqual(['a']);
     });
 
     it('delete returns false for missing keys', () => {
@@ -422,31 +422,31 @@ describe('AuraCacheStore', () => {
       expect(cache.delete('missing')).toBe(false);
     });
 
-    it('clear removes all entries and calls onEvict for each', () => {
-      const evicted: string[] = [];
-      cache = new AuraCacheStore<string>({ onEvict: (key) => evicted.push(key) });
+    it('clear removes all entries and calls onRemove for each', () => {
+      const removed: string[] = [];
+      cache = new AuraCacheStore<string>({ onRemove: (key) => removed.push(key) });
       cache.set('a', '1');
       cache.set('b', '2');
 
       cache.clear();
 
       expect(cache.size).toBe(0);
-      expect(evicted).toEqual(['a', 'b']);
+      expect(removed).toEqual(['a', 'b']);
     });
 
     it('destroy releases the store like clear', () => {
-      const evicted: string[] = [];
+      const removed: string[] = [];
       cache = new AuraCacheStore<string>({
         gcTime: 1_000,
         gcSweepInterval: 500,
-        onEvict: (key) => evicted.push(key),
+        onRemove: (key) => removed.push(key),
       });
       cache.set('a', '1');
 
       cache.destroy();
 
       expect(cache.size).toBe(0);
-      expect(evicted).toEqual(['a']);
+      expect(removed).toEqual(['a']);
       expect(cache.get('a')).toBeUndefined();
     });
   });
@@ -464,18 +464,18 @@ describe('AuraCacheStore', () => {
     });
 
     it('remove policy deletes entry', () => {
-      const evicted: string[] = [];
+      const removed: string[] = [];
       cache = new AuraCacheStore<number>({
         staleTime: 60_000,
         gcSweepInterval: false,
-        onEvict: (key) => evicted.push(key),
+        onRemove: (key) => removed.push(key),
       });
       cache.set('x', 1);
 
       cache.invalidate('x', 'remove');
 
       expect(cache.get('x')).toBeUndefined();
-      expect(evicted).toEqual(['x']);
+      expect(removed).toEqual(['x']);
     });
 
     it('returns false when invalidating a missing key', () => {
@@ -541,14 +541,14 @@ describe('AuraCacheStore', () => {
     });
 
     it('invalidateAll with remove policy deletes every entry', () => {
-      const evicted: string[] = [];
-      cache = new AuraCacheStore<string>({ onEvict: (key) => evicted.push(key) });
+      const removed: string[] = [];
+      cache = new AuraCacheStore<string>({ onRemove: (key) => removed.push(key) });
       cache.set('a', '1');
       cache.set('b', '2');
 
       expect(cache.invalidateAll('remove')).toBe(2);
       expect(cache.size).toBe(0);
-      expect(evicted).toEqual(['a', 'b']);
+      expect(removed).toEqual(['a', 'b']);
     });
   });
 });

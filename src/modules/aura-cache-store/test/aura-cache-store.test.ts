@@ -80,6 +80,11 @@ describe('AuraCacheStore', () => {
       expect(cache.has('a')).toBe(false);
       expect(cache.keys().sort()).toEqual(['b', 'c']);
     });
+
+    it('throws when max is less than 1', () => {
+      expect(() => new AuraCacheStore<string>({ max: 0 })).toThrow('max must be >= 1');
+      expect(() => new AuraCacheStore<string>({ max: -1 })).toThrow('max must be >= 1');
+    });
   });
 
   describe('gcTime without SWR', () => {
@@ -411,6 +416,33 @@ describe('AuraCacheStore', () => {
       cache.delete('a');
 
       jest.advanceTimersByTime(5_000);
+      expect(cache.size).toBe(0);
+    });
+  });
+
+  describe('peek', () => {
+    it('returns value without promoting LRU order', () => {
+      cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+
+      expect(cache.peek('a')).toBe('A');
+      cache.set('c', 'C');
+
+      expect(cache.has('a')).toBe(false);
+      expect(cache.peek('b')).toBe('B');
+      expect(cache.peek('c')).toBe('C');
+    });
+
+    it('returns undefined for GC-expired without removing the entry', () => {
+      cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.peek('a')).toBeUndefined();
+      expect(cache.size).toBe(1);
+      expect(cache.get('a')).toBeUndefined();
       expect(cache.size).toBe(0);
     });
   });

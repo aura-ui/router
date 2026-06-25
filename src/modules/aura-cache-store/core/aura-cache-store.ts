@@ -75,7 +75,8 @@ interface Node<T> {
  *
  * GC is lazy on access (`get`, `has`, `lookup`, `isStale`) and proactive via
  * {@link AuraCacheStore.purgeExpired} or background sweep (`gcSweepInterval`).
- * `has`, `isStale`, and `lookup` without `touch` do not promote LRU order.
+ * `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order.
+ * `peek` and `keys` also do not remove GC-expired entries.
  */
 export class AuraCacheStore<T> {
   private readonly max?: number;
@@ -97,6 +98,10 @@ export class AuraCacheStore<T> {
    * @param options - Cache limits, SWR timings, invalidation defaults, and removal callback.
    */
   constructor(options: CacheStoreOptions<T> = {}) {
+    if (options.max !== undefined && options.max < 1) {
+      throw new Error(`AuraCacheStore: max must be >= 1, got ${options.max}`);
+    }
+
     this.max = options.max;
     this.swrEnabled = options.staleTime !== undefined;
     this.staleTimeMs = options.staleTime;
@@ -227,6 +232,21 @@ export class AuraCacheStore<T> {
     }
 
     this.ensureSweepRunning();
+  }
+
+  /**
+   * Returns a cached value without promoting LRU order or removing GC-expired entries.
+   *
+   * @param key - Cache key.
+   * @returns The stored value, or `undefined` if missing or GC-expired (entry is kept until lazy GC).
+   */
+  peek(key: string): T | undefined {
+    const node = this.map.get(key);
+    if (!node) return undefined;
+    if (this.gcTimeMs !== undefined && Date.now() - node.storedAt > this.gcTimeMs) {
+      return undefined;
+    }
+    return node.value;
   }
 
   /**

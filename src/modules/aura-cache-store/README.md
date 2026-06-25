@@ -242,12 +242,23 @@ cache.destroy();      // stop sweep and release all entries
 
 ### `onRemove` callback
 
+Invoked when the store discards a value (LRU, GC, overwrite, `delete`, `clear`, `invalidate(..., 'remove')`). Use it to release resources — e.g. remove a DOM node from a detached keep-alive subtree.
+
+**Do not call store methods inside `onRemove`.** While the callback runs, the store may be walking its internal list or updating an entry. Calling `set`, `delete`, `clear`, `get`, `extract`, or `invalidate` from `onRemove` is unsupported: it can double-invoke callbacks, skip entries, or recurse indefinitely. Only clean up the `value` you receive.
+
 ```ts
 const cache = new AuraCacheStore<HTMLElement>({
   max: 10,
-  onRemove: (_key, el) => el.remove(),
+  onRemove: (_key, el) => el.remove(), // OK — release the element
+});
+
+// ❌ unsupported
+const bad = new AuraCacheStore<HTMLElement>({
+  onRemove: (key) => cache.delete(key),
 });
 ```
+
+`extract` intentionally does **not** call `onRemove` — ownership moves to the caller (keep-alive checkout).
 
 ## Exported types
 

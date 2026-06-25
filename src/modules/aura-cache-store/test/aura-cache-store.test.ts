@@ -79,7 +79,7 @@ describe('AuraCacheStore', () => {
       expect(localCache.get('a')).toBe('one');
     });
 
-    it('keys returns a snapshot without promoting LRU or removing entries', () => {
+    it('keys returns a snapshot without promoting LRU when gcTime is unset', () => {
       cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
       cache.set('a', 'A');
       cache.set('b', 'B');

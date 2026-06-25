@@ -357,6 +357,43 @@ describe('AuraCacheStore', () => {
       expect(removed).toEqual([['a', 'A']]);
       expect(cache.size).toBe(2);
     });
+
+    it('list walk completes after LRU promotion via get', () => {
+      cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.get('a');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.purgeExpired()).toBe(2);
+      expect(cache.size).toBe(0);
+    });
+
+    it('clear with onRemove completes after LRU promotion via get', () => {
+      const removed: string[] = [];
+      cache = new AuraCacheStore<string>({
+        onRemove: (key) => removed.push(key),
+      });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.get('a');
+
+      cache.clear();
+
+      expect(removed.sort()).toEqual(['a', 'b']);
+      expect(cache.size).toBe(0);
+    });
+
+    it('invalidateMatch remove completes after LRU promotion via lookup touch', () => {
+      cache = new AuraCacheStore<string>({ gcSweepInterval: false });
+      cache.set('a', 'A');
+      cache.set('b', 'B');
+      cache.lookup('a', true);
+
+      expect(cache.invalidateMatch(() => true, 'remove')).toBe(2);
+      expect(cache.size).toBe(0);
+    });
   });
 
   describe('proactive GC', () => {
@@ -446,16 +483,61 @@ describe('AuraCacheStore', () => {
       expect(cache.peek('c')).toBe('C');
     });
 
-    it('returns undefined for GC-expired without removing the entry', () => {
+    it('removes GC-expired entries on peek like has', () => {
       cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
       cache.set('a', 'one');
 
       jest.advanceTimersByTime(1_001);
 
       expect(cache.peek('a')).toBeUndefined();
-      expect(cache.size).toBe(1);
-      expect(cache.get('a')).toBeUndefined();
       expect(cache.size).toBe(0);
+      expect(cache.get('a')).toBeUndefined();
+    });
+
+    it('calls onRemove when peek removes a GC-expired entry', () => {
+      const removed: Array<[string, string]> = [];
+      cache = new AuraCacheStore<string>({
+        gcTime: 1_000,
+        gcSweepInterval: false,
+        onRemove: (key, value) => removed.push([key, value]),
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+      cache.peek('a');
+
+      expect(removed).toEqual([['a', 'one']]);
+      expect(cache.size).toBe(0);
+    });
+  });
+
+  describe('size and keys', () => {
+    it('exclude GC-expired entries without a prior read', () => {
+      cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+      cache.set('b', 'two');
+
+      expect(cache.keys()).toEqual(['b']);
+      expect(cache.size).toBe(1);
+      expect(cache.has('a')).toBe(false);
+    });
+
+    it('calls onRemove when size purges GC-expired entries', () => {
+      const removed: string[] = [];
+      cache = new AuraCacheStore<string>({
+        gcTime: 1_000,
+        gcSweepInterval: false,
+        onRemove: (key) => removed.push(key),
+      });
+      cache.set('a', 'one');
+
+      jest.advanceTimersByTime(1_001);
+      cache.set('b', 'two');
+
+      expect(cache.size).toBe(1);
+      expect(removed).toEqual(['a']);
     });
   });
 

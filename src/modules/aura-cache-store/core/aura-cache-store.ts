@@ -42,7 +42,11 @@ export type CacheStoreOptions<T> = {
   /** Default invalidation policy. See {@link InvalidatePolicy}. */
   invalidatePolicy?: InvalidatePolicy;
   /**
-   * Called when an entry is removed (LRU, GC, `set` overwrite, `delete`, `clear`, or `invalidate` with `remove`).
+   * Called when a value is discarded: LRU eviction; GC ({@link AuraCacheStore.purgeExpired},
+   * background sweep, or lazy GC on `get` / `lookup` / `has` / `peek` / `isStale` / GC-expired
+   * `extract`); `set` overwrite when the value changes (not when the same reference is reused);
+   * `delete` / `clear`; `invalidate` with `'remove'` (including `invalidateMatch` /
+   * `invalidateAll`). Not called on live `extract`, `invalidate(..., 'stale')`, or `size` / `keys`.
    *
    * **Do not call store methods from this callback** (`get`, `set`, `delete`, `clear`,
    * `invalidate`, `extract`, etc.). The store may be mid-removal; reentrant mutations can
@@ -79,9 +83,10 @@ interface Node<T> {
  * Lifecycle: `fresh` → `stale` → removed after `gcTime` (default {@link DEFAULT_GC_TIME}).
  * Use {@link AuraCacheStore.lookup} to read status. `gcTime: Infinity` disables TTL removal.
  *
- * GC is lazy on access (`get`, `has`, `peek`, `lookup`, `isStale`) and proactive via
- * {@link AuraCacheStore.purgeExpired}, background sweep (`gcSweepInterval`), or introspection
- * (`size`, `keys`). `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order.
+ * GC is lazy on access (`get`, `has`, `peek`, `lookup`, `isStale`, `extract`) and proactive via
+ * {@link AuraCacheStore.purgeExpired} or background sweep (`gcSweepInterval`).
+ * `size` and `keys` are passive introspection (may include GC-expired entries until removed
+ * elsewhere). `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order.
  */
 export class AuraCacheStore<T> {
   private readonly max?: number;
@@ -448,23 +453,24 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Number of readable entries stored (includes stale; excludes GC-expired).
+   * Number of entries in the map (includes stale and GC-expired until removed elsewhere).
+   * Does not run GC or promote LRU.
    *
-   * @returns Current entry count after removing GC-expired entries when `gcTime` is configured.
+   * @returns Current `map` size. Use {@link AuraCacheStore.purgeExpired} or read accessors
+   *   first when you need a count of readable entries only.
    */
   get size(): number {
-    this.sweepExpired();
     return this.map.size;
   }
 
   /**
-   * Snapshot of cache keys (includes stale; excludes GC-expired).
-   * Order is arbitrary. Does not promote LRU. Removes GC-expired entries when `gcTime` is configured.
+   * Snapshot of map keys in insertion order (not LRU order). Does not promote LRU or run GC.
+   * May include GC-expired keys until removed by access, {@link AuraCacheStore.purgeExpired},
+   * or background sweep.
    *
-   * @returns All readable keys currently in the store.
+   * @returns All keys currently in the map.
    */
   keys(): string[] {
-    this.sweepExpired();
     return Array.from(this.map.keys());
   }
 

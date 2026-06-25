@@ -3,7 +3,7 @@ import {
   ContentLoaderService,
 } from '../../aura-content-loaders/core';
 import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
-import type { RouteContentPort } from './aura-route-view-controller';
+import type { RouteContentPort } from './view/view-controller.types';
 
 export type RouteContentSource = {
   path: string;

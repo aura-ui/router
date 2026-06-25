@@ -53,7 +53,6 @@ export interface RouteOutletPort {
  * Mount primitives stay in {@link route-mount}; content loading is injected via {@link RouteContentPort}.
  */
 export class AuraRouteViewController {
-  private isActive = false;
   private readonly renderSignal = new RouteRenderSignal();
 
   private activeHandle: ViewHandle | null = null;
@@ -67,17 +66,20 @@ export class AuraRouteViewController {
   private readonly outlets: RouteOutletPort;
   private readonly content: RouteContentPort;
   private readonly viewCache: RouteViewCachePort;
+  private readonly getLifecycleToken: () => number;
 
   constructor(
     getConfig: () => RouteViewConfig,
     outlets: RouteOutletPort,
     content: RouteContentPort,
     viewCache: RouteViewCachePort = defaultRouteViewCache,
+    getLifecycleToken: () => number = () => 0,
   ) {
     this.getConfig = getConfig;
     this.outlets = outlets;
     this.content = content;
     this.viewCache = viewCache;
+    this.getLifecycleToken = getLifecycleToken;
   }
 
   private get config(): RouteViewConfig {
@@ -111,21 +113,27 @@ export class AuraRouteViewController {
     this.renderSignal.cancel();
   }
 
+  private isTokenCurrent(token: number): boolean {
+    return this.getLifecycleToken() === token;
+  }
+
   async render(routeInfo?: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     const { signal, transitionPolicy } = options ?? {};
+    const token = this.getLifecycleToken();
     const config = this.config;
     const viewKind: RouteViewKind = config.layout ? 'layout' : 'content';
     const isLayout = viewKind === 'layout';
 
     try {
-      this.isActive = true;
       this.renderSignal.begin(signal);
       this.syncStashKey(routeInfo);
+
+      if (!this.isTokenCurrent(token)) return;
 
       if (config.keepAlive) {
         const cached = this.viewCache.extract(this.cacheKey(routeInfo));
         if (cached) {
-          this.reattach(routeInfo, viewKind, transitionPolicy, undefined, cached);
+          this.reattach(token, routeInfo, viewKind, transitionPolicy, undefined, cached);
           return;
         }
       }
@@ -135,30 +143,30 @@ export class AuraRouteViewController {
       }
 
       if (config.loadingTemplate) {
-        this.show(getTemplate(config.loadingTemplate), routeInfo, viewKind, transitionPolicy);
+        this.show(token, getTemplate(config.loadingTemplate), routeInfo, viewKind, transitionPolicy);
       }
 
       const payload = await this.resolvePayload(viewKind, routeInfo);
-      if (this.renderSignal.aborted) return;
+      if (this.renderSignal.aborted || !this.isTokenCurrent(token)) return;
 
       if (viewKind === 'content' && !payload) {
-        this.show('<div>No content to display</div>', routeInfo, 'content', transitionPolicy);
+        this.show(token, '<div>No content to display</div>', routeInfo, 'content', transitionPolicy);
         return;
       }
 
-      this.show(payload as Node | string, routeInfo, viewKind, transitionPolicy);
+      this.show(token, payload as Node | string, routeInfo, viewKind, transitionPolicy);
     } catch (error) {
-      if (this.renderSignal.aborted) return;
+      if (this.renderSignal.aborted || !this.isTokenCurrent(token)) return;
 
       if (config.errorTemplate) {
         try {
-          this.show(getTemplate(config.errorTemplate), routeInfo, 'content', transitionPolicy);
+          this.show(token, getTemplate(config.errorTemplate), routeInfo, 'content', transitionPolicy);
         } catch (templateError) {
           console.warn(`Failed to render errorTemplate for route "${config.path}":`, templateError);
-          this.handleRenderError(error);
+          this.handleRenderError(token, error);
         }
       } else {
-        this.handleRenderError(error);
+        this.handleRenderError(token, error);
       }
 
       throw error;
@@ -172,7 +180,6 @@ export class AuraRouteViewController {
   }
 
   onLeft(): void {
-    this.isActive = false;
     this.renderSignal.cancel();
 
     this.cancelStagedMountIfAny();
@@ -194,10 +201,10 @@ export class AuraRouteViewController {
     const cached = this.viewCache.extract(this.cacheKey(route));
     if (!cached) return;
 
-    this.isActive = true;
+    const token = this.getLifecycleToken();
     const config = this.config;
     const viewKind: RouteViewKind = config.layout ? 'layout' : 'content';
-    this.reattach(undefined, viewKind, undefined, route.pathname, cached, route);
+    this.reattach(token, undefined, viewKind, undefined, route.pathname, cached, route);
   }
 
   private snapshot(): RouteMountResult {
@@ -236,6 +243,7 @@ export class AuraRouteViewController {
   }
 
   private reattach(
+    token: number,
     routeInfo?: MatchedRouteInfo,
     viewKind: RouteViewKind = this.config.layout ? 'layout' : 'content',
     transitionPolicy?: TransitionPolicy,
@@ -244,7 +252,7 @@ export class AuraRouteViewController {
     cacheRoute?: ViewCacheKeySource,
   ): void {
     if (!extractedRoot) return;
-    this.show(extractedRoot, routeInfo, viewKind, transitionPolicy, pattern, extractedRoot, cacheRoute);
+    this.show(token, extractedRoot, routeInfo, viewKind, transitionPolicy, pattern, extractedRoot, cacheRoute);
   }
 
   private applyMountResult(result: RouteMountResult, viewKind: RouteViewKind): void {
@@ -259,6 +267,7 @@ export class AuraRouteViewController {
   }
 
   private show(
+    token: number,
     payload: Node | string,
     routeInfo?: MatchedRouteInfo,
     viewKind: RouteViewKind,
@@ -267,7 +276,7 @@ export class AuraRouteViewController {
     extractedRoot?: ViewRoot,
     _cacheRoute?: ViewCacheKeySource,
   ): void {
-    if (!this.isActive) return;
+    if (!this.isTokenCurrent(token)) return;
 
     const previous: RouteMountResult = extractedRoot
       ? { activeHandle: null, resolvedOutlet: null, detachedRoot: extractedRoot }
@@ -301,15 +310,16 @@ export class AuraRouteViewController {
     return payload;
   }
 
-  private handleRenderError(error: unknown): void {
+  private handleRenderError(token: number, error: unknown): void {
     console.error(`Error rendering AuraRoute (path: ${this.config.path}):`, error);
 
-    if (!this.isActive) return;
+    if (!this.isTokenCurrent(token)) return;
 
     const message = escapeHtml(error instanceof Error ? error.message : 'Error loading content');
     const stackTrace = escapeHtml(error instanceof Error ? error.stack ?? '' : '');
 
     this.show(
+      token,
       `<div class="aura-route-error">
       <h2>Content Loading Error</h2>
       <p>${message}</p>
@@ -345,6 +355,7 @@ export type AuraRouteViewHost = {
 export function createAuraRouteViewController(
   host: AuraRouteViewHost,
   resolveRootOutlet: () => AuraOutlet,
+  getLifecycleToken: () => number = () => 0,
 ): AuraRouteViewController {
   return new AuraRouteViewController(
     () => ({
@@ -368,5 +379,7 @@ export function createAuraRouteViewController(
       }),
       resolveRouteContentLoaderService(),
     ),
+    undefined,
+    getLifecycleToken,
   );
 }

@@ -17,8 +17,19 @@ export type {
 export { RouteViewController } from './core/view/view-controller';
 export { createRenderPass, isStale, type RenderPass } from './core/view/render-pass';
 export { loadingBodyClass, loadingEvent } from './core/view/plugins';
+export { RouteContentLoader } from './core/route-content-loader';
 export {
-  configureRouteContentLoader,
-  resolveRouteContentLoaderService,
-  RouteContentLoader,
-} from './core/route-content-loader';
+  ContentResolver,
+  type ContentResolverDeps,
+} from './core/loader/content-resolver';
+export { ContentCache, defaultContentCache } from './core/loader/content-cache';
+export { LoaderRegistry, defaultLoaderRegistry } from './core/loader/registry';
+export { contentDescriptor } from './core/loader/descriptor';
+export { contentCacheKey } from './core/loader/content-key';
+export type {
+  ContentDescriptor,
+  ContentKind,
+  LoaderType,
+  ResolveContext,
+  LoaderFn,
+} from './core/loader/types';

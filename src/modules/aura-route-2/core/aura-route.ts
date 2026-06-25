@@ -9,7 +9,7 @@ import type {
 } from '../../aura-route-hooks/core';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
-import { RouteContentLoader, resolveRouteContentLoaderService } from './route-content-loader';
+import { RouteContentLoader } from './route-content-loader';
 import { RouteViewController } from './view/view-controller';
 import { defaultViewCache } from './view/view-cache';
 import { loadingBodyClass, loadingEvent } from './view/plugins';
@@ -74,7 +74,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
     this.view = new RouteViewController(
       {
         route: this,
-        content: new RouteContentLoader(this, resolveRouteContentLoaderService()),
+        content: new RouteContentLoader(this),
         cache: defaultViewCache,
         mountTarget,
         plugins,

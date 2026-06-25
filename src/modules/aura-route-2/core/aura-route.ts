@@ -10,7 +10,7 @@ import type {
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
 import { RouteContentLoader, resolveRouteContentLoaderService } from './route-content-loader';
-import { RouteView } from '../view/route-view';
+import { RouteViewController } from '../view/view-controller';
 import { defaultViewCache } from '../view/view-cache';
 import { loadingBodyClass, loadingEvent } from '../view/plugins';
 import type { MountTargetPort } from '../view/ports';
@@ -44,7 +44,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @boolAttr({ readonly: true }) restoreScroll: boolean;
   @boolAttr() cache: boolean;
 
-  private view!: RouteView;
+  private view!: RouteViewController;
   private passId = 0;
 
   get nestedOutlet(): AuraOutlet | null {
@@ -71,7 +71,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
       ...(this.loadingTemplate ? [loadingBodyClass(), loadingEvent(this)] : []),
     ];
 
-    this.view = new RouteView(
+    this.view = new RouteViewController(
       {
         route: this,
         content: new RouteContentLoader(this, resolveRouteContentLoaderService()),

@@ -68,7 +68,7 @@ type CacheStoreOptions<T> = {
 
 | Option | Description |
 |--------|-------------|
-| `max` | LRU capacity; removes least recently used key first |
+| `max` | LRU capacity; removes least recently used key first. Must be `>= 1` when set |
 | `staleTime` | Enables SWR. Entries become stale after this age but stay readable |
 | `gcTime` | Remove after max age since `storedAt`. Defaults to `DEFAULT_GC_TIME` (5 min) when `staleTime` is set. `Infinity` disables TTL |
 | `invalidatePolicy` | Default for `invalidate`, `invalidateMatch`, `invalidateAll` |
@@ -91,6 +91,7 @@ Background sweep lifecycle:
 | Method | LRU | Description |
 |--------|:---:|-------------|
 | `get(key)` | yes | Returns value (fresh or stale), or `undefined` if missing/GC-expired |
+| `peek(key)` | no | Returns value without LRU promote; does not remove GC-expired entries |
 | `lookup(key, touch?)` | if `touch` | `{ status: 'fresh' \| 'stale' \| 'missing', value? }` — removes GC-expired entries; use for SWR revalidate decisions |
 | `set(key, value)` | yes | Resets stale flag and `storedAt`. Overwrite invokes `onRemove` for the previous value when it differs |
 | `has(key)` | no | `true` if readable entry exists; removes GC-expired |

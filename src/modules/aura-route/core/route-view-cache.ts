@@ -7,11 +7,17 @@ export type ViewCacheRouteRef = Pick<RouteInfo, 'path' | 'query'>;
 export type ViewCacheRouteSource = ViewCacheRouteRef | MatchedRouteInfo | undefined;
 
 export interface RouteViewCachePort {
-  /** Returns whether a readable entry exists (non-destructive; does not extract). */
+  /** Returns whether a readable entry exists (may remove GC-expired entries). */
   has(key: string): boolean;
+  /** Returns a cached view without extracting or promoting LRU. */
+  peek(key: string): ViewRoot | undefined;
   /** Returns the cached view and removes the entry (full extract, not a peek). */
   extract(key: string): ViewRoot | undefined;
   put(key: string, root: ViewRoot): void;
+  /** Removes one entry and invokes `onRemove`. */
+  delete(key: string): boolean;
+  /** Removes entries matching `predicate` and invokes `onRemove` for each. */
+  invalidateMatch(predicate: (key: string) => boolean): number;
 }
 
 const DEFAULT_OPTIONS: CacheStoreOptions<ViewRoot> = {
@@ -81,13 +87,24 @@ export class RouteViewCache implements RouteViewCachePort {
     return RouteViewCache.getStore().has(key);
   }
 
-  /** Returns the cached view and removes the entry (full extract, not a peek). */
+  peek(key: string): ViewRoot | undefined {
+    return RouteViewCache.getStore().peek(key);
+  }
+
   extract(key: string): ViewRoot | undefined {
     return RouteViewCache.getStore().extract(key);
   }
 
   put(key: string, root: ViewRoot): void {
     RouteViewCache.getStore().set(key, root);
+  }
+
+  delete(key: string): boolean {
+    return RouteViewCache.getStore().delete(key);
+  }
+
+  invalidateMatch(predicate: (key: string) => boolean): number {
+    return RouteViewCache.getStore().invalidateMatch(predicate, 'remove');
   }
 
   private static getStore(): AuraCacheStore<ViewRoot> {

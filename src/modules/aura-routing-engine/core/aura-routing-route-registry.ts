@@ -4,9 +4,9 @@ import type { RouteNode } from './route-tree';
 
 export class AuraRoutingRouteRegistry {
   private roots: RouteNode[] = [];
-  private nodesByFullPath = new Map<string, RouteNode>();
+  private nodesByPattern = new Map<string, RouteNode>();
   private matchableNodes: RouteNode[] = [];
-  private matchablePaths: readonly string[] = [];
+  private matchablePatterns: readonly string[] = [];
   private routes: AuraRoute[] = [];
 
   register(routes: AuraRoute[]): void {
@@ -21,17 +21,17 @@ export class AuraRoutingRouteRegistry {
     this.routes = routes;
     const snapshot = buildRouteTree(routes);
     this.roots = snapshot.roots;
-    this.nodesByFullPath = snapshot.nodesByFullPath;
+    this.nodesByPattern = snapshot.nodesByPattern;
     this.matchableNodes = snapshot.matchableNodes;
-    this.matchablePaths = snapshot.matchableNodes.map((node) => node.fullPath);
+    this.matchablePatterns = snapshot.matchableNodes.map((node) => node.pattern);
   }
 
-  getRoute(fullPath: string): AuraRoute | undefined {
-    return this.nodesByFullPath.get(fullPath)?.route;
+  getRoute(pattern: string): AuraRoute | undefined {
+    return this.nodesByPattern.get(pattern)?.route;
   }
 
-  getNode(fullPath: string): RouteNode | undefined {
-    return this.nodesByFullPath.get(fullPath);
+  getNode(pattern: string): RouteNode | undefined {
+    return this.nodesByPattern.get(pattern);
   }
 
   getRootNodes(): readonly RouteNode[] {
@@ -42,15 +42,15 @@ export class AuraRoutingRouteRegistry {
     return this.matchableNodes;
   }
 
-  getMatchablePaths(): readonly string[] {
-    return this.matchablePaths;
+  getMatchablePatterns(): readonly string[] {
+    return this.matchablePatterns;
   }
 
   clear(): void {
     this.roots = [];
-    this.nodesByFullPath.clear();
+    this.nodesByPattern.clear();
     this.matchableNodes = [];
-    this.matchablePaths = [];
+    this.matchablePatterns = [];
     this.routes = [];
   }
 }

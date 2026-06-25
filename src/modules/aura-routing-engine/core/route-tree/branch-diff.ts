@@ -3,7 +3,7 @@ import type { RouteNode } from './route-node.types';
 import { routeMatchKey } from './matched-chain';
 
 /**
- * Индекс LCA: deepest общий prefix двух root→leaf цепочек по fullPath.
+ * Индекс LCA: deepest общий prefix двух root→leaf цепочек по pattern.
  * @example [settings, profile] vs [settings, security] → 0 (settings)
  * @example [settings, profile] vs [home] → -1 (нет общего prefix)
  */

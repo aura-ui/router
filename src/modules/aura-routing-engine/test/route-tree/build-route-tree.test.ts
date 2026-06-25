@@ -1,25 +1,25 @@
 import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('buildRouteTree', () => {
-  it('builds nested tree with resolved fullPath', () => {
+  it('builds nested tree with resolved pattern', () => {
     const profile = createDomRoute('profile');
     const security = createDomRoute('security');
     const settings = createDomRoute('/settings', [profile, security]);
     const home = createDomRoute('/');
 
-    const { roots, nodesByFullPath, matchableNodes } = buildTreeFromDom(home, settings);
+    const { roots, nodesByPattern, matchableNodes } = buildTreeFromDom(home, settings);
 
     expect(roots).toHaveLength(2);
-    expect(nodesByFullPath.get('/')?.fullPath).toBe('/');
-    expect(nodesByFullPath.get('/settings')?.children).toHaveLength(2);
-    expect(nodesByFullPath.get('/settings/profile')?.fullPath).toBe('/settings/profile');
-    expect(nodesByFullPath.get('/settings/security')?.fullPath).toBe('/settings/security');
-    expect(nodesByFullPath.get('/settings/profile')?.branch.map((node) => node.fullPath)).toEqual([
+    expect(nodesByPattern.get('/')?.pattern).toBe('/');
+    expect(nodesByPattern.get('/settings')?.children).toHaveLength(2);
+    expect(nodesByPattern.get('/settings/profile')?.pattern).toBe('/settings/profile');
+    expect(nodesByPattern.get('/settings/security')?.pattern).toBe('/settings/security');
+    expect(nodesByPattern.get('/settings/profile')?.branch.map((node) => node.pattern)).toEqual([
       '/settings',
       '/settings/profile',
     ]);
 
-    expect(matchableNodes.map((node) => node.fullPath)).toEqual([
+    expect(matchableNodes.map((node) => node.pattern)).toEqual([
       '/',
       '/settings/profile',
       '/settings/security',
@@ -30,10 +30,10 @@ describe('buildRouteTree', () => {
   it('treats index child as matchable endpoint', () => {
     const index = createDomRoute('');
     const settings = createDomRoute('/settings', [index]);
-    const { matchableNodes, nodesByFullPath } = buildTreeFromDom(settings);
+    const { matchableNodes, nodesByPattern } = buildTreeFromDom(settings);
 
-    expect(nodesByFullPath.get('/settings')?.isIndex).toBe(true);
-    expect(matchableNodes.map((node) => node.fullPath)).toEqual(['/settings']);
+    expect(nodesByPattern.get('/settings')?.isIndex).toBe(true);
+    expect(matchableNodes.map((node) => node.pattern)).toEqual(['/settings']);
   });
 
   it('finds roots when all nested routes are passed flat', () => {
@@ -43,7 +43,7 @@ describe('buildRouteTree', () => {
 
     const { roots } = buildTreeFromDom(home, settings, profile);
 
-    expect(roots.map((node) => node.fullPath)).toEqual(['/', '/settings']);
-    expect(roots[1]?.children[0]?.fullPath).toBe('/settings/profile');
+    expect(roots.map((node) => node.pattern)).toEqual(['/', '/settings']);
+    expect(roots[1]?.children[0]?.pattern).toBe('/settings/profile');
   });
 });

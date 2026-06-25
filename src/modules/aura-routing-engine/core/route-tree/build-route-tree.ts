@@ -1,5 +1,5 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
-import { resolveFullPath } from './resolve-full-path';
+import { resolvePattern } from './resolve-pattern';
 import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
 
 /**
@@ -7,25 +7,25 @@ import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
  *
  * Единого synthetic root-node нет — верхний уровень это forest: массив `roots` (top-level
  * `RouteNode` без `<aura-route>`-родителя). Каждый `AuraRoute` превращается в `RouteNode`
- * (обогащённая обёртка: `fullPath`, `depth`, `branch`, `parent`/`children`).
+ * (обогащённая обёртка: `pattern`, `depth`, `branch`, `parent`/`children`).
  *
  * В `rootNodes` попадают только корни (`.map` по `rootRoutes`), но все узлы создаются:
  * `buildRouteNode` рекурсивно вкладывает детей в `node.children`, а side-effect —
- * `nodesByFullPath` (плоский индекс всех узлов) и `matchableNodes`.
+ * `nodesByPattern` (плоский индекс всех узлов) и `matchableNodes`.
  *
  * @example [home, settings→profile] → roots: [homeNode, settingsNode], settingsNode.children: [profileNode]
  */
 export function buildRouteTree(routes: AuraRoute[]): RouteTreeSnapshot {
   const knownRoutes = new Set(routes);
   const { rootRoutes, childRoutesByParent } = buildParentChildHierarchy(routes, knownRoutes);
-  const nodesByFullPath = new Map<string, RouteNode>();
+  const nodesByPattern = new Map<string, RouteNode>();
   const matchableNodes: RouteNode[] = [];
 
   const rootNodes = rootRoutes.map((rootRoute) =>
-    buildRouteNode(rootRoute, null, 0, nodesByFullPath, matchableNodes, childRoutesByParent),
+    buildRouteNode(rootRoute, null, 0, nodesByPattern, matchableNodes, childRoutesByParent),
   );
 
-  return { roots: rootNodes, nodesByFullPath, matchableNodes };
+  return { roots: rootNodes, nodesByPattern, matchableNodes };
 }
 
 /**
@@ -36,7 +36,7 @@ export function buildRouteTree(routes: AuraRoute[]): RouteTreeSnapshot {
  * не включаются. `node` не обязан быть top-level root — можно передать любой узел, например
  * `settings`, и получить `[settings, profile, security]`.
  *
- * Для lookup любого узла всего снимка без обхода используй `RouteTreeSnapshot.nodesByFullPath`.
+ * Для lookup любого узла всего снимка без обхода используй `RouteTreeSnapshot.nodesByPattern`.
  *
  * @example collectRouteSubtreeNodes(settingsNode) → [settings, profile, security]
  */
@@ -116,41 +116,41 @@ function queryDirectChildRoutes(parentRoute: AuraRoute): AuraRoute[] {
 }
 
 /**
- * Создаёт RouteNode, branch, индексирует nodesByFullPath, регистрирует matchable endpoints.
- * @example settings + child profile → fullPath `/settings/profile`, branch [settings, profile]
+ * Создаёт RouteNode, branch, индексирует nodesByPattern, регистрирует matchable endpoints.
+ * @example settings + child profile → pattern `/settings/profile`, branch [settings, profile]
  */
 function buildRouteNode(
   route: AuraRoute,
   parentNode: RouteNode | null,
   depth: number,
-  nodesByFullPath: Map<string, RouteNode>,
+  nodesByPattern: Map<string, RouteNode>,
   matchableNodes: RouteNode[],
   childRoutesByParent: Map<AuraRoute, AuraRoute[]>,
 ): RouteNode {
-  const routePath = route.path ?? '';
-  const fullPath = resolveFullPath(parentNode?.fullPath ?? null, routePath);
+  const segment = route.path ?? '';
+  const pattern = resolvePattern(parentNode?.pattern ?? null, segment);
 
-  if (nodesByFullPath.has(fullPath)) {
-    console.warn(`Duplicate route fullPath "${fullPath}" — previous route will be overwritten`);
+  if (nodesByPattern.has(pattern)) {
+    console.warn(`Duplicate route pattern "${pattern}" — previous route will be overwritten`);
   }
 
   const node: RouteNode = {
     route,
-    routePath,
-    fullPath,
+    segment,
+    pattern,
     parent: parentNode,
     children: [],
     depth,
-    isIndex: routePath === '',
+    isIndex: segment === '',
     branch: [],
   };
 
   node.branch = parentNode ? parentNode.branch.concat(node) : [node];
-  nodesByFullPath.set(fullPath, node);
+  nodesByPattern.set(pattern, node);
 
   for (const childRoute of getDirectChildRoutes(route, childRoutesByParent)) {
     node.children.push(
-      buildRouteNode(childRoute, node, depth + 1, nodesByFullPath, matchableNodes, childRoutesByParent),
+      buildRouteNode(childRoute, node, depth + 1, nodesByPattern, matchableNodes, childRoutesByParent),
     );
   }
 
@@ -173,7 +173,7 @@ function buildRouteNode(
  * - **родитель без index child** — у узла есть дети, но ни один не index; тогда URL родителя
  *   (`/settings`) matchable сам по себе, без отдельного index route.
  *
- * Узел НЕ регистрируется, если у него есть дети и среди них есть index child: тот же `fullPath`
+ * Узел НЕ регистрируется, если у него есть дети и среди них есть index child: тот же `pattern`
  * обрабатывает index, parent остаётся layout-only для nested lifecycle/outlet.
  *
  * @example settings + profile + security (без index)
@@ -196,7 +196,7 @@ function registerMatchableNode(node: RouteNode, matchableNodes: RouteNode[]): vo
  * затем каждый child слева направо, рекурсивно.
  *
  * Используется как общий примитив обхода; публичный flatten — `collectRouteSubtreeNodes()`.
- * Для всех узлов всего снимка без обхода — `RouteTreeSnapshot.nodesByFullPath`.
+ * Для всех узлов всего снимка без обхода — `RouteTreeSnapshot.nodesByPattern`.
  *
  * @example walkRouteSubtree(settings, visit) → settings, profile, security (если такие children)
  */

@@ -44,7 +44,7 @@ export { DEFAULT_TRANSITION_POLICY, parseTransitionPolicy } from './core/transit
 
 export type {
   MatchedRouteInfo,
-  CATCH_ALL_ROUTE_PATH,
+  CATCH_ALL_SEGMENT,
 } from './core/match/url-matcher';
 
 export { isCatchAllRoute } from './core/match/url-matcher';

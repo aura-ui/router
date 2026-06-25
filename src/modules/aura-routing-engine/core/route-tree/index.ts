@@ -1,6 +1,10 @@
 export type { RouteNode, RouteTreeSnapshot } from './route-node.types';
 
-export { resolveFullPath } from './resolve-full-path';
+export {
+  resolvePattern,
+  isGlobalCatchAllPattern,
+  isScopedCatchAllPattern,
+} from './resolve-pattern';
 
 export { buildRouteTree, collectRouteSubtreeNodes } from './build-route-tree';
 
@@ -10,7 +14,7 @@ export {
   attachNavigationChain,
   getActiveChain,
   getLeafMatch,
-  syncChainUrl,
+  syncChainHref,
   buildMatchedChain,
 } from './matched-chain';
 

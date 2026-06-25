@@ -401,7 +401,7 @@ function firstTerminalOutcome(...outcomes: PipelineOutcome[]): PipelineOutcome {
 /** {@link RouteInfo} slice for hook ctx (`to` / `from`). */
 function toRouteInfo(matchedRoute: MatchedRouteInfo): RouteInfo {
   return {
-    path: matchedRoute.pathname,
+    pathname: matchedRoute.pathname,
     ...(matchedRoute.params && { params: matchedRoute.params }),
     ...(matchedRoute.query && { query: matchedRoute.query }),
   };

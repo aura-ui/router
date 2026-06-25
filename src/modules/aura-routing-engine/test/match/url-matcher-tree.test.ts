@@ -10,8 +10,8 @@ describe('AuraRoutingUrlMatcher + route tree', () => {
     const users = createDomRoute('/users', [about]);
     const { matchableNodes } = buildRouteTree(collectRoutesFromDom(users));
 
-    expect(matcher.matchPath('/users', matchableNodes)?.node.fullPath).toBe('/users');
-    expect(matcher.matchPath('/users/about', matchableNodes)?.node.fullPath).toBe('/users/about');
+    expect(matcher.matchPath('/users', matchableNodes)?.node.pattern).toBe('/users');
+    expect(matcher.matchPath('/users/about', matchableNodes)?.node.pattern).toBe('/users/about');
   });
 
   it('matchPath selects deepest matchable node', () => {
@@ -20,7 +20,7 @@ describe('AuraRoutingUrlMatcher + route tree', () => {
     const home = createDomRoute('/');
     const { matchableNodes } = buildRouteTree(collectRoutesFromDom(home, settings));
 
-    expect(matcher.matchPath('/settings/profile', matchableNodes)?.node.fullPath).toBe(
+    expect(matcher.matchPath('/settings/profile', matchableNodes)?.node.pattern).toBe(
       '/settings/profile',
     );
   });
@@ -30,28 +30,28 @@ describe('AuraRoutingUrlMatcher + route tree', () => {
     const about = createDomRoute('about');
     const users = createDomRoute('/users', [about, fallback]);
     const global404 = createDomRoute('*');
-    const { matchableNodes, nodesByFullPath } = buildRouteTree(
+    const { matchableNodes, nodesByPattern } = buildRouteTree(
       collectRoutesFromDom(users, global404),
     );
 
-    expect(nodesByFullPath.get('/users/*')?.routePath).toBe('*');
-    expect(matcher.matchPath('/users', matchableNodes)?.node.fullPath).toBe('/users');
-    expect(matcher.matchPath('/users/about', matchableNodes)?.node.fullPath).toBe('/users/about');
-    expect(matcher.matchPath('/users/unknown', matchableNodes)?.node.fullPath).toBe('/users/*');
+    expect(nodesByPattern.get('/users/*')?.segment).toBe('*');
+    expect(matcher.matchPath('/users', matchableNodes)?.node.pattern).toBe('/users');
+    expect(matcher.matchPath('/users/about', matchableNodes)?.node.pattern).toBe('/users/about');
+    expect(matcher.matchPath('/users/unknown', matchableNodes)?.node.pattern).toBe('/users/*');
     expect(matcher.matchPath('/users/unknown', matchableNodes)?.params).toEqual({ splat: 'unknown' });
-    expect(matcher.matchPath('/other', matchableNodes)?.node.fullPath).toBe('*');
+    expect(matcher.matchPath('/other', matchableNodes)?.node.pattern).toBe('*');
   });
 
   it('toRouteInfo builds chain from node.branch', () => {
     const profile = createDomRoute('profile');
     const settings = createDomRoute('/settings', [profile]);
     const snapshot = buildRouteTree(collectRoutesFromDom(settings));
-    const leaf = snapshot.nodesByFullPath.get('/settings/profile')!;
+    const leaf = snapshot.nodesByPattern.get('/settings/profile')!;
 
     const info = matcher.toRouteInfo('/settings/profile', '/settings/profile', '', '', leaf);
 
-    expect(info.routePath).toBe('/settings/profile');
-    expect(info.chain?.map((entry) => entry.routePath)).toEqual(['/settings', '/settings/profile']);
+    expect(info.pattern).toBe('/settings/profile');
+    expect(info.chain?.map((entry) => entry.pattern)).toEqual(['/settings', '/settings/profile']);
     expect(info.chain?.every((entry) => entry.chain === info.chain)).toBe(true);
     expect(matcher.matchPath('/settings/profile', snapshot.matchableNodes)?.node).toBe(leaf);
   });

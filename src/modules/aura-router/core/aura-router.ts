@@ -131,8 +131,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         transitionPolicy,
         onNavigationCommitted: (to) => {
           this.notFound.hide();
-          if (isCatchAllRoute(to.routePath)) {
-            AuraRouterNotFoundController.emit(this, to.url, 'route');
+          if (isCatchAllRoute(to.pattern)) {
+            AuraRouterNotFoundController.emit(this, to.href, 'route');
           }
         },
         onNavigationError: (detail) => {
@@ -142,7 +142,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           dispatchCustomEvent(this, AURA_ROUTER_NAVIGATION_ERROR, {
             detail: {
               error: detail.error,
-              url: detail.url,
+              href: detail.href,
               router: this,
               from: detail.from?.pathname ?? null,
               to: detail.to.pathname,

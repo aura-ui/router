@@ -26,8 +26,8 @@ describe('AuraRoutingEngine + route tree', () => {
 
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
-    const { to } = processor.run.mock.calls[0]![0] as { to: { chain?: { routePath: string }[] } };
-    expect(to.chain?.map((entry) => entry.routePath)).toEqual(['/about']);
+    const { to } = processor.run.mock.calls[0]![0] as { to: { chain?: { pattern: string }[] } };
+    expect(to.chain?.map((entry) => entry.pattern)).toEqual(['/about']);
   });
 
   it('nested navigation passes branch chains to processor', async () => {
@@ -46,17 +46,17 @@ describe('AuraRoutingEngine + route tree', () => {
     await engine.navigateTo('/settings/security', 'push', { replace: false, syncHistory: true });
 
     const firstTo = processor.run.mock.calls[0]![0].to;
-    expect(firstTo.chain?.map((entry: { routePath: string }) => entry.routePath)).toEqual([
+    expect(firstTo.chain?.map((entry: { pattern: string }) => entry.pattern)).toEqual([
       '/settings',
       '/settings/profile',
     ]);
 
     const second = processor.run.mock.calls[1]![0];
-    expect(second.from.chain?.map((entry: { routePath: string }) => entry.routePath)).toEqual([
+    expect(second.from.chain?.map((entry: { pattern: string }) => entry.pattern)).toEqual([
       '/settings',
       '/settings/profile',
     ]);
-    expect(second.to.chain?.map((entry: { routePath: string }) => entry.routePath)).toEqual([
+    expect(second.to.chain?.map((entry: { pattern: string }) => entry.pattern)).toEqual([
       '/settings',
       '/settings/security',
     ]);

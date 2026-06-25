@@ -70,8 +70,8 @@ function buildComponentOptions(routeInfo?: MatchedRouteInfo): Record<string, unk
   if (!routeInfo) return {};
 
   return {
-    url: routeInfo.url,
-    routePath: routeInfo.routePath,
+    href: routeInfo.href,
+    pattern: routeInfo.pattern,
     ...(routeInfo.params && { params: routeInfo.params }),
     ...(routeInfo.query && { query: routeInfo.query }),
   };

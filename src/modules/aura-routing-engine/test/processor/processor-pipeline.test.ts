@@ -34,11 +34,11 @@ type PipelineInternals = ProcessorPipeline & {
 
 function createMatchedRoute(path: string, overrides: Partial<RouteInstance> = {}): MatchedRouteInfo {
   return {
-    url: path,
+    href: path,
     pathname: path,
     search: '',
     hash: '',
-    routePath: path,
+    pattern: path,
     route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
   };
 }

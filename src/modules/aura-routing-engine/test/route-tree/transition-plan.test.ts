@@ -6,21 +6,21 @@ import type { RouteNode } from '../../core/route-tree';
 
 function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
   return {
-    url: pathname,
+    href: pathname,
     pathname,
     search: '',
     hash: '',
-    routePath: node.fullPath,
+    pattern: node.pattern,
     route: node.route,
     node,
   };
 }
 
 function chainFromPaths(paths: string[]): MatchedRouteInfo[] {
-  const nodes = paths.map((fullPath) => ({
-    route: createTestRoute(fullPath),
-    routePath: fullPath,
-    fullPath,
+  const nodes = paths.map((pattern) => ({
+    route: createTestRoute(pattern),
+    segment: pattern,
+    pattern,
     parent: null as RouteNode | null,
     children: [] as RouteNode[],
     depth: 0,
@@ -38,7 +38,7 @@ function chainFromPaths(paths: string[]): MatchedRouteInfo[] {
     nodes[i]!.branch = nodes.slice(0, i + 1);
   }
 
-  return buildMatchedChain(nodes, (node) => createMatch(node, node.fullPath));
+  return buildMatchedChain(nodes, (node) => createMatch(node, node.pattern));
 }
 
 describe('buildTransitionPlan', () => {
@@ -46,8 +46,8 @@ describe('buildTransitionPlan', () => {
     const from = createMatch(
       {
         route: createTestRoute('/a'),
-        routePath: '/a',
-        fullPath: '/a',
+        segment: '/a',
+        pattern: '/a',
         parent: null,
         children: [],
         depth: 0,
@@ -59,8 +59,8 @@ describe('buildTransitionPlan', () => {
     const to = createMatch(
       {
         route: createTestRoute('/b'),
-        routePath: '/b',
-        fullPath: '/b',
+        segment: '/b',
+        pattern: '/b',
         parent: null,
         children: [],
         depth: 0,
@@ -102,8 +102,8 @@ describe('buildTransitionPlan', () => {
     const to = createMatch(
       {
         route: createTestRoute('/'),
-        routePath: '/',
-        fullPath: '/',
+        segment: '/',
+        pattern: '/',
         parent: null,
         children: [],
         depth: 0,
@@ -119,15 +119,15 @@ describe('buildTransitionPlan', () => {
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/']);
   });
 
-  it('detects reenter navigation', () => {
-    const chain = chainFromPaths(['/settings', '/settings/profile']);
-    const from = chain[1]!;
-    const to = { ...from };
+  it('reenter shortcut when pathname and search match same leaf', () => {
+    const from = chainFromPaths(['/settings', '/settings/profile'])[1]!;
+    const to = { ...from, query: { tab: '1' } };
 
     const plan = buildTransitionPlan(from, to);
 
     expect(plan.reenter).toBe(true);
     expect(plan.exitRoutes).toEqual([]);
-    expect(plan.enterRoutes).toEqual([chain[1]]);
+    expect(plan.enterRoutes).toHaveLength(1);
+    expect(routeMatchKey(plan.enterRoutes[0]!)).toBe('/settings/profile');
   });
 });

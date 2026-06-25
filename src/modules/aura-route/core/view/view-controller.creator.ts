@@ -5,19 +5,17 @@ import { RouteContentLoader, resolveRouteContentLoaderService } from '../route-c
 import { defaultRouteViewCache } from './view-cache';
 import { AuraRouteViewController } from './view-controller';
 
-export function createAuraRouteViewController(
+export function createRouteViewController(
   route: AuraRoute,
   getDefaultOutlet: () => AuraOutlet,
   getLifecycleToken: () => number = () => 0,
 ): AuraRouteViewController {
   return new AuraRouteViewController(
     route,
-    {
-      getDefaultOutlet,
-      parentOutlet: (routeInfo) => routeInfo?.node?.parent?.route.childOutlet ?? null,
-    },
     new RouteContentLoader(route, resolveRouteContentLoaderService()),
     defaultRouteViewCache,
+    getDefaultOutlet,
+    (routeInfo) => routeInfo?.node?.parent?.route.childOutlet ?? null,
     getLifecycleToken,
   );
 }

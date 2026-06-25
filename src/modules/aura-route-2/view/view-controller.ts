@@ -1,5 +1,6 @@
 import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
-import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
+import type { AuraOutlet, ViewRoot } from '../../aura-outlet/core/aura-outlet';
+import type { RouteRenderOptions } from '../core/types';
 import type { ViewPayload, RouteViewConfig } from './ports';
 import { createRenderPass, isStale, type RenderPass } from './render-pass';
 import { RenderSignal } from './signal';
@@ -21,32 +22,77 @@ import { emptyContent, resolveError, resolveLayout, warnMissingLayoutOutlet } fr
 
 type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 
-/** Orchestrates render passes: cache restore, resolve, single mount, plugins. */
-export class RouteViewCoordinator {
+/**
+ * View state and render orchestration for {@link AuraRoute2}.
+ * Outlet policy lives in {@link outlet}; content loading via {@link ContentResolverPort}.
+ */
+export class RouteViewController {
   private readonly config: RouteViewConfig;
   private readonly getPassId: () => number;
-  private readonly signal = new RenderSignal();
+  private readonly renderSignal = new RenderSignal();
   private mount: MountSnapshot = { ...EMPTY_MOUNT };
+  /** Cache key from the last {@link render}; used by {@link onLeft} for keep-alive DOM. */
+  private lastCacheKey: string | null = null;
 
   constructor(config: RouteViewConfig, getPassId: () => number) {
     this.config = config;
     this.getPassId = getPassId;
   }
 
-  get nestedOutlet() {
+  get nestedOutlet(): AuraOutlet | null {
     return this.mount.nestedOutlet;
   }
 
-  get abortSignal(): AbortSignal {
-    return this.signal.signal;
+  get signal(): AbortSignal {
+    return this.renderSignal.signal;
   }
 
-  beginPass(routeInfo: MatchedRouteInfo, parentSignal?: AbortSignal): RenderPass {
-    const signal = this.signal.begin(parentSignal);
+  async preload(): Promise<void> {
+    await this.config.content.preload?.(this.renderSignal.signal);
+  }
+
+  /**
+   * Resolves and mounts route content (or restores a keep-alive view).
+   * Rethrows after mounting the error template on failure.
+   */
+  async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
+    const pass = this.beginPass(routeInfo, options?.parentSignal);
+    this.lastCacheKey = pass.cacheKey;
+    await this.renderPass(pass);
+  }
+
+  commitStagedView(): void {
+    this.mount = commitStaged(this.mount);
+  }
+
+  /** Detaches or destroys the active view; caches DOM when `keepAlive` is set. */
+  onLeft(): void {
+    this.renderSignal.cancel();
+
+    const { keepAlive } = this.config.route;
+    const { snapshot, detachedRoot } = unmountOnLeave(this.mount, keepAlive);
+    this.mount = finalizeLeave(snapshot, keepAlive, detachedRoot);
+
+    if (keepAlive && detachedRoot) {
+      this.config.cache.put(this.lastCacheKey ?? this.config.route.path, detachedRoot);
+    }
+  }
+
+  cancel(): void {
+    this.renderSignal.cancel();
+  }
+
+  cancelPendingRender(): void {
+    this.mount = rollbackStaged(this.mount);
+    this.renderSignal.cancel();
+  }
+
+  private beginPass(routeInfo: MatchedRouteInfo, parentSignal?: AbortSignal): RenderPass {
+    const signal = this.renderSignal.begin(parentSignal);
     return createRenderPass(this.getPassId(), this.config.route, routeInfo, signal);
   }
 
-  async render(pass: RenderPass): Promise<void> {
+  private async renderPass(pass: RenderPass): Promise<void> {
     let loadingHooks = false;
 
     try {
@@ -66,35 +112,6 @@ export class RouteViewCoordinator {
         this.emit('onPassEnd', pass);
       }
     }
-  }
-
-  commitStagedView(): void {
-    this.mount = commitStaged(this.mount);
-  }
-
-  onLeft(lastCacheKey: string | null): void {
-    this.signal.cancel();
-
-    const { keepAlive } = this.config.route;
-    const { snapshot, detachedRoot } = unmountOnLeave(this.mount, keepAlive);
-    this.mount = finalizeLeave(snapshot, keepAlive, detachedRoot);
-
-    if (keepAlive && detachedRoot) {
-      this.config.cache.put(lastCacheKey ?? this.config.route.path, detachedRoot);
-    }
-  }
-
-  cancel(): void {
-    this.signal.cancel();
-  }
-
-  cancelPendingRender(): void {
-    this.mount = rollbackStaged(this.mount);
-    this.signal.cancel();
-  }
-
-  async preload(): Promise<void> {
-    await this.config.content.preload?.(this.signal.signal);
   }
 
   private tryCacheRestore(pass: RenderPass): boolean {
@@ -162,7 +179,7 @@ export class RouteViewCoordinator {
   }
 
   private stale(pass: RenderPass): boolean {
-    return isStale(pass, this.getPassId, () => this.signal.aborted);
+    return isStale(pass, this.getPassId, () => this.renderSignal.aborted);
   }
 
   private emit(hook: PluginHook, pass: RenderPass, arg?: unknown): void {

@@ -546,19 +546,21 @@ describe('AuraCacheStore', () => {
   });
 
   describe('size and keys', () => {
-    it('exclude GC-expired entries without a prior read', () => {
+    it('includes GC-expired entries until access or purge', () => {
       cache = new AuraCacheStore<string>({ gcTime: 1_000, gcSweepInterval: false });
       cache.set('a', 'one');
 
       jest.advanceTimersByTime(1_001);
       cache.set('b', 'two');
 
-      expect(cache.keys()).toEqual(['b']);
-      expect(cache.size).toBe(1);
+      expect(cache.keys().sort()).toEqual(['a', 'b']);
+      expect(cache.size).toBe(2);
       expect(cache.has('a')).toBe(false);
+      expect(cache.size).toBe(1);
+      expect(cache.keys()).toEqual(['b']);
     });
 
-    it('calls onRemove when size purges GC-expired entries', () => {
+    it('does not call onRemove from size or keys for GC-expired entries', () => {
       const removed: string[] = [];
       cache = new AuraCacheStore<string>({
         gcTime: 1_000,
@@ -570,8 +572,13 @@ describe('AuraCacheStore', () => {
       jest.advanceTimersByTime(1_001);
       cache.set('b', 'two');
 
-      expect(cache.size).toBe(1);
+      expect(cache.size).toBe(2);
+      expect(cache.keys().sort()).toEqual(['a', 'b']);
+      expect(removed).toEqual([]);
+
+      expect(cache.purgeExpired()).toBe(1);
       expect(removed).toEqual(['a']);
+      expect(cache.size).toBe(1);
     });
   });
 

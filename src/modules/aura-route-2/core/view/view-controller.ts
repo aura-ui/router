@@ -18,7 +18,7 @@ import {
   type MountContext,
   type MountSnapshot,
 } from './outlet';
-import { emptyContent, resolveError, resolveLayout, warnMissingLayoutOutlet } from './payloads';
+import { emptyContent, resolveError, warnMissingLayoutOutlet } from './payloads';
 
 type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 
@@ -129,9 +129,7 @@ export class RouteViewController {
   }
 
   private async resolveAndMount(pass: RenderPass): Promise<void> {
-    const payload = pass.viewKind === 'layout'
-      ? resolveLayout(this.config.route)
-      : await this.config.content.resolve(pass.routeInfo, pass.signal);
+    const payload = await this.config.content.resolve(pass.routeInfo, pass.signal);
 
     if (this.stale(pass)) return;
 

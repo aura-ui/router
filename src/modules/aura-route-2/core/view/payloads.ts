@@ -5,10 +5,6 @@ import type { ViewKind, ViewPayload } from './ports';
 
 const EMPTY_CONTENT = '<div>No content to display</div>';
 
-export function resolveLayout(route: AuraRouteInterface): ViewPayload {
-  return getTemplate(route.layout);
-}
-
 export function emptyContent(): ViewPayload {
   return EMPTY_CONTENT;
 }

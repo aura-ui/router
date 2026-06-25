@@ -1,17 +1,16 @@
 import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
 import type { TransitionPolicy } from '../../../aura-routing-engine/core/transition/policy';
-import type { AuraOutlet, OutletStrategy, ViewHandle, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import type { AuraOutlet, OutletStrategy, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../../aura-utils/misc';
 import { RouteRenderSignal } from '../render-signal';
 
 import {
-  commitStagedMount,
   mountRoute,
   shouldSkipRouteRender,
   unmountRoute,
-  type RouteMountContext,
-  type RouteMountResult,
-} from '../route-mount';
+  type ViewMountContext,
+  type ViewMountState,
+} from './outlet-adapter';
 import {
   defaultRouteViewCache,
   type RouteViewCachePort,
@@ -33,7 +32,7 @@ export type {
   RouteViewConfig,
 } from './view-controller.types';
 
-type CommitViewInput = {
+type PlaceViewInput = {
   token: number;
   payload: Node | string;
   routeInfo?: MatchedRouteInfo;
@@ -45,7 +44,8 @@ type CommitViewInput = {
 
 /**
  * View state and render orchestration for {@link AuraRoute}.
- * Mount primitives stay in {@link route-mount}; content loading is injected via {@link RouteContentPort}.
+ * Outlet policy lives in {@link outlet-adapter}; stage lifecycle calls {@link AuraOutlet} directly.
+ * Content loading is injected via {@link RouteContentPort}.
  */
 export class AuraRouteViewController {
   private readonly renderSignal = new RouteRenderSignal();
@@ -55,7 +55,7 @@ export class AuraRouteViewController {
   private readonly viewCache: RouteViewCachePort;
   private readonly getLifecycleToken: () => number;
 
-  private activeHandle: ViewHandle | null = null;
+  private activeHandle: ViewMountState['activeHandle'] = null;
   private lastMountStrategy: Extract<OutletStrategy, 'replace' | 'stage'> = 'replace';
   private lastCacheKey: string | null = null;
 
@@ -117,10 +117,10 @@ export class AuraRouteViewController {
       if (!this.isTokenCurrent(token)) return;
 
       if (this.tryRestoreFromCache(token, routeInfo, viewKind, transitionPolicy)) return;
-      if (shouldSkipRouteRender(config.keepAlive, viewKind === 'layout', this.mountSnapshot())) return;
+      if (shouldSkipRouteRender(config.keepAlive, viewKind === 'layout', this.currentMountState())) return;
 
       if (config.loadingTemplate) {
-        this.commitView({
+        this.placeView({
           token,
           payload: getTemplate(config.loadingTemplate),
           routeInfo,
@@ -133,7 +133,7 @@ export class AuraRouteViewController {
       if (this.renderSignal.aborted || !this.isTokenCurrent(token)) return;
 
       if (viewKind === 'content' && !payload) {
-        this.commitView({
+        this.placeView({
           token,
           payload: '<div>No content to display</div>',
           routeInfo,
@@ -143,7 +143,7 @@ export class AuraRouteViewController {
         return;
       }
 
-      this.commitView({
+      this.placeView({
         token,
         payload: payload as Node | string,
         routeInfo,
@@ -160,8 +160,8 @@ export class AuraRouteViewController {
   // --- Public: route lifecycle ---
 
   onTransitionIn(): void {
-    if (this.lastMountStrategy !== 'stage') return;
-    commitStagedMount(this.mountSnapshot());
+    if (this.lastMountStrategy !== 'stage' || !this.activeHandle) return;
+    this.activeHandle.mountOutlet.commitStage(this.activeHandle.viewRoot);
     this.lastMountStrategy = 'replace';
   }
 
@@ -228,9 +228,9 @@ export class AuraRouteViewController {
     this.lastCacheKey = this.cacheKey(source);
   }
 
-  // --- Private: mount ---
+  // --- Private: outlet mount ---
 
-  private mountSnapshot(): RouteMountResult {
+  private currentMountState(): ViewMountState {
     return {
       activeHandle: this.activeHandle,
       childOutlet: this.childOutlet,
@@ -238,11 +238,11 @@ export class AuraRouteViewController {
     };
   }
 
-  private mountContext(
+  private buildMountContext(
     routeInfo?: MatchedRouteInfo,
     transitionPolicy?: TransitionPolicy,
     pattern?: string,
-  ): RouteMountContext {
+  ): ViewMountContext {
     return {
       pattern: routeInfo?.pattern ?? pattern,
       rootOutlet: this.outlets.resolveRootOutlet(),
@@ -260,7 +260,7 @@ export class AuraRouteViewController {
     transitionPolicy?: TransitionPolicy,
     pattern?: string,
   ): void {
-    this.commitView({
+    this.placeView({
       token,
       payload: root,
       routeInfo,
@@ -271,15 +271,15 @@ export class AuraRouteViewController {
     });
   }
 
-  private commitView(input: CommitViewInput): void {
+  private placeView(input: PlaceViewInput): void {
     if (!this.isTokenCurrent(input.token)) return;
 
-    const previous: RouteMountResult = input.detachedRoot
+    const previous: ViewMountState = input.detachedRoot
       ? { activeHandle: null, childOutlet: null, detachedRoot: input.detachedRoot }
-      : this.mountSnapshot();
+      : this.currentMountState();
 
     const result = mountRoute(
-      this.mountContext(input.routeInfo, input.transitionPolicy, input.pattern),
+      this.buildMountContext(input.routeInfo, input.transitionPolicy, input.pattern),
       input.payload,
       previous,
     );
@@ -289,7 +289,7 @@ export class AuraRouteViewController {
     this.rememberCacheKey(input.routeInfo);
   }
 
-  private applyMountResult(result: RouteMountResult, viewKind: RouteViewKind): void {
+  private applyMountResult(result: ViewMountState, viewKind: RouteViewKind): void {
     this.activeHandle = result.activeHandle;
     this.childOutlet = result.childOutlet;
 
@@ -341,7 +341,7 @@ export class AuraRouteViewController {
 
     if (config.errorTemplate) {
       try {
-        this.commitView({
+        this.placeView({
           token,
           payload: getTemplate(config.errorTemplate),
           routeInfo,
@@ -364,7 +364,7 @@ export class AuraRouteViewController {
     const message = escapeHtml(error instanceof Error ? error.message : 'Error loading content');
     const stackTrace = escapeHtml(error instanceof Error ? error.stack ?? '' : '');
 
-    this.commitView({
+    this.placeView({
       token,
       payload: `<div class="aura-route-error">
       <h2>Content Loading Error</h2>

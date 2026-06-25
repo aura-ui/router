@@ -5,8 +5,5 @@ export {
   type RouteViewCachePort,
 } from './core/view/view-cache';
 export {
-  buildViewCacheKey,
-  toViewCacheKeyInput,
   viewCacheKey,
-  type ViewCacheKeySource,
 } from './core/view/view-cache-key';

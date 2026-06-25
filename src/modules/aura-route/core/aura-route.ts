@@ -58,6 +58,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @boolAttr() cache: boolean; //todo add times in seconds how many to store?
 
   private view!: AuraRouteViewController;
+  private viewLifecycleToken = 0;
 
   get resolvedOutlet(): AuraOutlet | null {
     return this.view?.resolvedOutlet ?? null;
@@ -74,7 +75,9 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
       console.warn(`AuraRoute with path "${this.path}" has no content specified`);
     }
 
-    this.view = createAuraRouteViewController(this, () => router.rootOutlet);
+    this.view = createAuraRouteViewController(this,
+      () => router.rootOutlet,
+      () => this.viewLifecycleToken);
 
     if (this.preload) {
       await this.view.preload().catch(console.error);
@@ -84,10 +87,12 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   }
 
   disconnectedCallback(): void {
+    this.viewLifecycleToken++;
     this.view?.cancel();
   }
 
   render(routeInfo?: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
+    this.viewLifecycleToken++;
     return this.view.render(routeInfo, options);
   }
 
@@ -101,7 +106,13 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   onLeave(_ctx: RouteLifecycleContext): void {}
   onTransitionOut(_ctx: RouteLifecycleContext): void {}
   onTransitionIn(_ctx: RouteLifecycleContext): void { this.view.onTransitionIn(); }
-  onLeft(_ctx: RouteLifecycleContext): void { this.view.onLeft(); }
-  onReenter(ctx: RouteLifecycleContext): void { this.view.onReenter(ctx.to); }
+  onLeft(_ctx: RouteLifecycleContext): void {
+    this.viewLifecycleToken++;
+    this.view.onLeft();
+  }
+  onReenter(ctx: RouteLifecycleContext): void {
+    this.viewLifecycleToken++;
+    this.view.onReenter(ctx.to);
+  }
   onError(_ctx: RouteErrorContext): void {}
 }

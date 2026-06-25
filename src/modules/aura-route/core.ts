@@ -3,6 +3,11 @@ export {
   RouteViewCache,
   defaultRouteViewCache,
   type RouteViewCachePort,
-  type ViewCacheRouteRef,
-  type ViewCacheRouteSource,
 } from './core/route-view-cache';
+export {
+  buildViewCacheKey,
+  toViewCacheKeyInput,
+  viewCacheKey,
+  type ViewCacheKeyInput,
+  type ViewCacheKeySource,
+} from './core/view-cache-key';

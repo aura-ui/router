@@ -8,9 +8,8 @@ import {
   RouteViewCache,
   defaultRouteViewCache,
   type RouteViewCachePort,
-  type ViewCacheRouteRef,
-  type ViewCacheRouteSource,
 } from './route-view-cache';
+import { viewCacheKey, type ViewCacheKeySource } from './view-cache-key';
 import {
   commitStagedMount,
   mountRoute,
@@ -212,13 +211,13 @@ export class AuraRouteViewController {
     };
   }
 
-  private cacheKey(route?: ViewCacheRouteSource): string {
-    return RouteViewCache.buildKey(route, this.config.path);
+  private cacheKey(source?: ViewCacheKeySource): string {
+    return viewCacheKey(source, this.config.path);
   }
 
-  private syncStashKey(route?: ViewCacheRouteSource): void {
-    if (route === undefined) return;
-    this.lastStashKey = this.cacheKey(route);
+  private syncStashKey(source?: ViewCacheKeySource): void {
+    if (source === undefined) return;
+    this.lastStashKey = this.cacheKey(source);
   }
 
   private stashKey(): string {
@@ -244,7 +243,7 @@ export class AuraRouteViewController {
     transitionPolicy?: TransitionPolicy,
     routePath?: string,
     extractedRoot?: ViewRoot,
-    cacheRoute?: ViewCacheRouteRef,
+    cacheRoute?: ViewCacheKeySource,
   ): void {
     if (!extractedRoot) return;
     this.show(extractedRoot, routeInfo, this.viewKind, transitionPolicy, routePath, extractedRoot, cacheRoute);
@@ -268,7 +267,7 @@ export class AuraRouteViewController {
     transitionPolicy?: TransitionPolicy,
     routePath?: string,
     extractedRoot?: ViewRoot,
-    _cacheRoute?: ViewCacheRouteRef,
+    _cacheRoute?: ViewCacheKeySource,
   ): void {
     if (!this.isActive) return;
 

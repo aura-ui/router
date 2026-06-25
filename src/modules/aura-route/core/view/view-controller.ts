@@ -270,7 +270,7 @@ export class AuraRouteViewController {
       appOutlet: this.getAppOutlet(),
       mountOutlet: this.getMountOutlet(routeInfo),
       signal: this.renderSignal.signal,
-      stageMount: this.useStagedMount,
+      useStagedMount: this.useStagedMount,
     };
   }
 

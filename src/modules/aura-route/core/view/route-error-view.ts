@@ -42,6 +42,7 @@ function buildFallbackErrorHtml(routePath: string, error: unknown): string {
     </div>`;
 }
 
+//todo move to utils
 function escapeHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')

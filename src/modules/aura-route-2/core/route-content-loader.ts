@@ -4,7 +4,7 @@ import {
 } from '../../aura-content-loaders/core';
 import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 import type { AuraRouteInterface } from './types';
-import type { ContentResolverPort } from '../view/ports';
+import type { ContentResolverPort } from './view/ports';
 
 let sharedLoaderService: ContentLoaderService | undefined;
 

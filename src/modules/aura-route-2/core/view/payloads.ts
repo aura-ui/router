@@ -1,6 +1,6 @@
-import { getTemplate } from '../../aura-utils/misc';
-import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import type { AuraRouteInterface } from '../core/types';
+import { getTemplate } from '../../../aura-utils/misc';
+import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import type { AuraRouteInterface } from '../types';
 import type { ViewKind, ViewPayload } from './ports';
 
 const EMPTY_CONTENT = '<div>No content to display</div>';

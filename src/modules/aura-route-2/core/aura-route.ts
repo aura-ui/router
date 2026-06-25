@@ -10,10 +10,10 @@ import type {
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
 import { RouteContentLoader, resolveRouteContentLoaderService } from './route-content-loader';
-import { RouteViewController } from '../view/view-controller';
-import { defaultViewCache } from '../view/view-cache';
-import { loadingBodyClass, loadingEvent } from '../view/plugins';
-import type { MountTargetPort } from '../view/ports';
+import { RouteViewController } from './view/view-controller';
+import { defaultViewCache } from './view/view-cache';
+import { loadingBodyClass, loadingEvent } from './view/plugins';
+import type { MountTargetPort } from './view/ports';
 
 export type { RouteRenderOptions, AuraRouteInterface };
 

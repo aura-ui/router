@@ -1,49 +1,59 @@
+import { AuraResolvableCache, type CacheStoreOptions } from '../../../aura-cache-store/core';
 import type { ViewPayload } from '../view/ports';
 
-/** In-memory content cache with in-flight deduplication. */
+const DEFAULT_CACHE_OPTIONS: CacheStoreOptions<string> = {
+  max: 50,
+  gcTime: Infinity,
+  gcSweepInterval: false,
+};
+
+/** In-memory content cache with LRU eviction and in-flight deduplication. */
 export class ContentCache {
-  private readonly entries = new Map<string, ViewPayload>();
-  private readonly inflight = new Map<string, Promise<ViewPayload | null>>();
+  private static cache: AuraResolvableCache<string> | undefined;
+
+  static configure(options: CacheStoreOptions<string> = {}): void {
+    ContentCache.cache?.destroy();
+    ContentCache.cache = new AuraResolvableCache({
+      ...DEFAULT_CACHE_OPTIONS,
+      ...options,
+    });
+  }
 
   get(key: string): ViewPayload | undefined {
-    return this.entries.get(key);
+    return ContentCache.cacheOf().get(key);
   }
 
   set(key: string, payload: ViewPayload): void {
-    this.entries.set(key, payload);
+    if (typeof payload === 'string') {
+      ContentCache.cacheOf().set(key, payload);
+    }
   }
 
   delete(key: string): void {
-    this.entries.delete(key);
-    this.inflight.delete(key);
+    ContentCache.cacheOf().delete(key);
   }
 
   clear(): void {
-    this.entries.clear();
-    this.inflight.clear();
+    ContentCache.cacheOf().clear();
   }
 
-  async resolve(
+  resolve(
     key: string,
     load: () => Promise<ViewPayload | null>,
   ): Promise<ViewPayload | null> {
-    const cached = this.entries.get(key);
-    if (cached !== undefined) return cached;
-
-    const pending = this.inflight.get(key);
-    if (pending) return pending;
-
-    const promise = load().then((payload) => {
+    const cache = ContentCache.cacheOf();
+    return cache.resolve(key, load, (entryKey, payload) => {
       if (typeof payload === 'string') {
-        this.entries.set(key, payload);
+        cache.set(entryKey, payload);
       }
-      return payload;
-    }).finally(() => {
-      this.inflight.delete(key);
     });
+  }
 
-    this.inflight.set(key, promise);
-    return promise;
+  private static cacheOf(): AuraResolvableCache<string> {
+    if (!ContentCache.cache) {
+      ContentCache.configure();
+    }
+    return ContentCache.cache!;
   }
 }
 

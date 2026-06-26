@@ -7,18 +7,15 @@ import type { ContentDescriptor, LoadContext, ResolveContext } from './types';
 export type ContentResolverDeps = {
   registry: LoaderRegistry;
   cache: ContentCache;
-  routePath: string;
 };
 
 export class ContentResolver {
   private readonly registry: LoaderRegistry;
   private readonly cache: ContentCache;
-  private readonly routePath: string;
 
   constructor(deps: ContentResolverDeps) {
     this.registry = deps.registry;
     this.cache = deps.cache;
-    this.routePath = deps.routePath;
   }
 
   async resolve(descriptor: ContentDescriptor, ctx: ResolveContext): Promise<ViewPayload | null> {
@@ -38,7 +35,7 @@ export class ContentResolver {
       return run();
     }
 
-    const key = contentCacheKey(descriptor, ctx.routeInfo, this.routePath);
+    const key = contentCacheKey(descriptor, ctx.routeInfo);
     return this.cache.resolve(key, run);
   }
 
@@ -57,7 +54,7 @@ export class ContentResolver {
 
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(
-        `Failed to load ${descriptor.loader} for route ${this.routePath}: ${message}`,
+        `Failed to load ${descriptor.loader} for route ${ctx.routeInfo.pattern}: ${message}`,
       );
     }
   }

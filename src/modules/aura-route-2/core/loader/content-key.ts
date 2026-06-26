@@ -5,9 +5,8 @@ import type { ContentDescriptor } from './types';
 export function contentCacheKey(
   descriptor: ContentDescriptor,
   routeInfo: MatchedRouteInfo,
-  fallbackPath: string,
 ): string {
-  const base = routeInfo.pathname ?? fallbackPath;
+  const base = routeInfo.pathname ?? routeInfo.pattern;
   const identity = `${descriptor.loader}:${descriptor.ref}`;
   const query = routeInfo.query;
 

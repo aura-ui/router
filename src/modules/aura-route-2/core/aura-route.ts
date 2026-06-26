@@ -73,7 +73,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
     this.view = new RouteViewController(
       {
         route: this,
-        content: new RouteContentLoader(this),
+        content: new RouteContentLoader(this, router.contentLoad),
         cache: defaultViewCache,
         mountTarget,
         plugins,
@@ -98,10 +98,6 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
 
   commitStagedView(): void {
     this.view.commitStagedView();
-  }
-
-  prefetchContent(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
-    return this.view.prefetchContent(routeInfo, signal);
   }
 
   onEnter(_ctx: RouteLifecycleContext): void {}

@@ -47,10 +47,6 @@ export class RouteViewController {
     return this.renderSignal.signal;
   }
 
-  async prefetchContent(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
-    await this.config.content.prefetchContent(routeInfo, signal);
-  }
-
   /**
    * Resolves and mounts route content (or restores a keep-alive view).
    * Rethrows after mounting the error template on failure.

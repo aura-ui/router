@@ -1,38 +1,19 @@
-import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
+import { buildContentDescriptor } from '../../aura-routing-engine/core/content/descriptor';
+import type { ContentLoadService } from '../../aura-routing-engine/core/content/content-load-service';import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 import type { AuraRouteInterface } from './types';
 import type { ContentResolverPort } from './view/ports';
-import { contentDescriptor } from './loader/descriptor';
-import { ContentResolver } from './loader/content-resolver';
-import { defaultContentCache, type ContentCache } from './loader/content-cache';
-import { defaultLoaderRegistry, type LoaderRegistry } from './loader/registry';
 
-export type RouteContentLoaderOptions = {
-  registry?: LoaderRegistry;
-  cache?: ContentCache;
-};
-
-/** Thin adapter: route attrs → {@link ContentResolver}. */
+/** Thin adapter: route attrs → shared {@link ContentLoadService}. */
 export class RouteContentLoader implements ContentResolverPort {
   private readonly route: AuraRouteInterface;
-  private readonly resolver: ContentResolver;
+  private readonly contentLoad: ContentLoadService;
 
-  constructor(route: AuraRouteInterface, options: RouteContentLoaderOptions = {}) {
+  constructor(route: AuraRouteInterface, contentLoad: ContentLoadService) {
     this.route = route;
-    this.resolver = new ContentResolver({
-      registry: options.registry ?? defaultLoaderRegistry,
-      cache: options.cache ?? defaultContentCache,
-    });
-  }
-
-  prefetchContent(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
-    return this.resolver.preload(this.descriptor(), { routeInfo, signal });
+    this.contentLoad = contentLoad;
   }
 
   resolve(routeInfo: MatchedRouteInfo, signal: AbortSignal) {
-    return this.resolver.resolve(this.descriptor(), { routeInfo, signal });
-  }
-
-  private descriptor() {
-    return contentDescriptor(this.route);
+    return this.contentLoad.resolve(buildContentDescriptor(this.route), routeInfo, signal);
   }
 }

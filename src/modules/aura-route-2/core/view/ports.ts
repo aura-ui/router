@@ -8,7 +8,6 @@ export type ViewPayload = Node | string;
 /** Async layout template / loader. */
 export interface ContentResolverPort {
   resolve(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<ViewPayload | null>;
-  prefetchContent(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void>;
 }
 
 /** Keep-alive detached DOM (`extract` checkout, `put` cache). */

@@ -1,8 +1,10 @@
-export { PrefetchController } from './prefetch-controller';
-export { RouteChainContentPrefetch } from './content-prefetch';
-export { RouteChainDataPrefetch } from './data-prefetch';
-export { PrefetchIntentScheduler } from './intent-scheduler';
-export { resolvePrefetchTarget } from './resolve-target';
+export { PrefetchPipeline } from './pipeline';
+export { PrefetchPlanResolver } from './plan';
+export { PrefetchRunStore } from './store';
+export { PrefetchIntentBus } from './intent/bus';
+export { LinkIntentSource } from './intent/link-source';
+export { ContentPrefetchExecutor } from './executors/content';
+export { DataPrefetchExecutor } from './executors/data';
 export {
   DEFAULT_INTENT_DELAY_MS,
   DEFAULT_MAX_AGE_MS,
@@ -14,14 +16,17 @@ export {
   shouldSkipPrefetch,
 } from './policy';
 export type {
-  ContentPrefetchPort,
-  DataPrefetchPort,
   PrefetchConfig,
-  PrefetchControllerDeps,
-  PrefetchExecContext,
+  PrefetchExecutor,
+  PrefetchIntent,
   PrefetchMode,
   PrefetchOptions,
+  PrefetchPipelineDeps,
+  PrefetchPlan,
+  PrefetchRunContext,
   PrefetchSkipReason,
-  PrefetchTarget,
   SpeculationPrefetchPort,
 } from './types';
+
+/** @deprecated Use {@link PrefetchPipeline}. */
+export { PrefetchPipeline as PrefetchController } from './pipeline';

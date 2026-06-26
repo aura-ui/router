@@ -21,18 +21,16 @@ import {
   type NavigateHistoryOptions,
   type NavigationProvider,
 } from './history';
+import { LinkNavigationTracker } from './user-actions';
+import type { ContentLoadService } from './content';
 import {
-  LinkNavigationTracker,
-  LinkPrefetchIntentTracker,
-} from './user-actions';
-import type { NavigationErrorDetail } from './processor/navigation-error.types';
-import {
-  PrefetchController,
-  RouteChainContentPrefetch,
-  RouteChainDataPrefetch,
+  ContentPrefetchExecutor,
+  DataPrefetchExecutor,
+  PrefetchPipeline,
   type PrefetchConfig,
   type PrefetchOptions,
 } from './prefetch';
+import type { NavigationErrorDetail } from './processor/navigation-error.types';
 
 /** Engine fallback when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -50,6 +48,8 @@ export interface AuraRoutingEngineConfig {
   onNavigationError?: (detail: NavigationErrorDetail) => void;
   /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
   provider?: NavigationProvider;
+  /** Router-owned content load service (shared prefetch + render cache). */
+  contentLoad?: ContentLoadService;
   /** Link-driven prefetch; `false` disables. */
   prefetch?: false | PrefetchConfig;
 }
@@ -66,9 +66,9 @@ export class AuraRoutingEngine {
   private readonly router: RouterInstance;
 
   private notFoundHandler: NotFoundFallbackHandler | null = null;
-  private readonly prefetch?: PrefetchController;
+  readonly contentLoad?: ContentLoadService;
+  private prefetchPipeline?: PrefetchPipeline;
   private readonly linkNavigation: LinkNavigationTracker;
-  private readonly linkPrefetchIntent?: LinkPrefetchIntentTracker;
 
   constructor(
     processor: AuraRoutingProcessor,
@@ -78,6 +78,7 @@ export class AuraRoutingEngine {
     this.processor = processor;
     this.router = router;
     this.config = config;
+    this.contentLoad = config.contentLoad;
 
     this.provider = config.provider ?? new BrowserHistoryProvider();
 
@@ -104,7 +105,11 @@ export class AuraRoutingEngine {
   }
 
   preload(href: string, options?: PrefetchOptions): Promise<void> {
-    return this.prefetch?.prefetch(href, options) ?? Promise.resolve();
+    return this.prefetch(href, options);
+  }
+
+  prefetch(href: string, options?: PrefetchOptions): Promise<void> {
+    return this.prefetchPipeline?.prefetch(href, options) ?? Promise.resolve();
   }
 
   registerRoutes(routes: Parameters<AuraRoutingRouteRegistry['register']>[0]) {
@@ -120,7 +125,7 @@ export class AuraRoutingEngine {
     this.isRunning = true;
     this.provider.start();
     this.linkNavigation.start();
-    this.linkPrefetchIntent?.start();
+    this.prefetchPipeline?.start();
 
     void this.navigateTo(this.provider.currentHref, 'system', {
       replace: true,
@@ -131,8 +136,7 @@ export class AuraRoutingEngine {
   stop() {
     this.isRunning = false;
     this.processor.invalidate();
-    this.prefetch?.destroy();
-    this.linkPrefetchIntent?.destroy();
+    this.prefetchPipeline?.destroy();
     this.linkNavigation.destroy();
     this.provider.destroy();
   }
@@ -339,23 +343,21 @@ export class AuraRoutingEngine {
       currentHref: () => this.provider.currentHref,
     };
 
-    this.prefetch = new PrefetchController(
+    const executors = [];
+    if (this.contentLoad) {
+      executors.push(new ContentPrefetchExecutor(this.contentLoad));
+    }
+    executors.push(new DataPrefetchExecutor());
+
+    this.prefetchPipeline = new PrefetchPipeline(
       {
         matcher: this.matcher,
         getMatchableNodes: () => this.registry.getMatchableNodes(),
-        content: new RouteChainContentPrefetch(),
-        data: new RouteChainDataPrefetch(),
+        getRegistryGeneration: () => this.registry.generationId,
+        executors,
       },
       prefetchConfig,
+      { linksSelector: config.linksSelector },
     );
-
-    this.linkPrefetchIntent = new LinkPrefetchIntentTracker({
-      linksSelector: config.linksSelector,
-      handlers: {
-        scheduleIntent: (href, mode) => this.prefetch!.scheduleIntent(href, mode),
-        cancelIntent: (href) => this.prefetch!.cancelIntent(href),
-      },
-      defaultMode: prefetchConfig.defaultMode,
-    });
   }
 }

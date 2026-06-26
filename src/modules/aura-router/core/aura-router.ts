@@ -15,11 +15,16 @@ import type { RouteHookDefinition, RouterInstance } from '../../aura-route-hooks
 import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
+  ContentCache,
+  ContentLoadService,
+  ContentResolver,
   isCatchAllRoute,
+  LoaderRegistry,
   parseTransitionPolicy,
   type AuraRoutingEngineConfig,
   type HistoryAction,
   type NavigateHistoryOptions,
+  type PrefetchOptions,
 } from '../../aura-routing-engine/core';
 import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
 import type { NotFoundHandler } from './aura-router-not-found.types';
@@ -50,6 +55,8 @@ export interface AuraRouterConfigureOptions {
   contentLoaderService?: ContentLoaderService;
   /** LRU cache for keep-alive route views (`detachedRoot` DOM). */
   viewCache?: CacheStoreOptions<ViewRoot>;
+  /** LRU cache for route content payloads (prefetch + navigation). */
+  contentCache?: CacheStoreOptions<string>;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;
 }
@@ -58,6 +65,8 @@ export type { RouterInstance } from '../../aura-route-hooks/core';
 
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
+
+  private static contentCacheOptions: CacheStoreOptions<string> = {};
 
   /** Fallback template id — когда нет `<aura-route path="*">`. */
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
@@ -69,6 +78,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   private engine?: AuraRoutingEngine;
   private readonly notFound = new AuraRouterNotFoundController(this);
+  private readonly contentCache = new ContentCache(AuraRouter.contentCacheOptions);
+  private readonly loaderRegistry = new LoaderRegistry();
+  private contentLoadService?: ContentLoadService;
 
   static use(
     hook: RouteHookDefinition,
@@ -87,6 +99,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (options.viewCache) {
       RouteViewCache.configure(options.viewCache);
     }
+    if (options.contentCache) {
+      AuraRouter.contentCacheOptions = options.contentCache;
+    }
   }
 
   /** Registers a custom content loader type for `source` on any `<aura-route>`. */
@@ -98,6 +113,18 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   setNotFoundHandler(handler: NotFoundHandler | null): void {
     this.notFound.setHandler(handler);
     this.ensureEngine().setNotFoundHandler((url) => this.notFound.handle(url));
+  }
+
+  get contentLoad(): ContentLoadService {
+    if (!this.contentLoadService) {
+      this.contentLoadService = new ContentLoadService({
+        resolver: new ContentResolver({
+          registry: this.loaderRegistry,
+          cache: this.contentCache,
+        }),
+      });
+    }
+    return this.contentLoadService;
   }
 
   get routes() {
@@ -128,6 +155,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
         transitionPolicy,
+        contentLoad: this.contentLoad,
         onNavigationCommitted: (to) => {
           this.notFound.hide();
           if (isCatchAllRoute(to.pattern)) {
@@ -172,8 +200,13 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     void this.ensureEngine().navigateTo(path, action, { replace, syncHistory });
   }
 
-  /** Programmatic link-driven prefetch for a target href. */
-  preload(href: string): Promise<void> {
-    return this.ensureEngine().preload(href);
+  /** Programmatic prefetch for a target href. */
+  prefetch(href: string, options?: PrefetchOptions): Promise<void> {
+    return this.ensureEngine().prefetch(href, options);
+  }
+
+  /** @deprecated Use {@link prefetch}. */
+  preload(href: string, options?: PrefetchOptions): Promise<void> {
+    return this.prefetch(href, options);
   }
 }

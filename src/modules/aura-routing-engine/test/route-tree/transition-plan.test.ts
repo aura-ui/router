@@ -19,6 +19,7 @@ function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
 function chainFromPaths(paths: string[]): MatchedRouteInfo[] {
   const nodes = paths.map((pattern) => ({
     route: createTestRoute(pattern),
+    content: { kind: 'content' as const, loader: '', ref: '', cache: false },
     segment: pattern,
     pattern,
     parent: null as RouteNode | null,

@@ -81,11 +81,6 @@ export class AuraRouteViewController {
 
   // --- Public API (route lifecycle order) ---
 
-  /** Eagerly loads route content when `preload` is enabled on the element. */
-  async preload(): Promise<void> {
-    await this.contentPort.preload?.(this.renderSignal.signal);
-  }
-
   /**
    * Resolves and mounts route content (or restores a keep-alive view).
    * Rethrows after mounting {@link AuraRouteInterface#errorTemplate} on failure.

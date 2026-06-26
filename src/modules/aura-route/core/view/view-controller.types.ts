@@ -8,10 +8,9 @@ export type RouteRenderOptions = {
   parentSignal?: AbortSignal;
 };
 
-/** Resolves route view HTML/DOM: layout template, loader, cache, preload. */
+/** Resolves route view HTML/DOM: layout template, loader, cache. */
 export interface RouteContentPort {
   resolve(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<Node | string | null>;
-  preload?(signal: AbortSignal): Promise<void>;
   readCache?(routeInfo: MatchedRouteInfo): Node | string | null;
   writeCache?(routeInfo: MatchedRouteInfo, payload: Node | string): void;
 }

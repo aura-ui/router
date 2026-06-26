@@ -26,10 +26,6 @@ export class RouteContentLoader implements RouteContentPort {
     this.loaderService = loaderService;
   }
 
-  async preload(_signal: AbortSignal): Promise<void> {
-    // todo
-  }
-
   readCache(_routeInfo: MatchedRouteInfo): Node | string | null {
     if (!this.route.cache) return null;
     return null;

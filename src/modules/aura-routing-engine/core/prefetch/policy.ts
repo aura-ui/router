@@ -15,14 +15,16 @@ export function normalizePrefetchHref(href: string): string | null {
   return pathname + search + hash;
 }
 
+/**
+ * Skip prefetch when both URLs are the same route and only the hash changes.
+ * Stricter than engine `isHashOnly` (navigation): requires an existing hash on the
+ * current location so `/page` → `/page#section` can still prefetch content.
+ */
 export function isHashOnlyNavigation(href: string, currentHref: string): boolean {
   const next = parsePath(href);
   const current = parsePath(currentHref);
-  return (
-    next.pathname === current.pathname &&
-    next.search === current.search &&
-    next.hash !== current.hash
-  );
+  const sameRoute = next.pathname === current.pathname && next.search === current.search;
+  return Boolean(sameRoute && current.hash && next.hash && next.hash !== current.hash);
 }
 
 export function isSaveDataPreferred(): boolean {

@@ -2,8 +2,11 @@ import { Singleflight } from '../../aura-utils/async/singleflight';
 import { AuraCacheStore, type CacheStoreOptions } from './aura-cache-store';
 
 /**
- * In-memory cache with LRU eviction and in-flight load deduplication.
+ * In-memory cache with LRU eviction, in-flight load deduplication, and SWR resolve.
  * Composes {@link AuraCacheStore} + {@link Singleflight} for `resolve(key, load)` flows.
+ *
+ * When {@link CacheStoreOptions.staleTime} is set, stale entries are returned immediately
+ * and `load` runs in the background (stale-while-revalidate).
  */
 export class AuraResolvableCache<T> {
   private readonly store: AuraCacheStore<T>;
@@ -38,6 +41,10 @@ export class AuraResolvableCache<T> {
 
   /**
    * Returns a cached value or runs `load` once per in-flight key.
+   *
+   * With SWR (`staleTime`): fresh → cached value; stale → cached value + background `load`;
+   * missing → await `load`. Background revalidation errors are ignored.
+   *
    * @param persist Custom write path; default writes the settled value with {@link set}.
    */
   resolve<R>(
@@ -45,20 +52,38 @@ export class AuraResolvableCache<T> {
     load: () => Promise<R>,
     persist?: (key: string, value: R) => void,
   ): Promise<R> {
-    const cached = this.store.get(key);
-    if (cached !== undefined) {
-      return Promise.resolve(cached as unknown as R);
+    const entry = this.store.lookup(key, true);
+
+    if (entry.status === 'fresh') {
+      return Promise.resolve(entry.value as unknown as R);
     }
 
+    if (entry.status === 'stale') {
+      void this.runLoad(key, load, persist).catch(() => {});
+      return Promise.resolve(entry.value as unknown as R);
+    }
+
+    return this.runLoad(key, load, persist) as Promise<R>;
+  }
+
+  private runLoad<R>(
+    key: string,
+    load: () => Promise<R>,
+    persist?: (key: string, value: R) => void,
+  ): Promise<R> {
     return this.singleflight.do(key, () =>
       load().then((value) => {
-        if (persist) {
-          persist(key, value);
-        } else {
-          this.store.set(key, value as unknown as T);
-        }
+        this.commit(key, value, persist);
         return value;
       }),
     ) as Promise<R>;
+  }
+
+  private commit<R>(key: string, value: R, persist?: (key: string, value: R) => void): void {
+    if (persist) {
+      persist(key, value);
+    } else {
+      this.store.set(key, value as unknown as T);
+    }
   }
 }

@@ -28,7 +28,7 @@ export class ContentResolver {
 
   async preload(descriptor: ContentDescriptor, ctx: ResolveContext): Promise<void> {
     if (ctx.signal.aborted) return;
-    await this.load(descriptor, ctx);
+    await this.fetch(descriptor, ctx);
   }
 
   private load(descriptor: ContentDescriptor, ctx: ResolveContext): Promise<ViewPayload | null> {

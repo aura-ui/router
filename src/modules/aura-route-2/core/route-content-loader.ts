@@ -21,7 +21,6 @@ export class RouteContentLoader implements ContentResolverPort {
     this.resolver = new ContentResolver({
       registry: options.registry ?? defaultLoaderRegistry,
       cache: options.cache ?? defaultContentCache,
-      routePath: route.path,
     });
   }
 

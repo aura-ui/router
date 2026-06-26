@@ -8,6 +8,7 @@ export class AuraRoutingRouteRegistry {
   private matchableNodes: RouteNode[] = [];
   private matchablePatterns: readonly string[] = [];
   private routes: AuraRoute[] = [];
+  private generation = 0;
 
   register(routes: AuraRoute[]): void {
     this.rebuildSnapshot([...this.routes, ...routes]);
@@ -18,12 +19,17 @@ export class AuraRoutingRouteRegistry {
   }
 
   private rebuildSnapshot(routes: AuraRoute[]): void {
+    this.generation++;
     this.routes = routes;
     const snapshot = buildRouteTree(routes);
     this.roots = snapshot.roots;
     this.nodesByPattern = snapshot.nodesByPattern;
     this.matchableNodes = snapshot.matchableNodes;
     this.matchablePatterns = snapshot.matchableNodes.map((node) => node.pattern);
+  }
+
+  get generationId(): number {
+    return this.generation;
   }
 
   getRoute(pattern: string): AuraRoute | undefined {
@@ -47,6 +53,7 @@ export class AuraRoutingRouteRegistry {
   }
 
   clear(): void {
+    this.generation++;
     this.roots = [];
     this.nodesByPattern.clear();
     this.matchableNodes = [];

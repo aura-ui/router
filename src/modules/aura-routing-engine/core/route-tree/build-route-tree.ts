@@ -1,4 +1,5 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
+import { buildContentDescriptor, type RouteContentAttrs } from '../content/descriptor';
 import { resolvePattern } from './resolve-pattern';
 import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
 
@@ -136,6 +137,7 @@ function buildRouteNode(
 
   const node: RouteNode = {
     route,
+    content: buildContentDescriptor(readRouteContentAttrs(route)),
     segment,
     pattern,
     parent: parentNode,
@@ -205,4 +207,17 @@ function walkRouteSubtree(node: RouteNode, visit: (node: RouteNode) => void): vo
   for (const child of node.children) {
     walkRouteSubtree(child, visit);
   }
+}
+
+function readRouteContentAttrs(route: AuraRoute): RouteContentAttrs {
+  const record = route as AuraRoute & Partial<RouteContentAttrs>;
+  const el = route as unknown as Element;
+  const attr = typeof el.getAttribute === 'function' ? el.getAttribute.bind(el) : null;
+
+  return {
+    layout: record.layout ?? attr?.('layout') ?? '',
+    source: record.source ?? attr?.('source') ?? '',
+    content: record.content ?? attr?.('data-content') ?? '',
+    cache: record.cache ?? (typeof el.hasAttribute === 'function' ? el.hasAttribute('cache') : false),
+  };
 }

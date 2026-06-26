@@ -50,3 +50,24 @@ export type {
 export { isCatchAllRoute } from './core/match/url-matcher';
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';
+
+// --- Content load (router-owned cache + prefetch) ---
+
+export {
+  ContentCache,
+  ContentLoadService,
+  ContentResolver,
+  LoaderRegistry,
+  buildContentDescriptor,
+  contentCacheKey,
+} from './core/content';
+
+export type {
+  ContentDescriptor,
+  ContentLoadServiceDeps,
+  ContentResolverDeps,
+  LoadPurpose,
+  ViewPayload,
+} from './core/content';
+
+export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch';

@@ -73,7 +73,7 @@ export class LinkPrefetchIntentTracker {
     const href = readLinkHref(anchor);
     if (!href) return;
 
-    const related = event.relatedTarget;
+    const related = 'relatedTarget' in event ? event.relatedTarget : null;
     if (related instanceof Element && anchor.contains(related)) return;
 
     this.handlers.cancelIntent(href);

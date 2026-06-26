@@ -1,21 +1,7 @@
-import type { AuraRouteInterface } from '../types';
-import type { ContentDescriptor } from './types';
+export {
+  buildContentDescriptor,
+  type RouteContentAttrs,
+} from '../../../aura-routing-engine/core/content/descriptor';
 
-/** Maps route attrs to a single content descriptor (layout template or content loader). */
-export function contentDescriptor(route: AuraRouteInterface): ContentDescriptor {
-  if (route.layout.trim()) {
-    return {
-      kind: 'layout',
-      loader: 'template',
-      ref: route.layout,
-      cache: false,
-    };
-  }
-
-  return {
-    kind: 'content',
-    loader: route.source,
-    ref: route.content,
-    cache: route.cache,
-  };
-}
+/** @deprecated Use {@link buildContentDescriptor}. */
+export { buildContentDescriptor as contentDescriptor } from '../../../aura-routing-engine/core/content/descriptor';

@@ -23,8 +23,8 @@ export interface NavigationRequest {
 export type NavigationHandler = (request: NavigationRequest) => void;
 
 /**
- * Источник навигации: history, popstate, клики по in-app ссылкам.
- * Не знает про routes, guards и render — только URL и события.
+ * History transport: popstate, commit, rollback.
+ * Клики по in-app ссылкам — `user-actions/LinkNavigationTracker`.
  */
 export interface NavigationProvider {
   readonly currentHref: string;

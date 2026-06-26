@@ -6,5 +6,5 @@ export type {
   NavigationRequest,
 } from './provider.types';
 
-export { BrowserHistoryProvider, type BrowserHistoryProviderConfig } from './browser-provider';
+export { BrowserHistoryProvider } from './browser-provider';
 export { FakeHistoryProvider } from './fake-provider';

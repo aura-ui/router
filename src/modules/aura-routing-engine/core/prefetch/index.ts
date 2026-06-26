@@ -21,7 +21,6 @@ export type {
   PrefetchExecContext,
   PrefetchMode,
   PrefetchOptions,
-  PrefetchReason,
   PrefetchSkipReason,
   PrefetchTarget,
   SpeculationPrefetchPort,

@@ -24,7 +24,7 @@ export class RouteContentLoader implements ContentResolverPort {
     });
   }
 
-  preload(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
+  prefetchContent(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
     return this.resolver.preload(this.descriptor(), { routeInfo, signal });
   }
 

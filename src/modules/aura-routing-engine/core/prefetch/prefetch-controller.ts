@@ -43,17 +43,8 @@ export class PrefetchController {
   /** Schedule prefetch after mode-specific delay (link hover / viewport). */
   scheduleIntent(href: string, mode?: PrefetchMode): void {
     const resolvedMode = mode ?? this.config.defaultMode ?? 'intent';
-    const normalized = normalizePrefetchHref(href);
-    if (!normalized) {
-      this.config.onSkipped?.(href, 'invalid-href');
-      return;
-    }
-
-    const skip = this.skipReason(normalized, resolvedMode);
-    if (skip) {
-      this.config.onSkipped?.(normalized, skip);
-      return;
-    }
+    const normalized = this.resolveRunnableHref(href, resolvedMode, { onSkip: true });
+    if (!normalized) return;
 
     const delayMs = delayForMode(resolvedMode, this.config);
     this.scheduler.schedule(normalized, delayMs, () => {
@@ -80,14 +71,11 @@ export class PrefetchController {
   /** Immediate prefetch — manual API, viewport after visible, post-schedule intent. */
   async prefetch(href: string, options: PrefetchOptions = {}): Promise<void> {
     const mode = options.mode ?? 'manual';
-    const normalized = normalizePrefetchHref(href);
+    const normalized = this.resolveRunnableHref(href, mode, {
+      force: options.force,
+      onSkip: true,
+    });
     if (!normalized) return;
-
-    const skip = this.skipReason(normalized, mode, options.force);
-    if (skip) {
-      this.config.onSkipped?.(normalized, skip);
-      return;
-    }
 
     const existing = !options.force ? this.inflight.get(normalized) : undefined;
     if (existing) return existing.promise;
@@ -158,6 +146,30 @@ export class PrefetchController {
       lastPrefetchAt: this.records.get(href)?.completedAt,
       force,
     });
+  }
+
+  /**
+   * Normalize href and apply skip policy.
+   * Returns null when prefetch must not run; calls `onSkipped` when `onSkip` is set.
+   */
+  private resolveRunnableHref(
+    href: string,
+    mode: PrefetchMode,
+    opts: { force?: boolean; onSkip?: boolean },
+  ): string | null {
+    const normalized = normalizePrefetchHref(href);
+    if (!normalized) {
+      if (opts.onSkip) this.config.onSkipped?.(href, 'invalid-href');
+      return null;
+    }
+
+    const skip = this.skipReason(normalized, mode, opts.force);
+    if (skip) {
+      if (opts.onSkip) this.config.onSkipped?.(normalized, skip);
+      return null;
+    }
+
+    return normalized;
   }
 
   private async runExecutors(target: PrefetchTarget, ctx: PrefetchExecContext): Promise<boolean> {

@@ -48,7 +48,7 @@ export class RouteViewController {
   }
 
   async prefetchContent(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
-    await this.config.content.preload?.(routeInfo, signal);
+    await this.config.content.prefetchContent(routeInfo, signal);
   }
 
   /**

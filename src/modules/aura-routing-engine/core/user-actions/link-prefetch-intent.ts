@@ -1,39 +1,40 @@
 import { bind } from '../../../aura-utils/decorators/bind';
 import type { PrefetchMode } from '../prefetch/types';
 
-import { findRouterLink, readLinkHref, resolveLinkPrefetchMode } from './router-link';
+import {
+  findRouterLink,
+  readLinkHref,
+  readRouterLinkFromEvent,
+  resolveLinkPrefetchMode,
+  resolveLinkTouchPrefetchMode,
+} from './router-link';
 
 export type LinkPrefetchHandlers = {
   scheduleIntent(href: string, mode?: PrefetchMode): void;
   cancelIntent(href?: string): void;
 };
 
-export type LinkPrefetchIntentOptions = {
-  defaultMode?: PrefetchMode;
-};
-
 export interface LinkPrefetchIntentTrackerConfig {
   linksSelector?: string;
+  handlers: LinkPrefetchHandlers;
+  defaultMode?: PrefetchMode;
 }
 
 /** Hover / focus / touch на in-app ссылках → prefetch intent. */
 export class LinkPrefetchIntentTracker {
-  private handlers?: LinkPrefetchHandlers;
+  private readonly handlers: LinkPrefetchHandlers;
   private listening = false;
   private readonly linksSelector: string;
-  private defaultMode: PrefetchMode = 'intent';
+  private readonly defaultMode: PrefetchMode;
 
-  constructor(config: LinkPrefetchIntentTrackerConfig = {}) {
+  constructor(config: LinkPrefetchIntentTrackerConfig) {
+    this.handlers = config.handlers;
     this.linksSelector = config.linksSelector ?? '[data-router-link]';
-  }
-
-  setHandlers(handlers: LinkPrefetchHandlers, options: LinkPrefetchIntentOptions = {}): void {
-    this.handlers = handlers;
-    this.defaultMode = options.defaultMode ?? 'intent';
+    this.defaultMode = config.defaultMode ?? 'intent';
   }
 
   start(): void {
-    if (this.listening || !this.handlers) return;
+    if (this.listening) return;
     this.listening = true;
     document.addEventListener('mouseover', this.onLinkIntent, { capture: true });
     document.addEventListener('mouseout', this.onLinkLeave, { capture: true });
@@ -50,30 +51,22 @@ export class LinkPrefetchIntentTracker {
     document.removeEventListener('focusin', this.onLinkIntent, { capture: true });
     document.removeEventListener('focusout', this.onLinkLeave, { capture: true });
     document.removeEventListener('touchstart', this.onLinkTouch, { capture: true });
-    this.handlers?.cancelIntent();
-    this.handlers = undefined;
+    this.handlers.cancelIntent();
   }
 
   @bind
   private onLinkIntent(event: Event): void {
-    if (!this.handlers) return;
+    const link = readRouterLinkFromEvent(event, this.linksSelector);
+    if (!link) return;
 
-    const anchor = findRouterLink(event.target, this.linksSelector);
-    if (!anchor) return;
-
-    const href = readLinkHref(anchor);
-    if (!href) return;
-
-    const mode = resolveLinkPrefetchMode(anchor, this.defaultMode);
+    const mode = resolveLinkPrefetchMode(link.anchor, this.defaultMode);
     if (!mode) return;
 
-    this.handlers.scheduleIntent(href, mode);
+    this.handlers.scheduleIntent(link.href, mode);
   }
 
   @bind
   private onLinkLeave(event: Event): void {
-    if (!this.handlers) return;
-
     const anchor = findRouterLink(event.target, this.linksSelector);
     if (!anchor) return;
 
@@ -88,18 +81,12 @@ export class LinkPrefetchIntentTracker {
 
   @bind
   private onLinkTouch(event: TouchEvent): void {
-    if (!this.handlers) return;
+    const link = readRouterLinkFromEvent(event, this.linksSelector);
+    if (!link) return;
 
-    const anchor = findRouterLink(event.target, this.linksSelector);
-    if (!anchor) return;
-
-    const href = readLinkHref(anchor);
-    if (!href) return;
-
-    const attrMode = anchor.getAttribute('data-prefetch')?.trim().toLowerCase();
-    const mode = attrMode === 'tap' ? 'tap' : resolveLinkPrefetchMode(anchor, 'tap');
+    const mode = resolveLinkTouchPrefetchMode(link.anchor);
     if (!mode) return;
 
-    this.handlers.scheduleIntent(href, mode);
+    this.handlers.scheduleIntent(link.href, mode);
   }
 }

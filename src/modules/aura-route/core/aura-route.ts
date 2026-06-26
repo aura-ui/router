@@ -17,7 +17,6 @@ export interface AuraRouteInterface {
   content: string;
   loadingTemplate: string;
   errorTemplate: string;
-  preload: boolean;
   keepAlive: boolean;
   restoreScroll: boolean;
   cache: boolean;
@@ -48,7 +47,6 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   /** Inherited from `<aura-router data-transition>`; empty → instant `replace` mount. */
   @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) transition: string;
 
-  @boolAttr({ readonly: true }) preload: boolean;
   @boolAttr({ readonly: true }) keepAlive: boolean;
   @boolAttr({ readonly: true }) restoreScroll: boolean;
 
@@ -79,11 +77,6 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
       (routeInfo) => routeInfo?.node?.parent?.route.nestedOutlet ?? null,
       () => this.viewLifecycleToken);
 
-    if (this.preload) {
-      await this.view.preload().catch(console.error);
-      // todo also preload data by processor
-      // todo also add links hover on preload
-    }
   }
 
   disconnectedCallback(): void {

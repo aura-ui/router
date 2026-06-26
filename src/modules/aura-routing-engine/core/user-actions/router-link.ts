@@ -13,6 +13,28 @@ export function findRouterLink(
   return anchor;
 }
 
+export function readLinkHref(anchor: HTMLAnchorElement): string | null {
+  const href = anchor.getAttribute('href');
+  if (!href || href.startsWith('http') || href.startsWith('//') || href.startsWith('#')) {
+    return null;
+  }
+  return href;
+}
+
+/** href + anchor from a DOM event targeting an in-app router link. */
+export function readRouterLinkFromEvent(
+  event: Event,
+  linksSelector: string,
+): { anchor: HTMLAnchorElement; href: string } | null {
+  const anchor = findRouterLink(event.target, linksSelector);
+  if (!anchor) return null;
+
+  const href = readLinkHref(anchor);
+  if (!href) return null;
+
+  return { anchor, href };
+}
+
 export function resolveLinkPrefetchMode(
   anchor: Element,
   defaultMode: PrefetchMode = 'intent',
@@ -23,10 +45,11 @@ export function resolveLinkPrefetchMode(
   return defaultMode;
 }
 
-export function readLinkHref(anchor: HTMLAnchorElement): string | null {
-  const href = anchor.getAttribute('href');
-  if (!href || href.startsWith('http') || href.startsWith('//') || href.startsWith('#')) {
-    return null;
-  }
-  return href;
+export function resolveLinkTouchPrefetchMode(
+  anchor: Element,
+  defaultMode: PrefetchMode = 'tap',
+): PrefetchMode | null {
+  const raw = anchor.getAttribute('data-prefetch')?.trim().toLowerCase();
+  if (raw === 'tap') return 'tap';
+  return resolveLinkPrefetchMode(anchor, defaultMode);
 }

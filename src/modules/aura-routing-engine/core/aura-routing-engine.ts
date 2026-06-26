@@ -100,34 +100,7 @@ export class AuraRoutingEngine {
     });
     this.linkNavigation.onNavigation(onNavigation);
 
-    if (config.prefetch !== false) {
-      const defaultMode = config.prefetch?.defaultMode ?? 'intent';
-
-      this.prefetch = new PrefetchController(
-        {
-          matcher: this.matcher,
-          getMatchableNodes: () => this.registry.getMatchableNodes(),
-          content: new RouteChainContentPrefetch(),
-          data: new RouteChainDataPrefetch(),
-        },
-        {
-          defaultMode: 'intent',
-          ...config.prefetch,
-          currentHref: () => this.provider.currentHref,
-        },
-      );
-
-      this.linkPrefetchIntent = new LinkPrefetchIntentTracker({
-        linksSelector: config.linksSelector,
-      });
-      this.linkPrefetchIntent.setHandlers(
-        {
-          scheduleIntent: (href, mode) => this.prefetch!.scheduleIntent(href, mode),
-          cancelIntent: (href) => this.prefetch!.cancelIntent(href),
-        },
-        { defaultMode },
-      );
-    }
+    this.initPrefetch(config);
   }
 
   preload(href: string, options?: PrefetchOptions): Promise<void> {
@@ -355,5 +328,34 @@ export class AuraRoutingEngine {
 
   setNotFoundHandler(callback: NotFoundFallbackHandler): void {
     this.notFoundHandler = callback;
+  }
+
+  private initPrefetch(config: AuraRoutingEngineConfig): void {
+    if (config.prefetch === false) return;
+
+    const prefetchConfig: PrefetchConfig = {
+      defaultMode: 'intent',
+      ...config.prefetch,
+      currentHref: () => this.provider.currentHref,
+    };
+
+    this.prefetch = new PrefetchController(
+      {
+        matcher: this.matcher,
+        getMatchableNodes: () => this.registry.getMatchableNodes(),
+        content: new RouteChainContentPrefetch(),
+        data: new RouteChainDataPrefetch(),
+      },
+      prefetchConfig,
+    );
+
+    this.linkPrefetchIntent = new LinkPrefetchIntentTracker({
+      linksSelector: config.linksSelector,
+      handlers: {
+        scheduleIntent: (href, mode) => this.prefetch!.scheduleIntent(href, mode),
+        cancelIntent: (href) => this.prefetch!.cancelIntent(href),
+      },
+      defaultMode: prefetchConfig.defaultMode,
+    });
   }
 }

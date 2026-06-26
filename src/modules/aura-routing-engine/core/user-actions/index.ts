@@ -12,6 +12,5 @@ export {
 export {
   LinkPrefetchIntentTracker,
   type LinkPrefetchHandlers,
-  type LinkPrefetchIntentOptions,
   type LinkPrefetchIntentTrackerConfig,
 } from './link-prefetch-intent';

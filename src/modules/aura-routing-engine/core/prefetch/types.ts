@@ -4,8 +4,6 @@ import type { RouteNode } from '../route-tree';
 /** How prefetch was triggered — aligns with link `data-prefetch` and router defaults. */
 export type PrefetchMode = 'intent' | 'viewport' | 'tap' | 'render' | 'manual' | 'none';
 
-export type PrefetchReason = PrefetchMode;
-
 /** Resolved navigation target for prefetch executors. */
 export type PrefetchTarget = {
   readonly href: string;
@@ -19,12 +17,12 @@ export type PrefetchTarget = {
 export type PrefetchExecContext = {
   readonly signal: AbortSignal;
   readonly mode: PrefetchMode;
-  readonly reason: PrefetchReason;
+  readonly reason: PrefetchMode;
 };
 
 export type PrefetchOptions = {
   readonly mode?: PrefetchMode;
-  readonly reason?: PrefetchReason;
+  readonly reason?: PrefetchMode;
   readonly signal?: AbortSignal;
   /** Bypass stale-time skip and in-flight dedupe. */
   readonly force?: boolean;

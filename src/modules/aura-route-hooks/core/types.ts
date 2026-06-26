@@ -68,6 +68,8 @@ export interface RouteInstance {
    * Invoked on the enter branch after transition hooks, before exit `onLeft`.
    */
   commitStagedView?(): void;
+  /** Link-driven content prefetch with resolved match info. */
+  prefetchContent?(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void>;
 }
 
 /** Hook context: lifecycle + plugin options from `AuraRouter.use(hook, options)`. */

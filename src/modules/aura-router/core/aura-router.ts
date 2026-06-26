@@ -171,4 +171,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     const action: HistoryAction = replace ? 'replace' : 'push';
     void this.ensureEngine().navigateTo(path, action, { replace, syncHistory });
   }
+
+  /** Programmatic link-driven prefetch for a target href. */
+  preload(href: string): Promise<void> {
+    return this.ensureEngine().preload(href);
+  }
 }

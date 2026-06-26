@@ -21,7 +21,18 @@ import {
   type NavigateHistoryOptions,
   type NavigationProvider,
 } from './history';
+import {
+  LinkNavigationTracker,
+  LinkPrefetchIntentTracker,
+} from './user-actions';
 import type { NavigationErrorDetail } from './processor/navigation-error.types';
+import {
+  PrefetchController,
+  RouteChainContentPrefetch,
+  RouteChainDataPrefetch,
+  type PrefetchConfig,
+  type PrefetchOptions,
+} from './prefetch';
 
 /** Engine fallback when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -39,6 +50,8 @@ export interface AuraRoutingEngineConfig {
   onNavigationError?: (detail: NavigationErrorDetail) => void;
   /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
   provider?: NavigationProvider;
+  /** Link-driven prefetch; `false` disables. */
+  prefetch?: false | PrefetchConfig;
 }
 
 export class AuraRoutingEngine {
@@ -53,6 +66,9 @@ export class AuraRoutingEngine {
   private readonly router: RouterInstance;
 
   private notFoundHandler: NotFoundFallbackHandler | null = null;
+  private readonly prefetch?: PrefetchController;
+  private readonly linkNavigation: LinkNavigationTracker;
+  private readonly linkPrefetchIntent?: LinkPrefetchIntentTracker;
 
   constructor(
     processor: AuraRoutingProcessor,
@@ -63,16 +79,59 @@ export class AuraRoutingEngine {
     this.router = router;
     this.config = config;
 
-    this.provider =
-      config.provider ??
-      new BrowserHistoryProvider({ linksSelector: config.linksSelector });
+    this.provider = config.provider ?? new BrowserHistoryProvider();
 
-    this.provider.onNavigation((request) => {
+    const onNavigation = (request: {
+      href: string;
+      action: HistoryAction;
+      replace: boolean;
+      syncHistory: boolean;
+    }) => {
       void this.navigateTo(request.href, request.action, {
         replace: request.replace,
         syncHistory: request.syncHistory,
       });
+    };
+
+    this.provider.onNavigation(onNavigation);
+
+    this.linkNavigation = new LinkNavigationTracker({
+      linksSelector: config.linksSelector,
     });
+    this.linkNavigation.onNavigation(onNavigation);
+
+    if (config.prefetch !== false) {
+      const defaultMode = config.prefetch?.defaultMode ?? 'intent';
+
+      this.prefetch = new PrefetchController(
+        {
+          matcher: this.matcher,
+          getMatchableNodes: () => this.registry.getMatchableNodes(),
+          content: new RouteChainContentPrefetch(),
+          data: new RouteChainDataPrefetch(),
+        },
+        {
+          defaultMode: 'intent',
+          ...config.prefetch,
+          currentHref: () => this.provider.currentHref,
+        },
+      );
+
+      this.linkPrefetchIntent = new LinkPrefetchIntentTracker({
+        linksSelector: config.linksSelector,
+      });
+      this.linkPrefetchIntent.setHandlers(
+        {
+          scheduleIntent: (href, mode) => this.prefetch!.scheduleIntent(href, mode),
+          cancelIntent: (href) => this.prefetch!.cancelIntent(href),
+        },
+        { defaultMode },
+      );
+    }
+  }
+
+  preload(href: string, options?: PrefetchOptions): Promise<void> {
+    return this.prefetch?.prefetch(href, options) ?? Promise.resolve();
   }
 
   registerRoutes(routes: Parameters<AuraRoutingRouteRegistry['register']>[0]) {
@@ -87,6 +146,8 @@ export class AuraRoutingEngine {
     if (this.isRunning) return;
     this.isRunning = true;
     this.provider.start();
+    this.linkNavigation.start();
+    this.linkPrefetchIntent?.start();
 
     void this.navigateTo(this.provider.currentHref, 'system', {
       replace: true,
@@ -97,6 +158,9 @@ export class AuraRoutingEngine {
   stop() {
     this.isRunning = false;
     this.processor.invalidate();
+    this.prefetch?.destroy();
+    this.linkPrefetchIntent?.destroy();
+    this.linkNavigation.destroy();
     this.provider.destroy();
   }
 

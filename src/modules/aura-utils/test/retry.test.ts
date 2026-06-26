@@ -109,4 +109,60 @@ describe('retry', () => {
   it('throws when attempts is less than 1', async () => {
     await expect(retry(async () => 'ok', { attempts: 0 })).rejects.toThrow(RangeError);
   });
+
+  it('throws when delay is negative', async () => {
+    await expect(retry(async () => 'ok', { delay: -1 })).rejects.toThrow(RangeError);
+  });
+
+  it('throws when backoffMultiplier is invalid', async () => {
+    await expect(retry(async () => 'ok', { backoffMultiplier: -1 })).rejects.toThrow(RangeError);
+    await expect(retry(async () => 'ok', { backoffMultiplier: Number.NaN })).rejects.toThrow(RangeError);
+  });
+
+  it('applies exponential backoff between attempts', async () => {
+    jest.useFakeTimers();
+    let runs = 0;
+
+    const promise = retry(async () => {
+      runs++;
+      if (runs < 3) throw new Error('retry');
+      return 'ok';
+    }, { attempts: 3, delay: 100, backoffMultiplier: 2 });
+
+    await Promise.resolve();
+    expect(runs).toBe(1);
+
+    await jest.advanceTimersByTimeAsync(99);
+    expect(runs).toBe(1);
+
+    await jest.advanceTimersByTimeAsync(1);
+    await Promise.resolve();
+    expect(runs).toBe(2);
+
+    await jest.advanceTimersByTimeAsync(199);
+    expect(runs).toBe(2);
+
+    await jest.advanceTimersByTimeAsync(1);
+    await expect(promise).resolves.toBe('ok');
+    expect(runs).toBe(3);
+
+    jest.useRealTimers();
+  });
+
+  it('skips sleep when computed delay is zero', async () => {
+    jest.useFakeTimers();
+    let runs = 0;
+
+    const promise = retry(async () => {
+      runs++;
+      if (runs < 2) throw new Error('retry');
+      return 'ok';
+    }, { attempts: 2, delay: 0, backoffMultiplier: 2 });
+
+    await expect(promise).resolves.toBe('ok');
+    expect(runs).toBe(2);
+    expect(jest.getTimerCount()).toBe(0);
+
+    jest.useRealTimers();
+  });
 });

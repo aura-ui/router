@@ -5,10 +5,119 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>aura-ui-router</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, sans-serif;
+    }
+
+    .demo-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin: 30px;
+    }
+
+    .transitions-demo {
+      margin: 0 30px 16px;
+      padding: 20px;
+      border: 1px solid #d0d7de;
+      border-radius: 12px;
+      background: #f6f8fa;
+    }
+
+    .transitions-demo h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+    }
+
+    .transitions-demo p {
+      margin: 0 0 16px;
+      color: #57606a;
+      font-size: 0.95rem;
+    }
+
+    .transition-policy {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .transition-policy button {
+      border: 1px solid #afb8c1;
+      border-radius: 999px;
+      padding: 6px 14px;
+      background: #fff;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .transition-policy button.is-active {
+      border-color: #0969da;
+      background: #ddf4ff;
+      color: #0550ae;
+    }
+
+    .transition-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .transition-links a {
+      color: #0969da;
+    }
+
+    .transition-outlet-wrap {
+      margin: 0 30px 40px;
+    }
+
+    .transition-outlet-wrap aura-outlet {
+      display: block;
+      position: relative;
+      min-height: 220px;
+      border: 1px dashed #afb8c1;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .transition-outlet-wrap aura-outlet > [data-aura-view-root] {
+      position: absolute;
+      inset: 0;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+
+    .t-page {
+      height: 100%;
+      border-radius: 8px;
+      padding: 1.25rem;
+      box-sizing: border-box;
+      color: #1f2328;
+    }
+
+    .t-page h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+    }
+
+    .t-page p {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .t-home { background: linear-gradient(135deg, #ddf4ff, #b6e3ff); }
+    .t-about { background: linear-gradient(135deg, #dafbe1, #aceebb); }
+    .t-gallery { background: linear-gradient(135deg, #fbefff, #eed7ff); }
+    .t-slide-a { background: linear-gradient(135deg, #fff8c5, #ffec9e); }
+    .t-slide-b { background: linear-gradient(135deg, #ffe2d1, #ffc9b5); }
+  </style>
 </head>
 <body>
 
-<nav style=" display: flex; gap:20px; margin:30px">
+<nav class="demo-nav">
   <a href="/a" data-router-link>link html</a>
   <a href="/b" data-router-link>link html-src</a>
   <a href="/c" data-router-link>link template</a>
@@ -18,7 +127,31 @@
   <a href="/users/about" data-router-link>Users / about</a>
   <a href="/about.html">About</a>
   <a href="/custom-loader" data-router-link>Custom Loader</a>
+  <a href="/t/home" data-router-link><strong>Transitions demo</strong></a>
 </nav>
+
+<section class="transitions-demo" aria-labelledby="transitions-title">
+  <h2 id="transitions-title">Route transitions</h2>
+  <p>
+    Staged views via <code>data-crossfade</code> on <code>&lt;aura-router&gt;</code>;
+    hook timing via <code>data-transition</code> (parallel / out-in / in-out) and
+    <code>transition-in</code> / <code>transition-out</code> on routes.
+  </p>
+
+  <div class="transition-policy" role="group" aria-label="Transition policy">
+    <button type="button" data-transition-policy="parallel" class="is-active">parallel</button>
+    <button type="button" data-transition-policy="out-in">out-in</button>
+    <button type="button" data-transition-policy="in-out">in-out</button>
+  </div>
+
+  <div class="transition-links">
+    <a href="/t/home" data-router-link>Home (fade)</a>
+    <a href="/t/about" data-router-link>About (fade)</a>
+    <a href="/t/gallery" data-router-link>Gallery (slide)</a>
+    <a href="/t/slide-a" data-router-link>Slide A</a>
+    <a href="/t/slide-b" data-router-link>Slide B</a>
+  </div>
+</section>
 
 <template id="app">Шаблон</template>
 <template id="loading-template">Загрузка, ожидаем</template>
@@ -32,34 +165,53 @@
   <aura-outlet></aura-outlet>
 </template>
 
-<aura-router error-template="error-template"
+<aura-router id="app-router"
+             data-transition="parallel"
+             data-crossfade="fade"
+             error-template="error-template"
              loading-template="loading-template">
-  <aura-outlet></aura-outlet>
-  <aura-route path="/a" source="html" enter="auth, analytics" data-content='<a href="/c" data-router-link>load template</a>'></aura-route>
-  <aura-route path="/b" source="html-src" entered="analytics" data-content="index2.html" preload></aura-route>
-  <aura-route path="/c" source="template" data-content="app"></aura-route>
-  <aura-route path="/d" source="component-src" data-content='examples/demo/components/test-element1'></aura-route>
-  <aura-route path="/f" source="component-src" data-content='examples/demo/components/test-element' preserve-state></aura-route>
-  <aura-route path="/users" layout="users-layout">
-    <aura-route path="about" source="html-src" data-content="user.html"></aura-route>
+  <div class="transition-outlet-wrap">
+    <aura-outlet></aura-outlet>
+  </div>
+
+  <aura-route path="/a" data-crossfade="" source="html" enter="auth, analytics" data-content='<a href="/c" data-router-link>load template</a>'></aura-route>
+  <aura-route path="/b" data-crossfade="" source="html-src" entered="analytics" data-content="index2.html" preload></aura-route>
+  <aura-route path="/c" data-crossfade="" source="template" data-content="app"></aura-route>
+  <aura-route path="/d" data-crossfade="" source="component-src" data-content='examples/demo/components/test-element1'></aura-route>
+  <aura-route path="/f" data-crossfade="" source="component-src" data-content='examples/demo/components/test-element' keep-alive></aura-route>
+  <aura-route path="/users" data-crossfade="" layout="users-layout">
+    <aura-route path="about" data-crossfade="" source="html-src" data-content="user.html"></aura-route>
   </aura-route>
-  <aura-route path="/custom-loader" source="custom-loader" data-content="user.html"></aura-route>
-  <aura-route path="/user/:id" source="component-src" data-content='examples/demo/components/test-element' preload></aura-route>
-  <aura-route path="цу" source="template" data-content="404-template"></aura-route>
+  <aura-route path="/custom-loader" data-crossfade="" source="custom-loader" data-content="user.html"></aura-route>
+  <aura-route path="/user/:id" data-crossfade="" source="component-src" data-content='examples/demo/components/test-element' preload></aura-route>
+  <aura-route path="цу" data-crossfade="" source="template" data-content="404-template"></aura-route>
+
+  <aura-route path="/t/home" source="html"
+    transition-in="fade" transition-out="fade"
+    data-content='&lt;div class="t-page t-home"&gt;&lt;h1&gt;Home&lt;/h1&gt;&lt;p&gt;Fade transition. Try switching parallel / out-in / in-out above.&lt;/p&gt;&lt;/div&gt;'>
+  </aura-route>
+  <aura-route path="/t/about" source="html"
+    transition-in="fade" transition-out="fade"
+    data-content='&lt;div class="t-page t-about"&gt;&lt;h1&gt;About&lt;/h1&gt;&lt;p&gt;Crossfade between staged view roots in the outlet.&lt;/p&gt;&lt;/div&gt;'>
+  </aura-route>
+  <aura-route path="/t/gallery" source="html"
+    transition-in="slide" transition-out="slide"
+    data-content='&lt;div class="t-page t-gallery"&gt;&lt;h1&gt;Gallery&lt;/h1&gt;&lt;p&gt;Slide transition (translateX + opacity).&lt;/p&gt;&lt;/div&gt;'>
+  </aura-route>
+  <aura-route path="/t/slide-a" source="html"
+    transition-in="slide" transition-out="slide"
+    data-content='&lt;div class="t-page t-slide-a"&gt;&lt;h1&gt;Slide A&lt;/h1&gt;&lt;p&gt;Navigate to Slide B to see horizontal slide.&lt;/p&gt;&lt;/div&gt;'>
+  </aura-route>
+  <aura-route path="/t/slide-b" source="html"
+    transition-in="slide" transition-out="slide"
+    data-content='&lt;div class="t-page t-slide-b"&gt;&lt;h1&gt;Slide B&lt;/h1&gt;&lt;p&gt;out-in waits for exit before render; parallel runs both at once.&lt;/p&gt;&lt;/div&gt;'>
+  </aura-route>
 </aura-router>
 
-<!--<aura-route path="/b" loader='html-src' content="index2.html" preload></aura-route>-->
-<!--<aura-route path="/b" loader-type='html-src' content="index2.html" preload></aura-route>-->
-<!--<aura-route path="/b" type='html-src' content="index2.html" preload></aura-route>-->
-<!--
 
-<aura-route path="/c" source="template:app"></aura-route>
-<aura-route path="/b" source="html-src:index2.html"></aura-route>
-<aura-route path="/d" source="component-src:examples/demo/components/test-element"></aura-route>
--->
-
-<!--source="<тип>:<значение>"-->
-
+<aura-route template="id"></aura-route>
+<aura-route html="inline || url"></aura-route>
+<aura-route component="inline || url"></aura-route>
 <script type="module" src="/src/examples/demo/main.ts"></script>
 
 </body>

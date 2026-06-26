@@ -34,7 +34,9 @@ export class ContentCache {
     if (pending) return pending;
 
     const promise = load().then((payload) => {
-      if (payload != null) this.entries.set(key, payload);
+      if (typeof payload === 'string') {
+        this.entries.set(key, payload);
+      }
       return payload;
     }).finally(() => {
       this.inflight.delete(key);

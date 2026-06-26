@@ -18,7 +18,7 @@ import type { MountTargetPort } from './view/ports';
 export type { RouteRenderOptions, AuraRouteInterface };
 
 export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, RouteInstance {
-  static is = 'aura-route-2';
+  static is = 'aura-route';
 
   @attr({ readonly: true }) path: string;
   @attr({ readonly: true }) layout: string;

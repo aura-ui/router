@@ -1,4 +1,6 @@
 export { PrefetchController } from './prefetch-controller';
+export { RouteChainContentPrefetch } from './content-prefetch';
+export { RouteChainDataPrefetch } from './data-prefetch';
 export { PrefetchIntentScheduler } from './intent-scheduler';
 export { resolvePrefetchTarget } from './resolve-target';
 export {

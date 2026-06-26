@@ -27,8 +27,6 @@ type PrefetchRecord = {
 
 /**
  * Engine-level prefetch orchestrator: match href → parallel sibling executors.
- *
- * Not wired to DOM or navigation yet — intended for link intent + `router.preload(href)`.
  */
 export class PrefetchController {
   private readonly deps: PrefetchControllerDeps;

@@ -6,19 +6,10 @@ import type {
   NavigateHistoryOptions,
 } from './provider.types';
 
-export interface BrowserHistoryProviderConfig {
-  linksSelector?: string;
-}
-
-/** History API + popstate + перехват in-app ссылок. */
+/** History API + popstate. Клики и prefetch intent — в `user-actions/`. */
 export class BrowserHistoryProvider implements NavigationProvider {
   private handler?: NavigationHandler;
   private listening = false;
-  private readonly linksSelector: string;
-
-  constructor(config: BrowserHistoryProviderConfig = {}) {
-    this.linksSelector = config.linksSelector ?? '[data-router-link]';
-  }
 
   get currentHref(): string {
     return window.location.pathname + window.location.search + window.location.hash;
@@ -32,14 +23,12 @@ export class BrowserHistoryProvider implements NavigationProvider {
     if (this.listening) return;
     this.listening = true;
     window.addEventListener('popstate', this.onPopState);
-    document.addEventListener('click', this.onDocumentClick, { capture: true });
   }
 
   destroy(): void {
     if (!this.listening) return;
     this.listening = false;
     window.removeEventListener('popstate', this.onPopState);
-    document.removeEventListener('click', this.onDocumentClick, { capture: true });
     this.handler = undefined;
   }
 
@@ -64,28 +53,6 @@ export class BrowserHistoryProvider implements NavigationProvider {
       action: 'pop',
       replace: true,
       syncHistory: false,
-    });
-  }
-
-  @bind
-  private onDocumentClick(event: MouseEvent): void {
-    const { target } = event;
-    if (!(target instanceof Element)) return;
-
-    const anchor = target.closest('a');
-    if (!anchor || !anchor.matches(this.linksSelector)) return;
-
-    const href = anchor.getAttribute('href');
-    if (!href || href.startsWith('http') || href.startsWith('//') || href.startsWith('#')) {
-      return;
-    }
-
-    event.preventDefault();
-    this.handler?.({
-      href,
-      action: 'push',
-      replace: false,
-      syncHistory: true,
     });
   }
 }

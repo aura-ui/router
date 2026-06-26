@@ -39,7 +39,6 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) crossfade: string;
 
-  @boolAttr({ readonly: true }) preload: boolean;
   @boolAttr({ readonly: true }) keepAlive: boolean;
   @boolAttr({ readonly: true }) restoreScroll: boolean;
   @boolAttr() cache: boolean;
@@ -81,10 +80,6 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
       },
       () => this.passId,
     );
-
-    if (this.preload) {
-      await this.view.preload().catch(console.error);
-    }
   }
 
   disconnectedCallback(): void {
@@ -103,6 +98,10 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
 
   commitStagedView(): void {
     this.view.commitStagedView();
+  }
+
+  prefetchContent(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
+    return this.view.prefetchContent(routeInfo, signal);
   }
 
   onEnter(_ctx: RouteLifecycleContext): void {}

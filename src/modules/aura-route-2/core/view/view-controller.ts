@@ -47,8 +47,8 @@ export class RouteViewController {
     return this.renderSignal.signal;
   }
 
-  async preload(): Promise<void> {
-    await this.config.content.preload?.(this.renderSignal.signal);
+  async prefetchContent(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
+    await this.config.content.preload?.(routeInfo, signal);
   }
 
   /**

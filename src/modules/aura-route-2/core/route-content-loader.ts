@@ -24,8 +24,8 @@ export class RouteContentLoader implements ContentResolverPort {
     });
   }
 
-  preload(signal: AbortSignal): Promise<void> {
-    return this.resolver.preload(this.descriptor(), this.context(signal));
+  preload(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
+    return this.resolver.preload(this.descriptor(), { routeInfo, signal });
   }
 
   resolve(routeInfo: MatchedRouteInfo, signal: AbortSignal) {
@@ -34,21 +34,5 @@ export class RouteContentLoader implements ContentResolverPort {
 
   private descriptor() {
     return contentDescriptor(this.route);
-  }
-
-  private context(signal: AbortSignal, routeInfo?: MatchedRouteInfo): {
-    routeInfo: MatchedRouteInfo;
-    signal: AbortSignal;
-  } {
-    return {
-      routeInfo: routeInfo ?? {
-        href: `/${this.route.path}`,
-        pathname: `/${this.route.path}`,
-        search: '',
-        hash: '',
-        pattern: this.route.path,
-      } as MatchedRouteInfo,
-      signal,
-    };
   }
 }

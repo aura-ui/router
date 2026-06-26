@@ -8,7 +8,6 @@ export interface AuraRouteInterface {
   content: string;
   loadingTemplate: string;
   errorTemplate: string;
-  preload: boolean;
   keepAlive: boolean;
   restoreScroll: boolean;
   cache: boolean;

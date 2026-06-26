@@ -1,6 +1,5 @@
 import {
   DEFAULT_MAX_AGE_MS,
-  DEFAULT_STALE_TIME_MS,
   delayForMode,
   normalizePrefetchHref,
   shouldSkipPrefetch,
@@ -47,7 +46,10 @@ export class PrefetchController {
   scheduleIntent(href: string, mode?: PrefetchMode): void {
     const resolvedMode = mode ?? this.config.defaultMode ?? 'intent';
     const normalized = normalizePrefetchHref(href);
-    if (!normalized) return;
+    if (!normalized) {
+      this.config.onSkipped?.(href, 'invalid-href');
+      return;
+    }
 
     const skip = this.skipReason(normalized, resolvedMode);
     if (skip) {
@@ -92,6 +94,10 @@ export class PrefetchController {
     const existing = !options.force ? this.inflight.get(normalized) : undefined;
     if (existing) return existing.promise;
 
+    if (options.force) {
+      this.inflight.get(normalized)?.abort.abort();
+    }
+
     const target = resolvePrefetchTarget(
       this.deps.matcher,
       this.deps.getMatchableNodes(),
@@ -115,7 +121,8 @@ export class PrefetchController {
     this.inflight.set(normalized, { promise, abort });
 
     try {
-      await promise;
+      const completed = await promise;
+      if (!completed || abort.signal.aborted) return;
       this.records.set(normalized, { completedAt: Date.now() });
       this.pruneRecords();
     } catch (error) {
@@ -155,22 +162,29 @@ export class PrefetchController {
     });
   }
 
-  private async runExecutors(target: PrefetchTarget, ctx: PrefetchExecContext): Promise<void> {
-    if (ctx.signal.aborted) return;
-
-    this.deps.speculation?.hint(target, ctx);
-    this.config.onStart?.(target, ctx);
+  private async runExecutors(target: PrefetchTarget, ctx: PrefetchExecContext): Promise<boolean> {
+    if (ctx.signal.aborted) return false;
 
     const tasks: Promise<void>[] = [];
     if (this.deps.content) tasks.push(this.deps.content.prefetch(target, ctx));
     if (this.deps.data) tasks.push(this.deps.data.prefetch(target, ctx));
 
-    if (tasks.length === 0) return;
+    if (tasks.length === 0) return false;
 
-    await Promise.all(tasks);
+    this.deps.speculation?.hint(target, ctx);
+    this.config.onStart?.(target, ctx);
 
-    if (ctx.signal.aborted) return;
+    try {
+      await raceWithAbort(Promise.all(tasks), ctx.signal);
+    } catch (error) {
+      if (ctx.signal.aborted || isAbortError(error)) return false;
+      throw error;
+    }
+
+    if (ctx.signal.aborted) return false;
+
     this.config.onComplete?.(target, ctx);
+    return true;
   }
 
   private pruneRecords(): void {
@@ -180,4 +194,30 @@ export class PrefetchController {
       if (record.completedAt < cutoff) this.records.delete(href);
     }
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+function raceWithAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) {
+    return Promise.reject(new DOMException('Prefetch aborted', 'AbortError'));
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException('Prefetch aborted', 'AbortError'));
+
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+  });
 }

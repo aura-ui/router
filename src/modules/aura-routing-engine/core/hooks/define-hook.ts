@@ -12,7 +12,7 @@ import type { RouteHookDefinition } from './types';
  * Declares a reusable route hook.
  *
  * @param def - hook name, version, fn, optional `requires` semver range
- * @returns frozen definition safe to pass to {@link AuraRouter.use}
+ * @returns frozen definition for `AuraRouter.use()`
  *
  * @example
  * ```ts

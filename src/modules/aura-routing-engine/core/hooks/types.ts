@@ -3,7 +3,7 @@
  *
  * **Runtime wiring:** route attrs / `hooks="phase::name"` pick *when* a hook runs;
  * {@link RouteHookDefinition} registers *what* runs. Phase policy lives in
- * {@link ../processor/lifecycle-step.ts | LIFECYCLE_STEPS}.
+ * {@link ../processor/lifecycle-step!LIFECYCLE_STEPS}.
  *
  * @module hooks/types
  */
@@ -14,7 +14,7 @@ import type { RouteTransition } from '../transition/route-transition';
 
 export type { RouteTransition };
 
-/** Branch in {@link TransitionMap}: exiting vs entering routes. */
+/** Branch in transition plan: exiting vs entering routes. @see {@link ../transition/plan!TransitionMap} */
 export type LifecycleBranch = 'exitRoutes' | 'enterRoutes';
 
 /** Post-commit hook error policy (see {@link LifecycleHookHandling}). */
@@ -23,8 +23,9 @@ export type PostCommitHookErrors = 'propagate' | 'log';
 /**
  * When registered hooks run relative to view commit.
  *
- * - `blocking` — before render; cancel/redirect stops navigation
- * - `postCommit` — after render; terminal results are logged, not applied
+ * - `blocking` — before view commit; cancel/redirect stops navigation
+ * - `postCommit` — after view commit; cancel/redirect are ignored (warned).
+ *   Hook errors: `propagate` throws, `log` catches and logs.
  */
 export type LifecycleHookHandling =
   | { kind: 'blocking' }
@@ -86,7 +87,8 @@ export interface RouterInstance {
  *
  * @example
  * ```html
- * <aura-route path="/admin" enter="auth" hooks="after::analytics"></aura-route>
+ * <aura-route path="/admin" enter="auth" after="analytics"></aura-route>
+ * <!-- `after` attr → route.afterHook; or use hooks="after::analytics" -->
  * ```
  */
 export interface RouteHookNamesSource {
@@ -138,7 +140,7 @@ export interface RouteInstance extends RouteHookNamesSource {
   commitStagedView?(): void;
 }
 
-/** {@link RouteLifecycleContext} plus per-registration options from `AuraRouter.use(hook, options)`. */
+/** Per-registration options from `AuraRouter.use(hook, options)`. */
 export interface RouteHookContext<TOptions = Record<string, unknown>>
   extends RouteLifecycleContext {
   options: TOptions;
@@ -156,7 +158,7 @@ export type HookResult =
   | { readonly type: 'redirect'; url: string; replace?: boolean };
 
 /**
- * Values a hook fn may return — normalized to {@link GuardResult} by the registry.
+ * Values a hook fn may return — normalized to `GuardResult` by {@link ./registry!normalizeHookResult}.
  *
  * @example Legacy redirect
  * ```ts
@@ -196,6 +198,6 @@ export interface RouteHookDefinition<TOptions = Record<string, unknown>> {
   /** Hook semver (logged on replacement). */
   version: string;
   fn: RouteHookFn<TOptions>;
-  /** Router API semver range; {@link HookRegistry.register} throws when not satisfied. */
+  /** Router API semver range; {@link ./registry!HookRegistry.register} throws when not satisfied. */
   requires?: string;
 }

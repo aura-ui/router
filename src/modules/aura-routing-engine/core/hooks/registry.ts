@@ -1,8 +1,8 @@
 /**
  * Hook registry and runtime — register global hooks, run them during navigation.
  *
- * Flow: route attrs → {@link resolveHookNames} → {@link runPhaseHooks} → {@link HookRegistry.run}.
- * Blocking phases stop on first cancel/redirect; post-commit phases log ignored terminal results.
+ * Flow: route attrs → {@link ./phases!resolveHookNames} → {@link runPhaseHooks} → {@link HookRegistry.run}.
+ * Blocking phases stop on first cancel/redirect. Post-commit phases ignore cancel/redirect (warn).
  *
  * @module hooks/registry
  */
@@ -66,16 +66,19 @@ interface StoredHook {
 /**
  * In-memory catalog of registered route hooks.
  *
- * Use {@link defaultHookRegistry} via `AuraRouter.use()` in apps; inject a custom
- * instance into {@link AuraRoutingProcessor} for tests.
+ * Use {@link defaultHookRegistry} via `AuraRouter.use()` / `AuraRouter.unuse()` in apps;
+ * inject a custom instance into {@link ../processor/processor!AuraRoutingProcessor} for tests.
  */
 export class HookRegistry {
   private readonly entries = new Map<string, StoredHook>();
 
   /**
-   * Registers a hook by name. Re-registering the same `fn` + `version` updates options only.
+   * Registers a hook by name.
    *
-   * @throws When `hook.requires` is not satisfied by {@link ROUTER_VERSION}
+   * Re-registering the same `fn` + `version` updates options only (no version warn, no re-check of `requires`).
+   * Options are stored as a shallow snapshot.
+   *
+   * @throws When `hook.requires` is not satisfied by {@link ROUTER_VERSION} (new or upgraded registration)
    */
   register<TOptions extends Record<string, unknown> = Record<string, unknown>>(
     hook: RouteHookDefinition<TOptions>,
@@ -185,5 +188,5 @@ export async function runPhaseHooks(
   }
 }
 
-/** Global hook catalog used by {@link AuraRouter.use}. */
+/** Global hook catalog — wired by `AuraRouter.use()` and `AuraRouter.unuse()`. */
 export const defaultHookRegistry = new HookRegistry();

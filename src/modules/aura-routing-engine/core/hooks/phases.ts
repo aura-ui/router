@@ -2,7 +2,7 @@
  * Phase metadata and hook name resolution for routes.
  *
  * Pipeline policy (branch, blocking/postCommit) is derived from
- * {@link ../processor/lifecycle-step.ts#LIFECYCLE_STEPS | LIFECYCLE_STEPS}.
+ * {@link ../processor/lifecycle-step!LIFECYCLE_STEPS}.
  * This module adds HTML/route attr bindings and parsing helpers.
  *
  * @module hooks/phases
@@ -127,8 +127,8 @@ export function parsePhaseHooks(raw: string | null): PhaseHooksMap | null {
  * ```ts
  * // route: enter="auth" hooks="enter::audit, after::analytics"
  * resolveHookNames(route, 'enter'); // → ['auth', 'audit']
- * resolveHookNames(route, 'after'); // → ['analytics']
- * resolveHookNames(route, 'left');  // → hooks map only (no dedicated attr)
+ * resolveHookNames(route, 'after'); // → ['analytics'] (after attr or hooks map)
+ * resolveHookNames(route, 'left');  // → hooks map only, e.g. hooks="left::cleanup"
  * ```
  */
 export function resolveHookNames(

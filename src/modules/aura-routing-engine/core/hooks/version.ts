@@ -7,7 +7,7 @@
  * @module hooks/version
  */
 
-/** Router public API version (not the npm package version). */
+/** Router public API version string (see module header — not npm package version). */
 export const ROUTER_VERSION = '0.1.0';
 
 /** Matches ranges like ">=0.1.0", ">0.2.0", "=0.3.0". */

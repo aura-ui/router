@@ -11,6 +11,7 @@ import {
   LIFECYCLE_STEPS,
   type LifecycleStepDef,
 } from './lifecycle-step';
+import { routeHookNames } from '../../../aura-route-hooks/core/phase-hooks';
 
 /** Arguments for {@link AuraRoutingProcessor.run} (plan and policy are added by the processor). */
 export interface ProcessorRunInput {
@@ -288,7 +289,7 @@ export class ProcessorPipeline {
     try {
       step.onRoute(route, lifecycleContext);
 
-      const hookNames = route[step.lifecyclePhase];
+      const hookNames = routeHookNames(route, step.lifecyclePhase);
       if (!hookNames?.length) return null;
 
       return step.hooks.kind === 'blocking'
@@ -380,7 +381,7 @@ export class ProcessorPipeline {
     const errorContext = toLifecycleContext('error', matchedRoute, pipelineContext, error);
     matchedRoute.route.onError({ ...errorContext, error });
 
-    if (matchedRoute.route.error?.length) {
+    if (routeHookNames(matchedRoute.route, 'error')?.length) {
       try {
         await RouteHookRunner.runLifecycleHooks(errorContext, pipelineContext.isJobActive);
       } catch (hookError) {

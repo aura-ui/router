@@ -1,5 +1,7 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
+import { parsePhaseHooks } from '../../aura-route-hooks/core/phase-hooks';
+import type { PhaseHooksMap } from '../../aura-route-hooks/core';
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import type {
   MatchedRouteInfo,
@@ -33,6 +35,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @attr({ parser: parseCommaSeparated }) left: string[] | null;
   @attr({ parser: parseCommaSeparated }) reenter: string[] | null;
   @attr({ parser: parseCommaSeparated }) error: string[] | null;
+  @attr({ parser: parsePhaseHooks }) hooks: PhaseHooksMap | null;
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;

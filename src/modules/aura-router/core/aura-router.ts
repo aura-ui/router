@@ -86,6 +86,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     defaultHookRegistry.register(hook, options ?? {});
   }
 
+  /** Removes a globally registered hook by name. Returns true when it existed. */
+  static unuse(name: string): boolean {
+    return defaultHookRegistry.unregister(name);
+  }
+
   static configure(options: AuraRouterConfigureOptions): void {
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);

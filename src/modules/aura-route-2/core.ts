@@ -21,15 +21,13 @@ export { RouteContentLoader } from './core/route-content-loader';
 export {
   ContentResolver,
   type ContentResolverDeps,
-} from './core/loader/content-resolver';
-export { ContentCache, defaultContentCache } from './core/loader/content-cache';
-export { LoaderRegistry, defaultLoaderRegistry } from './core/loader/registry';
-export { contentDescriptor } from './core/loader/descriptor';
-export { contentCacheKey } from './core/loader/content-key';
+} from '../aura-routing-engine/core/content/content-resolver';
+export { LoaderRegistry, defaultLoaderRegistry } from '../aura-routing-engine/core/content/registry';
+export { contentCacheKey } from '../aura-routing-engine/core/content/content-key';
 export type {
   ContentDescriptor,
   ContentKind,
   LoaderType,
   ResolveContext,
   LoaderFn,
-} from './core/loader/types';
+} from '../aura-routing-engine/core/content/types';

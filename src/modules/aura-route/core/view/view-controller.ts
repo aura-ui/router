@@ -1,281 +1,192 @@
 import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
-import type { AuraRouteInterface, AuraRoute } from '../aura-route';
 import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
-import { getTemplate } from '../../../aura-utils/misc';
-import { RouteRenderSignal } from './render-signal';
-
+import type { RouteRenderOptions } from '../types';
+import type { ViewPayload, RouteViewConfig } from './ports';
+import { createRenderPass, isStale, type RenderPass } from './render-pass';
+import { RenderSignal } from './render-signal';
 import {
-  commitStagedMount,
-  EMPTY_ROUTE_MOUNT,
-  finalizeLeaveMount,
+  EMPTY_MOUNT,
+  commitStaged,
   hasActiveMount,
-  mergeMountSnapshot,
-  mountRoute,
-  reattachRoute,
-  rollbackStagedMount,
-  toViewMountState,
+  mergeMount,
+  mountContent,
+  reattachContent,
+  rollbackStaged,
+  toMountSlice,
   unmountOnLeave,
-  type RouteMountSnapshot,
-  type ViewMountContext,
-  type ViewMountState,
-} from './outlet-adapter';
-import { resolveErrorViewPayload, warnMissingLayoutOutlet } from './route-error-view';
-import { type RouteViewCachePort } from './view-cache';
-import { viewCacheKey } from './view-cache-key';
-import type { RouteContentPort, RouteRenderOptions, RouteViewKind } from './view-controller.types';
+  finalizeLeave,
+  type MountContext,
+  type MountSnapshot,
+} from './outlet';
+import { emptyContent, resolveError, warnMissingLayoutOutlet } from './payloads';
 
-export type { RouteContentPort, RouteRenderOptions } from './view-controller.types';
-
-const EMPTY_CONTENT_HTML = '<div>No content to display</div>';
-
-/** Bumped by {@link AuraRoute} on render/leave to invalidate in-flight async work. */
-type LifecycleToken = number;
-
-type MountOperation = () => ViewMountState | null;
+type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 
 /**
  * View state and render orchestration for {@link AuraRoute}.
- * Outlet policy lives in {@link outlet-adapter}; stage lifecycle calls {@link AuraOutlet} directly.
- * Content loading is injected via {@link RouteContentPort}.
+ * Outlet policy lives in {@link outlet}; content loading via {@link ContentResolverPort}.
  */
-export class AuraRouteViewController {
-  private readonly route: AuraRouteInterface;
-  private readonly contentPort: RouteContentPort;
-  private readonly renderSignal = new RouteRenderSignal();
-  private readonly viewCache: RouteViewCachePort;
-  private readonly getAppOutlet: () => AuraOutlet;
-  private readonly getMountOutlet: (routeInfo: MatchedRouteInfo) => AuraOutlet | null;
-  private readonly getLifecycleToken: () => LifecycleToken;
-
-  private mount: RouteMountSnapshot = { ...EMPTY_ROUTE_MOUNT };
-  /** Cache key from the last {@link render}; used by {@link onLeft} when stashing keep-alive DOM. */
+export class RouteViewController {
+  private readonly config: RouteViewConfig;
+  private readonly getPassId: () => number;
+  private readonly renderSignal = new RenderSignal();
+  private mount: MountSnapshot = { ...EMPTY_MOUNT };
+  /** Cache key from the last {@link render}; used by {@link onLeft} for keep-alive DOM. */
   private lastCacheKey: string | null = null;
 
-  constructor(
-    route: AuraRouteInterface,
-    contentPort: RouteContentPort,
-    viewCache: RouteViewCachePort,
-    getAppOutlet: () => AuraOutlet,
-    getMountOutlet: (routeInfo: MatchedRouteInfo) => AuraOutlet | null,
-    getLifecycleToken: () => LifecycleToken = () => 0,
-  ) {
-    this.route = route;
-    this.contentPort = contentPort;
-    this.viewCache = viewCache;
-    this.getAppOutlet = getAppOutlet;
-    this.getMountOutlet = getMountOutlet;
-    this.getLifecycleToken = getLifecycleToken;
+  constructor(config: RouteViewConfig, getPassId: () => number) {
+    this.config = config;
+    this.getPassId = getPassId;
   }
 
-  // --- Public accessors ---
-
-  /** Nested `<aura-outlet>` from the active layout mount, if any. */
   get nestedOutlet(): AuraOutlet | null {
     return this.mount.nestedOutlet;
   }
 
-  /** Combined parent + local abort signal for the current render pass. */
   get signal(): AbortSignal {
     return this.renderSignal.signal;
   }
 
-  // --- Public API (route lifecycle order) ---
-
   /**
    * Resolves and mounts route content (or restores a keep-alive view).
-   * Rethrows after mounting {@link AuraRouteInterface#errorTemplate} on failure.
+   * Rethrows after mounting the error template on failure.
    */
   async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
-    const { parentSignal } = options ?? {};
-    const lifecycleToken = this.getLifecycleToken();
-
-    try {
-      this.renderSignal.begin(parentSignal);
-      this.lastCacheKey = viewCacheKey(routeInfo, this.route.path);
-
-      if (this.tryRestoreFromCache(lifecycleToken, routeInfo)) return;
-      if (this.shouldSkipKeepAliveRender()) return;
-
-      await this.renderWithoutCache(lifecycleToken, routeInfo);
-    } catch (error) {
-      if (this.isRenderStale(lifecycleToken)) return;
-      this.mountRenderError(lifecycleToken, error, routeInfo);
-      throw error;
-    }
+    const pass = this.beginPass(routeInfo, options?.parentSignal);
+    this.lastCacheKey = pass.cacheKey;
+    await this.renderPass(pass);
   }
 
-  /**
-   * Promotes a staged incoming view to the active root.
-   * No-op unless the last mount used outlet `stage`.
-   */
   commitStagedView(): void {
-    this.mount = commitStagedMount(this.mount);
+    this.mount = commitStaged(this.mount);
   }
 
-  /** Detaches or destroys the active view; stashes DOM when view preservation is on. */
+  /** Detaches or destroys the active view; caches DOM when view preservation is on. */
   onLeft(): void {
     this.renderSignal.cancel();
 
-    const preserveView = this.route.preserve.view;
+    const preserveView = this.config.route.preserve.view;
     const { snapshot, detachedRoot } = unmountOnLeave(this.mount, preserveView);
-    this.mount = finalizeLeaveMount(snapshot, preserveView, detachedRoot);
+    this.mount = finalizeLeave(snapshot, preserveView, detachedRoot);
 
     if (preserveView && detachedRoot) {
-      this.viewCache.put(this.lastCacheKey ?? this.route.path, detachedRoot);
+      this.config.cache.put(this.lastCacheKey ?? this.config.route.path, detachedRoot);
     }
   }
 
-  /** Aborts the in-flight render signal only. */
   cancel(): void {
     this.renderSignal.cancel();
   }
 
-  /** Rolls back a staged mount and aborts the in-flight render. */
   cancelPendingRender(): void {
-    this.mount = rollbackStagedMount(this.mount);
+    this.mount = rollbackStaged(this.mount);
     this.renderSignal.cancel();
   }
 
-  // --- Private: guards ---
-
-  /** Whether this render pass was aborted or superseded by a newer lifecycle. */
-  private isRenderStale(lifecycleToken: LifecycleToken): boolean {
-    return this.renderSignal.aborted || this.getLifecycleToken() !== lifecycleToken;
+  private beginPass(routeInfo: MatchedRouteInfo, parentSignal?: AbortSignal): RenderPass {
+    const signal = this.renderSignal.begin(parentSignal);
+    return createRenderPass(this.getPassId(), this.config.route, routeInfo, signal);
   }
 
-  // --- Private: render orchestration ---
+  private async renderPass(pass: RenderPass): Promise<void> {
+    let loadingHooks = false;
 
-  /** Reattaches a stashed view; returns whether cache restore handled the render. */
-  private tryRestoreFromCache(lifecycleToken: LifecycleToken, routeInfo: MatchedRouteInfo): boolean {
-    if (!this.route.preserve.view) return false;
+    try {
+      if (this.tryCacheRestore(pass)) return;
+      if (this.shouldSkipKeepAlive(pass)) return;
 
-    const cachedRoot = this.viewCache.extract(viewCacheKey(routeInfo, this.route.path));
+      this.emit('onPassStart', pass);
+      loadingHooks = true;
+      await this.resolveAndMount(pass);
+    } catch (error) {
+      if (this.stale(pass)) return;
+      this.emit('onPassError', pass, error);
+      this.applyMount(pass, resolveError(this.config.route, error), 'content');
+      throw error;
+    } finally {
+      if (loadingHooks) {
+        this.emit('onPassEnd', pass);
+      }
+    }
+  }
+
+  private tryCacheRestore(pass: RenderPass): boolean {
+    if (!this.config.route.preserve.view) return false;
+
+    const cachedRoot = this.config.cache.extract(pass.cacheKey);
     if (!cachedRoot) return false;
 
-    this.reattachCachedView(lifecycleToken, cachedRoot, routeInfo);
-    return true;
+    return this.applyMount(pass, cachedRoot, pass.viewKind, cachedRoot);
   }
 
-  /** Skips reload when keep-alive is on and the current mount is still valid. */
-  private shouldSkipKeepAliveRender(): boolean {
-    const viewKind = resolveViewKind(this.route);
-    return this.route.preserve.view
-      && hasActiveMount(toViewMountState(this.mount), viewKind === 'layout');
+  private shouldSkipKeepAlive(pass: RenderPass): boolean {
+    return this.config.route.preserve.view
+      && hasActiveMount(toMountSlice(this.mount), pass.viewKind === 'layout');
   }
 
-  /** Shows loading template, resolves content, and mounts the result. */
-  private async renderWithoutCache(lifecycleToken: LifecycleToken, routeInfo: MatchedRouteInfo): Promise<void> {
-    const { loadingTemplate } = this.route;
+  private async resolveAndMount(pass: RenderPass): Promise<void> {
+    const payload = await this.config.content.resolve(pass.routeInfo, pass.signal);
 
-    // TODO: body className and loading event
-    if (loadingTemplate) {
-      this.mountView(lifecycleToken, getTemplate(loadingTemplate), routeInfo);
-    }
+    if (this.stale(pass)) return;
 
-    const viewContent = await this.resolveViewContent(routeInfo);
-    if (this.isRenderStale(lifecycleToken)) return;
-
-    if (viewContent == null) {
-      if (resolveViewKind(this.route) === 'content') {
-        this.mountView(lifecycleToken, EMPTY_CONTENT_HTML, routeInfo);
+    if (payload == null) {
+      if (pass.viewKind === 'content') {
+        this.applyMount(pass, emptyContent(), 'content');
       }
       return;
     }
 
-    this.mountView(lifecycleToken, viewContent, routeInfo);
+    this.emit('onContentResolved', pass, payload);
+    this.applyMount(pass, payload, pass.viewKind);
   }
 
-  /** Layout template, content-loader result, or optional content cache entry. */
-  private async resolveViewContent(routeInfo: MatchedRouteInfo): Promise<Node | string | null> {
-    if (resolveViewKind(this.route) === 'layout') {
-      return getTemplate(this.route.layout!);
-    }
+  private applyMount(
+    pass: RenderPass,
+    payload: ViewPayload | ViewRoot,
+    viewKind: RenderPass['viewKind'],
+    cachedRoot?: ViewRoot,
+  ): boolean {
+    if (this.stale(pass)) return false;
 
-    const cached = this.contentPort.readCache?.(routeInfo);
-    if (cached) return cached;
+    const ctx = this.mountContext(pass);
+    const slice = cachedRoot
+      ? reattachContent(ctx, cachedRoot)
+      : mountContent(ctx, payload as ViewPayload);
 
-    const viewContent = await this.contentPort.resolve(routeInfo, this.renderSignal.signal);
-    if (viewContent) {
-      this.contentPort.writeCache?.(routeInfo, viewContent);
-    }
+    if (!slice?.activeHandle) return false;
 
-    return viewContent;
+    this.mount = mergeMount(this.mount, slice);
+    warnMissingLayoutOutlet(this.config.route, viewKind, slice.nestedOutlet);
+    this.emit('onMounted', pass);
+    return true;
   }
 
-  /** Mounts the error template (or fallback HTML) after a render failure. */
-  private mountRenderError(
-    lifecycleToken: LifecycleToken,
-    error: unknown,
-    routeInfo: MatchedRouteInfo,
-  ): void {
-    this.runMount(
-      lifecycleToken,
-      () => mountRoute(
-        this.buildMountContext(routeInfo),
-        resolveErrorViewPayload(this.route, error),
-        toViewMountState(this.mount),
-      ),
-      'content',
-    );
-  }
-
-  // --- Private: outlet mount ---
-
-  /** Mounts resolved HTML/DOM into the target outlet when the lifecycle is still current. */
-  private mountView(
-    lifecycleToken: LifecycleToken,
-    viewContent: Node | string,
-    routeInfo: MatchedRouteInfo,
-  ): void {
-    this.runMount(lifecycleToken, () =>
-      mountRoute(this.buildMountContext(routeInfo), viewContent, toViewMountState(this.mount)),
-    );
-  }
-
-  /** Re-inserts a detached keep-alive root from the view cache. */
-  private reattachCachedView(
-    lifecycleToken: LifecycleToken,
-    cachedRoot: ViewRoot,
-    routeInfo: MatchedRouteInfo,
-  ): void {
-    this.runMount(lifecycleToken, () =>
-      reattachRoute(this.buildMountContext(routeInfo), cachedRoot),
-    );
-  }
-
-  /** Runs an outlet mount and merges the result into {@link mount}. */
-  private runMount(
-    lifecycleToken: LifecycleToken,
-    operation: MountOperation,
-    viewKind: RouteViewKind = resolveViewKind(this.route),
-  ): void {
-    if (this.getLifecycleToken() !== lifecycleToken) return;
-
-    const mountResult = operation();
-    if (!mountResult) return;
-
-    this.mount = mergeMountSnapshot(this.mount, mountResult);
-    warnMissingLayoutOutlet(this.route, viewKind, mountResult);
-  }
-
-  /** Outlet targets, pattern key, abort signal, and stage/replace flag for one mount. */
-  private buildMountContext(routeInfo: MatchedRouteInfo): ViewMountContext {
+  private mountContext(pass: RenderPass): MountContext {
+    const { mountTarget } = this.config;
     return {
-      pattern: routeInfo.pattern,
-      appOutlet: this.getAppOutlet(),
-      mountOutlet: this.getMountOutlet(routeInfo),
-      signal: this.renderSignal.signal,
-      useStagedMount: this.useStagedMount,
+      pattern: pass.routeInfo.pattern,
+      appOutlet: mountTarget.appOutlet(),
+      mountOutlet: mountTarget.nestedOutlet(pass.routeInfo),
+      signal: pass.signal,
+      useStagedMount: pass.useStagedMount,
     };
   }
 
-  /** `true` when the route inherits a non-empty `data-transition` (v1). */
-  private get useStagedMount(): boolean {
-    return !!(this.route as AuraRoute).transitionPolicy?.trim();
+  private stale(pass: RenderPass): boolean {
+    return isStale(pass, this.getPassId, () => this.renderSignal.aborted);
   }
-}
 
-/** `layout` when the route declares a layout template; otherwise `content`. */
-function resolveViewKind(route: AuraRouteInterface): RouteViewKind {
-  return route.layout?.trim() ? 'layout' : 'content'; //todo move trim to parser
+  private emit(hook: PluginHook, pass: RenderPass, arg?: unknown): void {
+    for (const plugin of this.config.plugins ?? []) {
+      const fn = plugin[hook];
+      if (!fn) continue;
+      if (hook === 'onContentResolved') {
+        (fn as (p: RenderPass, v: ViewPayload) => void)(pass, arg as ViewPayload);
+      } else if (hook === 'onPassError') {
+        (fn as (p: RenderPass, e: unknown) => void)(pass, arg);
+      } else {
+        (fn as (p: RenderPass) => void)(pass);
+      }
+    }
+  }
 }

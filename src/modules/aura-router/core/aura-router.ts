@@ -1,12 +1,10 @@
 import { attr } from '../../aura-utils/decorators';
 
 import { AuraRoute, RouteViewCache } from '../../aura-route/core';
-import { configureRouteContentLoader } from '../../aura-route/core/route-content-loader';
 import type { CacheStoreOptions } from '../../aura-cache-store/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import {
   ContentLoaderRegistry,
-  type ContentLoaderService,
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
 
@@ -50,8 +48,6 @@ export {
 } from './aura-router-navigation-error.types';
 
 export interface AuraRouterConfigureOptions {
-  /** Shared loader service for all `<aura-route>` elements. */
-  contentLoaderService?: ContentLoaderService;
   /** LRU cache for keep-alive route views (`detachedRoot` DOM). */
   viewCache?: CacheStoreOptions<ViewRoot>;
   /** LRU cache for route content payloads (prefetch + navigation). */
@@ -88,9 +84,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   static configure(options: AuraRouterConfigureOptions): void {
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);
-    }
-    if (options.contentLoaderService) {
-      configureRouteContentLoader(options.contentLoaderService);
     }
     if (options.viewCache) {
       RouteViewCache.configure(options.viewCache);

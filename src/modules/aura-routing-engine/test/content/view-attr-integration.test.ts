@@ -1,9 +1,9 @@
 /** @jest-environment jsdom */
 
-import { AuraRoute2 } from '../../../aura-route-2/core/aura-route';
+import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { RouteContentLoader } from '../../../aura-route-2/core/route-content-loader';
+import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
 import { contentDescriptorFromRoute } from '../../core/content/descriptor';
 import { defaultLoaderRegistry } from '../../core/content';
 
@@ -14,8 +14,8 @@ function defineDemoElements(): void {
   if (!customElements.get(AuraRouter.is)) {
     customElements.define(AuraRouter.is, AuraRouter);
   }
-  if (!customElements.get(AuraRoute2.is)) {
-    customElements.define(AuraRoute2.is, AuraRoute2);
+  if (!customElements.get(AuraRoute.is)) {
+    customElements.define(AuraRoute.is, AuraRoute);
   }
 }
 
@@ -38,7 +38,7 @@ describe('view attr end-to-end', () => {
       </aura-router>
     `);
 
-    const route = document.querySelector(AuraRoute2.is) as AuraRoute2;
+    const route = document.querySelector(AuraRoute.is) as AuraRoute;
     expect(route.view).toBe('html-src::index2.html');
     expect(contentDescriptorFromRoute(route)).toEqual({
       kind: 'content',
@@ -56,7 +56,7 @@ describe('view attr end-to-end', () => {
       </aura-router>
     `);
 
-    const route = document.querySelector(AuraRoute2.is) as AuraRoute2;
+    const route = document.querySelector(AuraRoute.is) as AuraRoute;
     const loader = new RouteContentLoader(route, router.contentLoad);
     const payload = await loader.resolve(
       { href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route },
@@ -76,7 +76,7 @@ describe('view attr end-to-end', () => {
       </aura-router>
     `);
 
-    const route = document.querySelector(AuraRoute2.is) as AuraRoute2;
+    const route = document.querySelector(AuraRoute.is) as AuraRoute;
     const loader = new RouteContentLoader(route, router.contentLoad);
     const payload = await loader.resolve(
       { href: '/custom', pathname: '/custom', search: '', hash: '', pattern: '/custom', route },

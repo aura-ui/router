@@ -1,68 +1,20 @@
-import {
-  ContentLoaderRegistry,
-  ContentLoaderService,
-} from '../../aura-content-loaders/core';
+import { contentDescriptorFromRoute } from '../../aura-routing-engine/core/content/descriptor';
+import type { ContentLoadService } from '../../aura-routing-engine/core/content/content-load-service';
 import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
-import type { AuraRouteInterface } from './aura-route';
-import type { RouteContentPort } from './view/view-controller.types';
+import type { AuraRouteInterface } from './types';
+import type { ContentResolverPort } from './view/ports';
 
-let sharedContentLoaderService: ContentLoaderService | undefined;
-
-export function configureRouteContentLoader(service: ContentLoaderService): void {
-  sharedContentLoaderService = service;
-}
-
-export function resolveRouteContentLoaderService(): ContentLoaderService {
-  sharedContentLoaderService ??= new ContentLoaderService(false);
-  return sharedContentLoaderService;
-}
-
-export class RouteContentLoader implements RouteContentPort {
+/** Thin adapter: route attrs → shared {@link ContentLoadService}. */
+export class RouteContentLoader implements ContentResolverPort {
   private readonly route: AuraRouteInterface;
-  private readonly loaderService: ContentLoaderService;
+  private readonly contentLoad: ContentLoadService;
 
-  constructor(route: AuraRouteInterface, loaderService: ContentLoaderService) {
+  constructor(route: AuraRouteInterface, contentLoad: ContentLoadService) {
     this.route = route;
-    this.loaderService = loaderService;
+    this.contentLoad = contentLoad;
   }
 
-  readCache(_routeInfo: MatchedRouteInfo): Node | string | null {
-    if (!this.route.preserve.data) return null;
-    return null;
+  resolve(routeInfo: MatchedRouteInfo, signal: AbortSignal) {
+    return this.contentLoad.resolve(contentDescriptorFromRoute(this.route), routeInfo, signal);
   }
-
-  writeCache(_routeInfo: MatchedRouteInfo, _payload: Node | string): void {
-    if (!this.route.preserve.data) return;
-  }
-
-  async resolve(
-    routeInfo: MatchedRouteInfo,
-    signal: AbortSignal,
-  ): Promise<Node | string | null> {
-    const route = this.route;
-    const loader = ContentLoaderRegistry.create(route.source, this.loaderService);
-
-    try {
-      return await loader.load(route.content, {
-        signal,
-        componentOptions: buildComponentOptions(routeInfo),
-      });
-    } catch (error: unknown) {
-      if (signal.aborted) return '';
-
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to load ${loader.type} content for route ${route.path}: ${message}`);
-    }
-  }
-}
-
-function buildComponentOptions(routeInfo?: MatchedRouteInfo): Record<string, unknown> {
-  if (!routeInfo) return {};
-
-  return {
-    href: routeInfo.href,
-    pattern: routeInfo.pattern,
-    ...(routeInfo.params && { params: routeInfo.params }),
-    ...(routeInfo.query && { query: routeInfo.query }),
-  };
 }

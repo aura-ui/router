@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 
 import { AuraRouter } from '../../../aura-router/core/aura-router';
-import { AuraRoute2 } from '../../../aura-route-2/core/aura-route';
+import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 
 function mountDemoRouter(): AuraRouter {
@@ -16,7 +16,7 @@ function mountDemoRouter(): AuraRouter {
 
   if (!customElements.get(AuraOutlet.is)) customElements.define(AuraOutlet.is, AuraOutlet);
   if (!customElements.get(AuraRouter.is)) customElements.define(AuraRouter.is, AuraRouter);
-  if (!customElements.get(AuraRoute2.is)) customElements.define(AuraRoute2.is, AuraRoute2);
+  if (!customElements.get(AuraRoute.is)) customElements.define(AuraRoute.is, AuraRoute);
 
   return document.querySelector(AuraRouter.is) as AuraRouter;
 }
@@ -24,7 +24,7 @@ function mountDemoRouter(): AuraRouter {
 describe('demo render smoke', () => {
   it('renders template:app without error template', async () => {
     const router = mountDemoRouter();
-    const route = document.querySelector(AuraRoute2.is) as AuraRoute2;
+    const route = document.querySelector(AuraRoute.is) as AuraRoute;
 
     expect(route.view).toBe('template::app');
 

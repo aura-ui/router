@@ -4,6 +4,7 @@ import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 export interface AuraRouteInterface {
   path: string;
   layout: string;
+  view: string;
   source: string;
   content: string;
   loadingTemplate: string;

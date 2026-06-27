@@ -1,4 +1,9 @@
-export { buildContentDescriptor, type RouteContentAttrs } from './descriptor';
+export {
+  buildContentDescriptor,
+  parseViewDescriptor,
+  type ParsedViewDescriptor,
+  type RouteContentAttrs,
+} from './descriptor';
 export { contentCacheKey } from './content-key';
 export { ContentCache } from './content-cache';
 export { ContentResolver, type ContentResolverDeps } from './content-resolver';

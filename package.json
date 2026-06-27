@@ -1,7 +1,7 @@
 {
   "name": "@aura-ui-web/router",
   "version": "0.0.1",
-  "description": "SSR-first router for Aura UI Web Components. Docs: https://aura-ui.dev",
+  "description": "SSR-first router for Aura UI — Web Components platform.",
   "main": "index.js",
   "publishConfig": {
     "access": "public"
@@ -39,7 +39,7 @@
   "bugs": {
     "url": "https://github.com/aura-ui/router/issues"
   },
-  "homepage": "https://aura-ui.dev",
+  "homepage": "https://github.com/aura-ui/router#readme",
   "devDependencies": {
     "@commitlint/cli": "^20.5.2",
     "@commitlint/config-conventional": "^20.5.0",

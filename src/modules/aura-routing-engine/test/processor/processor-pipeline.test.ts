@@ -282,3 +282,53 @@ describe('ProcessorPipeline.runRenderWithTransition sequential policies', () => 
     expect(callOrder).toEqual(expectedOrder);
   });
 });
+
+describe('ProcessorPipeline.runAfterRender', () => {
+  const pipeline = new ProcessorPipeline();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+  });
+
+  it('runs left then after', async () => {
+    const phases: string[] = [];
+    mockedRunLifecycleHooks.mockImplementation(async (ctx) => {
+      phases.push(ctx.phase);
+    });
+
+    const pipelineContext = createPipelineContext({
+      exitRoutes: [createMatchedRoute('/from', { left: ['cleanup'] })],
+      enterRoutes: [createMatchedRoute('/to', { after: ['analytics'] })],
+    });
+
+    await pipeline.runAfterRender(pipelineContext);
+
+    expect(phases).toEqual(['left', 'after']);
+  });
+});
+
+describe('ProcessorPipeline.runReenter', () => {
+  const pipeline = new ProcessorPipeline();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+  });
+
+  it('runs reenter only, not after', async () => {
+    const phases: string[] = [];
+    mockedRunLifecycleHooks.mockImplementation(async (ctx) => {
+      phases.push(ctx.phase);
+    });
+
+    const pipelineContext = createPipelineContext({
+      enterRoutes: [createMatchedRoute('/to', { reenter: ['sync'], after: ['analytics'] })],
+    });
+    pipelineContext.transaction.plan.reenter = true;
+
+    await pipeline.runReenter(pipelineContext);
+
+    expect(phases).toEqual(['reenter']);
+  });
+});

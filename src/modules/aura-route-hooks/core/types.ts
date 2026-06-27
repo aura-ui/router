@@ -6,7 +6,7 @@ export type RoutePhase =
   | 'enter'
   | 'transitionIn'
   | 'load'
-  | 'entered'
+  | 'after'
   | 'leave'
   | 'transitionOut'
   | 'left'
@@ -48,7 +48,7 @@ export interface RouteInstance {
   enter: string[] | null;
   transitionIn: string[] | null;
   load: string[] | null;
-  entered: string[] | null;
+  after: string[] | null;
   leave: string[] | null;
   transitionOut: string[] | null;
   left: string[] | null;
@@ -57,7 +57,7 @@ export interface RouteInstance {
   onEnter(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;
-  onEntered(ctx: RouteLifecycleContext): void;
+  onAfter(ctx: RouteLifecycleContext): void;
   onLeave(ctx: RouteLifecycleContext): void;
   onTransitionOut(ctx: RouteLifecycleContext): void;
   onLeft(ctx: RouteLifecycleContext): void;

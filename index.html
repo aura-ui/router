@@ -174,8 +174,8 @@
     <aura-outlet></aura-outlet>
   </div>
 
-  <aura-route path="/a" data-crossfade="" view='html::<a href="/c" data-router-link>load template</a>' enter="auth, analytics"></aura-route>
-  <aura-route path="/b" data-crossfade="" view="html-src::index2.html" entered="analytics" preload></aura-route>
+  <aura-route path="/a" data-crossfade="" view='html::<a href="/c" data-router-link>load template</a>' enter="auth" after="analytics"></aura-route>
+  <aura-route path="/b" data-crossfade="" view="html-src::index2.html" after="analytics" preload></aura-route>
   <aura-route path="/c" data-crossfade="" view="template::app"></aura-route>
   <aura-route path="/d" data-crossfade="" view="component-src::examples/demo/components/test-element1"></aura-route>
   <aura-route path="/f" data-crossfade="" view="component-src::examples/demo/components/test-element" keep-alive></aura-route>

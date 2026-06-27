@@ -27,7 +27,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @attr({ parser: parseCommaSeparated }) enter: string[] | null;
   @attr({ parser: parseCommaSeparated }) transitionIn: string[] | null;
   @attr({ parser: parseCommaSeparated }) load: string[] | null;
-  @attr({ parser: parseCommaSeparated }) entered: string[] | null;
+  @attr({ parser: parseCommaSeparated }) after: string[] | null;
   @attr({ parser: parseCommaSeparated }) leave: string[] | null;
   @attr({ parser: parseCommaSeparated }) transitionOut: string[] | null;
   @attr({ parser: parseCommaSeparated }) left: string[] | null;
@@ -101,7 +101,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
 
   onEnter(_ctx: RouteLifecycleContext): void {}
   onLoad(_ctx: RouteLifecycleContext): void {}
-  onEntered(_ctx: RouteLifecycleContext): void {}
+  onAfter(_ctx: RouteLifecycleContext): void {}
   onLeave(_ctx: RouteLifecycleContext): void {}
   onTransitionOut(_ctx: RouteLifecycleContext): void {}
   onTransitionIn(_ctx: RouteLifecycleContext): void {}

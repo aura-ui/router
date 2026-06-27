@@ -9,7 +9,7 @@ export type NavigationErrorPhase =
   | 'transitionOut'
   | 'transitionIn'
   | 'left'
-  | 'entered';
+  | 'after';
 
 export interface NavigationErrorDetail {
   error: unknown;

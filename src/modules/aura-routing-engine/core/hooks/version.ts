@@ -1,3 +1,12 @@
+/**
+ * Router public API semver — used by hook `requires` checks at registration time.
+ *
+ * This is **not** the npm package version; bump {@link ROUTER_VERSION} when the
+ * hook-facing router API changes incompatibly.
+ *
+ * @module hooks/version
+ */
+
 /** Router public API version (not the npm package version). */
 export const ROUTER_VERSION = '0.1.0';
 
@@ -7,15 +16,12 @@ const VERSION_RANGE_PATTERN = /^(>=|<=|>|<|=)(\d+)\.(\d+)\.(\d+)$/;
 /** Matches the leading "major.minor.patch" part of a version string. */
 const VERSION_STRING_PATTERN = /^(\d+)\.(\d+)\.(\d+)/;
 
-/**
- * Turns major.minor.patch into one number so versions are easy to compare.
- * Example: 1.2.3 → 1002003
- */
+/** @example `1.2.3` → `1002003` */
 function toVersionNumber(major: number, minor: number, patch: number): number {
   return major * 1_000_000 + minor * 1_000 + patch;
 }
 
-/** Reads "1.2.3" from a string. Invalid input is treated as 0.0.0. */
+/** Parses semver prefix; invalid input → `0.0.0`. */
 function parseVersionNumber(version: string): number {
   const match = VERSION_STRING_PATTERN.exec(version);
   if (!match) return 0;
@@ -31,8 +37,15 @@ function parseVersionNumber(version: string): number {
 const routerVersionNumber = parseVersionNumber(ROUTER_VERSION);
 
 /**
- * Returns true when version matches the range.
- * Example: satisfies("0.2.0", ">=0.1.0") → true
+ * Checks whether `version` satisfies a semver range.
+ *
+ * Invalid range strings log a warning and return `true` (permissive fallback).
+ *
+ * @example
+ * ```ts
+ * satisfies('0.2.0', '>=0.1.0'); // true
+ * satisfies('0.1.0', '>0.1.0'); // false
+ * ```
  */
 export function satisfies(version: string, range: string): boolean {
   const rangeMatch = VERSION_RANGE_PATTERN.exec(range.trim());

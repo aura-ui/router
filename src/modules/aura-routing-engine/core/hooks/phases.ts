@@ -1,3 +1,13 @@
+/**
+ * Phase metadata and hook name resolution for routes.
+ *
+ * Pipeline policy (branch, blocking/postCommit) is derived from
+ * {@link ../processor/lifecycle-step.ts#LIFECYCLE_STEPS | LIFECYCLE_STEPS}.
+ * This module adds HTML/route attr bindings and parsing helpers.
+ *
+ * @module hooks/phases
+ */
+
 import { LIFECYCLE_STEPS, lifecycleStepPolicy, postCommit } from '../processor/lifecycle-step';
 import type {
   PhaseDefinition,
@@ -6,7 +16,11 @@ import type {
   RoutePhase,
 } from './types';
 
-/** Hook phases — {@link LIFECYCLE_STEPS} policy + HTML/route attr bindings. */
+/**
+ * Per-phase hook metadata: pipeline policy + how attrs map to route props.
+ *
+ * @see {@link NAVIGATION_PHASES.error} — terminal phase, not in {@link LIFECYCLE_STEPS}
+ */
 export const NAVIGATION_PHASES = {
   leave: {
     ...lifecycleStepPolicy(LIFECYCLE_STEPS.leave),
@@ -56,7 +70,10 @@ export const NAVIGATION_PHASES = {
   },
 } as const satisfies Record<RoutePhase, PhaseDefinition>;
 
-/** kebab-case phase names in `hooks="phase::name"` → {@link RoutePhase}. */
+/**
+ * Maps phase names in `hooks="phase::name"` to {@link RoutePhase}.
+ * Includes camelCase keys and kebab-case {@link PhaseDefinition.htmlAttr} aliases.
+ */
 export const PHASE_HTML_ALIAS = Object.fromEntries(
   Object.entries(NAVIGATION_PHASES).flatMap(([phase, def]) => {
     const entries: [string, RoutePhase][] = [[phase, phase as RoutePhase]];
@@ -67,7 +84,18 @@ export const PHASE_HTML_ALIAS = Object.fromEntries(
   }),
 ) as Record<string, RoutePhase>;
 
-/** Parses `hooks="phase::hook-name, ..."`. */
+/**
+ * Parses the `hooks` attr on `<aura-route>`.
+ *
+ * @param raw - attr value or `null` when absent
+ * @returns grouped hook names by phase, or `null` when empty/invalid
+ *
+ * @example
+ * ```ts
+ * parsePhaseHooks('enter::auth, after::analytics, transition-in::fade');
+ * // → { enter: ['auth'], after: ['analytics'], transitionIn: ['fade'] }
+ * ```
+ */
 export function parsePhaseHooks(raw: string | null): PhaseHooksMap | null {
   if (!raw?.trim()) return null;
 
@@ -90,7 +118,19 @@ export function parsePhaseHooks(raw: string | null): PhaseHooksMap | null {
   return Object.keys(map).length > 0 ? map : null;
 }
 
-/** Phase attr hooks first, then `hooks="phase::name"` entries. */
+/**
+ * Resolves registered hook names for a phase on a route.
+ *
+ * Order: dedicated phase attr first, then entries from `hooks="phase::name"`.
+ *
+ * @example
+ * ```ts
+ * // route: enter="auth" hooks="enter::audit, after::analytics"
+ * resolveHookNames(route, 'enter'); // → ['auth', 'audit']
+ * resolveHookNames(route, 'after'); // → ['analytics']
+ * resolveHookNames(route, 'left');  // → hooks map only (no dedicated attr)
+ * ```
+ */
 export function resolveHookNames(
   source: RouteHookNamesSource,
   phase: RoutePhase,

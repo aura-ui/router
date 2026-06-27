@@ -1,4 +1,5 @@
 import type { HistoryAction } from '../history';
+import type { RedirectTarget } from '../guard.types';
 import type { RouteTransition } from '../transition/route-transition';
 
 export type { RouteTransition };
@@ -115,7 +116,7 @@ export type HookResult =
   | { readonly type: 'cancel' }
   | { readonly type: 'redirect'; url: string; replace?: boolean };
 
-export type HookResultInput = HookResult | boolean | string | { url: string; replace?: boolean };
+export type HookResultInput = HookResult | boolean | RedirectTarget;
 
 type RouteHookFn<TOptions> = (ctx: RouteHookContext<TOptions>) => Promise<HookResultInput>;
 
@@ -126,6 +127,3 @@ export interface RouteHookDefinition<TOptions = Record<string, unknown>> {
   requires?: string;
   phases?: readonly RoutePhase[];
 }
-
-/** Outcome of view commit (not a registered hook). */
-export type ViewCommitResult = 'aborted' | 'ok';

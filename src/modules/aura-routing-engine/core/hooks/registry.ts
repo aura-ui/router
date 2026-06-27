@@ -7,7 +7,7 @@ import type {
 } from './types';
 import { ROUTER_VERSION, satisfies } from './version';
 
-function isRedirectTarget(value: HookResultInput): value is string | RedirectTarget {
+function isRedirectTarget(value: HookResultInput): value is RedirectTarget {
   return typeof value === 'string'
     || (typeof value === 'object' && value !== null && 'url' in value && !('type' in value));
 }
@@ -103,11 +103,23 @@ export class HookRegistry {
   }
 }
 
-export const defaultHookRegistry = new HookRegistry();
+/** Runs registered hooks with stale-job guard (used by the processor pipeline). */
+export async function runPhaseHooks(
+  registry: HookRegistry,
+  lifecycleContext: RouteLifecycleContext,
+  hookNames: readonly string[],
+  isJobActive: () => boolean,
+): Promise<GuardResult> {
+  if (!hookNames.length) return undefined;
 
-/** @deprecated Use {@link defaultHookRegistry}. */
-export const RouteHookRegistry = {
-  register: (...args: Parameters<HookRegistry['register']>) => defaultHookRegistry.register(...args),
-  get: (...args: Parameters<HookRegistry['get']>) => defaultHookRegistry.get(...args),
-  run: (...args: Parameters<HookRegistry['run']>) => defaultHookRegistry.run(...args),
-};
+  try {
+    const result = await registry.run(lifecycleContext, hookNames, isJobActive);
+    if (!isJobActive()) return false;
+    return result;
+  } catch (error) {
+    if (!isJobActive()) return false;
+    throw error;
+  }
+}
+
+export const defaultHookRegistry = new HookRegistry();

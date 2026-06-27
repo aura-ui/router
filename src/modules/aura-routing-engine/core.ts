@@ -6,7 +6,7 @@
  * **Not exported** (module-internal — import only from inside `core/`):
  * - `route-tree/` — nested tree, branch diff, `buildTransitionPlan` implementation
  * - `aura-routing-route-registry.ts` — route catalog snapshot
- * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, `HookRunner`, jobs
+ * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
  * - `transition/plan.ts` — `TransitionMap`, `buildTransitionPlan` (used by processor only)
  */
 
@@ -78,13 +78,13 @@ export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefe
 
 // --- Route hooks (registered via AuraRouter.use) ---
 
-export { parsePhaseHooks, resolveHookNames, routeHookNames } from './core/hooks/phases';
+export { parsePhaseHooks, resolveHookNames } from './core/hooks/phases';
 export { defineRouteHook } from './core/hooks/define-hook';
 export { NO_TRANSITION } from './core/transition/route-transition';
 export {
   HookRegistry,
   defaultHookRegistry,
-  RouteHookRegistry,
+  runPhaseHooks,
 } from './core/hooks/registry';
 export { ROUTER_VERSION, satisfies } from './core/hooks/version';
 
@@ -102,5 +102,4 @@ export type {
   RouteTransition,
   HookResult,
   HookResultInput,
-  ViewCommitResult,
 } from './core/hooks/types';

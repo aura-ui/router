@@ -1,5 +1,4 @@
 import { buildTransitionPlan, getEnterRoute } from '../transition/plan';
-import { HookRunner } from '../hooks/runner';
 import type { HookRegistry } from '../hooks/registry';
 import { defaultHookRegistry } from '../hooks/registry';
 import {
@@ -23,10 +22,10 @@ export type { ProcessorRunInput };
 export class AuraRoutingProcessor {
   private readonly jobManager = new AuraRoutingProcessorJobManager();
   private readonly pipeline = new ProcessorPipeline();
-  private readonly hookRunner: HookRunner;
+  private readonly hookRegistry: HookRegistry;
 
   constructor(hookRegistry: HookRegistry = defaultHookRegistry) {
-    this.hookRunner = new HookRunner(hookRegistry);
+    this.hookRegistry = hookRegistry;
   }
 
   /**
@@ -49,7 +48,7 @@ export class AuraRoutingProcessor {
       transaction,
       job,
       router: input.router,
-      hookRunner: this.hookRunner,
+      hookRegistry: this.hookRegistry,
       isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
     });
   }

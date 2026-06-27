@@ -27,7 +27,7 @@ export class RouteHookRunner {
 
   /**
    * View commit: `route.render()` for the activate branch (not a lifecycle hook).
-   * Staged mount follows inherited `<aura-router data-transition>` on `<aura-route>`.
+   * Staged mount when {@link RouteInstance.transition} is active (`order !== null`).
    */
   static async runViewCommit(
     matchedRoute: MatchedRouteInfo,

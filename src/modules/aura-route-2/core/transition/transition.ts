@@ -22,7 +22,7 @@ function sideHooks(decl: string[] | null, shortcut?: string[]): string[] | null 
   return hooks?.length ? hooks : null;
 }
 
-export function buildRouteTransition(parts: {
+export function buildRouteTransitionRools(parts: {
   optOut?: boolean;
   order: TransitionPolicy | null;
   shortcut: TransitionShortcut | null;

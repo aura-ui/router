@@ -18,7 +18,7 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
     transitionOut: null,
     error: null,
     hooks: null,
-    getResolvedTransition: () => INACTIVE_TRANSITION,
+    transition: INACTIVE_TRANSITION,
     onEnter: noop,
     onTransitionIn: noop,
     onLoad: noop,

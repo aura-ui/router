@@ -26,7 +26,7 @@ export type ViewMountContext = {
   pattern?: string;
   signal?: AbortSignal;
   strategy?: MountStrategy;
-  /** Staged crossfade when true (inherited `<aura-router data-transition>`). */
+  /** Staged mount when `useStagedMount` is true (v1: `data-transition`; v2: `route.transition.order`). */
   useStagedMount?: boolean;
 };
 
@@ -37,7 +37,6 @@ export function hasActiveMount(mount: ViewMountState, isLayoutRoute: boolean): b
 
 /**
  * `stage` when `useStagedMount` and outlet already has a view; else `replace`.
- * Phase order comes from `<aura-router data-transition>`, not from this flag.
  */
 export function resolveMountStrategy(
   mountContext: ViewMountContext,

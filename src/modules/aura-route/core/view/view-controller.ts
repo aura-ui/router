@@ -1,5 +1,5 @@
 import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
-import type { AuraRouteInterface } from '../aura-route';
+import type { AuraRouteInterface, AuraRoute } from '../aura-route';
 import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../../aura-utils/misc';
 import { RouteRenderSignal } from './render-signal';
@@ -269,9 +269,9 @@ export class AuraRouteViewController {
     };
   }
 
-  /** `true` when the route inherits a non-empty `data-transition`. */
+  /** `true` when the route inherits a non-empty `data-transition` (v1). */
   private get useStagedMount(): boolean {
-    return !!this.route.transition?.trim();
+    return !!(this.route as AuraRoute).transitionPolicy?.trim();
   }
 }
 

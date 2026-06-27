@@ -15,7 +15,7 @@ function mountIndexFragment(): AuraRouter {
       <div class="transition-outlet-wrap">
         <aura-outlet></aura-outlet>
       </div>
-      <aura-route path="/c" data-crossfade="" view="template::app"></aura-route>
+      <aura-route path="/c" view="template::app"></aura-route>
     </aura-router>
   `;
 

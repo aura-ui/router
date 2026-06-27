@@ -19,7 +19,7 @@ import { loadingBodyClass, loadingEvent } from './view/plugins';
 import type { MountTargetPort } from './view/ports';
 import { parseTransitionOrder, type TransitionPolicy } from '../../aura-routing-engine/core/transition/policy';
 import {
-  buildRouteTransition,
+  buildRouteTransitionRools,
   parseTransitionShortcut,
   type TransitionShortcut,
 } from './transition/transition';
@@ -44,8 +44,8 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
 
-  @attr({ readonly: true, inherit: true, allowEmpty: true, parser: parseTransitionShortcut })
-  transition: TransitionShortcut | null;
+  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition', parser: parseTransitionShortcut })
+  transitionShortcut: TransitionShortcut | null;
   @attr({ readonly: true, inherit: true, allowEmpty: true, parser: parseTransitionOrder })
   transitionOrder: TransitionPolicy | null;
   @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-in', parser: parseCommaSeparated })
@@ -64,22 +64,22 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   }
 
   //todo memoize
-  getResolvedTransition(): RouteTransition {
-    return buildRouteTransition({
+  get transition(): RouteTransition {
+    return buildRouteTransitionRools({
       optOut: this.hasAttribute('transition') && this.getAttribute('transition') === '',
       order: this.transitionOrder,
-      shortcut: this.transition,
+      shortcut: this.transitionShortcut,
       inDecl: this.transitionInDecl,
       outDecl: this.transitionOutDecl,
     });
   }
 
   get transitionIn(): string[] | null {
-    return this.getResolvedTransition().in;
+    return this.transition.in;
   }
 
   get transitionOut(): string[] | null {
-    return this.getResolvedTransition().out;
+    return this.transition.out;
   }
 
   async connectedCallback(): Promise<void> {

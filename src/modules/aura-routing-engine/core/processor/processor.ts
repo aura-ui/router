@@ -31,7 +31,7 @@ export class AuraRoutingProcessor {
     const transaction: NavigationTransaction = {
       ...input,
       plan,
-      transitionOrder: getEnterRoute(plan)?.getResolvedTransition().order ?? null,
+      transitionOrder: getEnterRoute(plan)?.transition.order ?? null,
     };
 
     const job = this.jobManager.begin();

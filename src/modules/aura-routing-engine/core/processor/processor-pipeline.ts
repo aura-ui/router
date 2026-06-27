@@ -225,7 +225,7 @@ export class ProcessorPipeline {
   /**
    * Commits staged incoming views on the **enter** branch after `transitionIn` / `transitionOut`.
    *
-   * Crossfade (`data-transition`) mounts the new route with outlet `stage` — two view roots may
+   * Active transition package mounts the new route with outlet `stage` — two view roots may
    * coexist until this step. Each enter route's {@link RouteInstance.commitStagedView} promotes
    * its staged root via `outlet.commitStage`, drops the outgoing DOM sibling, and resets the
    * route view controller from `stage` back to `replace`.

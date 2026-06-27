@@ -11,7 +11,7 @@ export interface AuraRouteInterface {
   errorTemplate: string;
   preserve: PreserveFlags;
   restoreScroll: boolean;
-  getResolvedTransition(): RouteTransition;
+  readonly transition: RouteTransition;
 }
 
 export type RouteRenderOptions = {

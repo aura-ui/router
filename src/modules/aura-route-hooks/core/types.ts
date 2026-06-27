@@ -13,6 +13,9 @@ export type RoutePhase =
   | 'reenter'
   | 'error';
 
+/** Parsed `hooks="phase::hook-name, ..."`. */
+export type PhaseHooksMap = Partial<Record<RoutePhase, string[]>>;
+
 export interface RouteInfo {
   /** Browser pathname (no `search` / `hash`), e.g. `/user/42`. */
   pathname: string;
@@ -54,6 +57,8 @@ export interface RouteInstance {
   left: string[] | null;
   reenter: string[] | null;
   error: string[] | null;
+  /** Escape hatch: `hooks="phase::hook-name, ..."`. */
+  hooks?: PhaseHooksMap | null;
   onEnter(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;

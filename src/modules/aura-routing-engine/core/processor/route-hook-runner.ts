@@ -1,4 +1,5 @@
 import { RouteHookRegistry } from '../../../aura-route-hooks/core/route-hook-registry';
+import { routeHookNames } from '../../../aura-route-hooks/core/phase-hooks';
 import type { RouteLifecycleContext } from '../../../aura-route-hooks/core';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { GuardResult } from '../guard.types';
@@ -19,7 +20,7 @@ export class RouteHookRunner {
     lifecycleContext: RouteLifecycleContext,
     isJobActive: () => boolean,
   ): Promise<GuardResult> {
-    const hookNames = lifecycleContext.route[lifecycleContext.phase];
+    const hookNames = routeHookNames(lifecycleContext.route, lifecycleContext.phase);
     if (!hookNames?.length) return;
     return this.runNamedHooks(lifecycleContext, hookNames, isJobActive);
   }

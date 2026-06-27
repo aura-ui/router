@@ -332,3 +332,28 @@ describe('ProcessorPipeline.runReenter', () => {
     expect(phases).toEqual(['reenter']);
   });
 });
+
+describe('ProcessorPipeline phase hooks attr', () => {
+  const pipeline = new ProcessorPipeline();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+  });
+
+  it('runs hooks from hooks map on matching phase', async () => {
+    const phases: string[] = [];
+    mockedRunLifecycleHooks.mockImplementation(async (ctx) => {
+      phases.push(ctx.phase);
+    });
+
+    const pipelineContext = createPipelineContext({
+      exitRoutes: [createMatchedRoute('/from', { hooks: { left: ['cleanup'] } })],
+      enterRoutes: [createMatchedRoute('/to', { hooks: { transitionIn: ['fade-in'] } })],
+    });
+
+    await pipeline.runAfterRender(pipelineContext);
+
+    expect(phases).toEqual(['left']);
+  });
+});

@@ -4,7 +4,8 @@ import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine
 import { parsePhaseHooks } from '../../aura-route-hooks/core/phase-hooks';
 import type { PhaseHooksMap } from '../../aura-route-hooks/core';
 import { AuraRouter } from '../../aura-router/core/aura-router';
-import type { RouteErrorContext, RouteInstance, RouteLifecycleContext, RouteTransition } from '../../aura-route-hooks/core';
+import type { RouteErrorContext, RouteInstance, RouteLifecycleContext } from '../../aura-route-hooks/core';
+import { NO_TRANSITION, type RouteTransition } from '../../aura-route-hooks/core/types';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouteViewController, type RouteRenderOptions } from './view/view-controller';
 import { resolveRouteContentLoaderService, RouteContentLoader } from './route-content-loader';
@@ -23,8 +24,8 @@ export interface AuraRouteInterface {
   errorTemplate: string;
   preserve: PreserveFlags;
   restoreScroll: boolean;
-  /** Inherited from `<aura-router data-transition>`; empty → instant `replace` mount. */
-  transition: string;
+  /** Inherited `data-transition` (v1 staging flag). */
+  transitionPolicy: string;
 }
 
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
@@ -47,8 +48,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
-  /** Inherited from `<aura-router data-transition>`; empty → instant `replace` mount. */
-  @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) transition: string;
+  @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) transitionPolicy: string;
 
   @boolAttr({ readonly: true }) restoreScroll: boolean;
   @attr({ readonly: true, parser: parsePreserveAttr }) preserve: PreserveFlags;
@@ -60,8 +60,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.view?.nestedOutlet ?? null;
   }
 
-  getResolvedTransition(): RouteTransition {
-    return { order: null, in: null, out: null };
+  get transition(): RouteTransition {
+    return NO_TRANSITION;
   }
 
   async connectedCallback(): Promise<void> {

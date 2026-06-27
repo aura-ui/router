@@ -68,8 +68,8 @@ export interface RouteInstance {
   error: string[] | null;
   /** `hooks="phase::hook-name"` — left, reenter, transitions, etc. */
   hooks?: PhaseHooksMap | null;
-  /** Inherited transition attrs → order + hook lists. */
-  getResolvedTransition(): RouteTransition;
+  /** Resolved transition package (`transition`, `transition-order`, …). */
+  readonly transition: RouteTransition;
   onEnter(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;

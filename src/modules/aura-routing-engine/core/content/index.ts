@@ -1,5 +1,6 @@
 export {
   buildContentDescriptor,
+  contentDescriptorFromRoute,
   parseViewDescriptor,
   type ParsedViewDescriptor,
   type RouteContentAttrs,
@@ -9,6 +10,7 @@ export { ContentCache } from './content-cache';
 export { ContentResolver, type ContentResolverDeps } from './content-resolver';
 export { ContentLoadService, type ContentLoadServiceDeps } from './content-load-service';
 export { LoaderRegistry } from './registry';
+export { defaultLoaderRegistry } from './registry';
 export type {
   ContentDescriptor,
   ContentKind,

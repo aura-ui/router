@@ -31,3 +31,5 @@ export class LoaderRegistry {
     return loader;
   }
 }
+
+export const defaultLoaderRegistry = new LoaderRegistry();

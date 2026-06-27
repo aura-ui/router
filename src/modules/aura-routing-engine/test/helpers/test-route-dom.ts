@@ -1,24 +1,18 @@
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
+import { AuraRoute2 } from '../../../aura-route-2/core/aura-route';
 import { buildRouteTree } from '../../core/route-tree/build-route-tree';
-
-import { createTestRoute } from './create-test-route';
-
-class TestRoute extends HTMLElement {
-  path = '';
-}
 
 const ROUTE_TAG = 'aura-route';
 
 function ensureTestRouteElement(): void {
   if (!customElements.get(ROUTE_TAG)) {
-    customElements.define(ROUTE_TAG, TestRoute);
+    customElements.define(ROUTE_TAG, AuraRoute2);
   }
 }
 
-export function createDomRoute(path: string, children: TestRoute[] = []): TestRoute {
+export function createDomRoute(path: string, children: AuraRoute2[] = []): AuraRoute2 {
   ensureTestRouteElement();
-  const route = document.createElement(ROUTE_TAG) as TestRoute;
-  route.path = path;
+  const route = document.createElement(ROUTE_TAG) as AuraRoute2;
   route.setAttribute('path', path);
   for (const child of children) {
     route.appendChild(child);
@@ -26,13 +20,13 @@ export function createDomRoute(path: string, children: TestRoute[] = []): TestRo
   return route;
 }
 
-export function collectRoutesFromDom(...roots: TestRoute[]): AuraRoute[] {
+export function collectRoutesFromDom(...roots: AuraRoute2[]): AuraRoute[] {
   const routes: AuraRoute[] = [];
 
-  function walk(route: TestRoute): void {
+  function walk(route: AuraRoute2): void {
     routes.push(route as unknown as AuraRoute);
     for (const child of route.querySelectorAll(`:scope > ${ROUTE_TAG}`)) {
-      walk(child as TestRoute);
+      walk(child as AuraRoute2);
     }
   }
 
@@ -40,8 +34,8 @@ export function collectRoutesFromDom(...roots: TestRoute[]): AuraRoute[] {
   return routes;
 }
 
-export function buildTreeFromDom(...roots: TestRoute[]) {
+export function buildTreeFromDom(...roots: AuraRoute2[]) {
   return buildRouteTree(collectRoutesFromDom(...roots));
 }
 
-export { TestRoute, ROUTE_TAG };
+export { ROUTE_TAG };

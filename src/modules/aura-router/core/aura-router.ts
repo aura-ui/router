@@ -18,8 +18,8 @@ import {
   ContentCache,
   ContentLoadService,
   ContentResolver,
+  defaultLoaderRegistry,
   isCatchAllRoute,
-  LoaderRegistry,
   parseTransitionPolicy,
   type AuraRoutingEngineConfig,
   type HistoryAction,
@@ -79,7 +79,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private engine?: AuraRoutingEngine;
   private readonly notFound = new AuraRouterNotFoundController(this);
   private readonly contentCache = new ContentCache(AuraRouter.contentCacheOptions);
-  private readonly loaderRegistry = new LoaderRegistry();
+  private readonly loaderRegistry = defaultLoaderRegistry;
   private contentLoadService?: ContentLoadService;
 
   static use(
@@ -104,7 +104,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
   }
 
-  /** Registers a custom content loader type for `source` on any `<aura-route>`. */
   static registerLoader(type: string, loaderClass: LoaderConstructor): void {
     ContentLoaderRegistry.register(type, loaderClass);
   }

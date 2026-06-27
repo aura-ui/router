@@ -1,19 +1,22 @@
 import type { NotFoundHandler, NotFoundSource } from './aura-router-not-found.types';
 import { AURA_ROUTER_NOT_FOUND } from './aura-router-not-found.types';
-import { AuraRouterOutlet } from '../../aura-router-outlet/core';
-import { dispatchCustomEvent } from '../../aura-utils/misc';
+import { AuraOutlet, type ViewHandle } from '../../aura-outlet/core/aura-outlet';
+import { dispatchCustomEvent, getTemplate } from '../../aura-utils/misc';
 
 export { AURA_ROUTER_NOT_FOUND };
 
+const NOT_FOUND_VIEW_KEY = '__not-found__';
+
 export interface AuraRouterNotFoundHost extends HTMLElement {
   notFoundTemplate: string;
+  appOutlet: AuraOutlet;
 }
 
 let configuredNotFoundHandler: NotFoundHandler | null | undefined;
 
 export class AuraRouterNotFoundController {
   private instanceHandler?: NotFoundHandler | null;
-  private notFoundOutlet?: AuraRouterOutlet;
+  private notFoundHandle?: ViewHandle;
   private readonly router: AuraRouterNotFoundHost;
 
   constructor(router: AuraRouterNotFoundHost) {
@@ -36,14 +39,12 @@ export class AuraRouterNotFoundController {
   }
 
   reset(): void {
-    this.notFoundOutlet = undefined;
+    this.clearFallbackView();
   }
 
-  /** Скрывает fallback outlet (не используется при declarative `path="*"`). */
+  /** Clears fallback view (not used when declarative `path="*"` handles 404). */
   hide(): void {
-    if (!this.notFoundOutlet) return;
-    this.notFoundOutlet.hidden = true;
-    this.notFoundOutlet.clear();
+    this.clearFallbackView();
   }
 
   /** Thin fallback: когда в registry нет `<aura-route path="*">`. */
@@ -52,6 +53,7 @@ export class AuraRouterNotFoundController {
 
     const handler = this.instanceHandler ?? configuredNotFoundHandler;
     if (handler) {
+      this.clearFallbackView();
       handler(url, this.router);
       return;
     }
@@ -64,36 +66,41 @@ export class AuraRouterNotFoundController {
     this.renderFallback(url);
   }
 
-  private getNotFoundOutlet(): AuraRouterOutlet {
-    if (this.notFoundOutlet) return this.notFoundOutlet;
-    const existing = this.router.querySelector<AuraRouterOutlet>(AuraRouterOutlet.is);
-    if (existing) {
-      this.notFoundOutlet = existing;
-      return existing;
+  private clearFallbackView(): void {
+    if (!this.notFoundHandle) return;
+    this.notFoundHandle.destroy();
+    this.notFoundHandle = undefined;
+  }
+
+  private getAppOutlet(): AuraOutlet {
+    const outlet = this.router.appOutlet;
+    if (!outlet) {
+      throw new Error('`<aura-router>` requires a root `<aura-outlet>` for fallback 404.');
     }
-    const outlet = document.createElement(AuraRouterOutlet.is) as AuraRouterOutlet;
-    outlet.hidden = true;
-    this.router.appendChild(outlet);
-    this.notFoundOutlet = outlet;
     return outlet;
   }
 
+  private mountFallback(content: DocumentFragment | string, url?: string): void {
+    const outlet = this.getAppOutlet();
+    this.clearFallbackView();
+    this.notFoundHandle = outlet.apply(content, {
+      strategy: 'replace',
+      key: NOT_FOUND_VIEW_KEY,
+    }) ?? undefined;
+    if (url !== undefined) {
+      this.applyNotFoundUrl(this.notFoundHandle?.viewRoot ?? outlet, url);
+    }
+  }
+
   private renderTemplate(templateId: string, url: string): void {
-    const outlet = this.getNotFoundOutlet();
-    outlet.hidden = false;
-    outlet.removeAttribute('template');
-    outlet.template = templateId;
-    this.applyNotFoundUrl(outlet, url);
+    this.mountFallback(getTemplate(templateId), url);
   }
 
   private renderFallback(url: string): void {
-    const outlet = this.getNotFoundOutlet();
-    outlet.hidden = false;
-    outlet.removeAttribute('template');
-    outlet.replaceChildren(document.createTextNode(`Page not found: ${url}`));
+    this.mountFallback(`Page not found: ${url}`);
   }
 
-  /** Только fallback outlet — `[data-not-found-url]` не часть AuraRoute. */
+  /** Fallback view only — `[data-not-found-url]` is not part of AuraRoute. */
   private applyNotFoundUrl(root: ParentNode, url: string): void {
     root.querySelectorAll('[data-not-found-url]').forEach((el) => {
       el.textContent = url;

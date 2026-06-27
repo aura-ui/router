@@ -2,8 +2,9 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { HistoryAction } from '../history';
 import type { TransitionMap } from '../transition/plan';
 import type { AuraRoutingProcessorJob } from './job';
-import { HookRunner } from '../hooks/runner';
+import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveHookNames } from '../hooks/phases';
+import { runViewCommit } from './view-commit';
 import type { GuardResult } from '../guard.types';
 import type { RoutePhase } from '../hooks/types';
 import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../hooks/types';
@@ -34,7 +35,7 @@ export interface PipelineContext {
   transaction: NavigationTransaction;
   job: AuraRoutingProcessorJob;
   router: RouterInstance;
-  hookRunner: HookRunner;
+  hookRegistry: HookRegistry;
   /** False when the navigation job was superseded or the router was torn down. */
   isJobActive: () => boolean;
 }
@@ -178,16 +179,13 @@ export class ProcessorPipeline {
   }
 
   /**
-   * View commit via {@link HookRunner.runViewCommit} for each activate-branch route.
+   * View commit for each activate-branch route.
    * On render error runs exit cleanup (`left`) before returning `{ status: 'error' }`.
    */
   private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
       try {
-        const viewCommit = await pipelineContext.hookRunner.runViewCommit(
-          matchedRoute,
-          pipelineContext.job,
-        );
+        const viewCommit = await runViewCommit(matchedRoute, pipelineContext.job);
 
         if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
           return { status: 'cancelled' };
@@ -270,7 +268,8 @@ export class ProcessorPipeline {
     pipelineContext: PipelineContext,
     hookNames: readonly string[],
   ): Promise<PipelineOutcome> {
-    const hookResult = await pipelineContext.hookRunner.runPhaseHooks(
+    const hookResult = await runPhaseHooks(
+      pipelineContext.hookRegistry,
       lifecycleContext,
       hookNames,
       pipelineContext.isJobActive,
@@ -292,7 +291,8 @@ export class ProcessorPipeline {
     const hookResult =
       step.hooks.kind === 'postCommit' && step.hooks.hookErrors === 'log'
         ? await this.runPostCommitHooks(lifecycleContext, pipelineContext, hookNames)
-        : await pipelineContext.hookRunner.runPhaseHooks(
+        : await runPhaseHooks(
+            pipelineContext.hookRegistry,
             lifecycleContext,
             hookNames,
             pipelineContext.isJobActive,
@@ -345,7 +345,8 @@ export class ProcessorPipeline {
     const errorHooks = resolveHookNames(matchedRoute.route, 'error');
     if (errorHooks?.length) {
       try {
-        await pipelineContext.hookRunner.runPhaseHooks(
+        await runPhaseHooks(
+          pipelineContext.hookRegistry,
           errorContext,
           errorHooks,
           pipelineContext.isJobActive,
@@ -370,7 +371,8 @@ export class ProcessorPipeline {
     hookNames: readonly string[],
   ): Promise<GuardResult> {
     try {
-      return await pipelineContext.hookRunner.runPhaseHooks(
+      return await runPhaseHooks(
+        pipelineContext.hookRegistry,
         lifecycleContext,
         hookNames,
         pipelineContext.isJobActive,
@@ -423,3 +425,4 @@ export function toLifecycleContext(
 }
 
 export type { HookRegistry } from '../hooks/registry';
+export type { ViewCommitResult } from './view-commit';

@@ -102,6 +102,3 @@ export function resolveHookNames(
   const merged = [...(fromAttr ?? []), ...(fromHooks ?? [])];
   return merged.length > 0 ? merged : null;
 }
-
-/** @deprecated Use {@link resolveHookNames}. */
-export const routeHookNames = resolveHookNames;

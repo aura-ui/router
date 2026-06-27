@@ -1,5 +1,6 @@
 import type { RouteInstance } from '../../core/hooks/types';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { runPhaseHooks } from '../../core/hooks/registry';
 import { AuraRoutingProcessorJob } from '../../core/processor/job';
 import {
   ProcessorPipeline,
@@ -7,16 +8,20 @@ import {
   type PipelineContext,
   type PipelineOutcome,
 } from '../../core/processor/processor-pipeline';
-import type { HookRunner } from '../../core/hooks/runner';
+import { runViewCommit } from '../../core/processor/view-commit';
 import { createTestRoute } from '../helpers/create-test-route';
 
-const mockRunPhaseHooks = jest.fn<ReturnType<HookRunner['runPhaseHooks']>, Parameters<HookRunner['runPhaseHooks']>>();
-const mockRunViewCommit = jest.fn<ReturnType<HookRunner['runViewCommit']>, Parameters<HookRunner['runViewCommit']>>();
+jest.mock('../../core/hooks/registry', () => ({
+  ...jest.requireActual('../../core/hooks/registry'),
+  runPhaseHooks: jest.fn(),
+}));
 
-const mockHookRunner = {
-  runPhaseHooks: mockRunPhaseHooks,
-  runViewCommit: mockRunViewCommit,
-} as unknown as HookRunner;
+jest.mock('../../core/processor/view-commit', () => ({
+  runViewCommit: jest.fn(),
+}));
+
+const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
+const mockRunViewCommit = runViewCommit as jest.MockedFunction<typeof runViewCommit>;
 
 type PipelineInternals = ProcessorPipeline & {
   runBlockingHooks(
@@ -61,7 +66,7 @@ function createPipelineContext(overrides: {
     },
     job,
     router: { navigate: jest.fn() },
-    hookRunner: mockHookRunner,
+    hookRegistry: {} as PipelineContext['hookRegistry'],
     isJobActive: () => true,
   };
 }
@@ -160,7 +165,7 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
       callOrder.push('render');
       return 'ok';
     });
-    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       callOrder.push(ctx.phase);
     });
 
@@ -263,7 +268,7 @@ describe('ProcessorPipeline.runRenderWithTransition sequential policies', () => 
       callOrder.push('render');
       return 'ok';
     });
-    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       callOrder.push(ctx.phase);
     });
 
@@ -289,7 +294,7 @@ describe('ProcessorPipeline.runAfterRender', () => {
 
   it('runs left then after', async () => {
     const phases: string[] = [];
-    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
     });
 
@@ -314,7 +319,7 @@ describe('ProcessorPipeline.runReenter', () => {
 
   it('runs reenter only, not after', async () => {
     const phases: string[] = [];
-    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
     });
 
@@ -339,7 +344,7 @@ describe('ProcessorPipeline phase hooks attr', () => {
 
   it('runs hooks from hooks map on matching phase', async () => {
     const phases: string[] = [];
-    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
     });
 

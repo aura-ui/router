@@ -174,41 +174,36 @@
     <aura-outlet></aura-outlet>
   </div>
 
-  <aura-route path="/a" data-crossfade="" source="html" enter="auth, analytics" data-content='<a href="/c" data-router-link>load template</a>'></aura-route>
-  <aura-route path="/b" data-crossfade="" source="html-src" entered="analytics" data-content="index2.html" preload></aura-route>
-  <aura-route path="/c" data-crossfade="" source="template" data-content="app"></aura-route>
-  <aura-route path="/d" data-crossfade="" source="component-src" data-content='examples/demo/components/test-element1'></aura-route>
-  <aura-route path="/f" data-crossfade="" source="component-src" data-content='examples/demo/components/test-element' keep-alive></aura-route>
+  <aura-route path="/a" data-crossfade="" view='html::<a href="/c" data-router-link>load template</a>' enter="auth, analytics"></aura-route>
+  <aura-route path="/b" data-crossfade="" view="html-src::index2.html" entered="analytics" preload></aura-route>
+  <aura-route path="/c" data-crossfade="" view="template::app"></aura-route>
+  <aura-route path="/d" data-crossfade="" view="component-src::examples/demo/components/test-element1"></aura-route>
+  <aura-route path="/f" data-crossfade="" view="component-src::examples/demo/components/test-element" keep-alive></aura-route>
   <aura-route path="/users" data-crossfade="" layout="users-layout">
-    <aura-route path="about" data-crossfade="" source="html-src" data-content="user.html"></aura-route>
+    <aura-route path="about" data-crossfade="" view="html-src::user.html"></aura-route>
   </aura-route>
-  <aura-route path="/custom-loader" data-crossfade="" source="custom-loader" data-content="user.html"></aura-route>
-  <aura-route path="/user/:id" data-crossfade="" source="component-src" data-content='examples/demo/components/test-element' preload></aura-route>
-  <aura-route path="цу" data-crossfade="" source="template" data-content="404-template"></aura-route>
+  <aura-route path="/custom-loader" data-crossfade="" view="custom-loader::user.html"></aura-route>
+  <aura-route path="/user/:id" data-crossfade="" view="component-src::examples/demo/components/test-element" preload></aura-route>
+  <aura-route path="цу" data-crossfade="" view="template::404-template"></aura-route>
 
-  <aura-route path="/t/home" source="html"
-    transition-in="fade" transition-out="fade"
-    data-content='&lt;div class="t-page t-home"&gt;&lt;h1&gt;Home&lt;/h1&gt;&lt;p&gt;Fade transition. Try switching parallel / out-in / in-out above.&lt;/p&gt;&lt;/div&gt;'>
+  <aura-route path="/t/home" view="html::&lt;div class=&quot;t-page t-home&quot;&gt;&lt;h1&gt;Home&lt;/h1&gt;&lt;p&gt;Fade transition. Try switching parallel / out-in / in-out above.&lt;/p&gt;&lt;/div&gt;"
+    transition-in="fade" transition-out="fade">
   </aura-route>
-  <aura-route path="/t/about" source="html"
-    transition-in="fade" transition-out="fade"
-    data-content='&lt;div class="t-page t-about"&gt;&lt;h1&gt;About&lt;/h1&gt;&lt;p&gt;Crossfade between staged view roots in the outlet.&lt;/p&gt;&lt;/div&gt;'>
+  <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h1&gt;About&lt;/h1&gt;&lt;p&gt;Crossfade between staged view roots in the outlet.&lt;/p&gt;&lt;/div&gt;"
+    transition-in="fade" transition-out="fade">
   </aura-route>
-  <aura-route path="/t/gallery" source="html"
-    transition-in="slide" transition-out="slide"
-    data-content='&lt;div class="t-page t-gallery"&gt;&lt;h1&gt;Gallery&lt;/h1&gt;&lt;p&gt;Slide transition (translateX + opacity).&lt;/p&gt;&lt;/div&gt;'>
+  <aura-route path="/t/gallery" view="html::&lt;div class=&quot;t-page t-gallery&quot;&gt;&lt;h1&gt;Gallery&lt;/h1&gt;&lt;p&gt;Slide transition (translateX + opacity).&lt;/p&gt;&lt;/div&gt;"
+    transition-in="slide" transition-out="slide">
   </aura-route>
-  <aura-route path="/t/slide-a" source="html"
-    transition-in="slide" transition-out="slide"
-    data-content='&lt;div class="t-page t-slide-a"&gt;&lt;h1&gt;Slide A&lt;/h1&gt;&lt;p&gt;Navigate to Slide B to see horizontal slide.&lt;/p&gt;&lt;/div&gt;'>
+  <aura-route path="/t/slide-a" view="html::&lt;div class=&quot;t-page t-slide-a&quot;&gt;&lt;h1&gt;Slide A&lt;/h1&gt;&lt;p&gt;Navigate to Slide B to see horizontal slide.&lt;/p&gt;&lt;/div&gt;"
+    transition-in="slide" transition-out="slide">
   </aura-route>
-  <aura-route path="/t/slide-b" source="html"
-    transition-in="slide" transition-out="slide"
-    data-content='&lt;div class="t-page t-slide-b"&gt;&lt;h1&gt;Slide B&lt;/h1&gt;&lt;p&gt;out-in waits for exit before render; parallel runs both at once.&lt;/p&gt;&lt;/div&gt;'>
+  <aura-route path="/t/slide-b" view="html::&lt;div class=&quot;t-page t-slide-b&quot;&gt;&lt;h1&gt;Slide B&lt;/h1&gt;&lt;p&gt;out-in waits for exit before render; parallel runs both at once.&lt;/p&gt;&lt;/div&gt;"
+    transition-in="slide" transition-out="slide">
   </aura-route>
 </aura-router>
 
-<!-- v3 examples: view="template:id" | view="html:..." | view="component-src:..." -->
+<!-- view format: loader::ref — e.g. template::app | html::... | component-src::path -->
 <script type="module" src="/src/examples/demo/main.ts"></script>
 
 </body>

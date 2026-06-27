@@ -23,8 +23,6 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @attr({ readonly: true }) path: string;
   @attr({ readonly: true }) layout: string;
   @attr({ readonly: true }) view: string;
-  @attr({ readonly: true }) source: string;
-  @attr({ readonly: true, dataAttr: true }) content: string;
 
   @attr({ parser: parseCommaSeparated }) enter: string[] | null;
   @attr({ parser: parseCommaSeparated }) transitionIn: string[] | null;
@@ -58,8 +56,8 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
     }
 
     if (!this.path) throw new Error('AuraRoute2 must have a path attribute');
-    if (!this.view && !this.content && !this.layout) {
-      console.warn(`AuraRoute2 with path "${this.path}" has no content specified`);
+    if (!this.view && !this.layout) {
+      console.warn(`AuraRoute2 with path "${this.path}" has no view or layout specified`);
     }
 
     const mountTarget: MountTargetPort = {

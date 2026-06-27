@@ -2,10 +2,8 @@ import type { ContentDescriptor, LoaderType } from './types';
 
 export type RouteContentAttrs = {
   layout: string;
-  /** Unified content descriptor: `loader:ref` (v3). */
+  /** Unified content descriptor: `loader::ref`. */
   view: string;
-  source: string;
-  content: string;
   cache: boolean;
 };
 
@@ -14,17 +12,17 @@ export type ParsedViewDescriptor = {
   ref: string;
 };
 
-/** Parses `view="loader:ref"` — splits on the first colon only. */
+/** Parses `view="loader::ref"` — splits on the first `::` only. */
 export function parseViewDescriptor(view: string): ParsedViewDescriptor | null {
   const trimmed = view.trim();
   if (!trimmed) return null;
 
-  const colon = trimmed.indexOf(':');
-  if (colon <= 0) return null;
+  const sep = trimmed.indexOf('::');
+  if (sep <= 0) return null;
 
   return {
-    loader: trimmed.slice(0, colon),
-    ref: trimmed.slice(colon + 1),
+    loader: trimmed.slice(0, sep),
+    ref: trimmed.slice(sep + 2),
   };
 }
 
@@ -45,19 +43,10 @@ export function buildContentDescriptor(route: RouteContentAttrs): ContentDescrip
   }
 
   const parsed = route.view?.trim() ? parseViewDescriptor(route.view) : null;
-  if (parsed) {
-    return {
-      kind: 'content',
-      loader: parsed.loader,
-      ref: parsed.ref,
-      cache: Boolean(route.cache),
-    };
-  }
-
   return {
     kind: 'content',
-    loader: route.source ?? '',
-    ref: route.content ?? '',
+    loader: parsed?.loader ?? '',
+    ref: parsed?.ref ?? '',
     cache: Boolean(route.cache),
   };
 }

@@ -5,8 +5,6 @@ export interface AuraRouteInterface {
   path: string;
   layout: string;
   view: string;
-  source: string;
-  content: string;
   loadingTemplate: string;
   errorTemplate: string;
   keepAlive: boolean;

@@ -17,6 +17,13 @@ import { RouteViewController } from './view/view-controller';
 import { defaultViewCache } from './view/view-cache';
 import { loadingBodyClass, loadingEvent } from './view/plugins';
 import type { MountTargetPort } from './view/ports';
+import { parseTransitionOrder, type TransitionPolicy } from '../../aura-routing-engine/core/transition/policy';
+import {
+  buildRouteTransition,
+  parseTransitionShortcut,
+  type TransitionShortcut,
+} from './transition/transition';
+import type { RouteTransition } from '../../aura-route-hooks/core/types';
 
 export type { RouteRenderOptions, AuraRouteInterface };
 
@@ -28,17 +35,23 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @attr({ readonly: true }) view: string;
 
   @attr({ parser: parseCommaSeparated }) enter: string[] | null;
-  @attr({ parser: parseCommaSeparated }) transitionIn: string[] | null;
   @attr({ parser: parseCommaSeparated }) load: string[] | null;
   @attr({ parser: parseCommaSeparated }) after: string[] | null;
   @attr({ parser: parseCommaSeparated }) leave: string[] | null;
-  @attr({ parser: parseCommaSeparated }) transitionOut: string[] | null;
   @attr({ parser: parseCommaSeparated }) error: string[] | null;
   @attr({ parser: parsePhaseHooks }) hooks: PhaseHooksMap | null;
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
-  @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) crossfade: string;
+
+  @attr({ readonly: true, inherit: true, allowEmpty: true, parser: parseTransitionShortcut })
+  transition: TransitionShortcut | null;
+  @attr({ readonly: true, inherit: true, allowEmpty: true, parser: parseTransitionOrder })
+  transitionOrder: TransitionPolicy | null;
+  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-in', parser: parseCommaSeparated })
+  transitionInDecl: string[] | null;
+  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-out', parser: parseCommaSeparated })
+  transitionOutDecl: string[] | null;
 
   @boolAttr({ readonly: true }) restoreScroll: boolean;
   @attr({ readonly: true, parser: parsePreserveAttr }) preserve: PreserveFlags;
@@ -48,6 +61,25 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
 
   get nestedOutlet(): AuraOutlet | null {
     return this.viewController?.nestedOutlet ?? null;
+  }
+
+  //todo memoize
+  getResolvedTransition(): RouteTransition {
+    return buildRouteTransition({
+      optOut: this.hasAttribute('transition') && this.getAttribute('transition') === '',
+      order: this.transitionOrder,
+      shortcut: this.transition,
+      inDecl: this.transitionInDecl,
+      outDecl: this.transitionOutDecl,
+    });
+  }
+
+  get transitionIn(): string[] | null {
+    return this.getResolvedTransition().in;
+  }
+
+  get transitionOut(): string[] | null {
+    return this.getResolvedTransition().out;
   }
 
   async connectedCallback(): Promise<void> {

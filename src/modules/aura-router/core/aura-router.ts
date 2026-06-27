@@ -20,7 +20,6 @@ import {
   ContentResolver,
   defaultLoaderRegistry,
   isCatchAllRoute,
-  parseTransitionPolicy,
   type AuraRoutingEngineConfig,
   type HistoryAction,
   type NavigateHistoryOptions,
@@ -72,9 +71,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
-  /** `out-in` | `in-out` | `parallel` — порядок transition-out/transition-in относительно render. */
-  @attr({ dataAttr: true, defaultValue: 'parallel' })
-  transition: string;
 
   private engine?: AuraRoutingEngine;
   private readonly notFound = new AuraRouterNotFoundController(this);
@@ -150,10 +146,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   private ensureEngine(): AuraRoutingEngine {
     if (!this.engine) {
-      const transitionPolicy = parseTransitionPolicy(this.transition);
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
-        transitionPolicy,
         contentLoad: this.contentLoad,
         onNavigationCommitted: (to) => {
           this.notFound.hide();
@@ -179,7 +173,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         },
       };
       this.engine = new AuraRoutingEngine(
-        new AuraRoutingProcessor(transitionPolicy),
+        new AuraRoutingProcessor(),
         this,
         config,
       );

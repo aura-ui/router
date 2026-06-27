@@ -1,6 +1,8 @@
-import type { RouteInstance } from '../../../aura-route-hooks/core';
+import type { RouteInstance, RouteTransition } from '../../../aura-route-hooks/core';
 
 const noop = (): void => {};
+
+const INACTIVE_TRANSITION: RouteTransition = { order: null, in: null, out: null };
 
 export function createTestRoute(path: string, overrides: Partial<RouteInstance> = {}): RouteInstance {
   return {
@@ -16,6 +18,7 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
     transitionOut: null,
     error: null,
     hooks: null,
+    getResolvedTransition: () => INACTIVE_TRANSITION,
     onEnter: noop,
     onTransitionIn: noop,
     onLoad: noop,

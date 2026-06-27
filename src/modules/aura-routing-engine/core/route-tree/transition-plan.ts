@@ -1,10 +1,16 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { TransitionMap } from '../transition/plan';
 import {
   buildEnterRoutes,
   buildExitRoutes,
   findBranchLcaIndex,
 } from './branch-diff';
 import { getActiveChain, getLeafMatch, isSameRouteMatch } from './matched-chain';
+
+/** Target `<aura-route>` of the enter branch (content leaf). */
+export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | undefined {
+  return plan.enterRoutes.at(-1)?.route;
+}
 
 /**
  * Строит TransitionMap для processor: exitRoutes, enterRoutes, lca, reenter.

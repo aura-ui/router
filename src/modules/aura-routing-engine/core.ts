@@ -35,10 +35,10 @@ export type {
 
 export { BrowserHistoryProvider, FakeHistoryProvider } from './core/history';
 
-// --- Transition policy (aura-router attribute) ---
+// --- Transition order (route attrs → processor pipeline) ---
 
 export type { TransitionPolicy } from './core/transition/policy';
-export { DEFAULT_TRANSITION_POLICY, parseTransitionPolicy } from './core/transition/policy';
+export { DEFAULT_TRANSITION_POLICY, isTransitionPolicy, parseTransitionOrder, parseTransitionPolicy } from './core/transition/policy';
 
 // --- Matcher + guards (shared with aura-route-hooks lifecycle ctx) ---
 

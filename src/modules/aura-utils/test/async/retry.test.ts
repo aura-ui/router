@@ -1,4 +1,4 @@
-import { retry } from '../async/retry';
+import { retry } from '../../async/retry';
 
 describe('retry', () => {
   it('returns the result on the first successful attempt', async () => {

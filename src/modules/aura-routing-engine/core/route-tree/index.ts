@@ -26,4 +26,4 @@ export {
   buildEnterRoutes,
 } from './branch-diff';
 
-export { buildTransitionPlan } from './transition-plan';
+export { buildTransitionPlan, getEnterRoute } from './transition-plan';

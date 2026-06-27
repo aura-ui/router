@@ -46,7 +46,7 @@ function createMatchedRoute(path: string, overrides: Partial<RouteInstance> = {}
 function createPipelineContext(overrides: {
   exitRoutes?: MatchedRouteInfo[];
   enterRoutes?: MatchedRouteInfo[];
-  transitionPolicy?: 'out-in' | 'in-out' | 'parallel';
+  transitionOrder?: 'out-in' | 'in-out' | 'parallel' | null;
 } = {}): PipelineContext {
   const enterRoute = overrides.enterRoutes?.[0] ?? createMatchedRoute('/to');
   const job = new AuraRoutingProcessorJob(1);
@@ -56,7 +56,7 @@ function createPipelineContext(overrides: {
       from: null,
       to: enterRoute,
       action: 'push',
-      transitionPolicy: overrides.transitionPolicy ?? 'parallel',
+      transitionOrder: overrides.transitionOrder ?? 'parallel',
       plan: {
         exitRoutes: overrides.exitRoutes ?? [],
         enterRoutes: overrides.enterRoutes ?? [enterRoute],
@@ -272,7 +272,7 @@ describe('ProcessorPipeline.runRenderWithTransition sequential policies', () => 
     });
 
     const pipelineContext = createPipelineContext({
-      transitionPolicy: policy,
+      transitionOrder: policy,
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });

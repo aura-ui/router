@@ -1,5 +1,5 @@
 import { createTestRoute } from '../helpers/create-test-route';
-import { buildTransitionPlan } from '../../core/transition/plan';
+import { buildTransitionPlan, getEnterRoute } from '../../core/transition/plan';
 import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree';
@@ -130,5 +130,20 @@ describe('buildTransitionPlan', () => {
     expect(plan.exitRoutes).toEqual([]);
     expect(plan.enterRoutes).toHaveLength(1);
     expect(routeMatchKey(plan.enterRoutes[0]!)).toBe('/settings/profile');
+  });
+});
+
+describe('getEnterRoute', () => {
+  it('returns enter branch leaf route', () => {
+    const chain = chainFromPaths(['/settings', '/settings/profile']);
+    const plan = buildTransitionPlan(null, chain[1]!);
+
+    expect(getEnterRoute(plan)).toBe(chain[1]!.route);
+  });
+
+  it('returns undefined for empty enter branch', () => {
+    const plan = { exitRoutes: [], enterRoutes: [], lca: null, reenter: false };
+
+    expect(getEnterRoute(plan)).toBeUndefined();
   });
 });

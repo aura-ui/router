@@ -46,4 +46,18 @@ describe('buildRouteTree', () => {
     expect(roots.map((node) => node.pattern)).toEqual(['/', '/settings']);
     expect(roots[1]?.children[0]?.pattern).toBe('/settings/profile');
   });
+
+  it('builds content descriptor from view attribute', () => {
+    const route = createDomRoute('/profile');
+    route.setAttribute('view', 'html-src:profile.html');
+
+    const { nodesByPattern } = buildTreeFromDom(route);
+
+    expect(nodesByPattern.get('/profile')?.content).toEqual({
+      kind: 'content',
+      loader: 'html-src',
+      ref: 'profile.html',
+      cache: false,
+    });
+  });
 });

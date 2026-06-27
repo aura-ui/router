@@ -13,6 +13,7 @@ export type { RouteRenderOptions };
 export interface AuraRouteInterface {
   path: string;
   layout: string;
+  view: string;
   source: string;
   content: string;
   loadingTemplate: string;
@@ -29,6 +30,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @attr({ readonly: true }) path: string;
   @attr({ readonly: true }) layout: string;
+  @attr({ readonly: true }) view: string;
   @attr({ readonly: true }) source: string;
   @attr({ readonly: true, dataAttr: true }) content: string;
 
@@ -66,7 +68,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     }
 
     if (!this.path) throw new Error('AuraRoute must have a path attribute');
-    if (!this.content && !this.layout) {
+    if (!this.view && !this.content && !this.layout) {
       console.warn(`AuraRoute with path "${this.path}" has no content specified`);
     }
 

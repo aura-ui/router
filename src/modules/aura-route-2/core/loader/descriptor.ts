@@ -1,5 +1,7 @@
 export {
   buildContentDescriptor,
+  parseViewDescriptor,
+  type ParsedViewDescriptor,
   type RouteContentAttrs,
 } from '../../../aura-routing-engine/core/content/descriptor';
 

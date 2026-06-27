@@ -216,6 +216,7 @@ function readRouteContentAttrs(route: AuraRoute): RouteContentAttrs {
 
   return {
     layout: record.layout ?? attr?.('layout') ?? '',
+    view: record.view ?? attr?.('view') ?? '',
     source: record.source ?? attr?.('source') ?? '',
     content: record.content ?? attr?.('data-content') ?? '',
     cache: record.cache ?? (typeof el.hasAttribute === 'function' ? el.hasAttribute('cache') : false),

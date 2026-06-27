@@ -59,6 +59,7 @@ export {
   ContentResolver,
   LoaderRegistry,
   buildContentDescriptor,
+  parseViewDescriptor,
   contentCacheKey,
 } from './core/content';
 
@@ -67,6 +68,7 @@ export type {
   ContentLoadServiceDeps,
   ContentResolverDeps,
   LoadPurpose,
+  ParsedViewDescriptor,
   ViewPayload,
 } from './core/content';
 

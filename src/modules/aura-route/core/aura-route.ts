@@ -4,29 +4,28 @@ import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine
 import { parsePhaseHooks } from '../../aura-route-hooks/core/phase-hooks';
 import type { PhaseHooksMap } from '../../aura-route-hooks/core';
 import { AuraRouter } from '../../aura-router/core/aura-router';
-import type { RouteErrorContext, RouteInstance, RouteLifecycleContext } from '../../aura-route-hooks/core';
-import { NO_TRANSITION, type RouteTransition } from '../../aura-route-hooks/core/types';
+import type {
+  MatchedRouteInfo,
+  RouteErrorContext,
+  RouteInstance,
+  RouteLifecycleContext,
+} from '../../aura-route-hooks/core';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import { AuraRouteViewController, type RouteRenderOptions } from './view/view-controller';
-import { resolveRouteContentLoaderService, RouteContentLoader } from './route-content-loader';
-import { defaultRouteViewCache } from './view/view-cache';
+import type { AuraRouteInterface, RouteRenderOptions } from './types';
+import { RouteContentLoader } from './route-content-loader';
+import { RouteViewController } from './view/view-controller';
+import { defaultViewCache } from './view/view-cache';
+import { loadingBodyClass, loadingEvent } from './view/plugins';
+import type { MountTargetPort } from './view/ports';
+import { parseTransitionOrder, type TransitionPolicy } from '../../aura-routing-engine/core/transition/policy';
+import {
+  buildRouteTransition,
+  parseTransitionShortcut,
+  type TransitionShortcut,
+} from './transition/transition';
+import type { RouteTransition } from '../../aura-route-hooks/core/types';
 
-export type { RouteRenderOptions };
-
-/** Public surface of `<aura-route>` element attributes. */
-export interface AuraRouteInterface {
-  path: string;
-  layout: string;
-  view: string;
-  source: string;
-  content: string;
-  loadingTemplate: string;
-  errorTemplate: string;
-  preserve: PreserveFlags;
-  restoreScroll: boolean;
-  /** Inherited `data-transition` (v1 staging flag). */
-  transitionPolicy: string;
-}
+export type { RouteRenderOptions, AuraRouteInterface };
 
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
   static is = 'aura-route';
@@ -34,34 +33,53 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @attr({ readonly: true }) path: string;
   @attr({ readonly: true }) layout: string;
   @attr({ readonly: true }) view: string;
-  @attr({ readonly: true }) source: string;
-  @attr({ readonly: true, dataAttr: true }) content: string;
 
   @attr({ parser: parseCommaSeparated }) enter: string[] | null;
-  @attr({ parser: parseCommaSeparated }) transitionIn: string[] | null;
   @attr({ parser: parseCommaSeparated }) load: string[] | null;
   @attr({ parser: parseCommaSeparated }) after: string[] | null;
   @attr({ parser: parseCommaSeparated }) leave: string[] | null;
-  @attr({ parser: parseCommaSeparated }) transitionOut: string[] | null;
   @attr({ parser: parseCommaSeparated }) error: string[] | null;
   @attr({ parser: parsePhaseHooks }) hooks: PhaseHooksMap | null;
 
   @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
-  @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) transitionPolicy: string;
+
+  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition', parser: parseTransitionShortcut })
+  transitionShortcut: TransitionShortcut | null;
+  @attr({ readonly: true, inherit: true, allowEmpty: true, parser: parseTransitionOrder })
+  transitionOrder: TransitionPolicy | null;
+  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-in', parser: parseCommaSeparated })
+  transitionInDecl: string[] | null;
+  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-out', parser: parseCommaSeparated })
+  transitionOutDecl: string[] | null;
 
   @boolAttr({ readonly: true }) restoreScroll: boolean;
   @attr({ readonly: true, parser: parsePreserveAttr }) preserve: PreserveFlags;
 
-  private view!: AuraRouteViewController;
-  private viewLifecycleToken = 0;
+  private viewController!: RouteViewController;
+  private passId = 0;
 
   get nestedOutlet(): AuraOutlet | null {
-    return this.view?.nestedOutlet ?? null;
+    return this.viewController?.nestedOutlet ?? null;
   }
 
+  //todo memoize
   get transition(): RouteTransition {
-    return NO_TRANSITION;
+    return buildRouteTransition({
+      optOut: this.hasAttribute('transition') && this.getAttribute('transition') === '',
+      order: this.transitionOrder,
+      shortcut: this.transitionShortcut,
+      inDecl: this.transitionInDecl,
+      outDecl: this.transitionOutDecl,
+    });
+  }
+
+  get transitionIn(): string[] | null {
+    return this.transition.in;
+  }
+
+  get transitionOut(): string[] | null {
+    return this.transition.out;
   }
 
   async connectedCallback(): Promise<void> {
@@ -71,35 +89,47 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     }
 
     if (!this.path) throw new Error('AuraRoute must have a path attribute');
-    if (!this.view && !this.content && !this.layout) {
-      console.warn(`AuraRoute with path "${this.path}" has no content specified`);
+    if (!this.view && !this.layout) {
+      console.warn(`AuraRoute with path "${this.path}" has no view or layout specified`);
     }
 
-    this.view = new AuraRouteViewController(this,
-      new RouteContentLoader(this, resolveRouteContentLoaderService()),
-      defaultRouteViewCache,
-      () => router.appOutlet,
-      (routeInfo) => routeInfo?.node?.parent?.route.nestedOutlet ?? null,
-      () => this.viewLifecycleToken);
+    const mountTarget: MountTargetPort = {
+      appOutlet: () => router.appOutlet,
+      nestedOutlet: (routeInfo) => routeInfo.node?.parent?.route.nestedOutlet ?? null,
+    };
 
+    const plugins = [
+      ...(this.loadingTemplate ? [loadingBodyClass(), loadingEvent(this)] : []),
+    ];
+
+    this.viewController = new RouteViewController(
+      {
+        route: this,
+        content: new RouteContentLoader(this, router.contentLoad),
+        cache: defaultViewCache,
+        mountTarget,
+        plugins,
+      },
+      () => this.passId,
+    );
   }
 
   disconnectedCallback(): void {
-    this.viewLifecycleToken++;
-    this.view?.cancel();
+    this.passId++;
+    this.viewController?.cancel();
   }
 
   render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
-    this.viewLifecycleToken++;
-    return this.view.render(routeInfo, options);
+    this.passId++;
+    return this.viewController.render(routeInfo, options);
   }
 
   cancelPendingRender(): void {
-    this.view.cancelPendingRender();
+    this.viewController.cancelPendingRender();
   }
 
   commitStagedView(): void {
-    this.view.commitStagedView();
+    this.viewController.commitStagedView();
   }
 
   onEnter(_ctx: RouteLifecycleContext): void {}
@@ -109,12 +139,11 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   onTransitionOut(_ctx: RouteLifecycleContext): void {}
   onTransitionIn(_ctx: RouteLifecycleContext): void {}
   onLeft(_ctx: RouteLifecycleContext): void {
-    this.viewLifecycleToken++;
-    this.view.onLeft();
+    this.passId++;
+    this.viewController.onLeft();
   }
   onReenter(_ctx: RouteLifecycleContext): void {
-    this.viewLifecycleToken++;
-    // no need to call view, it already the same
+    this.passId++;
   }
   onError(_ctx: RouteErrorContext): void {}
 }

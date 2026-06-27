@@ -2,7 +2,7 @@ import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 import type { PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
 import type { RouteTransition } from '../../aura-route-hooks/core/types';
 
-/** Public surface of `<aura-route-2>` attributes. */
+/** Public surface of `<aura-route>` attributes. */
 export interface AuraRouteInterface {
   path: string;
   layout: string;

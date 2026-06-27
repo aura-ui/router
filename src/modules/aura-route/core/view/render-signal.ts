@@ -1,12 +1,8 @@
-/**
- * Local + optional parent abort signals for one route render pass.
- * Parent is typically the navigation job signal from the routing engine.
- */
-export class RouteRenderSignal {
+/** Local + optional parent abort for one render pass. */
+export class RenderSignal {
   private local = new AbortController();
   private parent?: AbortSignal;
 
-  /** Starts a new render pass; cancels any in-flight local work. */
   begin(parent?: AbortSignal): AbortSignal {
     this.cancel();
     this.local = new AbortController();

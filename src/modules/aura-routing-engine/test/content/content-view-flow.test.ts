@@ -10,7 +10,7 @@ import {
   ContentResolver,
   LoaderRegistry,
 } from '../../core';
-import { RouteContentLoader } from '../../../aura-route-2/core/route-content-loader';
+import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
 import type { RouterInstance } from '../../../aura-route-hooks/core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 

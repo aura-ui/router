@@ -1,52 +1,65 @@
+import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
 import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import { AuraCacheStore, type CacheStoreOptions } from '../../../aura-cache-store/core';
+import type { ViewCachePort } from './ports';
 
-/** Minimal stash port used by {@link AuraRouteViewController} (`detach` → put → extract → reattach). */
-export interface RouteViewCachePort {
-  /** Checkout: removes entry from stash; GC-expired entries run `onRemove` first. */
-  extract(key: string): ViewRoot | undefined;
-  put(key: string, root: ViewRoot): void;
+type CacheKeySource = MatchedRouteInfo | RouteInfo | undefined;
+
+export function cacheKey(source: CacheKeySource, fallbackPath: string): string {
+  const base = source?.pathname ?? fallbackPath;
+  const query = source?.query;
+
+  if (!query || Object.keys(query).length === 0) {
+    return base;
+  }
+
+  const qs = Object.keys(query)
+    .sort()
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(query[key]!)}`)
+    .join('&');
+
+  return `${base}|${qs}`;
 }
 
-const DEFAULT_OPTIONS: CacheStoreOptions<ViewRoot> = {
+const DEFAULT_CACHE_OPTIONS: CacheStoreOptions<ViewRoot> = {
   max: 10,
   gcTime: Infinity,
   gcSweepInterval: false,
-  onRemove: (_key, root) => RouteViewCache.destroyViewRoot(root),
+  onRemove: (_key, root) => destroyViewRoot(root),
 };
 
-/** Shared LRU stash for keep-alive views. */
-export class RouteViewCache implements RouteViewCachePort {
+/** Shared LRU keep-alive view cache. */
+export class RouteViewCache implements ViewCachePort {
   private static store: AuraCacheStore<ViewRoot> | undefined;
 
   static configure(options: CacheStoreOptions<ViewRoot> = {}): void {
     RouteViewCache.store?.destroy();
     RouteViewCache.store = new AuraCacheStore({
-      ...DEFAULT_OPTIONS,
+      ...DEFAULT_CACHE_OPTIONS,
       ...options,
-      onRemove: options.onRemove ?? DEFAULT_OPTIONS.onRemove,
+      onRemove: options.onRemove ?? DEFAULT_CACHE_OPTIONS.onRemove,
     });
   }
 
   extract(key: string): ViewRoot | undefined {
-    return RouteViewCache.getStore().extract(key);
+    return RouteViewCache.storeOf().extract(key);
   }
 
   put(key: string, root: ViewRoot): void {
-    RouteViewCache.getStore().set(key, root);
+    RouteViewCache.storeOf().set(key, root);
   }
 
-  private static getStore(): AuraCacheStore<ViewRoot> {
+  private static storeOf(): AuraCacheStore<ViewRoot> {
     if (!RouteViewCache.store) {
       RouteViewCache.configure();
     }
     return RouteViewCache.store!;
   }
-
-  static destroyViewRoot(root: ViewRoot): void {
-    root.replaceChildren();
-    root.remove();
-  }
 }
 
-export const defaultRouteViewCache = new RouteViewCache();
+export function destroyViewRoot(root: ViewRoot): void {
+  root.replaceChildren();
+  root.remove();
+}
+
+export const defaultViewCache = new RouteViewCache();

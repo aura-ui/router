@@ -1,6 +1,6 @@
 import { AuraRouter } from '../../modules/aura-router/core';
 import { AuraRouterOutlet } from '../../modules/aura-router-outlet/core';
-import { AuraRoute2, defaultLoaderRegistry } from '../../modules/aura-route-2/core';
+import { AuraRoute, defaultLoaderRegistry } from '../../modules/aura-route/core';
 import { authHook, type AuthHookOptions } from './hooks/auth.hook';
 import { analyticsHook } from './hooks/analytics.hook';
 import { fadeTransitionHook, slideTransitionHook } from './hooks/view-transition.hook';
@@ -16,7 +16,7 @@ AuraRouter.use(slideTransitionHook);
 customElements.define(AuraOutlet.is, AuraOutlet);
 customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);
 customElements.define(AuraRouter.is, AuraRouter);
-customElements.define(AuraRoute2.is, AuraRoute2);
+customElements.define(AuraRoute.is, AuraRoute);
 
 const router = document.querySelector<AuraRouter>(AuraRouter.is);
 

@@ -2,7 +2,7 @@
 
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraRouterOutlet } from '../../../aura-router-outlet/core';
-import { AuraRoute2 } from '../../../aura-route-2/core/aura-route';
+import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { defaultLoaderRegistry } from '../../core/content/registry';
 
@@ -24,7 +24,7 @@ function mountIndexFragment(): AuraRouter {
   customElements.define(AuraOutlet.is, AuraOutlet);
   customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);
   customElements.define(AuraRouter.is, AuraRouter);
-  customElements.define(AuraRoute2.is, AuraRoute2);
+  customElements.define(AuraRoute.is, AuraRoute);
 
   return document.querySelector(AuraRouter.is) as AuraRouter;
 }

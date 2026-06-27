@@ -7,7 +7,6 @@ module.exports = {
     '<rootDir>/src/modules/aura-dom/test',
     '<rootDir>/src/modules/aura-outlet/test',
     '<rootDir>/src/modules/aura-route/test',
-    '<rootDir>/src/modules/aura-route-2/test',
     '<rootDir>/src/modules/aura-cache-store/test',
     '<rootDir>/src/modules/aura-route-hooks/test',
     '<rootDir>/src/modules/aura-utils/test',

@@ -14,8 +14,6 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
     after: null,
     leave: null,
     transitionOut: null,
-    left: null,
-    reenter: null,
     error: null,
     hooks: null,
     onEnter: noop,

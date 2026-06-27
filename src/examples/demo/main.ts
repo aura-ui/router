@@ -10,8 +10,7 @@ AuraRouter.use(authHook, { redirect: '/login' } satisfies AuthHookOptions);
 AuraRouter.use(analyticsHook);
 AuraRouter.use(fadeTransitionHook);
 AuraRouter.use(slideTransitionHook);
-
-AuraRouter.define();
+AuraRouter.install();
 
 const router = document.querySelector<AuraRouter>(AuraRouter.is);
 

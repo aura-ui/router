@@ -75,7 +75,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private readonly loaderRegistry = defaultLoaderRegistry;
   private contentLoadService?: ContentLoadService;
 
-  static define(): void {
+  static install(): void {
     registerAuraRouterComponents();
   }
 

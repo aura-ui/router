@@ -5,6 +5,9 @@ const noop = (): void => {};
 export function createTestRoute(path: string, overrides: Partial<RouteInstance> = {}): RouteInstance {
   return {
     path,
+    getAttribute(name: string): string | null {
+      return name === 'path' ? path : null;
+    },
     enter: null,
     transitionIn: null,
     load: null,

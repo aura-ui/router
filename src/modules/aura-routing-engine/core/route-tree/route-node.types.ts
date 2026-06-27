@@ -1,11 +1,8 @@
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
-import type { ContentDescriptor } from '../content/types';
 
 /** Узел дерева маршрутов, собранного из DOM. @example pattern `/settings/profile`, branch [settings, profile] */
 export interface RouteNode {
   route: AuraRoute;
-  /** Snapshot content loader attrs — built once at register. */
-  content: ContentDescriptor;
   /** Значение attr `path` (может быть relative или absolute). @example `'profile'` */
   segment: string;
   /** Resolved URL-паттерн для match/registry. @example `'/settings/profile'` */

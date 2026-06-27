@@ -58,7 +58,9 @@ export {
   ContentLoadService,
   ContentResolver,
   LoaderRegistry,
+  defaultLoaderRegistry,
   buildContentDescriptor,
+  contentDescriptorFromRoute,
   parseViewDescriptor,
   contentCacheKey,
 } from './core/content';

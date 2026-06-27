@@ -1,5 +1,3 @@
-import { LoaderRegistry } from '../../../aura-routing-engine/core/content/registry';
+import { LoaderRegistry, defaultLoaderRegistry } from '../../../aura-routing-engine/core/content/registry';
 
-export { LoaderRegistry } from '../../../aura-routing-engine/core/content/registry';
-
-export const defaultLoaderRegistry = new LoaderRegistry();
+export { LoaderRegistry, defaultLoaderRegistry } from '../../../aura-routing-engine/core/content/registry';

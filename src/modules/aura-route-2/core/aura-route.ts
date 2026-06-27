@@ -44,11 +44,11 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @boolAttr({ readonly: true }) restoreScroll: boolean;
   @boolAttr() cache: boolean;
 
-  private view!: RouteViewController;
+  private viewController!: RouteViewController;
   private passId = 0;
 
   get nestedOutlet(): AuraOutlet | null {
-    return this.view?.nestedOutlet ?? null;
+    return this.viewController?.nestedOutlet ?? null;
   }
 
   async connectedCallback(): Promise<void> {
@@ -71,7 +71,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
       ...(this.loadingTemplate ? [loadingBodyClass(), loadingEvent(this)] : []),
     ];
 
-    this.view = new RouteViewController(
+    this.viewController = new RouteViewController(
       {
         route: this,
         content: new RouteContentLoader(this, router.contentLoad),
@@ -85,20 +85,20 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
 
   disconnectedCallback(): void {
     this.passId++;
-    this.view?.cancel();
+    this.viewController?.cancel();
   }
 
   render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
     this.passId++;
-    return this.view.render(routeInfo, options);
+    return this.viewController.render(routeInfo, options);
   }
 
   cancelPendingRender(): void {
-    this.view.cancelPendingRender();
+    this.viewController.cancelPendingRender();
   }
 
   commitStagedView(): void {
-    this.view.commitStagedView();
+    this.viewController.commitStagedView();
   }
 
   onEnter(_ctx: RouteLifecycleContext): void {}
@@ -109,7 +109,7 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   onTransitionIn(_ctx: RouteLifecycleContext): void {}
   onLeft(_ctx: RouteLifecycleContext): void {
     this.passId++;
-    this.view.onLeft();
+    this.viewController.onLeft();
   }
   onReenter(_ctx: RouteLifecycleContext): void {
     this.passId++;

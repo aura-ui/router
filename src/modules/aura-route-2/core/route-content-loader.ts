@@ -1,5 +1,6 @@
-import { buildContentDescriptor } from '../../aura-routing-engine/core/content/descriptor';
-import type { ContentLoadService } from '../../aura-routing-engine/core/content/content-load-service';import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
+import { contentDescriptorFromRoute } from '../../aura-routing-engine/core/content/descriptor';
+import type { ContentLoadService } from '../../aura-routing-engine/core/content/content-load-service';
+import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 import type { AuraRouteInterface } from './types';
 import type { ContentResolverPort } from './view/ports';
 
@@ -14,6 +15,6 @@ export class RouteContentLoader implements ContentResolverPort {
   }
 
   resolve(routeInfo: MatchedRouteInfo, signal: AbortSignal) {
-    return this.contentLoad.resolve(buildContentDescriptor(this.route), routeInfo, signal);
+    return this.contentLoad.resolve(contentDescriptorFromRoute(this.route), routeInfo, signal);
   }
 }

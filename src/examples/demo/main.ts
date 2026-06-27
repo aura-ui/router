@@ -15,8 +15,8 @@ AuraRouter.use(slideTransitionHook);
 
 customElements.define(AuraOutlet.is, AuraOutlet);
 customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);
-customElements.define(AuraRoute2.is, AuraRoute2);
 customElements.define(AuraRouter.is, AuraRouter);
+customElements.define(AuraRoute2.is, AuraRoute2);
 
 const router = document.querySelector<AuraRouter>(AuraRouter.is);
 

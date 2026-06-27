@@ -28,6 +28,11 @@ export function parseViewDescriptor(view: string): ParsedViewDescriptor | null {
   };
 }
 
+/** Content descriptor from upgraded `<aura-route>` (render + prefetch). */
+export function contentDescriptorFromRoute(route: RouteContentAttrs): ContentDescriptor {
+  return buildContentDescriptor(route);
+}
+
 /** Maps route attrs to a single content descriptor (layout template or content loader). */
 export function buildContentDescriptor(route: RouteContentAttrs): ContentDescriptor {
   if (route.layout?.trim()) {

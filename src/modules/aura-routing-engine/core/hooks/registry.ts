@@ -1,3 +1,12 @@
+/**
+ * Hook registry and runtime — register global hooks, run them during navigation.
+ *
+ * Flow: route attrs → {@link resolveHookNames} → {@link runPhaseHooks} → {@link HookRegistry.run}.
+ * Blocking phases stop on first cancel/redirect; post-commit phases log ignored terminal results.
+ *
+ * @module hooks/registry
+ */
+
 import type { GuardResult, RedirectTarget } from '../guard.types';
 import type {
   HookResultInput,
@@ -12,7 +21,17 @@ function isRedirectTarget(value: HookResultInput): value is RedirectTarget {
     || (typeof value === 'object' && value !== null && 'url' in value && !('type' in value));
 }
 
-/** Maps hook return values to {@link GuardResult} for the processor pipeline. */
+/**
+ * Normalizes hook return values to {@link GuardResult} for the processor pipeline.
+ *
+ * @example
+ * ```ts
+ * normalizeHookResult(false);                    // false (cancel)
+ * normalizeHookResult('/login');                 // '/login'
+ * normalizeHookResult({ type: 'redirect', url: '/login', replace: true });
+ * // → { url: '/login', replace: true }
+ * ```
+ */
 export function normalizeHookResult(result: HookResultInput | undefined): GuardResult {
   if (result === undefined || result === true) return undefined;
   if (result === false) return false;
@@ -44,9 +63,20 @@ interface StoredHook {
   options: Record<string, unknown>;
 }
 
+/**
+ * In-memory catalog of registered route hooks.
+ *
+ * Use {@link defaultHookRegistry} via `AuraRouter.use()` in apps; inject a custom
+ * instance into {@link AuraRoutingProcessor} for tests.
+ */
 export class HookRegistry {
   private readonly entries = new Map<string, StoredHook>();
 
+  /**
+   * Registers a hook by name. Re-registering the same `fn` + `version` updates options only.
+   *
+   * @throws When `hook.requires` is not satisfied by {@link ROUTER_VERSION}
+   */
   register<TOptions extends Record<string, unknown> = Record<string, unknown>>(
     hook: RouteHookDefinition<TOptions>,
     options: TOptions = {} as TOptions,
@@ -70,25 +100,37 @@ export class HookRegistry {
     }
 
     if (requires && !satisfies(ROUTER_VERSION, requires)) {
-      console.warn(`Hook "${name}@${version}" requires router ${requires}`);
+      throw new Error(
+        `Hook "${name}@${version}" requires router ${requires} (current: ${ROUTER_VERSION})`,
+      );
     }
 
     this.entries.set(name, stored);
   }
 
-  /** Removes a hook by name. Returns true when an entry was removed. */
+  /** Removes a hook by name. Returns `true` when an entry existed. */
   unregister(name: string): boolean {
     return this.entries.delete(name);
   }
 
+  /** Returns whether a hook name is registered. */
   has(name: string): boolean {
     return this.entries.has(name);
   }
 
+  /** Returns the stored entry (internal/testing). */
   get(name: string): StoredHook | undefined {
     return this.entries.get(name);
   }
 
+  /**
+   * Runs hooks sequentially for one route/phase.
+   *
+   * Stops on first cancel (`false`) or redirect. Unknown names are skipped with a warning.
+   * Each hook gets a fresh {@link RouteHookContext} (no shared mutable ctx between hooks).
+   *
+   * @param isJobActive - when it returns `false`, remaining hooks are skipped
+   */
   async run(
     lifecycleCtx: RouteLifecycleContext,
     names: readonly string[],
@@ -117,7 +159,14 @@ export class HookRegistry {
   }
 }
 
-/** Runs registered hooks with stale-job guard (used by the processor pipeline). */
+/**
+ * Processor-facing wrapper: runs phase hooks and maps superseded jobs to `false`.
+ *
+ * @example
+ * ```ts
+ * await runPhaseHooks(registry, ctx, ['auth', 'audit'], () => !job.aborted);
+ * ```
+ */
 export async function runPhaseHooks(
   registry: HookRegistry,
   lifecycleContext: RouteLifecycleContext,
@@ -136,4 +185,5 @@ export async function runPhaseHooks(
   }
 }
 
+/** Global hook catalog used by {@link AuraRouter.use}. */
 export const defaultHookRegistry = new HookRegistry();

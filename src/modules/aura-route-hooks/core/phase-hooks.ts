@@ -18,7 +18,7 @@ const PHASE_ALIAS: Record<string, RoutePhase> = {
 const ROUTE_ATTR_HOOKS = {
   enter: 'enter',
   load: 'load',
-  after: 'after',
+  after: 'afterHook',
   leave: 'leave',
   error: 'error',
   transitionIn: 'transitionIn',

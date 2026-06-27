@@ -36,7 +36,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @attr({ parser: parseCommaSeparated }) enter: string[] | null;
   @attr({ parser: parseCommaSeparated }) load: string[] | null;
-  @attr({ parser: parseCommaSeparated }) after: string[] | null;
+  @attr({ parser: parseCommaSeparated, name: 'after' }) afterHook: string[] | null;
   @attr({ parser: parseCommaSeparated }) leave: string[] | null;
   @attr({ parser: parseCommaSeparated }) error: string[] | null;
   @attr({ parser: parsePhaseHooks }) hooks: PhaseHooksMap | null;

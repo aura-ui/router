@@ -62,7 +62,7 @@ export interface RouteInstance {
   enter: string[] | null;
   transitionIn: string[] | null;
   load: string[] | null;
-  after: string[] | null;
+  afterHook: string[] | null;
   leave: string[] | null;
   transitionOut: string[] | null;
   error: string[] | null;

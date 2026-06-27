@@ -1,4 +1,4 @@
-import type { RouteInstance } from '../../../aura-route-hooks/core';
+import type { RouteInstance } from '../../core/hooks/types';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { AuraRoutingProcessorJob } from '../../core/processor/job';
 import {
@@ -7,27 +7,22 @@ import {
   type PipelineContext,
   type PipelineOutcome,
 } from '../../core/processor/processor-pipeline';
-import { RouteHookRunner } from '../../core/processor/route-hook-runner';
+import type { HookRunner } from '../../core/hooks/runner';
 import { createTestRoute } from '../helpers/create-test-route';
 
-jest.mock('../../core/processor/route-hook-runner', () => ({
-  RouteHookRunner: {
-    runLifecycleHooks: jest.fn(),
-    runViewCommit: jest.fn(),
-  },
-}));
+const mockRunPhaseHooks = jest.fn<ReturnType<HookRunner['runPhaseHooks']>, Parameters<HookRunner['runPhaseHooks']>>();
+const mockRunViewCommit = jest.fn<ReturnType<HookRunner['runViewCommit']>, Parameters<HookRunner['runViewCommit']>>();
 
-const mockedRunLifecycleHooks = RouteHookRunner.runLifecycleHooks as jest.MockedFunction<
-  typeof RouteHookRunner.runLifecycleHooks
->;
-const mockedRunViewCommit = RouteHookRunner.runViewCommit as jest.MockedFunction<
-  typeof RouteHookRunner.runViewCommit
->;
+const mockHookRunner = {
+  runPhaseHooks: mockRunPhaseHooks,
+  runViewCommit: mockRunViewCommit,
+} as unknown as HookRunner;
 
 type PipelineInternals = ProcessorPipeline & {
   runBlockingHooks(
     lifecycleContext: ReturnType<typeof toLifecycleContext>,
     pipelineContext: PipelineContext,
+    hookNames: readonly string[],
   ): Promise<PipelineOutcome>;
   runParallelRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome>;
 };
@@ -66,6 +61,7 @@ function createPipelineContext(overrides: {
     },
     job,
     router: { navigate: jest.fn() },
+    hookRunner: mockHookRunner,
     isJobActive: () => true,
   };
 }
@@ -78,7 +74,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
   });
 
   it('returns cancelled when hook returns false', async () => {
-    mockedRunLifecycleHooks.mockResolvedValue(false);
+    mockRunPhaseHooks.mockResolvedValue(false);
 
     const pipelineContext = createPipelineContext({
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
@@ -86,13 +82,13 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
     const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
 
-    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext);
+    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
     expect(outcome).toEqual({ status: 'cancelled' });
   });
 
   it('returns redirect when hook returns a URL string', async () => {
-    mockedRunLifecycleHooks.mockResolvedValue('/login');
+    mockRunPhaseHooks.mockResolvedValue('/login');
 
     const pipelineContext = createPipelineContext({
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
@@ -100,13 +96,13 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
     const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
 
-    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext);
+    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
     expect(outcome).toEqual({ status: 'redirect', url: '/login' });
   });
 
   it('returns redirect with replace when hook returns redirect object', async () => {
-    mockedRunLifecycleHooks.mockResolvedValue({ url: '/login', replace: true });
+    mockRunPhaseHooks.mockResolvedValue({ url: '/login', replace: true });
 
     const pipelineContext = createPipelineContext({
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
@@ -114,13 +110,13 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
     const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
 
-    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext);
+    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
     expect(outcome).toEqual({ status: 'redirect', url: '/login', replace: true });
   });
 
   it('returns null when hook allows navigation to continue', async () => {
-    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+    mockRunPhaseHooks.mockResolvedValue(undefined);
 
     const pipelineContext = createPipelineContext({
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
@@ -128,7 +124,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
     const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
 
-    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext);
+    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
     expect(outcome).toBeNull();
   });
@@ -139,12 +135,12 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedRunViewCommit.mockResolvedValue('ok');
-    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+    mockRunViewCommit.mockResolvedValue('ok');
+    mockRunPhaseHooks.mockResolvedValue(undefined);
   });
 
   it('cancels before transitions when view commit is aborted', async () => {
-    mockedRunViewCommit.mockResolvedValue('aborted');
+    mockRunViewCommit.mockResolvedValue('aborted');
 
     const pipelineContext = createPipelineContext({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
@@ -154,17 +150,17 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
     const outcome = await pipeline.runParallelRenderWithTransition(pipelineContext);
 
     expect(outcome).toEqual({ status: 'cancelled' });
-    expect(mockedRunLifecycleHooks).not.toHaveBeenCalled();
+    expect(mockRunPhaseHooks).not.toHaveBeenCalled();
   });
 
   it('runs render before parallel transition hooks', async () => {
     const callOrder: string[] = [];
 
-    mockedRunViewCommit.mockImplementation(async () => {
+    mockRunViewCommit.mockImplementation(async () => {
       callOrder.push('render');
       return 'ok';
     });
-    mockedRunLifecycleHooks.mockImplementation(async (ctx) => {
+    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
       callOrder.push(ctx.phase);
     });
 
@@ -253,8 +249,8 @@ describe('ProcessorPipeline.runRenderWithTransition sequential policies', () => 
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedRunViewCommit.mockResolvedValue('ok');
-    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+    mockRunViewCommit.mockResolvedValue('ok');
+    mockRunPhaseHooks.mockResolvedValue(undefined);
   });
 
   it.each([
@@ -263,11 +259,11 @@ describe('ProcessorPipeline.runRenderWithTransition sequential policies', () => 
   ] as const)('runs %s steps in order', async (policy, expectedOrder) => {
     const callOrder: string[] = [];
 
-    mockedRunViewCommit.mockImplementation(async () => {
+    mockRunViewCommit.mockImplementation(async () => {
       callOrder.push('render');
       return 'ok';
     });
-    mockedRunLifecycleHooks.mockImplementation(async (ctx) => {
+    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
       callOrder.push(ctx.phase);
     });
 
@@ -288,12 +284,12 @@ describe('ProcessorPipeline.runAfterRender', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+    mockRunPhaseHooks.mockResolvedValue(undefined);
   });
 
   it('runs left then after', async () => {
     const phases: string[] = [];
-    mockedRunLifecycleHooks.mockImplementation(async (ctx) => {
+    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
       phases.push(ctx.phase);
     });
 
@@ -313,12 +309,12 @@ describe('ProcessorPipeline.runReenter', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+    mockRunPhaseHooks.mockResolvedValue(undefined);
   });
 
   it('runs reenter only, not after', async () => {
     const phases: string[] = [];
-    mockedRunLifecycleHooks.mockImplementation(async (ctx) => {
+    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
       phases.push(ctx.phase);
     });
 
@@ -338,12 +334,12 @@ describe('ProcessorPipeline phase hooks attr', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedRunLifecycleHooks.mockResolvedValue(undefined);
+    mockRunPhaseHooks.mockResolvedValue(undefined);
   });
 
   it('runs hooks from hooks map on matching phase', async () => {
     const phases: string[] = [];
-    mockedRunLifecycleHooks.mockImplementation(async (ctx) => {
+    mockRunPhaseHooks.mockImplementation(async (ctx, _names) => {
       phases.push(ctx.phase);
     });
 

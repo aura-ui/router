@@ -3,7 +3,7 @@ import {
   AuraRoutingProcessor,
   FakeHistoryProvider,
 } from '../../core';
-import type { RouterInstance } from '../../../aura-route-hooks/core';
+import type { RouterInstance } from '../../core/hooks/types';
 
 import { createTestRoute } from '../helpers/create-test-route';
 

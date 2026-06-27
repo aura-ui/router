@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
+import type { MatchedRouteInfo } from '../../../aura-routing-engine/core';
 import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import type { RouteRenderOptions } from '../types';
 import type { ViewPayload, RouteViewConfig } from './ports';

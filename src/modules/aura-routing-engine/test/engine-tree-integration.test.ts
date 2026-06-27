@@ -4,7 +4,7 @@ import {
   type AuraRoutingProcessor,
 } from '../core';
 import { createDomRoute, collectRoutesFromDom } from './helpers/test-route-dom';
-import type { RouterInstance } from '../../aura-route-hooks/core/types';
+import type { RouterInstance } from '../core/hooks/types';
 
 function createMockProcessor() {
   return {

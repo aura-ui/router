@@ -8,8 +8,8 @@ import {
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
 
-import { RouteHookRegistry } from '../../aura-route-hooks/core';
-import type { RouteHookDefinition, RouterInstance } from '../../aura-route-hooks/core';
+import { defaultHookRegistry } from '../../aura-routing-engine/core/hooks/registry';
+import type { RouteHookDefinition, RouterInstance } from '../../aura-routing-engine/core/hooks/types';
 import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
@@ -57,7 +57,7 @@ export interface AuraRouterConfigureOptions {
   notFoundHandler?: NotFoundHandler | null;
 }
 
-export type { RouterInstance } from '../../aura-route-hooks/core';
+export type { RouterInstance } from '../../aura-routing-engine/core/hooks/types';
 
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
@@ -81,9 +81,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   static use(
     hook: RouteHookDefinition,
-    options?: Record<string, unknown>
+    options?: Record<string, unknown>,
   ): void {
-    RouteHookRegistry.register(hook, options);
+    defaultHookRegistry.register(hook, options ?? {});
   }
 
   static configure(options: AuraRouterConfigureOptions): void {
@@ -174,7 +174,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         },
       };
       this.engine = new AuraRoutingEngine(
-        new AuraRoutingProcessor(),
+        new AuraRoutingProcessor(defaultHookRegistry),
         this,
         config,
       );

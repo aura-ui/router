@@ -1,15 +1,16 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
-import { parsePhaseHooks } from '../../aura-route-hooks/core/phase-hooks';
-import type { PhaseHooksMap } from '../../aura-route-hooks/core';
-import { AuraRouter } from '../../aura-router/core/aura-router';
+import { parsePhaseHooks } from '../../aura-routing-engine/core/hooks/phases';
 import type {
-  MatchedRouteInfo,
+  PhaseHooksMap,
   RouteErrorContext,
   RouteInstance,
   RouteLifecycleContext,
-} from '../../aura-route-hooks/core';
+  RouteTransition,
+} from '../../aura-routing-engine/core/hooks/types';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core';
+import { AuraRouter } from '../../aura-router/core/aura-router';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
 import { RouteContentLoader } from './route-content-loader';
@@ -23,7 +24,6 @@ import {
   parseTransitionShortcut,
   type TransitionShortcut,
 } from './transition/transition';
-import type { RouteTransition } from '../../aura-route-hooks/core/types';
 
 export type { RouteRenderOptions, AuraRouteInterface };
 

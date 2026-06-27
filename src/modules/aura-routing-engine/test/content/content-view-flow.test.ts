@@ -11,7 +11,7 @@ import {
   LoaderRegistry,
 } from '../../core';
 import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
-import type { RouterInstance } from '../../../aura-route-hooks/core';
+import type { RouterInstance } from '../../core/hooks/types';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('content load flow (view → descriptor → engine)', () => {

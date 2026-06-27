@@ -1,12 +1,11 @@
-# Trademarks
+# Brand identity
 
-Aura UI and related names/logos are trademarks of Aleksandr Buryakov.
+**Aura UI** — Web Components platform.
 
-The source code in this repository is licensed under MIT (see LICENSE).
-Trademark rights are separate from copyright and are not granted under the MIT license.
+## MIT license vs. project name
 
-You may use the code under MIT terms, but you may not use the Aura UI name,
-logos, or branding in a way that implies endorsement, affiliation, or official status
-without prior written permission.
+The source code in this repository is licensed under MIT (see [LICENSE](./LICENSE)).
 
-For trademark usage requests, contact: contacts@aura-ui.dev
+The MIT license does not grant rights to use the project name, logos, or branding in a way that suggests endorsement, affiliation, or official status.
+
+Questions about name or logo usage: [GitHub Issues](https://github.com/aura-ui/router/issues).

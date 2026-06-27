@@ -54,6 +54,17 @@ export class HookRegistry {
     const { name, version, fn, requires } = hook;
     const existing = this.entries.get(name);
 
+    const stored: StoredHook = {
+      fn: fn as StoredHook['fn'],
+      version,
+      options: { ...options },
+    };
+
+    if (existing?.fn === fn && existing.version === version) {
+      this.entries.set(name, stored);
+      return;
+    }
+
     if (existing && existing.version !== version) {
       console.warn(`Hook "${name}" ${existing.version} → ${version}`);
     }
@@ -62,11 +73,16 @@ export class HookRegistry {
       console.warn(`Hook "${name}@${version}" requires router ${requires}`);
     }
 
-    this.entries.set(name, {
-      fn: fn as StoredHook['fn'],
-      version,
-      options: options as Record<string, unknown>,
-    });
+    this.entries.set(name, stored);
+  }
+
+  /** Removes a hook by name. Returns true when an entry was removed. */
+  unregister(name: string): boolean {
+    return this.entries.delete(name);
+  }
+
+  has(name: string): boolean {
+    return this.entries.has(name);
   }
 
   get(name: string): StoredHook | undefined {
@@ -78,8 +94,6 @@ export class HookRegistry {
     names: readonly string[],
     isJobActive?: () => boolean,
   ): Promise<GuardResult | undefined> {
-    const hookCtx: RouteHookContext = { ...lifecycleCtx, options: {} };
-
     for (const name of names) {
       if (!isJobActive?.()) return undefined;
 
@@ -91,7 +105,7 @@ export class HookRegistry {
         continue;
       }
 
-      hookCtx.options = entry.options;
+      const hookCtx: RouteHookContext = { ...lifecycleCtx, options: entry.options };
       const raw = await entry.fn(hookCtx);
       if (!isJobActive?.()) return undefined;
 

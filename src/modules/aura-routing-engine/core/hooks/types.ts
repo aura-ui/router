@@ -124,6 +124,6 @@ export interface RouteHookDefinition<TOptions = Record<string, unknown>> {
   name: string;
   version: string;
   fn: RouteHookFn<TOptions>;
+  /** Router API semver range; registration throws when the current router does not satisfy it. */
   requires?: string;
-  phases?: readonly RoutePhase[];
 }

@@ -4,7 +4,7 @@ import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine
 import { parsePhaseHooks } from '../../aura-route-hooks/core/phase-hooks';
 import type { PhaseHooksMap } from '../../aura-route-hooks/core';
 import { AuraRouter } from '../../aura-router/core/aura-router';
-import type { MatchedRouteInfo, RouteErrorContext, RouteInstance, RouteLifecycleContext } from '../../aura-route-hooks/core';
+import type { RouteErrorContext, RouteInstance, RouteLifecycleContext, RouteTransition } from '../../aura-route-hooks/core';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouteViewController, type RouteRenderOptions } from './view/view-controller';
 import { resolveRouteContentLoaderService, RouteContentLoader } from './route-content-loader';
@@ -58,6 +58,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   get nestedOutlet(): AuraOutlet | null {
     return this.view?.nestedOutlet ?? null;
+  }
+
+  getResolvedTransition(): RouteTransition {
+    return { order: null, in: null, out: null };
   }
 
   async connectedCallback(): Promise<void> {

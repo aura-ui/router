@@ -19,6 +19,13 @@ export { createRenderPass, isStale, type RenderPass } from './core/view/render-p
 export { loadingBodyClass, loadingEvent } from './core/view/plugins';
 export { RouteContentLoader } from './core/route-content-loader';
 export {
+  buildRouteTransition,
+  NO_TRANSITION,
+  parseTransitionShortcut,
+  type RouteTransition,
+  type TransitionShortcut,
+} from './core/transition/transition';
+export {
   ContentResolver,
   type ContentResolverDeps,
 } from '../aura-routing-engine/core/content/content-resolver';

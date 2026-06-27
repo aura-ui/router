@@ -21,10 +21,11 @@ export interface ProcessorRunInput {
   router: RouterInstance;
 }
 
-/** Enriched navigation run: {@link ProcessorRunInput} + transition plan and policy. */
+/** Enriched navigation run: {@link ProcessorRunInput} + transition plan and order. */
 export interface NavigationTransaction extends ProcessorRunInput {
   plan: TransitionMap;
-  transitionPolicy: TransitionPolicy;
+  /** `null` — skip transitionOut/transitionIn (inactive transition package). */
+  transitionOrder: TransitionPolicy | null;
 }
 
 /** Shared ctx for all {@link ProcessorPipeline} steps. */
@@ -73,7 +74,7 @@ type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
  *   GUARDS --> LEAVE[leave · exitRoutes]
  *   LEAVE --> ENTER[enter · enterRoutes]
  *
- *   RENDER_TX --> POLICY{transitionPolicy}
+   *   RENDER_TX --> POLICY{transitionOrder}
  *   POLICY -->|out-in| OUTIN["transitionOut → render → transitionIn"]
  *   POLICY -->|in-out| INOUT["render → transitionIn → transitionOut"]
  *   POLICY -->|parallel| PAR["render → transitionOut ‖ transitionIn"]
@@ -139,9 +140,13 @@ export class ProcessorPipeline {
    * parallel: render → transitionOut ‖ transitionIn
    */
   async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    const { transitionPolicy } = pipelineContext.transaction;
+    const { transitionOrder } = pipelineContext.transaction;
 
-    if (transitionPolicy === 'parallel') {
+    if (transitionOrder === null) {
+      return this.runRender(pipelineContext);
+    }
+
+    if (transitionOrder === 'parallel') {
       return this.runParallelRenderWithTransition(pipelineContext);
     }
 
@@ -158,7 +163,7 @@ export class ProcessorPipeline {
       ],
     };
 
-    return this.runUntilTerminal(sequentialSteps[transitionPolicy], pipelineContext);
+    return this.runUntilTerminal(sequentialSteps[transitionOrder], pipelineContext);
   }
 
   /** Parallel policy: render, then transitionOut and transitionIn concurrently. */

@@ -1,5 +1,6 @@
 import type { MatchedRouteInfo } from '../../aura-route-hooks/core';
 import type { PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
+import type { RouteTransition } from '../../aura-route-hooks/core/types';
 
 /** Public surface of `<aura-route-2>` attributes. */
 export interface AuraRouteInterface {
@@ -10,8 +11,7 @@ export interface AuraRouteInterface {
   errorTemplate: string;
   preserve: PreserveFlags;
   restoreScroll: boolean;
-  /** Inherited `data-crossfade` — staged outlet mount (separate from engine transition policy). */
-  crossfade: string;
+  getResolvedTransition(): RouteTransition;
 }
 
 export type RouteRenderOptions = {

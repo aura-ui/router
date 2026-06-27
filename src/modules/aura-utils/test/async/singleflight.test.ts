@@ -1,4 +1,4 @@
-import { Singleflight } from '../async/singleflight';
+import { Singleflight } from '../../async/singleflight';
 
 describe('Singleflight', () => {
   it('dedupes concurrent runs for the same key', async () => {

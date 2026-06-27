@@ -22,14 +22,12 @@ type AttrConfig<T = string> = {
    * With `inherit`: `hasAttribute` on this element wins over ancestor lookup,
    * including empty string (`attr=""`). Use for explicit opt-out (e.g. `transition=""`).
    */
-  emptyAllowed?: boolean;
+  allowEmpty?: boolean;
 };
 
-/** Gets attribute value from the closest element */
-const getInheritedAttr = <T = string>($el: HTMLElement, attrName: string): T | null => {
-  const $closest = $el.closest(`[${attrName}]`);
-  return $closest ? $closest.getAttribute(attrName) as T | null : null;
-};
+/** Inherited attr: first match on ancestors only (not `el`). */
+const getInheritedAttr = ($el: HTMLElement, attrName: string): string | null =>
+  $el.parentElement?.closest(`[${attrName}]`)?.getAttribute(attrName) ?? null;
 
 /**
  * `@attr` decorator: maps a property to an HTML attribute
@@ -47,7 +45,7 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
       let value: string | null;
       if (!config.inherit) {
         value = this.getAttribute(attrName);
-      } else if (config.emptyAllowed && this.hasAttribute(attrName)) {
+      } else if ((config.allowEmpty) && this.hasAttribute(attrName)) {
         value = this.getAttribute(attrName);
       } else {
         value = this.getAttribute(attrName) || getInheritedAttr(this, inheritAttrName);

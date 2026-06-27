@@ -14,7 +14,6 @@ import {
   type MatchedRouteInfo,
 } from './match/url-matcher';
 import { getLeafMatch, syncChainHref } from './route-tree';
-import type { TransitionPolicy } from './transition/policy';
 import {
   BrowserHistoryProvider,
   type HistoryAction,
@@ -40,8 +39,6 @@ export interface AuraRoutingEngineConfig {
   linksSelector?: string;
   /** Use hash-based routing. Default: `false`. */
   hash?: boolean;
-  /** `out-in` | `in-out` | `parallel`. Default: `parallel`. */
-  transitionPolicy?: TransitionPolicy;
   /** Вызывается после history commit navigation (в т.ч. catch-all). */
   onNavigationCommitted?: (to: MatchedRouteInfo) => void;
   /** Вызывается при любой ошибке navigation transaction. */

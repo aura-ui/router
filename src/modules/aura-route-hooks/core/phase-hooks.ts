@@ -14,15 +14,15 @@ const PHASE_ALIAS: Record<string, RoutePhase> = {
   'transition-out': 'transitionOut',
 };
 
-/** Phases with dedicated route attrs (not `left` / `reenter` — hooks only). */
+/** Phases with dedicated route surface (`left` / `reenter` — hooks attr only). */
 const ROUTE_ATTR_HOOKS = {
   enter: 'enter',
-  transitionIn: 'transitionIn',
   load: 'load',
   after: 'after',
   leave: 'leave',
-  transitionOut: 'transitionOut',
   error: 'error',
+  transitionIn: 'transitionIn',
+  transitionOut: 'transitionOut',
 } as const satisfies Partial<Record<RoutePhase, keyof RouteInstance>>;
 
 /** Parses `hooks="phase::hook-name, ..."` (kebab-case phase in HTML). */

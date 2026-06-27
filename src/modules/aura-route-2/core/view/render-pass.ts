@@ -24,7 +24,7 @@ export function createRenderPass(
     signal,
     cacheKey: cacheKey(routeInfo, route.path),
     viewKind: route.layout.trim() ? 'layout' : 'content',
-    useStagedMount: Boolean(route.crossfade?.trim()),
+    useStagedMount: route.getResolvedTransition().order !== null,
   };
 }
 

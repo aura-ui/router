@@ -7,4 +7,4 @@ export interface TransitionMap {
   reenter: boolean;
 }
 
-export { buildTransitionPlan } from '../route-tree/transition-plan';
+export { buildTransitionPlan, getEnterRoute } from '../route-tree/transition-plan';

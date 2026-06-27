@@ -1,4 +1,4 @@
-import { buildTransitionPlan } from '../transition/plan';
+import { buildTransitionPlan, getEnterRoute } from '../transition/plan';
 import {
   ProcessorPipeline,
   type NavigationTransaction,
@@ -6,10 +6,6 @@ import {
   type TransactionResult,
 } from './processor-pipeline';
 import { AuraRoutingProcessorJobManager } from './job-manager';
-import {
-  DEFAULT_TRANSITION_POLICY,
-  type TransitionPolicy,
-} from '../transition/policy';
 
 export type { ProcessorRunInput };
 
@@ -24,22 +20,18 @@ export type { ProcessorRunInput };
 export class AuraRoutingProcessor {
   private readonly jobManager = new AuraRoutingProcessorJobManager();
   private readonly pipeline = new ProcessorPipeline();
-  private readonly transitionPolicy: TransitionPolicy;
-
-  /** @param transitionPolicy — order of render vs transition-out/in (default {@link DEFAULT_TRANSITION_POLICY}). */
-  constructor(transitionPolicy: TransitionPolicy = DEFAULT_TRANSITION_POLICY) {
-    this.transitionPolicy = transitionPolicy;
-  }
 
   /**
    * Runs one navigation transaction (guards → loads → view commit → post-commit).
    * @param input — matched `from`/`to`, history action, and router instance for hooks
    */
   async run(input: ProcessorRunInput): Promise<TransactionResult> {
+    const plan = buildTransitionPlan(input.from, input.to);
+
     const transaction: NavigationTransaction = {
       ...input,
-      plan: buildTransitionPlan(input.from, input.to),
-      transitionPolicy: this.transitionPolicy,
+      plan,
+      transitionOrder: getEnterRoute(plan)?.getResolvedTransition().order ?? null,
     };
 
     const job = this.jobManager.begin();

@@ -78,7 +78,7 @@ type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
  *   POLICY -->|parallel| PAR["render → transitionOut ‖ transitionIn"]
  *
  *   AFTER --> LEFT[left · exitRoutes]
- *   LEFT --> ENTERED[entered · enterRoutes]
+ *   LEFT --> AFTER_HOOKS[after · enterRoutes]
  * ```
  *
  * View commit (`runRender`) is not a lifecycle hook; URL commit happens after the processor succeeds.
@@ -109,7 +109,7 @@ export class ProcessorPipeline {
     return outcome ?? { status: 'viewCommitted' };
   }
 
-  /** Reenter shortcut when only query/params change on the same route. */
+  /** Reenter shortcut when only query/params change on the same route (no `after` — same view). */
   async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(LIFECYCLE_STEPS.reenter, pipelineContext);
   }
@@ -175,11 +175,11 @@ export class ProcessorPipeline {
     return firstTerminalOutcome(exitTransitionOutcome, enterTransitionOutcome);
   }
 
-  /** Post-commit: {@link commitEnterViews}, `left` on exit branch, then `entered`. */
+  /** Post-commit: {@link commitEnterViews}, `left`, then `after`. */
   async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     this.commitEnterViews(pipelineContext);
     await this.runExitCleanup(pipelineContext);
-    return this.runLifecycleStep(LIFECYCLE_STEPS.entered, pipelineContext);
+    return this.runLifecycleStep(LIFECYCLE_STEPS.after, pipelineContext);
   }
 
   /** `transitionOut` on exit branch. */

@@ -79,11 +79,11 @@ export const LIFECYCLE_STEPS = {
     failOnLifecycleError: false,
     onRoute: (route, ctx) => route.onLeft(ctx),
   },
-  entered: {
-    lifecyclePhase: 'entered',
+  after: {
+    lifecyclePhase: 'after',
     branch: 'enterRoutes',
     hooks: postCommitSafe,
     failOnLifecycleError: false,
-    onRoute: (route, ctx) => route.onEntered(ctx),
+    onRoute: (route, ctx) => route.onAfter(ctx),
   },
 } as const satisfies Record<string, LifecycleStepDef>;

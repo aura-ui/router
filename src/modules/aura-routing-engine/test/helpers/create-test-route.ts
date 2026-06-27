@@ -1,4 +1,4 @@
-import type { RouteInstance, RouteTransition } from '../../../aura-route-hooks/core';
+import type { RouteInstance, RouteTransition } from '../../core/hooks/types';
 
 const noop = (): void => {};
 

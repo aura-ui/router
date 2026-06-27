@@ -1,12 +1,12 @@
 /**
  * Public API of `aura-routing-engine`.
  *
- * Intended consumers: `aura-router`, `aura-route-hooks`, custom `NavigationProvider` / tests.
+ * Intended consumers: `aura-router`, hook authors, custom `NavigationProvider` / tests.
  *
  * **Not exported** (module-internal — import only from inside `core/`):
  * - `route-tree/` — nested tree, branch diff, `buildTransitionPlan` implementation
  * - `aura-routing-route-registry.ts` — route catalog snapshot
- * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, `RouteHookRunner`, jobs
+ * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, `HookRunner`, jobs
  * - `transition/plan.ts` — `TransitionMap`, `buildTransitionPlan` (used by processor only)
  */
 
@@ -40,7 +40,7 @@ export { BrowserHistoryProvider, FakeHistoryProvider } from './core/history';
 export type { TransitionPolicy } from './core/transition/policy';
 export { DEFAULT_TRANSITION_POLICY, isTransitionPolicy, parseTransitionOrder, parseTransitionPolicy } from './core/transition/policy';
 
-// --- Matcher + guards (shared with aura-route-hooks lifecycle ctx) ---
+// --- Matcher + guards (shared with route hooks lifecycle ctx) ---
 
 export type {
   MatchedRouteInfo,
@@ -75,3 +75,32 @@ export type {
 } from './core/content';
 
 export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch';
+
+// --- Route hooks (registered via AuraRouter.use) ---
+
+export { parsePhaseHooks, resolveHookNames, routeHookNames } from './core/hooks/phases';
+export { defineRouteHook } from './core/hooks/define-hook';
+export { NO_TRANSITION } from './core/transition/route-transition';
+export {
+  HookRegistry,
+  defaultHookRegistry,
+  RouteHookRegistry,
+} from './core/hooks/registry';
+export { ROUTER_VERSION, satisfies } from './core/hooks/version';
+
+export type {
+  RoutePhase,
+  LifecyclePhase,
+  RouteInfo,
+  RouterInstance,
+  RouteLifecycleContext,
+  RouteErrorContext,
+  RouteInstance,
+  RouteHookContext,
+  RouteHookDefinition,
+  PhaseHooksMap,
+  RouteTransition,
+  HookResult,
+  HookResultInput,
+  ViewCommitResult,
+} from './core/hooks/types';

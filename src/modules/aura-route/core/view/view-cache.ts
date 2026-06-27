@@ -1,4 +1,5 @@
-import type { MatchedRouteInfo, RouteInfo } from '../../../aura-route-hooks/core';
+import type { MatchedRouteInfo } from '../../../aura-routing-engine/core';
+import type { RouteInfo } from '../../../aura-routing-engine/core/hooks/types';
 import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import { AuraCacheStore, type CacheStoreOptions } from '../../../aura-cache-store/core';
 import type { ViewCachePort } from './ports';

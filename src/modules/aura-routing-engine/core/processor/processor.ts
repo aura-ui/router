@@ -1,4 +1,7 @@
 import { buildTransitionPlan, getEnterRoute } from '../transition/plan';
+import { HookRunner } from '../hooks/runner';
+import type { HookRegistry } from '../hooks/registry';
+import { defaultHookRegistry } from '../hooks/registry';
 import {
   ProcessorPipeline,
   type NavigationTransaction,
@@ -20,6 +23,11 @@ export type { ProcessorRunInput };
 export class AuraRoutingProcessor {
   private readonly jobManager = new AuraRoutingProcessorJobManager();
   private readonly pipeline = new ProcessorPipeline();
+  private readonly hookRunner: HookRunner;
+
+  constructor(hookRegistry: HookRegistry = defaultHookRegistry) {
+    this.hookRunner = new HookRunner(hookRegistry);
+  }
 
   /**
    * Runs one navigation transaction (guards → loads → view commit → post-commit).
@@ -41,6 +49,7 @@ export class AuraRoutingProcessor {
       transaction,
       job,
       router: input.router,
+      hookRunner: this.hookRunner,
       isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
     });
   }

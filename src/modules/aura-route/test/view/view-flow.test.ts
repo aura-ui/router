@@ -1,5 +1,5 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
+import type { MatchedRouteInfo } from '../../../aura-routing-engine/core';
 import { RouteViewController } from '../../core/view/view-controller';
 import { defaultViewCache } from '../../core/view/view-cache';
 import { NO_PRESERVE } from '../../../aura-routing-engine/core/content/preserve';

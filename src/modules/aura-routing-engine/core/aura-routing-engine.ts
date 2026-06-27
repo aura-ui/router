@@ -3,7 +3,7 @@
 // 3. когда отловленно событие spa перехода - выбираем самый подходящий патерн соответствующий href
 // 4. вызываем processor - передаем from и to
 // 5. если фазы благополучно прошли — history commit URL (provider.commit; атомарность перехода)
-import type { RouterInstance } from '../../aura-route-hooks/core';
+import type { RouterInstance } from './hooks/types';
 import { parsePath } from '../../aura-utils/misc/url';
 
 import type { AuraRoutingProcessor } from './processor/processor';

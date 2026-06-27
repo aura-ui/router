@@ -6,7 +6,7 @@ import {
   ContentResolver,
   LoaderRegistry,
 } from '../../core';
-import type { RouterInstance } from '../../../aura-route-hooks/core';
+import type { RouterInstance } from '../../core/hooks/types';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('AuraRoutingEngine prefetch wiring', () => {

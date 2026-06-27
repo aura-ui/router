@@ -1,34 +1,26 @@
-import type { RouteInstance, RouteLifecycleContext, RoutePhase } from '../../../aura-route-hooks/core';
-import type { TransitionMap } from '../transition/plan';
+import type {
+  LifecycleBranch,
+  LifecycleHookHandling,
+  LifecyclePhase,
+  RouteInstance,
+  RouteLifecycleContext,
+} from '../hooks/types';
 
-/** `ctx.phase` values that run through {@link LIFECYCLE_STEPS} (excludes `error`). */
-export type LifecyclePhase = Exclude<RoutePhase, 'error'>;
+export type { LifecyclePhase, LifecycleBranch, LifecycleHookHandling };
 
-export type LifecycleBranch = keyof Pick<TransitionMap, 'exitRoutes' | 'enterRoutes'>;
-
-/** How hook results affect navigation (blocking vs post-commit). */
-export type LifecycleHookHandling =
-  | { kind: 'blocking' }
-  | { kind: 'postCommit'; hookErrors: 'propagate' | 'log' };
-
-/**
- * Declarative lifecycle step: branch, `ctx.phase`, lifecycle callback, and hook policy.
- * Add a row here when introducing a new route lifecycle phase.
- */
 export interface LifecycleStepDef {
   lifecyclePhase: LifecyclePhase;
   branch: LifecycleBranch;
   hooks: LifecycleHookHandling;
-  /** When true, lifecycle/hook throws become `{ status: 'error' }`. */
   failOnLifecycleError: boolean;
   onRoute: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
 }
 
-const blocking = { kind: 'blocking' } as const;
-const postCommitStrict = { kind: 'postCommit', hookErrors: 'propagate' } as const;
-const postCommitSafe = { kind: 'postCommit', hookErrors: 'log' } as const;
+const blocking = { kind: 'blocking' } as const satisfies LifecycleHookHandling;
+const postCommit = (hookErrors: 'propagate' | 'log') =>
+  ({ kind: 'postCommit', hookErrors }) as const satisfies LifecycleHookHandling;
 
-/** Registry of standard route lifecycle steps used by {@link ProcessorPipeline}. */
+/** Pipeline lifecycle steps — source of truth for branch, hook timing, and error policy. */
 export const LIFECYCLE_STEPS = {
   leave: {
     lifecyclePhase: 'leave',
@@ -54,36 +46,50 @@ export const LIFECYCLE_STEPS = {
   reenter: {
     lifecyclePhase: 'reenter',
     branch: 'enterRoutes',
-    hooks: postCommitStrict,
+    hooks: postCommit('propagate'),
     failOnLifecycleError: true,
     onRoute: (route, ctx) => route.onReenter(ctx),
   },
   transitionOut: {
     lifecyclePhase: 'transitionOut',
     branch: 'exitRoutes',
-    hooks: postCommitStrict,
+    hooks: postCommit('propagate'),
     failOnLifecycleError: true,
     onRoute: (route, ctx) => route.onTransitionOut(ctx),
   },
   transitionIn: {
     lifecyclePhase: 'transitionIn',
     branch: 'enterRoutes',
-    hooks: postCommitStrict,
+    hooks: postCommit('propagate'),
     failOnLifecycleError: true,
     onRoute: (route, ctx) => route.onTransitionIn(ctx),
   },
   left: {
     lifecyclePhase: 'left',
     branch: 'exitRoutes',
-    hooks: postCommitSafe,
+    hooks: postCommit('log'),
     failOnLifecycleError: false,
     onRoute: (route, ctx) => route.onLeft(ctx),
   },
   after: {
     lifecyclePhase: 'after',
     branch: 'enterRoutes',
-    hooks: postCommitSafe,
+    hooks: postCommit('log'),
     failOnLifecycleError: false,
     onRoute: (route, ctx) => route.onAfter(ctx),
   },
-} as const satisfies Record<string, LifecycleStepDef>;
+} as const satisfies Record<LifecyclePhase, LifecycleStepDef>;
+
+/** Pipeline policy without {@link LifecycleStepDef.onRoute}. */
+export function lifecycleStepPolicy(
+  step: LifecycleStepDef,
+): Omit<LifecycleStepDef, 'onRoute'> {
+  return {
+    lifecyclePhase: step.lifecyclePhase,
+    branch: step.branch,
+    hooks: step.hooks,
+    failOnLifecycleError: step.failOnLifecycleError,
+  };
+}
+
+export { blocking, postCommit };

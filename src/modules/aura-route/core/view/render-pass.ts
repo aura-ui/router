@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo } from '../../../aura-route-hooks/core';
+import type { MatchedRouteInfo } from '../../../aura-routing-engine/core';
 import type { AuraRouteInterface } from '../types';
 import type { ViewKind } from './ports';
 import { cacheKey } from './view-cache';

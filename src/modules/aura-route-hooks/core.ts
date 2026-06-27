@@ -1,7 +1,8 @@
+/**
+ * @deprecated Import from `aura-routing-engine/core` instead.
+ */
 export type {
   RoutePhase,
-  MatchedRouteInfo,
-  HistoryAction,
   RouteInfo,
   RouterInstance,
   RouteLifecycleContext,
@@ -11,8 +12,14 @@ export type {
   RouteHookDefinition,
   PhaseHooksMap,
   RouteTransition,
-} from './core/types';
-export { defineRouteHook, NO_TRANSITION } from './core/types';
-export { RouteHookRegistry } from './core/route-hook-registry';
-export { parsePhaseHooks, routeHookNames } from './core/phase-hooks';
-export { ROUTER_VERSION, satisfies } from './core/version';
+  HookResult,
+  HookResultInput,
+} from '../aura-routing-engine/core/hooks/types';
+
+export type { MatchedRouteInfo, HistoryAction } from '../aura-routing-engine/core';
+
+export { defineRouteHook } from '../aura-routing-engine/core/hooks/define-hook';
+export { NO_TRANSITION } from '../aura-routing-engine/core/transition/route-transition';
+export { RouteHookRegistry, defaultHookRegistry } from '../aura-routing-engine/core/hooks/registry';
+export { parsePhaseHooks, routeHookNames } from '../aura-routing-engine/core/hooks/phases';
+export { ROUTER_VERSION, satisfies } from '../aura-routing-engine/core/hooks/version';

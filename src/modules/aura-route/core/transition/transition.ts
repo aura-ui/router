@@ -1,4 +1,4 @@
-import { NO_TRANSITION, type RouteTransition } from '../../../aura-route-hooks/core/types';
+import { NO_TRANSITION, type RouteTransition } from '../../../aura-routing-engine/core/transition/route-transition';
 import { parseCommaSeparated } from '../../../aura-utils/misc';
 import {
   DEFAULT_TRANSITION_POLICY,

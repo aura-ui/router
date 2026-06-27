@@ -54,10 +54,8 @@ export interface RouteInstance {
   after: string[] | null;
   leave: string[] | null;
   transitionOut: string[] | null;
-  left: string[] | null;
-  reenter: string[] | null;
   error: string[] | null;
-  /** Escape hatch: `hooks="phase::hook-name, ..."`. */
+  /** `hooks="phase::hook-name"` — left, reenter, transitions, etc. */
   hooks?: PhaseHooksMap | null;
   onEnter(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;

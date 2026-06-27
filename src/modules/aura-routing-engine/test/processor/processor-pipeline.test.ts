@@ -298,7 +298,7 @@ describe('ProcessorPipeline.runAfterRender', () => {
     });
 
     const pipelineContext = createPipelineContext({
-      exitRoutes: [createMatchedRoute('/from', { left: ['cleanup'] })],
+      exitRoutes: [createMatchedRoute('/from', { hooks: { left: ['cleanup'] } })],
       enterRoutes: [createMatchedRoute('/to', { after: ['analytics'] })],
     });
 
@@ -323,7 +323,7 @@ describe('ProcessorPipeline.runReenter', () => {
     });
 
     const pipelineContext = createPipelineContext({
-      enterRoutes: [createMatchedRoute('/to', { reenter: ['sync'], after: ['analytics'] })],
+      enterRoutes: [createMatchedRoute('/to', { hooks: { reenter: ['sync'] }, after: ['analytics'] })],
     });
     pipelineContext.transaction.plan.reenter = true;
 

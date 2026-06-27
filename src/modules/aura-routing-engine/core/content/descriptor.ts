@@ -1,10 +1,11 @@
 import type { ContentDescriptor, LoaderType } from './types';
+import type { PreserveFlags } from './preserve';
 
 export type RouteContentAttrs = {
   layout: string;
   /** Unified content descriptor: `loader::ref`. */
   view: string;
-  cache: boolean;
+  preserve: PreserveFlags;
 };
 
 export type ParsedViewDescriptor = {
@@ -47,6 +48,6 @@ export function buildContentDescriptor(route: RouteContentAttrs): ContentDescrip
     kind: 'content',
     loader: parsed?.loader ?? '',
     ref: parsed?.ref ?? '',
-    cache: Boolean(route.cache),
+    cache: route.preserve.data,
   };
 }

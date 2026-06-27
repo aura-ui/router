@@ -27,12 +27,12 @@ export class RouteContentLoader implements RouteContentPort {
   }
 
   readCache(_routeInfo: MatchedRouteInfo): Node | string | null {
-    if (!this.route.cache) return null;
+    if (!this.route.preserve.data) return null;
     return null;
   }
 
   writeCache(_routeInfo: MatchedRouteInfo, _payload: Node | string): void {
-    if (!this.route.cache) return;
+    if (!this.route.preserve.data) return;
   }
 
   async resolve(

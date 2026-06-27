@@ -1,5 +1,6 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
+import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
 import { parsePhaseHooks } from '../../aura-route-hooks/core/phase-hooks';
 import type { PhaseHooksMap } from '../../aura-route-hooks/core';
 import { AuraRouter } from '../../aura-router/core/aura-router';
@@ -20,9 +21,8 @@ export interface AuraRouteInterface {
   content: string;
   loadingTemplate: string;
   errorTemplate: string;
-  keepAlive: boolean;
+  preserve: PreserveFlags;
   restoreScroll: boolean;
-  cache: boolean;
   /** Inherited from `<aura-router data-transition>`; empty → instant `replace` mount. */
   transition: string;
 }
@@ -50,10 +50,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   /** Inherited from `<aura-router data-transition>`; empty → instant `replace` mount. */
   @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) transition: string;
 
-  @boolAttr({ readonly: true }) keepAlive: boolean;
   @boolAttr({ readonly: true }) restoreScroll: boolean;
-
-  @boolAttr() cache: boolean; //todo add times in seconds how many to store?
+  @attr({ readonly: true, parser: parsePreserveAttr }) preserve: PreserveFlags;
 
   private view!: AuraRouteViewController;
   private viewLifecycleToken = 0;

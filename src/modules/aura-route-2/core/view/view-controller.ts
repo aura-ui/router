@@ -61,15 +61,15 @@ export class RouteViewController {
     this.mount = commitStaged(this.mount);
   }
 
-  /** Detaches or destroys the active view; caches DOM when `keepAlive` is set. */
+  /** Detaches or destroys the active view; caches DOM when view preservation is on. */
   onLeft(): void {
     this.renderSignal.cancel();
 
-    const { keepAlive } = this.config.route;
-    const { snapshot, detachedRoot } = unmountOnLeave(this.mount, keepAlive);
-    this.mount = finalizeLeave(snapshot, keepAlive, detachedRoot);
+    const preserveView = this.config.route.preserve.view;
+    const { snapshot, detachedRoot } = unmountOnLeave(this.mount, preserveView);
+    this.mount = finalizeLeave(snapshot, preserveView, detachedRoot);
 
-    if (keepAlive && detachedRoot) {
+    if (preserveView && detachedRoot) {
       this.config.cache.put(this.lastCacheKey ?? this.config.route.path, detachedRoot);
     }
   }
@@ -111,7 +111,7 @@ export class RouteViewController {
   }
 
   private tryCacheRestore(pass: RenderPass): boolean {
-    if (!this.config.route.keepAlive) return false;
+    if (!this.config.route.preserve.view) return false;
 
     const cachedRoot = this.config.cache.extract(pass.cacheKey);
     if (!cachedRoot) return false;
@@ -120,7 +120,7 @@ export class RouteViewController {
   }
 
   private shouldSkipKeepAlive(pass: RenderPass): boolean {
-    return this.config.route.keepAlive
+    return this.config.route.preserve.view
       && hasActiveMount(toMountSlice(this.mount), pass.viewKind === 'layout');
   }
 

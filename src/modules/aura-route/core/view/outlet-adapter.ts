@@ -78,13 +78,13 @@ export function reattachRoute(
   return applyInOutlet(resolveTargetOutlet(mountContext), mountContext, cachedRoot, 'replace');
 }
 
-/** keepAlive: detach view; otherwise destroy. */
+/** preserve view: detach; otherwise destroy. */
 export function unmountRoute(
   handle: ViewHandle | null | undefined,
-  keepAlive: boolean,
+  preserveView: boolean,
 ): ViewRoot | null {
   if (!handle) return null;
-  if (keepAlive) return handle.detach();
+  if (preserveView) return handle.detach();
   handle.destroy();
   return null;
 }
@@ -173,13 +173,13 @@ export type RouteLeaveUnmountResult = {
 /** Unmount the leaving route view; cancels staged incoming DOM first when needed. */
 export function unmountOnLeave(
   snapshot: RouteMountSnapshot,
-  keepAlive: boolean,
+  preserveView: boolean,
 ): RouteLeaveUnmountResult {
   if (snapshot.strategy === 'stage') {
     const afterStageCancel = cancelStagedIncoming(snapshot);
 
     return {
-      detachedRoot: unmountRoute(afterStageCancel.stageOutgoingHandle, keepAlive),
+      detachedRoot: unmountRoute(afterStageCancel.stageOutgoingHandle, preserveView),
       snapshot: {
         ...afterStageCancel,
         activeHandle: null,
@@ -189,7 +189,7 @@ export function unmountOnLeave(
   }
 
   return {
-    detachedRoot: unmountRoute(snapshot.activeHandle, keepAlive),
+    detachedRoot: unmountRoute(snapshot.activeHandle, preserveView),
     snapshot: {
       ...snapshot,
       activeHandle: null,
@@ -197,13 +197,12 @@ export function unmountOnLeave(
   };
 }
 
-/** Clear nested outlet unless the detached view is stashed for keep-alive. */
 export function finalizeLeaveMount(
   snapshot: RouteMountSnapshot,
-  keepAlive: boolean,
+  preserveView: boolean,
   detachedRoot: ViewRoot | null,
 ): RouteMountSnapshot {
-  return keepAlive && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
+  return preserveView && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
 }
 
 function applyInOutlet(

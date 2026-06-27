@@ -18,10 +18,15 @@ type AttrConfig<T = string> = {
   parser?: AttrParser<T>;
   /** Specifies if attribute should be cached */
   cached?: boolean;
+  /**
+   * With `inherit`: `hasAttribute` on this element wins over ancestor lookup,
+   * including empty string (`attr=""`). Use for explicit opt-out (e.g. `transition=""`).
+   */
+  emptyAllowed?: boolean;
 };
 
 /** Gets attribute value from the closest element */
-const getClosestAttr = <T = string>($el: HTMLElement, attrName: string): T | null => {
+const getInheritedAttr = <T = string>($el: HTMLElement, attrName: string): T | null => {
   const $closest = $el.closest(`[${attrName}]`);
   return $closest ? $closest.getAttribute(attrName) as T | null : null;
 };
@@ -39,7 +44,14 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
     function get(this: HTMLElement): T | null {
       if (config.cached && cachedValue) return cachedValue;
 
-      const value = config.inherit ? this.getAttribute(attrName) || getClosestAttr(this, inheritAttrName) : this.getAttribute(attrName);
+      let value: string | null;
+      if (!config.inherit) {
+        value = this.getAttribute(attrName);
+      } else if (config.emptyAllowed && this.hasAttribute(attrName)) {
+        value = this.getAttribute(attrName);
+      } else {
+        value = this.getAttribute(attrName) || getInheritedAttr(this, inheritAttrName);
+      }
 
       let result = (value === null && 'defaultValue' in config)
         ? config.defaultValue

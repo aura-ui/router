@@ -31,6 +31,7 @@ import {
 } from './aura-router-navigation-error.types';
 import { dispatchCustomEvent } from '../../aura-utils/misc';
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
+import { registerAuraRouterComponents } from './aura-router-setup';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -73,6 +74,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private readonly contentCache = new ContentCache(AuraRouter.contentCacheOptions);
   private readonly loaderRegistry = defaultLoaderRegistry;
   private contentLoadService?: ContentLoadService;
+
+  static define(): void {
+    registerAuraRouterComponents();
+  }
 
   static use(
     hook: RouteHookDefinition,
@@ -127,8 +132,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   connectedCallback(): void {
     const engine = this.ensureEngine();
     if (engine.isRunning) engine.stop();
-    this.refreshRoutes();
-    engine.start();
+    void customElements.whenDefined(AuraRoute.is).then(() => {
+      if (!this.isConnected) return;
+      this.refreshRoutes();
+      this.ensureEngine().start();
+    });
   }
 
   disconnectedCallback(): void {

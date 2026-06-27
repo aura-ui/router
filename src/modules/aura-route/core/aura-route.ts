@@ -58,6 +58,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   private viewController!: RouteViewController;
   private passId = 0;
+  private setupDone!: Promise<void>;
+  private initGeneration = 0;
 
   get nestedOutlet(): AuraOutlet | null {
     return this.viewController?.nestedOutlet ?? null;
@@ -82,8 +84,19 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.transition.out;
   }
 
-  async connectedCallback(): Promise<void> {
-    const router = this.parentElement?.closest(AuraRouter.is) as AuraRouter | null;
+  connectedCallback() {
+    this.initGeneration++;
+    const generation = this.initGeneration;
+    this.setupDone = this.init(generation);
+  }
+
+  private async init(generation: number): Promise<void> {
+    await customElements.whenDefined(AuraRouter.is);
+    if (generation !== this.initGeneration || !this.isConnected) {
+      throw new DOMException('AuraRoute init aborted', 'AbortError');
+    }
+
+    const router = this.closest(AuraRouter.is) as AuraRouter | null;
     if (!router) {
       throw new DOMException('aura-route should be inside aura-router', 'NotFoundError');
     }
@@ -116,20 +129,23 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   disconnectedCallback(): void {
     this.passId++;
+    this.initGeneration++;
     this.viewController?.cancel();
   }
 
   render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
-    this.passId++;
-    return this.viewController.render(routeInfo, options);
+    return this.setupDone.then(() => {
+      this.passId++;
+      return this.viewController.render(routeInfo, options);
+    });
   }
 
   cancelPendingRender(): void {
-    this.viewController.cancelPendingRender();
+    this.viewController?.cancelPendingRender();
   }
 
   commitStagedView(): void {
-    this.viewController.commitStagedView();
+    this.viewController?.commitStagedView();
   }
 
   onEnter(_ctx: RouteLifecycleContext): void {}
@@ -140,7 +156,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   onTransitionIn(_ctx: RouteLifecycleContext): void {}
   onLeft(_ctx: RouteLifecycleContext): void {
     this.passId++;
-    this.viewController.onLeft();
+    this.viewController?.onLeft();
   }
   onReenter(_ctx: RouteLifecycleContext): void {
     this.passId++;

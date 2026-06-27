@@ -1,10 +1,8 @@
 import { AuraRouter } from '../../modules/aura-router/core';
-import { AuraRouterOutlet } from '../../modules/aura-router-outlet/core';
-import { AuraRoute, defaultLoaderRegistry } from '../../modules/aura-route/core';
+import { defaultLoaderRegistry } from '../../modules/aura-route/core';
 import { authHook, type AuthHookOptions } from './hooks/auth.hook';
 import { analyticsHook } from './hooks/analytics.hook';
 import { fadeTransitionHook, slideTransitionHook } from './hooks/view-transition.hook';
-import { AuraOutlet } from '../../modules/aura-outlet/core/aura-outlet';
 
 defaultLoaderRegistry.register('custom-loader', async () => 'custom loader content');
 
@@ -13,10 +11,7 @@ AuraRouter.use(analyticsHook);
 AuraRouter.use(fadeTransitionHook);
 AuraRouter.use(slideTransitionHook);
 
-customElements.define(AuraOutlet.is, AuraOutlet);
-customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);
-customElements.define(AuraRouter.is, AuraRouter);
-customElements.define(AuraRoute.is, AuraRoute);
+AuraRouter.define();
 
 const router = document.querySelector<AuraRouter>(AuraRouter.is);
 

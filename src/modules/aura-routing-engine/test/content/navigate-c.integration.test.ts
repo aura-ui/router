@@ -1,9 +1,6 @@
 /** @jest-environment jsdom */
 
 import { AuraRouter } from '../../../aura-router/core/aura-router';
-import { AuraRouterOutlet } from '../../../aura-router-outlet/core';
-import { AuraRoute } from '../../../aura-route/core/aura-route';
-import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { defaultLoaderRegistry } from '../../core/content/registry';
 
 function mountIndexFragment(): AuraRouter {
@@ -21,10 +18,7 @@ function mountIndexFragment(): AuraRouter {
 
   defaultLoaderRegistry.register('custom-loader', async () => 'custom');
 
-  customElements.define(AuraOutlet.is, AuraOutlet);
-  customElements.define(AuraRouterOutlet.is, AuraRouterOutlet);
-  customElements.define(AuraRouter.is, AuraRouter);
-  customElements.define(AuraRoute.is, AuraRoute);
+  AuraRouter.define();
 
   return document.querySelector(AuraRouter.is) as AuraRouter;
 }
@@ -36,6 +30,7 @@ describe('navigate /c integration', () => {
 
   it('renders template app in outlet after navigate', async () => {
     const router = mountIndexFragment();
+    await Promise.resolve();
     router.navigate('/c', { replace: true, syncHistory: false });
 
     await new Promise((r) => setTimeout(r, 100));

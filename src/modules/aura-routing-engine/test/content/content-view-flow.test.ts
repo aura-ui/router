@@ -24,7 +24,7 @@ describe('content load flow (view → descriptor → engine)', () => {
   it('contentDescriptorFromRoute reads view from upgraded aura-route', () => {
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
-    route.setAttribute('cache', '');
+    route.setAttribute('preserve', 'data');
 
     expect(contentDescriptorFromRoute(route)).toEqual({
       kind: 'content',
@@ -86,10 +86,10 @@ describe('content load flow (view → descriptor → engine)', () => {
     });
   });
 
-  it('prefetch and navigation share contentCacheKey when cache is enabled', () => {
+  it('prefetch and navigation share contentCacheKey when preserve data is enabled', () => {
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
-    route.setAttribute('cache', '');
+    route.setAttribute('preserve', 'data');
 
     const descriptor = contentDescriptorFromRoute(route);
 

@@ -1,5 +1,6 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
+import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
 import { parsePhaseHooks } from '../../aura-route-hooks/core/phase-hooks';
 import type { PhaseHooksMap } from '../../aura-route-hooks/core';
 import { AuraRouter } from '../../aura-router/core/aura-router';
@@ -39,9 +40,8 @@ export class AuraRoute2 extends HTMLElement implements AuraRouteInterface, Route
   @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true, dataAttr: true }) crossfade: string;
 
-  @boolAttr({ readonly: true }) keepAlive: boolean;
   @boolAttr({ readonly: true }) restoreScroll: boolean;
-  @boolAttr() cache: boolean;
+  @attr({ readonly: true, parser: parsePreserveAttr }) preserve: PreserveFlags;
 
   private viewController!: RouteViewController;
   private passId = 0;

@@ -2,6 +2,7 @@ import {
   buildContentDescriptor,
   parseViewDescriptor,
 } from '../../core/content/descriptor';
+import { NO_PRESERVE } from '../../../aura-routing-engine/core/content/preserve';
 
 describe('parseViewDescriptor', () => {
   it('splits loader and ref on the first ::', () => {
@@ -39,7 +40,7 @@ describe('buildContentDescriptor', () => {
   const base = {
     layout: '',
     view: '',
-    cache: false,
+    preserve: NO_PRESERVE,
   };
 
   it('maps layout to template descriptor', () => {
@@ -62,7 +63,11 @@ describe('buildContentDescriptor', () => {
     });
 
     expect(
-      buildContentDescriptor({ ...base, view: 'component::profile-page', cache: true }),
+      buildContentDescriptor({
+        ...base,
+        view: 'component::profile-page',
+        preserve: { view: false, data: true },
+      }),
     ).toEqual({
       kind: 'content',
       loader: 'component',

@@ -109,10 +109,10 @@ export function reattachContent(ctx: MountContext, cachedRoot: ViewRoot): MountS
 
 export function unmountHandle(
   handle: ViewHandle | null | undefined,
-  keepAlive: boolean,
+  preserveView: boolean,
 ): ViewRoot | null {
   if (!handle) return null;
-  if (keepAlive) return handle.detach();
+  if (preserveView) return handle.detach();
   handle.destroy();
   return null;
 }
@@ -156,12 +156,12 @@ export function rollbackStaged(snapshot: MountSnapshot): MountSnapshot {
 
 export function unmountOnLeave(
   snapshot: MountSnapshot,
-  keepAlive: boolean,
+  preserveView: boolean,
 ): { snapshot: MountSnapshot; detachedRoot: ViewRoot | null } {
   if (snapshot.strategy === 'stage') {
     const afterCancel = cancelStagedIncoming(snapshot);
     return {
-      detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, keepAlive),
+      detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, preserveView),
       snapshot: {
         ...afterCancel,
         activeHandle: null,
@@ -171,7 +171,7 @@ export function unmountOnLeave(
   }
 
   return {
-    detachedRoot: unmountHandle(snapshot.activeHandle, keepAlive),
+    detachedRoot: unmountHandle(snapshot.activeHandle, preserveView),
     snapshot: {
       ...snapshot,
       activeHandle: null,
@@ -181,10 +181,10 @@ export function unmountOnLeave(
 
 export function finalizeLeave(
   snapshot: MountSnapshot,
-  keepAlive: boolean,
+  preserveView: boolean,
   detachedRoot: ViewRoot | null,
 ): MountSnapshot {
-  return keepAlive && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
+  return preserveView && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
 }
 
 function resolveOutlet(ctx: MountContext): AuraOutlet {

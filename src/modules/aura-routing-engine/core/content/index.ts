@@ -5,6 +5,7 @@ export {
   type ParsedViewDescriptor,
   type RouteContentAttrs,
 } from './descriptor';
+export { NO_PRESERVE, parsePreserveAttr, type PreserveFlags } from './preserve';
 export { contentCacheKey } from './content-key';
 export { ContentCache } from './content-cache';
 export { ContentResolver, type ContentResolverDeps } from './content-resolver';

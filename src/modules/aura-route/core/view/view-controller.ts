@@ -112,15 +112,15 @@ export class AuraRouteViewController {
     this.mount = commitStagedMount(this.mount);
   }
 
-  /** Detaches or destroys the active view; stashes DOM when `keepAlive` is set. */
+  /** Detaches or destroys the active view; stashes DOM when view preservation is on. */
   onLeft(): void {
     this.renderSignal.cancel();
 
-    const { keepAlive } = this.route;
-    const { snapshot, detachedRoot } = unmountOnLeave(this.mount, keepAlive);
-    this.mount = finalizeLeaveMount(snapshot, keepAlive, detachedRoot);
+    const preserveView = this.route.preserve.view;
+    const { snapshot, detachedRoot } = unmountOnLeave(this.mount, preserveView);
+    this.mount = finalizeLeaveMount(snapshot, preserveView, detachedRoot);
 
-    if (keepAlive && detachedRoot) {
+    if (preserveView && detachedRoot) {
       this.viewCache.put(this.lastCacheKey ?? this.route.path, detachedRoot);
     }
   }
@@ -147,7 +147,7 @@ export class AuraRouteViewController {
 
   /** Reattaches a stashed view; returns whether cache restore handled the render. */
   private tryRestoreFromCache(lifecycleToken: LifecycleToken, routeInfo: MatchedRouteInfo): boolean {
-    if (!this.route.keepAlive) return false;
+    if (!this.route.preserve.view) return false;
 
     const cachedRoot = this.viewCache.extract(viewCacheKey(routeInfo, this.route.path));
     if (!cachedRoot) return false;
@@ -159,7 +159,7 @@ export class AuraRouteViewController {
   /** Skips reload when keep-alive is on and the current mount is still valid. */
   private shouldSkipKeepAliveRender(): boolean {
     const viewKind = resolveViewKind(this.route);
-    return this.route.keepAlive
+    return this.route.preserve.view
       && hasActiveMount(toViewMountState(this.mount), viewKind === 'layout');
   }
 

@@ -86,7 +86,7 @@ Catch-all маршрут матчит любой pathname, но **проигры
 | 1 | Handler экземпляра | `router.setNotFoundHandler(fn)` |
 | 2 | Глобальный handler | `AuraRouter.configure({ notFoundHandler })` |
 | 3 | Шаблон | атрибут `not-found-template` на `<aura-router>` |
-| 4 | Дефолт | текст `Page not found: {url}` во внутреннем `<aura-router-outlet>` |
+| 4 | Дефолт | текст `Page not found: {url}` в root `<aura-outlet>` |
 
 Перед показом UI диспатчится cancelable-событие `not-found` с `source: 'fallback'`. Если вызвать `event.preventDefault()`, встроенный fallback не отрисуется.
 
@@ -94,6 +94,7 @@ Catch-all маршрут матчит любой pathname, но **проигры
 
 ```html
 <aura-router not-found-template="404-template">
+  <aura-outlet></aura-outlet>
   <aura-route path="/" source="html" data-content="<h1>Home</h1>"></aura-route>
   <!-- path="*" нет — неизвестные пути пойдут в fallback -->
 </aura-router>

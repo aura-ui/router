@@ -8,7 +8,7 @@
  * - `aura-routing-route-registry.ts` — route catalog snapshot
  * - `failure/` — navigation errors and terminal failure outcomes
  * - `navigation/` — {@link TransactionResult} contract and terminal outcome finalization
- * - `view-mount/` — view mount snapshot types
+ * - `view-mount/` — view mount state, tracker, and render commit
  * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
  * - `transition/plan.ts` — `TransitionMap`
  */
@@ -23,7 +23,7 @@ export type {
 export { AuraRoutingEngine } from './core/aura-routing-engine';
 
 export { AuraRoutingProcessor } from './core/processor/processor';
-export type { ProcessorRunInput } from './core/processor/processor-pipeline';
+export type { ProcessorRunInput } from './core/processor/types';
 
 export type {
   NavigationErrorPhase,

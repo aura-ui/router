@@ -2,14 +2,15 @@ import type { RouteInstance } from '../../core/hooks/types';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { runPhaseHooks } from '../../core/hooks/registry';
 import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
-import { CommitTracker } from '../../core/processor/view-mount/view-mount-tracker';
+import { CommitTracker } from '../../core/view-mount/view-mount-tracker';
 import {
   ProcessorPipeline,
   type PipelineContext,
   type PipelineOutcome,
 } from '../../core/processor/processor-pipeline';
+import { runBlockingPhaseHooks } from '../../core/hooks/pipeline-hooks';
 import { toLifecycleContext } from '../../core/lifecycle/context';
-import { runViewCommit } from '../../core/processor/view-mount/view-render';
+import { runViewCommit } from '../../core/view-mount/view-render';
 import { createTestRoute } from '../helpers/create-test-route';
 
 jest.mock('../../core/hooks/registry', () => ({
@@ -17,22 +18,24 @@ jest.mock('../../core/hooks/registry', () => ({
   runPhaseHooks: jest.fn(),
 }));
 
-jest.mock('../../core/processor/view-mount/view-render', () => ({
-  ...jest.requireActual('../../core/processor/view-mount/view-render'),
+jest.mock('../../core/view-mount/view-render', () => ({
+  ...jest.requireActual('../../core/view-mount/view-render'),
   runViewCommit: jest.fn(),
 }));
 
 const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
 const mockRunViewCommit = runViewCommit as jest.MockedFunction<typeof runViewCommit>;
 
-type PipelineInternals = ProcessorPipeline & {
-  runBlockingHooks(
-    lifecycleContext: ReturnType<typeof toLifecycleContext>,
-    pipelineContext: PipelineContext,
-    hookNames: readonly string[],
-  ): Promise<PipelineOutcome>;
-  runParallelRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome>;
-};
+function runBlockingHooks(
+  lifecycleContext: ReturnType<typeof toLifecycleContext>,
+  pipelineContext: PipelineContext,
+  hookNames: readonly string[],
+) {
+  return runBlockingPhaseHooks(lifecycleContext, {
+    hookRegistry: pipelineContext.hookRegistry,
+    isJobActive: pipelineContext.isJobActive,
+  }, hookNames);
+}
 
 function createMatchedRoute(path: string, overrides: Partial<RouteInstance> = {}): MatchedRouteInfo {
   return {
@@ -84,9 +87,7 @@ function lifecycleInput(pipelineContext: PipelineContext) {
   };
 }
 
-describe('ProcessorPipeline.runBlockingHooks', () => {
-  const pipeline = new ProcessorPipeline() as PipelineInternals;
-
+describe('runBlockingPhaseHooks', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -100,7 +101,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
     const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
-    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
+    const outcome = await runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
     expect(outcome).toEqual({ status: 'cancelled' });
   });
@@ -114,7 +115,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
     const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
-    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
+    const outcome = await runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
     expect(outcome).toEqual({ status: 'redirect', url: '/login' });
   });
@@ -128,7 +129,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
     const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
-    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
+    const outcome = await runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
     expect(outcome).toEqual({ status: 'redirect', url: '/login', replace: true });
   });
@@ -142,14 +143,14 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
     const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
-    const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
+    const outcome = await runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
     expect(outcome).toBeNull();
   });
 });
 
-describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
-  const pipeline = new ProcessorPipeline() as PipelineInternals;
+describe('ProcessorPipeline.runRenderWithTransition (parallel)', () => {
+  const pipeline = new ProcessorPipeline();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -165,7 +166,7 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    const outcome = await pipeline.runParallelRenderWithTransition(pipelineContext);
+    const outcome = await pipeline.runRenderWithTransition(pipelineContext);
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(mockRunPhaseHooks).not.toHaveBeenCalled();
@@ -187,7 +188,7 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    await pipeline.runParallelRenderWithTransition(pipelineContext);
+    await pipeline.runRenderWithTransition(pipelineContext);
 
     expect(callOrder[0]).toBe('render');
     expect(callOrder).toContain('transitionOut');
@@ -200,7 +201,7 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    const outcome = await pipeline.runParallelRenderWithTransition(pipelineContext);
+    const outcome = await pipeline.runRenderWithTransition(pipelineContext);
 
     expect(outcome).toBeNull();
   });
@@ -219,7 +220,7 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    const outcome = await pipeline.runParallelRenderWithTransition(pipelineContext);
+    const outcome = await pipeline.runRenderWithTransition(pipelineContext);
 
     expect(outcome).toEqual({
       status: 'error',
@@ -255,7 +256,7 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
       ],
     });
 
-    const outcome = await pipeline.runParallelRenderWithTransition(pipelineContext);
+    const outcome = await pipeline.runRenderWithTransition(pipelineContext);
 
     expect(outcome).toEqual({
       status: 'error',

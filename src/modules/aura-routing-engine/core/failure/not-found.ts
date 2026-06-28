@@ -1,5 +1,5 @@
 import type { HistoryAction } from '../history/provider.types';
-import type { RouterInstance } from '../hooks/types';
+import type { RouterInstance } from '../route/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getLeafMatch } from '../route-tree/matched-chain';
 

@@ -13,7 +13,7 @@ import type {
   RouteHookAttrProp,
   RoutePhase,
 } from './types';
-import type { RouteInstance, RouteLifecycleContext } from '../hooks/types';
+import type { RouteInstance, RouteLifecycleContext } from '../route/types';
 
 export type { PhaseThrowPolicy } from './types';
 

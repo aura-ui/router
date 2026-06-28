@@ -8,7 +8,7 @@
 
 import { PHASES } from './phase-registry';
 import type { PhaseHooksMap, RoutePhase } from './types';
-import type { RouteHookNamesSource } from '../hooks/types';
+import type { RouteHookNamesSource } from '../route/types';
 
 /**
  * Maps phase names in `hooks="phase::name"` to {@link RoutePhase}.

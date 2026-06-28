@@ -1,0 +1,17 @@
+import type { FailedNavigation } from '../failure/navigation-failure';
+
+/** Terminal pipeline outcome: navigation failed with a structured failure object. */
+export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation };
+
+/**
+ * Terminal processor outcome returned to {@link AuraRoutingEngine}.
+ *
+ * `status: 'viewCommitted'` — full pipeline succeeded (not the same as
+ * {@link CommitSnapshot.view} `committed` or {@link FailedNavigation.viewCommitted}).
+ * History URL commit is done by the engine after success.
+ */
+export type TransactionResult =
+  | { status: 'viewCommitted' }
+  | { status: 'cancelled' }
+  | { status: 'redirect'; url: string; replace?: boolean }
+  | NavigationErrorResult;

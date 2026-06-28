@@ -13,6 +13,7 @@ import type { NavigationErrorPhase, ReportNavigationHookError } from '../failure
 import { CommitTracker } from './view-mount/view-mount-tracker';
 import { FailedNavigation } from '../failure/navigation-failure';
 import { normalizeFailure } from '../failure/navigation-error';
+import type { TransactionResult } from '../navigation/transaction-result';
 import { LIFECYCLE_STEPS, type LifecycleStepDef } from './lifecycle/lifecycle-steps';
 import { guardResultToPhaseOutcome, runPhaseStep, type PhaseStepOutcome } from './lifecycle/lifecycle-runner';
 
@@ -32,7 +33,8 @@ export interface NavigationTransaction extends ProcessorRunInput {
   transitionOrder: TransitionPolicy | null;
 }
 
-export type { CommitSnapshot } from './view-mount/view-mount-state';
+export type { CommitSnapshot } from '../view-mount/view-mount-state';
+export type { TransactionResult } from '../navigation/transaction-result';
 
 /** Shared ctx for all {@link ProcessorPipeline} steps. */
 export interface PipelineContext {
@@ -53,11 +55,6 @@ export interface PipelineContext {
  * {@link CommitSnapshot.view} `committed` or {@link FailedNavigation.viewCommitted}).
  * History URL commit is done by {@link AuraRoutingEngine} after success.
  */
-export type TransactionResult =
-  | { status: 'viewCommitted' }
-  | { status: 'cancelled' }
-  | { status: 'redirect'; url: string; replace?: boolean }
-  | { status: 'error'; failure: FailedNavigation };
 
 /** Pipeline step result: terminal {@link TransactionResult}, or `null` to continue. */
 type PipelineOutcome = TransactionResult | null;

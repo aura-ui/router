@@ -10,7 +10,7 @@ import {
   phaseSpecPolicy,
   phaseSpecToHookHandling,
   type PhaseThrowPolicy,
-} from './lifecycle-policy';
+} from '../../hooks/lifecycle-policy';
 
 export type { LifecyclePhase, LifecycleBranch, LifecycleHookHandling, PhaseThrowPolicy };
 
@@ -57,4 +57,4 @@ export function lifecycleStepPolicy(
   };
 }
 
-export { PHASE_SPEC, phaseSpecToHookHandling } from './lifecycle-policy';
+export { PHASE_SPEC, phaseSpecToHookHandling } from '../../hooks/lifecycle-policy';

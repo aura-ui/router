@@ -5,8 +5,8 @@ import {
   ProcessorPipeline,
   type NavigationTransaction,
   type ProcessorRunInput,
-  type TransactionResult,
 } from './processor-pipeline';
+import type { TransactionResult } from '../navigation/transaction-result';
 import { CommitTracker } from './view-mount/view-mount-tracker';
 import { AuraRoutingProcessorJobManager } from './cancellation/job-manager';
 

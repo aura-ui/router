@@ -7,6 +7,8 @@
  * - `route-tree/` — nested tree, branch diff, `buildTransitionPlan` implementation
  * - `aura-routing-route-registry.ts` — route catalog snapshot
  * - `failure/` — navigation errors and terminal failure outcomes
+ * - `navigation/` — {@link TransactionResult} contract
+ * - `view-mount/` — view mount snapshot types
  * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
  * - `transition/plan.ts` — `TransitionMap`, `buildTransitionPlan` (used by processor only)
  */
@@ -30,7 +32,7 @@ export type {
 } from './core/failure/navigation-error.types';
 
 export { FailedNavigation } from './core/failure/navigation-failure';
-export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/failure/navigation-failure';
+export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/failure/finalize-failure';
 
 export type {
   NavigationFailureCode,
@@ -46,8 +48,10 @@ export {
   normalizeFailure,
 } from './core/failure/navigation-error';
 
-export type { CommitSnapshot, ViewCommitState } from './core/processor/view-mount/view-mount-state';
-export { isViewCommittedForHistory } from './core/processor/view-mount/view-mount-state';
+export type { CommitSnapshot, ViewCommitState } from './core/view-mount/view-mount-state';
+export { isViewCommittedForHistory } from './core/view-mount/view-mount-state';
+
+export type { TransactionResult, NavigationErrorResult } from './core/navigation/transaction-result';
 
 // --- History layer (default provider + DI for tests) ---
 

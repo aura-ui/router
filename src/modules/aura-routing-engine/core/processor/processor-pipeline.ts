@@ -11,7 +11,7 @@ import { CommitTracker } from '../view-mount/view-mount-tracker';
 import type { TransactionResult } from '../navigation/transaction-result';
 import { PHASES, type LifecycleStepDef } from '../lifecycle/phase-registry';
 import { toLifecycleContext, type LifecycleContextInput } from '../lifecycle/context';
-import { runPhaseStep, type PhaseStepOutcome } from '../lifecycle/phase-runner';
+import { runPhaseStep, phaseStepToPipelineOutcome, type PhaseStepOutcome } from '../lifecycle/phase-runner';
 import {
   runBlockingPhaseHooks,
   runLoggedPostCommitHooks,
@@ -221,7 +221,7 @@ export class ProcessorPipeline {
       isJobActive: pipelineContext.isJobActive,
     };
 
-    return toPipelineOutcome(
+    return phaseStepToPipelineOutcome(
       await runPhaseStep({
       lifecyclePhase: step.lifecyclePhase,
       onThrow: step.onThrow,
@@ -290,10 +290,4 @@ function firstTerminalOutcome(...outcomes: PipelineOutcome[]): PipelineOutcome {
   }
 
   return null;
-}
-
-/** Maps lifecycle step outcome to processor terminal result (drops raw {@link PhaseStepErrorOutcome}). */
-function toPipelineOutcome(outcome: PhaseStepOutcome): PipelineOutcome {
-  if (!outcome || outcome.status !== 'error') return outcome;
-  return 'failure' in outcome ? outcome : null;
 }

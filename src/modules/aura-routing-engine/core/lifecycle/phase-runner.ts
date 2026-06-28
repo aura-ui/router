@@ -1,23 +1,10 @@
 import type { GuardResult } from '../guard.types';
 import type { RouteLifecycleContext } from '../route/types';
-import type { CommitSnapshot } from '../view-mount/view-mount-state';
-import type { NavigationFailureCode } from '../failure/navigation-error';
-import type { NavigationErrorPhase } from '../failure/navigation-error';
-import type { NavigationErrorResult } from '../navigation/transaction-result';
+import type { NavigationErrorResult, TransactionResult } from '../navigation/transaction-result';
 import type { PhaseThrowPolicy } from './types';
-
-export type PhaseStepErrorOutcome = {
-  status: 'error';
-  error: unknown;
-  code: NavigationFailureCode;
-  phase: NavigationErrorPhase;
-  commit: CommitSnapshot;
-};
-
 export type PhaseStepOutcome =
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
-  | PhaseStepErrorOutcome
   | NavigationErrorResult
   | null;
 
@@ -28,7 +15,7 @@ export interface PhaseStepHandlers {
     hookErrors: 'propagate' | 'log',
     lifecyclePhase: RouteLifecycleContext['phase'],
   ) => Promise<PhaseStepOutcome>;
-  failWithError: (error: unknown) => Promise<PhaseStepErrorOutcome | NavigationErrorResult>;
+  failWithError: (error: unknown) => Promise<NavigationErrorResult>;
 }
 
 export interface PhaseStepInput {
@@ -100,4 +87,20 @@ export function guardResultToPhaseOutcome(hookResult: GuardResult): PhaseStepOut
   }
 
   return null;
+}
+
+export type PipelineStepOutcome = TransactionResult | null;
+
+/**
+ * Lifecycle step → processor terminal result.
+ * Errors must be {@link NavigationErrorResult} from `failWithError` — unstructured `{ status: 'error' }` throws.
+ */
+export function phaseStepToPipelineOutcome(outcome: PhaseStepOutcome): PipelineStepOutcome {
+  if (outcome?.status === 'error' && !('failure' in outcome)) {
+    throw new Error(
+      'Lifecycle phase error must be NavigationErrorResult — use failPipelineNavigation in failWithError',
+    );
+  }
+
+  return outcome;
 }

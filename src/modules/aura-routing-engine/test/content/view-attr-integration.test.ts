@@ -4,7 +4,7 @@ import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
-import { contentDescriptorFromRoute } from '../../core/content/descriptor';
+import { buildContentDescriptor } from '../../core/content/descriptor';
 import { defaultLoaderRegistry } from '../../core/content/registry';
 
 function defineDemoElements(): void {
@@ -40,7 +40,7 @@ describe('view attr end-to-end', () => {
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
     expect(route.view).toBe('html-src::index2.html');
-    expect(contentDescriptorFromRoute(route)).toEqual({
+    expect(buildContentDescriptor(route)).toEqual({
       kind: 'content',
       loader: 'html-src',
       ref: 'index2.html',

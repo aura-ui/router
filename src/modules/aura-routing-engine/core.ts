@@ -88,7 +88,6 @@ export type { GuardResult, RedirectTarget } from './core/guard.types';
 
 export {
   buildContentDescriptor,
-  contentDescriptorFromRoute,
   parseViewDescriptor,
 } from './core/content/descriptor';
 export { contentCacheKey } from './core/content/content-key';

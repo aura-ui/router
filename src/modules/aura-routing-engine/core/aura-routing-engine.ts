@@ -7,6 +7,7 @@ import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './match/url-matcher';
+import { resolveNavigationTarget } from './match/resolve-navigation-target';
 import { syncChainHref } from './route-tree/matched-chain';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
@@ -17,7 +18,6 @@ import type {
 import { LinkNavigationTracker } from './user-actions/link-navigation';
 import type { ContentLoadService } from './content/content-load-service';
 import { ContentPrefetchExecutor } from './prefetch/executors/content';
-import { DataPrefetchExecutor } from './prefetch/executors/data';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import type { PrefetchConfig, PrefetchOptions } from './prefetch/types';
 import type { NavigationHookErrorDetail } from './failure/navigation-failure';
@@ -197,7 +197,11 @@ export class AuraRoutingEngine {
       return;
     }
 
-    const found = this.matcher.matchPath(pathname, this.registry.getMatchableNodes());
+    const found = resolveNavigationTarget(
+      this.matcher,
+      relativeHref,
+      this.registry.getMatchableNodes(),
+    );
     if (!found) {
       runNotFoundExitCleanup(this.prev, action, this.router);
       const failure = FailedNavigation.notFound(relativeHref, this.prev, action);
@@ -215,14 +219,7 @@ export class AuraRoutingEngine {
       return;
     }
 
-    const to = this.matcher.toRouteInfo(
-      relativeHref,
-      pathname,
-      search,
-      hash,
-      found.node,
-      found.params,
-    );
+    const to = found.leaf;
 
     const from = this.prev;
 
@@ -313,7 +310,6 @@ export class AuraRoutingEngine {
     if (this.contentLoad) {
       executors.push(new ContentPrefetchExecutor(this.contentLoad));
     }
-    executors.push(new DataPrefetchExecutor());
 
     this.prefetchPipeline = new PrefetchPipeline(
       {

@@ -4,7 +4,7 @@ import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
   contentCacheKey,
-  contentDescriptorFromRoute,
+  buildContentDescriptor,
   ContentCache,
   ContentLoadService,
   ContentResolver,
@@ -21,12 +21,12 @@ describe('content load flow (view → descriptor → engine)', () => {
     document.body.replaceChildren();
   });
 
-  it('contentDescriptorFromRoute reads view from upgraded aura-route', () => {
+  it('buildContentDescriptor reads view from upgraded aura-route', () => {
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
     route.setAttribute('preserve', 'data');
 
-    expect(contentDescriptorFromRoute(route)).toEqual({
+    expect(buildContentDescriptor(route)).toEqual({
       kind: 'content',
       loader: 'html-src',
       ref: 'feed.html',
@@ -56,7 +56,7 @@ describe('content load flow (view → descriptor → engine)', () => {
     expect(loads).toEqual(['about.html']);
   });
 
-  it('navigation render uses contentDescriptorFromRoute via RouteContentLoader', async () => {
+  it('navigation render uses buildContentDescriptor via RouteContentLoader', async () => {
     const registry = new LoaderRegistry();
     const loads: string[] = [];
     registry.register('html', async (ctx) => {
@@ -78,7 +78,7 @@ describe('content load flow (view → descriptor → engine)', () => {
     );
 
     expect(loads).toEqual(['<b>page</b>']);
-    expect(contentDescriptorFromRoute(route)).toEqual({
+    expect(buildContentDescriptor(route)).toEqual({
       kind: 'content',
       loader: 'html',
       ref: '<b>page</b>',
@@ -91,7 +91,7 @@ describe('content load flow (view → descriptor → engine)', () => {
     route.setAttribute('view', 'html-src::feed.html');
     route.setAttribute('preserve', 'data');
 
-    const descriptor = contentDescriptorFromRoute(route);
+    const descriptor = buildContentDescriptor(route);
 
     const routeInfo = {
       href: '/feed',
@@ -112,13 +112,13 @@ describe('content load flow (view → descriptor → engine)', () => {
     parent.setAttribute('layout', 'users-shell');
     parent.setAttribute('view', 'html-src::ignored.html');
 
-    expect(contentDescriptorFromRoute(parent)).toEqual({
+    expect(buildContentDescriptor(parent)).toEqual({
       kind: 'layout',
       loader: 'template',
       ref: 'users-shell',
       cache: false,
     });
-    expect(contentDescriptorFromRoute(child)).toEqual({
+    expect(buildContentDescriptor(child)).toEqual({
       kind: 'content',
       loader: 'html-src',
       ref: 'user.html',

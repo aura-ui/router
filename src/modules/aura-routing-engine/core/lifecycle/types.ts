@@ -4,7 +4,7 @@
  * @module lifecycle/types
  */
 
-/** Branch in transition plan: exiting vs entering routes. @see {@link ../transition/plan!TransitionMap} */
+/** Branch in transition plan: exiting vs entering routes. @see {@link ../route-tree/transition-plan!TransitionMap} */
 export type LifecycleBranch = 'exitRoutes' | 'enterRoutes';
 
 /** Post-commit hook error policy (see {@link LifecycleHookHandling}). */

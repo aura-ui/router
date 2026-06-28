@@ -4,14 +4,13 @@
  * Intended consumers: `aura-router`, hook authors, custom `NavigationProvider` / tests.
  *
  * **Not exported** (module-internal — import only from inside `core/`):
- * - `route-tree/` — nested tree, branch diff, `buildTransitionPlan` implementation
+ * - `route-tree/` — nested tree, branch diff, `TransitionMap`, `buildTransitionPlan`
  * - `aura-routing-route-registry.ts` — route catalog snapshot
  * - `failure/` — navigation errors and terminal failure outcomes
  * - `navigation/` — {@link TransactionResult} contract and terminal outcome finalization
  * - `route/types.ts` — route instance and lifecycle callback contract
  * - `view-mount/` — tracker/render impl (types partially exported below)
  * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
- * - `transition/plan.ts` — `TransitionMap`
  */
 
 // --- Engine + processor (wired by aura-router) ---

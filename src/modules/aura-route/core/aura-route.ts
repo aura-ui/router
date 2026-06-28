@@ -1,13 +1,13 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
-import { parsePhaseHooks } from '../../aura-routing-engine/core';
+import { parsePhaseHooks } from '../../aura-routing-engine/core/lifecycle/phase-attrs';
+import type { PhaseHooksMap } from '../../aura-routing-engine/core/lifecycle/types';
 import type {
-  PhaseHooksMap,
   RouteErrorContext,
   RouteInstance,
   RouteLifecycleContext,
-} from '../../aura-routing-engine/core/hooks/types';
+} from '../../aura-routing-engine/core/route/types';
 import type { RouteTransition } from '../../aura-routing-engine/core/transition/route-transition';
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core';
 import type { ViewRenderResult } from '../../aura-routing-engine/core';

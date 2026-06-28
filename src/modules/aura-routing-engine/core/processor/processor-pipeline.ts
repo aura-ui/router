@@ -40,6 +40,8 @@ export interface PipelineContext {
   reportHookError?: ReportNavigationHookError;
   /** False when the navigation job was superseded or the router was torn down. */
   isJobActive: () => boolean;
+  /** History + engine state commit after DOM promotion (commit gate). */
+  commitGate?: () => void;
 }
 
 /** Pipeline step result: terminal {@link TransactionResult}, or `null` to continue. */
@@ -67,7 +69,13 @@ export class ProcessorPipeline {
 
     if (transaction.plan.reenter) {
       const reenterOutcome = await this.runReenter(pipelineContext);
-      return reenterOutcome ?? { status: 'viewCommitted' };
+      if (reenterOutcome) return reenterOutcome;
+      if (!pipelineContext.isJobActive()) {
+        return { status: 'cancelled' };
+      }
+      pipelineContext.commitTracker.markViewCommitted();
+      pipelineContext.commitGate?.();
+      return { status: 'viewCommitted' };
     }
 
     const outcome = await this.runUntilTerminal(this.steps, pipelineContext);
@@ -130,11 +138,20 @@ export class ProcessorPipeline {
       this.runEnterTransition(pipelineContext),
     ]);
 
-    return firstTerminalOutcome(exitTransitionOutcome, enterTransitionOutcome);
+    const terminal = firstTerminalOutcome(exitTransitionOutcome, enterTransitionOutcome);
+    if (terminal) return terminal;
+
+    return null;
   }
 
   async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+    if (!pipelineContext.isJobActive()) {
+      return { status: 'cancelled' };
+    }
+
     this.commitEnterViews(pipelineContext);
+    pipelineContext.commitGate?.();
+
     await this.runExitCleanup(pipelineContext);
     return this.runLifecycleStep(PHASES.after, pipelineContext);
   }

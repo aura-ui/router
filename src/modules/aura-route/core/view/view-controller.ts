@@ -23,6 +23,13 @@ import type { ViewRenderResult } from '../../../aura-routing-engine/core';
 
 type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 
+/** Clears transition inline styles and cancels element animations. */
+export function resetViewRootPresentation(root: HTMLElement): void {
+  root.style.removeProperty('opacity');
+  root.style.removeProperty('transform');
+  root.getAnimations?.().forEach((animation) => animation.cancel());
+}
+
 /**
  * View state and render orchestration for {@link AuraRoute}.
  * Outlet policy lives in {@link outlet}; content loading via {@link ContentResolverPort}.
@@ -79,9 +86,26 @@ export class RouteViewController {
     this.renderSignal.cancel();
   }
 
-  cancelPendingRender(): void {
+  /**
+   * Roll back staged mount and transition presentation without post-commit teardown.
+   *
+   * @see rollbackStaged — TODO(revert-in-flight-view) for replace vs stage semantics.
+   */
+  revertInFlightView(): void {
     this.mount = rollbackStaged(this.mount);
     this.renderSignal.cancel();
+    this.clearViewPresentation();
+  }
+
+  private clearViewPresentation(): void {
+    const roots = [
+      this.mount.activeHandle?.viewRoot,
+      this.mount.stageOutgoingHandle?.viewRoot,
+    ];
+
+    for (const root of roots) {
+      if (root) resetViewRootPresentation(root);
+    }
   }
 
   private beginPass(routeInfo: MatchedRouteInfo, parentSignal?: AbortSignal): RenderPass {

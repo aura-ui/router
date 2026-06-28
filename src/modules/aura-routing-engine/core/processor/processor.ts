@@ -8,6 +8,7 @@ import {
 import type { ProcessorRunInput } from './types';
 import type { TransactionResult } from '../navigation/transaction-result';
 import { CommitTracker } from '../view-mount/view-mount-tracker';
+import { withCancelledTransactionScope } from './cancellation/transaction-scope';
 import { AuraRoutingProcessorJobManager } from './cancellation/job-manager';
 
 /**
@@ -42,20 +43,36 @@ export class AuraRoutingProcessor {
 
     const job = this.jobManager.begin();
     const generation = this.jobManager.routerGeneration;
+    const commitTracker = new CommitTracker(input.to.href);
 
-    return this.pipeline.run({
-      transaction,
+    return withCancelledTransactionScope({
+      plan,
       job,
-      router: input.router,
-      hookRegistry: this.hookRegistry,
-      commitTracker: new CommitTracker(input.to.href),
-      reportHookError: input.reportHookError,
-      isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
+      commitTracker,
+      run: () =>
+        this.pipeline.run({
+          transaction,
+          job,
+          router: input.router,
+          hookRegistry: this.hookRegistry,
+          commitTracker,
+          reportHookError: input.reportHookError,
+          commitGate: input.commitGate,
+          isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
+        }),
     });
   }
 
   /** Router teardown / re-setup: abort in-flight job and bump `routerGeneration`. */
   invalidate(): void {
     this.jobManager.invalidate();
+  }
+
+  /**
+   * Aborts the in-flight navigation without starting a new transaction.
+   * Used when the user clicks the already-committed route while another href is pending.
+   */
+  abortPendingNavigation(): void {
+    this.jobManager.active?.abort();
   }
 }

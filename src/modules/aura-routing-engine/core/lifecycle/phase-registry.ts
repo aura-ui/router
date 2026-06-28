@@ -9,20 +9,13 @@ import type {
   LifecycleBranch,
   LifecycleHookHandling,
   LifecyclePhase,
+  PhaseThrowPolicy,
   RouteHookAttrProp,
-  RouteInstance,
-  RouteLifecycleContext,
   RoutePhase,
-} from '../hooks/types';
+} from './types';
+import type { RouteInstance, RouteLifecycleContext } from '../hooks/types';
 
-/**
- * Route callback / hook throw policy.
- *
- * - `failure` — terminal navigation error
- * - `log` — log and continue (post-commit cleanup)
- * - `propagate` — rethrow (programmer error surface)
- */
-export type PhaseThrowPolicy = 'failure' | 'log' | 'propagate';
+export type { PhaseThrowPolicy } from './types';
 
 export interface PhaseDef {
   lifecyclePhase: RoutePhase;

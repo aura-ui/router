@@ -3,7 +3,7 @@ import type { RouteLifecycleContext } from '../hooks/types';
 import type { CommitSnapshot } from '../view-mount/view-mount-state';
 import type { NavigationFailureCode } from '../failure/navigation-error';
 import type { NavigationErrorPhase } from '../failure/navigation-error';
-import type { PhaseThrowPolicy } from './phase-registry';
+import type { PhaseThrowPolicy } from './types';
 
 export type PhaseStepErrorOutcome = {
   status: 'error';

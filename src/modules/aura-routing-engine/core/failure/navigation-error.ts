@@ -1,4 +1,4 @@
-import type { LifecyclePhase } from '../hooks/types';
+import type { LifecyclePhase } from '../lifecycle/types';
 
 /** Phases where a navigation error can be attributed (pipeline + match + render). */
 export type NavigationErrorPhase = LifecyclePhase | 'match' | 'render';

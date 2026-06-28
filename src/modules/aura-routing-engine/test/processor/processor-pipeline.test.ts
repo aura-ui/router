@@ -5,10 +5,10 @@ import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
 import { CommitTracker } from '../../core/processor/view-mount/view-mount-tracker';
 import {
   ProcessorPipeline,
-  toLifecycleContext,
   type PipelineContext,
   type PipelineOutcome,
 } from '../../core/processor/processor-pipeline';
+import { toLifecycleContext } from '../../core/lifecycle/context';
 import { runViewCommit } from '../../core/processor/view-mount/view-render';
 import { createTestRoute } from '../helpers/create-test-route';
 
@@ -74,6 +74,16 @@ function createPipelineContext(overrides: {
   };
 }
 
+function lifecycleInput(pipelineContext: PipelineContext) {
+  const { transaction, router, job } = pipelineContext;
+  return {
+    from: transaction.from,
+    action: transaction.action,
+    router,
+    job,
+  };
+}
+
 describe('ProcessorPipeline.runBlockingHooks', () => {
   const pipeline = new ProcessorPipeline() as PipelineInternals;
 
@@ -88,7 +98,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
     });
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
-    const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
+    const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
     const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
@@ -102,7 +112,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
     });
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
-    const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
+    const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
     const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
@@ -116,7 +126,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
     });
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
-    const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
+    const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
     const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
@@ -130,7 +140,7 @@ describe('ProcessorPipeline.runBlockingHooks', () => {
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
     });
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
-    const lifecycleContext = toLifecycleContext('enter', matchedRoute, pipelineContext);
+    const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
     const outcome = await pipeline.runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 

@@ -118,3 +118,8 @@ export const PHASES = {
     routeProp: 'error',
   },
 } as const satisfies Record<RoutePhase, PhaseDef>;
+
+/** Pipeline-driven phase keys (excludes terminal `error`). */
+export const LIFECYCLE_PHASES = (
+  Object.keys(PHASES) as RoutePhase[]
+).filter((phase): phase is LifecyclePhase => phase !== 'error');

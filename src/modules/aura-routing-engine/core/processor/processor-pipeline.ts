@@ -7,7 +7,7 @@ import { resolveHookNames } from '../lifecycle/phase-attrs';
 import { isRenderError, runViewCommit } from './view-mount/view-render';
 import type { GuardResult } from '../guard.types';
 import type { RoutePhase } from '../hooks/types';
-import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../hooks/types';
+import type { RouteLifecycleContext, RouterInstance } from '../hooks/types';
 import type { TransitionPolicy } from '../transition/policy';
 import type { NavigationErrorPhase } from '../failure/navigation-error';
 import type { ReportNavigationHookError } from '../failure/navigation-failure';
@@ -16,6 +16,7 @@ import { FailedNavigation } from '../failure/navigation-failure';
 import { normalizeFailure } from '../failure/navigation-error';
 import type { TransactionResult } from '../navigation/transaction-result';
 import { PHASES, type LifecycleStepDef } from '../lifecycle/phase-registry';
+import { toLifecycleContext, type LifecycleContextInput } from '../lifecycle/context';
 import { guardResultToPhaseOutcome, runPhaseStep, type PhaseStepOutcome } from '../lifecycle/phase-runner';
 
 /** Arguments for {@link AuraRoutingProcessor.run} (plan and policy are added by the processor). */
@@ -249,7 +250,11 @@ export class ProcessorPipeline {
     pipelineContext: PipelineContext,
   ): Promise<PipelineOutcome> {
     const { route } = matchedRoute;
-    const lifecycleContext = toLifecycleContext(step.lifecyclePhase, matchedRoute, pipelineContext);
+    const lifecycleContext = toLifecycleContext(
+      step.lifecyclePhase,
+      matchedRoute,
+      this.lifecycleInput(pipelineContext),
+    );
     const hookNames = resolveHookNames(route, step.lifecyclePhase);
 
     return runPhaseStep({
@@ -340,7 +345,12 @@ export class ProcessorPipeline {
       phase: errorPhase,
       routePattern: matchedRoute.pattern,
     });
-    const errorContext = toLifecycleContext('error', matchedRoute, pipelineContext, normalized);
+    const errorContext = toLifecycleContext(
+      'error',
+      matchedRoute,
+      this.lifecycleInput(pipelineContext),
+      normalized,
+    );
     matchedRoute.route.onError({ ...errorContext, error: normalized });
 
     const { transaction, commitTracker } = pipelineContext;
@@ -387,6 +397,16 @@ export class ProcessorPipeline {
       return undefined;
     }
   }
+
+  private lifecycleInput(pipelineContext: PipelineContext): LifecycleContextInput {
+    const { transaction, router, job } = pipelineContext;
+    return {
+      from: transaction.from,
+      action: transaction.action,
+      router,
+      job,
+    };
+  }
 }
 
 /** First non-null terminal outcome among parallel sub-step results. */
@@ -396,35 +416,4 @@ function firstTerminalOutcome(...outcomes: PipelineOutcome[]): PipelineOutcome {
   }
 
   return null;
-}
-
-/** {@link RouteInfo} slice for hook ctx (`to` / `from`). */
-function toRouteInfo(matchedRoute: MatchedRouteInfo): RouteInfo {
-  return {
-    pathname: matchedRoute.pathname,
-    ...(matchedRoute.params && { params: matchedRoute.params }),
-    ...(matchedRoute.query && { query: matchedRoute.query }),
-  };
-}
-
-/**
- * Builds {@link RouteLifecycleContext} for a route on the current branch.
- */
-export function toLifecycleContext(
-  lifecyclePhase: RoutePhase,
-  matchedRoute: MatchedRouteInfo,
-  pipelineContext: PipelineContext,
-  error?: unknown,
-): RouteLifecycleContext {
-  return {
-    phase: lifecyclePhase,
-    from: pipelineContext.transaction.from ? toRouteInfo(pipelineContext.transaction.from) : null,
-    to: toRouteInfo(matchedRoute),
-    router: pipelineContext.router,
-    route: matchedRoute.route,
-    action: pipelineContext.transaction.action,
-    jobId: pipelineContext.job.id,
-    signal: pipelineContext.job.signal,
-    ...(error !== undefined && { error }),
-  };
 }

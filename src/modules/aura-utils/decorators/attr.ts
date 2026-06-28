@@ -1,6 +1,12 @@
 import { parseString, toKebabCase } from '../misc/format';
 
-type AttrParser<T> = (attr: T | null) => T | T[] | null;
+type AttrParser<T> = (attr: string | null) => T | null;
+type AttrCacheEntry<T> = {
+  raw: string | null;
+  value: T | null;
+};
+
+const defaultParser = parseString as AttrParser<any>;
 
 /** HTML attribute mapping configuration */
 type AttrConfig<T = string> = {
@@ -36,32 +42,26 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
   return (proto: Element, propName: string): void => {
 
     const attrName = (config.dataAttr ? 'data-' : '') + toKebabCase(config.name || propName);
-    const inheritAttrName = typeof config.inherit === 'string' ? config.inherit : attrName;
-    let cachedValue: T;
+    const inheritedAttrName = typeof config.inherit === 'string' ? config.inherit : attrName;
+    const cache = config.cached ? new WeakMap<HTMLElement, AttrCacheEntry<T>>() : null;
+    const parse = config.parser || defaultParser;
 
     function get(this: HTMLElement): T | null {
-      if (config.cached && cachedValue) return cachedValue;
+      const rawValue = resolveAttrValue(this, attrName, inheritedAttrName, config);
+      const cached = cache?.get(this);
+      if (cached && cached.raw === rawValue) return cached.value;
 
-      let value: string | null;
-      if (!config.inherit) {
-        value = this.getAttribute(attrName);
-      } else if ((config.allowEmpty) && this.hasAttribute(attrName)) {
-        value = this.getAttribute(attrName);
-      } else {
-        value = this.getAttribute(attrName) || getInheritedAttr(this, inheritAttrName);
-      }
-
-      let result = (value === null && 'defaultValue' in config)
+      const valueToParse = (rawValue === null && hasDefaultValue(config))
         ? config.defaultValue
-        : value;
+        : rawValue;
 
-      result = (config.parser || parseString as AttrParser<any>)(result as T)
+      const parsedValue = parse(valueToParse as string | null) as T | null;
 
-      if (config.cached) {
-        cachedValue = result as T;
+      if (cache) {
+        cache.set(this, { raw: rawValue, value: parsedValue });
       }
 
-      return result as T | null;
+      return parsedValue;
     }
 
     function set(this: HTMLElement, value: T): void {
@@ -75,3 +75,24 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
     Object.defineProperty(proto, propName, config.readonly ? { get } : { get, set });
   };
 };
+
+function hasDefaultValue<T>(config: AttrConfig<T>): boolean {
+  return 'defaultValue' in config;
+}
+
+function resolveAttrValue<T>(
+  element: HTMLElement,
+  attrName: string,
+  inheritedAttrName: string,
+  config: AttrConfig<T>,
+): string | null {
+  if (!config.inherit) {
+    return element.getAttribute(attrName);
+  }
+
+  if (config.allowEmpty && element.hasAttribute(attrName)) {
+    return element.getAttribute(attrName);
+  }
+
+  return element.getAttribute(attrName) || getInheritedAttr(element, inheritedAttrName);
+}

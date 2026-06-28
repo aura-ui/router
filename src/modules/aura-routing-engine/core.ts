@@ -8,7 +8,7 @@
  * - `aura-routing-route-registry.ts` — route catalog snapshot
  * - `failure/` — navigation errors and terminal failure outcomes
  * - `navigation/` — {@link TransactionResult} contract and terminal outcome finalization
- * - `view-mount/` — view mount state, tracker, and render commit
+ * - `view-mount/` — tracker/render impl (types partially exported below)
  * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
  * - `transition/plan.ts` — `TransitionMap`
  */
@@ -52,6 +52,7 @@ export {
 
 export type { CommitSnapshot, ViewCommitState } from './core/view-mount/view-mount-state';
 export { isViewCommittedForHistory } from './core/view-mount/view-mount-state';
+export type { ViewRenderResult } from './core/view-mount/view-render';
 
 export type { TransactionResult, NavigationErrorResult } from './core/navigation/transaction-result';
 

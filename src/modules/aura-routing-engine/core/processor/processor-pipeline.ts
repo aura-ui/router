@@ -4,16 +4,17 @@ import type { TransitionMap } from '../transition/plan';
 import type { AuraRoutingProcessorJob } from './job';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveHookNames } from '../hooks/phases';
-import { runViewCommit } from './view-commit';
+import { isRenderError, runViewCommit } from './view-commit';
 import type { GuardResult } from '../guard.types';
 import type { RoutePhase } from '../hooks/types';
 import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../hooks/types';
 import type { TransitionPolicy } from '../transition/policy';
-import type { NavigationErrorPhase } from './navigation-error.types';
-import {
-  LIFECYCLE_STEPS,
-  type LifecycleStepDef,
-} from './lifecycle-step';
+import type { NavigationErrorPhase, ReportNavigationHookError } from './navigation-error.types';
+import { CommitTracker } from './commit-tracker';
+import { FailedNavigation } from './failed-navigation';
+import { normalizeFailure } from './navigation-error';
+import { LIFECYCLE_STEPS, type LifecycleStepDef } from './lifecycle-step';
+import { guardResultToPhaseOutcome, runPhaseStep, type PhaseStepOutcome } from './phase-runner';
 
 /** Arguments for {@link AuraRoutingProcessor.run} (plan and policy are added by the processor). */
 export interface ProcessorRunInput {
@@ -21,6 +22,7 @@ export interface ProcessorRunInput {
   to: MatchedRouteInfo;
   action: HistoryAction;
   router: RouterInstance;
+  reportHookError?: ReportNavigationHookError;
 }
 
 /** Enriched navigation run: {@link ProcessorRunInput} + transition plan and order. */
@@ -30,12 +32,16 @@ export interface NavigationTransaction extends ProcessorRunInput {
   transitionOrder: TransitionPolicy | null;
 }
 
+export type { CommitSnapshot } from './commit-snapshot';
+
 /** Shared ctx for all {@link ProcessorPipeline} steps. */
 export interface PipelineContext {
   transaction: NavigationTransaction;
   job: AuraRoutingProcessorJob;
   router: RouterInstance;
   hookRegistry: HookRegistry;
+  commitTracker: CommitTracker;
+  reportHookError?: ReportNavigationHookError;
   /** False when the navigation job was superseded or the router was torn down. */
   isJobActive: () => boolean;
 }
@@ -43,22 +49,21 @@ export interface PipelineContext {
 /**
  * Terminal processor outcome returned to {@link AuraRoutingProcessor}.
  *
- * `viewCommitted` means view/render succeeded — history URL commit is done by {@link AuraRoutingEngine} after this.
+ * `status: 'viewCommitted'` — full pipeline succeeded (not the same as
+ * {@link CommitSnapshot.view} `committed` or {@link FailedNavigation.viewCommitted}).
+ * History URL commit is done by {@link AuraRoutingEngine} after success.
  */
 export type TransactionResult =
   | { status: 'viewCommitted' }
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
-  | { status: 'error'; error: unknown; phase: NavigationErrorPhase; viewCommitted: boolean };
+  | { status: 'error'; failure: FailedNavigation };
 
 /** Pipeline step result: terminal {@link TransactionResult}, or `null` to continue. */
 type PipelineOutcome = TransactionResult | null;
 
 /** Async sub-step; returns terminal outcome or `null` to continue the sequence. */
 type PipelineStep = (pipelineContext: PipelineContext) => Promise<PipelineOutcome>;
-
-/** Redirect branch of {@link TransactionResult}. */
-type RedirectResult = Extract<TransactionResult, { status: 'redirect' }>;
 
 /**
  * Navigation transaction pipeline inside {@link AuraRoutingProcessor}.
@@ -184,16 +189,19 @@ export class ProcessorPipeline {
    */
   private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
-      try {
-        const viewCommit = await runViewCommit(matchedRoute, pipelineContext.job);
+      const viewCommit = await runViewCommit(matchedRoute, pipelineContext.job);
 
-        if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
-          return { status: 'cancelled' };
-        }
-      } catch (error) {
-        await this.runExitCleanup(pipelineContext);
-        return this.failWithError(matchedRoute, error, pipelineContext, 'render');
+      if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
+        return { status: 'cancelled' };
       }
+
+      if (isRenderError(viewCommit)) {
+        await this.runExitCleanup(pipelineContext);
+        pipelineContext.commitTracker.markViewCommittedAfterErrorRecovery();
+        return this.failWithError(matchedRoute, viewCommit.error, pipelineContext, 'render');
+      }
+
+      pipelineContext.commitTracker.markViewStaged();
     }
 
     return null;
@@ -204,6 +212,7 @@ export class ProcessorPipeline {
     for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
       matchedRoute.route.commitStagedView?.();
     }
+    pipelineContext.commitTracker.markViewCommitted();
   }
 
   /** `left` on exit branch after view commit or render error. */
@@ -246,50 +255,41 @@ export class ProcessorPipeline {
   ): Promise<PipelineOutcome> {
     const { route } = matchedRoute;
     const lifecycleContext = toLifecycleContext(step.lifecyclePhase, matchedRoute, pipelineContext);
+    const hookNames = resolveHookNames(route, step.lifecyclePhase);
 
-    try {
-      step.onRoute(route, lifecycleContext);
-
-      const hookNames = resolveHookNames(route, step.lifecyclePhase);
-      if (!hookNames?.length) return null;
-
-      return step.hooks.kind === 'blocking'
-        ? this.runBlockingHooks(lifecycleContext, pipelineContext, hookNames)
-        : this.runPostCommitHooksWithWarnings(step, lifecycleContext, pipelineContext, hookNames);
-    } catch (error) {
-      if (!step.failOnLifecycleError) throw error;
-      return this.failWithError(matchedRoute, error, pipelineContext, step.lifecyclePhase);
-    }
-  }
-
-  /** Blocking hooks: `false` cancels, redirect URL stops navigation. */
-  private async runBlockingHooks(
-    lifecycleContext: RouteLifecycleContext,
-    pipelineContext: PipelineContext,
-    hookNames: readonly string[],
-  ): Promise<PipelineOutcome> {
-    const hookResult = await runPhaseHooks(
-      pipelineContext.hookRegistry,
-      lifecycleContext,
+    return runPhaseStep({
+      lifecyclePhase: step.lifecyclePhase,
+      onThrow: step.onThrow,
+      hookKind: step.hooks.kind,
+      hookErrors: step.hooks.kind === 'postCommit' ? step.hooks.hookErrors : undefined,
+      invokeRoute: () => step.onRoute(route, lifecycleContext),
       hookNames,
-      pipelineContext.isJobActive,
-    );
-
-    if (hookResult === false) return { status: 'cancelled' };
-
-    const redirect = this.toRedirectResult(hookResult);
-    return redirect || null;
+      handlers: {
+        runBlockingHooks: (names) =>
+          this.runBlockingHooks(lifecycleContext, pipelineContext, names),
+        runPostCommitHooks: (names, hookErrors, phase) =>
+          this.runPostCommitHooksStep(
+            lifecycleContext,
+            pipelineContext,
+            names,
+            hookErrors,
+            phase,
+          ),
+        failWithError: (error) =>
+          this.failWithError(matchedRoute, error, pipelineContext, step.lifecyclePhase),
+      },
+    });
   }
 
-  /** Post-commit hooks: runs hooks and logs ignored cancel/redirect. */
-  private async runPostCommitHooksWithWarnings(
-    step: LifecycleStepDef,
+  private async runPostCommitHooksStep(
     lifecycleContext: RouteLifecycleContext,
     pipelineContext: PipelineContext,
     hookNames: readonly string[],
-  ): Promise<PipelineOutcome> {
+    hookErrors: 'propagate' | 'log',
+    lifecyclePhase: RoutePhase,
+  ): Promise<PhaseStepOutcome> {
     const hookResult =
-      step.hooks.kind === 'postCommit' && step.hooks.hookErrors === 'log'
+      hookErrors === 'log'
         ? await this.runPostCommitHooks(lifecycleContext, pipelineContext, hookNames)
         : await runPhaseHooks(
             pipelineContext.hookRegistry,
@@ -298,25 +298,24 @@ export class ProcessorPipeline {
             pipelineContext.isJobActive,
           );
 
-    this.warnIgnoredTerminalResult(step.lifecyclePhase, hookResult);
+    this.warnIgnoredTerminalResult(lifecyclePhase, hookResult);
     return null;
   }
 
-  /** Maps {@link GuardResult} to redirect outcome; `false` means continue. */
-  private toRedirectResult(hookResult: GuardResult): RedirectResult | false {
-    if (typeof hookResult === 'string') {
-      return { status: 'redirect', url: hookResult };
-    }
+  /** Blocking hooks: `false` cancels, redirect URL stops navigation. */
+  private async runBlockingHooks(
+    lifecycleContext: RouteLifecycleContext,
+    pipelineContext: PipelineContext,
+    hookNames: readonly string[],
+  ): Promise<PhaseStepOutcome> {
+    const hookResult = await runPhaseHooks(
+      pipelineContext.hookRegistry,
+      lifecycleContext,
+      hookNames,
+      pipelineContext.isJobActive,
+    );
 
-    if (hookResult && typeof hookResult === 'object' && 'url' in hookResult) {
-      return {
-        status: 'redirect',
-        url: hookResult.url,
-        ...(hookResult.replace !== undefined && { replace: hookResult.replace }),
-      };
-    }
-
-    return false;
+    return guardResultToPhaseOutcome(hookResult);
   }
 
   /** Logs cancel/redirect from post-commit hooks; navigation already committed. */
@@ -326,9 +325,12 @@ export class ProcessorPipeline {
       return;
     }
 
-    const redirect = this.toRedirectResult(hookResult);
-    if (redirect) {
-      console.warn(`[${lifecyclePhase}] hook returned redirect after view commit — ignored: ${redirect.url}`);
+    const redirect = guardResultToPhaseOutcome(hookResult);
+    if (redirect?.status === 'redirect') {
+      console.warn(
+        `[${lifecyclePhase}] hook returned redirect after view commit — ignored: ${redirect.url}`,
+      );
+      return;
     }
   }
 
@@ -337,10 +339,23 @@ export class ProcessorPipeline {
     matchedRoute: MatchedRouteInfo,
     error: unknown,
     pipelineContext: PipelineContext,
-    failedAt: NavigationErrorPhase,
+    errorPhase: NavigationErrorPhase,
   ): Promise<Extract<TransactionResult, { status: 'error' }>> {
-    const errorContext = toLifecycleContext('error', matchedRoute, pipelineContext, error);
-    matchedRoute.route.onError({ ...errorContext, error });
+    const normalized = normalizeFailure(error, {
+      phase: errorPhase,
+      routePattern: matchedRoute.pattern,
+    });
+    const errorContext = toLifecycleContext('error', matchedRoute, pipelineContext, normalized);
+    matchedRoute.route.onError({ ...errorContext, error: normalized });
+
+    const { transaction, commitTracker } = pipelineContext;
+    const failed = FailedNavigation.fromPipeline(
+      normalized,
+      commitTracker.snapshot,
+      transaction.from,
+      transaction.to,
+      transaction.action,
+    );
 
     const errorHooks = resolveHookNames(matchedRoute.route, 'error');
     if (errorHooks?.length) {
@@ -352,16 +367,11 @@ export class ProcessorPipeline {
           pipelineContext.isJobActive,
         );
       } catch (hookError) {
-        console.error(hookError);
+        pipelineContext.reportHookError?.(hookError, failed);
       }
     }
 
-    return {
-      status: 'error',
-      error,
-      phase: failedAt,
-      viewCommitted: failedAt === 'render',
-    };
+    return failed.toResult();
   }
 
   /** Post-commit hooks with `hookErrors: 'log'`; errors are logged, not propagated. */

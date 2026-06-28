@@ -1,9 +1,25 @@
 /** @jest-environment jsdom */
 
 import { AuraRouter } from '../../../aura-router/core/aura-router';
+import { AuraRoute } from '../../../aura-route/core/aura-route';
+import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { defaultLoaderRegistry } from '../../core/content/registry';
 
+function defineDemoElements(): void {
+  if (!customElements.get(AuraOutlet.is)) {
+    customElements.define(AuraOutlet.is, AuraOutlet);
+  }
+  if (!customElements.get(AuraRouter.is)) {
+    customElements.define(AuraRouter.is, AuraRouter);
+  }
+  if (!customElements.get(AuraRoute.is)) {
+    customElements.define(AuraRoute.is, AuraRoute);
+  }
+}
+
 function mountIndexFragment(): AuraRouter {
+  defineDemoElements();
+
   document.body.innerHTML = `
     <template id="app">Шаблон</template>
     <template id="error-template">Ошибка</template>
@@ -18,8 +34,6 @@ function mountIndexFragment(): AuraRouter {
 
   defaultLoaderRegistry.register('custom-loader', async () => 'custom');
 
-  AuraRouter.define();
-
   return document.querySelector(AuraRouter.is) as AuraRouter;
 }
 
@@ -30,7 +44,9 @@ describe('navigate /c integration', () => {
 
   it('renders template app in outlet after navigate', async () => {
     const router = mountIndexFragment();
+    await customElements.whenDefined(AuraRoute.is);
     await Promise.resolve();
+
     router.navigate('/c', { replace: true, syncHistory: false });
 
     await new Promise((r) => setTimeout(r, 100));

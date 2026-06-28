@@ -10,6 +10,7 @@ import type {
   RouteTransition,
 } from '../../aura-routing-engine/core/hooks/types';
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core';
+import type { ViewRenderResult } from '../../aura-routing-engine/core/processor/view-commit';
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
@@ -34,15 +35,15 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @attr({ readonly: true }) layout: string;
   @attr({ readonly: true }) view: string;
 
-  @attr({ parser: parseCommaSeparated }) enter: string[] | null;
-  @attr({ parser: parseCommaSeparated }) load: string[] | null;
-  @attr({ parser: parseCommaSeparated, name: 'after' }) afterHook: string[] | null;
-  @attr({ parser: parseCommaSeparated }) leave: string[] | null;
-  @attr({ parser: parseCommaSeparated }) error: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) enter: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) load: string[] | null;
+  @attr({ parser: parseCommaSeparated, name: 'after', inherit: true, allowEmpty: true }) afterHook: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) leave: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) error: string[] | null;
   @attr({ parser: parsePhaseHooks }) hooks: PhaseHooksMap | null;
 
-  @attr({ readonly: true, inherit: true, cached: true }) loadingTemplate: string;
-  @attr({ readonly: true, inherit: true, cached: true }) errorTemplate: string;
+  @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) loadingTemplate: string;
+  @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) errorTemplate: string;
 
   @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition', parser: parseTransitionShortcut })
   transitionShortcut: TransitionShortcut | null;
@@ -133,7 +134,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.viewController?.cancel();
   }
 
-  render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
+  render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
     return this.setupDone.then(() => {
       this.passId++;
       return this.viewController.render(routeInfo, options);

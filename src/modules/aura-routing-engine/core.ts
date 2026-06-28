@@ -22,7 +22,31 @@ export { AuraRoutingEngine } from './core/aura-routing-engine';
 export { AuraRoutingProcessor } from './core/processor/processor';
 export type { ProcessorRunInput } from './core/processor/processor';
 
-export type { NavigationErrorDetail, NavigationErrorPhase } from './core/processor/navigation-error.types';
+export type {
+  NavigationErrorPhase,
+  NavigationHookErrorDetail,
+  ReportNavigationHookError,
+} from './core/processor/navigation-error.types';
+
+export { FailedNavigation } from './core/processor/failed-navigation';
+export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/processor/failed-navigation';
+
+export type {
+  NavigationFailureCode,
+  NavigationErrorInit,
+  NormalizeFailureContext,
+} from './core/processor/navigation-error';
+
+export {
+  NavigationError,
+  createContentLoadError,
+  defaultCodeForPhase,
+  isNavigationError,
+  normalizeFailure,
+} from './core/processor/navigation-error';
+
+export type { CommitSnapshot, ViewCommitState } from './core/processor/commit-snapshot';
+export { isViewCommittedForHistory } from './core/processor/commit-snapshot';
 
 // --- History layer (default provider + DI for tests) ---
 

@@ -1,6 +1,9 @@
 import type { RouteInstance, RouteTransition } from '../../core/hooks/types';
+import type { ViewRenderResult } from '../../core/processor/view-commit';
 
 const noop = (): void => {};
+
+const noopRender = async (): Promise<ViewRenderResult> => ({ status: 'ok' });
 
 const INACTIVE_TRANSITION: RouteTransition = { order: null, in: null, out: null };
 
@@ -29,6 +32,7 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
     onReenter: noop,
     onError: noop,
     commitStagedView: noop,
+    render: noopRender,
     ...overrides,
   };
 }

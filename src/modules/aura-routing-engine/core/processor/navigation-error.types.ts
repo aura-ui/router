@@ -1,6 +1,7 @@
-import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { FailedNavigation } from './failed-navigation';
 
 export type NavigationErrorPhase =
+  | 'match'
   | 'leave'
   | 'enter'
   | 'load'
@@ -11,12 +12,17 @@ export type NavigationErrorPhase =
   | 'left'
   | 'after';
 
-export interface NavigationErrorDetail {
+/**
+ * Error hook (`error="…"`) threw while handling a navigation failure.
+ * `error` — hook failure; `parent` — the failed navigation being handled.
+ */
+export interface NavigationHookErrorDetail {
   error: unknown;
-  href: string;
-  from: MatchedRouteInfo | null;
-  to: MatchedRouteInfo;
-  phase: NavigationErrorPhase;
-  /** True when the error occurred after view commit (`runRender`). */
-  viewCommitted: boolean;
+  phase: 'error';
+  parent: FailedNavigation;
 }
+
+export type ReportNavigationHookError = (
+  hookError: unknown,
+  parent: FailedNavigation,
+) => void;

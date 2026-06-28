@@ -48,7 +48,25 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 ### Экспорты
 
 - `AURA_ROUTER_NOT_FOUND` — имя события `'not-found'`.
-- Типы: `NotFoundHandler`, `NotFoundSource`, `AuraRouterNotFoundEvent`, `AuraRouterNotFoundEventDetail`.
+- `AURA_ROUTER_NAVIGATION_ERROR` — `'navigation-error'` (поле `code` — стабильный код ошибки).
+- `AURA_ROUTER_NAVIGATION_HOOK_ERROR` — `'navigation-hook-error'` (падение `error="…"` hook).
+- Типы: `NotFoundHandler`, `NavigationFailureCode`, `AuraRouterNavigationErrorEventDetail`, …
+
+## События ошибок навигации
+
+```ts
+router.addEventListener('navigation-error', (event) => {
+  const { error, code, phase, viewCommitted } = event.detail;
+  // code: 'RENDER_FAILED' | 'LOAD_FAILED' | 'NOT_FOUND' | …
+});
+
+router.addEventListener('navigation-hook-error', (event) => {
+  const { error, parent } = event.detail;
+  // parent — исходная navigation failure, которую обрабатывал error hook
+});
+```
+
+`router.addEventListener('navigation-error', …)` — единственный способ подписки на ошибки навигации.
 
 ## Обработка 404
 
@@ -73,11 +91,12 @@ Catch-all маршрут матчит любой pathname, но **проигры
 
 ### 2. Fallback 404 — без `<aura-route path="*">`
 
-Если ни один маршрут не подошёл и catch-all не зарегистрирован, `AuraRoutingEngine` **не** запускает processor. Вместо этого:
+Если ни один маршрут не подошёл и catch-all не зарегистрирован, engine создаёт structured `NOT_FOUND` failure:
 
 1. У предыдущего маршрута вызывается `onLeft`.
-2. Вызывается `AuraRouterNotFoundController.handle(url)`.
-3. URL коммитится в history (для push/replace), чтобы адресная строка отражала несуществующий путь.
+2. Диспатчится cancelable `not-found` (`source: 'fallback'`).
+3. При отсутствии `preventDefault()` — fallback UI (`recover()`).
+4. URL коммитится в history (для push/replace), чтобы адресная строка отражала несуществующий путь.
 
 Цепочка fallback-UI (по приоритету):
 
@@ -124,7 +143,7 @@ aura-router/
 └── core/
     ├── aura-router.ts                   # <aura-router> element
     ├── aura-router-not-found-controller.ts
-    └── aura-router-not-found.types.ts
+    └── navigation-events.ts             # DOM event types + dispatch helpers
 ```
 
 ## Связанные модули

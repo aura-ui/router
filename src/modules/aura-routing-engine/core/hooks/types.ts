@@ -11,6 +11,7 @@
 import type { HistoryAction } from '../history';
 import type { RedirectTarget } from '../guard.types';
 import type { RouteTransition } from '../transition/route-transition';
+import type { PhaseThrowPolicy } from '../processor/phase-spec';
 
 export type { RouteTransition };
 
@@ -46,7 +47,7 @@ export interface PhaseDefinition {
   readonly lifecyclePhase: RoutePhase;
   readonly branch: LifecycleBranch;
   readonly hooks: LifecycleHookHandling;
-  readonly failOnLifecycleError: boolean;
+  readonly onThrow: PhaseThrowPolicy;
   /** kebab-case attr name when it differs from {@link RoutePhase}. */
   readonly htmlAttr?: string;
   readonly routeProp?: RouteHookAttrProp;

@@ -8,7 +8,7 @@
  * @module hooks/phases
  */
 
-import { LIFECYCLE_STEPS, lifecycleStepPolicy, postCommit } from '../processor/lifecycle-step';
+import { LIFECYCLE_STEPS, lifecycleStepPolicy } from '../processor/lifecycle-step';
 import type {
   PhaseDefinition,
   PhaseHooksMap,
@@ -63,8 +63,8 @@ export const NAVIGATION_PHASES = {
   error: {
     lifecyclePhase: 'error',
     branch: 'enterRoutes',
-    hooks: postCommit('log'),
-    failOnLifecycleError: false,
+    hooks: { kind: 'postCommit', hookErrors: 'log' },
+    onThrow: 'log',
     htmlAttr: 'error',
     routeProp: 'error',
   },

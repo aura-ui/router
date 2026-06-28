@@ -1,8 +1,3 @@
-// 1. передаем роуты, запоминаем их
-// 2. provider слушает клики и popstate
-// 3. когда отловленно событие spa перехода - выбираем самый подходящий патерн соответствующий href
-// 4. вызываем processor - передаем from и to
-// 5. если фазы благополучно прошли — history commit URL (provider.commit; атомарность перехода)
 import type { RouterInstance } from './hooks/types';
 import { parsePath } from '../../aura-utils/misc/url';
 
@@ -13,7 +8,7 @@ import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './match/url-matcher';
-import { getLeafMatch, syncChainHref } from './route-tree';
+import { syncChainHref } from './route-tree';
 import {
   BrowserHistoryProvider,
   type HistoryAction,
@@ -29,9 +24,12 @@ import {
   type PrefetchConfig,
   type PrefetchOptions,
 } from './prefetch';
-import type { NavigationErrorDetail } from './processor/navigation-error.types';
+import type { NavigationHookErrorDetail } from './processor/navigation-error.types';
+import { applyHistoryPolicy, resolveHistoryPolicy } from './history/history-policy';
+import { FailedNavigation } from './processor/failed-navigation';
+import { runNotFoundExitCleanup } from './processor/not-found-failure';
 
-/** Engine fallback when match returns null (no `path="*"` route). */
+/** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
 
 export interface AuraRoutingEngineConfig {
@@ -41,8 +39,15 @@ export interface AuraRoutingEngineConfig {
   hash?: boolean;
   /** Вызывается после history commit navigation (в т.ч. catch-all). */
   onNavigationCommitted?: (to: MatchedRouteInfo) => void;
-  /** Вызывается при любой ошибке navigation transaction. */
-  onNavigationError?: (detail: NavigationErrorDetail) => void;
+  /** Matched-route navigation failure (after processor). */
+  onNavigationError?: (failure: FailedNavigation) => void;
+  /** Error hook (`error="…"`) threw while handling a navigation failure. */
+  onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
+  /**
+   * No route match (`NOT_FOUND`). Return `false` to skip fallback recovery UI.
+   * DOM `not-found` events are typically wired here by {@link AuraRouter}.
+   */
+  onNotFound?: (failure: FailedNavigation) => void | boolean;
   /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
   provider?: NavigationProvider;
   /** Router-owned content load service (shared prefetch + render cache). */
@@ -194,29 +199,12 @@ export class AuraRoutingEngine {
 
     const found = this.matcher.matchPath(pathname, this.registry.getMatchableNodes());
     if (!found) {
-      // Fallback: нет <aura-route path="*"> — thin UI + event (см. AuraRouterNotFoundController)
-      if (this.prev) {
-        const leaf = getLeafMatch(this.prev);
-        leaf.route.onLeft({
-          phase: 'left',
-          from: null,
-          to: {
-            pathname: leaf.pathname,
-            ...(leaf.params && { params: leaf.params }),
-            ...(leaf.query && { query: leaf.query }),
-          },
-          router: this.router,
-          route: leaf.route,
-          action,
-          jobId: 0,
-          signal: new AbortController().signal,
-        });
-      }
-      this.notFoundHandler?.(relativeHref);
-      if (options.syncHistory && (action === 'push' || action === 'replace')) {
-        this.provider.commit(relativeHref, options);
-      }
-      this.prev = null;
+      runNotFoundExitCleanup(this.prev, action, this.router);
+      this.applyFailureOutcome(
+        FailedNavigation.notFound(relativeHref, this.prev, action).complete(
+          this.failureDeps(options),
+        ),
+      );
       return;
     }
 
@@ -231,7 +219,15 @@ export class AuraRoutingEngine {
 
     const from = this.prev;
 
-    const result = await this.processor.run({ from, to, action, router: this.router });
+    const result = await this.processor.run({
+      from,
+      to,
+      action,
+      router: this.router,
+      reportHookError: (hookError, parent) => {
+        this.config.onNavigationHookError?.({ error: hookError, phase: 'error', parent });
+      },
+    });
 
     this.finalizeNavigation(result, {
       action,
@@ -243,8 +239,24 @@ export class AuraRoutingEngine {
     });
   }
 
+  private failureDeps(options: NavigateHistoryOptions) {
+    return {
+      options,
+      provider: this.provider,
+      onNavigationError: this.config.onNavigationError,
+      onNotFound: this.config.onNotFound,
+      notFoundHandler: this.notFoundHandler ?? undefined,
+    };
+  }
+
+  private applyFailureOutcome(outcome: { setPrev?: MatchedRouteInfo | null }): void {
+    if (outcome.setPrev !== undefined) {
+      this.prev = outcome.setPrev;
+    }
+  }
+
   /**
-   * History commit / rollback после processor (или hash-only navigation).
+   * History commit / rollback после processor (или hash-only / NOT_FOUND navigation).
    *
    * View commit (`runRender`) уже произошёл внутри processor до `status: 'viewCommitted'`.
    *
@@ -266,36 +278,34 @@ export class AuraRoutingEngine {
       hash: string;
     },
   ): void {
+    const historyCtx = {
+      href: ctx.href,
+      fromHref: ctx.from?.href ?? null,
+      options: ctx.options,
+    };
+
     switch (result.status) {
       case 'viewCommitted':
-        this.provider.commit(ctx.href, ctx.options);
+        applyHistoryPolicy('commit-target', historyCtx, this.provider);
         this.prev = ctx.to;
         this.config.onNavigationCommitted?.(ctx.to);
         if (ctx.hash) this.scrollToHash(ctx.hash);
         break;
 
       case 'cancelled':
-        if (ctx.action === 'pop' && ctx.from) {
-          this.provider.rollback(ctx.from.href);
-        }
+        applyHistoryPolicy(
+          resolveHistoryPolicy(result, ctx.action, { syncHistory: ctx.options.syncHistory }),
+          historyCtx,
+          this.provider,
+        );
         break;
 
-      case 'error':
-        this.config.onNavigationError?.({
-          error: result.error,
-          href: ctx.href,
-          from: ctx.from,
-          to: ctx.to,
-          phase: result.phase,
-          viewCommitted: result.viewCommitted,
-        });
-        if (result.viewCommitted) {
-          this.provider.commit(ctx.href, ctx.options);
-          this.prev = ctx.to;
-        } else if (ctx.action === 'pop' && ctx.from) {
-          this.provider.rollback(ctx.from.href);
-        }
+      case 'error': {
+        this.applyFailureOutcome(
+          result.failure.complete(this.failureDeps(ctx.options)),
+        );
         break;
+      }
 
       case 'redirect': {
         const replace = result.replace ?? ctx.action === 'pop';

@@ -19,6 +19,7 @@ import {
   type MountSnapshot,
 } from './outlet';
 import { emptyContent, resolveError, warnMissingLayoutOutlet } from './payloads';
+import type { ViewRenderResult } from '../../../aura-routing-engine/core/processor/view-commit';
 
 type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 
@@ -49,12 +50,12 @@ export class RouteViewController {
 
   /**
    * Resolves and mounts route content (or restores a keep-alive view).
-   * Rethrows after mounting the error template on failure.
+   * Returns `{ status: 'error' }` after mounting recovery UI — does not rethrow.
    */
-  async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<void> {
+  async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
     const pass = this.beginPass(routeInfo, options?.parentSignal);
     this.lastCacheKey = pass.cacheKey;
-    await this.renderPass(pass);
+    return this.renderPass(pass);
   }
 
   commitStagedView(): void {
@@ -88,21 +89,22 @@ export class RouteViewController {
     return createRenderPass(this.getPassId(), this.config.route, routeInfo, signal);
   }
 
-  private async renderPass(pass: RenderPass): Promise<void> {
+  private async renderPass(pass: RenderPass): Promise<ViewRenderResult> {
     let loadingHooks = false;
 
     try {
-      if (this.tryCacheRestore(pass)) return;
-      if (this.shouldSkipKeepAlive(pass)) return;
+      if (this.tryCacheRestore(pass)) return { status: 'ok' };
+      if (this.shouldSkipKeepAlive(pass)) return { status: 'ok' };
 
       this.emit('onPassStart', pass);
       loadingHooks = true;
       await this.resolveAndMount(pass);
+      return { status: 'ok' };
     } catch (error) {
-      if (this.stale(pass)) return;
+      if (this.stale(pass)) return { status: 'ok' };
       this.emit('onPassError', pass, error);
       this.applyMount(pass, resolveError(this.config.route, error), 'content');
-      throw error;
+      return { status: 'error', error };
     } finally {
       if (loadingHooks) {
         this.emit('onPassEnd', pass);

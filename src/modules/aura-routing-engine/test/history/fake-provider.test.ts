@@ -95,7 +95,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     const renderError = new Error('load failed');
     const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
     const toRoute = createTestRoute('/d', {
-      render: jest.fn().mockRejectedValue(renderError),
+      render: jest.fn().mockResolvedValue({ status: 'error', error: renderError }),
     });
     const onNavigationError = jest.fn();
 
@@ -115,9 +115,8 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(provider.currentHref).toBe('/d');
     expect(onNavigationError).toHaveBeenCalledWith(
       expect.objectContaining({
-        error: renderError,
+        error: expect.objectContaining({ code: 'RENDER_FAILED', phase: 'render' }),
         href: '/d',
-        phase: 'render',
         viewCommitted: true,
       }),
     );
@@ -150,9 +149,8 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(provider.currentHref).toBe('/a');
     expect(onNavigationError).toHaveBeenCalledWith(
       expect.objectContaining({
-        error: enterError,
+        error: expect.objectContaining({ code: 'GUARD_THROW', phase: 'enter' }),
         href: '/d',
-        phase: 'enter',
         viewCommitted: false,
       }),
     );

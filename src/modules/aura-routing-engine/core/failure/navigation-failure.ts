@@ -7,7 +7,7 @@ import { NavigationError } from './navigation-error';
 /**
  * Failed navigation — single object from pipeline or pre-match NOT_FOUND through engine finalization.
  *
- * Side effects (callbacks, history, `prev`) are applied by {@link finalizeFailure} in the engine.
+ * Side effects: callbacks and `prev` via {@link finalizeFailure}; history via engine {@link ../history/history-policy}.
  */
 export class FailedNavigation {
   readonly error: NavigationError;

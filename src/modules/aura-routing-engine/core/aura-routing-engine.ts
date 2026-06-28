@@ -24,7 +24,7 @@ import type { PrefetchConfig, PrefetchOptions } from './prefetch/types';
 import type { NavigationHookErrorDetail } from './failure/navigation-failure';
 import { applyHistoryPolicy, resolveHistoryPolicy } from './history/history-policy';
 import { FailedNavigation } from './failure/navigation-failure';
-import { finalizeFailure, type CompleteFailureOutcome } from './failure/finalize-failure';
+import { finalizeFailure, type CompleteFailureDeps, type CompleteFailureOutcome } from './failure/finalize-failure';
 import { runNotFoundExitCleanup } from './failure/not-found';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
@@ -198,11 +198,14 @@ export class AuraRoutingEngine {
     const found = this.matcher.matchPath(pathname, this.registry.getMatchableNodes());
     if (!found) {
       runNotFoundExitCleanup(this.prev, action, this.router);
-      this.applyFailureOutcome(
-        finalizeFailure(
-          FailedNavigation.notFound(relativeHref, this.prev, action),
-          this.failureDeps(options),
-        ),
+      const failure = FailedNavigation.notFound(relativeHref, this.prev, action);
+      this.applyFailureOutcome(finalizeFailure(failure, this.failureDeps()));
+      this.applyTransactionHistory(
+        failure.toResult(),
+        action,
+        relativeHref,
+        this.prev?.href ?? null,
+        options,
       );
       return;
     }
@@ -238,14 +241,26 @@ export class AuraRoutingEngine {
     });
   }
 
-  private failureDeps(options: NavigateHistoryOptions) {
+  private failureDeps(): CompleteFailureDeps {
     return {
-      options,
-      provider: this.provider,
       onNavigationError: this.config.onNavigationError,
       onNotFound: this.config.onNotFound,
       notFoundHandler: this.notFoundHandler ?? undefined,
     };
+  }
+
+  private applyTransactionHistory(
+    result: TransactionResult,
+    action: HistoryAction,
+    href: string,
+    fromHref: string | null,
+    options: NavigateHistoryOptions,
+  ): void {
+    applyHistoryPolicy(
+      resolveHistoryPolicy(result, action, { syncHistory: options.syncHistory }),
+      { href, fromHref, options },
+      this.provider,
+    );
   }
 
   private applyFailureOutcome(outcome: CompleteFailureOutcome): void {
@@ -255,16 +270,11 @@ export class AuraRoutingEngine {
   }
 
   /**
-   * History commit / rollback после processor (или hash-only / NOT_FOUND navigation).
+   * History commit / rollback after processor (or hash-only / NOT_FOUND navigation).
    *
-   * View commit (`runRender`) уже произошёл внутри processor до `status: 'viewCommitted'`.
-   *
-   * | action  | viewCommitted          | cancelled / error (pop)   |
-   * |---------|------------------------|-------------------------|
-   * | push    | pushState (syncHistory)| ничего                  |
-   * | replace | replaceState           | ничего                  |
-   * | pop     | prev only              | rollback(from.href)      |
-   * | system  | prev only              | ничего                  |
+   * View commit (`runRender`) already happened inside the processor before `viewCommitted`.
+   * Every terminal outcome uses {@link resolveHistoryPolicy} → {@link applyHistoryPolicy}
+   * (except `redirect` and hash-only anchor navigation).
    */
   private finalizeNavigation(
     result: TransactionResult,
@@ -277,34 +287,40 @@ export class AuraRoutingEngine {
       hash: string;
     },
   ): void {
-    const historyCtx = {
-      href: ctx.href,
-      fromHref: ctx.from?.href ?? null,
-      options: ctx.options,
-    };
-
     switch (result.status) {
       case 'viewCommitted':
-        applyHistoryPolicy('commit-target', historyCtx, this.provider);
+        this.applyTransactionHistory(
+          result,
+          ctx.action,
+          ctx.href,
+          ctx.from?.href ?? null,
+          ctx.options,
+        );
         this.prev = ctx.to;
         this.config.onNavigationCommitted?.(ctx.to);
         if (ctx.hash) this.scrollToHash(ctx.hash);
         break;
 
       case 'cancelled':
-        applyHistoryPolicy(
-          resolveHistoryPolicy(result, ctx.action, { syncHistory: ctx.options.syncHistory }),
-          historyCtx,
-          this.provider,
+        this.applyTransactionHistory(
+          result,
+          ctx.action,
+          ctx.href,
+          ctx.from?.href ?? null,
+          ctx.options,
         );
         break;
 
-      case 'error': {
-        this.applyFailureOutcome(
-          finalizeFailure(result.failure, this.failureDeps(ctx.options)),
+      case 'error':
+        this.applyFailureOutcome(finalizeFailure(result.failure, this.failureDeps()));
+        this.applyTransactionHistory(
+          result,
+          ctx.action,
+          ctx.href,
+          ctx.from?.href ?? null,
+          ctx.options,
         );
         break;
-      }
 
       case 'redirect': {
         const replace = result.replace ?? ctx.action === 'pop';

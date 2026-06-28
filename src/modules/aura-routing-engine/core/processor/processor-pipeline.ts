@@ -14,8 +14,8 @@ import { CommitTracker } from './view-mount/view-mount-tracker';
 import { FailedNavigation } from '../failure/navigation-failure';
 import { normalizeFailure } from '../failure/navigation-error';
 import type { TransactionResult } from '../navigation/transaction-result';
-import { LIFECYCLE_STEPS, type LifecycleStepDef } from './lifecycle/lifecycle-steps';
-import { guardResultToPhaseOutcome, runPhaseStep, type PhaseStepOutcome } from './lifecycle/lifecycle-runner';
+import { LIFECYCLE_STEPS, type LifecycleStepDef } from '../lifecycle/phase-registry';
+import { guardResultToPhaseOutcome, runPhaseStep, type PhaseStepOutcome } from '../lifecycle/phase-runner';
 
 /** Arguments for {@link AuraRoutingProcessor.run} (plan and policy are added by the processor). */
 export interface ProcessorRunInput {

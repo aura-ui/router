@@ -1,5 +1,4 @@
-import { parsePath } from '../../../aura-utils/misc/url';
-import { getActiveChain } from '../route-tree/matched-chain';
+import { resolveNavigationTarget } from '../match/resolve-navigation-target';
 import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
 import type { RouteNode } from '../route-tree/route-node.types';
 import { normalizePrefetchHref } from './policy';
@@ -30,26 +29,20 @@ export class PrefetchPlanResolver {
       return cached.plan;
     }
 
-    const { pathname, search, hash } = parsePath(normalized);
-    const found = this.deps.matcher.matchPath(pathname, this.deps.getMatchableNodes());
-    if (!found) return null;
-
-    const leaf = this.deps.matcher.toRouteInfo(
+    const target = resolveNavigationTarget(
+      this.deps.matcher,
       normalized,
-      pathname,
-      search,
-      hash,
-      found.node,
-      found.params,
+      this.deps.getMatchableNodes(),
     );
+    if (!target) return null;
 
     const plan: PrefetchPlan = {
-      href: normalized,
-      pathname,
-      search,
-      hash,
-      leaf,
-      chain: getActiveChain(leaf),
+      href: target.href,
+      pathname: target.pathname,
+      search: target.search,
+      hash: target.hash,
+      leaf: target.leaf,
+      chain: target.chain,
       registryGeneration: generation,
     };
 

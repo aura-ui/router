@@ -1,6 +1,6 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getActiveChain } from '../route-tree/matched-chain';
-import { contentDescriptorFromRoute } from './descriptor';
+import { buildContentDescriptor } from './descriptor';
 import type { ContentDescriptor } from './types';
 import type { ContentResolver } from './content-resolver';
 
@@ -33,7 +33,7 @@ export class ContentLoadService {
   }
 
   prefetchNode(info: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
-    const descriptor = contentDescriptorFromRoute(info.route);
+    const descriptor = buildContentDescriptor(info.route);
     if (descriptor.kind === 'content' && !descriptor.loader.trim()) {
       return Promise.resolve();
     }

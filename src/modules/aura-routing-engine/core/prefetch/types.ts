@@ -1,4 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { RouteNode } from '../route-tree/route-node.types';
 
 export type PrefetchMode = 'intent' | 'viewport' | 'tap' | 'render' | 'manual' | 'none';
 
@@ -63,8 +64,8 @@ export type PrefetchIntent =
 
 export type PrefetchPipelineDeps = {
   readonly matcher: {
-    matchPath(pathname: string, nodes: readonly import('../route-tree').RouteNode[]): {
-      node: import('../route-tree').RouteNode;
+    matchPath(pathname: string, nodes: readonly RouteNode[]): {
+      node: RouteNode;
       params: Record<string, string>;
     } | null;
     toRouteInfo(
@@ -72,11 +73,11 @@ export type PrefetchPipelineDeps = {
       pathname: string,
       search: string,
       hash: string,
-      node: import('../route-tree').RouteNode,
+      node: RouteNode,
       params?: Record<string, string>,
     ): MatchedRouteInfo;
   };
-  readonly getMatchableNodes: () => readonly import('../route-tree').RouteNode[];
+  readonly getMatchableNodes: () => readonly RouteNode[];
   readonly getRegistryGeneration: () => number;
   readonly executors: readonly PrefetchExecutor[];
   readonly speculation?: SpeculationPrefetchPort;

@@ -78,10 +78,17 @@ export class FailedNavigation {
   }
 }
 
-export function createNotFoundError(href: string): NavigationError {
-  return FailedNavigation.notFound(href, null, 'push').error;
+/**
+ * Error hook (`error="…"`) threw while handling a navigation failure.
+ * `error` — hook failure; `parent` — the failed navigation being handled.
+ */
+export interface NavigationHookErrorDetail {
+  error: unknown;
+  phase: 'error';
+  parent: FailedNavigation;
 }
 
-export function createNotFoundTransactionResult(href: string): NavigationErrorResult {
-  return FailedNavigation.notFound(href, null, 'push').toResult();
-}
+export type ReportNavigationHookError = (
+  hookError: unknown,
+  parent: FailedNavigation,
+) => void;

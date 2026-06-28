@@ -3,7 +3,7 @@
  *
  * **Runtime wiring:** route attrs / `hooks="phase::name"` pick *when* a hook runs;
  * {@link RouteHookDefinition} registers *what* runs. Phase policy lives in
- * {@link ./lifecycle-policy!PHASE_SPEC}.
+ * {@link ../lifecycle/phase-registry!PHASE_REGISTRY}.
  *
  * @module hooks/types
  */
@@ -11,7 +11,7 @@
 import type { HistoryAction } from '../history/provider.types';
 import type { RedirectTarget } from '../guard.types';
 import type { RouteTransition } from '../transition/route-transition';
-import type { PhaseThrowPolicy } from './lifecycle-policy';
+import type { PhaseThrowPolicy } from '../lifecycle/phase-registry';
 
 /** Branch in transition plan: exiting vs entering routes. @see {@link ../transition/plan!TransitionMap} */
 export type LifecycleBranch = 'exitRoutes' | 'enterRoutes';

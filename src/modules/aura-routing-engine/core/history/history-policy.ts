@@ -7,6 +7,9 @@ import type { HistoryAction, NavigateHistoryOptions } from './provider.types';
 /**
  * History side-effect after processor outcome.
  *
+ * Resolved by {@link resolveHistoryPolicy} in the engine for every terminal outcome
+ * except `redirect` and hash-only navigation.
+ *
  * - `preserve` — address bar unchanged (cancelled push, pre-render error)
  * - `commit-target` — pushState / replaceState to navigation target
  * - `rollback-source` — pop cancelled/error: restore `from` URL

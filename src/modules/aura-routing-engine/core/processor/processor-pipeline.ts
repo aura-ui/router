@@ -14,7 +14,7 @@ import { CommitTracker } from './view-mount/view-mount-tracker';
 import { FailedNavigation } from '../failure/navigation-failure';
 import { normalizeFailure } from '../failure/navigation-error';
 import type { TransactionResult } from '../navigation/transaction-result';
-import { LIFECYCLE_STEPS, type LifecycleStepDef } from '../lifecycle/phase-registry';
+import { PHASES, type LifecycleStepDef } from '../lifecycle/phase-registry';
 import { guardResultToPhaseOutcome, runPhaseStep, type PhaseStepOutcome } from '../lifecycle/phase-runner';
 
 /** Arguments for {@link AuraRoutingProcessor.run} (plan and policy are added by the processor). */
@@ -92,15 +92,15 @@ export class ProcessorPipeline {
 
   /** Reenter shortcut when only query/params change on the same route (no `after` — same view). */
   async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    return this.runLifecycleStep(LIFECYCLE_STEPS.reenter, pipelineContext);
+    return this.runLifecycleStep(PHASES.reenter, pipelineContext);
   }
 
   /** Pre-commit guards: `leave` on exit branch, then `enter` on activate branch. */
   async runGuards(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runUntilTerminal(
       [
-        (ctx) => this.runLifecycleStep(LIFECYCLE_STEPS.leave, ctx),
-        (ctx) => this.runLifecycleStep(LIFECYCLE_STEPS.enter, ctx),
+        (ctx) => this.runLifecycleStep(PHASES.leave, ctx),
+        (ctx) => this.runLifecycleStep(PHASES.enter, ctx),
       ],
       pipelineContext,
     );
@@ -108,7 +108,7 @@ export class ProcessorPipeline {
 
   /** Pre-commit data loading: `load` on activate branch. */
   async runLoads(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    return this.runLifecycleStep(LIFECYCLE_STEPS.load, pipelineContext);
+    return this.runLifecycleStep(PHASES.load, pipelineContext);
   }
 
   /**
@@ -164,17 +164,17 @@ export class ProcessorPipeline {
   async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     this.commitEnterViews(pipelineContext);
     await this.runExitCleanup(pipelineContext);
-    return this.runLifecycleStep(LIFECYCLE_STEPS.after, pipelineContext);
+    return this.runLifecycleStep(PHASES.after, pipelineContext);
   }
 
   /** `transitionOut` on exit branch. */
   private async runExitTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    return this.runLifecycleStep(LIFECYCLE_STEPS.transitionOut, pipelineContext);
+    return this.runLifecycleStep(PHASES.transitionOut, pipelineContext);
   }
 
   /** `transitionIn` on activate branch. */
   private async runEnterTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    return this.runLifecycleStep(LIFECYCLE_STEPS.transitionIn, pipelineContext);
+    return this.runLifecycleStep(PHASES.transitionIn, pipelineContext);
   }
 
   /**
@@ -211,7 +211,7 @@ export class ProcessorPipeline {
 
   /** `left` on exit branch after view commit or render error. */
   private async runExitCleanup(pipelineContext: PipelineContext): Promise<void> {
-    await this.runLifecycleStep(LIFECYCLE_STEPS.left, pipelineContext);
+    await this.runLifecycleStep(PHASES.left, pipelineContext);
   }
 
   private async runUntilTerminal(

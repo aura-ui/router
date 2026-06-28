@@ -1,6 +1,6 @@
-import type { PrefetchMode } from '../prefetch/types';
+import { LINK_PREFETCH_MODES, type LinkPrefetchMode, type PrefetchMode } from '../prefetch/types';
 
-const PREFETCH_MODES = new Set<PrefetchMode>(['intent', 'viewport', 'tap', 'render', 'manual']);
+const PREFETCH_MODES = new Set<LinkPrefetchMode>(LINK_PREFETCH_MODES);
 
 export function findRouterLink(
   target: EventTarget | null,
@@ -41,7 +41,7 @@ export function resolveLinkPrefetchMode(
 ): PrefetchMode | null {
   const raw = anchor.getAttribute('data-prefetch')?.trim().toLowerCase();
   if (raw === 'false' || raw === 'none') return null;
-  if (raw && PREFETCH_MODES.has(raw as PrefetchMode)) return raw as PrefetchMode;
+  if (raw && PREFETCH_MODES.has(raw as LinkPrefetchMode)) return raw as LinkPrefetchMode;
   return defaultMode;
 }
 

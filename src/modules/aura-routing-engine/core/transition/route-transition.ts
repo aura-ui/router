@@ -1,6 +1,11 @@
 import type { TransitionPolicy } from './policy';
 
-/** Resolved transition package from route attrs (`transition`, `transition-order`, …). */
+/**
+ * Resolved view transition package from route attrs (`transition`, `transition-order`, …).
+ *
+ * `order` is {@link TransitionPolicy} (view effect order), not branch diff
+ * ({@link ../route-tree/transition-plan!TransitionMap}).
+ */
 export interface RouteTransition {
   /** `null` — inactive package (replace mount, skip transition phases). */
   order: TransitionPolicy | null;

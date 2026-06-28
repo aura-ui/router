@@ -3,7 +3,7 @@
  *
  * **Runtime wiring:** route attrs / `hooks="phase::name"` pick *when* a hook runs;
  * {@link RouteHookDefinition} registers *what* runs. Phase policy lives in
- * {@link ../lifecycle/phase-registry!PHASE_REGISTRY}.
+ * {@link ../lifecycle/phase-registry!PHASES}.
  *
  * @module hooks/types
  */

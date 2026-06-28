@@ -1,12 +1,12 @@
 /**
  * Phase attr parsing and hook name resolution for routes.
  *
- * Phase metadata lives in {@link ../lifecycle/phase-registry!PHASE_REGISTRY}.
+ * Phase metadata lives in {@link ../lifecycle/phase-registry!PHASES}.
  *
  * @module hooks/phases
  */
 
-import { NAVIGATION_PHASES } from '../lifecycle/phase-registry';
+import { PHASES } from '../lifecycle/phase-registry';
 import type { PhaseHooksMap, RouteHookNamesSource, RoutePhase } from './types';
 
 /**
@@ -14,7 +14,7 @@ import type { PhaseHooksMap, RouteHookNamesSource, RoutePhase } from './types';
  * Includes camelCase keys and kebab-case {@link PhaseDefinition.htmlAttr} aliases.
  */
 export const PHASE_HTML_ALIAS = Object.fromEntries(
-  Object.entries(NAVIGATION_PHASES).flatMap(([phase, def]) => {
+  Object.entries(PHASES).flatMap(([phase, def]) => {
     const entries: [string, RoutePhase][] = [[phase, phase as RoutePhase]];
     if (def.htmlAttr && def.htmlAttr !== phase) {
       entries.push([def.htmlAttr, phase as RoutePhase]);
@@ -74,7 +74,7 @@ export function resolveHookNames(
   source: RouteHookNamesSource,
   phase: RoutePhase,
 ): readonly string[] | null {
-  const def = NAVIGATION_PHASES[phase];
+  const def = PHASES[phase];
   const routeProp = 'routeProp' in def ? def.routeProp : undefined;
   const fromAttr = routeProp ? source[routeProp] : null;
   const fromHooks = source.hooks?.[phase];

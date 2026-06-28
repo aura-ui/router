@@ -1,5 +1,5 @@
 /**
- * Navigation phase registry — single source of truth for pipeline policy,
+ * Navigation phases — single source of truth for pipeline policy,
  * HTML/route attr bindings, and route lifecycle callbacks.
  *
  * @module lifecycle/phase-registry
@@ -9,14 +9,11 @@ import type {
   LifecycleBranch,
   LifecycleHookHandling,
   LifecyclePhase,
-  PhaseDefinition,
   RouteHookAttrProp,
   RouteInstance,
   RouteLifecycleContext,
   RoutePhase,
 } from '../hooks/types';
-
-export type PhaseHookPolicy = 'blocking' | 'bestEffort';
 
 /**
  * Route callback / hook throw policy.
@@ -27,75 +24,32 @@ export type PhaseHookPolicy = 'blocking' | 'bestEffort';
  */
 export type PhaseThrowPolicy = 'failure' | 'log' | 'propagate';
 
-interface PhaseRegistryEntry {
+export interface PhaseDef {
   lifecyclePhase: RoutePhase;
   branch: LifecycleBranch;
-  hookPolicy: PhaseHookPolicy;
+  hooks: LifecycleHookHandling;
   onThrow: PhaseThrowPolicy;
   htmlAttr?: string;
   routeProp?: RouteHookAttrProp;
   onRoute?: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
 }
 
-type PipelinePhaseRegistryEntry = PhaseRegistryEntry & {
+/** Pipeline step — {@link PhaseDef} with required {@link PhaseDef.onRoute}. */
+export type LifecycleStepDef = PhaseDef & {
   lifecyclePhase: LifecyclePhase;
   onRoute: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
 };
 
-export interface LifecycleStepDef {
-  lifecyclePhase: LifecyclePhase;
-  branch: LifecycleBranch;
-  hooks: LifecycleHookHandling;
-  onThrow: PhaseThrowPolicy;
-  onRoute: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
-}
-
-/** Authoring-time `hookPolicy` → runtime {@link LifecycleHookHandling}. */
-export function hookPolicyToHookHandling(
-  hookPolicy: PhaseHookPolicy,
-  onThrow: PhaseThrowPolicy,
-): LifecycleHookHandling {
-  if (hookPolicy === 'blocking') {
-    return { kind: 'blocking' };
-  }
-
-  return {
-    kind: 'postCommit',
-    hookErrors: onThrow === 'log' ? 'log' : 'propagate',
-  };
-}
-
-function toPhaseDefinition(entry: PhaseRegistryEntry): PhaseDefinition {
-  return {
-    lifecyclePhase: entry.lifecyclePhase,
-    branch: entry.branch,
-    hooks: hookPolicyToHookHandling(entry.hookPolicy, entry.onThrow),
-    onThrow: entry.onThrow,
-    ...(entry.htmlAttr !== undefined && { htmlAttr: entry.htmlAttr }),
-    ...(entry.routeProp !== undefined && { routeProp: entry.routeProp }),
-  };
-}
-
-function toLifecycleStep(entry: PipelinePhaseRegistryEntry): LifecycleStepDef {
-  return {
-    lifecyclePhase: entry.lifecyclePhase,
-    branch: entry.branch,
-    hooks: hookPolicyToHookHandling(entry.hookPolicy, entry.onThrow),
-    onThrow: entry.onThrow,
-    onRoute: entry.onRoute,
-  };
-}
-
 /**
  * Per-phase configuration: policy, attr bindings, and pipeline route callback.
  *
- * @see {@link PHASE_REGISTRY.error} — terminal phase for route attrs only (no `onRoute`)
+ * @see {@link PHASES.error} — terminal phase for route attrs only (no `onRoute`)
  */
-export const PHASE_REGISTRY = {
+export const PHASES = {
   leave: {
     lifecyclePhase: 'leave',
     branch: 'exitRoutes',
-    hookPolicy: 'blocking',
+    hooks: { kind: 'blocking' },
     onThrow: 'failure',
     htmlAttr: 'leave',
     routeProp: 'leave',
@@ -104,7 +58,7 @@ export const PHASE_REGISTRY = {
   enter: {
     lifecyclePhase: 'enter',
     branch: 'enterRoutes',
-    hookPolicy: 'blocking',
+    hooks: { kind: 'blocking' },
     onThrow: 'failure',
     htmlAttr: 'enter',
     routeProp: 'enter',
@@ -113,7 +67,7 @@ export const PHASE_REGISTRY = {
   load: {
     lifecyclePhase: 'load',
     branch: 'enterRoutes',
-    hookPolicy: 'blocking',
+    hooks: { kind: 'blocking' },
     onThrow: 'failure',
     htmlAttr: 'load',
     routeProp: 'load',
@@ -122,7 +76,7 @@ export const PHASE_REGISTRY = {
   reenter: {
     lifecyclePhase: 'reenter',
     branch: 'enterRoutes',
-    hookPolicy: 'bestEffort',
+    hooks: { kind: 'postCommit', hookErrors: 'propagate' },
     onThrow: 'failure',
     htmlAttr: 'reenter',
     onRoute: (route, ctx) => route.onReenter(ctx),
@@ -130,7 +84,7 @@ export const PHASE_REGISTRY = {
   transitionOut: {
     lifecyclePhase: 'transitionOut',
     branch: 'exitRoutes',
-    hookPolicy: 'bestEffort',
+    hooks: { kind: 'postCommit', hookErrors: 'propagate' },
     onThrow: 'failure',
     htmlAttr: 'transition-out',
     routeProp: 'transitionOut',
@@ -139,7 +93,7 @@ export const PHASE_REGISTRY = {
   transitionIn: {
     lifecyclePhase: 'transitionIn',
     branch: 'enterRoutes',
-    hookPolicy: 'bestEffort',
+    hooks: { kind: 'postCommit', hookErrors: 'propagate' },
     onThrow: 'failure',
     htmlAttr: 'transition-in',
     routeProp: 'transitionIn',
@@ -148,7 +102,7 @@ export const PHASE_REGISTRY = {
   left: {
     lifecyclePhase: 'left',
     branch: 'exitRoutes',
-    hookPolicy: 'bestEffort',
+    hooks: { kind: 'postCommit', hookErrors: 'log' },
     onThrow: 'log',
     htmlAttr: 'left',
     onRoute: (route, ctx) => route.onLeft(ctx),
@@ -156,7 +110,7 @@ export const PHASE_REGISTRY = {
   after: {
     lifecyclePhase: 'after',
     branch: 'enterRoutes',
-    hookPolicy: 'bestEffort',
+    hooks: { kind: 'postCommit', hookErrors: 'log' },
     onThrow: 'log',
     htmlAttr: 'after',
     routeProp: 'afterHook',
@@ -165,33 +119,9 @@ export const PHASE_REGISTRY = {
   error: {
     lifecyclePhase: 'error',
     branch: 'enterRoutes',
-    hookPolicy: 'bestEffort',
+    hooks: { kind: 'postCommit', hookErrors: 'log' },
     onThrow: 'log',
     htmlAttr: 'error',
     routeProp: 'error',
   },
-} as const satisfies Record<RoutePhase, PhaseRegistryEntry>;
-
-const LIFECYCLE_PHASES = [
-  'leave',
-  'enter',
-  'load',
-  'reenter',
-  'transitionOut',
-  'transitionIn',
-  'left',
-  'after',
-] as const satisfies readonly LifecyclePhase[];
-
-/** Hook-layer phase metadata derived from {@link PHASE_REGISTRY}. */
-export const NAVIGATION_PHASES = Object.fromEntries(
-  (Object.keys(PHASE_REGISTRY) as RoutePhase[]).map((phase) => [
-    phase,
-    toPhaseDefinition(PHASE_REGISTRY[phase]),
-  ]),
-) as Record<RoutePhase, PhaseDefinition>;
-
-/** Pipeline lifecycle steps derived from {@link PHASE_REGISTRY}. */
-export const LIFECYCLE_STEPS = Object.fromEntries(
-  LIFECYCLE_PHASES.map((phase) => [phase, toLifecycleStep(PHASE_REGISTRY[phase])]),
-) as Record<LifecyclePhase, LifecycleStepDef>;
+} as const satisfies Record<RoutePhase, PhaseDef>;

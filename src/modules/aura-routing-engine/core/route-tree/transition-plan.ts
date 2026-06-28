@@ -1,11 +1,18 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { TransitionMap } from '../transition/plan';
 import {
   buildEnterRoutes,
   buildExitRoutes,
   findBranchLcaIndex,
 } from './branch-diff';
 import { getActiveChain, getLeafMatch, isSameRouteMatch } from './matched-chain';
+
+/** Branch diff for processor: exit/enter routes between `from` and `to` matches. */
+export interface TransitionMap {
+  exitRoutes: MatchedRouteInfo[];
+  enterRoutes: MatchedRouteInfo[];
+  lca: MatchedRouteInfo | null;
+  reenter: boolean;
+}
 
 /** Target `<aura-route>` of the enter branch (content leaf). */
 export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | undefined {
@@ -18,7 +25,7 @@ export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | 
  * @example profile → security: exit [profile], enter [security], lca settings
  * @example profile → profile (same url): reenter true
  */
-export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRouteInfo) {
+export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRouteInfo): TransitionMap {
   if (!from) {
     return {
       exitRoutes: [],

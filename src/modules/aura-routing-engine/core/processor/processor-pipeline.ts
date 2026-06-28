@@ -1,5 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { TransitionMap } from '../transition/plan';
+import type { TransitionMap } from '../route-tree/transition-plan';
 import type { AuraRoutingProcessorJob } from './cancellation/job';
 import { resolveHookNames } from '../lifecycle/phase-attrs';
 import { isRenderError, runViewCommit } from '../view-mount/view-render';

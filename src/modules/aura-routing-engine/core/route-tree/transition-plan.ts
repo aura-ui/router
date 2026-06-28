@@ -61,7 +61,7 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
  * Тот же URL (pathname + search) и тот же leaf route — shortcut reenter.
  * @example `/settings/profile` → `/settings/profile` → true
  */
-function isSameNavigationTarget(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
+export function isSameNavigationTarget(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
   if (from.pathname !== to.pathname || from.search !== to.search) return false;
   return isSameRouteMatch(getLeafMatch(from), getLeafMatch(to));
 }

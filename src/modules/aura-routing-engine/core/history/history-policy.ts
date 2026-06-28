@@ -29,6 +29,8 @@ export interface HistoryProviderLike {
 
 export interface ResolveHistoryOptions {
   syncHistory?: boolean;
+  /** Target URL + route already committed (reenter shortcut). */
+  sameTarget?: boolean;
 }
 
 /** History policy for a terminal navigation error (`NOT_FOUND` or pipeline failure). */
@@ -57,7 +59,7 @@ export function resolveHistoryPolicy(
 ): HistoryPolicy {
   switch (result.status) {
     case 'viewCommitted':
-      return 'commit-target';
+      return options.sameTarget ? 'preserve' : 'commit-target';
 
     case 'redirect':
       return 'preserve';

@@ -206,6 +206,24 @@ describe('ProcessorPipeline.runRenderWithTransition (parallel)', () => {
     expect(outcome).toBeNull();
   });
 
+  it('defers supersede handling to runAfterRender after parallel transitions', async () => {
+    let active = true;
+    const pipelineContext = createPipelineContext({
+      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+    });
+    pipelineContext.isJobActive = () => active;
+    mockRunPhaseHooks.mockImplementation(async () => {
+      active = false;
+    });
+
+    const transitionOutcome = await pipeline.runRenderWithTransition(pipelineContext);
+    expect(transitionOutcome).toBeNull();
+
+    const afterOutcome = await pipeline.runAfterRender(pipelineContext);
+    expect(afterOutcome).toEqual({ status: 'cancelled' });
+  });
+
   it('returns error from exit transition when it fails', async () => {
     const transitionError = new Error('exit transition failed');
     const pipelineContext = createPipelineContext({
@@ -328,6 +346,42 @@ describe('ProcessorPipeline.runAfterRender', () => {
     await pipeline.runAfterRender(pipelineContext);
 
     expect(phases).toEqual(['left', 'after']);
+  });
+});
+
+describe('ProcessorPipeline supersede', () => {
+  const pipeline = new ProcessorPipeline();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRunViewCommit.mockResolvedValue('ok');
+    mockRunPhaseHooks.mockResolvedValue(undefined);
+  });
+
+  it('runAfterRender skips commit when job is superseded', async () => {
+    const commitStagedView = jest.fn();
+    const pipelineContext = createPipelineContext({
+      enterRoutes: [createMatchedRoute('/to', { commitStagedView })],
+    });
+    pipelineContext.isJobActive = () => false;
+    pipelineContext.commitTracker.markViewStaged();
+
+    const outcome = await pipeline.runAfterRender(pipelineContext);
+
+    expect(outcome).toEqual({ status: 'cancelled' });
+    expect(commitStagedView).not.toHaveBeenCalled();
+    expect(pipelineContext.commitTracker.isViewCommitted()).toBe(false);
+  });
+
+  it('run returns cancelled instead of viewCommitted when superseded at end', async () => {
+    const pipelineContext = createPipelineContext({
+      enterRoutes: [createMatchedRoute('/to')],
+    });
+    pipelineContext.isJobActive = () => false;
+
+    const result = await pipeline.run(pipelineContext);
+
+    expect(result).toEqual({ status: 'cancelled' });
   });
 });
 

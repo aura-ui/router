@@ -116,7 +116,7 @@ describe('view flow (controller → outlet)', () => {
     expect(root.textContent).toBe('new');
   });
 
-  it('cancelPendingRender drops staged view and keeps active view', async () => {
+  it('revertInFlightView rolls back staged mount and clears presentation', async () => {
     const root = createOutlet();
     const { controller, route } = createController(root, {
       resolve: async (routeInfo) =>
@@ -127,7 +127,7 @@ describe('view flow (controller → outlet)', () => {
     await controller.render(matched('/new'));
     expect(root.children).toHaveLength(2);
 
-    controller.cancelPendingRender();
+    controller.revertInFlightView();
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('old');
 
@@ -138,6 +138,23 @@ describe('view flow (controller → outlet)', () => {
     await controller.render(matched('/old'));
     expect(root.textContent).toBe('old');
     expect(root.children).toHaveLength(1);
+  });
+
+  it('revertInFlightView clears transition inline styles on active view', async () => {
+    const root = createOutlet();
+    const { controller } = createController(root, {
+      resolve: async () => '<span>page</span>',
+    });
+
+    await controller.render(matched('/page'));
+    const viewRoot = root.firstElementChild as HTMLElement;
+    viewRoot.style.opacity = '0';
+    viewRoot.style.transform = 'translateX(-1.25rem)';
+
+    controller.revertInFlightView();
+
+    expect(viewRoot.style.opacity).toBe('');
+    expect(viewRoot.style.transform).toBe('');
   });
 
   it('onLeft during stage removes staged view and unmounts the leaving route view', async () => {

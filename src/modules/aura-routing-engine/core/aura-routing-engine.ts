@@ -9,6 +9,8 @@ import {
 } from './match/url-matcher';
 import { resolveNavigationTarget } from './match/resolve-navigation-target';
 import { syncChainHref } from './route-tree/matched-chain';
+import { NavigationPlanner } from './navigation/navigation-planner';
+import { applyCommitGate } from './navigation/commit-gate';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
   HistoryAction,
@@ -71,6 +73,7 @@ export class AuraRoutingEngine {
   readonly contentLoad?: ContentLoadService;
   private prefetchPipeline?: PrefetchPipeline;
   private readonly linkNavigation: LinkNavigationTracker;
+  private readonly navigationPlanner = new NavigationPlanner();
 
   constructor(
     processor: AuraRoutingProcessor,
@@ -147,6 +150,7 @@ export class AuraRoutingEngine {
     this.stop();
     this.registry.clear();
     this.prev = null;
+    this.navigationPlanner.reset();
   }
 
   /**
@@ -223,41 +227,70 @@ export class AuraRoutingEngine {
 
     const from = this.prev;
 
-    const result = await this.processor.run({
-      from,
-      to,
-      action,
-      router: this.router,
-      reportHookError: (hookError, parent) => {
-        this.config.onNavigationHookError?.({ error: hookError, phase: 'error', parent });
-      },
-    });
+    const plan = this.navigationPlanner.plan({ href: relativeHref, from, to });
 
-    this.applyFinalizeEffects(
-      finalizeProcessorNavigation(
-        result,
-        {
-          action,
-          href: relativeHref,
-          options,
-          from,
-          to,
-          hash,
+    if (plan.action === 'noop') return;
+
+    if (plan.action === 'cancel-pending') {
+      this.processor.abortPendingNavigation();
+      return;
+    }
+
+    this.navigationPlanner.markPending(relativeHref);
+    try {
+      const result = await this.processor.run({
+        from,
+        to,
+        action,
+        router: this.router,
+        reportHookError: (hookError, parent) => {
+          this.config.onNavigationHookError?.({ error: hookError, phase: 'error', parent });
         },
-        this.provider,
-        {
-          failureDeps: this.failureDeps(),
-          onNavigationCommitted: this.config.onNavigationCommitted,
-          onRedirect: (url, replace) => {
-            void this.navigateTo(url, replace ? 'replace' : 'push', {
-              replace,
-              syncHistory: true,
-            });
+        commitGate: () => {
+          this.applyFinalizeEffects(
+            applyCommitGate({
+              from,
+              to,
+              action,
+              href: relativeHref,
+              hash,
+              options,
+              provider: this.provider,
+              onNavigationCommitted: this.config.onNavigationCommitted,
+              scrollToHash: (h) => this.scrollToHash(h),
+            }),
+          );
+        },
+      });
+
+      this.applyFinalizeEffects(
+        finalizeProcessorNavigation(
+          result,
+          {
+            action,
+            href: relativeHref,
+            options,
+            from,
+            to,
+            hash,
           },
-          scrollToHash: (h) => this.scrollToHash(h),
-        },
-      ),
-    );
+          this.provider,
+          {
+            failureDeps: this.failureDeps(),
+            onNavigationCommitted: this.config.onNavigationCommitted,
+            onRedirect: (url, replace) => {
+              void this.navigateTo(url, replace ? 'replace' : 'push', {
+                replace,
+                syncHistory: true,
+              });
+            },
+            scrollToHash: (h) => this.scrollToHash(h),
+          },
+        ),
+      );
+    } finally {
+      this.navigationPlanner.clearPending(relativeHref);
+    }
   }
 
   private failureDeps(): CompleteFailureDeps {

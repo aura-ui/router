@@ -13,6 +13,7 @@ export type MountContext = {
   pattern?: string;
   signal?: AbortSignal;
   strategy?: StageStrategy;
+  /** True when the route declares a transition package — incoming view stages for crossfade. */
   useStagedMount?: boolean;
 };
 
@@ -140,6 +141,24 @@ export function cancelStagedIncoming(snapshot: MountSnapshot): MountSnapshot {
   };
 }
 
+/**
+ * TODO(revert-in-flight-view): DOM rollback semantics (stage vs replace)
+ *
+ * revertInFlightView is primarily for transition/stage mounts (two view roots during crossfade).
+ *
+ * | Phase                         | replace (no transition)     | stage (transition)        |
+ * |-------------------------------|-----------------------------|---------------------------|
+ * | During fetch/load (pre-mount) | abort via renderSignal only | abort + optional rollback |
+ * | After mount, before gate      | new view visible, no revert | rollbackStaged restores outgoing |
+ * | clearViewPresentation         | mostly no-op                | cancels fade/slide styles |
+ *
+ * Replace swaps the view root at render time — outgoing handle is destroyed; rollbackStaged is a no-op.
+ * Supersede before mount is handled by signal cancel; after replace the gap is history-not-yet-committed
+ * but DOM already new — intentional tradeoff for patch (single activeRoot).
+ *
+ * If full DOM restore on replace-only supersede is needed: keep a detached outgoing snapshot until
+ * commit gate (no second DOM layer — unlike stage). See docs/todo/REPLACE_SUPERSEDE_ROLLBACK.md.
+ */
 export function rollbackStaged(snapshot: MountSnapshot): MountSnapshot {
   if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
 
@@ -153,6 +172,8 @@ export function rollbackStaged(snapshot: MountSnapshot): MountSnapshot {
     nestedOutlet: outgoing?.findChildOutlet() ?? null,
   };
 }
+
+// TODO(replace-supersede): see rollbackStaged block comment above.
 
 export function unmountOnLeave(
   snapshot: MountSnapshot,

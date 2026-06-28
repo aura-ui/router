@@ -3,6 +3,7 @@ import {
   applyHistoryPolicy,
   resolveHistoryPolicy,
   type HistoryProviderLike,
+  type ResolveHistoryOptions,
 } from '../history/history-policy';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
@@ -20,9 +21,13 @@ export function applyTransactionHistory(
   fromHref: string | null,
   options: NavigateHistoryOptions,
   provider: HistoryProviderLike,
+  policyOptions: ResolveHistoryOptions = {},
 ): void {
   applyHistoryPolicy(
-    resolveHistoryPolicy(result, action, { syncHistory: options.syncHistory }),
+    resolveHistoryPolicy(result, action, {
+      syncHistory: options.syncHistory,
+      ...policyOptions,
+    }),
     { href, fromHref, options },
     provider,
   );
@@ -64,10 +69,8 @@ export function finalizeProcessorNavigation(
 
   switch (result.status) {
     case 'viewCommitted':
-      applyTransactionHistory(result, ctx.action, ctx.href, fromHref, ctx.options, provider);
-      callbacks.onNavigationCommitted?.(ctx.to);
-      if (ctx.hash) callbacks.scrollToHash?.(ctx.hash);
-      return { setPrev: ctx.to };
+      // DOM, history, and `prev` were committed at the processor commit gate.
+      return {};
 
     case 'cancelled':
       applyTransactionHistory(result, ctx.action, ctx.href, fromHref, ctx.options, provider);

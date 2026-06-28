@@ -63,4 +63,6 @@ export interface RouteInstance extends RouteHookNamesSource {
   onReenter(ctx: RouteLifecycleContext): void;
   onError(ctx: RouteErrorContext): void;
   commitStagedView?(): void;
+  /** Drops staged views and clears in-flight transition presentation (cancel / supersede). */
+  revertInFlightView?(): void;
 }

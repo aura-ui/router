@@ -30,6 +30,11 @@ export class CommitTracker {
     this._view = 'committed';
   }
 
+  /** Whether view state reached a terminal committed snapshot for this transaction. */
+  isViewCommitted(): boolean {
+    return this._view === 'committed';
+  }
+
   /**
    * Render failed but error UI mounted on target (after exit `left` cleanup).
    * History and error callbacks treat navigation as user-visible on target URL.

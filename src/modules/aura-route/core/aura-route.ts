@@ -141,8 +141,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     });
   }
 
-  cancelPendingRender(): void {
-    this.viewController?.cancelPendingRender();
+  revertInFlightView(): void {
+    this.viewController?.revertInFlightView();
   }
 
   commitStagedView(): void {

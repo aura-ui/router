@@ -2,6 +2,9 @@
  * Blocking phase hook result — normalized from {@link ../hooks/types!HookResultInput}
  * by {@link ../hooks/registry!normalizeHookResult}.
  *
+ * Shared guard contract for {@link ../hooks/registry}, {@link ../lifecycle/phase-runner},
+ * and {@link ../processor/processor-pipeline} — not the author-facing {@link ../hooks/types!HookResult}.
+ *
  * @module guard.types
  */
 

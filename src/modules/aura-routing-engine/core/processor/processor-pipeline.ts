@@ -19,7 +19,6 @@ import {
 } from '../hooks/pipeline-hooks';
 import { runPhaseHooks } from '../hooks/registry';
 import { failPipelineNavigation } from './pipeline-error';
-import { TRANSITION_RENDER_SEQUENCES } from './transition-sequences';
 import type { ProcessorRunInput } from './types';
 
 export type { ProcessorRunInput } from './types';
@@ -27,7 +26,7 @@ export type { ProcessorRunInput } from './types';
 /** Enriched navigation run: {@link ProcessorRunInput} + transition plan and order. */
 export interface NavigationTransaction extends ProcessorRunInput {
   plan: TransitionMap;
-  /** `null` — skip transitionOut/transitionIn (inactive transition package). */
+  /** `null` — skip transitionOut/transitionIn (inactive transition package / effect order). */
   transitionOrder: TransitionPolicy | null;
 }
 
@@ -104,14 +103,20 @@ export class ProcessorPipeline {
       return this.runParallelRenderWithTransition(pipelineContext);
     }
 
-    return this.runUntilTerminal(
-      TRANSITION_RENDER_SEQUENCES[transitionOrder]({
-        runExitTransition: (ctx) => this.runExitTransition(ctx),
-        runRender: (ctx) => this.runRender(ctx),
-        runEnterTransition: (ctx) => this.runEnterTransition(ctx),
-      }),
-      pipelineContext,
-    );
+    const steps: PipelineStep[] =
+      transitionOrder === 'out-in'
+        ? [
+            (ctx) => this.runExitTransition(ctx),
+            (ctx) => this.runRender(ctx),
+            (ctx) => this.runEnterTransition(ctx),
+          ]
+        : [
+            (ctx) => this.runRender(ctx),
+            (ctx) => this.runEnterTransition(ctx),
+            (ctx) => this.runExitTransition(ctx),
+          ];
+
+    return this.runUntilTerminal(steps, pipelineContext);
   }
 
   private async runParallelRenderWithTransition(

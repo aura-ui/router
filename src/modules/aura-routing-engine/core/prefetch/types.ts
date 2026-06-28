@@ -3,6 +3,17 @@ import type { RouteNode } from '../route-tree/route-node.types';
 
 export type PrefetchMode = 'intent' | 'viewport' | 'tap' | 'render' | 'manual' | 'none';
 
+/** `data-prefetch` values on in-app links (excludes `none`). */
+export const LINK_PREFETCH_MODES = [
+  'intent',
+  'viewport',
+  'tap',
+  'render',
+  'manual',
+] as const satisfies readonly Exclude<PrefetchMode, 'none'>[];
+
+export type LinkPrefetchMode = (typeof LINK_PREFETCH_MODES)[number];
+
 /** Resolved match + branch for prefetch executors. */
 export type PrefetchPlan = {
   readonly href: string;

@@ -6,7 +6,7 @@ import {
 } from './branch-diff';
 import { getActiveChain, getLeafMatch, isSameRouteMatch } from './matched-chain';
 
-/** Branch diff for processor: exit/enter routes between `from` and `to` matches. */
+/** Branch diff (exit/enter routes) — not {@link ../transition/policy!TransitionPolicy | view effect order}. */
 export interface TransitionMap {
   exitRoutes: MatchedRouteInfo[];
   enterRoutes: MatchedRouteInfo[];

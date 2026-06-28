@@ -1,4 +1,4 @@
-/** Порядок exit/enter transition effects относительно render. */
+/** View transition effect order (out-in / in-out / parallel) relative to render — not route branch diff. */
 export type TransitionPolicy = 'out-in' | 'in-out' | 'parallel';
 
 export const DEFAULT_TRANSITION_POLICY: TransitionPolicy = 'parallel';

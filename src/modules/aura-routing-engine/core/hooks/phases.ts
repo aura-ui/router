@@ -2,64 +2,60 @@
  * Phase metadata and hook name resolution for routes.
  *
  * Pipeline policy (branch, blocking/postCommit) is derived from
- * {@link ../processor/lifecycle/lifecycle-steps!LIFECYCLE_STEPS}.
+ * {@link ./lifecycle-policy!PHASE_SPEC}.
  * This module adds HTML/route attr bindings and parsing helpers.
  *
  * @module hooks/phases
  */
 
-import { LIFECYCLE_STEPS, lifecycleStepPolicy } from '../processor/lifecycle/lifecycle-steps';
+import {
+  PHASE_SPEC,
+  phaseSpecPolicy,
+  phaseSpecToHookHandling,
+} from './lifecycle-policy';
 import type {
+  LifecyclePhase,
   PhaseDefinition,
   PhaseHooksMap,
+  RouteHookAttrProp,
   RouteHookNamesSource,
   RoutePhase,
 } from './types';
 
+function phaseDefinitionFromSpec(
+  spec: (typeof PHASE_SPEC)[LifecyclePhase],
+  bindings: { htmlAttr?: string; routeProp?: RouteHookAttrProp } = {},
+): PhaseDefinition {
+  const policy = phaseSpecPolicy(spec);
+  return {
+    lifecyclePhase: policy.lifecyclePhase,
+    branch: policy.branch,
+    hooks: phaseSpecToHookHandling(spec),
+    onThrow: policy.onThrow,
+    ...bindings,
+  };
+}
+
 /**
  * Per-phase hook metadata: pipeline policy + how attrs map to route props.
  *
- * @see {@link NAVIGATION_PHASES.error} — terminal phase, not in {@link LIFECYCLE_STEPS}
+ * @see {@link NAVIGATION_PHASES.error} — terminal phase, not in {@link PHASE_SPEC}
  */
 export const NAVIGATION_PHASES = {
-  leave: {
-    ...lifecycleStepPolicy(LIFECYCLE_STEPS.leave),
-    htmlAttr: 'leave',
-    routeProp: 'leave',
-  },
-  enter: {
-    ...lifecycleStepPolicy(LIFECYCLE_STEPS.enter),
-    htmlAttr: 'enter',
-    routeProp: 'enter',
-  },
-  load: {
-    ...lifecycleStepPolicy(LIFECYCLE_STEPS.load),
-    htmlAttr: 'load',
-    routeProp: 'load',
-  },
-  reenter: {
-    ...lifecycleStepPolicy(LIFECYCLE_STEPS.reenter),
-    htmlAttr: 'reenter',
-  },
-  transitionOut: {
-    ...lifecycleStepPolicy(LIFECYCLE_STEPS.transitionOut),
+  leave: phaseDefinitionFromSpec(PHASE_SPEC.leave, { htmlAttr: 'leave', routeProp: 'leave' }),
+  enter: phaseDefinitionFromSpec(PHASE_SPEC.enter, { htmlAttr: 'enter', routeProp: 'enter' }),
+  load: phaseDefinitionFromSpec(PHASE_SPEC.load, { htmlAttr: 'load', routeProp: 'load' }),
+  reenter: phaseDefinitionFromSpec(PHASE_SPEC.reenter, { htmlAttr: 'reenter' }),
+  transitionOut: phaseDefinitionFromSpec(PHASE_SPEC.transitionOut, {
     htmlAttr: 'transition-out',
     routeProp: 'transitionOut',
-  },
-  transitionIn: {
-    ...lifecycleStepPolicy(LIFECYCLE_STEPS.transitionIn),
+  }),
+  transitionIn: phaseDefinitionFromSpec(PHASE_SPEC.transitionIn, {
     htmlAttr: 'transition-in',
     routeProp: 'transitionIn',
-  },
-  left: {
-    ...lifecycleStepPolicy(LIFECYCLE_STEPS.left),
-    htmlAttr: 'left',
-  },
-  after: {
-    ...lifecycleStepPolicy(LIFECYCLE_STEPS.after),
-    htmlAttr: 'after',
-    routeProp: 'afterHook',
-  },
+  }),
+  left: phaseDefinitionFromSpec(PHASE_SPEC.left, { htmlAttr: 'left' }),
+  after: phaseDefinitionFromSpec(PHASE_SPEC.after, { htmlAttr: 'after', routeProp: 'afterHook' }),
   error: {
     lifecyclePhase: 'error',
     branch: 'enterRoutes',

@@ -2,7 +2,7 @@ import type { RouterInstance } from './hooks/types';
 import { parsePath } from '../../aura-utils/misc/url';
 
 import type { AuraRoutingProcessor } from './processor/processor';
-import type { TransactionResult } from './processor/processor-pipeline';
+import type { TransactionResult } from './navigation/transaction-result';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import {
   AuraRoutingUrlMatcher,
@@ -27,6 +27,7 @@ import {
 import type { NavigationHookErrorDetail } from './failure/navigation-error.types';
 import { applyHistoryPolicy, resolveHistoryPolicy } from './history/history-policy';
 import { FailedNavigation } from './failure/navigation-failure';
+import { finalizeFailure, type CompleteFailureOutcome } from './failure/finalize-failure';
 import { runNotFoundExitCleanup } from './failure/not-found';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
@@ -201,7 +202,8 @@ export class AuraRoutingEngine {
     if (!found) {
       runNotFoundExitCleanup(this.prev, action, this.router);
       this.applyFailureOutcome(
-        FailedNavigation.notFound(relativeHref, this.prev, action).complete(
+        finalizeFailure(
+          FailedNavigation.notFound(relativeHref, this.prev, action),
           this.failureDeps(options),
         ),
       );
@@ -249,7 +251,7 @@ export class AuraRoutingEngine {
     };
   }
 
-  private applyFailureOutcome(outcome: { setPrev?: MatchedRouteInfo | null }): void {
+  private applyFailureOutcome(outcome: CompleteFailureOutcome): void {
     if (outcome.setPrev !== undefined) {
       this.prev = outcome.setPrev;
     }
@@ -302,7 +304,7 @@ export class AuraRoutingEngine {
 
       case 'error': {
         this.applyFailureOutcome(
-          result.failure.complete(this.failureDeps(ctx.options)),
+          finalizeFailure(result.failure, this.failureDeps(ctx.options)),
         );
         break;
       }

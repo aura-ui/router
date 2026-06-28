@@ -1,5 +1,3 @@
-import type { FailedNavigation } from './navigation-failure';
-
 export type NavigationErrorPhase =
   | 'match'
   | 'leave'
@@ -19,10 +17,10 @@ export type NavigationErrorPhase =
 export interface NavigationHookErrorDetail {
   error: unknown;
   phase: 'error';
-  parent: FailedNavigation;
+  parent: import('./navigation-failure').FailedNavigation;
 }
 
 export type ReportNavigationHookError = (
   hookError: unknown,
-  parent: FailedNavigation,
+  parent: import('./navigation-failure').FailedNavigation,
 ) => void;

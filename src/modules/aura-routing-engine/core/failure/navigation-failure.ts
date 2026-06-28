@@ -1,31 +1,13 @@
-import type { HistoryAction, NavigateHistoryOptions } from '../history';
-import {
-  applyHistoryPolicy,
-  resolveErrorHistoryPolicy,
-  type HistoryProviderLike,
-} from '../history/history-policy';
+import type { HistoryAction } from '../history';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { isViewCommittedForHistory, type CommitSnapshot } from '../processor/view-mount/view-mount-state';
+import type { NavigationErrorResult } from '../navigation/transaction-result';
+import { isViewCommittedForHistory, type CommitSnapshot } from '../view-mount/view-mount-state';
 import { NavigationError } from './navigation-error';
-import type { TransactionResult } from '../processor/processor-pipeline';
-
-export interface CompleteFailureDeps {
-  options: NavigateHistoryOptions;
-  provider: HistoryProviderLike;
-  onNavigationError?: (failure: FailedNavigation) => void;
-  onNotFound?: (failure: FailedNavigation) => void | boolean;
-  notFoundHandler?: (href: string) => void;
-}
-
-export interface CompleteFailureOutcome {
-  /** When set, engine assigns `prev`; when omitted, `prev` is unchanged. */
-  setPrev?: MatchedRouteInfo | null;
-}
 
 /**
  * Failed navigation — single object from pipeline or pre-match NOT_FOUND through engine finalization.
  *
- * Read top-to-bottom: factories → {@link complete} (callbacks, history, `prev`).
+ * Side effects (callbacks, history, `prev`) are applied by {@link finalizeFailure} in the engine.
  */
 export class FailedNavigation {
   readonly error: NavigationError;
@@ -91,38 +73,8 @@ export class FailedNavigation {
     return new FailedNavigation(error, commit, from, to, action);
   }
 
-  toResult(): Extract<TransactionResult, { status: 'error' }> {
+  toResult(): NavigationErrorResult {
     return { status: 'error', failure: this };
-  }
-
-  /** Callbacks → history policy → `prev` hint. */
-  complete(deps: CompleteFailureDeps): CompleteFailureOutcome {
-    if (this.isNotFound) {
-      const recoveryAllowed = deps.onNotFound?.(this) !== false;
-      if (recoveryAllowed) {
-        deps.notFoundHandler?.(this.href);
-      }
-    } else {
-      deps.onNavigationError?.(this);
-    }
-
-    applyHistoryPolicy(
-      resolveErrorHistoryPolicy(this.error.code, this.commit, this.action, {
-        syncHistory: deps.options.syncHistory,
-      }),
-      {
-        href: this.href,
-        fromHref: this.from?.href ?? null,
-        options: deps.options,
-      },
-      deps.provider,
-    );
-
-    if (this.isNotFound) {
-      return { setPrev: null };
-    }
-
-    return this.viewCommitted ? { setPrev: this.to } : {};
   }
 }
 
@@ -130,8 +82,6 @@ export function createNotFoundError(href: string): NavigationError {
   return FailedNavigation.notFound(href, null, 'push').error;
 }
 
-export function createNotFoundTransactionResult(
-  href: string,
-): Extract<TransactionResult, { status: 'error' }> {
+export function createNotFoundTransactionResult(href: string): NavigationErrorResult {
   return FailedNavigation.notFound(href, null, 'push').toResult();
 }

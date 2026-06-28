@@ -1,4 +1,5 @@
-import type { RouteInstance, RouteTransition } from '../../core/hooks/types';
+import type { RouteInstance } from '../../core/hooks/types';
+import type { RouteTransition } from '../../core/transition/route-transition';
 import type { ViewRenderResult } from '../../core/processor/view-mount/view-render';
 
 const noop = (): void => {};

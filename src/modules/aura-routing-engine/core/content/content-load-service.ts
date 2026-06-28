@@ -1,5 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { getActiveChain } from '../route-tree';
+import { getActiveChain } from '../route-tree/matched-chain';
 import { contentDescriptorFromRoute } from './descriptor';
 import type { ContentDescriptor } from './types';
 import type { ContentResolver } from './content-resolver';

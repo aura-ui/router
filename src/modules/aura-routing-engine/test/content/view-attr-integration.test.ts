@@ -5,7 +5,7 @@ import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
 import { contentDescriptorFromRoute } from '../../core/content/descriptor';
-import { defaultLoaderRegistry } from '../../core/content';
+import { defaultLoaderRegistry } from '../../core/content/registry';
 
 function defineDemoElements(): void {
   if (!customElements.get(AuraOutlet.is)) {

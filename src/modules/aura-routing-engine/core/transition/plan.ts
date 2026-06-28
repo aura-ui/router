@@ -6,5 +6,3 @@ export interface TransitionMap {
   lca: MatchedRouteInfo | null;
   reenter: boolean;
 }
-
-export { buildTransitionPlan, getEnterRoute } from '../route-tree/transition-plan';

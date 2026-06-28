@@ -7,8 +7,8 @@ import type {
   RouteErrorContext,
   RouteInstance,
   RouteLifecycleContext,
-  RouteTransition,
 } from '../../aura-routing-engine/core/hooks/types';
+import type { RouteTransition } from '../../aura-routing-engine/core/transition/route-transition';
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core';
 import type { ViewRenderResult } from '../../aura-routing-engine/core/processor/view-mount/view-render';
 import { AuraRouter } from '../../aura-router/core/aura-router';

@@ -10,7 +10,7 @@
  * - `navigation/` — {@link TransactionResult} contract
  * - `view-mount/` — view mount snapshot types
  * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
- * - `transition/plan.ts` — `TransitionMap`, `buildTransitionPlan` (used by processor only)
+ * - `transition/plan.ts` — `TransitionMap`
  */
 
 // --- Engine + processor (wired by aura-router) ---
@@ -23,7 +23,7 @@ export type {
 export { AuraRoutingEngine } from './core/aura-routing-engine';
 
 export { AuraRoutingProcessor } from './core/processor/processor';
-export type { ProcessorRunInput } from './core/processor/processor';
+export type { ProcessorRunInput } from './core/processor/processor-pipeline';
 
 export type {
   NavigationErrorPhase,
@@ -60,9 +60,10 @@ export type {
   NavigationRequest,
   HistoryAction,
   NavigateHistoryOptions,
-} from './core/history';
+} from './core/history/provider.types';
 
-export { BrowserHistoryProvider, FakeHistoryProvider } from './core/history';
+export { BrowserHistoryProvider } from './core/history/browser-provider';
+export { FakeHistoryProvider } from './core/history/fake-provider';
 
 // --- Transition order (route attrs → processor pipeline) ---
 
@@ -83,27 +84,26 @@ export type { GuardResult, RedirectTarget } from './core/guard.types';
 // --- Content load (router-owned cache + prefetch) ---
 
 export {
-  ContentCache,
-  ContentLoadService,
-  ContentResolver,
-  LoaderRegistry,
-  defaultLoaderRegistry,
   buildContentDescriptor,
   contentDescriptorFromRoute,
   parseViewDescriptor,
-  contentCacheKey,
-} from './core/content';
+} from './core/content/descriptor';
+export { contentCacheKey } from './core/content/content-key';
+export { ContentCache } from './core/content/content-cache';
+export { ContentResolver } from './core/content/content-resolver';
+export { ContentLoadService } from './core/content/content-load-service';
+export { LoaderRegistry, defaultLoaderRegistry } from './core/content/registry';
 
 export type {
   ContentDescriptor,
-  ContentLoadServiceDeps,
-  ContentResolverDeps,
   LoadPurpose,
-  ParsedViewDescriptor,
   ViewPayload,
-} from './core/content';
+} from './core/content/types';
+export type { ParsedViewDescriptor } from './core/content/descriptor';
+export type { ContentResolverDeps } from './core/content/content-resolver';
+export type { ContentLoadServiceDeps } from './core/content/content-load-service';
 
-export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch';
+export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch/types';
 
 // --- Route hooks (registered via AuraRouter.use) ---
 
@@ -128,7 +128,7 @@ export type {
   RouteHookContext,
   RouteHookDefinition,
   PhaseHooksMap,
-  RouteTransition,
   HookResult,
   HookResultInput,
 } from './core/hooks/types';
+export type { RouteTransition } from './core/transition/route-transition';

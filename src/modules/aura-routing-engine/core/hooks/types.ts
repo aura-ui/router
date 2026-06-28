@@ -8,12 +8,10 @@
  * @module hooks/types
  */
 
-import type { HistoryAction } from '../history';
+import type { HistoryAction } from '../history/provider.types';
 import type { RedirectTarget } from '../guard.types';
 import type { RouteTransition } from '../transition/route-transition';
 import type { PhaseThrowPolicy } from './lifecycle-policy';
-
-export type { PhaseThrowPolicy, RouteTransition };
 
 /** Branch in transition plan: exiting vs entering routes. @see {@link ../transition/plan!TransitionMap} */
 export type LifecycleBranch = 'exitRoutes' | 'enterRoutes';

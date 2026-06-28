@@ -8,22 +8,19 @@ import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './match/url-matcher';
-import { syncChainHref } from './route-tree';
-import {
-  BrowserHistoryProvider,
-  type HistoryAction,
-  type NavigateHistoryOptions,
-  type NavigationProvider,
-} from './history';
-import { LinkNavigationTracker } from './user-actions';
-import type { ContentLoadService } from './content';
-import {
-  ContentPrefetchExecutor,
-  DataPrefetchExecutor,
-  PrefetchPipeline,
-  type PrefetchConfig,
-  type PrefetchOptions,
-} from './prefetch';
+import { syncChainHref } from './route-tree/matched-chain';
+import { BrowserHistoryProvider } from './history/browser-provider';
+import type {
+  HistoryAction,
+  NavigateHistoryOptions,
+  NavigationProvider,
+} from './history/provider.types';
+import { LinkNavigationTracker } from './user-actions/link-navigation';
+import type { ContentLoadService } from './content/content-load-service';
+import { ContentPrefetchExecutor } from './prefetch/executors/content';
+import { DataPrefetchExecutor } from './prefetch/executors/data';
+import { PrefetchPipeline } from './prefetch/pipeline';
+import type { PrefetchConfig, PrefetchOptions } from './prefetch/types';
 import type { NavigationHookErrorDetail } from './failure/navigation-error.types';
 import { applyHistoryPolicy, resolveHistoryPolicy } from './history/history-policy';
 import { FailedNavigation } from './failure/navigation-failure';

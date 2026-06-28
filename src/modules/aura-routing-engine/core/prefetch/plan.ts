@@ -1,7 +1,7 @@
 import { parsePath } from '../../../aura-utils/misc/url';
-import { getActiveChain } from '../route-tree';
+import { getActiveChain } from '../route-tree/matched-chain';
 import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
-import type { RouteNode } from '../route-tree';
+import type { RouteNode } from '../route-tree/route-node.types';
 import { normalizePrefetchHref } from './policy';
 import type { PrefetchPlan } from './types';
 

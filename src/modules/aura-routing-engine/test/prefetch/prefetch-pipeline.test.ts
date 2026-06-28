@@ -1,6 +1,6 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
-import { PrefetchPipeline } from '../../core/prefetch';
-import type { PrefetchExecutor, PrefetchPlan } from '../../core/prefetch';
+import { PrefetchPipeline } from '../../core/prefetch/pipeline';
+import type { PrefetchExecutor, PrefetchPlan } from '../../core/prefetch/types';
 import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('PrefetchPipeline', () => {

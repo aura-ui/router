@@ -5,9 +5,9 @@ import {
   type HistoryProviderLike,
 } from '../history/history-policy';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { isViewCommittedForHistory, type CommitSnapshot } from './commit-snapshot';
+import { isViewCommittedForHistory, type CommitSnapshot } from '../processor/view-mount/view-mount-state';
 import { NavigationError } from './navigation-error';
-import type { TransactionResult } from './processor-pipeline';
+import type { TransactionResult } from '../processor/processor-pipeline';
 
 export interface CompleteFailureDeps {
   options: NavigateHistoryOptions;

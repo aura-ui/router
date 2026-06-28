@@ -6,7 +6,7 @@ import { getLeafMatch } from '../route-tree';
 export {
   createNotFoundError,
   createNotFoundTransactionResult,
-} from './failed-navigation';
+} from './navigation-failure';
 
 /** Runs `onLeft` on the previous route before fallback 404 (legacy bypass semantics). */
 export function runNotFoundExitCleanup(

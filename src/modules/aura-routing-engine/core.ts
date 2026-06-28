@@ -6,6 +6,7 @@
  * **Not exported** (module-internal — import only from inside `core/`):
  * - `route-tree/` — nested tree, branch diff, `buildTransitionPlan` implementation
  * - `aura-routing-route-registry.ts` — route catalog snapshot
+ * - `failure/` — navigation errors and terminal failure outcomes
  * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
  * - `transition/plan.ts` — `TransitionMap`, `buildTransitionPlan` (used by processor only)
  */
@@ -26,16 +27,16 @@ export type {
   NavigationErrorPhase,
   NavigationHookErrorDetail,
   ReportNavigationHookError,
-} from './core/processor/navigation-error.types';
+} from './core/failure/navigation-error.types';
 
-export { FailedNavigation } from './core/processor/failed-navigation';
-export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/processor/failed-navigation';
+export { FailedNavigation } from './core/failure/navigation-failure';
+export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/failure/navigation-failure';
 
 export type {
   NavigationFailureCode,
   NavigationErrorInit,
   NormalizeFailureContext,
-} from './core/processor/navigation-error';
+} from './core/failure/navigation-error';
 
 export {
   NavigationError,
@@ -43,10 +44,10 @@ export {
   defaultCodeForPhase,
   isNavigationError,
   normalizeFailure,
-} from './core/processor/navigation-error';
+} from './core/failure/navigation-error';
 
-export type { CommitSnapshot, ViewCommitState } from './core/processor/commit-snapshot';
-export { isViewCommittedForHistory } from './core/processor/commit-snapshot';
+export type { CommitSnapshot, ViewCommitState } from './core/processor/view-mount/view-mount-state';
+export { isViewCommittedForHistory } from './core/processor/view-mount/view-mount-state';
 
 // --- History layer (default provider + DI for tests) ---
 

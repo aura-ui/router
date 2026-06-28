@@ -2,7 +2,7 @@ import type {
   LifecycleBranch,
   LifecycleHookHandling,
   LifecyclePhase,
-} from '../hooks/types';
+} from '../../hooks/types';
 
 export type PhaseHookPolicy = 'blocking' | 'bestEffort';
 

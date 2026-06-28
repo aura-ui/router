@@ -24,10 +24,10 @@ import {
   type PrefetchConfig,
   type PrefetchOptions,
 } from './prefetch';
-import type { NavigationHookErrorDetail } from './processor/navigation-error.types';
+import type { NavigationHookErrorDetail } from './failure/navigation-error.types';
 import { applyHistoryPolicy, resolveHistoryPolicy } from './history/history-policy';
-import { FailedNavigation } from './processor/failed-navigation';
-import { runNotFoundExitCleanup } from './processor/not-found-failure';
+import { FailedNavigation } from './failure/navigation-failure';
+import { runNotFoundExitCleanup } from './failure/not-found';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;

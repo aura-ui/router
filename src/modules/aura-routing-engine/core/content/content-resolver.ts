@@ -1,4 +1,4 @@
-import { createContentLoadError } from '../processor/navigation-error';
+import { createContentLoadError } from '../failure/navigation-error';
 import type { ContentDescriptor, LoadContext, ResolveContext, ViewPayload } from './types';
 import type { ContentCache } from './content-cache';
 import { contentCacheKey } from './content-key';

@@ -1,15 +1,14 @@
-import type { RouteInstance } from '../../core/hooks/types';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { RouteInstance } from '../../core';
+import { runBlockingPhaseHooks } from '../../core/hooks/pipeline-hooks';
 import { runPhaseHooks } from '../../core/hooks/registry';
+import { toLifecycleContext } from '../../core/lifecycle/context';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
-import { CommitTracker } from '../../core/view-mount/view-mount-tracker';
 import {
   ProcessorPipeline,
   type PipelineContext,
-  type PipelineOutcome,
 } from '../../core/processor/processor-pipeline';
-import { runBlockingPhaseHooks } from '../../core/hooks/pipeline-hooks';
-import { toLifecycleContext } from '../../core/lifecycle/context';
+import { CommitTracker } from '../../core/view-mount/view-mount-tracker';
 import { runViewCommit } from '../../core/view-mount/view-render';
 import { createTestRoute } from '../helpers/create-test-route';
 

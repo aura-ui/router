@@ -11,15 +11,6 @@ import type { RedirectTarget } from '../guard.types';
 import type { RouteLifecycleContext } from '../route/types';
 
 export type {
-  RouteErrorContext,
-  RouteHookNamesSource,
-  RouteInfo,
-  RouteInstance,
-  RouteLifecycleContext,
-  RouterInstance,
-} from '../route/types';
-
-export type {
   LifecycleBranch,
   LifecycleHookHandling,
   LifecyclePhase,

@@ -8,11 +8,12 @@
  */
 
 import type { GuardResult, RedirectTarget } from '../guard.types';
+import type { RouteLifecycleContext } from '../route/types';
+
 import type {
   HookResultInput,
   RouteHookContext,
   RouteHookDefinition,
-  RouteLifecycleContext,
 } from './types';
 import { ROUTER_VERSION, satisfies } from './version';
 
@@ -66,8 +67,10 @@ interface StoredHook {
 /**
  * In-memory catalog of registered route hooks.
  *
- * Use {@link defaultHookRegistry} via `AuraRouter.use()` / `AuraRouter.unuse()` in apps;
- * inject a custom instance into {@link ../processor/processor!AuraRoutingProcessor} for tests.
+ * Use {@link defaultHookRegistry} via `AuraRouter.use()` / `AuraRouter.unuse()` in apps.
+ * That registry is process-wide: every default `AuraRouter` instance shares the
+ * same hook catalog. Inject a custom instance into
+ * {@link ../processor/processor!AuraRoutingProcessor} for isolated tests.
  */
 export class HookRegistry {
   private readonly entries = new Map<string, StoredHook>();
@@ -188,5 +191,11 @@ export async function runPhaseHooks(
   }
 }
 
-/** Global hook catalog — wired by `AuraRouter.use()` and `AuraRouter.unuse()`. */
+/**
+ * Global hook catalog — wired by `AuraRouter.use()` and `AuraRouter.unuse()`.
+ *
+ * This singleton is the default public model: hooks are shared by all router
+ * instances unless a caller explicitly constructs `AuraRoutingProcessor` with a
+ * custom {@link HookRegistry}.
+ */
 export const defaultHookRegistry = new HookRegistry();

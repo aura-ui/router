@@ -1,4 +1,4 @@
-import type { RouteInstance } from '../../core/hooks/types';
+import type { RouteInstance } from '../../core';
 import type { RouteTransition } from '../../core/transition/route-transition';
 import type { ViewRenderResult } from '../../core/view-mount/view-render';
 

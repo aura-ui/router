@@ -1,4 +1,5 @@
 import type { GuardResult } from '../guard.types';
+import type { RoutePhase } from './types';
 import type { RouteLifecycleContext } from '../hooks/types';
 import type { CommitSnapshot } from '../view-mount/view-mount-state';
 import type { NavigationFailureCode } from '../failure/navigation-error';

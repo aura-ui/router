@@ -1,3 +1,4 @@
+import { createContentLoadError } from '../processor/navigation-error';
 import type { ContentDescriptor, LoadContext, ResolveContext, ViewPayload } from './types';
 import type { ContentCache } from './content-cache';
 import { contentCacheKey } from './content-key';
@@ -59,10 +60,7 @@ export class ContentResolver {
     } catch (error: unknown) {
       if (ctx.signal.aborted) return null;
 
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Failed to load ${descriptor.loader} for route ${ctx.routeInfo.pattern}: ${message}`,
-      );
+      throw createContentLoadError(descriptor.loader, ctx.routeInfo.pattern, error);
     }
   }
 

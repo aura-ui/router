@@ -1,7 +1,6 @@
-import type { NotFoundHandler, NotFoundSource } from './aura-router-not-found.types';
-import { AURA_ROUTER_NOT_FOUND } from './aura-router-not-found.types';
 import { AuraOutlet, type ViewHandle } from '../../aura-outlet/core/aura-outlet';
-import { dispatchCustomEvent, getTemplate } from '../../aura-utils/misc';
+import { getTemplate } from '../../aura-utils/misc';
+import { AURA_ROUTER_NOT_FOUND, type NotFoundHandler } from './navigation-events';
 
 export { AURA_ROUTER_NOT_FOUND };
 
@@ -27,13 +26,6 @@ export class AuraRouterNotFoundController {
     configuredNotFoundHandler = handler ?? null;
   }
 
-  /** Dispatches `not-found` (cancelable). Returns false when defaultPrevented. */
-  static emit(router: HTMLElement, url: string, source: NotFoundSource): boolean {
-    return dispatchCustomEvent(router, AURA_ROUTER_NOT_FOUND, {
-      detail: { url, router, source },
-    });
-  }
-
   setHandler(handler: NotFoundHandler | null): void {
     this.instanceHandler = handler;
   }
@@ -47,10 +39,8 @@ export class AuraRouterNotFoundController {
     this.clearFallbackView();
   }
 
-  /** Thin fallback: когда в registry нет `<aura-route path="*">`. */
-  handle(url: string): void {
-    if (!AuraRouterNotFoundController.emit(this.router, url, 'fallback')) return;
-
+  /** Fallback recovery UI — `not-found` event is emitted via engine `onNotFound` before this. */
+  recover(url: string): void {
     const handler = this.instanceHandler ?? configuredNotFoundHandler;
     if (handler) {
       this.clearFallbackView();

@@ -7,6 +7,7 @@ import {
   type ProcessorRunInput,
   type TransactionResult,
 } from './processor-pipeline';
+import { CommitTracker } from './commit-tracker';
 import { AuraRoutingProcessorJobManager } from './job-manager';
 
 export type { ProcessorRunInput };
@@ -17,7 +18,7 @@ export type { ProcessorRunInput };
  * Builds the transition plan, starts a superseding {@link AuraRoutingProcessorJob},
  * and delegates lifecycle phases to {@link ProcessorPipeline}.
  *
- * View commit (`viewCommitted`) happens here; history URL commit — in the engine after success.
+ * View mount tracking happens here; history URL commit — in the engine after pipeline success.
  */
 export class AuraRoutingProcessor {
   private readonly jobManager = new AuraRoutingProcessorJobManager();
@@ -49,6 +50,8 @@ export class AuraRoutingProcessor {
       job,
       router: input.router,
       hookRegistry: this.hookRegistry,
+      commitTracker: new CommitTracker(input.to.href),
+      reportHookError: input.reportHookError,
       isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
     });
   }

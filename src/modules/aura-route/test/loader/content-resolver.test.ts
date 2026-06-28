@@ -81,4 +81,28 @@ describe('ContentResolver', () => {
     await resolver.resolve(descriptor, ctx);
     expect(loads).toBe(1);
   });
+
+  it('throws NavigationError when loader fails', async () => {
+    const registry = new LoaderRegistry();
+    registry.register('html', async () => {
+      throw new Error('network');
+    });
+
+    const resolver = new ContentResolver({ registry, cache: new ContentCache() });
+    const descriptor: ContentDescriptor = {
+      kind: 'content',
+      loader: 'html',
+      ref: 'static',
+      cache: false,
+    };
+    const ctx = { routeInfo: routeInfo as any, signal: new AbortController().signal };
+
+    await expect(resolver.resolve(descriptor, ctx)).rejects.toEqual(
+      expect.objectContaining({
+        code: 'CONTENT_LOAD_FAILED',
+        phase: 'render',
+        routePattern: '/page',
+      }),
+    );
+  });
 });

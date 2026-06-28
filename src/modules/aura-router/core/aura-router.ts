@@ -1,5 +1,4 @@
 import { attr } from '../../aura-utils/decorators';
-
 import { AuraRoute, RouteViewCache } from '../../aura-route/core';
 import type { CacheStoreOptions } from '../../aura-cache-store/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
@@ -7,7 +6,6 @@ import {
   ContentLoaderRegistry,
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
-
 import { defaultHookRegistry } from '../../aura-routing-engine/core/hooks/registry';
 import type { RouteHookDefinition, RouterInstance } from '../../aura-routing-engine/core/hooks/types';
 import {
@@ -23,13 +21,16 @@ import {
   type NavigateHistoryOptions,
   type PrefetchOptions,
 } from '../../aura-routing-engine/core';
-import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
-import type { NotFoundHandler } from './aura-router-not-found.types';
 import {
   AURA_ROUTER_NAVIGATION_ERROR,
-  type AuraRouterNavigationErrorEventDetail,
-} from './aura-router-navigation-error.types';
-import { dispatchCustomEvent } from '../../aura-utils/misc';
+  AURA_ROUTER_NAVIGATION_HOOK_ERROR,
+  AURA_ROUTER_NOT_FOUND,
+  dispatchNavigationError,
+  dispatchNavigationHookError,
+  dispatchNotFound,
+  type NotFoundHandler,
+} from './navigation-events';
+import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { registerAuraRouterComponents } from './aura-router-setup';
 
@@ -39,14 +40,21 @@ export {
   type NotFoundSource,
   type AuraRouterNotFoundEventDetail,
   type AuraRouterNotFoundEvent,
-} from './aura-router-not-found.types';
+} from './navigation-events';
 
 export {
   AURA_ROUTER_NAVIGATION_ERROR,
   type AuraRouterNavigationErrorEventDetail,
   type AuraRouterNavigationErrorEvent,
   type NavigationErrorPhase,
-} from './aura-router-navigation-error.types';
+  type NavigationFailureCode,
+} from './navigation-events';
+
+export {
+  AURA_ROUTER_NAVIGATION_HOOK_ERROR,
+  type AuraRouterNavigationHookErrorEventDetail,
+  type AuraRouterNavigationHookErrorEvent,
+} from './navigation-events';
 
 export interface AuraRouterConfigureOptions {
   /** LRU cache for keep-alive route views (`detachedRoot` DOM). */
@@ -110,7 +118,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /** Per-instance override (перекрывает configure и template). Только fallback. */
   setNotFoundHandler(handler: NotFoundHandler | null): void {
     this.notFound.setHandler(handler);
-    this.ensureEngine().setNotFoundHandler((url) => this.notFound.handle(url));
+    this.ensureEngine().setNotFoundHandler((url) => {
+      this.notFound.recover(url);
+    });
   }
 
   get contentLoad(): ContentLoadService {
@@ -155,27 +165,21 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
         contentLoad: this.contentLoad,
+        onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
         onNavigationCommitted: (to) => {
           this.notFound.hide();
           if (isCatchAllRoute(to.pattern)) {
-            AuraRouterNotFoundController.emit(this, to.href, 'route');
+            dispatchNotFound(this, to.href, 'route');
           }
         },
-        onNavigationError: (detail) => {
-          if (detail.viewCommitted) {
+        onNavigationError: (failure) => {
+          if (failure.viewCommitted) {
             this.notFound.hide();
           }
-          dispatchCustomEvent(this, AURA_ROUTER_NAVIGATION_ERROR, {
-            detail: {
-              error: detail.error,
-              href: detail.href,
-              router: this,
-              from: detail.from?.pathname ?? null,
-              to: detail.to.pathname,
-              phase: detail.phase,
-              viewCommitted: detail.viewCommitted,
-            } satisfies AuraRouterNavigationErrorEventDetail,
-          });
+          dispatchNavigationError(this, failure);
+        },
+        onNavigationHookError: (detail) => {
+          dispatchNavigationHookError(this, detail);
         },
       };
       this.engine = new AuraRoutingEngine(
@@ -183,7 +187,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         this,
         config,
       );
-      this.engine.setNotFoundHandler((url) => this.notFound.handle(url));
+      this.engine.setNotFoundHandler((url) => {
+        this.notFound.recover(url);
+      });
     }
     return this.engine;
   }

@@ -2,6 +2,7 @@ import type { RouteInstance } from '../../core/hooks/types';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { runPhaseHooks } from '../../core/hooks/registry';
 import { AuraRoutingProcessorJob } from '../../core/processor/job';
+import { CommitTracker } from '../../core/processor/commit-tracker';
 import {
   ProcessorPipeline,
   toLifecycleContext,
@@ -17,6 +18,7 @@ jest.mock('../../core/hooks/registry', () => ({
 }));
 
 jest.mock('../../core/processor/view-commit', () => ({
+  ...jest.requireActual('../../core/processor/view-commit'),
   runViewCommit: jest.fn(),
 }));
 
@@ -67,6 +69,7 @@ function createPipelineContext(overrides: {
     job,
     router: { navigate: jest.fn() },
     hookRegistry: {} as PipelineContext['hookRegistry'],
+    commitTracker: new CommitTracker(enterRoute.href),
     isJobActive: () => true,
   };
 }
@@ -210,9 +213,13 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
 
     expect(outcome).toEqual({
       status: 'error',
-      error: transitionError,
-      phase: 'transitionOut',
-      viewCommitted: false,
+      failure: expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'TRANSITION_FAILED',
+          message: 'exit transition failed',
+        }),
+        commit: { view: 'staged', href: '/to' },
+      }),
     });
   });
 
@@ -242,9 +249,13 @@ describe('ProcessorPipeline.runParallelRenderWithTransition', () => {
 
     expect(outcome).toEqual({
       status: 'error',
-      error: exitError,
-      phase: 'transitionOut',
-      viewCommitted: false,
+      failure: expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'TRANSITION_FAILED',
+          message: 'exit failed',
+        }),
+        commit: { view: 'staged', href: '/to' },
+      }),
     });
   });
 });

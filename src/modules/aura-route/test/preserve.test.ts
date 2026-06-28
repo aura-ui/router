@@ -1,5 +1,5 @@
 import { AuraRoute } from '../core/aura-route';
-import { NO_PRESERVE } from '../../aura-routing-engine/core/content/preserve';
+import { NO_PRESERVE } from '../../aura-routing-engine/core';
 
 describe('AuraRoute preserve', () => {
   beforeAll(() => {

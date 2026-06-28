@@ -1,5 +1,6 @@
-import type { MatchedRouteInfo } from '../../../aura-routing-engine/core';
+import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 import type { AuraRouteInterface } from '../types';
+
 import type { ViewKind } from './ports';
 import { cacheKey } from './view-cache';
 

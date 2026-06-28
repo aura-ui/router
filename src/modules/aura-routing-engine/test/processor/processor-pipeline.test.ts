@@ -373,7 +373,7 @@ describe('ProcessorPipeline supersede', () => {
     expect(pipelineContext.commitTracker.isViewCommitted()).toBe(false);
   });
 
-  it('run returns cancelled instead of viewCommitted when superseded at end', async () => {
+  it('run returns cancelled instead of navigationSucceeded when superseded at end', async () => {
     const pipelineContext = createPipelineContext({
       enterRoutes: [createMatchedRoute('/to')],
     });

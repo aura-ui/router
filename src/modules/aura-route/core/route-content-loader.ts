@@ -1,6 +1,9 @@
-import { buildContentDescriptor } from '../../aura-routing-engine/core/content/descriptor';
-import type { ContentLoadService } from '../../aura-routing-engine/core/content/content-load-service';
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core';
+import {
+  buildContentDescriptor,
+  type ContentLoadService,
+  type MatchedRouteInfo,
+} from '../../aura-routing-engine/route-api';
+
 import type { AuraRouteInterface } from './types';
 import type { ContentResolverPort } from './view/ports';
 

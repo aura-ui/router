@@ -1,23 +1,24 @@
-import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { TransitionMap } from '../route-tree/transition-plan';
-import type { AuraRoutingProcessorJob } from './cancellation/job';
-import { resolveHookNames } from '../lifecycle/phase-attrs';
-import { isRenderError, runViewCommit } from '../view-mount/view-render';
-import type { RoutePhase } from '../lifecycle/types';
-import type { RouteLifecycleContext, RouterInstance } from '../route/types';
-import type { TransitionPolicy } from '../transition/policy';
 import type { ReportNavigationHookError } from '../failure/navigation-failure';
-import { CommitTracker } from '../view-mount/view-mount-tracker';
-import type { TransactionResult } from '../navigation/transaction-result';
-import { PHASES, type LifecycleStepDef } from '../lifecycle/phase-registry';
-import { toLifecycleContext, type LifecycleContextInput } from '../lifecycle/context';
-import { runPhaseStep, phaseStepToPipelineOutcome, type PhaseStepOutcome } from '../lifecycle/phase-runner';
 import {
   runBlockingPhaseHooks,
   runLoggedPostCommitHooks,
   warnIgnoredPostCommitHookResult,
 } from '../hooks/pipeline-hooks';
 import { runPhaseHooks } from '../hooks/registry';
+import { toLifecycleContext, type LifecycleContextInput } from '../lifecycle/context';
+import { resolveHookNames } from '../lifecycle/phase-attrs';
+import { PHASES, type LifecycleStepDef } from '../lifecycle/phase-registry';
+import { runPhaseStep, phaseStepToPipelineOutcome, type PhaseStepOutcome } from '../lifecycle/phase-runner';
+import type { RoutePhase } from '../lifecycle/types';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { TransactionResult } from '../navigation/transaction-result';
+import type { RouteLifecycleContext, RouterInstance } from '../route/types';
+import type { TransitionMap } from '../route-tree/transition-plan';
+import type { TransitionPolicy } from '../transition/policy';
+import { CommitTracker } from '../view-mount/view-mount-tracker';
+import { isRenderError, runViewCommit } from '../view-mount/view-render';
+
+import type { AuraRoutingProcessorJob } from './cancellation/job';
 import { failPipelineNavigation } from './pipeline-error';
 import type { ProcessorRunInput } from './types';
 
@@ -47,7 +48,27 @@ export interface PipelineContext {
 /** Pipeline step result: terminal {@link TransactionResult}, or `null` to continue. */
 export type PipelineOutcome = TransactionResult | null;
 
+type PipelineStepName =
+  | 'guards'
+  | 'loads'
+  | 'renderWithTransition'
+  | 'render'
+  | 'transitionOut'
+  | 'transitionIn'
+  | 'after';
 type PipelineStep = (pipelineContext: PipelineContext) => Promise<PipelineOutcome>;
+
+const MAIN_PIPELINE: readonly PipelineStepName[] = [
+  'guards',
+  'loads',
+  'renderWithTransition',
+  'after',
+];
+
+const RENDER_ORDER_STEPS: Record<Exclude<TransitionPolicy, 'parallel'>, readonly PipelineStepName[]> = {
+  'out-in': ['transitionOut', 'render', 'transitionIn'],
+  'in-out': ['render', 'transitionIn', 'transitionOut'],
+};
 
 /**
  * Navigation transaction pipeline inside {@link AuraRoutingProcessor}.
@@ -57,13 +78,6 @@ type PipelineStep = (pipelineContext: PipelineContext) => Promise<PipelineOutcom
  * Post-commit hooks log cancel/redirect and continue.
  */
 export class ProcessorPipeline {
-  private readonly steps: PipelineStep[] = [
-    (ctx) => this.runGuards(ctx),
-    (ctx) => this.runLoads(ctx),
-    (ctx) => this.runRenderWithTransition(ctx),
-    (ctx) => this.runAfterRender(ctx),
-  ];
-
   async run(pipelineContext: PipelineContext): Promise<TransactionResult> {
     const { transaction } = pipelineContext;
 
@@ -75,11 +89,11 @@ export class ProcessorPipeline {
       }
       pipelineContext.commitTracker.markViewCommitted();
       pipelineContext.commitGate?.();
-      return { status: 'viewCommitted' };
+      return { status: 'navigationSucceeded' };
     }
 
-    const outcome = await this.runUntilTerminal(this.steps, pipelineContext);
-    return outcome ?? { status: 'viewCommitted' };
+    const outcome = await this.runUntilTerminal(this.resolveSteps(MAIN_PIPELINE), pipelineContext);
+    return outcome ?? { status: 'navigationSucceeded' };
   }
 
   async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
@@ -111,20 +125,10 @@ export class ProcessorPipeline {
       return this.runParallelRenderWithTransition(pipelineContext);
     }
 
-    const steps: PipelineStep[] =
-      transitionOrder === 'out-in'
-        ? [
-            (ctx) => this.runExitTransition(ctx),
-            (ctx) => this.runRender(ctx),
-            (ctx) => this.runEnterTransition(ctx),
-          ]
-        : [
-            (ctx) => this.runRender(ctx),
-            (ctx) => this.runEnterTransition(ctx),
-            (ctx) => this.runExitTransition(ctx),
-          ];
-
-    return this.runUntilTerminal(steps, pipelineContext);
+    return this.runUntilTerminal(
+      this.resolveSteps(RENDER_ORDER_STEPS[transitionOrder]),
+      pipelineContext,
+    );
   }
 
   private async runParallelRenderWithTransition(
@@ -205,6 +209,32 @@ export class ProcessorPipeline {
     }
 
     return null;
+  }
+
+  private resolveSteps(stepNames: readonly PipelineStepName[]): PipelineStep[] {
+    return stepNames.map((name) => (ctx) => this.runNamedStep(name, ctx));
+  }
+
+  private runNamedStep(
+    name: PipelineStepName,
+    pipelineContext: PipelineContext,
+  ): Promise<PipelineOutcome> {
+    switch (name) {
+      case 'guards':
+        return this.runGuards(pipelineContext);
+      case 'loads':
+        return this.runLoads(pipelineContext);
+      case 'renderWithTransition':
+        return this.runRenderWithTransition(pipelineContext);
+      case 'render':
+        return this.runRender(pipelineContext);
+      case 'transitionOut':
+        return this.runExitTransition(pipelineContext);
+      case 'transitionIn':
+        return this.runEnterTransition(pipelineContext);
+      case 'after':
+        return this.runAfterRender(pipelineContext);
+    }
   }
 
   private async runLifecycleStep(

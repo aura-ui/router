@@ -1,6 +1,8 @@
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core';
-import type { PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
-import type { RouteTransition } from '../../aura-routing-engine/core/transition/route-transition';
+import type {
+  MatchedRouteInfo,
+  PreserveFlags,
+  RouteTransition,
+} from '../../aura-routing-engine/route-api';
 
 /** Public surface of `<aura-route>` attributes. */
 export interface AuraRouteInterface {

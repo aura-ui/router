@@ -10,7 +10,7 @@ function createMockProcessor() {
   return {
     run: jest.fn().mockImplementation(async (input: { commitGate?: () => void }) => {
       input.commitGate?.();
-      return { status: 'viewCommitted' };
+      return { status: 'navigationSucceeded' };
     }),
     stop: jest.fn(),
     invalidate: jest.fn(),

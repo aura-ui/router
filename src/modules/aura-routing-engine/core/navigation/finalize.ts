@@ -68,7 +68,7 @@ export function finalizeProcessorNavigation(
   const fromHref = ctx.from?.href ?? null;
 
   switch (result.status) {
-    case 'viewCommitted':
+    case 'navigationSucceeded':
       // DOM, history, and `prev` were committed at the processor commit gate.
       return {};
 

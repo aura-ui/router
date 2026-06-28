@@ -1,9 +1,9 @@
 import type {
   FailedNavigation,
   NavigationErrorPhase,
+  NavigationFailureCode,
   NavigationHookErrorDetail,
 } from '../../aura-routing-engine/core';
-import type { NavigationFailureCode } from '../../aura-routing-engine/core/failure/navigation-error';
 import { dispatchCustomEvent } from '../../aura-utils/misc';
 
 export type { NavigationErrorPhase, NavigationFailureCode };

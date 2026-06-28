@@ -6,7 +6,7 @@
  * Vocabulary (do not confuse):
  * - **View commit** — {@link ViewCommitState} on {@link CommitSnapshot} (`none` / `staged` / `committed`).
  * - **History commit** — `provider.commit()` / {@link HistoryPolicy} `commit-target` (address bar URL).
- * - **Pipeline success** — {@link TransactionResult} `status: 'viewCommitted'` (full transaction OK).
+ * - **Pipeline success** — {@link TransactionResult} `status: 'navigationSucceeded'` (full transaction OK).
  */
 export type ViewCommitState = 'none' | 'staged' | 'committed';
 

@@ -4,7 +4,7 @@ import {
   buildRouteTransition,
   parseTransitionShortcut,
 } from '../../core/transition/transition';
-import { parseTransitionOrder } from '../../../aura-routing-engine/core/transition/policy';
+import { parseTransitionOrder } from '../../../aura-routing-engine/core';
 
 describe('parseTransitionOrder', () => {
   it('returns null for unset or invalid', () => {

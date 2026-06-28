@@ -1,9 +1,10 @@
-import { NO_TRANSITION, type RouteTransition } from '../../../aura-routing-engine/core/transition/route-transition';
-import { parseCommaSeparated } from '../../../aura-utils/misc';
 import {
   DEFAULT_TRANSITION_POLICY,
+  NO_TRANSITION,
+  type RouteTransition,
   type TransitionPolicy,
-} from '../../../aura-routing-engine/core/transition/policy';
+} from '../../../aura-routing-engine/route-api';
+import { parseCommaSeparated } from '../../../aura-utils/misc';
 
 export { NO_TRANSITION, type RouteTransition };
 

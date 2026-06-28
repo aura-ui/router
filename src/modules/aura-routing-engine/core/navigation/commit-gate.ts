@@ -30,7 +30,7 @@ export function applyCommitGate(ctx: CommitGateContext): CommitGateEffects {
   const sameTarget = !!ctx.from && isSameNavigationTarget(ctx.from, ctx.to);
 
   applyTransactionHistory(
-    { status: 'viewCommitted' },
+    { status: 'navigationSucceeded' },
     ctx.action,
     ctx.href,
     fromHref,

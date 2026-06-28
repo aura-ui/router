@@ -1,8 +1,8 @@
 import { createTestRoute } from '../helpers/create-test-route';
-import { buildTransitionPlan, getEnterRoute } from '../../core/transition/plan';
+import { buildTransitionPlan, getEnterRoute } from '../../core/route-tree/transition-plan';
 import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteNode } from '../../core/route-tree';
+import type { RouteNode } from '../../core/route-tree/route-node.types';
 
 function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
   return {

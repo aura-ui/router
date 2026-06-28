@@ -1,4 +1,4 @@
-import type { NavigateHistoryOptions } from '../history';
+import type { NavigateHistoryOptions } from '../history/provider.types';
 import {
   applyHistoryPolicy,
   resolveErrorHistoryPolicy,

@@ -12,8 +12,6 @@ import {
   type PhaseThrowPolicy,
 } from '../../hooks/lifecycle-policy';
 
-export type { LifecyclePhase, LifecycleBranch, LifecycleHookHandling, PhaseThrowPolicy };
-
 export interface LifecycleStepDef {
   lifecyclePhase: LifecyclePhase;
   branch: LifecycleBranch;
@@ -56,5 +54,3 @@ export function lifecycleStepPolicy(
     onThrow: step.onThrow,
   };
 }
-
-export { PHASE_SPEC, phaseSpecToHookHandling } from '../../hooks/lifecycle-policy';

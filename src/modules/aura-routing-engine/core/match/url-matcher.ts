@@ -4,8 +4,8 @@ import {
   isGlobalCatchAllPattern,
   isScopedCatchAllPattern,
 } from '../route-tree/resolve-pattern';
-import { attachNavigationChain } from '../route-tree';
-import type { RouteNode } from '../route-tree';
+import { attachNavigationChain } from '../route-tree/matched-chain';
+import type { RouteNode } from '../route-tree/route-node.types';
 
 export interface MatchedRouteInfo {
   /** Relative browser href: `pathname + search + hash`, e.g. `/user/42?q=1#tab`. */

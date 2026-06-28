@@ -1,5 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { HistoryAction } from '../history';
+import type { HistoryAction } from '../history/provider.types';
 import type { TransitionMap } from '../transition/plan';
 import type { AuraRoutingProcessorJob } from './cancellation/job';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
@@ -32,9 +32,6 @@ export interface NavigationTransaction extends ProcessorRunInput {
   /** `null` — skip transitionOut/transitionIn (inactive transition package). */
   transitionOrder: TransitionPolicy | null;
 }
-
-export type { CommitSnapshot } from '../view-mount/view-mount-state';
-export type { TransactionResult } from '../navigation/transaction-result';
 
 /** Shared ctx for all {@link ProcessorPipeline} steps. */
 export interface PipelineContext {
@@ -430,6 +427,3 @@ export function toLifecycleContext(
     ...(error !== undefined && { error }),
   };
 }
-
-export type { HookRegistry } from '../hooks/registry';
-export type { ViewCommitResult } from './view-mount/view-render';

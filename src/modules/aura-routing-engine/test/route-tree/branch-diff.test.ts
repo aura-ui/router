@@ -7,7 +7,7 @@ import {
 } from '../../core/route-tree/branch-diff';
 import { buildMatchedChain } from '../../core/route-tree/matched-chain';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteNode } from '../../core/route-tree';
+import type { RouteNode } from '../../core/route-tree/route-node.types';
 
 function createMatch(node: RouteNode): MatchedRouteInfo {
   return {

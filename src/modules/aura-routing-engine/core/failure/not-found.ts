@@ -1,12 +1,7 @@
-import type { HistoryAction } from '../history';
+import type { HistoryAction } from '../history/provider.types';
 import type { RouterInstance } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { getLeafMatch } from '../route-tree';
-
-export {
-  createNotFoundError,
-  createNotFoundTransactionResult,
-} from './navigation-failure';
+import { getLeafMatch } from '../route-tree/matched-chain';
 
 /** Runs `onLeft` on the previous route before fallback 404 (legacy bypass semantics). */
 export function runNotFoundExitCleanup(

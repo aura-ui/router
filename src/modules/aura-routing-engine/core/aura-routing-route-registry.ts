@@ -1,6 +1,6 @@
 import type { AuraRoute } from '../../aura-route/core/aura-route';
-import { buildRouteTree } from './route-tree';
-import type { RouteNode } from './route-tree';
+import { buildRouteTree } from './route-tree/build-route-tree';
+import type { RouteNode } from './route-tree/route-node.types';
 
 export class AuraRoutingRouteRegistry {
   private roots: RouteNode[] = [];

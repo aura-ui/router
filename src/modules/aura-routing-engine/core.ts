@@ -7,7 +7,7 @@
  * - `route-tree/` — nested tree, branch diff, `buildTransitionPlan` implementation
  * - `aura-routing-route-registry.ts` — route catalog snapshot
  * - `failure/` — navigation errors and terminal failure outcomes
- * - `navigation/` — {@link TransactionResult} contract
+ * - `navigation/` — {@link TransactionResult} contract and terminal outcome finalization
  * - `view-mount/` — view mount snapshot types
  * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
  * - `transition/plan.ts` — `TransitionMap`

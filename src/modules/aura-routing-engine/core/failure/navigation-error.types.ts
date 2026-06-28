@@ -1,4 +1,4 @@
-import type { FailedNavigation } from './failed-navigation';
+import type { FailedNavigation } from './navigation-failure';
 
 export type NavigationErrorPhase =
   | 'match'

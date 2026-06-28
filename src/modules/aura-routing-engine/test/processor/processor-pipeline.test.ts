@@ -1,15 +1,15 @@
 import type { RouteInstance } from '../../core/hooks/types';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { runPhaseHooks } from '../../core/hooks/registry';
-import { AuraRoutingProcessorJob } from '../../core/processor/job';
-import { CommitTracker } from '../../core/processor/commit-tracker';
+import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
+import { CommitTracker } from '../../core/processor/view-mount/view-mount-tracker';
 import {
   ProcessorPipeline,
   toLifecycleContext,
   type PipelineContext,
   type PipelineOutcome,
 } from '../../core/processor/processor-pipeline';
-import { runViewCommit } from '../../core/processor/view-commit';
+import { runViewCommit } from '../../core/processor/view-mount/view-render';
 import { createTestRoute } from '../helpers/create-test-route';
 
 jest.mock('../../core/hooks/registry', () => ({
@@ -17,8 +17,8 @@ jest.mock('../../core/hooks/registry', () => ({
   runPhaseHooks: jest.fn(),
 }));
 
-jest.mock('../../core/processor/view-commit', () => ({
-  ...jest.requireActual('../../core/processor/view-commit'),
+jest.mock('../../core/processor/view-mount/view-render', () => ({
+  ...jest.requireActual('../../core/processor/view-mount/view-render'),
   runViewCommit: jest.fn(),
 }));
 

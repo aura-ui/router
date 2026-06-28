@@ -10,7 +10,7 @@ import type {
   RouteTransition,
 } from '../../aura-routing-engine/core/hooks/types';
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core';
-import type { ViewRenderResult } from '../../aura-routing-engine/core/processor/view-commit';
+import type { ViewRenderResult } from '../../aura-routing-engine/core/processor/view-mount/view-render';
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface, RouteRenderOptions } from './types';

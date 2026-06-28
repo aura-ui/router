@@ -1,6 +1,6 @@
-import type { CommitSnapshot } from '../processor/commit-snapshot';
-import { isViewCommittedForHistory } from '../processor/commit-snapshot';
-import type { NavigationFailureCode } from '../processor/navigation-error';
+import type { CommitSnapshot } from '../processor/view-mount/view-mount-state';
+import { isViewCommittedForHistory } from '../processor/view-mount/view-mount-state';
+import type { NavigationFailureCode } from '../failure/navigation-error';
 import type { TransactionResult } from '../processor/processor-pipeline';
 import type { HistoryAction, NavigateHistoryOptions } from './provider.types';
 

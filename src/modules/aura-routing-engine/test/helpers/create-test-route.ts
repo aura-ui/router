@@ -1,5 +1,5 @@
 import type { RouteInstance, RouteTransition } from '../../core/hooks/types';
-import type { ViewRenderResult } from '../../core/processor/view-commit';
+import type { ViewRenderResult } from '../../core/processor/view-mount/view-render';
 
 const noop = (): void => {};
 

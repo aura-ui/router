@@ -1,4 +1,4 @@
-import type { CommitSnapshot, ViewCommitState } from './commit-snapshot';
+import type { CommitSnapshot, ViewCommitState } from './view-mount-state';
 
 /**
  * Tracks {@link ViewCommitState} for one navigation transaction inside

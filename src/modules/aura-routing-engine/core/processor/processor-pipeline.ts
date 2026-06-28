@@ -1,20 +1,20 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { HistoryAction } from '../history';
 import type { TransitionMap } from '../transition/plan';
-import type { AuraRoutingProcessorJob } from './job';
+import type { AuraRoutingProcessorJob } from './cancellation/job';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveHookNames } from '../hooks/phases';
-import { isRenderError, runViewCommit } from './view-commit';
+import { isRenderError, runViewCommit } from './view-mount/view-render';
 import type { GuardResult } from '../guard.types';
 import type { RoutePhase } from '../hooks/types';
 import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../hooks/types';
 import type { TransitionPolicy } from '../transition/policy';
-import type { NavigationErrorPhase, ReportNavigationHookError } from './navigation-error.types';
-import { CommitTracker } from './commit-tracker';
-import { FailedNavigation } from './failed-navigation';
-import { normalizeFailure } from './navigation-error';
-import { LIFECYCLE_STEPS, type LifecycleStepDef } from './lifecycle-step';
-import { guardResultToPhaseOutcome, runPhaseStep, type PhaseStepOutcome } from './phase-runner';
+import type { NavigationErrorPhase, ReportNavigationHookError } from '../failure/navigation-error.types';
+import { CommitTracker } from './view-mount/view-mount-tracker';
+import { FailedNavigation } from '../failure/navigation-failure';
+import { normalizeFailure } from '../failure/navigation-error';
+import { LIFECYCLE_STEPS, type LifecycleStepDef } from './lifecycle/lifecycle-steps';
+import { guardResultToPhaseOutcome, runPhaseStep, type PhaseStepOutcome } from './lifecycle/lifecycle-runner';
 
 /** Arguments for {@link AuraRoutingProcessor.run} (plan and policy are added by the processor). */
 export interface ProcessorRunInput {
@@ -32,7 +32,7 @@ export interface NavigationTransaction extends ProcessorRunInput {
   transitionOrder: TransitionPolicy | null;
 }
 
-export type { CommitSnapshot } from './commit-snapshot';
+export type { CommitSnapshot } from './view-mount/view-mount-state';
 
 /** Shared ctx for all {@link ProcessorPipeline} steps. */
 export interface PipelineContext {
@@ -435,4 +435,4 @@ export function toLifecycleContext(
 }
 
 export type { HookRegistry } from '../hooks/registry';
-export type { ViewCommitResult } from './view-commit';
+export type { ViewCommitResult } from './view-mount/view-render';

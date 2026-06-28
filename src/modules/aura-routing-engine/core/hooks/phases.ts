@@ -2,13 +2,13 @@
  * Phase metadata and hook name resolution for routes.
  *
  * Pipeline policy (branch, blocking/postCommit) is derived from
- * {@link ../processor/lifecycle-step!LIFECYCLE_STEPS}.
+ * {@link ../processor/lifecycle/lifecycle-steps!LIFECYCLE_STEPS}.
  * This module adds HTML/route attr bindings and parsing helpers.
  *
  * @module hooks/phases
  */
 
-import { LIFECYCLE_STEPS, lifecycleStepPolicy } from '../processor/lifecycle-step';
+import { LIFECYCLE_STEPS, lifecycleStepPolicy } from '../processor/lifecycle/lifecycle-steps';
 import type {
   PhaseDefinition,
   PhaseHooksMap,

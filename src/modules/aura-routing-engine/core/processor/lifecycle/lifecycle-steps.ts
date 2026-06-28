@@ -4,13 +4,13 @@ import type {
   LifecyclePhase,
   RouteInstance,
   RouteLifecycleContext,
-} from '../hooks/types';
+} from '../../hooks/types';
 import {
   PHASE_SPEC,
   phaseSpecPolicy,
   phaseSpecToHookHandling,
   type PhaseThrowPolicy,
-} from './phase-spec';
+} from './lifecycle-policy';
 
 export type { LifecyclePhase, LifecycleBranch, LifecycleHookHandling, PhaseThrowPolicy };
 
@@ -57,4 +57,4 @@ export function lifecycleStepPolicy(
   };
 }
 
-export { PHASE_SPEC, phaseSpecToHookHandling } from './phase-spec';
+export { PHASE_SPEC, phaseSpecToHookHandling } from './lifecycle-policy';

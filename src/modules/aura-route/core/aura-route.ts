@@ -1,7 +1,7 @@
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
-import { parsePhaseHooks } from '../../aura-routing-engine/core/hooks/phases';
+import { parsePhaseHooks } from '../../aura-routing-engine/core';
 import type {
   PhaseHooksMap,
   RouteErrorContext,

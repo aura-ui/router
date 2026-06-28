@@ -8,6 +8,7 @@
  * - `aura-routing-route-registry.ts` — route catalog snapshot
  * - `failure/` — navigation errors and terminal failure outcomes
  * - `navigation/` — {@link TransactionResult} contract and terminal outcome finalization
+ * - `route/types.ts` — route instance and lifecycle callback contract
  * - `view-mount/` — tracker/render impl (types partially exported below)
  * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
  * - `transition/plan.ts` — `TransitionMap`
@@ -121,13 +122,17 @@ export {
 export { ROUTER_VERSION, satisfies } from './core/hooks/version';
 
 export type {
-  RoutePhase,
-  LifecyclePhase,
   RouteInfo,
   RouterInstance,
   RouteLifecycleContext,
   RouteErrorContext,
   RouteInstance,
+  RouteHookNamesSource,
+} from './core/route/types';
+
+export type {
+  RoutePhase,
+  LifecyclePhase,
   RouteHookContext,
   RouteHookDefinition,
   PhaseHooksMap,

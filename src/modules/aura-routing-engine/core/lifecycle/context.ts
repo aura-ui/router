@@ -1,7 +1,7 @@
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { AuraRoutingProcessorJob } from '../processor/cancellation/job';
-import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../hooks/types';
+import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../route/types';
 import type { RoutePhase } from './types';
 
 /** Minimal navigation slice for building {@link RouteLifecycleContext}. */

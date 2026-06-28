@@ -1,4 +1,4 @@
-import type { RouterInstance } from './hooks/types';
+import type { RouterInstance } from './route/types';
 import { parsePath } from '../../aura-utils/misc/url';
 
 import type { AuraRoutingProcessor } from './processor/processor';

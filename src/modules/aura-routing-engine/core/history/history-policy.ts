@@ -58,7 +58,7 @@ export function resolveHistoryPolicy(
   options: ResolveHistoryOptions = {},
 ): HistoryPolicy {
   switch (result.status) {
-    case 'viewCommitted':
+    case 'navigationSucceeded':
       return options.sameTarget ? 'preserve' : 'commit-target';
 
     case 'redirect':

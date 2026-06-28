@@ -1,35 +1,31 @@
-import type { RouterInstance } from './route/types';
 import { parsePath } from '../../aura-utils/misc/url';
 
-import type { AuraRoutingProcessor } from './processor/processor';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import {
-  AuraRoutingUrlMatcher,
-  type MatchedRouteInfo,
-} from './match/url-matcher';
-import { resolveNavigationTarget } from './match/resolve-navigation-target';
-import { syncChainHref } from './route-tree/matched-chain';
-import { NavigationPlanner } from './navigation/navigation-planner';
-import { applyCommitGate } from './navigation/commit-gate';
+import type { ContentLoadService } from './content/content-load-service';
+import type { CompleteFailureDeps } from './failure/finalize-failure';
+import type { NavigationHookErrorDetail } from './failure/navigation-failure';
+import { FailedNavigation } from './failure/navigation-failure';
+import { runNotFoundExitCleanup } from './failure/not-found';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
   HistoryAction,
   NavigateHistoryOptions,
   NavigationProvider,
 } from './history/provider.types';
-import { LinkNavigationTracker } from './user-actions/link-navigation';
-import type { ContentLoadService } from './content/content-load-service';
+import { resolveNavigationTarget } from './match/resolve-navigation-target';
+import {
+  AuraRoutingUrlMatcher,
+  type MatchedRouteInfo,
+} from './match/url-matcher';
+import { NavigationCoordinator } from './navigation/coordinator';
+import { finalizeNotFoundNavigation } from './navigation/finalize';
 import { ContentPrefetchExecutor } from './prefetch/executors/content';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import type { PrefetchConfig, PrefetchOptions } from './prefetch/types';
-import type { NavigationHookErrorDetail } from './failure/navigation-failure';
-import { FailedNavigation } from './failure/navigation-failure';
-import type { CompleteFailureDeps } from './failure/finalize-failure';
-import { runNotFoundExitCleanup } from './failure/not-found';
-import {
-  finalizeNotFoundNavigation,
-  finalizeProcessorNavigation,
-} from './navigation/finalize';
+import type { AuraRoutingProcessor } from './processor/processor';
+import type { RouterInstance } from './route/types';
+import { syncChainHref } from './route-tree/matched-chain';
+import { LinkNavigationTracker } from './user-actions/link-navigation';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -73,7 +69,7 @@ export class AuraRoutingEngine {
   readonly contentLoad?: ContentLoadService;
   private prefetchPipeline?: PrefetchPipeline;
   private readonly linkNavigation: LinkNavigationTracker;
-  private readonly navigationPlanner = new NavigationPlanner();
+  private readonly navigationCoordinator: NavigationCoordinator;
 
   constructor(
     processor: AuraRoutingProcessor,
@@ -86,6 +82,24 @@ export class AuraRoutingEngine {
     this.contentLoad = config.contentLoad;
 
     this.provider = config.provider ?? new BrowserHistoryProvider();
+    this.navigationCoordinator = new NavigationCoordinator({
+      processor: this.processor,
+      router: this.router,
+      provider: this.provider,
+      callbacks: {
+        onNavigationCommitted: config.onNavigationCommitted,
+        onNavigationHookError: config.onNavigationHookError,
+        failureDeps: () => this.failureDeps(),
+        applyEffects: (effects) => this.applyFinalizeEffects(effects),
+        onRedirect: (url, replace) => {
+          void this.navigateTo(url, replace ? 'replace' : 'push', {
+            replace,
+            syncHistory: true,
+          });
+        },
+        scrollToHash: (hash) => this.scrollToHash(hash),
+      },
+    });
 
     const onNavigation = (request: {
       href: string;
@@ -150,7 +164,7 @@ export class AuraRoutingEngine {
     this.stop();
     this.registry.clear();
     this.prev = null;
-    this.navigationPlanner.reset();
+    this.navigationCoordinator.reset();
   }
 
   /**
@@ -158,7 +172,7 @@ export class AuraRoutingEngine {
    *
    * **Порядок history commit (атомарность перехода):**
    * 1. `processor.run({ from, to, action })` — guards, load, view commit (`runRender`), effects.
-   * 2. При `status: 'viewCommitted'` и `syncHistory: true` — `provider.commit()` (`pushState` / `replaceState`).
+   * 2. При `status: 'navigationSucceeded'` и `syncHistory: true` — `provider.commit()` (`pushState` / `replaceState`).
    * 3. Обновление `prevMatchedRouteInfo`.
    *
    * **Отмена при `push` / `replace`:** URL ещё не менялся — engine просто выходит.
@@ -227,70 +241,14 @@ export class AuraRoutingEngine {
 
     const from = this.prev;
 
-    const plan = this.navigationPlanner.plan({ href: relativeHref, from, to });
-
-    if (plan.action === 'noop') return;
-
-    if (plan.action === 'cancel-pending') {
-      this.processor.abortPendingNavigation();
-      return;
-    }
-
-    this.navigationPlanner.markPending(relativeHref);
-    try {
-      const result = await this.processor.run({
-        from,
-        to,
-        action,
-        router: this.router,
-        reportHookError: (hookError, parent) => {
-          this.config.onNavigationHookError?.({ error: hookError, phase: 'error', parent });
-        },
-        commitGate: () => {
-          this.applyFinalizeEffects(
-            applyCommitGate({
-              from,
-              to,
-              action,
-              href: relativeHref,
-              hash,
-              options,
-              provider: this.provider,
-              onNavigationCommitted: this.config.onNavigationCommitted,
-              scrollToHash: (h) => this.scrollToHash(h),
-            }),
-          );
-        },
-      });
-
-      this.applyFinalizeEffects(
-        finalizeProcessorNavigation(
-          result,
-          {
-            action,
-            href: relativeHref,
-            options,
-            from,
-            to,
-            hash,
-          },
-          this.provider,
-          {
-            failureDeps: this.failureDeps(),
-            onNavigationCommitted: this.config.onNavigationCommitted,
-            onRedirect: (url, replace) => {
-              void this.navigateTo(url, replace ? 'replace' : 'push', {
-                replace,
-                syncHistory: true,
-              });
-            },
-            scrollToHash: (h) => this.scrollToHash(h),
-          },
-        ),
-      );
-    } finally {
-      this.navigationPlanner.clearPending(relativeHref);
-    }
+    await this.navigationCoordinator.run({
+      from,
+      to,
+      action,
+      href: relativeHref,
+      hash,
+      options,
+    });
   }
 
   private failureDeps(): CompleteFailureDeps {

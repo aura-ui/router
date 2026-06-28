@@ -1,13 +1,11 @@
-import { attr } from '../../aura-utils/decorators';
-import { AuraRoute, RouteViewCache } from '../../aura-route/core';
 import type { CacheStoreOptions } from '../../aura-cache-store/core';
-import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import {
   ContentLoaderRegistry,
   type LoaderConstructor,
 } from '../../aura-content-loaders/core';
-import { defaultHookRegistry } from '../../aura-routing-engine/core/hooks/registry';
-import type { RouteHookDefinition, RouterInstance } from '../../aura-routing-engine/core/hooks/types';
+import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
+import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
+import { AuraRoute, RouteViewCache } from '../../aura-route/core';
 import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
@@ -15,24 +13,25 @@ import {
   ContentLoadService,
   ContentResolver,
   defaultLoaderRegistry,
+  defaultHookRegistry,
   isCatchAllRoute,
   type AuraRoutingEngineConfig,
   type HistoryAction,
   type NavigateHistoryOptions,
   type PrefetchOptions,
+  type RouteHookDefinition,
+  type RouterInstance,
 } from '../../aura-routing-engine/core';
+import { attr } from '../../aura-utils/decorators';
+
+import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
+import { registerAuraRouterComponents } from './aura-router-setup';
 import {
-  AURA_ROUTER_NAVIGATION_ERROR,
-  AURA_ROUTER_NAVIGATION_HOOK_ERROR,
-  AURA_ROUTER_NOT_FOUND,
   dispatchNavigationError,
   dispatchNavigationHookError,
   dispatchNotFound,
   type NotFoundHandler,
 } from './navigation-events';
-import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
-import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import { registerAuraRouterComponents } from './aura-router-setup';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -65,7 +64,7 @@ export interface AuraRouterConfigureOptions {
   notFoundHandler?: NotFoundHandler | null;
 }
 
-export type { RouterInstance } from '../../aura-routing-engine/core/hooks/types';
+export type { RouterInstance } from '../../aura-routing-engine/core';
 
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';

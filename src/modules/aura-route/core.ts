@@ -28,13 +28,14 @@ export {
 export {
   ContentResolver,
   type ContentResolverDeps,
-} from '../aura-routing-engine/core/content/content-resolver';
-export { LoaderRegistry, defaultLoaderRegistry } from '../aura-routing-engine/core/content/registry';
-export { contentCacheKey } from '../aura-routing-engine/core/content/content-key';
+  LoaderRegistry,
+  defaultLoaderRegistry,
+  contentCacheKey,
+} from '../aura-routing-engine/core';
 export type {
   ContentDescriptor,
   ContentKind,
   LoaderType,
   ResolveContext,
   LoaderFn,
-} from '../aura-routing-engine/core/content/types';
+} from '../aura-routing-engine/route-api';

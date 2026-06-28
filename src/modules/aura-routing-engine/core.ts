@@ -90,6 +90,7 @@ export {
   buildContentDescriptor,
   parseViewDescriptor,
 } from './core/content/descriptor';
+export { NO_PRESERVE, parsePreserveAttr } from './core/content/preserve';
 export { contentCacheKey } from './core/content/content-key';
 export { ContentCache } from './core/content/content-cache';
 export { ContentResolver } from './core/content/content-resolver';
@@ -98,9 +99,16 @@ export { LoaderRegistry, defaultLoaderRegistry } from './core/content/registry';
 
 export type {
   ContentDescriptor,
+  ContentKind,
+  FetchText,
+  LoaderFn,
   LoadPurpose,
+  LoaderType,
+  LoadContext,
+  ResolveContext,
   ViewPayload,
 } from './core/content/types';
+export type { PreserveFlags } from './core/content/preserve';
 export type { ParsedViewDescriptor } from './core/content/descriptor';
 export type { ContentResolverDeps } from './core/content/content-resolver';
 export type { ContentLoadServiceDeps } from './core/content/content-load-service';

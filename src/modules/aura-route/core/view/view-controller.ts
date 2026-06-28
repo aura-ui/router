@@ -1,9 +1,10 @@
-import type { MatchedRouteInfo } from '../../../aura-routing-engine/core';
 import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import type {
+  MatchedRouteInfo,
+  ViewRenderResult,
+} from '../../../aura-routing-engine/route-api';
 import type { RouteRenderOptions } from '../types';
-import type { ViewPayload, RouteViewConfig } from './ports';
-import { createRenderPass, isStale, type RenderPass } from './render-pass';
-import { RenderSignal } from './render-signal';
+
 import {
   EMPTY_MOUNT,
   commitStaged,
@@ -19,7 +20,9 @@ import {
   type MountSnapshot,
 } from './outlet';
 import { emptyContent, resolveError, warnMissingLayoutOutlet } from './payloads';
-import type { ViewRenderResult } from '../../../aura-routing-engine/core';
+import type { ViewPayload, RouteViewConfig } from './ports';
+import { createRenderPass, isStale, type RenderPass } from './render-pass';
+import { RenderSignal } from './render-signal';
 
 type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 

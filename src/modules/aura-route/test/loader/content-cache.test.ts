@@ -1,4 +1,4 @@
-import { ContentCache } from '../../../aura-routing-engine/core/content/content-cache';
+import { ContentCache } from '../../../aura-routing-engine/core';
 
 describe('ContentCache', () => {
   it('dedupes in-flight loads', async () => {

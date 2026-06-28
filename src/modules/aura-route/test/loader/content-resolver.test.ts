@@ -1,8 +1,10 @@
-import { ContentResolver } from '../../../aura-routing-engine/core/content/content-resolver';
-import { ContentCache } from '../../../aura-routing-engine/core/content/content-cache';
-import { contentCacheKey } from '../../../aura-routing-engine/core/content/content-key';
-import { LoaderRegistry } from '../../../aura-routing-engine/core/content/registry';
-import type { ContentDescriptor } from '../../../aura-routing-engine/core/content/types';
+import {
+  ContentCache,
+  ContentResolver,
+  LoaderRegistry,
+  contentCacheKey,
+  type ContentDescriptor,
+} from '../../../aura-routing-engine/core';
 
 const routeInfo = {
   href: '/page',

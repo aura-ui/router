@@ -1,30 +1,33 @@
+import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
+import { AuraRouter } from '../../aura-router/core/aura-router';
+import {
+  parsePhaseHooks,
+  parsePreserveAttr,
+  parseTransitionOrder,
+  type MatchedRouteInfo,
+  type PhaseHooksMap,
+  type PreserveFlags,
+  type RouteErrorContext,
+  type RouteInstance,
+  type RouteLifecycleContext,
+  type RouteTransition,
+  type TransitionPolicy,
+  type ViewRenderResult,
+} from '../../aura-routing-engine/route-api';
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
-import { parsePreserveAttr, type PreserveFlags } from '../../aura-routing-engine/core/content/preserve';
-import { parsePhaseHooks } from '../../aura-routing-engine/core/lifecycle/phase-attrs';
-import type { PhaseHooksMap } from '../../aura-routing-engine/core/lifecycle/types';
-import type {
-  RouteErrorContext,
-  RouteInstance,
-  RouteLifecycleContext,
-} from '../../aura-routing-engine/core/route/types';
-import type { RouteTransition } from '../../aura-routing-engine/core/transition/route-transition';
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core';
-import type { ViewRenderResult } from '../../aura-routing-engine/core';
-import { AuraRouter } from '../../aura-router/core/aura-router';
-import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import type { AuraRouteInterface, RouteRenderOptions } from './types';
+
 import { RouteContentLoader } from './route-content-loader';
-import { RouteViewController } from './view/view-controller';
-import { defaultViewCache } from './view/view-cache';
-import { loadingBodyClass, loadingEvent } from './view/plugins';
-import type { MountTargetPort } from './view/ports';
-import { parseTransitionOrder, type TransitionPolicy } from '../../aura-routing-engine/core/transition/policy';
 import {
   buildRouteTransition,
   parseTransitionShortcut,
   type TransitionShortcut,
 } from './transition/transition';
+import type { AuraRouteInterface, RouteRenderOptions } from './types';
+import { loadingBodyClass, loadingEvent } from './view/plugins';
+import type { MountTargetPort } from './view/ports';
+import { defaultViewCache } from './view/view-cache';
+import { RouteViewController } from './view/view-controller';
 
 export type { RouteRenderOptions, AuraRouteInterface };
 
@@ -149,18 +152,34 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.viewController?.commitStagedView();
   }
 
-  onEnter(_ctx: RouteLifecycleContext): void {}
-  onLoad(_ctx: RouteLifecycleContext): void {}
-  onAfter(_ctx: RouteLifecycleContext): void {}
-  onLeave(_ctx: RouteLifecycleContext): void {}
-  onTransitionOut(_ctx: RouteLifecycleContext): void {}
-  onTransitionIn(_ctx: RouteLifecycleContext): void {}
-  onLeft(_ctx: RouteLifecycleContext): void {
+  onEnter(ctx: RouteLifecycleContext): void {
+    void ctx;
+  }
+  onLoad(ctx: RouteLifecycleContext): void {
+    void ctx;
+  }
+  onAfter(ctx: RouteLifecycleContext): void {
+    void ctx;
+  }
+  onLeave(ctx: RouteLifecycleContext): void {
+    void ctx;
+  }
+  onTransitionOut(ctx: RouteLifecycleContext): void {
+    void ctx;
+  }
+  onTransitionIn(ctx: RouteLifecycleContext): void {
+    void ctx;
+  }
+  onLeft(ctx: RouteLifecycleContext): void {
+    void ctx;
     this.passId++;
     this.viewController?.onLeft();
   }
-  onReenter(_ctx: RouteLifecycleContext): void {
+  onReenter(ctx: RouteLifecycleContext): void {
+    void ctx;
     this.passId++;
   }
-  onError(_ctx: RouteErrorContext): void {}
+  onError(ctx: RouteErrorContext): void {
+    void ctx;
+  }
 }

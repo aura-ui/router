@@ -1,4 +1,4 @@
-import { contentCacheKey } from '../../../aura-routing-engine/core/content/content-key';
+import { contentCacheKey } from '../../../aura-routing-engine/core';
 
 describe('contentCacheKey', () => {
   const desc = { kind: 'content' as const, loader: 'html-src', ref: 'pages/home.html', cache: true };

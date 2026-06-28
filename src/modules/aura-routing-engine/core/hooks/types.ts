@@ -1,9 +1,8 @@
 /**
- * Route hook types — lifecycle context, hook definitions, and phase metadata.
+ * Route and hook contracts — lifecycle context, hook definitions, route surface.
  *
- * **Runtime wiring:** route attrs / `hooks="phase::name"` pick *when* a hook runs;
- * {@link RouteHookDefinition} registers *what* runs. Phase policy lives in
- * {@link ../lifecycle/phase-registry!PHASES}.
+ * Phase unions and policy live in {@link ../lifecycle/types}.
+ * Runtime phase metadata: {@link ../lifecycle/phase-registry!PHASES}.
  *
  * @module hooks/types
  */
@@ -11,63 +10,22 @@
 import type { HistoryAction } from '../history/provider.types';
 import type { RedirectTarget } from '../guard.types';
 import type { RouteTransition } from '../transition/route-transition';
-import type { PhaseThrowPolicy } from '../lifecycle/phase-registry';
+import type {
+  PhaseHooksMap,
+  RouteHookAttrProp,
+  RoutePhase,
+} from '../lifecycle/types';
 
-/** Branch in transition plan: exiting vs entering routes. @see {@link ../transition/plan!TransitionMap} */
-export type LifecycleBranch = 'exitRoutes' | 'enterRoutes';
-
-/** Post-commit hook error policy (see {@link LifecycleHookHandling}). */
-export type PostCommitHookErrors = 'propagate' | 'log';
-
-/**
- * When registered hooks run relative to view commit.
- *
- * - `blocking` — before view commit; cancel/redirect stops navigation
- * - `postCommit` — after view commit; cancel/redirect are ignored (warned).
- *   Hook errors: `propagate` throws, `log` catches and logs.
- */
-export type LifecycleHookHandling =
-  | { kind: 'blocking' }
-  | { kind: 'postCommit'; hookErrors: PostCommitHookErrors };
-
-/** `<aura-route>` getter backing a phase attr (`enter`, `load`, `afterHook`, …). */
-export type RouteHookAttrProp =
-  | 'enter'
-  | 'load'
-  | 'afterHook'
-  | 'leave'
-  | 'error'
-  | 'transitionIn'
-  | 'transitionOut';
-
-/** Phase metadata for hooks layer: pipeline policy + HTML/route bindings. */
-export interface PhaseDefinition {
-  readonly lifecyclePhase: RoutePhase;
-  readonly branch: LifecycleBranch;
-  readonly hooks: LifecycleHookHandling;
-  readonly onThrow: PhaseThrowPolicy;
-  /** kebab-case attr name when it differs from {@link RoutePhase}. */
-  readonly htmlAttr?: string;
-  readonly routeProp?: RouteHookAttrProp;
-}
-
-/** All navigation lifecycle phases, including terminal `error`. */
-export type RoutePhase =
-  | 'leave'
-  | 'enter'
-  | 'load'
-  | 'reenter'
-  | 'transitionOut'
-  | 'transitionIn'
-  | 'left'
-  | 'after'
-  | 'error';
-
-/** Pipeline-driven phases (excludes terminal `error`). */
-export type LifecyclePhase = Exclude<RoutePhase, 'error'>;
-
-/** Parsed `hooks="phase::hook-name, …"` attr on `<aura-route>`. */
-export type PhaseHooksMap = Partial<Record<RoutePhase, string[]>>;
+export type {
+  LifecycleBranch,
+  LifecycleHookHandling,
+  LifecyclePhase,
+  PhaseHooksMap,
+  PhaseThrowPolicy,
+  PostCommitHookErrors,
+  RouteHookAttrProp,
+  RoutePhase,
+} from '../lifecycle/types';
 
 /** Target route slice passed to lifecycle callbacks and hooks. */
 export interface RouteInfo {
@@ -90,16 +48,9 @@ export interface RouterInstance {
  * <!-- `after` attr → route.afterHook; or use hooks="after::analytics" -->
  * ```
  */
-export interface RouteHookNamesSource {
-  enter: string[] | null;
-  load: string[] | null;
-  afterHook: string[] | null;
-  leave: string[] | null;
-  error: string[] | null;
-  transitionIn: string[] | null;
-  transitionOut: string[] | null;
+export type RouteHookNamesSource = Record<RouteHookAttrProp, string[] | null> & {
   hooks?: PhaseHooksMap | null;
-}
+};
 
 /**
  * Context for route lifecycle callbacks and registered hooks.

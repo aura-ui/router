@@ -3,7 +3,7 @@ import type { HistoryAction } from '../history/provider.types';
 import type { TransitionMap } from '../transition/plan';
 import type { AuraRoutingProcessorJob } from './cancellation/job';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
-import { resolveHookNames } from '../hooks/phases';
+import { resolveHookNames } from '../lifecycle/phase-attrs';
 import { isRenderError, runViewCommit } from './view-mount/view-render';
 import type { GuardResult } from '../guard.types';
 import type { RoutePhase } from '../hooks/types';

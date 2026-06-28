@@ -109,7 +109,7 @@ export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefe
 
 // --- Route hooks (registered via AuraRouter.use) ---
 
-export { parsePhaseHooks, resolveHookNames } from './core/hooks/phases';
+export { parsePhaseHooks, resolveHookNames } from './core/lifecycle/phase-attrs';
 export { defineRouteHook } from './core/hooks/define-hook';
 export { NO_TRANSITION } from './core/transition/route-transition';
 export {

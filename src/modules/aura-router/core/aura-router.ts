@@ -86,10 +86,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     registerAuraRouterComponents();
   }
 
-  static use(
-    hook: RouteHookDefinition,
-    options?: Record<string, unknown>,
-  ): void {
+  /** Registers a global hook shared by all default AuraRouter instances. */
+  static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
     defaultHookRegistry.register(hook, options ?? {});
   }
 

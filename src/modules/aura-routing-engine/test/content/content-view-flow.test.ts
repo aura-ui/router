@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 
+import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
 import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
@@ -10,8 +11,7 @@ import {
   ContentResolver,
   LoaderRegistry,
 } from '../../core';
-import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
-import type { RouterInstance } from '../../core/hooks/types';
+import type { RouterInstance } from '../../core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('content load flow (view → descriptor → engine)', () => {

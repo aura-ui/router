@@ -27,11 +27,13 @@ export type { ProcessorRunInput } from './core/processor/processor-pipeline';
 
 export type {
   NavigationErrorPhase,
-  NavigationHookErrorDetail,
-  ReportNavigationHookError,
-} from './core/failure/navigation-error.types';
+} from './core/failure/navigation-error';
 
 export { FailedNavigation } from './core/failure/navigation-failure';
+export type {
+  NavigationHookErrorDetail,
+  ReportNavigationHookError,
+} from './core/failure/navigation-failure';
 export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/failure/finalize-failure';
 
 export type {

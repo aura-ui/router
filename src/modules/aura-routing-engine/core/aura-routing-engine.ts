@@ -21,7 +21,7 @@ import { ContentPrefetchExecutor } from './prefetch/executors/content';
 import { DataPrefetchExecutor } from './prefetch/executors/data';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import type { PrefetchConfig, PrefetchOptions } from './prefetch/types';
-import type { NavigationHookErrorDetail } from './failure/navigation-error.types';
+import type { NavigationHookErrorDetail } from './failure/navigation-failure';
 import { applyHistoryPolicy, resolveHistoryPolicy } from './history/history-policy';
 import { FailedNavigation } from './failure/navigation-failure';
 import { finalizeFailure, type CompleteFailureOutcome } from './failure/finalize-failure';

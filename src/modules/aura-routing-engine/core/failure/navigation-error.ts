@@ -1,4 +1,7 @@
-import type { NavigationErrorPhase } from './navigation-error.types';
+import type { LifecyclePhase } from '../hooks/types';
+
+/** Phases where a navigation error can be attributed (pipeline + match + render). */
+export type NavigationErrorPhase = LifecyclePhase | 'match' | 'render';
 
 /** Stable codes for recovery, telemetry, and i18n. */
 export type NavigationFailureCode =
@@ -12,9 +15,23 @@ export type NavigationFailureCode =
   | 'REENTER_FAILED'
   | 'INTERNAL';
 
+/** Default failure code per error phase — single registry (replaces switch in `defaultCodeForPhase`). */
+export const FAILURE_CODE_BY_PHASE = {
+  match: 'NOT_FOUND',
+  leave: 'GUARD_THROW',
+  enter: 'GUARD_THROW',
+  load: 'LOAD_FAILED',
+  render: 'RENDER_FAILED',
+  reenter: 'REENTER_FAILED',
+  transitionOut: 'TRANSITION_FAILED',
+  transitionIn: 'TRANSITION_FAILED',
+  left: 'HOOK_THROW',
+  after: 'HOOK_THROW',
+} as const satisfies Record<NavigationErrorPhase, NavigationFailureCode>;
+
 export interface NavigationErrorInit {
   code: NavigationFailureCode;
-  phase: NavigationErrorPhase | 'match';
+  phase: NavigationErrorPhase;
   routePattern: string;
   message: string;
   cause?: unknown;
@@ -23,7 +40,7 @@ export interface NavigationErrorInit {
 /** Structured navigation error with native {@link Error.cause}. */
 export class NavigationError extends Error {
   readonly code: NavigationFailureCode;
-  readonly phase: NavigationErrorPhase | 'match';
+  readonly phase: NavigationErrorPhase;
   readonly routePattern: string;
 
   constructor(init: NavigationErrorInit) {
@@ -40,7 +57,7 @@ export function isNavigationError(error: unknown): error is NavigationError {
 }
 
 export interface NormalizeFailureContext {
-  phase: NavigationErrorPhase | 'match';
+  phase: NavigationErrorPhase;
   routePattern: string;
   defaultCode?: NavigationFailureCode;
 }
@@ -63,28 +80,8 @@ export function normalizeFailure(error: unknown, ctx: NormalizeFailureContext): 
   });
 }
 
-export function defaultCodeForPhase(phase: NavigationErrorPhase | 'match'): NavigationFailureCode {
-  switch (phase) {
-    case 'match':
-      return 'NOT_FOUND';
-    case 'load':
-      return 'LOAD_FAILED';
-    case 'render':
-      return 'RENDER_FAILED';
-    case 'transitionOut':
-    case 'transitionIn':
-      return 'TRANSITION_FAILED';
-    case 'reenter':
-      return 'REENTER_FAILED';
-    case 'leave':
-    case 'enter':
-      return 'GUARD_THROW';
-    case 'left':
-    case 'after':
-      return 'HOOK_THROW';
-    default:
-      return 'INTERNAL';
-  }
+export function defaultCodeForPhase(phase: NavigationErrorPhase): NavigationFailureCode {
+  return FAILURE_CODE_BY_PHASE[phase] ?? 'INTERNAL';
 }
 
 export function createContentLoadError(

@@ -2,7 +2,7 @@ import type { GuardResult } from '../guard.types';
 import type { RouteLifecycleContext } from '../hooks/types';
 import type { CommitSnapshot } from '../view-mount/view-mount-state';
 import type { NavigationFailureCode } from '../failure/navigation-error';
-import type { NavigationErrorPhase } from '../failure/navigation-error.types';
+import type { NavigationErrorPhase } from '../failure/navigation-error';
 import type { PhaseThrowPolicy } from './phase-registry';
 
 export type PhaseStepErrorOutcome = {

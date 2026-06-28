@@ -1,5 +1,5 @@
-import type { MatchedRouteInfo } from '../../match/url-matcher';
-import type { AuraRoutingProcessorJob } from '../cancellation/job';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { AuraRoutingProcessorJob } from '../processor/cancellation/job';
 
 export type ViewRenderResult =
   | { status: 'ok' }

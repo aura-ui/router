@@ -4,10 +4,10 @@ import { defaultHookRegistry } from '../hooks/registry';
 import {
   ProcessorPipeline,
   type NavigationTransaction,
-  type ProcessorRunInput,
 } from './processor-pipeline';
+import type { ProcessorRunInput } from './types';
 import type { TransactionResult } from '../navigation/transaction-result';
-import { CommitTracker } from './view-mount/view-mount-tracker';
+import { CommitTracker } from '../view-mount/view-mount-tracker';
 import { AuraRoutingProcessorJobManager } from './cancellation/job-manager';
 
 /**

@@ -1,6 +1,8 @@
 /**
  * View mount state during a navigation transaction.
  *
+ * Implementation: {@link ./view-mount-tracker!CommitTracker}, {@link ./view-render!runViewCommit}.
+ *
  * Vocabulary (do not confuse):
  * - **View commit** — {@link ViewCommitState} on {@link CommitSnapshot} (`none` / `staged` / `committed`).
  * - **History commit** — `provider.commit()` / {@link HistoryPolicy} `commit-target` (address bar URL).

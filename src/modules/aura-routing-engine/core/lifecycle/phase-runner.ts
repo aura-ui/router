@@ -1,9 +1,9 @@
 import type { GuardResult } from '../guard.types';
-import type { RoutePhase } from './types';
 import type { RouteLifecycleContext } from '../hooks/types';
 import type { CommitSnapshot } from '../view-mount/view-mount-state';
 import type { NavigationFailureCode } from '../failure/navigation-error';
 import type { NavigationErrorPhase } from '../failure/navigation-error';
+import type { NavigationErrorResult } from '../navigation/transaction-result';
 import type { PhaseThrowPolicy } from './types';
 
 export type PhaseStepErrorOutcome = {
@@ -18,6 +18,7 @@ export type PhaseStepOutcome =
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
   | PhaseStepErrorOutcome
+  | NavigationErrorResult
   | null;
 
 export interface PhaseStepHandlers {
@@ -27,7 +28,7 @@ export interface PhaseStepHandlers {
     hookErrors: 'propagate' | 'log',
     lifecyclePhase: RouteLifecycleContext['phase'],
   ) => Promise<PhaseStepOutcome>;
-  failWithError: (error: unknown) => Promise<PhaseStepErrorOutcome>;
+  failWithError: (error: unknown) => Promise<PhaseStepErrorOutcome | NavigationErrorResult>;
 }
 
 export interface PhaseStepInput {

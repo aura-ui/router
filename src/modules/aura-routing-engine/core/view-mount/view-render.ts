@@ -1,3 +1,10 @@
+/**
+ * View render commit during navigation (`route.render()` + job abort guard).
+ *
+ * Vocabulary: {@link ./view-mount-state}.
+ *
+ * @module view-mount/view-render
+ */
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { AuraRoutingProcessorJob } from '../processor/cancellation/job';
 

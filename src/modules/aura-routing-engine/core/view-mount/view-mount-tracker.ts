@@ -3,7 +3,8 @@ import type { CommitSnapshot, ViewCommitState } from './view-mount-state';
 /**
  * Tracks {@link ViewCommitState} for one navigation transaction.
  *
- * @see {@link CommitSnapshot} for view vs history vs pipeline success vocabulary.
+ * @module view-mount/view-mount-tracker
+ * @see {@link ./view-mount-state} — view vs history vs pipeline success vocabulary.
  */
 export class CommitTracker {
   /** Target URL of the navigation transaction (stable for the tracker lifetime). */

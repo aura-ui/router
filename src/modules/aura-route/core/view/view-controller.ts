@@ -19,7 +19,7 @@ import {
   type MountSnapshot,
 } from './outlet';
 import { emptyContent, resolveError, warnMissingLayoutOutlet } from './payloads';
-import type { ViewRenderResult } from '../../../aura-routing-engine/core/view-mount/view-render';
+import type { ViewRenderResult } from '../../../aura-routing-engine/core';
 
 type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 

@@ -20,6 +20,7 @@ import {
   type MatchedRouteInfo,
 } from './match/url-matcher';
 import { NavigationCoordinator } from './navigation/coordinator';
+import type { NavigationCommittedContext } from './navigation/commit-gate';
 import { finalizeNotFoundNavigation } from './navigation/finalize';
 import { ContentPrefetchExecutor } from './prefetch/executors/content';
 import { PrefetchPipeline } from './prefetch/pipeline';
@@ -38,7 +39,7 @@ export interface AuraRoutingEngineConfig {
   /** Use hash-based routing. Default: `false`. */
   hash?: boolean;
   /** Вызывается после history commit navigation (в т.ч. catch-all). */
-  onNavigationCommitted?: (to: MatchedRouteInfo) => void;
+  onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
   /** Matched-route navigation failure (after processor). */
   onNavigationError?: (failure: FailedNavigation) => void;
   /** Error hook (`error="…"`) threw while handling a navigation failure. */

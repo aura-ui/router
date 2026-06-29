@@ -5,7 +5,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { AuraRoutingProcessor } from '../processor/processor';
 import type { RouterInstance } from '../route/types';
 
-import { applyCommitGate } from './commit-gate';
+import { applyCommitGate, type NavigationCommittedContext } from './commit-gate';
 import {
   finalizeProcessorNavigation,
   type FinalizeNavigationEffects,
@@ -13,7 +13,7 @@ import {
 import { NavigationPlanner } from './navigation-planner';
 
 export interface NavigationCoordinatorCallbacks {
-  onNavigationCommitted?: (to: MatchedRouteInfo) => void;
+  onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
   onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
   onRedirect: (url: string, replace: boolean) => void;
   scrollToHash?: (hash: string) => void;

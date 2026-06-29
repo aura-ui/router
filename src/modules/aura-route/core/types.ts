@@ -2,6 +2,7 @@ import type {
   MatchedRouteInfo,
   PreserveFlags,
   RouteTransition,
+  ScrollPolicy,
 } from '../../aura-routing-engine/route-api';
 
 /** Public surface of `<aura-route>` attributes. */
@@ -12,7 +13,7 @@ export interface AuraRouteInterface {
   loadingTemplate: string;
   errorTemplate: string;
   preserve: PreserveFlags;
-  restoreScroll: boolean;
+  scrollPolicy: ScrollPolicy | null;
   readonly transition: RouteTransition;
 }
 

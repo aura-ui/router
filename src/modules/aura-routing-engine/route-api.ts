@@ -13,6 +13,14 @@ export {
 } from './core/content';
 export { NO_PRESERVE, parsePreserveAttr } from './core/content';
 export { parsePhaseHooks, resolveHookNames } from './core/lifecycle/bindings/route-hook-bindings';
+export {
+  DEFAULT_SCROLL_POLICY,
+  parseScrollPolicy,
+  resolveRouteScrollPolicy,
+  resolveScrollPolicy,
+  type ScrollPolicy,
+  type ScrollPolicySource,
+} from './core/navigation/scroll-policy';
 export { NO_TRANSITION } from './core/transition/route-transition';
 export {
   DEFAULT_TRANSITION_POLICY,

@@ -36,7 +36,7 @@ function createController(
     loadingTemplate: '',
     errorTemplate: '',
     preserve: NO_PRESERVE,
-    restoreScroll: false,
+    scrollPolicy: null,
     get transition() {
       return staged
         ? { order: 'parallel' as const, in: null, out: null }

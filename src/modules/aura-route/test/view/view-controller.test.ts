@@ -47,7 +47,7 @@ function createController(
     view: '',
     loadingTemplate: '',
     errorTemplate: '',
-    restoreScroll: false,
+    scrollPolicy: null,
     preserve: preserveView ? { view: true, data: false } : NO_PRESERVE,
     transition: NO_TRANSITION,
   };

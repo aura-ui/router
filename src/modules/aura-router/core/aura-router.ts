@@ -10,6 +10,7 @@ import {
   defaultLoaderRegistry,
   defaultHookRegistry,
   isCatchAllRoute,
+  parseScrollPolicy,
   type AuraRoutingEngineConfig,
   type HistoryAction,
   type LoaderFn,
@@ -18,11 +19,13 @@ import {
   type PrefetchOptions,
   type RouteHookDefinition,
   type RouterInstance,
+  type ScrollPolicy,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
 
 import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
 import { registerAuraRouterComponents } from './aura-router-setup';
+import { ScrollRestoration } from './scroll-restoration';
 import {
   dispatchNavigationError,
   dispatchNavigationHookError,
@@ -72,8 +75,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
+  /** Default scroll policy for child routes (`restore` | `top` | `manual`). HTML attr: `scroll`. */
+  @attr({ parser: parseScrollPolicy, cached: true, name: 'scroll' }) scrollPolicy: ScrollPolicy | null;
 
   private engine?: AuraRoutingEngine;
+  private readonly scrollRestoration = new ScrollRestoration();
   private readonly notFound = new AuraRouterNotFoundController(this);
   private readonly contentCache = new ContentCache(AuraRouter.contentCacheOptions);
   private readonly loaderRegistry = defaultLoaderRegistry;
@@ -150,6 +156,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   disconnectedCallback(): void {
     this.engine?.destroy();
     this.engine = undefined;
+    this.scrollRestoration.clear();
     this.notFound.reset();
   }
 
@@ -159,11 +166,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         linksSelector: this.linksSelector,
         contentLoad: this.contentLoad,
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
-        onNavigationCommitted: (to) => {
+        onNavigationCommitted: (ctx) => {
           this.notFound.hide();
-          if (isCatchAllRoute(to.pattern)) {
-            dispatchNotFound(this, to.href, 'route');
+          if (isCatchAllRoute(ctx.to.pattern)) {
+            dispatchNotFound(this, ctx.to.href, 'route');
           }
+          this.scrollRestoration.handleCommit(ctx);
         },
         onNavigationError: (failure) => {
           if (failure.viewCommitted) {

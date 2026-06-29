@@ -24,6 +24,7 @@ export interface AuraRouteInterface {
   readonly hasTransitionIn: boolean;
   readonly hasPostEffects: boolean;
   readonly hasAsyncContent: boolean;
+  readonly hasSyncContent: boolean;
 }
 
 export type RouteRenderOptions = {

@@ -56,6 +56,7 @@ export interface RouteInstance extends RouteHookNamesSource {
   readonly hasTransitionIn: boolean;
   readonly hasPostEffects: boolean;
   readonly hasAsyncContent: boolean;
+  readonly hasSyncContent: boolean;
   onEnter(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;

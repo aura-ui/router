@@ -53,6 +53,19 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
         return route.hasLoad;
       },
     },
+    hasSyncContent: {
+      get(): boolean {
+        const r = route as RouteInstance & {
+          view?: { type: string } | null;
+          layout?: string;
+          loadingTemplate?: string;
+        };
+        if (r.layout?.trim()) return false;
+        if (route.hasAsyncContent) return false;
+        if (r.loadingTemplate?.trim()) return false;
+        return r.view?.type === 'html';
+      },
+    },
   });
 
   return route;

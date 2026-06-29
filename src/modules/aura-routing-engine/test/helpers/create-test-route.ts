@@ -9,7 +9,7 @@ const noopRender = async (): Promise<ViewRenderResult> => ({ status: 'ok' });
 const INACTIVE_TRANSITION: RouteTransitionType = { order: null, in: null, out: null };
 
 export function createTestRoute(path: string, overrides: Partial<RouteInstance> = {}): RouteInstance {
-  return {
+  const route = {
     path,
     getAttribute(name: string): string | null {
       return name === 'path' ? path : null;
@@ -36,5 +36,24 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
     commitStagedView: noop,
     render: noopRender,
     ...overrides,
-  };
+  } as RouteInstance;
+
+  Object.defineProperties(route, {
+    hasEnter: { get(): boolean { return !!route.enter?.length; } },
+    hasLeave: { get(): boolean { return !!route.leave?.length; } },
+    hasLoad: { get(): boolean { return !!route.load?.length; } },
+    hasTransitionIn: { get(): boolean { return !!route.transition.in?.length; } },
+    hasPostEffects: {
+      get(): boolean {
+        return !!route.transition.out?.length || !!route.afterHook?.length;
+      },
+    },
+    hasAsyncContent: {
+      get(): boolean {
+        return route.hasLoad;
+      },
+    },
+  });
+
+  return route;
 }

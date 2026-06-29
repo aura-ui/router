@@ -4,6 +4,8 @@ import {
   FakeHistoryProvider,
 } from '../../core';
 import type { RouterInstance } from '../../core';
+import { defineRouteHook } from '../../core/hooks/define-hook';
+import { HookRegistry } from '../../core/hooks/registry';
 import { createTestRoute } from '../helpers/create-test-route';
 
 describe('FakeHistoryProvider', () => {
@@ -124,16 +126,22 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
   it('при ошибке до render вызывает onNavigationError без commit URL', async () => {
     const fromLeft = jest.fn();
     const enterError = new Error('guard failed');
+    const registry = new HookRegistry();
+    registry.register(
+      defineRouteHook({
+        name: 'guard',
+        version: '1.0.0',
+        fn: async () => {
+          throw enterError;
+        },
+      }),
+    );
     const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
-    const toRoute = createTestRoute('/d', {
-      onEnter: () => {
-        throw enterError;
-      },
-    });
+    const toRoute = createTestRoute('/d', { enter: ['guard'] });
     const onNavigationError = jest.fn();
 
     const provider = new FakeHistoryProvider('/a');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(registry), router, {
       provider,
       onNavigationError,
     });

@@ -50,6 +50,12 @@ export type RouteErrorContext = RouteLifecycleContext & {
 export interface RouteInstance extends RouteHookNamesSource {
   path: string;
   readonly transition: RouteTransitionType;
+  readonly hasEnter: boolean;
+  readonly hasLeave: boolean;
+  readonly hasLoad: boolean;
+  readonly hasTransitionIn: boolean;
+  readonly hasPostEffects: boolean;
+  readonly hasAsyncContent: boolean;
   onEnter(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;

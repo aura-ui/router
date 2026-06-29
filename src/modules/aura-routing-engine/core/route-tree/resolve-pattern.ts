@@ -1,15 +1,23 @@
 const CATCH_ALL_SEGMENT = new Set(['*', '/*']);
 const SCOPED_CATCH_ALL_SUFFIX = '/*';
 
+/** Index child alias: `path="."` → `""`. */
+export function normalizeRouteSegment(segment: string): string {
+  return segment === '.' ? '' : segment;
+}
+
 /**
  * Склеивает `segment` (attr `path`) с pattern родителя в итоговый URL-паттерн.
  * @example resolvePattern('/settings', 'profile') → '/settings/profile'
  * @example resolvePattern('/settings', '/users') → '/users' (absolute child)
  * @example resolvePattern('/settings', '') → '/settings' (index child)
+ * @example resolvePattern('/settings', '.') → '/settings' (index alias)
  * @example resolvePattern('/users', '*') → '/users/*' (scoped catch-all)
  * @example resolvePattern(null, '*') → '*' (global catch-all)
  */
 export function resolvePattern(parentPattern: string | null, segment: string): string {
+  segment = normalizeRouteSegment(segment);
+
   if (CATCH_ALL_SEGMENT.has(segment)) {
     if (!parentPattern || parentPattern === '/') return '*';
     return normalizePath(`${trimTrailingSlash(parentPattern)}${SCOPED_CATCH_ALL_SUFFIX}`);

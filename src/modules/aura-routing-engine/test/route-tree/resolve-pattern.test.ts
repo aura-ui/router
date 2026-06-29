@@ -17,6 +17,7 @@ describe('resolvePattern', () => {
 
   it('resolves index child', () => {
     expect(resolvePattern('/settings', '')).toBe('/settings');
+    expect(resolvePattern('/settings', '.')).toBe('/settings');
   });
 
   it('resolves global catch-all', () => {

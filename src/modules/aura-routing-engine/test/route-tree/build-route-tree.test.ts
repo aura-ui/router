@@ -35,6 +35,19 @@ describe('buildRouteTree', () => {  it('builds nested tree with resolved pattern
     expect(matchableNodes.map((node) => node.pattern)).toEqual(['/settings']);
   });
 
+  it('treats path="." as index child alias', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const index = createDomRoute('.');
+    const settings = createDomRoute('/users', [index]);
+    const { matchableNodes, nodesByPattern } = buildTreeFromDom(settings);
+
+    expect(nodesByPattern.get('/users')?.isIndex).toBe(true);
+    expect(nodesByPattern.get('/users')?.segment).toBe('');
+    expect(matchableNodes.map((node) => node.pattern)).toEqual(['/users']);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it('finds roots when all nested routes are passed flat', () => {
     const profile = createDomRoute('profile');
     const settings = createDomRoute('/settings', [profile]);

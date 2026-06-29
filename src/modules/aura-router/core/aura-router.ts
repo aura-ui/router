@@ -5,7 +5,7 @@ import { AuraRoute, RouteViewCache } from '../../aura-route/core';
 import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
-  ContentCache,
+  DataCache,
   ContentLoadService,
   defaultLoaderRegistry,
   defaultHookRegistry,
@@ -59,7 +59,7 @@ export interface AuraRouterConfigureOptions {
   /** LRU cache for keep-alive route views (`detachedRoot` DOM). */
   viewCache?: CacheStoreOptions<ViewRoot>;
   /** LRU cache for route content payloads (prefetch + navigation). */
-  contentCache?: CacheStoreOptions<string>;
+  dataCache?: CacheStoreOptions<string>;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;
 }
@@ -69,7 +69,7 @@ export type { RouterInstance } from '../../aura-routing-engine/core';
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
-  private static contentCacheOptions: CacheStoreOptions<string> = {};
+  private static dataCacheOptions: CacheStoreOptions<string> = {};
 
   /** Fallback template id — когда нет `<aura-route path="*">`. */
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
@@ -81,7 +81,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();
   private readonly notFound = new AuraRouterNotFoundController(this);
-  private readonly contentCache = new ContentCache(AuraRouter.contentCacheOptions);
+  private readonly dataCache = new DataCache(AuraRouter.dataCacheOptions);
   private readonly loaderRegistry = defaultLoaderRegistry;
   private contentLoadService?: ContentLoadService;
 
@@ -106,8 +106,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (options.viewCache) {
       RouteViewCache.configure(options.viewCache);
     }
-    if (options.contentCache) {
-      AuraRouter.contentCacheOptions = options.contentCache;
+    if (options.dataCache) {
+      AuraRouter.dataCacheOptions = options.dataCache;
     }
   }
 
@@ -128,7 +128,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (!this.contentLoadService) {
       this.contentLoadService = new ContentLoadService({
         registry: this.loaderRegistry,
-        cache: this.contentCache,
+        cache: this.dataCache,
       });
     }
     return this.contentLoadService;

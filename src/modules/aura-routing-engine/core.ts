@@ -91,8 +91,8 @@ export type { GuardResult, RedirectTarget } from './core/guard.types';
 export {
   NO_PRESERVE,
   parsePreserveAttr,
-  contentCacheKey,
-  ContentCache,
+  dataCacheKey,
+  DataCache,
   ContentLoadService,
   LoaderRegistry,
   createLoaderRegistry,

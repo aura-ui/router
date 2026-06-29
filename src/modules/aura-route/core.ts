@@ -20,7 +20,7 @@ export { loadingBodyClass, loadingEvent } from './core/view/plugins';
 export {
   LoaderRegistry,
   defaultLoaderRegistry,
-  contentCacheKey,
+  dataCacheKey,
 } from '../aura-routing-engine/core';
 export type {
   ContentDescriptor,

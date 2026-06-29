@@ -72,7 +72,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   })
   scrollPolicy: ScrollPolicy | null;
 
-  @attr({ readonly: true, parser: parsePreserveAttr }) preserve: PreserveFlags;
+  @attr({ readonly: true, parser: parsePreserveAttr, inherit: true, allowEmpty: true })
+  preserve: PreserveFlags;
 
   private viewController!: RouteViewController;
   private passId = 0;

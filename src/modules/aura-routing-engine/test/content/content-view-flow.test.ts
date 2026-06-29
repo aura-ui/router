@@ -3,8 +3,8 @@
 import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
-  contentCacheKey,
-  ContentCache,
+  dataCacheKey,
+  DataCache,
   ContentLoadService,
   LoaderRegistry,
 } from '../../core';
@@ -26,7 +26,7 @@ describe('content load flow (view → engine)', () => {
       return `<p>${ctx.ref}</p>`;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
 
@@ -51,7 +51,7 @@ describe('content load flow (view → engine)', () => {
       return `<p>${ctx.ref}</p>`;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html-src::about.html');
@@ -71,7 +71,7 @@ describe('content load flow (view → engine)', () => {
       return ctx.ref;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
 
     const route = createDomRoute('/x');
     route.setAttribute('view', 'html::<b>page</b>');
@@ -84,11 +84,11 @@ describe('content load flow (view → engine)', () => {
     expect(loads).toEqual(['<b>page</b>']);
   });
 
-  it('prefetch and navigation share contentCacheKey when preserve data is enabled', async () => {
+  it('prefetch and navigation share dataCacheKey when preserve data is enabled', async () => {
     const registry = new LoaderRegistry();
     registry.register('html-src', async () => '<p>feed</p>');
 
-    const cache = new ContentCache();
+    const cache = new DataCache();
     const contentLoad = new ContentLoadService({ registry, cache });
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
@@ -104,7 +104,7 @@ describe('content load flow (view → engine)', () => {
     };
 
     await contentLoad.resolve(routeInfo, new AbortController().signal);
-    expect(cache.get(contentCacheKey({
+    expect(cache.get(dataCacheKey({
       kind: 'content',
       loader: 'html-src',
       ref: 'feed.html',
@@ -120,7 +120,7 @@ describe('content load flow (view → engine)', () => {
       return `<layout>${ctx.ref}</layout>`;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
     const parent = createDomRoute('/users');
     parent.setAttribute('layout', 'users-shell');
     parent.setAttribute('view', 'html-src::ignored.html');
@@ -140,7 +140,7 @@ describe('content load flow (view → engine)', () => {
       return ctx.ref;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
     const route = createDomRoute('/users/:id');
     route.setAttribute('view', 'html-src::user.html');
 
@@ -155,7 +155,7 @@ describe('content load flow (view → engine)', () => {
     const registry = new LoaderRegistry();
     registry.register('html', async () => 'never');
 
-    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
     const route = createDomRoute('/empty');
 
     const payload = await contentLoad.resolve(

@@ -8,8 +8,8 @@ export type { ContentLoadServiceDeps, ContentPrefetchOptions } from './content-l
 export { NO_PRESERVE, parsePreserveAttr } from './model/preserve';
 export type { PreserveFlags } from './model/preserve';
 
-export { contentCacheKey } from './cache/content-key';
-export { ContentCache } from './cache/content-cache';
+export { dataCacheKey } from './cache/data-key';
+export { DataCache } from './cache/data-cache';
 
 export {
   LoaderRegistry,

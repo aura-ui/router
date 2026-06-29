@@ -23,3 +23,4 @@ Route attrs → ContentLoadService.resolve → [cache] → LoaderFn → ViewPayl
 - `preserve="data"` → `descriptor.cache = true`
 - Only string payloads are cached
 - Abort → `null`; loader failure → `ContentLoadError`
+- Configure LRU via `AuraRouter.configure({ dataCache: { max, gcTime } })`

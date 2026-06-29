@@ -60,7 +60,7 @@ describe('runPhaseStep', () => {
     const outcome = await runPhaseStep({
       lifecyclePhase: 'enter',
       onThrow: 'failure',
-      hookKind: 'blocking',
+      hookPolicy: { kind: 'blocking' },
       invokeRoute: () => {
         throw new Error('enter failed');
       },
@@ -83,8 +83,7 @@ describe('runPhaseStep', () => {
     const outcome = await runPhaseStep({
       lifecyclePhase: 'left',
       onThrow: 'log',
-      hookKind: 'postCommit',
-      onError: 'log',
+      hookPolicy: { kind: 'postCommit', onError: 'log' },
       invokeRoute: () => {
         throw new Error('cleanup failed');
       },
@@ -104,7 +103,7 @@ describe('runPhaseStep', () => {
     const outcome = await runPhaseStep({
       lifecyclePhase: 'enter',
       onThrow: 'failure',
-      hookKind: 'blocking',
+      hookPolicy: { kind: 'blocking' },
       invokeRoute: () => {},
       hookNames: ['auth'],
       handlers,
@@ -121,7 +120,7 @@ describe('runPhaseStep', () => {
     const outcome = await runPhaseStep({
       lifecyclePhase: 'enter',
       onThrow: 'failure',
-      hookKind: 'blocking',
+      hookPolicy: { kind: 'blocking' },
       invokeRoute: () => {},
       hookNames: ['auth'],
       handlers,

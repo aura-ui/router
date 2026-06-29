@@ -1,7 +1,7 @@
 import type { GuardResult } from '../guard.types';
 import type { RouteLifecycleContext } from '../route/types';
 import type { NavigationErrorResult, TransactionResult } from '../navigation/transaction-result';
-import type { PhaseThrowPolicy } from './types';
+import type { LifecycleHookHandling, PhaseThrowPolicy } from './types';
 export type PhaseStepOutcome =
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
@@ -21,8 +21,7 @@ export interface PhaseStepHandlers {
 export interface PhaseStepInput {
   lifecyclePhase: RouteLifecycleContext['phase'];
   onThrow: PhaseThrowPolicy;
-  hookKind: 'blocking' | 'postCommit';
-  onError?: 'propagate' | 'log';
+  hookPolicy: LifecycleHookHandling;
   invokeRoute: () => void;
   hookNames: readonly string[] | null;
   handlers: PhaseStepHandlers;
@@ -39,13 +38,13 @@ export async function runPhaseStep(input: PhaseStepInput): Promise<PhaseStepOutc
   if (!input.hookNames?.length) return null;
 
   try {
-    if (input.hookKind === 'blocking') {
+    if (input.hookPolicy.kind === 'blocking') {
       return await input.handlers.runBlockingHooks(input.hookNames);
     }
 
     return await input.handlers.runPostCommitHooks(
       input.hookNames,
-      input.onError ?? 'propagate',
+      input.hookPolicy.onError,
       input.lifecyclePhase,
     );
   } catch (error) {

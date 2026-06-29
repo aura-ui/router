@@ -1,3 +1,4 @@
+import { resolveRouteData } from '../../data-graph/route-data';
 import {
   FailedNavigation,
   normalizeFailure,
@@ -34,10 +35,17 @@ export class ErrorPhaseHandler {
       routePattern: matchedRoute.pattern,
     });
     const failed = this.createFailedNavigation(normalized, context);
+    const input = toLifecycleContextInput(context);
+    const routeData = context.dataSnapshot
+      ? resolveRouteData(context.dataSnapshot, matchedRoute)
+      : undefined;
     const baseErrorContext = createLifecycleContext(
       PHASES.error.phase,
       matchedRoute,
-      toLifecycleContextInput(context),
+      {
+        ...input,
+        ...(routeData !== undefined && { data: routeData }),
+      },
       normalized,
     );
     const errorContext: RouteErrorContext = {

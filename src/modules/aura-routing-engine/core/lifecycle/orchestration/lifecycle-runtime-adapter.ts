@@ -37,5 +37,6 @@ export function createLifecycleRuntimeContext(
     viewCommitTracker: pipeline.viewCommitTracker,
     reportHookError: pipeline.reportHookError,
     isJobActive: pipeline.isJobActive,
+    ...(pipeline.dataSnapshot && { dataSnapshot: pipeline.dataSnapshot }),
   };
 }

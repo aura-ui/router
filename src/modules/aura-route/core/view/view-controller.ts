@@ -63,7 +63,7 @@ export class RouteViewController {
    * Returns `{ status: 'error' }` after mounting recovery UI — does not rethrow.
    */
   async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
-    const pass = this.beginPass(routeInfo, options?.parentSignal);
+    const pass = this.beginPass(routeInfo, options?.parentSignal, options?.data);
     this.lastCacheKey = pass.cacheKey;
     return this.renderPass(pass);
   }
@@ -111,9 +111,9 @@ export class RouteViewController {
     }
   }
 
-  private beginPass(routeInfo: MatchedRouteInfo, parentSignal?: AbortSignal): RenderPass {
+  private beginPass(routeInfo: MatchedRouteInfo, parentSignal?: AbortSignal, data?: unknown): RenderPass {
     const signal = this.renderSignal.begin(parentSignal);
-    return createRenderPass(this.getPassId(), this.config.route, routeInfo, signal);
+    return createRenderPass(this.getPassId(), this.config.route, routeInfo, signal, data);
   }
 
   private async renderPass(pass: RenderPass): Promise<ViewRenderResult> {
@@ -154,7 +154,11 @@ export class RouteViewController {
   }
 
   private async resolveAndMount(pass: RenderPass): Promise<void> {
-    const payload = await this.config.content.resolve(pass.routeInfo, pass.signal);
+    const payload = await this.config.content.resolve(
+      pass.routeInfo,
+      pass.signal,
+      pass.data !== undefined ? { data: pass.data } : undefined,
+    );
 
     if (this.stale(pass)) return;
 

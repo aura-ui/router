@@ -29,14 +29,23 @@ export function isRenderError(
   return typeof result === 'object' && result !== null && result.status === 'error';
 }
 
+export type ViewCommitRenderOptions = {
+  /** Load-hook payload for this route from DataGraph snapshot. */
+  data?: unknown;
+};
+
 /** Renders the activate-branch route view; aborts when the navigation job is superseded. */
 export async function runViewCommit(
   matchedRoute: MatchedRouteInfo,
   cancellation: ViewRenderCancellation,
+  options?: ViewCommitRenderOptions,
 ): Promise<ViewCommitResult> {
   if (cancellation.aborted) return 'aborted';
 
-  const result = await matchedRoute.route.render(matchedRoute, { parentSignal: cancellation.signal });
+  const result = await matchedRoute.route.render(matchedRoute, {
+    parentSignal: cancellation.signal,
+    ...(options?.data !== undefined && { data: options.data }),
+  });
 
   if (cancellation.aborted) return 'aborted';
   if (isRenderError(result)) return result;

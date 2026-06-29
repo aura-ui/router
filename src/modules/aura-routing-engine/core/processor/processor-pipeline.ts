@@ -1,4 +1,5 @@
 import type { DataGraph, DataGraphLoadResult, DataSnapshot } from '../data-graph';
+import { resolveRouteData } from '../data-graph/route-data';
 import type { ReportNavigationHookError } from '../failure';
 import type { HookRegistry } from '../hooks/registry';
 import {
@@ -187,7 +188,15 @@ export class ProcessorPipeline {
 
   private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     for (const matchedRoute of this.enterRoutes(pipelineContext)) {
-      const viewCommit = await runViewCommit(matchedRoute, pipelineContext.navigationJob);
+      const routeData = pipelineContext.dataSnapshot
+        ? resolveRouteData(pipelineContext.dataSnapshot, matchedRoute)
+        : undefined;
+
+      const viewCommit = await runViewCommit(
+        matchedRoute,
+        pipelineContext.navigationJob,
+        routeData !== undefined ? { data: routeData } : undefined,
+      );
 
       if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
         return { status: 'cancelled' };

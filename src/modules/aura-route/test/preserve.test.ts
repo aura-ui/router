@@ -23,4 +23,26 @@ describe('AuraRoute preserve', () => {
     expect(route({ path: '/a', preserve: 'data' }).preserve).toEqual({ view: false, data: true });
     expect(route({ path: '/a', preserve: 'all' }).preserve).toEqual({ view: true, data: true });
   });
+
+  it('inherits preserve from ancestor aura-router', () => {
+    document.body.innerHTML = `
+      <aura-router preserve="data">
+        <aura-route path="/child"></aura-route>
+      </aura-router>
+    `;
+    const child = document.querySelector(AuraRoute.is) as AuraRoute;
+    expect(child.preserve).toEqual({ view: false, data: true });
+    document.body.replaceChildren();
+  });
+
+  it('explicit preserve on route overrides inherited value', () => {
+    document.body.innerHTML = `
+      <aura-router preserve="data">
+        <aura-route path="/child" preserve=""></aura-route>
+      </aura-router>
+    `;
+    const child = document.querySelector(AuraRoute.is) as AuraRoute;
+    expect(child.preserve).toEqual({ view: true, data: false });
+    document.body.replaceChildren();
+  });
 });

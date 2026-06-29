@@ -7,6 +7,11 @@ import { fadeTransitionHook, slideTransitionHook } from './hooks/view-transition
 
 defaultLoaderRegistry.register(CUSTOM_LOADER_TYPE, customLoader);
 
+AuraRouter.configure({
+  dataCache: { max: 50, gcTime: Infinity, gcSweepInterval: false },
+  viewCache: { max: 10, gcTime: Infinity, gcSweepInterval: false },
+});
+
 AuraRouter.use(authHook, { redirect: '/login' } satisfies AuthHookOptions);
 AuraRouter.use(analyticsHook);
 AuraRouter.use(fadeTransitionHook);

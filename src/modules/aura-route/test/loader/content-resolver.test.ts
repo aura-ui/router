@@ -1,8 +1,8 @@
 import {
-  ContentCache,
+  DataCache,
   ContentLoadService,
   LoaderRegistry,
-  contentCacheKey,
+  dataCacheKey,
   type ContentDescriptor,
 } from '../../../aura-routing-engine/core';
 import { parseViewAttr } from '../../core/attr/view-attr-parser';
@@ -22,7 +22,7 @@ describe('ContentLoadService', () => {
 
     const service = new ContentLoadService({
       registry,
-      cache: new ContentCache(),
+      cache: new DataCache(),
     });
 
     const controller = new AbortController();
@@ -45,7 +45,7 @@ describe('ContentLoadService', () => {
       return `<span>${loads}</span>`;
     });
 
-    const cache = new ContentCache();
+    const cache = new DataCache();
     const service = new ContentLoadService({ registry, cache });
     const descriptor: ContentDescriptor = {
       kind: 'content',
@@ -69,7 +69,7 @@ describe('ContentLoadService', () => {
       return '<span>warm</span>';
     });
 
-    const cache = new ContentCache();
+    const cache = new DataCache();
     const service = new ContentLoadService({ registry, cache });
     const descriptor: ContentDescriptor = {
       kind: 'content',
@@ -87,7 +87,7 @@ describe('ContentLoadService', () => {
     };
 
     await service.prefetchNode(info as never, new AbortController().signal);
-    expect(cache.get(contentCacheKey(descriptor, info as never))).toBeDefined();
+    expect(cache.get(dataCacheKey(descriptor, info as never))).toBeDefined();
 
     await service.resolveDescriptor(descriptor, info as never, new AbortController().signal);
     expect(loads).toBe(1);
@@ -99,7 +99,7 @@ describe('ContentLoadService', () => {
       throw new Error('network');
     });
 
-    const service = new ContentLoadService({ registry, cache: new ContentCache() });
+    const service = new ContentLoadService({ registry, cache: new DataCache() });
 
     await expect(
       service.resolveDescriptor(

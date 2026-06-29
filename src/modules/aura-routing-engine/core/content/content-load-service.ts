@@ -1,15 +1,15 @@
 import { createContentLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getActiveChain } from '../route-tree/matched-chain';
-import { contentCacheKey } from './cache/content-key';
-import type { ContentCache } from './cache/content-cache';
+import { dataCacheKey } from './cache/data-key';
+import type { DataCache } from './cache/data-cache';
 import { toLoadContext } from './loaders/load-context';
 import type { LoaderRegistry } from './loaders/registry';
 import type { ContentDescriptor, ViewPayload } from './model/types';
 
 export type ContentLoadServiceDeps = {
   registry: LoaderRegistry;
-  cache: ContentCache;
+  cache: DataCache;
 };
 
 export type ContentPrefetchOptions = {
@@ -31,7 +31,7 @@ type ContentRoute = {
 /** Route attrs → descriptor → cache → loader → view payload. */
 export class ContentLoadService {
   private readonly registry: LoaderRegistry;
-  private readonly cache: ContentCache;
+  private readonly cache: DataCache;
 
   constructor(deps: ContentLoadServiceDeps) {
     this.registry = deps.registry;
@@ -76,7 +76,7 @@ export class ContentLoadService {
       return load();
     }
 
-    return this.cache.resolve(contentCacheKey(descriptor, routeInfo), load);
+    return this.cache.resolve(dataCacheKey(descriptor, routeInfo), load);
   }
 
   prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {

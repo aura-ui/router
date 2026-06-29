@@ -55,7 +55,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition', parser: parseTransitionShortcutAttr })
   transitionShortcut: TransitionShortcutType | null;
-  @attr({ readonly: true, inherit: true, allowEmpty: true, parser: parseTransitionOrder })
+  @attr({ inherit: true, allowEmpty: true, parser: parseTransitionOrder })
   transitionOrder: TransitionOrderType | null;
   @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-in', parser: parseCommaSeparated })
   transitionInDecl: string[] | null;

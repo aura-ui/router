@@ -10,12 +10,12 @@ import {
 import type { TransactionResult } from '../navigation/transaction-result';
 import type { RouterInstance } from '../route/types';
 import type { TransitionMap } from '../route-tree/transition-plan';
-import type { TransitionPolicy } from '../transition/policy';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
 
 import type { AuraRoutingProcessorJob } from './cancellation/job';
 import type { ProcessorRunInput } from './types';
+import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 
 export type { ProcessorRunInput } from './types';
 
@@ -23,7 +23,7 @@ export type { ProcessorRunInput } from './types';
 export interface NavigationTransaction extends Pick<ProcessorRunInput, 'from' | 'to' | 'action'> {
   plan: TransitionMap;
   /** `null` — skip transitionOut/transitionIn (inactive transition package / effect order). */
-  transitionOrder: TransitionPolicy | null;
+  transitionOrder: TransitionOrderType | null;
 }
 
 /** Shared ctx for all {@link ProcessorPipeline} steps. */
@@ -65,7 +65,7 @@ const MAIN_PIPELINE: readonly PipelineStepName[] = [
   'after',
 ];
 
-const RENDER_ORDER_STEPS: Record<Exclude<TransitionPolicy, 'parallel'>, readonly PipelineStepName[]> = {
+const RENDER_ORDER_STEPS: Record<Exclude<TransitionOrderType, 'parallel'>, readonly PipelineStepName[]> = {
   'out-in': ['transitionOut', 'render', 'transitionIn'],
   'in-out': ['render', 'transitionIn', 'transitionOut'],
 };

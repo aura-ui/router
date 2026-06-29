@@ -120,6 +120,16 @@ export type {
 
 export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch/types';
 
+// --- Data graph (load hooks + SWR cache) ---
+
+export { DataGraph } from './core/data-graph';
+export type {
+  DataGraphLoadOptions,
+  DataGraphOptions,
+  DataGraphPrefetchOptions,
+  DataSnapshot,
+} from './core/data-graph';
+
 // --- Route hooks (registered via AuraRouter.use) ---
 
 export { resolveHookNames } from './core/lifecycle';

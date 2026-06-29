@@ -1,3 +1,5 @@
+import { DataGraph } from '../../core/data-graph';
+import { HookRegistry } from '../../core/hooks/registry';
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { PrefetchPipeline } from '../../core/prefetch/pipeline';
 import {
@@ -146,14 +148,51 @@ describe('PrefetchPipeline', () => {
     expect(dataRuns).toBe(1);
   });
 
-  it('DataPrefetchExecutor stub accepts data resources', async () => {
-    const executor = new DataPrefetchExecutor();
-    await expect(
-      executor.run(
-        { kind: 'data', targets: [], priority: 'high' },
-        { signal: new AbortController().signal, mode: 'manual', confidence: 1 },
-      ),
-    ).resolves.toBeUndefined();
+  it('DataPrefetchExecutor warms load-hook cache', async () => {
+    const hookRegistry = new HookRegistry();
+    let loads = 0;
+    hookRegistry.register({
+      name: 'profile',
+      version: '1.0.0',
+      fn: async () => {
+        loads++;
+      },
+    });
+
+    const profile = createDomRoute('profile');
+    profile.setAttribute('load', 'profile');
+    const settings = createDomRoute('/settings', [profile]);
+    const { matchableNodes } = buildTreeFromDom(settings);
+    const matcher = new AuraRoutingUrlMatcher();
+    const match = matcher.matchPath('/settings/profile', matchableNodes);
+    expect(match).not.toBeNull();
+
+    const dataGraph = new DataGraph(hookRegistry);
+    const executor = new DataPrefetchExecutor(dataGraph);
+
+    const leaf = matcher.toRouteInfo(
+      '/settings/profile',
+      '/settings/profile',
+      '',
+      '',
+      match!.node,
+      match!.params,
+    );
+
+    await executor.run(
+      { kind: 'data', targets: [leaf], priority: 'high' },
+      { signal: new AbortController().signal, mode: 'intent', confidence: 1 },
+    );
+
+    expect(loads).toBe(1);
+
+    await executor.run(
+      { kind: 'data', targets: [leaf], priority: 'high' },
+      { signal: new AbortController().signal, mode: 'intent', confidence: 1 },
+    );
+
+    expect(loads).toBe(1);
+    dataGraph.destroy();
   });
 
   it('scheduleIntent waits for delay then prefetches', async () => {

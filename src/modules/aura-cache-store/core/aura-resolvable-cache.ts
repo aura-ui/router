@@ -1,5 +1,5 @@
 import { Singleflight } from '../../aura-utils/async/singleflight';
-import { AuraCacheStore, type CacheStoreOptions } from './aura-cache-store';
+import { AuraCacheStore, type CacheStoreOptions, type InvalidatePolicy } from './aura-cache-store';
 
 /**
  * In-memory cache with LRU eviction, in-flight load deduplication, and SWR resolve.
@@ -32,6 +32,21 @@ export class AuraResolvableCache<T> {
   clear(): void {
     this.store.clear();
     this.singleflight.clear();
+  }
+
+  invalidate(key: string, policy?: InvalidatePolicy): boolean {
+    return this.store.invalidate(key, policy);
+  }
+
+  invalidateMatch(
+    predicate: (key: string) => boolean,
+    policy?: InvalidatePolicy,
+  ): number {
+    return this.store.invalidateMatch(predicate, policy);
+  }
+
+  invalidateAll(policy?: InvalidatePolicy): number {
+    return this.store.invalidateAll(policy);
   }
 
   destroy(): void {

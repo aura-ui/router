@@ -1,5 +1,6 @@
 import type { RouteInstance } from '../../core';
-import { runPhaseHooks } from '../../core/hooks/registry';
+import { DataGraph } from '../../core/data-graph';
+import { HookRegistry, runPhaseHooks } from '../../core/hooks/registry';
 import { createLifecycleContext, HookPolicyExecutor } from '../../core/lifecycle';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
@@ -54,6 +55,7 @@ function createPipelineContext(overrides: {
 } = {}): PipelineContext {
   const enterRoute = overrides.enterRoutes?.[0] ?? createMatchedRoute('/to');
   const navigationJob = new AuraRoutingProcessorJob(1);
+  const hookRegistry = new HookRegistry();
 
   return {
     transaction: {
@@ -70,7 +72,8 @@ function createPipelineContext(overrides: {
     },
     navigationJob,
     router: { navigate: jest.fn() },
-    hookRegistry: {} as PipelineContext['hookRegistry'],
+    hookRegistry,
+    dataGraph: new DataGraph(hookRegistry),
     viewCommitTracker: new ViewCommitTracker(enterRoute.href),
     isJobActive: () => true,
   };

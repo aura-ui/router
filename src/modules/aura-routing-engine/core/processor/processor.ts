@@ -33,34 +33,35 @@ export class AuraRoutingProcessor {
    * @param input — matched `from`/`to`, history action, and router instance for hooks
    */
   async run(input: ProcessorRunInput): Promise<TransactionResult> {
-    const plan = buildTransitionPlan(input.from, input.to);
+    const transitionPlan = buildTransitionPlan(input.from, input.to);
 
     const transaction: NavigationTransaction = {
       from: input.from,
       to: input.to,
       action: input.action,
-      plan,
-      transitionOrder: getEnterRoute(plan)?.transition?.order ?? null,
+      plan: transitionPlan,
+      transitionOrder: getEnterRoute(transitionPlan)?.transition?.order ?? null,
     };
 
-    const job = this.jobManager.begin();
-    const generation = this.jobManager.routerGeneration;
-    const commitTracker = new CommitTracker(input.to.href);
+    const navigationJob = this.jobManager.begin();
+    const capturedRouterGeneration = this.jobManager.routerGeneration;
+    const viewCommitTracker = new CommitTracker(input.to.href);
 
     return withCancelledTransactionScope({
-      plan,
-      job,
-      commitTracker,
-      run: () =>
+      transitionPlan,
+      navigationJob,
+      viewCommitTracker,
+      runTransaction: () =>
         this.pipeline.run({
           transaction,
-          job,
+          navigationJob,
           router: input.router,
           hookRegistry: this.hookRegistry,
-          commitTracker,
+          viewCommitTracker,
           reportHookError: input.reportHookError,
           commitGate: input.commitGate,
-          isJobActive: () => !this.jobManager.isJobSuperseded(job, generation),
+          isJobActive: () =>
+            !this.jobManager.isJobSuperseded(navigationJob, capturedRouterGeneration),
         }),
     });
   }

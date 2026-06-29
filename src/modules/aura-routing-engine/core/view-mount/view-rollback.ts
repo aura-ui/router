@@ -1,6 +1,6 @@
-import type { RouteInstance } from '../../route/types';
-import type { TransitionMap } from '../../route-tree/transition-plan';
-import type { CommitTracker } from '../../view-mount/view-mount-tracker';
+import type { RouteInstance } from '../route/types';
+import type { TransitionMap } from '../route-tree/transition-plan';
+import type { CommitTracker } from './view-mount-tracker';
 
 /** Unique routes touched by enter/exit branches of one transaction. */
 export function collectTransactionRoutes(plan: TransitionMap): RouteInstance[] {

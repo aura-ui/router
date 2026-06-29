@@ -13,7 +13,7 @@ export function toLifecycleContextInput(
     from: context.transaction.from,
     action: context.transaction.action,
     router: context.router,
-    job: context.job,
+    navigationJob: context.navigationJob,
   };
 }
 
@@ -21,7 +21,7 @@ export function toLifecycleContextInput(
  * Bridge from processor pipeline context to lifecycle runtime context.
  * Picks only lifecycle-owned fields so processor extras never leak inward.
  */
-export function toLifecycleRuntimeContext(
+export function createLifecycleRuntimeContext(
   pipeline: LifecyclePipelineBridge,
 ): LifecycleRuntimeContext {
   return {
@@ -31,10 +31,10 @@ export function toLifecycleRuntimeContext(
       action: pipeline.transaction.action,
       plan: pipeline.transaction.plan,
     },
-    job: pipeline.job,
+    navigationJob: pipeline.navigationJob,
     router: pipeline.router,
     hookRegistry: pipeline.hookRegistry,
-    commitTracker: pipeline.commitTracker,
+    viewCommitTracker: pipeline.viewCommitTracker,
     reportHookError: pipeline.reportHookError,
     isJobActive: pipeline.isJobActive,
   };

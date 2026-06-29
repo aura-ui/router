@@ -3,7 +3,7 @@ import { withCancelledTransactionScope } from '../../core/processor/cancellation
 import {
   collectTransactionRoutes,
   rollbackCancelledNavigation,
-} from '../../core/processor/cancellation/view-rollback';
+} from '../../core/view-mount/view-rollback';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { CommitTracker } from '../../core/view-mount/view-mount-tracker';
 import { createTestRoute } from '../helpers/create-test-route';
@@ -91,10 +91,10 @@ describe('withCancelledTransactionScope', () => {
 
     let resolveRun!: () => void;
     const runPromise = withCancelledTransactionScope({
-      plan,
-      job,
-      commitTracker,
-      run: () =>
+      transitionPlan: plan,
+      navigationJob: job,
+      viewCommitTracker: commitTracker,
+      runTransaction: () =>
         new Promise((resolve) => {
           resolveRun = () => resolve({ status: 'cancelled' });
         }),
@@ -119,10 +119,10 @@ describe('withCancelledTransactionScope', () => {
     const commitTracker = new CommitTracker('/to');
 
     await withCancelledTransactionScope({
-      plan,
-      job,
-      commitTracker,
-      run: async () => ({ status: 'cancelled' }),
+      transitionPlan: plan,
+      navigationJob: job,
+      viewCommitTracker: commitTracker,
+      runTransaction: async () => ({ status: 'cancelled' }),
     });
 
     expect(job.aborted).toBe(false);
@@ -142,10 +142,10 @@ describe('withCancelledTransactionScope', () => {
     commitTracker.markViewCommitted();
 
     await withCancelledTransactionScope({
-      plan,
-      job,
-      commitTracker,
-      run: async () => ({ status: 'navigationSucceeded' }),
+      transitionPlan: plan,
+      navigationJob: job,
+      viewCommitTracker: commitTracker,
+      runTransaction: async () => ({ status: 'navigationSucceeded' }),
     });
 
     job.abort();

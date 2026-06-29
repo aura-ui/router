@@ -17,24 +17,24 @@ export interface LifecycleTransactionContext {
 /** Processor-facing context required to execute lifecycle phases. */
 export interface LifecycleRuntimeContext {
   transaction: LifecycleTransactionContext;
-  job: LifecycleJobSlice;
+  navigationJob: LifecycleJobSlice;
   router: RouterInstance;
   hookRegistry: HookRegistry;
-  commitTracker: CommitTracker;
+  viewCommitTracker: CommitTracker;
   reportHookError?: ReportNavigationHookError;
   isJobActive: () => boolean;
 }
 
 /**
- * Minimal processor context accepted by {@link ../lifecycle-runtime-adapter!toLifecycleRuntimeContext}.
+ * Minimal processor context accepted by {@link ../lifecycle-runtime-adapter!createLifecycleRuntimeContext}.
  * Implementations may carry processor-only fields; lifecycle only reads this slice.
  */
 export interface LifecyclePipelineBridge {
   transaction: LifecycleTransactionContext;
-  job: LifecycleJobSlice;
+  navigationJob: LifecycleJobSlice;
   router: RouterInstance;
   hookRegistry: HookRegistry;
-  commitTracker: CommitTracker;
+  viewCommitTracker: CommitTracker;
   reportHookError?: ReportNavigationHookError;
   isJobActive: () => boolean;
 }

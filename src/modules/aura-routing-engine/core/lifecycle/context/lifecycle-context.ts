@@ -14,7 +14,7 @@ export interface LifecycleContextInput {
   from: MatchedRouteInfo | null;
   action: HistoryAction;
   router: RouterInstance;
-  job: LifecycleJobSlice;
+  navigationJob: LifecycleJobSlice;
 }
 
 /** {@link RouteInfo} slice for hook ctx (`to` / `from`). */
@@ -40,8 +40,8 @@ export function createLifecycleContext(
     router: input.router,
     route: matchedRoute.route,
     action: input.action,
-    jobId: input.job.id,
-    signal: input.job.signal,
+    jobId: input.navigationJob.id,
+    signal: input.navigationJob.signal,
     ...(error !== undefined && { error }),
   };
 }

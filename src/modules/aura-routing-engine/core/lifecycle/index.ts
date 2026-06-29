@@ -1,8 +1,4 @@
-export {
-  parsePhaseHooks,
-  resolveHookNames,
-  PHASE_HTML_ALIAS,
-} from './bindings/route-hook-bindings';
+export { resolveHookNames } from './bindings/route-hook-bindings';
 export { PHASES, PIPELINE_PHASES } from './phase-registry';
 export type { PipelinePhaseDefinition, RoutePhaseDefinition } from './phase-registry';
 export {
@@ -59,7 +55,6 @@ export type {
   LifecycleBranch,
   LifecycleHookHandling,
   LifecyclePhase,
-  PhaseHooksMap,
   PhaseThrowPolicy,
   PostCommitHookErrors,
   RouteHookAttrProp,

@@ -7,7 +7,7 @@
  */
 
 export { NO_PRESERVE, parsePreserveAttr } from './core/content';
-export { parsePhaseHooks, resolveHookNames } from './core/lifecycle/bindings/route-hook-bindings';
+export { resolveHookNames } from './core/lifecycle/bindings/route-hook-bindings';
 export {
   DEFAULT_SCROLL_POLICY,
   parseScrollPolicy,
@@ -16,7 +16,7 @@ export {
   type ScrollPolicy,
   type ScrollPolicySource,
 } from './core/navigation/scroll-policy';
-export { NO_TRANSITION } from './core/transition/route-transition';
+export { NO_TRANSITION } from '../aura-route/core/transition/route-transition';
 export {
   DEFAULT_TRANSITION_POLICY,
   parseTransitionOrder,
@@ -30,7 +30,6 @@ export type {
 } from './core/content';
 export type { ContentLoadService } from './core/content/content-load-service';
 export type { PreserveFlags } from './core/content';
-export type { PhaseHooksMap } from './core/lifecycle/types';
 export type { MatchedRouteInfo } from './core/match/url-matcher';
 export type {
   RouteErrorContext,
@@ -39,5 +38,5 @@ export type {
   RouteLifecycleContext,
 } from './core/route/types';
 export type { TransitionPolicy } from './core/transition/policy';
-export type { RouteTransition } from './core/transition/route-transition';
+export type { RouteTransition } from '../aura-route/core/transition/route-transition';
 export type { ViewRenderResult } from './core/view-mount/view-commit-render';

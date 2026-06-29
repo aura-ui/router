@@ -35,8 +35,3 @@ commit gate. It delegates lifecycle phase execution to `LifecycleRunner` via
 `PHASES` describes *what* each phase does (branch, hook policy, callbacks).
 `ProcessorPipeline` describes *when* phases run (guards → loads → render →
 after, plus transition ordering). That split is intentional.
-
-## Hooks-only phases
-
-`reenter` and `left` have no dedicated `<aura-route>` attr (`routeHookProp`).
-Register hooks via `hooks="reenter::name"` or `hooks="left::name"`.

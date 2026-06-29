@@ -34,7 +34,9 @@ export type RouteHookAttrProp =
   | 'leave'
   | 'error'
   | 'transitionIn'
-  | 'transitionOut';
+  | 'transitionOut'
+  | 'left'
+  | 'reenter';
 
 /** All navigation lifecycle phases, including terminal `error`. */
 export type RoutePhase =
@@ -50,9 +52,6 @@ export type RoutePhase =
 
 /** Pipeline-driven phases (excludes terminal `error`). */
 export type LifecyclePhase = Exclude<RoutePhase, 'error'>;
-
-/** Parsed `hooks="phase::hook-name, …"` attr on `<aura-route>`. */
-export type PhaseHooksMap = Partial<Record<RoutePhase, string[]>>;
 
 /**
  * Route callback / hook throw policy.

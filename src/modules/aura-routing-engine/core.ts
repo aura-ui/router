@@ -127,9 +127,9 @@ export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefe
 
 // --- Route hooks (registered via AuraRouter.use) ---
 
-export { parsePhaseHooks, resolveHookNames } from './core/lifecycle';
+export { resolveHookNames } from './core/lifecycle';
 export { defineRouteHook } from './core/hooks/define-hook';
-export { NO_TRANSITION } from './core/transition/route-transition';
+export { NO_TRANSITION } from '../aura-route/core/transition/route-transition';
 export {
   HookRegistry,
   defaultHookRegistry,
@@ -151,8 +151,7 @@ export type {
   LifecyclePhase,
   RouteHookContext,
   RouteHookDefinition,
-  PhaseHooksMap,
   HookResult,
   HookResultInput,
 } from './core/hooks/types';
-export type { RouteTransition } from './core/transition/route-transition';
+export type { RouteTransition } from '../aura-route/core/transition/route-transition';

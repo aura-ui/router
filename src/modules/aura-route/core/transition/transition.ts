@@ -1,12 +1,12 @@
 import {
   DEFAULT_TRANSITION_POLICY,
-  NO_TRANSITION,
-  type RouteTransition,
   type TransitionPolicy,
-} from '../../../aura-routing-engine/route-api';
+} from '../../../aura-routing-engine/core/transition/policy';
 import { parseCommaSeparated } from '../../../aura-utils/misc';
 
-export { NO_TRANSITION, type RouteTransition };
+import { NO_TRANSITION, type RouteTransition } from './route-transition';
+
+export { NO_TRANSITION, type RouteTransition } from './route-transition';
 
 export type TransitionShortcut = { in: string[]; out: string[] };
 

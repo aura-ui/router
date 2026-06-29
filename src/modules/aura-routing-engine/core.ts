@@ -94,9 +94,6 @@ export type { GuardResult, RedirectTarget } from './core/guard.types';
 // --- Content load (router-owned cache + prefetch) ---
 
 export {
-  buildContentDescriptor,
-  isLoadableDescriptor,
-  parseViewDescriptor,
   NO_PRESERVE,
   parsePreserveAttr,
   contentCacheKey,
@@ -122,7 +119,6 @@ export type {
   LoadContext,
   ViewPayload,
   PreserveFlags,
-  ParsedViewDescriptor,
   ContentLoadServiceDeps,
   ContentPrefetchOptions,
 } from './core/content';

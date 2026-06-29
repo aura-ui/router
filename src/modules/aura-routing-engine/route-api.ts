@@ -6,11 +6,6 @@
  * orchestrator and creating route-tree cycles.
  */
 
-export {
-  buildContentDescriptor,
-  isLoadableDescriptor,
-  parseViewDescriptor,
-} from './core/content';
 export { NO_PRESERVE, parsePreserveAttr } from './core/content';
 export { parsePhaseHooks, resolveHookNames } from './core/lifecycle/bindings/route-hook-bindings';
 export {

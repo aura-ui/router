@@ -5,7 +5,6 @@ import { contentCacheKey } from './cache/content-key';
 import type { ContentCache } from './cache/content-cache';
 import { toLoadContext } from './loaders/load-context';
 import type { LoaderRegistry } from './loaders/registry';
-import { buildContentDescriptor, isLoadableDescriptor } from './model/descriptor';
 import type { ContentDescriptor, ViewPayload } from './model/types';
 
 export type ContentLoadServiceDeps = {
@@ -23,6 +22,12 @@ const DEFAULT_PREFETCH: Required<ContentPrefetchOptions> = {
   order: 'root-first',
 };
 
+type ContentRoute = {
+  layout: string;
+  view: { type: string; content: string } | null;
+  preserve: { data: boolean };
+};
+
 /** Route attrs → descriptor → cache → loader → view payload. */
 export class ContentLoadService {
   private readonly registry: LoaderRegistry;
@@ -35,8 +40,18 @@ export class ContentLoadService {
 
   /** Render and prefetch entry — matches {@link ContentResolverPort}. */
   resolve(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<ViewPayload | null> {
-    const descriptor = buildContentDescriptor(routeInfo.route);
-    if (!isLoadableDescriptor(descriptor)) {
+    const route = routeInfo.route as ContentRoute;
+
+    const descriptor: ContentDescriptor = route.layout
+      ? { kind: 'layout', loader: 'template', ref: route.layout, cache: false }
+      : {
+        kind: 'content',
+        loader: route.view?.type ?? '',
+        ref: route.view?.content ?? '',
+        cache: route.preserve.data,
+      };
+
+    if (descriptor.kind === 'content' && !descriptor.loader) {
       return Promise.resolve(null);
     }
 

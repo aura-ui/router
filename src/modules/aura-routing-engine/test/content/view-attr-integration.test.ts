@@ -3,7 +3,6 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { buildContentDescriptor } from '../../core/content';
 import { defaultLoaderRegistry } from '../../core/content';
 
 function defineDemoElements(): void {
@@ -38,13 +37,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    expect(route.view).toBe('html-src::index2.html');
-    expect(buildContentDescriptor(route)).toEqual({
-      kind: 'content',
-      loader: 'html-src',
-      ref: 'index2.html',
-      cache: false,
-    });
+    expect(route.view).toEqual({ type: 'html-src', content: 'index2.html' });
   });
 
   it('loads html view via shared router contentLoad registry', async () => {

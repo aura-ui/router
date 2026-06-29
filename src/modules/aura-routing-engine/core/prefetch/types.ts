@@ -14,7 +14,7 @@ export const LINK_PREFETCH_MODES = [
 
 export type LinkPrefetchMode = (typeof LINK_PREFETCH_MODES)[number];
 
-/** Resolved match + branch for prefetch executors. */
+/** Resolved match + LCA delta for prefetch planning. */
 export type PrefetchPlan = {
   readonly href: string;
   readonly pathname: string;
@@ -22,9 +22,12 @@ export type PrefetchPlan = {
   readonly hash: string;
   readonly leaf: MatchedRouteInfo;
   readonly chain: readonly MatchedRouteInfo[];
+  readonly enterRoutes: readonly MatchedRouteInfo[];
+  readonly lca: MatchedRouteInfo | null;
   readonly registryGeneration: number;
 };
 
+/** Per-run pipeline context (before resource planning). */
 export type PrefetchRunContext = {
   readonly signal: AbortSignal;
   readonly mode: PrefetchMode;
@@ -36,9 +39,49 @@ export type PrefetchOptions = {
   readonly force?: boolean;
 };
 
-export interface PrefetchExecutor {
-  readonly id: string;
-  run(plan: PrefetchPlan, ctx: PrefetchRunContext): Promise<void>;
+export type PrefetchResourceKind = 'content' | 'data';
+
+export type PrefetchResourcePriority = 'low' | 'normal' | 'high';
+
+/** Mode + confidence passed to planner and executors. */
+export type PrefetchPlanContext = {
+  readonly mode: PrefetchMode;
+  readonly confidence: number;
+};
+
+/** Declarative work unit — planner output, executor input. */
+export type PrefetchResource = {
+  readonly kind: PrefetchResourceKind;
+  readonly targets: readonly MatchedRouteInfo[];
+  readonly priority: PrefetchResourcePriority;
+};
+
+/** Executor input: abort signal + plan context. */
+export type PrefetchResourceRunContext = PrefetchPlanContext & {
+  readonly signal: AbortSignal;
+};
+
+/** Plans which resources to prefetch for a navigation target. */
+export interface PrefetchResourcePlanner {
+  planResources(plan: PrefetchPlan, ctx: PrefetchPlanContext): readonly PrefetchResource[];
+  explainEmptyPlan?(
+    plan: PrefetchPlan,
+    ctx: PrefetchPlanContext,
+  ): 'low-confidence' | 'no-targets';
+}
+
+/** Loads one resource kind (content, data, …). */
+export interface PrefetchResourceExecutor {
+  readonly kind: PrefetchResourceKind;
+  run(resource: PrefetchResource, ctx: PrefetchResourceRunContext): Promise<void>;
+}
+
+/** Runs planned resources via kind executors. */
+export interface PrefetchResourceScheduler {
+  run(
+    resources: readonly PrefetchResource[],
+    ctx: PrefetchResourceRunContext,
+  ): Promise<void>;
 }
 
 export interface SpeculationPrefetchPort {
@@ -67,6 +110,8 @@ export type PrefetchSkipReason =
   | 'hash-only'
   | 'same-route-fresh'
   | 'no-match'
+  | 'no-targets'
+  | 'low-confidence'
   | 'aborted';
 
 export type PrefetchIntent =
@@ -90,6 +135,7 @@ export type PrefetchPipelineDeps = {
   };
   readonly getMatchableNodes: () => readonly RouteNode[];
   readonly getRegistryGeneration: () => number;
-  readonly executors: readonly PrefetchExecutor[];
+  readonly planner: PrefetchResourcePlanner;
+  readonly scheduler: PrefetchResourceScheduler;
   readonly speculation?: SpeculationPrefetchPort;
 };

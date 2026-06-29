@@ -1,4 +1,4 @@
-import { normalizePrefetchHref } from './policy';
+import { PrefetchPolicy } from './policy';
 import { PrefetchPlanResolver } from './plan';
 import { PrefetchRunStore } from './store';
 import { PrefetchIntentBus } from './intent/bus';
@@ -14,12 +14,12 @@ import type {
 } from './types';
 
 /**
- * Prefetch orchestrator: intent bus → policy → plan → executors.
- * Replaces the monolithic controller with pipeline + store + plan resolver.
+ * Prefetch orchestrator: intent bus → policy → plan → resolve resources → scheduler.
  */
 export class PrefetchPipeline {
   private readonly deps: PrefetchPipelineDeps;
   private readonly config: PrefetchConfig;
+  private readonly policy: PrefetchPolicy;
   private readonly store: PrefetchRunStore;
   private readonly planResolver: PrefetchPlanResolver;
   private readonly intentBus = new PrefetchIntentBus();
@@ -33,11 +33,13 @@ export class PrefetchPipeline {
   ) {
     this.deps = deps;
     this.config = config;
+    this.policy = new PrefetchPolicy(config);
     this.store = new PrefetchRunStore(config);
     this.planResolver = new PrefetchPlanResolver({
       matcher: deps.matcher,
       getMatchableNodes: deps.getMatchableNodes,
       getRegistryGeneration: deps.getRegistryGeneration,
+      currentHref: config.currentHref,
     });
 
     this.unsubscribeIntent = this.intentBus.subscribe((intent) => this.handleIntent(intent));
@@ -90,8 +92,11 @@ export class PrefetchPipeline {
 
     options.signal?.addEventListener('abort', () => abort.abort(), { once: true });
 
-    const runPromise = this.runExecutors(plan, ctx);
-    const promise = runPromise.then(() => undefined);
+    const runPromise = this.runResources(plan, ctx);
+    const promise = runPromise.then(
+      () => undefined,
+      () => undefined,
+    );
     this.store.setInflight(normalized, { promise, abort });
 
     try {
@@ -109,12 +114,12 @@ export class PrefetchPipeline {
   }
 
   isInflight(href: string): boolean {
-    const normalized = normalizePrefetchHref(href);
+    const normalized = this.policy.normalizeHref(href);
     return normalized ? this.store.isInflight(normalized) : false;
   }
 
   isScheduled(href: string): boolean {
-    const normalized = normalizePrefetchHref(href);
+    const normalized = this.policy.normalizeHref(href);
     return normalized ? this.store.isScheduled(normalized) : false;
   }
 
@@ -138,9 +143,11 @@ export class PrefetchPipeline {
     const normalized = this.resolveRunnableHref(intent.href, resolvedMode, { onSkip: true });
     if (!normalized) return;
 
-    this.store.scheduleIntent(normalized, resolvedMode, () => {
-      void this.prefetch(normalized, { mode: resolvedMode });
-    });
+    this.store.scheduleIntent(
+      normalized,
+      resolvedMode,
+      () => void this.prefetch(normalized, { mode: resolvedMode }),
+    );
   }
 
   private resolveRunnableHref(
@@ -148,7 +155,7 @@ export class PrefetchPipeline {
     mode: PrefetchMode,
     opts: { force?: boolean; onSkip?: boolean },
   ): string | null {
-    const normalized = normalizePrefetchHref(href);
+    const normalized = this.policy.normalizeHref(href);
     if (!normalized) {
       if (opts.onSkip) this.config.onSkipped?.(href, 'invalid-href');
       return null;
@@ -163,22 +170,31 @@ export class PrefetchPipeline {
     return normalized;
   }
 
-  private async runExecutors(plan: PrefetchPlan, ctx: PrefetchRunContext): Promise<boolean> {
+  private async runResources(plan: PrefetchPlan, ctx: PrefetchRunContext): Promise<boolean> {
     if (ctx.signal.aborted) return false;
 
-    const executors = this.deps.executors;
-    if (executors.length === 0) return false;
+    const planCtx = { mode: ctx.mode, confidence: this.policy.confidenceFor(ctx.mode) };
+    const resources = this.deps.planner.planResources(plan, planCtx);
+
+    if (!resources.length) {
+      const reason = this.deps.planner.explainEmptyPlan?.(plan, planCtx) ?? 'no-targets';
+      this.config.onSkipped?.(plan.href, reason);
+      return false;
+    }
 
     this.deps.speculation?.hint(plan, ctx);
     this.config.onStart?.(plan, ctx);
 
     try {
-      await raceWithAbort(
-        Promise.all(executors.map((executor) => executor.run(plan, ctx))),
+      await this.raceWithAbort(
+        this.deps.scheduler.run(resources, {
+          signal: ctx.signal,
+          ...planCtx,
+        }),
         ctx.signal,
       );
     } catch (error) {
-      if (ctx.signal.aborted || isAbortError(error)) return false;
+      if (ctx.signal.aborted || this.isAbortError(error)) return false;
       throw error;
     }
 
@@ -187,30 +203,30 @@ export class PrefetchPipeline {
     this.config.onComplete?.(plan, ctx);
     return true;
   }
-}
 
-function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
-}
-
-function raceWithAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  if (signal.aborted) {
-    return Promise.reject(new DOMException('Prefetch aborted', 'AbortError'));
+  private isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
   }
 
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => reject(new DOMException('Prefetch aborted', 'AbortError'));
+  private raceWithAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+    if (signal.aborted) {
+      return Promise.reject(new DOMException('Prefetch aborted', 'AbortError'));
+    }
 
-    signal.addEventListener('abort', onAbort, { once: true });
-    promise.then(
-      (value) => {
-        signal.removeEventListener('abort', onAbort);
-        resolve(value);
-      },
-      (error) => {
-        signal.removeEventListener('abort', onAbort);
-        reject(error);
-      },
-    );
-  });
+    return new Promise<T>((resolve, reject) => {
+      const onAbort = () => reject(new DOMException('Prefetch aborted', 'AbortError'));
+
+      signal.addEventListener('abort', onAbort, { once: true });
+      promise.then(
+        (value) => {
+          signal.removeEventListener('abort', onAbort);
+          resolve(value);
+        },
+        (error) => {
+          signal.removeEventListener('abort', onAbort);
+          reject(error);
+        },
+      );
+    });
+  }
 }

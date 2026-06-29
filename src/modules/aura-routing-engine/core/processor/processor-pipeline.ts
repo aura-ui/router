@@ -1,9 +1,9 @@
 import type { ReportNavigationHookError } from '../failure/navigation-failure';
 import type { HookRegistry } from '../hooks/registry';
 import {
+  createLifecycleRuntimeContext,
   LifecycleRunner,
   PHASES,
-  toLifecycleRuntimeContext,
   type LifecycleRuntimeContext,
   type PipelinePhaseDefinition,
 } from '../lifecycle';
@@ -29,10 +29,10 @@ export interface NavigationTransaction extends Pick<ProcessorRunInput, 'from' | 
 /** Shared ctx for all {@link ProcessorPipeline} steps. */
 export interface PipelineContext {
   transaction: NavigationTransaction;
-  job: AuraRoutingProcessorJob;
+  navigationJob: AuraRoutingProcessorJob;
   router: RouterInstance;
   hookRegistry: HookRegistry;
-  commitTracker: CommitTracker;
+  viewCommitTracker: CommitTracker;
   reportHookError?: ReportNavigationHookError;
   /** False when the navigation job was superseded or the router was torn down. */
   isJobActive: () => boolean;
@@ -89,7 +89,7 @@ export class ProcessorPipeline {
       if (!pipelineContext.isJobActive()) {
         return { status: 'cancelled' };
       }
-      pipelineContext.commitTracker.markViewCommitted();
+      pipelineContext.viewCommitTracker.markViewCommitted();
       pipelineContext.commitGate?.();
       return { status: 'navigationSucceeded' };
     }
@@ -172,7 +172,7 @@ export class ProcessorPipeline {
 
   private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
-      const viewCommit = await runViewCommit(matchedRoute, pipelineContext.job);
+      const viewCommit = await runViewCommit(matchedRoute, pipelineContext.navigationJob);
 
       if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
         return { status: 'cancelled' };
@@ -180,16 +180,16 @@ export class ProcessorPipeline {
 
       if (isRenderError(viewCommit)) {
         await this.runExitCleanup(pipelineContext);
-        pipelineContext.commitTracker.markViewCommittedAfterErrorRecovery();
+        pipelineContext.viewCommitTracker.markViewCommittedAfterErrorRecovery();
         return this.lifecycleRunner.failNavigation(
           matchedRoute,
           viewCommit.error,
           'render',
-          this.lifecycleRuntime(pipelineContext),
+          this.createLifecycleRuntime(pipelineContext),
         );
       }
 
-      pipelineContext.commitTracker.markViewStaged();
+      pipelineContext.viewCommitTracker.markViewStaged();
     }
 
     return null;
@@ -199,7 +199,7 @@ export class ProcessorPipeline {
     for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
       matchedRoute.route.commitStagedView?.();
     }
-    pipelineContext.commitTracker.markViewCommitted();
+    pipelineContext.viewCommitTracker.markViewCommitted();
   }
 
   private async runExitCleanup(pipelineContext: PipelineContext): Promise<void> {
@@ -244,15 +244,15 @@ export class ProcessorPipeline {
     }
   }
 
-  private lifecycleRuntime(pipelineContext: PipelineContext): LifecycleRuntimeContext {
-    return toLifecycleRuntimeContext(pipelineContext);
+  private createLifecycleRuntime(pipelineContext: PipelineContext): LifecycleRuntimeContext {
+    return createLifecycleRuntimeContext(pipelineContext);
   }
 
   private async runLifecycleStep(
     step: PipelinePhaseDefinition,
     pipelineContext: PipelineContext,
   ): Promise<PipelineOutcome> {
-    return this.lifecycleRunner.runPhase(step, this.lifecycleRuntime(pipelineContext));
+    return this.lifecycleRunner.runPhase(step, this.createLifecycleRuntime(pipelineContext));
   }
 }
 

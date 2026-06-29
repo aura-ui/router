@@ -53,7 +53,7 @@ function createPipelineContext(overrides: {
   transitionOrder?: 'out-in' | 'in-out' | 'parallel' | null;
 } = {}): PipelineContext {
   const enterRoute = overrides.enterRoutes?.[0] ?? createMatchedRoute('/to');
-  const job = new AuraRoutingProcessorJob(1);
+  const navigationJob = new AuraRoutingProcessorJob(1);
 
   return {
     transaction: {
@@ -68,21 +68,21 @@ function createPipelineContext(overrides: {
         reenter: false,
       },
     },
-    job,
+    navigationJob,
     router: { navigate: jest.fn() },
     hookRegistry: {} as PipelineContext['hookRegistry'],
-    commitTracker: new CommitTracker(enterRoute.href),
+    viewCommitTracker: new CommitTracker(enterRoute.href),
     isJobActive: () => true,
   };
 }
 
 function lifecycleInput(pipelineContext: PipelineContext) {
-  const { transaction, router, job } = pipelineContext;
+  const { transaction, router, navigationJob } = pipelineContext;
   return {
     from: transaction.from,
     action: transaction.action,
     router,
-    job,
+    navigationJob,
   };
 }
 
@@ -373,7 +373,7 @@ describe('ProcessorPipeline supersede', () => {
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(commitStagedView).not.toHaveBeenCalled();
-    expect(pipelineContext.commitTracker.isViewCommitted()).toBe(false);
+    expect(pipelineContext.viewCommitTracker.isViewCommitted()).toBe(false);
   });
 
   it('run returns cancelled instead of navigationSucceeded when superseded at end', async () => {

@@ -43,8 +43,8 @@ export type { LifecycleLogger } from './logging/lifecycle-logger';
 export { ErrorPhaseHandler } from './orchestration/error-phase-handler';
 export { LifecycleRunner } from './orchestration/lifecycle-runner';
 export {
+  createLifecycleRuntimeContext,
   toLifecycleContextInput,
-  toLifecycleRuntimeContext,
 } from './orchestration/lifecycle-runtime-adapter';
 export type {
   LifecyclePipelineBridge,

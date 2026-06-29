@@ -26,7 +26,7 @@ a file inside this folder.
 
 `ProcessorPipeline` still owns navigation order, rendering, transitions, and the
 commit gate. It delegates lifecycle phase execution to `LifecycleRunner` via
-`toLifecycleRuntimeContext()`.
+`createLifecycleRuntimeContext()`.
 
 ## Phase order vs phase metadata
 

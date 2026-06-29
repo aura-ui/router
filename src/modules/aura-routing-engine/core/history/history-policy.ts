@@ -1,5 +1,5 @@
-import type { CommitSnapshot } from '../view-mount/view-mount-state';
-import { isViewCommittedForHistory } from '../view-mount/view-mount-state';
+import type { ViewCommitSnapshot } from '../view-mount/view-commit-state';
+import { isViewCommittedForHistory } from '../view-mount/view-commit-state';
 import type { NavigationFailureCode } from '../failure/navigation-error';
 import type { TransactionResult } from '../navigation/transaction-result';
 import type { HistoryAction, NavigateHistoryOptions } from './provider.types';
@@ -36,7 +36,7 @@ export interface ResolveHistoryOptions {
 /** History policy for a terminal navigation error (`NOT_FOUND` or pipeline failure). */
 export function resolveErrorHistoryPolicy(
   code: NavigationFailureCode,
-  commit: CommitSnapshot,
+  commit: ViewCommitSnapshot,
   action: HistoryAction,
   options: ResolveHistoryOptions = {},
 ): HistoryPolicy {

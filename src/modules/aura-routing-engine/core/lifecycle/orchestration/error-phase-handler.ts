@@ -57,7 +57,7 @@ export class ErrorPhaseHandler {
   ): FailedNavigation {
     return FailedNavigation.fromPipeline(
       error,
-      context.commitTracker.snapshot,
+      context.viewCommitTracker.snapshot,
       context.transaction.from,
       context.transaction.to,
       context.transaction.action,

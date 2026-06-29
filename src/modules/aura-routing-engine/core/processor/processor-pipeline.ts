@@ -11,8 +11,8 @@ import type { TransactionResult } from '../navigation/transaction-result';
 import type { RouterInstance } from '../route/types';
 import type { TransitionMap } from '../route-tree/transition-plan';
 import type { TransitionPolicy } from '../transition/policy';
-import { CommitTracker } from '../view-mount/view-mount-tracker';
-import { isRenderError, runViewCommit } from '../view-mount/view-render';
+import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
+import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
 
 import type { AuraRoutingProcessorJob } from './cancellation/job';
 import type { ProcessorRunInput } from './types';
@@ -32,7 +32,7 @@ export interface PipelineContext {
   navigationJob: AuraRoutingProcessorJob;
   router: RouterInstance;
   hookRegistry: HookRegistry;
-  viewCommitTracker: CommitTracker;
+  viewCommitTracker: ViewCommitTracker;
   reportHookError?: ReportNavigationHookError;
   /** False when the navigation job was superseded or the router was torn down. */
   isJobActive: () => boolean;

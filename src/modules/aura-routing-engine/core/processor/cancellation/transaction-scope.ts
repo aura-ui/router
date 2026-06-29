@@ -1,13 +1,13 @@
 import type { TransactionResult } from '../../navigation/transaction-result';
 import type { TransitionMap } from '../../route-tree/transition-plan';
-import type { CommitTracker } from '../../view-mount/view-mount-tracker';
-import { rollbackCancelledNavigation } from '../../view-mount/view-rollback';
+import type { ViewCommitTracker } from '../../view-mount/view-commit-tracker';
+import { rollbackUncommittedViews } from '../../view-mount/view-mount-rollback';
 import type { AuraRoutingProcessorJob } from './job';
 
 export interface CancelledTransactionScope<T> {
   transitionPlan: TransitionMap;
   navigationJob: AuraRoutingProcessorJob;
-  viewCommitTracker: CommitTracker;
+  viewCommitTracker: ViewCommitTracker;
   runTransaction: () => Promise<T>;
 }
 
@@ -27,26 +27,26 @@ export async function withCancelledTransactionScope(
     viewCommitTracker,
     runTransaction,
   } = scope;
-  const rollbackUncommittedView = (): void =>
-    rollbackCancelledNavigation(transitionPlan, viewCommitTracker);
+  const rollbackUncommittedViewsOnCancel = (): void =>
+    rollbackUncommittedViews(transitionPlan, viewCommitTracker);
 
-  navigationJob.signal.addEventListener('abort', rollbackUncommittedView, { once: true });
+  navigationJob.signal.addEventListener('abort', rollbackUncommittedViewsOnCancel, { once: true });
 
   let transactionResult: TransactionResult | undefined;
   try {
     transactionResult = await runTransaction();
     return transactionResult;
   } finally {
-    navigationJob.signal.removeEventListener('abort', rollbackUncommittedView);
+    navigationJob.signal.removeEventListener('abort', rollbackUncommittedViewsOnCancel);
     if (shouldRollbackAfterTransaction(viewCommitTracker, navigationJob, transactionResult)) {
-      rollbackUncommittedView();
+      rollbackUncommittedViewsOnCancel();
     }
   }
 }
 
 /** Guard cancel — job was not aborted, processor returned `cancelled`. */
 function shouldRollbackAfterTransaction(
-  viewCommitTracker: CommitTracker,
+  viewCommitTracker: ViewCommitTracker,
   navigationJob: AuraRoutingProcessorJob,
   transactionResult: TransactionResult | undefined,
 ): boolean {

@@ -1,12 +1,12 @@
-import type { CommitSnapshot, ViewCommitState } from './view-mount-state';
+import type { ViewCommitSnapshot, ViewCommitState } from './view-commit-state';
 
 /**
  * Tracks {@link ViewCommitState} for one navigation transaction.
  *
- * @module view-mount/view-mount-tracker
- * @see {@link ./view-mount-state} — view vs history vs pipeline success vocabulary.
+ * @module view-mount/view-commit-tracker
+ * @see {@link ./view-commit-state} — view vs history vs pipeline success vocabulary.
  */
-export class CommitTracker {
+export class ViewCommitTracker {
   /** Target URL of the navigation transaction (stable for the tracker lifetime). */
   readonly href: string;
   private _view: ViewCommitState = 'none';
@@ -16,7 +16,7 @@ export class CommitTracker {
   }
 
   /** Current view mount state + {@link href} — read at transaction terminal (especially on error). */
-  get snapshot(): CommitSnapshot {
+  get snapshot(): ViewCommitSnapshot {
     return { view: this._view, href: this.href };
   }
 

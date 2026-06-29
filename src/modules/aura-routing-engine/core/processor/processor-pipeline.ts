@@ -272,8 +272,7 @@ export class ProcessorPipeline {
       await runPhaseStep({
         lifecyclePhase: step.phase,
         onThrow: step.errorPolicy,
-        hookKind: step.hookPolicy.kind,
-        onError: step.hookPolicy.kind === 'postCommit' ? step.hookPolicy.onError : undefined,
+        hookPolicy: step.hookPolicy,
         invokeRoute: () => step.runRouteLifecycle(route, lifecycleContext),
         hookNames,
         handlers: {

@@ -83,10 +83,12 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.viewController?.nestedOutlet ?? null;
   }
 
-  //todo memoize
+  /** Merges decl attrs with `transition` shortcut; `[]` on decl opts out of inherited shortcut on that side. */
   get transition(): RouteTransitionType {
-    const inHooks = this.transitionInDecl || this.transitionShortcut?.in || null;
-    const outHooks = this.transitionOutDecl || this.transitionShortcut?.out || null;
+    const inMerged = this.transitionInDecl ?? this.transitionShortcut?.in;
+    const outMerged = this.transitionOutDecl ?? this.transitionShortcut?.out;
+    const inHooks = inMerged?.length ? inMerged : null;
+    const outHooks = outMerged?.length ? outMerged : null;
     if (!this.transitionOrder && !inHooks && !outHooks) return NO_TRANSITION;
     this.transitionOrder ??= DEFAULT_TRANSITION_ORDER;
     return { order: this.transitionOrder, in: inHooks, out: outHooks };
@@ -105,15 +107,15 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   }
 
   get hasEnter(): boolean {
-    return !!this.enter;
+    return !!this.enter?.length;
   }
 
   get hasLeave(): boolean {
-    return !!this.leave;
+    return !!this.leave?.length;
   }
 
   get hasLoad(): boolean {
-    return !!this.load;
+    return !!this.load?.length;
   }
 
   get hasTransitionIn(): boolean {
@@ -121,7 +123,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   }
 
   get hasPostEffects(): boolean {
-    return !!this.transitionOut || !!this.afterHook;
+    return !!this.transitionOut || !!this.afterHook?.length;
   }
 
   get hasAsyncContent(): boolean {

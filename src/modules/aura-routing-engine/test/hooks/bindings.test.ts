@@ -39,7 +39,7 @@ describe('resolveHookNames', () => {
     expect(resolveHookNames(route({ transitionIn: ['fade'] }), 'transitionIn')).toEqual(['fade']);
   });
 
-  it('returns null when phase attr is absent or empty', () => {
+  it('returns null when phase attr is absent (null) or explicit opt-out ([])', () => {
     expect(resolveHookNames(route(), 'enter')).toBeNull();
     expect(resolveHookNames(route({ enter: [] }), 'enter')).toBeNull();
   });

@@ -5,7 +5,6 @@ import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { PipelineStepOutcome } from '../lifecycle/execution/phase-outcome';
 import { guardResultToPhaseOutcome } from '../lifecycle/execution/phase-outcome';
-import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
 import {
   createLifecycleContext,
   type LifecycleContextInput,
@@ -15,7 +14,7 @@ import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecyc
 import { toLifecycleContextInput } from '../lifecycle/orchestration/lifecycle-runtime-adapter';
 import type { RouteLifecycleContext } from '../route/types';
 import type { TransactionResult } from '../navigation/transaction-result';
-import { buildRouteDataKey } from './route-data';
+import { buildRouteDataKey, routeHasLoadHooks, routeLoadHookNames } from './route-data';
 
 export type DataSnapshot = ReadonlyMap<string, unknown>;
 
@@ -151,11 +150,12 @@ export class DataGraph {
     runtime: LifecycleRuntimeContext,
   ): Promise<PipelineStepOutcome> {
     const siblingAbort = new AbortController();
+    const loadRuntime = this.withSiblingAbort(runtime, siblingAbort);
     const outcomes: PipelineStepOutcome[] = [];
 
     await Promise.all(
       routes.map(async (route, index) => {
-        outcomes[index] = await this.ensureNavigationLoad(route, runtime, siblingAbort);
+        outcomes[index] = await this.ensureNavigationLoad(route, loadRuntime, siblingAbort);
         if (outcomes[index]) {
           siblingAbort.abort();
         }
@@ -163,6 +163,20 @@ export class DataGraph {
     );
 
     return outcomes.find((outcome) => outcome) ?? null;
+  }
+
+  private withSiblingAbort(
+    runtime: LifecycleRuntimeContext,
+    siblingAbort: AbortController,
+  ): LifecycleRuntimeContext {
+    const base = toLifecycleContextInput(runtime);
+    return {
+      ...runtime,
+      navigationJob: {
+        ...runtime.navigationJob,
+        signal: mergeAbortSignals(base.navigationJob.signal, siblingAbort.signal),
+      },
+    };
   }
 
   private async ensureNavigationLoad(
@@ -173,7 +187,7 @@ export class DataGraph {
     const target = this.resolveLoadTarget(route);
     if (!target) return null;
 
-    const input = this.loadContextInput(runtime, siblingAbort);
+    const input = toLifecycleContextInput(runtime);
     const ctx = this.loadContext(route, input);
     const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
 
@@ -211,32 +225,18 @@ export class DataGraph {
   }
 
   private routesWithLoadHooks(targets: readonly MatchedRouteInfo[]): MatchedRouteInfo[] {
-    return targets.filter((route) => route.route.load?.length);
+    return targets.filter(routeHasLoadHooks);
   }
 
   private resolveLoadTarget(route: MatchedRouteInfo): LoadTarget | null {
-    const hookNames = resolveHookNames(route.route, 'load');
-    if (!hookNames?.length) return null;
+    const hookNames = routeLoadHookNames(route);
+    if (!hookNames) return null;
 
-    return { hookNames, key: this.cacheKey(route, hookNames) };
+    return { hookNames, key: buildRouteDataKey(route, hookNames) };
   }
 
   private loadContext(route: MatchedRouteInfo, input: LifecycleContextInput): RouteLifecycleContext {
     return createLifecycleContext('load', route, input);
-  }
-
-  private loadContextInput(
-    runtime: LifecycleRuntimeContext,
-    siblingAbort: AbortController,
-  ): LifecycleContextInput {
-    const base = toLifecycleContextInput(runtime);
-    return {
-      ...base,
-      navigationJob: {
-        ...base.navigationJob,
-        signal: mergeAbortSignals(base.navigationJob.signal, siblingAbort.signal),
-      },
-    };
   }
 
   private prefetchContextInput(signal: AbortSignal): LifecycleContextInput {
@@ -299,10 +299,6 @@ export class DataGraph {
 
     if (mode === 'prefetch') throw new Error('prefetch ignored terminal');
     throw new DataGraphTerminalError(terminal);
-  }
-
-  private cacheKey(route: MatchedRouteInfo, hookNames: readonly string[]): string {
-    return buildRouteDataKey(route, hookNames);
   }
 }
 

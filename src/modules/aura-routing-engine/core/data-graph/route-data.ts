@@ -2,6 +2,18 @@ import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { routeMatchKey } from '../route-tree/matched-chain';
 
+/** Resolved `load` hook names for a route, or `null` when the phase is inactive. */
+export function routeLoadHookNames(
+  route: MatchedRouteInfo,
+): readonly string[] | null {
+  return resolveHookNames(route.route, 'load');
+}
+
+/** Whether the route participates in DataGraph load / snapshot. */
+export function routeHasLoadHooks(route: MatchedRouteInfo): boolean {
+  return route.route.hasLoad;
+}
+
 /** Cache key for one route's load-hook payload (matches {@link DataGraph} store). */
 export function buildRouteDataKey(
   route: MatchedRouteInfo,
@@ -25,8 +37,8 @@ export function resolveRouteData(
   snapshot: ReadonlyMap<string, unknown>,
   route: MatchedRouteInfo,
 ): unknown | undefined {
-  const hookNames = resolveHookNames(route.route, 'load');
-  if (!hookNames?.length) return undefined;
+  const hookNames = routeLoadHookNames(route);
+  if (!hookNames) return undefined;
 
   const key = buildRouteDataKey(route, hookNames);
   if (!snapshot.has(key)) return undefined;

@@ -3,7 +3,7 @@ import {
   PHASE_HTML_ALIAS,
   parsePhaseHooks,
   resolveHookNames,
-} from '../../core/lifecycle/bindings/route-hook-bindings';
+} from '../../core/lifecycle';
 
 function route(overrides: Partial<RouteInstance> = {}): RouteInstance {
   const noop = (): void => {};

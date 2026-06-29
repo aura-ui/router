@@ -1,4 +1,4 @@
-import type { GuardResult } from '../../guard.types';
+import type { GuardResult } from '../types';
 import type { NavigationErrorResult, TransactionResult } from '../../navigation/transaction-result';
 
 export type PhaseStepOutcome =

@@ -1,6 +1,12 @@
 import type { ReportNavigationHookError } from '../failure/navigation-failure';
-import { LifecycleRunner } from '../lifecycle/orchestration/lifecycle-runner';
-import { PHASES, type PipelinePhaseDefinition } from '../lifecycle/phase-registry';
+import type { HookRegistry } from '../hooks/registry';
+import {
+  LifecycleRunner,
+  PHASES,
+  toLifecycleRuntimeContext,
+  type LifecycleRuntimeContext,
+  type PipelinePhaseDefinition,
+} from '../lifecycle';
 import type { TransactionResult } from '../navigation/transaction-result';
 import type { RouterInstance } from '../route/types';
 import type { TransitionMap } from '../route-tree/transition-plan';
@@ -25,7 +31,7 @@ export interface PipelineContext {
   transaction: NavigationTransaction;
   job: AuraRoutingProcessorJob;
   router: RouterInstance;
-  hookRegistry: import('../hooks/registry').HookRegistry;
+  hookRegistry: HookRegistry;
   commitTracker: CommitTracker;
   reportHookError?: ReportNavigationHookError;
   /** False when the navigation job was superseded or the router was torn down. */
@@ -47,6 +53,11 @@ type PipelineStepName =
   | 'after';
 type PipelineStep = (pipelineContext: PipelineContext) => Promise<PipelineOutcome>;
 
+/**
+ * Main pipeline step order — owned here, not in {@link PHASES}.
+ * `PHASES` defines per-phase policy and callbacks; this array defines when
+ * render, transitions, and commit gate run relative to lifecycle hooks.
+ */
 const MAIN_PIPELINE: readonly PipelineStepName[] = [
   'guards',
   'loads',
@@ -174,7 +185,7 @@ export class ProcessorPipeline {
           matchedRoute,
           viewCommit.error,
           'render',
-          pipelineContext,
+          this.lifecycleRuntime(pipelineContext),
         );
       }
 
@@ -233,11 +244,15 @@ export class ProcessorPipeline {
     }
   }
 
+  private lifecycleRuntime(pipelineContext: PipelineContext): LifecycleRuntimeContext {
+    return toLifecycleRuntimeContext(pipelineContext);
+  }
+
   private async runLifecycleStep(
     step: PipelinePhaseDefinition,
     pipelineContext: PipelineContext,
   ): Promise<PipelineOutcome> {
-    return this.lifecycleRunner.runPhase(step, pipelineContext);
+    return this.lifecycleRunner.runPhase(step, this.lifecycleRuntime(pipelineContext));
   }
 }
 

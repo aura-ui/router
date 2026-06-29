@@ -1,8 +1,13 @@
 /**
  * Navigation lifecycle types — phases, branch policy, hook timing, throw policy.
  *
+ * Re-exports {@link GuardResult} and {@link RedirectTarget} from the shared
+ * guard contract used by hooks and lifecycle execution.
+ *
  * @module lifecycle/types
  */
+
+export type { GuardResult, RedirectTarget } from '../guard.types';
 
 /** Branch in transition plan: exiting vs entering routes. @see {@link ../route-tree/transition-plan!TransitionMap} */
 export type LifecycleBranch = 'exitRoutes' | 'enterRoutes';

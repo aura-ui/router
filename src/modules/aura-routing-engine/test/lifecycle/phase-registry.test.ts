@@ -1,4 +1,4 @@
-import { PHASES, PIPELINE_PHASES } from '../../core/lifecycle/phase-registry';
+import { PHASES, PIPELINE_PHASES } from '../../core/lifecycle';
 
 describe('PHASES', () => {
   it.each(PIPELINE_PHASES)('phase %s has pipeline route callback', (phase) => {
@@ -18,6 +18,13 @@ describe('PHASES', () => {
     expect(PHASES.error.runRouteLifecycle).toBeUndefined();
     expect(PHASES.error.phase).toBe('error');
     expect(PHASES.error.routeHookProp).toBe('error');
+  });
+
+  it('reenter and left are hooks-only phases without routeHookProp', () => {
+    expect(PHASES.reenter.routeHookProp).toBeUndefined();
+    expect(PHASES.left.routeHookProp).toBeUndefined();
+    expect(PHASES.reenter.htmlAttr).toBe('reenter');
+    expect(PHASES.left.htmlAttr).toBe('left');
   });
 
   it('PIPELINE_PHASES excludes error', () => {

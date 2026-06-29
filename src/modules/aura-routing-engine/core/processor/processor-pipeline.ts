@@ -1,3 +1,4 @@
+import type { DataGraph } from '../data-graph';
 import type { ReportNavigationHookError } from '../failure';
 import type { HookRegistry } from '../hooks/registry';
 import {
@@ -32,6 +33,7 @@ export interface PipelineContext {
   navigationJob: AuraRoutingProcessorJob;
   router: RouterInstance;
   hookRegistry: HookRegistry;
+  dataGraph: DataGraph;
   viewCommitTracker: ViewCommitTracker;
   reportHookError?: ReportNavigationHookError;
   /** False when the navigation job was superseded or the router was torn down. */
@@ -113,7 +115,14 @@ export class ProcessorPipeline {
   }
 
   private async runLoads(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    return this.runLifecycleStep(PHASES.load, pipelineContext);
+    const { enterRoutes } = pipelineContext.transaction.plan;
+    const targets = enterRoutes.filter((route) => route.route.load?.length);
+    if (!targets.length) return null;
+
+    return pipelineContext.dataGraph.load(targets, {
+      chain: pipelineContext.transaction.to.chain ?? enterRoutes,
+      runtime: this.createLifecycleRuntime(pipelineContext),
+    });
   }
 
   private async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {

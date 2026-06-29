@@ -316,7 +316,7 @@ export class AuraRoutingEngine {
 
     const prefetchPolicy = new PrefetchPolicy(prefetchConfig);
     const prefetchExecutors: PrefetchResourceExecutor[] = [
-      new DataPrefetchExecutor(),
+      new DataPrefetchExecutor(this.processor.dataGraph),
     ];
 
     if (this.contentLoad) {

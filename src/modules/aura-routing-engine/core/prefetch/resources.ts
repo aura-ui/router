@@ -1,4 +1,5 @@
 import type { ContentLoadService } from '../content/content-load-service';
+import type { DataGraph } from '../data-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
   CONTENT_PREFETCH_MIN_CONFIDENCE,
@@ -154,12 +155,18 @@ export class ContentPrefetchExecutor implements PrefetchResourceExecutor {
   }
 }
 
-/** Prefetch load-hook data (stub until DataGraph). */
+/** Prefetch load-hook data via {@link DataGraph}. */
 export class DataPrefetchExecutor implements PrefetchResourceExecutor {
   readonly kind = 'data' as const;
 
-  async run(resource: PrefetchResource, _ctx: PrefetchResourceRunContext): Promise<void> {
-    if (resource.kind !== 'data') return;
-    // TODO: dataGraph.prefetch(resource.targets, { signal: ctx.signal })
+  private readonly dataGraph: DataGraph;
+
+  constructor(dataGraph: DataGraph) {
+    this.dataGraph = dataGraph;
+  }
+
+  run(resource: PrefetchResource, ctx: PrefetchResourceRunContext): Promise<void> {
+    if (resource.kind !== 'data') return Promise.resolve();
+    return this.dataGraph.prefetch(resource.targets, { signal: ctx.signal, mode: 'intent' });
   }
 }

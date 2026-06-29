@@ -1,3 +1,4 @@
+import { DataGraph } from '../data-graph';
 import { buildTransitionPlan, getEnterRoute } from '../route-tree/transition-plan';
 import type { HookRegistry } from '../hooks/registry';
 import { defaultHookRegistry } from '../hooks/registry';
@@ -25,9 +26,14 @@ export class AuraRoutingProcessor {
   private readonly jobManager = new AuraRoutingProcessorJobManager();
   private readonly pipeline = new ProcessorPipeline();
   private readonly hookRegistry: HookRegistry;
+  readonly dataGraph: DataGraph;
 
-  constructor(hookRegistry: HookRegistry = defaultHookRegistry) {
+  constructor(
+    hookRegistry: HookRegistry = defaultHookRegistry,
+    dataGraph?: DataGraph,
+  ) {
     this.hookRegistry = hookRegistry;
+    this.dataGraph = dataGraph ?? new DataGraph(hookRegistry);
   }
 
   /**
@@ -59,6 +65,7 @@ export class AuraRoutingProcessor {
           navigationJob,
           router: input.router,
           hookRegistry: this.hookRegistry,
+          dataGraph: this.dataGraph,
           viewCommitTracker,
           reportHookError: input.reportHookError,
           commitGate: input.commitGate,

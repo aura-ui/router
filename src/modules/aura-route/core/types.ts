@@ -29,6 +29,8 @@ export interface AuraRouteInterface {
 
 export type RouteRenderOptions = {
   parentSignal?: AbortSignal;
+  /** Load-hook payload from DataGraph snapshot for this navigation. */
+  data?: unknown;
 };
 
 export type { MatchedRouteInfo };

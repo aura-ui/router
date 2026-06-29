@@ -38,6 +38,8 @@ export interface RouteLifecycleContext {
   action: HistoryAction;
   jobId: number;
   signal: AbortSignal;
+  /** Load-hook payload from DataGraph when available for this route/phase. */
+  data?: unknown;
   error?: unknown;
 }
 

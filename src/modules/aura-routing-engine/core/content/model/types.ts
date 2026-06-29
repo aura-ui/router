@@ -26,6 +26,8 @@ export type LoadContext = {
     readonly params?: Record<string, string>;
     readonly query?: Record<string, string>;
   };
+  /** Load-hook payload from DataGraph snapshot (navigation render). */
+  readonly data?: unknown;
 };
 
 export type LoaderFn = (ctx: LoadContext) => Promise<ViewPayload | null>;

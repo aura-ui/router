@@ -5,6 +5,7 @@ export function toLoadContext(
   routeInfo: MatchedRouteInfo,
   ref: string,
   signal: AbortSignal,
+  data?: unknown,
 ): LoadContext {
   return {
     ref,
@@ -15,15 +16,17 @@ export function toLoadContext(
       ...(routeInfo.params && { params: routeInfo.params }),
       ...(routeInfo.query && { query: routeInfo.query }),
     },
+    ...(data !== undefined && { data }),
   };
 }
 
-/** Route snapshot passed into component custom elements via `aura-data`. */
+/** Route + load payload passed into component custom elements via `aura-data`. */
 export function routeSnapshot(ctx: LoadContext): Record<string, unknown> {
   return {
     href: ctx.route.href,
     pattern: ctx.route.pattern,
     ...(ctx.route.params && { params: ctx.route.params }),
     ...(ctx.route.query && { query: ctx.route.query }),
+    ...(ctx.data !== undefined && { data: ctx.data }),
   };
 }

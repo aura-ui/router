@@ -11,6 +11,8 @@ export type RenderPass = {
   readonly cacheKey: string;
   readonly viewKind: ViewKind;
   readonly useStagedMount: boolean;
+  /** Load-hook payload from DataGraph snapshot. */
+  readonly data?: unknown;
 };
 
 export function createRenderPass(
@@ -18,6 +20,7 @@ export function createRenderPass(
   route: AuraRouteInterface,
   routeInfo: MatchedRouteInfo,
   signal: AbortSignal,
+  data?: unknown,
 ): RenderPass {
   return {
     id: passId,
@@ -26,6 +29,7 @@ export function createRenderPass(
     cacheKey: cacheKey(routeInfo, route.path),
     viewKind: route.layout.trim() ? 'layout' : 'content',
     useStagedMount: route.transition.order !== null,
+    ...(data !== undefined && { data }),
   };
 }
 

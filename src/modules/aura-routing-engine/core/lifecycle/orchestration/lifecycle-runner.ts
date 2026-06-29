@@ -1,3 +1,4 @@
+import { resolveRouteData } from '../../data-graph/route-data';
 import type { NavigationErrorPhase } from '../../failure';
 import type { MatchedRouteInfo } from '../../match/url-matcher';
 import type { NavigationErrorResult } from '../../navigation/transaction-result';
@@ -54,10 +55,18 @@ export class LifecycleRunner {
     matchedRoute: MatchedRouteInfo,
     context: LifecycleRuntimeContext,
   ): Promise<PipelineStepOutcome> {
+    const input = toLifecycleContextInput(context);
+    const routeData = context.dataSnapshot
+      ? resolveRouteData(context.dataSnapshot, matchedRoute)
+      : undefined;
+
     const lifecycleContext = createLifecycleContext(
       phase.phase,
       matchedRoute,
-      toLifecycleContextInput(context),
+      {
+        ...input,
+        ...(routeData !== undefined && { data: routeData }),
+      },
     );
 
     return this.phaseExecutor.execute({

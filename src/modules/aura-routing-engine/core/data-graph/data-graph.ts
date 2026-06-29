@@ -15,7 +15,7 @@ import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecyc
 import { toLifecycleContextInput } from '../lifecycle/orchestration/lifecycle-runtime-adapter';
 import type { RouteLifecycleContext } from '../route/types';
 import type { TransactionResult } from '../navigation/transaction-result';
-import { routeMatchKey } from '../route-tree/matched-chain';
+import { buildRouteDataKey } from './route-data';
 
 export type DataSnapshot = ReadonlyMap<string, unknown>;
 
@@ -302,24 +302,7 @@ export class DataGraph {
   }
 
   private cacheKey(route: MatchedRouteInfo, hookNames: readonly string[]): string {
-    const parts = [routeMatchKey(route), hookNames.join(',')];
-
-    if (route.params && Object.keys(route.params).length) {
-      parts.push(this.encodeRecord(route.params));
-    }
-
-    if (route.query && Object.keys(route.query).length) {
-      parts.push(this.encodeRecord(route.query));
-    }
-
-    return parts.join('|');
-  }
-
-  private encodeRecord(record: Record<string, string>): string {
-    return Object.keys(record)
-      .sort()
-      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(record[key]!)}`)
-      .join('&');
+    return buildRouteDataKey(route, hookNames);
   }
 }
 

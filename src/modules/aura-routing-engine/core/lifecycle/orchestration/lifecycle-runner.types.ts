@@ -1,3 +1,4 @@
+import type { DataSnapshot } from '../../data-graph';
 import type { ReportNavigationHookError } from '../../failure';
 import type { HistoryAction } from '../../history/provider.types';
 import type { HookRegistry } from '../../hooks/registry';
@@ -23,6 +24,8 @@ export interface LifecycleRuntimeContext {
   viewCommitTracker: ViewCommitTracker;
   reportHookError?: ReportNavigationHookError;
   isJobActive: () => boolean;
+  /** Load-hook payloads from DataGraph after the load phase. */
+  dataSnapshot?: DataSnapshot;
 }
 
 /**
@@ -37,4 +40,6 @@ export interface LifecyclePipelineBridge {
   viewCommitTracker: ViewCommitTracker;
   reportHookError?: ReportNavigationHookError;
   isJobActive: () => boolean;
+  /** Load-hook payloads from DataGraph after the load phase. */
+  dataSnapshot?: DataSnapshot;
 }

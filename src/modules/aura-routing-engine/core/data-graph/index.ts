@@ -6,3 +6,4 @@ export {
   type DataGraphPrefetchOptions,
   type DataSnapshot,
 } from './data-graph';
+export { buildRouteDataKey, resolveRouteData } from './route-data';

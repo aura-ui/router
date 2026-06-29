@@ -39,7 +39,11 @@ export class ContentLoadService {
   }
 
   /** Render and prefetch entry — matches {@link ContentResolverPort}. */
-  resolve(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<ViewPayload | null> {
+  resolve(
+    routeInfo: MatchedRouteInfo,
+    signal: AbortSignal,
+    options?: { data?: unknown },
+  ): Promise<ViewPayload | null> {
     const route = routeInfo.route as ContentRoute;
 
     const descriptor: ContentDescriptor = route.layout
@@ -55,17 +59,18 @@ export class ContentLoadService {
       return Promise.resolve(null);
     }
 
-    return this.resolveDescriptor(descriptor, routeInfo, signal);
+    return this.resolveDescriptor(descriptor, routeInfo, signal, options?.data);
   }
 
   resolveDescriptor(
     descriptor: ContentDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
+    data?: unknown,
   ): Promise<ViewPayload | null> {
     if (signal.aborted) return Promise.resolve(null);
 
-    const load = () => this.runLoader(descriptor, routeInfo, signal);
+    const load = () => this.runLoader(descriptor, routeInfo, signal, data);
 
     if (!descriptor.cache) {
       return load();
@@ -101,12 +106,13 @@ export class ContentLoadService {
     descriptor: ContentDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
+    data?: unknown,
   ): Promise<ViewPayload | null> {
     if (signal.aborted) return null;
 
     try {
       return await this.registry.get(descriptor.loader)(
-        toLoadContext(routeInfo, descriptor.ref, signal),
+        toLoadContext(routeInfo, descriptor.ref, signal, data),
       );
     } catch (error: unknown) {
       if (signal.aborted) return null;

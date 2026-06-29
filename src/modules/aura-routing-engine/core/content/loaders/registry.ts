@@ -7,6 +7,10 @@ const defaultTransport: LoaderTransport = {
   resolveUrl: resolveRelativeUrl,
 };
 
+/**
+ * Content loader registry.
+ * Built-in types are defined in {@link createBuiltinLoaders} (`./builtins.ts`).
+ */
 export class LoaderRegistry {
   private readonly loaders = new Map<string, LoaderFn>();
 
@@ -17,6 +21,10 @@ export class LoaderRegistry {
   }
 
   register(type: LoaderType, loader: LoaderFn): void {
+    if (this.loaders.has(type)) {
+      console.warn(`Content loader "${type}" is already registered — overwriting`);
+    }
+
     this.loaders.set(type, loader);
   }
 

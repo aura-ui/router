@@ -3,6 +3,7 @@ import { AuraRouter } from '../../aura-router/core/aura-router';
 import {
   parsePhaseHooks,
   parsePreserveAttr,
+  parseScrollPolicy,
   parseTransitionOrder,
   type MatchedRouteInfo,
   type PhaseHooksMap,
@@ -11,10 +12,11 @@ import {
   type RouteInstance,
   type RouteLifecycleContext,
   type RouteTransition,
+  type ScrollPolicy,
   type TransitionPolicy,
   type ViewRenderResult,
 } from '../../aura-routing-engine/route-api';
-import { attr, boolAttr } from '../../aura-utils/decorators';
+import { attr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 
 import {
@@ -56,7 +58,16 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-out', parser: parseCommaSeparated })
   transitionOutDecl: string[] | null;
 
-  @boolAttr({ readonly: true }) restoreScroll: boolean;
+  @attr({
+    readonly: true,
+    inherit: true,
+    allowEmpty: true,
+    cached: true,
+    name: 'scroll',
+    parser: parseScrollPolicy,
+  })
+  scrollPolicy: ScrollPolicy | null;
+
   @attr({ readonly: true, parser: parsePreserveAttr }) preserve: PreserveFlags;
 
   private viewController!: RouteViewController;

@@ -12,6 +12,7 @@ import {
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
+import type { NavigationCommittedContext } from './commit-gate';
 import type { TransactionResult } from './transaction-result';
 
 /** Applies {@link resolveHistoryPolicy} for a processor or failure transaction result. */
@@ -45,7 +46,7 @@ export interface FinalizeNavigationContext {
 
 export interface FinalizeNavigationCallbacks {
   failureDeps: CompleteFailureDeps;
-  onNavigationCommitted?: (to: MatchedRouteInfo) => void;
+  onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
   onRedirect: (url: string, replace: boolean) => void;
   scrollToHash?: (hash: string) => void;
 }

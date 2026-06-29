@@ -54,6 +54,14 @@ export { isViewCommittedForHistory } from './core/view-mount/view-commit-state';
 export type { ViewRenderResult } from './core/view-mount/view-commit-render';
 
 export type { TransactionResult, NavigationErrorResult } from './core/navigation/transaction-result';
+export type { NavigationCommittedContext } from './core/navigation/commit-gate';
+export {
+  DEFAULT_SCROLL_POLICY,
+  parseScrollPolicy,
+  resolveRouteScrollPolicy,
+  resolveScrollPolicy,
+} from './core/navigation/scroll-policy';
+export type { ScrollPolicy, ScrollPolicySource } from './core/navigation/scroll-policy';
 
 // --- History layer (default provider + DI for tests) ---
 

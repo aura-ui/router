@@ -133,9 +133,9 @@
 <section class="transitions-demo" aria-labelledby="transitions-title">
   <h2 id="transitions-title">Route transitions</h2>
   <p>
-    Staged views via <code>data-crossfade</code> on <code>&lt;aura-router&gt;</code>;
-    hook timing via <code>data-transition</code> (parallel / out-in / in-out) and
-    <code>transition-in</code> / <code>transition-out</code> on routes.
+    Hook timing via <code>data-transition</code> (parallel / out-in / in-out) and
+    <code>transition</code> / <code>transition-in</code> / <code>transition-out</code> on routes.
+    Staged views in the outlet activate when a transition policy is set.
   </p>
 
   <div class="transition-policy" role="group" aria-label="Transition policy">
@@ -167,29 +167,28 @@
 
 <aura-router id="app-router"
              data-transition="parallel"
-             data-crossfade="fade"
              error-template="error-template"
              loading-template="loading-template">
   <div class="transition-outlet-wrap">
     <aura-outlet></aura-outlet>
   </div>
 
-  <aura-route path="/a" data-crossfade="" view='html::<a href="/c" data-router-link>load template</a>' enter="auth" after="analytics"></aura-route>
-  <aura-route path="/b" data-crossfade="" view="html-src::index2.html" after="analytics" preload></aura-route>
-  <aura-route path="/c" data-crossfade="" view="template::app"></aura-route>
-  <aura-route path="/d" data-crossfade="" view="component-src::examples/demo/components/test-element1"></aura-route>
-  <aura-route path="/f" data-crossfade="" view="component-src::examples/demo/components/test-element" preserve></aura-route>
-  <aura-route path="/users" data-crossfade="" layout="users-layout">
-    <aura-route path="about" data-crossfade="" view="html-src::user.html"></aura-route>
+  <aura-route path="/a" view='html::<a href="/c" data-router-link>load template</a>' enter="auth" after="analytics"></aura-route>
+  <aura-route path="/b" view="html-src::index2.html" after="analytics" preload></aura-route>
+  <aura-route path="/c" view="template::app"></aura-route>
+  <aura-route path="/d" view="component-src::examples/demo/components/test-element1"></aura-route>
+  <aura-route path="/f" view="component-src::examples/demo/components/test-element" preserve></aura-route>
+  <aura-route path="/users" layout="users-layout">
+    <aura-route path="about" view="html-src::user.html"></aura-route>
   </aura-route>
-  <aura-route path="/custom-loader" data-crossfade="" view="custom-loader::user.html"></aura-route>
-  <aura-route path="/user/:id" data-crossfade="" view="component-src::examples/demo/components/test-element" preload></aura-route>
-  <aura-route path="цу" data-crossfade="" view="template::404-template"></aura-route>
+  <aura-route path="/custom-loader" view="custom-loader::user.html"></aura-route>
+  <aura-route path="/user/:id" view="component-src::examples/demo/components/test-element" preload></aura-route>
+  <aura-route path="цу" view="template::404-template"></aura-route>
 
   <aura-route path="/t/home" view="html::&lt;div class=&quot;t-page t-home&quot;&gt;&lt;h1&gt;Home&lt;/h1&gt;&lt;p&gt;Fade transition. Try switching parallel / out-in / in-out above.&lt;/p&gt;&lt;/div&gt;"
     transition-in="fade" transition-out="fade">
   </aura-route>
-  <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h1&gt;About&lt;/h1&gt;&lt;p&gt;Crossfade between staged view roots in the outlet.&lt;/p&gt;&lt;/div&gt;"
+  <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h1&gt;About&lt;/h1&gt;&lt;p&gt;Fade between staged view roots in the outlet.&lt;/p&gt;&lt;/div&gt;"
     transition-in="fade" transition-out="fade">
   </aura-route>
   <aura-route path="/t/gallery" view="html::&lt;div class=&quot;t-page t-gallery&quot;&gt;&lt;h1&gt;Gallery&lt;/h1&gt;&lt;p&gt;Slide transition (translateX + opacity).&lt;/p&gt;&lt;/div&gt;"

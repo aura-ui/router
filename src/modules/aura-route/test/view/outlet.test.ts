@@ -198,7 +198,7 @@ describe('outlet', () => {
     });
   });
 
-  describe('crossfade stage', () => {
+  describe('staged mount', () => {
     it('resolveStageStrategy stages only when useStagedMount is true', () => {
       const root = createOutlet();
       mount(ctx({ appOutlet: root }), '<span>old</span>');

@@ -13,7 +13,7 @@ export type MountContext = {
   pattern?: string;
   signal?: AbortSignal;
   strategy?: StageStrategy;
-  /** True when the route declares a transition package — incoming view stages for crossfade. */
+  /** True when the route declares a transition policy — incoming view stages in the outlet. */
   useStagedMount?: boolean;
 };
 
@@ -144,7 +144,7 @@ export function cancelStagedIncoming(snapshot: MountSnapshot): MountSnapshot {
 /**
  * TODO(revert-in-flight-view): DOM rollback semantics (stage vs replace)
  *
- * revertInFlightView is primarily for transition/stage mounts (two view roots during crossfade).
+ * revertInFlightView is primarily for transition/stage mounts (two view roots in the outlet).
  *
  * | Phase                         | replace (no transition)     | stage (transition)        |
  * |-------------------------------|-----------------------------|---------------------------|

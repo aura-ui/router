@@ -4,6 +4,13 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import { applyTransactionHistory } from './finalize';
 
+export interface NavigationCommittedContext {
+  from: MatchedRouteInfo | null;
+  to: MatchedRouteInfo;
+  action: HistoryAction;
+  hash: string;
+}
+
 /** Context for the single commit point after a navigation job wins (DOM already promoted). */
 export interface CommitGateContext {
   from: MatchedRouteInfo | null;
@@ -13,7 +20,7 @@ export interface CommitGateContext {
   hash: string;
   options: NavigateHistoryOptions;
   provider: HistoryProviderLike;
-  onNavigationCommitted?: (to: MatchedRouteInfo) => void;
+  onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
   scrollToHash?: (hash: string) => void;
 }
 
@@ -39,7 +46,12 @@ export function applyCommitGate(ctx: CommitGateContext): CommitGateEffects {
     { sameTarget },
   );
 
-  ctx.onNavigationCommitted?.(ctx.to);
+  ctx.onNavigationCommitted?.({
+    from: ctx.from,
+    to: ctx.to,
+    action: ctx.action,
+    hash: ctx.hash,
+  });
   if (ctx.hash) ctx.scrollToHash?.(ctx.hash);
 
   return { setPrev: ctx.to };

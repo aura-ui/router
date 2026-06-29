@@ -134,6 +134,13 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return type === 'html-src' || type === 'component-src';
   }
 
+  /** Inline `html::` without layout, fetch loaders, or loading UI — future sync render lane (see IMPLEMENTATION_STEPS §5b PR3). */
+  get hasSyncContent(): boolean {
+    if (this.hasLayout || this.hasAsyncContent) return false;
+    if (this.loadingTemplate.trim()) return false;
+    return this.view?.type === 'html';
+  }
+
   connectedCallback() {
     this.initGeneration++;
     const generation = this.initGeneration;

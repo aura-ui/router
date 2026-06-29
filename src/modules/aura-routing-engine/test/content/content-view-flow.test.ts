@@ -1,6 +1,5 @@
 /** @jest-environment jsdom */
 
-import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
 import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
@@ -8,7 +7,6 @@ import {
   buildContentDescriptor,
   ContentCache,
   ContentLoadService,
-  ContentResolver,
   LoaderRegistry,
 } from '../../core';
 import type { RouterInstance } from '../../core';
@@ -42,9 +40,7 @@ describe('content load flow (view → descriptor → engine)', () => {
       return `<p>${ctx.ref}</p>`;
     });
 
-    const contentLoad = new ContentLoadService({
-      resolver: new ContentResolver({ registry, cache: new ContentCache() }),
-    });
+    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html-src::about.html');
@@ -56,7 +52,7 @@ describe('content load flow (view → descriptor → engine)', () => {
     expect(loads).toEqual(['about.html']);
   });
 
-  it('navigation render uses buildContentDescriptor via RouteContentLoader', async () => {
+  it('navigation render resolves via ContentLoadService.resolve', async () => {
     const registry = new LoaderRegistry();
     const loads: string[] = [];
     registry.register('html', async (ctx) => {
@@ -64,15 +60,12 @@ describe('content load flow (view → descriptor → engine)', () => {
       return ctx.ref;
     });
 
-    const contentLoad = new ContentLoadService({
-      resolver: new ContentResolver({ registry, cache: new ContentCache() }),
-    });
+    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
 
     const route = createDomRoute('/x');
     route.setAttribute('view', 'html::<b>page</b>');
 
-    const loader = new RouteContentLoader(route, contentLoad);
-    await loader.resolve(
+    await contentLoad.resolve(
       { href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route: route as never },
       new AbortController().signal,
     );

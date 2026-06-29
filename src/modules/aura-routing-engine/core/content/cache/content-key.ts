@@ -1,5 +1,5 @@
-import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { ContentDescriptor } from './types';
+import type { MatchedRouteInfo } from '../../match/url-matcher';
+import type { ContentDescriptor } from '../model/types';
 
 /** Stable content-cache key: URL identity + loader + ref. */
 export function contentCacheKey(

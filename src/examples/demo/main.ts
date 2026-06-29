@@ -1,10 +1,11 @@
 import { AuraRouter } from '../../modules/aura-router/core';
 import { defaultLoaderRegistry } from '../../modules/aura-route/core';
+import { customLoader, CUSTOM_LOADER_TYPE } from './loaders/custom-loader';
 import { authHook, type AuthHookOptions } from './hooks/auth.hook';
 import { analyticsHook } from './hooks/analytics.hook';
 import { fadeTransitionHook, slideTransitionHook } from './hooks/view-transition.hook';
 
-defaultLoaderRegistry.register('custom-loader', async () => 'custom loader content');
+defaultLoaderRegistry.register(CUSTOM_LOADER_TYPE, customLoader);
 
 AuraRouter.use(authHook, { redirect: '/login' } satisfies AuthHookOptions);
 AuraRouter.use(analyticsHook);

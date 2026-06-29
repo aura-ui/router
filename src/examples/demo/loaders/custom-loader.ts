@@ -1,13 +1,5 @@
-import { BaseLoader, type AuraRouteContentType } from '../../../modules/aura-content-loaders/core';
+import type { LoaderFn } from '../../../modules/aura-routing-engine/core';
 
-export class CustomLoader extends BaseLoader {
-  static readonly type = 'custom-loader' as const;
+export const customLoader: LoaderFn = async () => 'custom loader content';
 
-  get type(): AuraRouteContentType {
-    return CustomLoader.type;
-  }
-
-  async load(_url: string): Promise<string> {
-    return 'custom loader content';
-  }
-}
+export const CUSTOM_LOADER_TYPE = 'custom-loader' as const;

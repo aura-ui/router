@@ -37,7 +37,7 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 
 - `AuraRouter.use(hook, options?)` — регистрация глобального route hook.
 - `AuraRouter.configure(options)` — глобальная конфигурация (`contentLoaderService`, `notFoundHandler`).
-- `AuraRouter.registerLoader(type, loaderClass)` — регистрация кастомного content loader для `<aura-route source="…">`.
+- `AuraRouter.registerLoader(type, loader)` — регистрация кастомного `LoaderFn` в `defaultLoaderRegistry` (`view="type::ref"`).
 
 ### Методы экземпляра
 

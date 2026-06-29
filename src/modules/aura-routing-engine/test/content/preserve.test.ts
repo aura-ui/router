@@ -1,4 +1,4 @@
-import { NO_PRESERVE, parsePreserveAttr } from '../../core/content/preserve';
+import { NO_PRESERVE, parsePreserveAttr } from '../../core/content';
 
 describe('parsePreserveAttr', () => {
   it('maps preserve values to view/data flags', () => {

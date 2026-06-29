@@ -8,9 +8,10 @@
 
 export {
   buildContentDescriptor,
+  isLoadableDescriptor,
   parseViewDescriptor,
-} from './core/content/descriptor';
-export { NO_PRESERVE, parsePreserveAttr } from './core/content/preserve';
+} from './core/content';
+export { NO_PRESERVE, parsePreserveAttr } from './core/content';
 export { parsePhaseHooks, resolveHookNames } from './core/lifecycle/bindings/route-hook-bindings';
 export { NO_TRANSITION } from './core/transition/route-transition';
 export {
@@ -23,10 +24,9 @@ export type {
   ContentKind,
   LoaderFn,
   LoaderType,
-  ResolveContext,
-} from './core/content/types';
+} from './core/content';
 export type { ContentLoadService } from './core/content/content-load-service';
-export type { PreserveFlags } from './core/content/preserve';
+export type { PreserveFlags } from './core/content';
 export type { PhaseHooksMap } from './core/lifecycle/types';
 export type { MatchedRouteInfo } from './core/match/url-matcher';
 export type {

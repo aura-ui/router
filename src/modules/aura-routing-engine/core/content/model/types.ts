@@ -1,10 +1,14 @@
-import type { MatchedRouteInfo } from '../match/url-matcher';
-
 export type ViewPayload = Node | string;
 
 export type ContentKind = 'layout' | 'content';
 
-export type LoaderType = 'template' | 'html' | 'html-src' | 'component' | 'component-src' | (string & {});
+export type LoaderType =
+  | 'template'
+  | 'html'
+  | 'html-src'
+  | 'component'
+  | 'component-src'
+  | (string & {});
 
 export type ContentDescriptor = {
   readonly kind: ContentKind;
@@ -12,8 +16,6 @@ export type ContentDescriptor = {
   readonly ref: string;
   readonly cache: boolean;
 };
-
-export type LoadPurpose = 'render' | 'prefetch';
 
 export type LoadContext = {
   readonly ref: string;
@@ -26,12 +28,11 @@ export type LoadContext = {
   };
 };
 
-export type ResolveContext = {
-  readonly routeInfo: MatchedRouteInfo;
-  readonly signal: AbortSignal;
-  readonly purpose: LoadPurpose;
-};
-
 export type LoaderFn = (ctx: LoadContext) => Promise<ViewPayload | null>;
 
 export type FetchText = (url: string, signal?: AbortSignal) => Promise<string>;
+
+export type LoaderTransport = {
+  readonly fetchText: FetchText;
+  readonly resolveUrl: (path: string) => string;
+};

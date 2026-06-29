@@ -1,6 +1,8 @@
-/** What to keep when leaving a route (mounted view DOM / loader data). */
+/** What to keep when leaving a route (view DOM / load-hook payload). */
 export type PreserveFlags = {
+  /** Keep-alive mounted view (ViewCache): html-src, template, html, component-src DOM. */
   view: boolean;
+  /** Cache `load` hook payloads (DataGraph), not view loaders. */
   data: boolean;
 };
 
@@ -9,9 +11,9 @@ export const NO_PRESERVE: PreserveFlags = { view: false, data: false };
 /**
  * Parses `<aura-route preserve="…">` attribute value.
  * - absent → no preservation
- * - `preserve` / `preserve=""` / `preserve="view"` → view (DOM) only
- * - `preserve="data"` → loader payload cache
- * - `preserve="all"` → view + data
+ * - `preserve` / `preserve=""` / `preserve="view"` → view only (DOM + view-loader prefetch cache)
+ * - `preserve="data"` → load hooks only (DataGraph)
+ * - `preserve="all"` → view + load hooks
  */
 export function parsePreserveAttr(raw: string | null): PreserveFlags {
   if (raw === null) return NO_PRESERVE;

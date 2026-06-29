@@ -5,6 +5,7 @@ import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { PipelineStepOutcome } from '../lifecycle/execution/phase-outcome';
 import { guardResultToPhaseOutcome } from '../lifecycle/execution/phase-outcome';
+import type { PreserveFlags } from '../content/model/preserve';
 import {
   createLifecycleContext,
   type LifecycleContextInput,
@@ -120,6 +121,8 @@ export class DataGraph {
     const data = new Map<string, unknown>();
 
     for (const route of chain) {
+      if (!routePreservesLoadData(route)) continue;
+
       const target = this.resolveLoadTarget(route);
       if (!target) continue;
 
@@ -192,9 +195,14 @@ export class DataGraph {
     const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
 
     try {
-      await this.cache.resolve(target.key, () =>
-        this.runLoadPhaseHooks(runtime.hookRegistry, ctx, target.hookNames, isActive, 'navigation'),
-      );
+      const load = () =>
+        this.runLoadPhaseHooks(runtime.hookRegistry, ctx, target.hookNames, isActive, 'navigation');
+
+      if (routePreservesLoadData(route)) {
+        await this.cache.resolve(target.key, load);
+      } else {
+        await load();
+      }
 
       // Immutable pipeline step: onLoad runs on every navigation, including cache hits.
       route.route.onLoad(ctx);
@@ -216,9 +224,14 @@ export class DataGraph {
     const ctx = this.loadContext(route, this.prefetchContextInput(abort));
 
     try {
-      await this.cache.resolve(target.key, () =>
-        this.runLoadPhaseHooks(this.hooks, ctx, target.hookNames, () => !abort.aborted, 'prefetch'),
-      );
+      const load = () =>
+        this.runLoadPhaseHooks(this.hooks, ctx, target.hookNames, () => !abort.aborted, 'prefetch');
+
+      if (routePreservesLoadData(route)) {
+        await this.cache.resolve(target.key, load);
+      } else {
+        await load();
+      }
     } catch {
       // intent: silent
     }
@@ -303,6 +316,10 @@ export class DataGraph {
 }
 
 const SKIP_PAYLOAD = Symbol('skip-payload');
+
+function routePreservesLoadData(route: MatchedRouteInfo): boolean {
+  return (route.route as { preserve?: PreserveFlags }).preserve?.data ?? false;
+}
 
 /** Non-terminal hook return stored in the data graph cache. */
 function extractLoadPayload(raw: unknown): unknown {

@@ -20,7 +20,8 @@ Route attrs → ContentLoadService.resolve → [cache] → LoaderFn → ViewPayl
 
 ## Cache rules
 
-- `preserve="data"` → `descriptor.cache = true`
-- Only string payloads are cached
+- `preserve="view"` (or bare `preserve`) → view-loader payload cache (`html-src`, `html`, …) via router `DataCache`
+- `preserve="data"` → `load` hook cache in DataGraph (separate store)
+- Only string view payloads are cached in `DataCache`
 - Abort → `null`; loader failure → `ContentLoadError`
-- Configure LRU via `AuraRouter.configure({ dataCache: { max, gcTime } })`
+- Configure view-loader LRU via `AuraRouter.configure({ dataCache: { max, gcTime } })`

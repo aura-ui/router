@@ -84,7 +84,7 @@ describe('content load flow (view → engine)', () => {
     expect(loads).toEqual(['<b>page</b>']);
   });
 
-  it('prefetch and navigation share dataCacheKey when preserve data is enabled', async () => {
+  it('prefetch and navigation share dataCacheKey when preserve view is enabled', async () => {
     const registry = new LoaderRegistry();
     registry.register('html-src', async () => '<p>feed</p>');
 
@@ -92,7 +92,7 @@ describe('content load flow (view → engine)', () => {
     const contentLoad = new ContentLoadService({ registry, cache });
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
-    route.setAttribute('preserve', 'data');
+    route.setAttribute('preserve', 'view');
 
     const routeInfo = {
       href: '/feed',

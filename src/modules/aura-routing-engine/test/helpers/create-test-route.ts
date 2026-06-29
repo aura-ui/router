@@ -1,6 +1,7 @@
 import type { RouteInstance } from '../../core';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
+import { NO_PRESERVE, type PreserveFlags } from '../../core/content/model/preserve';
 
 const noop = (): void => {};
 
@@ -8,9 +9,14 @@ const noopRender = async (): Promise<ViewRenderResult> => ({ status: 'ok' });
 
 const INACTIVE_TRANSITION: RouteTransitionType = { order: null, in: null, out: null };
 
-export function createTestRoute(path: string, overrides: Partial<RouteInstance> = {}): RouteInstance {
+export function createTestRoute(
+  path: string,
+  overrides: Partial<RouteInstance> & { preserve?: PreserveFlags } = {},
+): RouteInstance {
+  const { preserve = { view: false, data: true }, ...routeOverrides } = overrides;
   const route = {
     path,
+    preserve,
     getAttribute(name: string): string | null {
       return name === 'path' ? path : null;
     },
@@ -35,7 +41,7 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
     onError: noop,
     commitStagedView: noop,
     render: noopRender,
-    ...overrides,
+    ...routeOverrides,
   } as RouteInstance;
 
   Object.defineProperties(route, {

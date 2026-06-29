@@ -82,7 +82,7 @@ describe('ContentLoadService', () => {
       route: {
         layout: '',
         view: parseViewAttr('html::static'),
-        preserve: { view: false, data: true },
+        preserve: { view: true, data: false },
       },
     };
 

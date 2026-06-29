@@ -1,4 +1,5 @@
 import { DataGraph } from '../../core/data-graph';
+import { NO_PRESERVE } from '../../core/content/model/preserve';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
@@ -121,6 +122,29 @@ describe('DataGraph', () => {
     await dataGraph.prefetch([route], { mode: 'intent' });
 
     expect(loads).toBe(2);
+  });
+
+  it('does not cache load hooks when preserve data is off', async () => {
+    let hookCalls = 0;
+
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => {
+        hookCalls++;
+        return { id: 1 };
+      },
+    });
+
+    const route = matchedRoute('/users');
+    (route.route as { preserve: typeof NO_PRESERVE }).preserve = NO_PRESERVE;
+
+    const ctx = runtime(hookRegistry, route);
+
+    await dataGraph.load([route], { runtime: ctx });
+    await dataGraph.load([route], { runtime: ctx });
+
+    expect(hookCalls).toBe(2);
   });
 
   it('invalidate clears cache', async () => {

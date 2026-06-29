@@ -25,7 +25,7 @@ const DEFAULT_PREFETCH: Required<ContentPrefetchOptions> = {
 type ContentRoute = {
   layout: string;
   view: { type: string; content: string } | null;
-  preserve: { data: boolean };
+  preserve: { view: boolean };
 };
 
 /** Route attrs → descriptor → cache → loader → view payload. */
@@ -52,7 +52,7 @@ export class ContentLoadService {
         kind: 'content',
         loader: route.view?.type ?? '',
         ref: route.view?.content ?? '',
-        cache: route.preserve.data,
+        cache: route.preserve.view,
       };
 
     if (descriptor.kind === 'content' && !descriptor.loader) {

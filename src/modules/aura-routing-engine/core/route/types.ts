@@ -1,5 +1,5 @@
 import type { HistoryAction } from '../history/provider.types';
-import type { RouteTransition } from '../../../aura-route/core/transition/route-transition';
+import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { RouteHookAttrProp, RoutePhase } from '../lifecycle/types';
 
 /** Target route slice passed to lifecycle callbacks and hooks. */
@@ -49,7 +49,7 @@ export type RouteErrorContext = RouteLifecycleContext & {
 /** Route surface used by the routing engine and hook runtime. */
 export interface RouteInstance extends RouteHookNamesSource {
   path: string;
-  readonly transition: RouteTransition;
+  readonly transition: RouteTransitionType;
   onEnter(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;

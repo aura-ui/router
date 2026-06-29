@@ -1,4 +1,4 @@
-import { FailedNavigation } from '../../core/failure/navigation-failure';
+import { FailedNavigation } from '../../core/failure';
 
 describe('not-found failure', () => {
   it('creates structured NOT_FOUND error', () => {

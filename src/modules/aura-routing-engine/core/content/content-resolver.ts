@@ -1,8 +1,9 @@
-import { createContentLoadError } from '../failure/navigation-error';
-import type { ContentDescriptor, LoadContext, ResolveContext, ViewPayload } from './types';
+import { createContentLoadError } from '../failure';
+
 import type { ContentCache } from './content-cache';
 import { contentCacheKey } from './content-key';
 import type { LoaderRegistry } from './registry';
+import type { ContentDescriptor, LoadContext, ResolveContext, ViewPayload } from './types';
 
 export type ContentResolverDeps = {
   registry: LoaderRegistry;

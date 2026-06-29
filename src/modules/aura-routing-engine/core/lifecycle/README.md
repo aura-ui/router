@@ -18,8 +18,10 @@ a file inside this folder.
   phase outcome mapping.
 - `logging/` is the single console boundary for lifecycle diagnostics.
 - `orchestration/` runs phases across transition-plan branches and handles the
-  terminal `error` phase. `lifecycle-runtime-adapter.ts` bridges processor
-  context into lifecycle runtime context.
+  terminal `error` phase. It also owns pre-match `NOT_FOUND` exit cleanup via
+  `runNotFoundExitCleanup`, a callback-only legacy path that still shares lifecycle
+  context construction. `lifecycle-runtime-adapter.ts` bridges processor context
+  into lifecycle runtime context.
 
 `types.ts` re-exports `GuardResult` and `RedirectTarget` from `guard.types.ts`
 (the shared blocking-hook contract between hooks and lifecycle execution).

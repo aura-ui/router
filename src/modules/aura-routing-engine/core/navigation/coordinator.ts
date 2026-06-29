@@ -1,5 +1,4 @@
-import type { CompleteFailureDeps } from '../failure/finalize-failure';
-import type { NavigationHookErrorDetail } from '../failure/navigation-failure';
+import type { CompleteFailureDeps, NavigationHookErrorDetail } from '../failure';
 import type { HistoryProviderLike } from '../history/history-policy';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';

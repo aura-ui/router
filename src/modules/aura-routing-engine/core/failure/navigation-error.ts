@@ -1,8 +1,3 @@
-import type { LifecyclePhase } from '../lifecycle/types';
-
-/** Phases where a navigation error can be attributed (pipeline + match + render). */
-export type NavigationErrorPhase = LifecyclePhase | 'match' | 'render';
-
 /** Stable codes for recovery, telemetry, and i18n. */
 export type NavigationFailureCode =
   | 'NOT_FOUND'
@@ -27,7 +22,10 @@ export const FAILURE_CODE_BY_PHASE = {
   transitionIn: 'TRANSITION_FAILED',
   left: 'HOOK_THROW',
   after: 'HOOK_THROW',
-} as const satisfies Record<NavigationErrorPhase, NavigationFailureCode>;
+} as const satisfies Record<string, NavigationFailureCode>;
+
+/** Phases where a navigation error can be attributed (pipeline + match + render). */
+export type NavigationErrorPhase = keyof typeof FAILURE_CODE_BY_PHASE;
 
 export interface NavigationErrorInit {
   code: NavigationFailureCode;

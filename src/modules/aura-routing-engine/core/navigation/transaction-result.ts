@@ -1,4 +1,4 @@
-import type { FailedNavigation } from '../failure/navigation-failure';
+import type { FailedNavigation } from '../failure';
 
 /** Terminal pipeline outcome: navigation failed with a structured failure object. */
 export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation };

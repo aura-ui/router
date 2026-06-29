@@ -2,16 +2,18 @@ import { parsePath } from '../../aura-utils/misc/url';
 
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import type { ContentLoadService } from './content/content-load-service';
-import type { CompleteFailureDeps } from './failure/finalize-failure';
-import type { NavigationHookErrorDetail } from './failure/navigation-failure';
-import { FailedNavigation } from './failure/navigation-failure';
-import { runNotFoundExitCleanup } from './failure/not-found';
+import {
+  FailedNavigation,
+  type CompleteFailureDeps,
+  type NavigationHookErrorDetail,
+} from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
   HistoryAction,
   NavigateHistoryOptions,
   NavigationProvider,
 } from './history/provider.types';
+import { runNotFoundExitCleanup } from './lifecycle';
 import { resolveNavigationTarget } from './match/resolve-navigation-target';
 import {
   AuraRoutingUrlMatcher,
@@ -221,7 +223,11 @@ export class AuraRoutingEngine {
       this.registry.getMatchableNodes(),
     );
     if (!found) {
-      runNotFoundExitCleanup(this.prev, action, this.router);
+      runNotFoundExitCleanup({
+        from: this.prev,
+        action,
+        router: this.router,
+      });
       const failure = FailedNavigation.notFound(relativeHref, this.prev, action);
       this.applyFinalizeEffects(
         finalizeNotFoundNavigation(

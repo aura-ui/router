@@ -5,6 +5,8 @@
  * @module lifecycle/phase-registry
  */
 
+import type { RouteInstance, RouteLifecycleContext } from '../route/types';
+
 import type {
   LifecycleBranch,
   LifecycleHookHandling,
@@ -13,7 +15,6 @@ import type {
   RouteHookAttrProp,
   RoutePhase,
 } from './types';
-import type { RouteInstance, RouteLifecycleContext } from '../route/types';
 
 export type { PhaseThrowPolicy } from './types';
 

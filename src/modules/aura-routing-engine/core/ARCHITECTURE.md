@@ -10,7 +10,7 @@ specific nested route tree model lives in `route-tree/README.md`.
 | `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and not-found pre-match paths. |
 | `navigation/` | Matched navigation coordination, pending dedupe, commit gate, terminal finalize, and history policy integration. |
 | `processor/` | One navigation transaction: transition plan, cancellation scope, lifecycle pipeline, and rollback on supersede/cancel. |
-| `lifecycle/` | Phase metadata (`PHASES`), lifecycle context, phase runner, and route attr parsing. |
+| `lifecycle/` | Phase metadata (`PHASES`), lifecycle context, hook binding, phase execution, and error-phase orchestration. |
 | `hooks/` | Global hook registry and hook result normalization. |
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, and `TransitionMap`. |
 | `match/` | URL matching and `MatchedRouteInfo` creation. |
@@ -75,8 +75,10 @@ processor invocation, commit gate wiring, redirects, and terminal finalize.
 starts a cancellable job, tracks view commit state, and delegates lifecycle work
 to `ProcessorPipeline`.
 
-`ProcessorPipeline` owns phase order. Blocking phases may cancel or redirect
-before view commit. Post-commit phases warn/log ignored cancel/redirect results.
+`ProcessorPipeline` owns phase order, rendering, transitions, and the commit
+gate. It delegates route lifecycle execution to `LifecycleRunner`. Blocking
+phases may cancel or redirect before view commit. Post-commit phases warn/log
+ignored cancel/redirect results.
 
 ## Commit Vocabulary
 

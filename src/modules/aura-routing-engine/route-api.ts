@@ -11,7 +11,7 @@ export {
   parseViewDescriptor,
 } from './core/content/descriptor';
 export { NO_PRESERVE, parsePreserveAttr } from './core/content/preserve';
-export { parsePhaseHooks, resolveHookNames } from './core/lifecycle/phase-attrs';
+export { parsePhaseHooks, resolveHookNames } from './core/lifecycle/bindings/route-hook-bindings';
 export { NO_TRANSITION } from './core/transition/route-transition';
 export {
   DEFAULT_TRANSITION_POLICY,

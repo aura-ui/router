@@ -1,5 +1,9 @@
 import type { RouteInstance } from '../../core';
-import { PHASE_HTML_ALIAS, parsePhaseHooks, resolveHookNames } from '../../core/lifecycle/phase-attrs';
+import {
+  PHASE_HTML_ALIAS,
+  parsePhaseHooks,
+  resolveHookNames,
+} from '../../core/lifecycle/bindings/route-hook-bindings';
 
 function route(overrides: Partial<RouteInstance> = {}): RouteInstance {
   const noop = (): void => {};

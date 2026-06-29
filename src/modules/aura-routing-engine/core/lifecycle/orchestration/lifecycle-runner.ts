@@ -1,0 +1,73 @@
+import type { NavigationErrorPhase } from '../../failure/navigation-error';
+import type { MatchedRouteInfo } from '../../match/url-matcher';
+import type { NavigationErrorResult } from '../../navigation/transaction-result';
+import { resolveHookNames } from '../bindings/route-hook-bindings';
+import { createLifecycleContext } from '../context/lifecycle-context';
+import { PhaseExecutor } from '../execution/phase-executor';
+import type { PipelineStepOutcome } from '../execution/phase-outcome';
+import type { PipelinePhaseDefinition } from '../phase-registry';
+
+import { ErrorPhaseHandler } from './error-phase-handler';
+import type { LifecycleRuntimeContext } from './lifecycle-runner.types';
+import { toLifecycleContextInput } from './lifecycle-runtime-adapter';
+
+/** Runs lifecycle phases across transition-plan route branches. */
+export class LifecycleRunner {
+  private readonly phaseExecutor: PhaseExecutor;
+  private readonly errorPhaseHandler: ErrorPhaseHandler;
+
+  constructor(
+    phaseExecutor = new PhaseExecutor(),
+    errorPhaseHandler = new ErrorPhaseHandler(),
+  ) {
+    this.phaseExecutor = phaseExecutor;
+    this.errorPhaseHandler = errorPhaseHandler;
+  }
+
+  async runPhase(
+    phase: PipelinePhaseDefinition,
+    context: LifecycleRuntimeContext,
+  ): Promise<PipelineStepOutcome> {
+    const matchedRoutes = context.transaction.plan[phase.targetRoutes];
+
+    for (const matchedRoute of matchedRoutes) {
+      const outcome = await this.runPhaseForRoute(phase, matchedRoute, context);
+      if (outcome) return outcome;
+    }
+
+    return null;
+  }
+
+  failNavigation(
+    matchedRoute: MatchedRouteInfo,
+    error: unknown,
+    errorPhase: NavigationErrorPhase,
+    context: LifecycleRuntimeContext,
+  ): Promise<NavigationErrorResult> {
+    return this.errorPhaseHandler.failNavigation(matchedRoute, error, errorPhase, context);
+  }
+
+  private runPhaseForRoute(
+    phase: PipelinePhaseDefinition,
+    matchedRoute: MatchedRouteInfo,
+    context: LifecycleRuntimeContext,
+  ): Promise<PipelineStepOutcome> {
+    const lifecycleContext = createLifecycleContext(
+      phase.phase,
+      matchedRoute,
+      toLifecycleContextInput(context),
+    );
+
+    return this.phaseExecutor.execute({
+      phase,
+      route: matchedRoute.route,
+      lifecycleContext,
+      hookNames: resolveHookNames(matchedRoute.route, phase.phase),
+      hookRegistry: context.hookRegistry,
+      isJobActive: context.isJobActive,
+      failWithError: (error) =>
+        this.failNavigation(matchedRoute, error, phase.phase, context),
+    });
+  }
+
+}

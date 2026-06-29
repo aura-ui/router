@@ -10,6 +10,8 @@ import type { TransactionResult } from '../navigation/transaction-result';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import { withCancelledTransactionScope } from './cancellation/transaction-scope';
 import { AuraRoutingProcessorJobManager } from './cancellation/job-manager';
+import { canUseFastPath } from './fast-path/can-use-fast-path';
+import { runFastPath } from './fast-path/run-fast-path';
 
 /**
  * Navigation transaction orchestrator used by {@link AuraRoutingEngine}.
@@ -51,8 +53,8 @@ export class AuraRoutingProcessor {
       transitionPlan,
       navigationJob,
       viewCommitTracker,
-      runTransaction: () =>
-        this.pipeline.run({
+      runTransaction: () => {
+        const pipelineContext = {
           transaction,
           navigationJob,
           router: input.router,
@@ -62,7 +64,14 @@ export class AuraRoutingProcessor {
           commitGate: input.commitGate,
           isJobActive: () =>
             !this.jobManager.isJobSuperseded(navigationJob, capturedRouterGeneration),
-        }),
+        };
+
+        if (canUseFastPath(transitionPlan, input.from, input.to)) {
+          return runFastPath(pipelineContext);
+        }
+
+        return this.pipeline.run(pipelineContext);
+      },
     });
   }
 

@@ -83,15 +83,17 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.viewController?.nestedOutlet ?? null;
   }
 
+  transition: RouteTransitionType = NO_TRANSITION;
+
   /** Merges decl attrs with `transition` shortcut; `[]` on decl opts out of inherited shortcut on that side. */
-  get transition(): RouteTransitionType {
+  initTransition(): RouteTransitionType {
     const inMerged = this.transitionInDecl ?? this.transitionShortcut?.in;
     const outMerged = this.transitionOutDecl ?? this.transitionShortcut?.out;
     const inHooks = inMerged?.length ? inMerged : null;
     const outHooks = outMerged?.length ? outMerged : null;
     if (!this.transitionOrder && !inHooks && !outHooks) return NO_TRANSITION;
-    this.transitionOrder ??= DEFAULT_TRANSITION_ORDER;
-    return { order: this.transitionOrder, in: inHooks, out: outHooks };
+    const order = this.transitionOrder ?? DEFAULT_TRANSITION_ORDER;
+    return { order: order, in: inHooks, out: outHooks };
   }
 
   get transitionIn(): string[] | null {
@@ -135,6 +137,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   connectedCallback() {
     this.initGeneration++;
     const generation = this.initGeneration;
+    this.transition = this.initTransition();
     this.setupDone = this.init(generation);
   }
 

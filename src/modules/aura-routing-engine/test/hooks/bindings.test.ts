@@ -25,7 +25,7 @@ function route(overrides: Partial<RouteInstance> = {}): RouteInstance {
     onError: noop,
     transition: { order: null, in: null, out: null },
     ...overrides,
-  };
+  } as RouteInstance;
 }
 
 describe('resolveHookNames', () => {

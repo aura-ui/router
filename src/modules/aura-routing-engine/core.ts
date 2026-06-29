@@ -125,6 +125,7 @@ export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefe
 export { DataGraph } from './core/data-graph';
 export type {
   DataGraphLoadOptions,
+  DataGraphLoadResult,
   DataGraphOptions,
   DataGraphPrefetchOptions,
   DataSnapshot,

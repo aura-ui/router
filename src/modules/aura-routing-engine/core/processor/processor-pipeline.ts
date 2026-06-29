@@ -1,4 +1,4 @@
-import type { DataGraph } from '../data-graph';
+import type { DataGraph, DataGraphLoadResult, DataSnapshot } from '../data-graph';
 import type { ReportNavigationHookError } from '../failure';
 import type { HookRegistry } from '../hooks/registry';
 import {
@@ -8,6 +8,7 @@ import {
   type LifecycleRuntimeContext,
   type PipelinePhaseDefinition,
 } from '../lifecycle';
+import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { TransactionResult } from '../navigation/transaction-result';
 import type { RouterInstance } from '../route/types';
 import type { TransitionMap } from '../route-tree/transition-plan';
@@ -34,6 +35,8 @@ export interface PipelineContext {
   router: RouterInstance;
   hookRegistry: HookRegistry;
   dataGraph: DataGraph;
+  /** Load-hook data for the active branch after {@link DataGraph.load}. */
+  dataSnapshot?: DataSnapshot;
   viewCommitTracker: ViewCommitTracker;
   reportHookError?: ReportNavigationHookError;
   /** False when the navigation job was superseded or the router was torn down. */
@@ -115,14 +118,17 @@ export class ProcessorPipeline {
   }
 
   private async runLoads(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    const { enterRoutes } = pipelineContext.transaction.plan;
-    const targets = enterRoutes.filter((route) => route.route.load?.length);
-    if (!targets.length) return null;
+    const chain = this.activeChain(pipelineContext);
+    const result = await pipelineContext.dataGraph.load(
+      this.enterRoutesWithLoadHooks(pipelineContext),
+      {
+        chain,
+        runtime: this.createLifecycleRuntime(pipelineContext),
+      },
+    );
 
-    return pipelineContext.dataGraph.load(targets, {
-      chain: pipelineContext.transaction.to.chain ?? enterRoutes,
-      runtime: this.createLifecycleRuntime(pipelineContext),
-    });
+    this.storeDataSnapshot(pipelineContext, result);
+    return result.outcome;
   }
 
   private async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
@@ -180,7 +186,7 @@ export class ProcessorPipeline {
   }
 
   private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
-    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
+    for (const matchedRoute of this.enterRoutes(pipelineContext)) {
       const viewCommit = await runViewCommit(matchedRoute, pipelineContext.navigationJob);
 
       if (viewCommit === 'aborted' || !pipelineContext.isJobActive()) {
@@ -205,7 +211,7 @@ export class ProcessorPipeline {
   }
 
   private commitEnterViews(pipelineContext: PipelineContext): void {
-    for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
+    for (const matchedRoute of this.enterRoutes(pipelineContext)) {
       matchedRoute.route.commitStagedView?.();
     }
     pipelineContext.viewCommitTracker.markViewCommitted();
@@ -255,6 +261,28 @@ export class ProcessorPipeline {
 
   private createLifecycleRuntime(pipelineContext: PipelineContext): LifecycleRuntimeContext {
     return createLifecycleRuntimeContext(pipelineContext);
+  }
+
+  private enterRoutes(pipelineContext: PipelineContext): readonly MatchedRouteInfo[] {
+    return pipelineContext.transaction.plan.enterRoutes;
+  }
+
+  /** Full branch root → leaf; reused for LCA snapshot lookup in DataGraph. */
+  private activeChain(pipelineContext: PipelineContext): readonly MatchedRouteInfo[] {
+    const { plan, to } = pipelineContext.transaction;
+    return to.chain ?? plan.enterRoutes;
+  }
+
+  private enterRoutesWithLoadHooks(pipelineContext: PipelineContext): MatchedRouteInfo[] {
+    return this.enterRoutes(pipelineContext).filter((route) => route.route.load?.length);
+  }
+
+  private storeDataSnapshot(
+    pipelineContext: PipelineContext,
+    result: DataGraphLoadResult,
+  ): void {
+    if (result.outcome !== null) return;
+    pipelineContext.dataSnapshot = result.snapshot;
   }
 
   private async runLifecycleStep(

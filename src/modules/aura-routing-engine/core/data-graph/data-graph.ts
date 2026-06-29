@@ -1,7 +1,7 @@
 import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
 import { DEFAULT_GC_TIME } from '../../../aura-cache-store/core/aura-cache-store';
-import type { GuardResult } from '../guard.types';
-import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
+import { normalizeHookResult, type HookRegistry } from '../hooks/registry';
+import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { PipelineStepOutcome } from '../lifecycle/execution/phase-outcome';
 import { guardResultToPhaseOutcome } from '../lifecycle/execution/phase-outcome';
@@ -13,13 +13,16 @@ import {
 import { ErrorPhaseHandler } from '../lifecycle/orchestration/error-phase-handler';
 import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runner.types';
 import { toLifecycleContextInput } from '../lifecycle/orchestration/lifecycle-runtime-adapter';
+import type { RouteLifecycleContext } from '../route/types';
 import type { TransactionResult } from '../navigation/transaction-result';
 import { routeMatchKey } from '../route-tree/matched-chain';
 
-/** Cached marker when load hooks complete without returning payload data. */
-const LOAD_OK = true as const;
-
 export type DataSnapshot = ReadonlyMap<string, unknown>;
+
+export type DataGraphLoadResult = {
+  outcome: PipelineStepOutcome;
+  snapshot: DataSnapshot;
+};
 
 export type DataGraphOptions = {
   /** SWR fresh window (ms). Default: 30_000. */
@@ -36,6 +39,13 @@ export type DataGraphLoadOptions = {
 export type DataGraphPrefetchOptions = {
   signal?: AbortSignal;
   mode: 'intent';
+};
+
+type LoadHookMode = 'navigation' | 'prefetch';
+
+type LoadTarget = {
+  hookNames: readonly string[];
+  key: string;
 };
 
 class DataGraphTerminalError extends Error {
@@ -70,20 +80,20 @@ export class DataGraph {
   async load(
     targets: readonly MatchedRouteInfo[],
     options: DataGraphLoadOptions,
-  ): Promise<PipelineStepOutcome> {
-    const routes = targets.filter((route) => route.route.load?.length);
-    if (!routes.length) return null;
+  ): Promise<DataGraphLoadResult> {
+    const chain = options.chain ?? targets;
+    const routes = this.routesWithLoadHooks(targets);
 
-    const outcomes = await Promise.all(
-      routes.map((route) => this.ensureNavigationLoad(route, options.runtime)),
-    );
-
-    for (const outcome of outcomes) {
-      if (outcome) return outcome;
+    if (!routes.length) {
+      return this.loadSucceeded(chain);
     }
 
-    void this.snapshot(options.chain ?? routes);
-    return null;
+    const terminal = await this.runParallelNavigationLoads(routes, options.runtime);
+    if (terminal) {
+      return { outcome: terminal, snapshot: new Map() };
+    }
+
+    return this.loadSucceeded(chain);
   }
 
   /** Intent prefetch — guards skipped; redirect/cancel/errors ignored. */
@@ -91,7 +101,7 @@ export class DataGraph {
     targets: readonly MatchedRouteInfo[],
     options: DataGraphPrefetchOptions,
   ): Promise<void> {
-    const routes = targets.filter((route) => route.route.load?.length);
+    const routes = this.routesWithLoadHooks(targets);
     await Promise.all(routes.map((route) => this.prefetchRoute(route, options.signal)));
   }
 
@@ -111,12 +121,13 @@ export class DataGraph {
     const data = new Map<string, unknown>();
 
     for (const route of chain) {
-      const hookNames = resolveHookNames(route.route, 'load');
-      if (!hookNames?.length) continue;
+      const target = this.resolveLoadTarget(route);
+      if (!target) continue;
 
-      const key = this.cacheKey(route, hookNames);
-      const value = this.cache.get(key);
-      if (value !== undefined) data.set(key, value);
+      const value = this.cache.get(target.key);
+      if (value !== undefined) {
+        data.set(target.key, value);
+      }
     }
 
     return data;
@@ -126,30 +137,57 @@ export class DataGraph {
     this.cache.destroy();
   }
 
+  private loadSucceeded(chain: readonly MatchedRouteInfo[]): DataGraphLoadResult {
+    return { outcome: null, snapshot: this.snapshot(chain) };
+  }
+
+  /**
+   * Parallel sibling abort: on redirect/cancel/error, abort in-flight loads on other targets.
+   * To allow parallel loads to finish despite a terminal sibling, remove `siblingAbort` wiring
+   * and pass only `runtime.isJobActive` into `ensureNavigationLoad`.
+   */
+  private async runParallelNavigationLoads(
+    routes: readonly MatchedRouteInfo[],
+    runtime: LifecycleRuntimeContext,
+  ): Promise<PipelineStepOutcome> {
+    const siblingAbort = new AbortController();
+    const outcomes: PipelineStepOutcome[] = [];
+
+    await Promise.all(
+      routes.map(async (route, index) => {
+        outcomes[index] = await this.ensureNavigationLoad(route, runtime, siblingAbort);
+        if (outcomes[index]) {
+          siblingAbort.abort();
+        }
+      }),
+    );
+
+    return outcomes.find((outcome) => outcome) ?? null;
+  }
+
   private async ensureNavigationLoad(
     route: MatchedRouteInfo,
     runtime: LifecycleRuntimeContext,
+    siblingAbort: AbortController,
   ): Promise<PipelineStepOutcome> {
-    const hookNames = resolveHookNames(route.route, 'load');
-    if (!hookNames?.length) return null;
+    const target = this.resolveLoadTarget(route);
+    if (!target) return null;
 
-    const key = this.cacheKey(route, hookNames);
+    const input = this.loadContextInput(runtime, siblingAbort);
+    const ctx = this.loadContext(route, input);
+    const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
 
     try {
-      await this.cache.resolve(key, () =>
-        this.runLoadHooks(
-          route,
-          hookNames,
-          toLifecycleContextInput(runtime),
-          runtime.isJobActive,
-          false,
-          runtime.hookRegistry,
-        ),
+      await this.cache.resolve(target.key, () =>
+        this.runLoadPhaseHooks(runtime.hookRegistry, ctx, target.hookNames, isActive, 'navigation'),
       );
+
+      // Immutable pipeline step: onLoad runs on every navigation, including cache hits.
+      route.route.onLoad(ctx);
       return null;
     } catch (error) {
       if (error instanceof DataGraphTerminalError) return error.outcome;
-      if (!runtime.isJobActive()) return { status: 'cancelled' };
+      if (!isActive()) return { status: 'cancelled' };
       return this.errorHandler.failNavigation(route, error, 'load', runtime);
     }
   }
@@ -158,19 +196,47 @@ export class DataGraph {
     const abort = signal ?? new AbortController().signal;
     if (abort.aborted) return;
 
-    const hookNames = resolveHookNames(route.route, 'load');
-    if (!hookNames?.length) return;
+    const target = this.resolveLoadTarget(route);
+    if (!target) return;
 
-    const key = this.cacheKey(route, hookNames);
-    const input = this.prefetchContextInput(abort);
+    const ctx = this.loadContext(route, this.prefetchContextInput(abort));
 
     try {
-      await this.cache.resolve(key, () =>
-        this.runLoadHooks(route, hookNames, input, () => !abort.aborted, true),
+      await this.cache.resolve(target.key, () =>
+        this.runLoadPhaseHooks(this.hooks, ctx, target.hookNames, () => !abort.aborted, 'prefetch'),
       );
     } catch {
       // intent: silent
     }
+  }
+
+  private routesWithLoadHooks(targets: readonly MatchedRouteInfo[]): MatchedRouteInfo[] {
+    return targets.filter((route) => route.route.load?.length);
+  }
+
+  private resolveLoadTarget(route: MatchedRouteInfo): LoadTarget | null {
+    const hookNames = resolveHookNames(route.route, 'load');
+    if (!hookNames?.length) return null;
+
+    return { hookNames, key: this.cacheKey(route, hookNames) };
+  }
+
+  private loadContext(route: MatchedRouteInfo, input: LifecycleContextInput): RouteLifecycleContext {
+    return createLifecycleContext('load', route, input);
+  }
+
+  private loadContextInput(
+    runtime: LifecycleRuntimeContext,
+    siblingAbort: AbortController,
+  ): LifecycleContextInput {
+    const base = toLifecycleContextInput(runtime);
+    return {
+      ...base,
+      navigationJob: {
+        ...base.navigationJob,
+        signal: mergeAbortSignals(base.navigationJob.signal, siblingAbort.signal),
+      },
+    };
   }
 
   private prefetchContextInput(signal: AbortSignal): LifecycleContextInput {
@@ -182,31 +248,57 @@ export class DataGraph {
     };
   }
 
-  private async runLoadHooks(
-    route: MatchedRouteInfo,
+  /**
+   * Runs load hooks sequentially; caches hook payload (last non-terminal return).
+   * Does not invoke `onLoad` — caller runs it after cache resolve.
+   */
+  private async runLoadPhaseHooks(
+    hookRegistry: HookRegistry,
+    lifecycleContext: RouteLifecycleContext,
     hookNames: readonly string[],
-    input: LifecycleContextInput,
     isJobActive: () => boolean,
-    soft = false,
-    hookRegistry: HookRegistry = this.hooks,
+    mode: LoadHookMode,
   ): Promise<unknown> {
-    const lifecycleContext = createLifecycleContext('load', route, input);
+    let payload: unknown = null;
 
-    const hookResult: GuardResult = await runPhaseHooks(
-      hookRegistry,
-      lifecycleContext,
-      hookNames,
-      isJobActive,
-    );
+    for (const name of hookNames) {
+      this.assertJobActive(isJobActive, mode);
 
-    const terminal = guardResultToPhaseOutcome(hookResult);
-    if (terminal) {
-      if (soft) throw new Error('prefetch ignored terminal');
-      throw new DataGraphTerminalError(terminal);
+      const entry = hookRegistry.get(name);
+      if (!entry) {
+        console.warn(
+          `Unknown hook "${name}" on route ${lifecycleContext.route.path} (phase ${lifecycleContext.phase})`,
+        );
+        continue;
+      }
+
+      const raw = await entry.fn({ ...lifecycleContext, options: entry.options });
+      this.assertJobActive(isJobActive, mode);
+
+      const terminal = guardResultToPhaseOutcome(normalizeHookResult(raw as HookResultInput));
+      this.throwIfTerminal(terminal, mode);
+
+      const data = extractLoadPayload(raw);
+      if (data !== SKIP_PAYLOAD) {
+        payload = data;
+      }
     }
 
-    route.route.onLoad(lifecycleContext);
-    return LOAD_OK;
+    return payload;
+  }
+
+  private assertJobActive(isJobActive: () => boolean, mode: LoadHookMode): void {
+    if (isJobActive()) return;
+
+    if (mode === 'prefetch') throw new Error('prefetch aborted');
+    throw new DataGraphTerminalError({ status: 'cancelled' });
+  }
+
+  private throwIfTerminal(terminal: PipelineStepOutcome, mode: LoadHookMode): void {
+    if (!terminal) return;
+
+    if (mode === 'prefetch') throw new Error('prefetch ignored terminal');
+    throw new DataGraphTerminalError(terminal);
   }
 
   private cacheKey(route: MatchedRouteInfo, hookNames: readonly string[]): string {
@@ -229,4 +321,27 @@ export class DataGraph {
       .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(record[key]!)}`)
       .join('&');
   }
+}
+
+const SKIP_PAYLOAD = Symbol('skip-payload');
+
+/** Non-terminal hook return stored in the data graph cache. */
+function extractLoadPayload(raw: unknown): unknown {
+  if (raw === undefined || raw === true || raw === false) return SKIP_PAYLOAD;
+  if (typeof raw === 'string') return SKIP_PAYLOAD;
+  if (typeof raw === 'object' && raw !== null && 'type' in raw) return SKIP_PAYLOAD;
+  return raw;
+}
+
+function mergeAbortSignals(primary: AbortSignal, secondary: AbortSignal): AbortSignal {
+  if (primary.aborted) return primary;
+  if (secondary.aborted) return secondary;
+
+  const merged = new AbortController();
+  const abort = (): void => merged.abort();
+
+  primary.addEventListener('abort', abort, { once: true });
+  secondary.addEventListener('abort', abort, { once: true });
+
+  return merged.signal;
 }

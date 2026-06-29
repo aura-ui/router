@@ -338,7 +338,7 @@ describe('ProcessorPipeline.runAfterRender', () => {
     });
 
     const pipelineContext = createPipelineContext({
-      exitRoutes: [createMatchedRoute('/from', { hooks: { left: ['cleanup'] } })],
+      exitRoutes: [createMatchedRoute('/from', { left: ['cleanup'] })],
       enterRoutes: [createMatchedRoute('/to', { afterHook: ['analytics'] })],
     });
 
@@ -403,7 +403,7 @@ describe('ProcessorPipeline.runReenter', () => {
     });
 
     const pipelineContext = createPipelineContext({
-      enterRoutes: [createMatchedRoute('/to', { hooks: { reenter: ['sync'] }, afterHook: ['analytics'] })],
+      enterRoutes: [createMatchedRoute('/to', { reenter: ['sync'], afterHook: ['analytics'] })],
     });
     pipelineContext.transaction.plan.reenter = true;
 
@@ -413,7 +413,7 @@ describe('ProcessorPipeline.runReenter', () => {
   });
 });
 
-describe('ProcessorPipeline phase hooks attr', () => {
+describe('ProcessorPipeline phase hook attrs', () => {
   const pipeline = new ProcessorPipeline();
 
   beforeEach(() => {
@@ -421,7 +421,7 @@ describe('ProcessorPipeline phase hooks attr', () => {
     mockRunPhaseHooks.mockResolvedValue(undefined);
   });
 
-  it('runs hooks from hooks map on matching phase', async () => {
+  it('runs hooks from phase attrs on matching phase', async () => {
     const phases: string[] = [];
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
@@ -429,8 +429,8 @@ describe('ProcessorPipeline phase hooks attr', () => {
 
     const pipelineContext = createPipelineContext({
       transitionOrder: null,
-      exitRoutes: [createMatchedRoute('/from', { hooks: { left: ['cleanup'] } })],
-      enterRoutes: [createMatchedRoute('/to', { hooks: { transitionIn: ['fade-in'] } })],
+      exitRoutes: [createMatchedRoute('/from', { left: ['cleanup'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade-in'] })],
     });
 
     await pipeline.run(pipelineContext);

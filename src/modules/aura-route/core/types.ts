@@ -1,20 +1,29 @@
 import type {
   MatchedRouteInfo,
   PreserveFlags,
-  RouteTransition,
   ScrollPolicy,
 } from '../../aura-routing-engine/route-api';
+
+import type { RouteTransition } from './transition/route-transition';
+import type { ViewAttrDescriptor } from './attr/view-attr-parser';
 
 /** Public surface of `<aura-route>` attributes. */
 export interface AuraRouteInterface {
   path: string;
   layout: string;
-  view: string;
+  view: ViewAttrDescriptor | null;
   loadingTemplate: string;
   errorTemplate: string;
   preserve: PreserveFlags;
   scrollPolicy: ScrollPolicy | null;
   readonly transition: RouteTransition;
+  readonly hasLayout: boolean;
+  readonly hasEnter: boolean;
+  readonly hasLeave: boolean;
+  readonly hasLoad: boolean;
+  readonly hasTransitionIn: boolean;
+  readonly hasPostEffects: boolean;
+  readonly hasAsyncContent: boolean;
 }
 
 export type RouteRenderOptions = {

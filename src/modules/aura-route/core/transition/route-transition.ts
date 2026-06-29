@@ -1,10 +1,10 @@
-import type { TransitionPolicy } from './policy';
+import type { TransitionPolicy } from '../../../aura-routing-engine/core/transition/policy';
 
 /**
  * Resolved view transition package from route attrs (`transition`, `transition-order`, …).
  *
  * `order` is {@link TransitionPolicy} (view effect order), not branch diff
- * ({@link ../route-tree/transition-plan!TransitionMap}).
+ * ({@link ../../../aura-routing-engine/core/route-tree/transition-plan!TransitionMap}).
  */
 export interface RouteTransition {
   /** `null` — inactive package (replace mount, skip transition phases). */

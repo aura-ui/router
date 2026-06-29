@@ -1,5 +1,5 @@
 import type { RouteInstance } from '../../core';
-import type { RouteTransition } from '../../core/transition/route-transition';
+import type { RouteTransition } from '../../../aura-route/core/transition/route-transition';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
 
 const noop = (): void => {};
@@ -21,7 +21,8 @@ export function createTestRoute(path: string, overrides: Partial<RouteInstance> 
     leave: null,
     transitionOut: null,
     error: null,
-    hooks: null,
+    left: null,
+    reenter: null,
     transition: INACTIVE_TRANSITION,
     onEnter: noop,
     onTransitionIn: noop,

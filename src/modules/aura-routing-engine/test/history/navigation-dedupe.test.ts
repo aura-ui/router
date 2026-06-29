@@ -90,7 +90,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
     engine.registerRoutes([
       createTestRoute('/', {}),
-      createTestRoute('/about', { hooks: { reenter: ['sync'] } }),
+      createTestRoute('/about', { reenter: ['sync'] }),
     ]);
     provider.start();
     mockProcessorRunSuccess(run);

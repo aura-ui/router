@@ -23,7 +23,7 @@ describe('hasReenterWork', () => {
   });
 
   it('returns true when route declares reenter hooks', () => {
-    expect(hasReenterWork(matched('/about', { hooks: { reenter: ['sync'] } }))).toBe(true);
+    expect(hasReenterWork(matched('/about', { reenter: ['sync'] }))).toBe(true);
   });
 });
 
@@ -42,7 +42,7 @@ describe('NavigationPlanner', () => {
 
   it('allows same-target navigation when reenter hooks are declared', () => {
     const planner = new NavigationPlanner();
-    const route = createTestRoute('/about', { hooks: { reenter: ['sync'] } });
+    const route = createTestRoute('/about', { reenter: ['sync'] });
     const from: MatchedRouteInfo = { ...matched('/about'), route: route as MatchedRouteInfo['route'] };
     const to: MatchedRouteInfo = { ...matched('/about'), route: route as MatchedRouteInfo['route'] };
 

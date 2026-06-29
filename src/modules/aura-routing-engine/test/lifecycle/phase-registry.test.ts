@@ -20,9 +20,9 @@ describe('PHASES', () => {
     expect(PHASES.error.routeHookProp).toBe('error');
   });
 
-  it('reenter and left are hooks-only phases without routeHookProp', () => {
-    expect(PHASES.reenter.routeHookProp).toBeUndefined();
-    expect(PHASES.left.routeHookProp).toBeUndefined();
+  it('reenter and left expose route hook attrs', () => {
+    expect(PHASES.reenter.routeHookProp).toBe('reenter');
+    expect(PHASES.left.routeHookProp).toBe('left');
     expect(PHASES.reenter.htmlAttr).toBe('reenter');
     expect(PHASES.left.htmlAttr).toBe('left');
   });

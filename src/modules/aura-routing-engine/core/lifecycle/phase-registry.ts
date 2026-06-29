@@ -67,13 +67,13 @@ export const PHASES = {
     routeHookProp: 'load',
     runRouteLifecycle: (route, ctx) => route.onLoad(ctx),
   },
-  /** Hooks-only phase: no dedicated `<aura-route>` attr — use `hooks="reenter::name"`. */
   reenter: {
     phase: 'reenter',
     targetRoutes: 'enterRoutes',
     hookPolicy: { kind: 'postCommit', onError: 'propagate' },
     errorPolicy: 'failure',
     htmlAttr: 'reenter',
+    routeHookProp: 'reenter',
     runRouteLifecycle: (route, ctx) => route.onReenter(ctx),
   },
   transitionOut: {
@@ -94,13 +94,13 @@ export const PHASES = {
     routeHookProp: 'transitionIn',
     runRouteLifecycle: (route, ctx) => route.onTransitionIn(ctx),
   },
-  /** Hooks-only phase: no dedicated `<aura-route>` attr — use `hooks="left::name"`. */
   left: {
     phase: 'left',
     targetRoutes: 'exitRoutes',
     hookPolicy: { kind: 'postCommit', onError: 'log' },
     errorPolicy: 'log',
     htmlAttr: 'left',
+    routeHookProp: 'left',
     runRouteLifecycle: (route, ctx) => route.onLeft(ctx),
   },
   after: {

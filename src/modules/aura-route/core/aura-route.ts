@@ -1,17 +1,14 @@
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import {
-  parsePhaseHooks,
   parsePreserveAttr,
   parseScrollPolicy,
   parseTransitionOrder,
   type MatchedRouteInfo,
-  type PhaseHooksMap,
   type PreserveFlags,
   type RouteErrorContext,
   type RouteInstance,
   type RouteLifecycleContext,
-  type RouteTransition,
   type ScrollPolicy,
   type TransitionPolicy,
   type ViewRenderResult,
@@ -20,10 +17,10 @@ import { attr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 
 import { parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
-
 import {
   buildRouteTransition,
   parseTransitionShortcut,
+  type RouteTransition,
   type TransitionShortcut,
 } from './transition/transition';
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
@@ -46,8 +43,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @attr({ parser: parseCommaSeparated, name: 'after', inherit: true, allowEmpty: true }) afterHook: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) leave: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) error: string[] | null;
-  /** @deprecated Use phase attrs (`enter`, `leave`, `load`, …) instead. */
-  @attr({ parser: parsePhaseHooks }) hooks: PhaseHooksMap | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) left: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) reenter: string[] | null;
 
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) errorTemplate: string;

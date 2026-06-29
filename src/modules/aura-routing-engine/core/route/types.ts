@@ -1,6 +1,6 @@
 import type { HistoryAction } from '../history/provider.types';
-import type { RouteTransition } from '../transition/route-transition';
-import type { PhaseHooksMap, RouteHookAttrProp, RoutePhase } from '../lifecycle/types';
+import type { RouteTransition } from '../../../aura-route/core/transition/route-transition';
+import type { RouteHookAttrProp, RoutePhase } from '../lifecycle/types';
 
 /** Target route slice passed to lifecycle callbacks and hooks. */
 export interface RouteInfo {
@@ -15,17 +15,14 @@ export interface RouterInstance {
 }
 
 /**
- * Route hook name sources — phase attrs plus optional `hooks` map.
+ * Route hook name sources — phase attrs on `<aura-route>`.
  *
  * @example
  * ```html
  * <aura-route path="/admin" enter="auth" after="analytics"></aura-route>
- * <!-- `after` attr → route.afterHook; or use hooks="after::analytics" -->
  * ```
  */
-export type RouteHookNamesSource = Record<RouteHookAttrProp, string[] | null> & {
-  hooks?: PhaseHooksMap | null;
-};
+export type RouteHookNamesSource = Record<RouteHookAttrProp, string[] | null>;
 
 /**
  * Context for route lifecycle callbacks and registered hooks.

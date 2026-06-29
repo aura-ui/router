@@ -14,7 +14,6 @@ export type {
   LifecycleBranch,
   LifecycleHookHandling,
   LifecyclePhase,
-  PhaseHooksMap,
   PhaseThrowPolicy,
   PostCommitHookErrors,
   RouteHookAttrProp,
@@ -49,7 +48,7 @@ type RouteHookFn<TOptions> = (ctx: RouteHookContext<TOptions>) => Promise<HookRe
  * Registered route hook — global by name, invoked when a route references it.
  */
 export interface RouteHookDefinition<TOptions = Record<string, unknown>> {
-  /** kebab-case identifier; referenced from route attrs and `hooks="phase::name"`. */
+  /** kebab-case identifier; referenced from route phase attrs. */
   name: string;
   /** Hook semver (logged on replacement). */
   version: string;

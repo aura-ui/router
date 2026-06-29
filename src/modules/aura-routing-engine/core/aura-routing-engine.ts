@@ -22,9 +22,19 @@ import {
 import { NavigationCoordinator } from './navigation/coordinator';
 import type { NavigationCommittedContext } from './navigation/commit-gate';
 import { finalizeNotFoundNavigation } from './navigation/finalize';
-import { ContentPrefetchExecutor } from './prefetch/executors/content';
 import { PrefetchPipeline } from './prefetch/pipeline';
-import type { PrefetchConfig, PrefetchOptions } from './prefetch/types';
+import { PrefetchPolicy } from './prefetch/policy';
+import {
+  ContentPrefetchExecutor,
+  DataPrefetchExecutor,
+  DefaultPrefetchResourcePlanner,
+  PrefetchResourceScheduler,
+} from './prefetch/resources';
+import type {
+  PrefetchConfig,
+  PrefetchOptions,
+  PrefetchResourceExecutor,
+} from './prefetch/types';
 import type { AuraRoutingProcessor } from './processor/processor';
 import type { RouterInstance } from './route/types';
 import { syncChainHref } from './route-tree/matched-chain';
@@ -304,9 +314,13 @@ export class AuraRoutingEngine {
       currentHref: () => this.provider.currentHref,
     };
 
-    const executors = [];
+    const prefetchPolicy = new PrefetchPolicy(prefetchConfig);
+    const prefetchExecutors: PrefetchResourceExecutor[] = [
+      new DataPrefetchExecutor(),
+    ];
+
     if (this.contentLoad) {
-      executors.push(new ContentPrefetchExecutor(this.contentLoad));
+      prefetchExecutors.unshift(new ContentPrefetchExecutor(this.contentLoad));
     }
 
     this.prefetchPipeline = new PrefetchPipeline(
@@ -314,7 +328,11 @@ export class AuraRoutingEngine {
         matcher: this.matcher,
         getMatchableNodes: () => this.registry.getMatchableNodes(),
         getRegistryGeneration: () => this.registry.generationId,
-        executors,
+        planner: new DefaultPrefetchResourcePlanner(
+          { content: Boolean(this.contentLoad) },
+          prefetchPolicy,
+        ),
+        scheduler: new PrefetchResourceScheduler(prefetchExecutors),
       },
       prefetchConfig,
       { linksSelector: config.linksSelector },

@@ -1,9 +1,4 @@
-import {
-  DEFAULT_MAX_AGE_MS,
-  delayForMode,
-  normalizePrefetchHref,
-  shouldSkipPrefetch,
-} from './policy';
+import { DEFAULT_MAX_AGE_MS, PrefetchPolicy } from './policy';
 import type { PrefetchConfig, PrefetchMode, PrefetchSkipReason } from './types';
 
 type InflightRun = {
@@ -59,17 +54,18 @@ class IntentScheduler {
 /** In-flight runs, stale bookkeeping, and intent timers. */
 export class PrefetchRunStore {
   private readonly config: PrefetchConfig;
+  private readonly policy: PrefetchPolicy;
   private readonly scheduler = new IntentScheduler();
   private readonly inflight = new Map<string, InflightRun>();
   private readonly records = new Map<string, PrefetchRecord>();
 
   constructor(config: PrefetchConfig) {
     this.config = config;
+    this.policy = new PrefetchPolicy(config);
   }
 
   scheduleIntent(href: string, mode: PrefetchMode, run: () => void): void {
-    const delayMs = delayForMode(mode, this.config);
-    this.scheduler.schedule(href, delayMs, run);
+    this.scheduler.schedule(href, this.policy.delayFor(mode), run);
   }
 
   cancelIntent(href?: string): void {
@@ -80,7 +76,7 @@ export class PrefetchRunStore {
       return;
     }
 
-    const normalized = normalizePrefetchHref(href);
+    const normalized = this.policy.normalizeHref(href);
     if (!normalized) return;
 
     this.scheduler.cancel(normalized);
@@ -119,10 +115,9 @@ export class PrefetchRunStore {
   }
 
   skipReason(href: string, mode: PrefetchMode, force?: boolean): PrefetchSkipReason | null {
-    return shouldSkipPrefetch({
+    return this.policy.skipReason({
       href,
       mode,
-      config: this.config,
       lastPrefetchAt: this.records.get(href)?.completedAt,
       force,
     });

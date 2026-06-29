@@ -4,7 +4,7 @@ import { RouteViewController } from '../../core/view/view-controller';
 import { defaultViewCache } from '../../core/view/view-cache';
 import type { AuraRouteInterface } from '../../core/types';
 import type { ContentResolverPort } from '../../core/view/ports';
-import { NO_TRANSITION } from '../../core/transition/transition';
+import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;

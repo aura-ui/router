@@ -6,7 +6,7 @@ import {
 } from './branch-diff';
 import { getActiveChain, getLeafMatch, isSameRouteMatch } from './matched-chain';
 
-/** Branch diff (exit/enter routes) — not {@link ../transition/policy!TransitionPolicy | view effect order}. */
+/** Branch diff (exit/enter routes) — not {@link ../../../aura-route/core/attr/transition-order-attr-parser!TransitionOrderType | view effect order}. */
 export interface TransitionMap {
   exitRoutes: MatchedRouteInfo[];
   enterRoutes: MatchedRouteInfo[];

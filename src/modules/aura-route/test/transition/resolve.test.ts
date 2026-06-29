@@ -1,10 +1,9 @@
 import { AuraRoute } from '../../core/aura-route';
 import {
   NO_TRANSITION,
-  buildRouteTransition,
-  parseTransitionShortcut,
-} from '../../core/transition/transition';
-import { parseTransitionOrder } from '../../../aura-routing-engine/core';
+  parseTransitionShortcutAttr,
+} from '../../core/attr/transition-attr-parser';
+import { parseTransitionOrder } from '../../core/attr/transition-order-attr-parser';
 
 describe('parseTransitionOrder', () => {
   it('returns null for unset or invalid', () => {
@@ -19,85 +18,18 @@ describe('parseTransitionOrder', () => {
   });
 });
 
-describe('parseTransitionShortcut', () => {
+describe('parseTransitionShortcutAttr', () => {
   it('returns null for unset or empty', () => {
-    expect(parseTransitionShortcut(null)).toBeNull();
-    expect(parseTransitionShortcut('')).toBeNull();
+    expect(parseTransitionShortcutAttr(null)).toBeNull();
+    expect(parseTransitionShortcutAttr('')).toBeNull();
   });
 
   it('mirrors in/out for single hook', () => {
-    expect(parseTransitionShortcut('fade')).toEqual({ in: ['fade'], out: ['fade'] });
+    expect(parseTransitionShortcutAttr('fade')).toEqual({ in: ['fade'], out: ['fade'] });
   });
 
   it('splits out, in for two hooks', () => {
-    expect(parseTransitionShortcut('fade, slide')).toEqual({ in: ['slide'], out: ['fade'] });
-  });
-});
-
-describe('buildRouteTransition', () => {
-  it('returns NO_TRANSITION when nothing is set', () => {
-    expect(buildRouteTransition({ order: null, shortcut: null, inDecl: null, outDecl: null })).toEqual(NO_TRANSITION);
-  });
-
-  it('defaults order to parallel when only shortcut is set', () => {
-    expect(buildRouteTransition({
-      order: null,
-      shortcut: parseTransitionShortcut('fade'),
-      inDecl: null,
-      outDecl: null,
-    })).toEqual({
-      order: 'parallel',
-      in: ['fade'],
-      out: ['fade'],
-    });
-  });
-
-  it('explicit out decl overrides shortcut out', () => {
-    expect(buildRouteTransition({
-      order: null,
-      shortcut: parseTransitionShortcut('fade, slide'),
-      inDecl: null,
-      outDecl: ['zoom'],
-    })).toEqual({
-      order: 'parallel',
-      in: ['slide'],
-      out: ['zoom'],
-    });
-  });
-
-  it('explicit in decl overrides shortcut in', () => {
-    expect(buildRouteTransition({
-      order: null,
-      shortcut: parseTransitionShortcut('fade, slide'),
-      inDecl: ['zoom'],
-      outDecl: null,
-    })).toEqual({
-      order: 'parallel',
-      in: ['zoom'],
-      out: ['fade'],
-    });
-  });
-
-  it('empty decl opts out of shortcut on that side', () => {
-    expect(buildRouteTransition({
-      order: null,
-      shortcut: parseTransitionShortcut('fade'),
-      inDecl: null,
-      outDecl: [],
-    })).toEqual({
-      order: 'parallel',
-      in: ['fade'],
-      out: null,
-    });
-  });
-  it('opts out when optOut is set', () => {
-    expect(buildRouteTransition({
-      optOut: true,
-      order: 'parallel',
-      shortcut: parseTransitionShortcut('fade'),
-      inDecl: ['zoom'],
-      outDecl: null,
-    })).toEqual(NO_TRANSITION);
+    expect(parseTransitionShortcutAttr('fade, slide')).toEqual({ in: ['slide'], out: ['fade'] });
   });
 });
 

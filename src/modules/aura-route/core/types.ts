@@ -4,7 +4,7 @@ import type {
   ScrollPolicy,
 } from '../../aura-routing-engine/route-api';
 
-import type { RouteTransition } from './transition/route-transition';
+import type { RouteTransitionType } from './attr/transition-attr-parser';
 import type { ViewAttrDescriptor } from './attr/view-attr-parser';
 
 /** Public surface of `<aura-route>` attributes. */
@@ -16,7 +16,7 @@ export interface AuraRouteInterface {
   errorTemplate: string;
   preserve: PreserveFlags;
   scrollPolicy: ScrollPolicy | null;
-  readonly transition: RouteTransition;
+  readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;
   readonly hasEnter: boolean;
   readonly hasLeave: boolean;

@@ -43,7 +43,7 @@ describe('AuraRoute lifecycle inherit', () => {
     router.setAttribute('enter', 'auth');
     const child = route({ path: '/login', enter: '' }, router);
 
-    expect(child.enter).toEqual([]);
+    expect(child.enter).toBeNull();
   });
 
   it('after="" opts out of router default', () => {
@@ -51,7 +51,7 @@ describe('AuraRoute lifecycle inherit', () => {
     router.setAttribute('after', 'analytics');
     const child = route({ path: '/quiet', after: '' }, router);
 
-    expect(child.afterHook).toEqual([]);
+    expect(child.afterHook).toBeNull();
   });
 
   it('child overrides inherited enter', () => {
@@ -75,7 +75,7 @@ describe('AuraRoute lifecycle inherit', () => {
     const parent = route({ path: '/users', enter: 'admin' }, router);
     const child = route({ path: 'public', enter: '' }, parent);
 
-    expect(child.enter).toEqual([]);
+    expect(child.enter).toBeNull();
   });
 
   it('parent route wins over router for nested child', () => {

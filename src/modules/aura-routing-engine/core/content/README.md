@@ -5,14 +5,14 @@ Loads view payloads for matched routes during navigation and prefetch.
 ## Flow
 
 ```
-Route attrs → buildContentDescriptor → ContentLoadService.resolve → [cache] → LoaderFn → ViewPayload
+Route attrs → ContentLoadService.resolve → [cache] → LoaderFn → ViewPayload
 ```
 
 ## Layout
 
 | Path | Role |
 |------|------|
-| `model/` | Types, descriptor parsing, preserve |
+| `model/` | Types, preserve |
 | `loaders/` | Registry, builtins, load context |
 | `cache/` | LRU cache + cache keys |
 | `transport/` | HTTP fetch |

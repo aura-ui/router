@@ -4,7 +4,6 @@ import {
   AuraRoutingEngine,
   AuraRoutingProcessor,
   contentCacheKey,
-  buildContentDescriptor,
   ContentCache,
   ContentLoadService,
   LoaderRegistry,
@@ -12,24 +11,36 @@ import {
 import type { RouterInstance } from '../../core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
-describe('content load flow (view → descriptor → engine)', () => {
+describe('content load flow (view → engine)', () => {
   const routerNav: RouterInstance = { navigate: jest.fn() };
 
   afterEach(() => {
     document.body.replaceChildren();
   });
 
-  it('buildContentDescriptor reads view from upgraded aura-route', () => {
+  it('resolve reads view from upgraded aura-route', async () => {
+    const registry = new LoaderRegistry();
+    const loads: string[] = [];
+    registry.register('html-src', async (ctx) => {
+      loads.push(ctx.ref);
+      return `<p>${ctx.ref}</p>`;
+    });
+
+    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
-    route.setAttribute('preserve', 'data');
 
-    expect(buildContentDescriptor(route)).toEqual({
-      kind: 'content',
-      loader: 'html-src',
-      ref: 'feed.html',
-      cache: true,
-    });
+    const routeInfo = {
+      href: '/feed',
+      pathname: '/feed',
+      search: '',
+      hash: '',
+      pattern: '/feed',
+      route,
+    };
+
+    await contentLoad.resolve(routeInfo, new AbortController().signal);
+    expect(loads).toEqual(['feed.html']);
   });
 
   it('prefetch loads via live route attrs', async () => {
@@ -71,20 +82,17 @@ describe('content load flow (view → descriptor → engine)', () => {
     );
 
     expect(loads).toEqual(['<b>page</b>']);
-    expect(buildContentDescriptor(route)).toEqual({
-      kind: 'content',
-      loader: 'html',
-      ref: '<b>page</b>',
-      cache: false,
-    });
   });
 
-  it('prefetch and navigation share contentCacheKey when preserve data is enabled', () => {
+  it('prefetch and navigation share contentCacheKey when preserve data is enabled', async () => {
+    const registry = new LoaderRegistry();
+    registry.register('html-src', async () => '<p>feed</p>');
+
+    const cache = new ContentCache();
+    const contentLoad = new ContentLoadService({ registry, cache });
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
     route.setAttribute('preserve', 'data');
-
-    const descriptor = buildContentDescriptor(route);
 
     const routeInfo = {
       href: '/feed',
@@ -95,27 +103,66 @@ describe('content load flow (view → descriptor → engine)', () => {
       route,
     };
 
-    expect(contentCacheKey(descriptor, routeInfo)).toBe('/feed|html-src:feed.html');
+    await contentLoad.resolve(routeInfo, new AbortController().signal);
+    expect(cache.get(contentCacheKey({
+      kind: 'content',
+      loader: 'html-src',
+      ref: 'feed.html',
+      cache: true,
+    }, routeInfo))).toBeDefined();
   });
 
-  it('layout route uses template loader from layout attr, not view', () => {
-    const child = createDomRoute(':id');
-    child.setAttribute('view', 'html-src::user.html');
-    const parent = createDomRoute('/users', [child]);
+  it('layout route uses template loader from layout attr, not view', async () => {
+    const registry = new LoaderRegistry();
+    const loads: string[] = [];
+    registry.register('template', async (ctx) => {
+      loads.push(ctx.ref);
+      return `<layout>${ctx.ref}</layout>`;
+    });
+
+    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const parent = createDomRoute('/users');
     parent.setAttribute('layout', 'users-shell');
     parent.setAttribute('view', 'html-src::ignored.html');
 
-    expect(buildContentDescriptor(parent)).toEqual({
-      kind: 'layout',
-      loader: 'template',
-      ref: 'users-shell',
-      cache: false,
+    await contentLoad.resolve(
+      { href: '/users', pathname: '/users', search: '', hash: '', pattern: '/users', route: parent as never },
+      new AbortController().signal,
+    );
+    expect(loads).toEqual(['users-shell']);
+  });
+
+  it('content route loads parsed view', async () => {
+    const registry = new LoaderRegistry();
+    const loads: string[] = [];
+    registry.register('html-src', async (ctx) => {
+      loads.push(ctx.ref);
+      return ctx.ref;
     });
-    expect(buildContentDescriptor(child)).toEqual({
-      kind: 'content',
-      loader: 'html-src',
-      ref: 'user.html',
-      cache: false,
-    });
+
+    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const route = createDomRoute('/users/:id');
+    route.setAttribute('view', 'html-src::user.html');
+
+    await contentLoad.resolve(
+      { href: '/users/1', pathname: '/users/1', search: '', hash: '', pattern: '/users/:id', route: route as never },
+      new AbortController().signal,
+    );
+    expect(loads).toEqual(['user.html']);
+  });
+
+  it('returns null when content route has no view loader', async () => {
+    const registry = new LoaderRegistry();
+    registry.register('html', async () => 'never');
+
+    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
+    const route = createDomRoute('/empty');
+
+    const payload = await contentLoad.resolve(
+      { href: '/empty', pathname: '/empty', search: '', hash: '', pattern: '/empty', route: route as never },
+      new AbortController().signal,
+    );
+
+    expect(payload).toBeNull();
   });
 });

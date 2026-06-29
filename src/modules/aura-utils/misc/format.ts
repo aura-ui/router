@@ -6,7 +6,9 @@ export const toKebabCase = (str: string): string => {
 /** Parses `null` and `undefined` as an empty string */
 export const parseString = (val: string | null): string => String(val ?? '');
 
-/** Parses comma-separated string into an array; `null` becomes `[]` */
+/** Parses comma-separated string; absent or empty attr → `null`. */
 export function parseCommaSeparated(val: string | null): string[] | null {
-  return val?.split(',').map((s) => s.trim()).filter(Boolean) ?? null;
+  if (val === null) return null;
+  const items = val.split(',').map((s) => s.trim()).filter(Boolean);
+  return items.length > 0 ? items : null;
 }

@@ -26,7 +26,7 @@ describe('demo render smoke', () => {
     const router = mountDemoRouter();
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
 
-    expect(route.view).toBe('template::app');
+    expect(route.view).toEqual({ type: 'template', content: 'app' });
 
     await route.render({
       href: '/c',

@@ -3,7 +3,7 @@ import type { PreserveFlags } from './preserve';
 
 export type RouteContentAttrs = {
   layout: string;
-  /** Unified content descriptor: `loader::ref`. */
+  /** Unified content descriptor: `loader::ref` or bare ref (defaults to `html-src`). */
   view: string;
   preserve: PreserveFlags;
 };
@@ -13,13 +13,19 @@ export type ParsedViewDescriptor = {
   ref: string;
 };
 
-/** Parses `view="loader::ref"` — splits on the first `::` only. */
+/** Default loader when `view` omits the `loader::` prefix. */
+export const DEFAULT_VIEW_LOADER: LoaderType = 'html-src';
+
+/** Parses `view="loader::ref"` — splits on the first `::` only; bare refs default to {@link DEFAULT_VIEW_LOADER}. */
 export function parseViewDescriptor(view: string): ParsedViewDescriptor | null {
   const trimmed = view.trim();
   if (!trimmed) return null;
 
   const sep = trimmed.indexOf('::');
-  if (sep <= 0) return null;
+  if (sep < 0) {
+    return { loader: DEFAULT_VIEW_LOADER, ref: trimmed };
+  }
+  if (sep === 0) return null;
 
   return {
     loader: trimmed.slice(0, sep),

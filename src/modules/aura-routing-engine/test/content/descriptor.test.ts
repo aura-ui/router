@@ -28,12 +28,28 @@ describe('parseViewDescriptor', () => {
     });
   });
 
-  it('returns null for empty or invalid values', () => {
+  it('defaults bare ref to html-src', () => {
+    expect(parseViewDescriptor('profile.html')).toEqual({
+      loader: 'html-src',
+      ref: 'profile.html',
+    });
+    expect(parseViewDescriptor('pages/home.html')).toEqual({
+      loader: 'html-src',
+      ref: 'pages/home.html',
+    });
+  });
+
+  it('returns null for empty or malformed values', () => {
     expect(parseViewDescriptor('')).toBeNull();
     expect(parseViewDescriptor('   ')).toBeNull();
-    expect(parseViewDescriptor('profile.html')).toBeNull();
-    expect(parseViewDescriptor('html-src:profile.html')).toBeNull();
     expect(parseViewDescriptor('::ref-only')).toBeNull();
+  });
+
+  it('treats single-colon strings as bare html-src refs', () => {
+    expect(parseViewDescriptor('html-src:profile.html')).toEqual({
+      loader: 'html-src',
+      ref: 'html-src:profile.html',
+    });
   });
 });
 
@@ -77,15 +93,17 @@ describe('buildContentDescriptor', () => {
     });
   });
 
-  it('returns empty loader when view is absent or invalid', () => {
-    expect(buildContentDescriptor(base)).toEqual({
+  it('maps bare view ref to html-src content descriptor', () => {
+    expect(buildContentDescriptor({ ...base, view: 'profile.html' })).toEqual({
       kind: 'content',
-      loader: '',
-      ref: '',
+      loader: 'html-src',
+      ref: 'profile.html',
       cache: false,
     });
+  });
 
-    expect(buildContentDescriptor({ ...base, view: 'no-separator' })).toEqual({
+  it('returns empty loader when view is absent', () => {
+    expect(buildContentDescriptor(base)).toEqual({
       kind: 'content',
       loader: '',
       ref: '',

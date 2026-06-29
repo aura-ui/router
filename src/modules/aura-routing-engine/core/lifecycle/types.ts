@@ -15,11 +15,11 @@ export type PostCommitHookErrors = 'propagate' | 'log';
  *
  * - `blocking` — before view commit; cancel/redirect stops navigation
  * - `postCommit` — after view commit; cancel/redirect are ignored (warned).
- *   Hook errors: `propagate` throws, `log` catches and logs.
+ *   `onError`: `propagate` throws, `log` catches and logs.
  */
 export type LifecycleHookHandling =
   | { kind: 'blocking' }
-  | { kind: 'postCommit'; hookErrors: PostCommitHookErrors };
+  | { kind: 'postCommit'; onError: PostCommitHookErrors };
 
 /** `<aura-route>` getter backing a phase attr (`enter`, `load`, `afterHook`, …). */
 export type RouteHookAttrProp =

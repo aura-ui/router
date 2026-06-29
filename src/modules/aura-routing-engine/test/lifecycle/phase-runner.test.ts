@@ -84,7 +84,7 @@ describe('runPhaseStep', () => {
       lifecyclePhase: 'left',
       onThrow: 'log',
       hookKind: 'postCommit',
-      hookErrors: 'log',
+      onError: 'log',
       invokeRoute: () => {
         throw new Error('cleanup failed');
       },

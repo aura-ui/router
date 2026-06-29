@@ -12,7 +12,7 @@ export interface PhaseStepHandlers {
   runBlockingHooks: (hookNames: readonly string[]) => Promise<PhaseStepOutcome>;
   runPostCommitHooks: (
     hookNames: readonly string[],
-    hookErrors: 'propagate' | 'log',
+    onError: 'propagate' | 'log',
     lifecyclePhase: RouteLifecycleContext['phase'],
   ) => Promise<PhaseStepOutcome>;
   failWithError: (error: unknown) => Promise<NavigationErrorResult>;
@@ -22,7 +22,7 @@ export interface PhaseStepInput {
   lifecyclePhase: RouteLifecycleContext['phase'];
   onThrow: PhaseThrowPolicy;
   hookKind: 'blocking' | 'postCommit';
-  hookErrors?: 'propagate' | 'log';
+  onError?: 'propagate' | 'log';
   invokeRoute: () => void;
   hookNames: readonly string[] | null;
   handlers: PhaseStepHandlers;
@@ -45,7 +45,7 @@ export async function runPhaseStep(input: PhaseStepInput): Promise<PhaseStepOutc
 
     return await input.handlers.runPostCommitHooks(
       input.hookNames,
-      input.hookErrors ?? 'propagate',
+      input.onError ?? 'propagate',
       input.lifecyclePhase,
     );
   } catch (error) {

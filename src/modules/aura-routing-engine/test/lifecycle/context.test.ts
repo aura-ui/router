@@ -1,4 +1,4 @@
-import { createLifecycleContext, toRouteInfo } from '../../core/lifecycle/context/lifecycle-context';
+import { createLifecycleContext, toRouteInfo } from '../../core/lifecycle';
 import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
 import { createTestRoute } from '../helpers/create-test-route';
 

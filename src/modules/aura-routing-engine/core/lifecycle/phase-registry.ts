@@ -67,6 +67,7 @@ export const PHASES = {
     routeHookProp: 'load',
     runRouteLifecycle: (route, ctx) => route.onLoad(ctx),
   },
+  /** Hooks-only phase: no dedicated `<aura-route>` attr — use `hooks="reenter::name"`. */
   reenter: {
     phase: 'reenter',
     targetRoutes: 'enterRoutes',
@@ -93,6 +94,7 @@ export const PHASES = {
     routeHookProp: 'transitionIn',
     runRouteLifecycle: (route, ctx) => route.onTransitionIn(ctx),
   },
+  /** Hooks-only phase: no dedicated `<aura-route>` attr — use `hooks="left::name"`. */
   left: {
     phase: 'left',
     targetRoutes: 'exitRoutes',

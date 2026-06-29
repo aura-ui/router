@@ -42,11 +42,18 @@ export {
 export type { LifecycleLogger } from './logging/lifecycle-logger';
 export { ErrorPhaseHandler } from './orchestration/error-phase-handler';
 export { LifecycleRunner } from './orchestration/lifecycle-runner';
+export {
+  toLifecycleContextInput,
+  toLifecycleRuntimeContext,
+} from './orchestration/lifecycle-runtime-adapter';
 export type {
+  LifecyclePipelineBridge,
   LifecycleRuntimeContext,
   LifecycleTransactionContext,
 } from './orchestration/lifecycle-runner.types';
 export type {
+  GuardResult,
+  RedirectTarget,
   LifecycleBranch,
   LifecycleHookHandling,
   LifecyclePhase,

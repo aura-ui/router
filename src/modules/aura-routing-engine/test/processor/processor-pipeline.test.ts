@@ -1,7 +1,6 @@
 import type { RouteInstance } from '../../core';
 import { runPhaseHooks } from '../../core/hooks/registry';
-import { createLifecycleContext } from '../../core/lifecycle/context/lifecycle-context';
-import { HookPolicyExecutor } from '../../core/lifecycle/execution/hook-policy-executor';
+import { createLifecycleContext, HookPolicyExecutor } from '../../core/lifecycle';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
 import {

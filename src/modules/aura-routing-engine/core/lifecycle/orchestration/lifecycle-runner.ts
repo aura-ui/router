@@ -5,6 +5,7 @@ import { resolveHookNames } from '../bindings/route-hook-bindings';
 import { createLifecycleContext } from '../context/lifecycle-context';
 import { PhaseExecutor } from '../execution/phase-executor';
 import type { PipelineStepOutcome } from '../execution/phase-outcome';
+import { HookPolicyExecutor } from '../execution/hook-policy-executor';
 import type { PipelinePhaseDefinition } from '../phase-registry';
 
 import { ErrorPhaseHandler } from './error-phase-handler';
@@ -17,11 +18,12 @@ export class LifecycleRunner {
   private readonly errorPhaseHandler: ErrorPhaseHandler;
 
   constructor(
-    phaseExecutor = new PhaseExecutor(),
-    errorPhaseHandler = new ErrorPhaseHandler(),
+    phaseExecutor?: PhaseExecutor,
+    errorPhaseHandler?: ErrorPhaseHandler,
   ) {
-    this.phaseExecutor = phaseExecutor;
-    this.errorPhaseHandler = errorPhaseHandler;
+    const hookPolicies = new HookPolicyExecutor();
+    this.phaseExecutor = phaseExecutor ?? new PhaseExecutor(hookPolicies);
+    this.errorPhaseHandler = errorPhaseHandler ?? new ErrorPhaseHandler(hookPolicies);
   }
 
   async runPhase(

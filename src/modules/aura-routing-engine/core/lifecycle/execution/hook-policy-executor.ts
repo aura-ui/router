@@ -1,4 +1,4 @@
-import type { GuardResult } from '../../guard.types';
+import type { GuardResult } from '../types';
 import { runPhaseHooks, type HookRegistry } from '../../hooks/registry';
 import type { RouteLifecycleContext } from '../../route/types';
 import { defaultLifecycleLogger, type LifecycleLogger } from '../logging/lifecycle-logger';

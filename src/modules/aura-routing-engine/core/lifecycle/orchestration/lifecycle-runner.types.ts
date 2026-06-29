@@ -24,3 +24,17 @@ export interface LifecycleRuntimeContext {
   reportHookError?: ReportNavigationHookError;
   isJobActive: () => boolean;
 }
+
+/**
+ * Minimal processor context accepted by {@link ../lifecycle-runtime-adapter!toLifecycleRuntimeContext}.
+ * `transaction` may carry processor-only fields (e.g. `transitionOrder`).
+ */
+export interface LifecyclePipelineBridge {
+  transaction: LifecycleTransactionContext & Record<string, unknown>;
+  job: LifecycleJobSlice;
+  router: RouterInstance;
+  hookRegistry: HookRegistry;
+  commitTracker: CommitTracker;
+  reportHookError?: ReportNavigationHookError;
+  isJobActive: () => boolean;
+}

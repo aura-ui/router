@@ -3,7 +3,6 @@ import {
   AuraRoutingProcessor,
   ContentCache,
   ContentLoadService,
-  ContentResolver,
   LoaderRegistry,
 } from '../../core';
 import type { RouterInstance } from '../../core';
@@ -20,9 +19,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return '<span>about</span>';
     });
 
-    const contentLoad = new ContentLoadService({
-      resolver: new ContentResolver({ registry, cache: new ContentCache() }),
-    });
+    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
@@ -43,9 +40,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return 'x';
     });
 
-    const contentLoad = new ContentLoadService({
-      resolver: new ContentResolver({ registry, cache: new ContentCache() }),
-    });
+    const contentLoad = new ContentLoadService({ registry, cache: new ContentCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');

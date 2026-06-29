@@ -17,7 +17,6 @@ import {
 import { attr, boolAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 
-import { RouteContentLoader } from './route-content-loader';
 import {
   buildRouteTransition,
   parseTransitionShortcut,
@@ -122,7 +121,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.viewController = new RouteViewController(
       {
         route: this,
-        content: new RouteContentLoader(this, router.contentLoad),
+        content: router.contentLoad,
         cache: defaultViewCache,
         mountTarget,
         plugins,

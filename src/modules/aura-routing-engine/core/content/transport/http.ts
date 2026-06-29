@@ -1,4 +1,4 @@
-import type { FetchText } from './types';
+import type { FetchText } from '../model/types';
 
 export const fetchText: FetchText = async (url, signal) => {
   const response = await fetch(url, { signal });

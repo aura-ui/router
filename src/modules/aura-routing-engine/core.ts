@@ -87,30 +87,37 @@ export type { GuardResult, RedirectTarget } from './core/guard.types';
 
 export {
   buildContentDescriptor,
+  isLoadableDescriptor,
   parseViewDescriptor,
-} from './core/content/descriptor';
-export { NO_PRESERVE, parsePreserveAttr } from './core/content/preserve';
-export { contentCacheKey } from './core/content/content-key';
-export { ContentCache } from './core/content/content-cache';
-export { ContentResolver } from './core/content/content-resolver';
-export { ContentLoadService } from './core/content/content-load-service';
-export { LoaderRegistry, defaultLoaderRegistry } from './core/content/registry';
+  NO_PRESERVE,
+  parsePreserveAttr,
+  contentCacheKey,
+  ContentCache,
+  ContentLoadService,
+  LoaderRegistry,
+  createLoaderRegistry,
+  defaultLoaderRegistry,
+  createBuiltinLoaders,
+  toLoadContext,
+  routeSnapshot,
+  fetchText,
+  resolveRelativeUrl,
+} from './core/content';
 
 export type {
   ContentDescriptor,
   ContentKind,
   FetchText,
   LoaderFn,
-  LoadPurpose,
+  LoaderTransport,
   LoaderType,
   LoadContext,
-  ResolveContext,
   ViewPayload,
-} from './core/content/types';
-export type { PreserveFlags } from './core/content/preserve';
-export type { ParsedViewDescriptor } from './core/content/descriptor';
-export type { ContentResolverDeps } from './core/content/content-resolver';
-export type { ContentLoadServiceDeps } from './core/content/content-load-service';
+  PreserveFlags,
+  ParsedViewDescriptor,
+  ContentLoadServiceDeps,
+  ContentPrefetchOptions,
+} from './core/content';
 
 export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch/types';
 

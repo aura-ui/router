@@ -1,6 +1,6 @@
 import {
   ContentCache,
-  ContentResolver,
+  ContentLoadService,
   LoaderRegistry,
   contentCacheKey,
   type ContentDescriptor,
@@ -14,12 +14,12 @@ const routeInfo = {
   pattern: '/page',
 } as const;
 
-describe('ContentResolver', () => {
+describe('ContentLoadService', () => {
   it('returns null when signal is aborted', async () => {
     const registry = new LoaderRegistry();
     registry.register('html', async () => 'never');
 
-    const resolver = new ContentResolver({
+    const service = new ContentLoadService({
       registry,
       cache: new ContentCache(),
     });
@@ -27,9 +27,10 @@ describe('ContentResolver', () => {
     const controller = new AbortController();
     controller.abort();
 
-    const result = await resolver.resolve(
+    const result = await service.resolveDescriptor(
       { kind: 'content', loader: 'html', ref: '<p>x</p>', cache: false },
-      { routeInfo: routeInfo as any, signal: controller.signal },
+      routeInfo as never,
+      controller.signal,
     );
 
     expect(result).toBeNull();
@@ -44,17 +45,17 @@ describe('ContentResolver', () => {
     });
 
     const cache = new ContentCache();
-    const resolver = new ContentResolver({ registry, cache });
+    const service = new ContentLoadService({ registry, cache });
     const descriptor: ContentDescriptor = {
       kind: 'content',
       loader: 'html',
       ref: 'static',
       cache: true,
     };
-    const ctx = { routeInfo: routeInfo as any, signal: new AbortController().signal };
+    const signal = new AbortController().signal;
 
-    await resolver.resolve(descriptor, ctx);
-    await resolver.resolve(descriptor, ctx);
+    await service.resolveDescriptor(descriptor, routeInfo as never, signal);
+    await service.resolveDescriptor(descriptor, routeInfo as never, signal);
 
     expect(loads).toBe(1);
   });
@@ -68,19 +69,19 @@ describe('ContentResolver', () => {
     });
 
     const cache = new ContentCache();
-    const resolver = new ContentResolver({ registry, cache });
+    const service = new ContentLoadService({ registry, cache });
     const descriptor: ContentDescriptor = {
       kind: 'content',
       loader: 'html',
       ref: 'static',
       cache: true,
     };
-    const ctx = { routeInfo: routeInfo as any, signal: new AbortController().signal };
+    const info = { ...routeInfo, route: { layout: '', view: 'html::static', preserve: { view: false, data: true } } };
 
-    await resolver.prefetch(descriptor, ctx);
-    expect(cache.get(contentCacheKey(descriptor, routeInfo as any))).toBeDefined();
+    await service.prefetchNode(info as never, new AbortController().signal);
+    expect(cache.get(contentCacheKey(descriptor, info as never))).toBeDefined();
 
-    await resolver.resolve(descriptor, ctx);
+    await service.resolveDescriptor(descriptor, info as never, new AbortController().signal);
     expect(loads).toBe(1);
   });
 
@@ -90,16 +91,15 @@ describe('ContentResolver', () => {
       throw new Error('network');
     });
 
-    const resolver = new ContentResolver({ registry, cache: new ContentCache() });
-    const descriptor: ContentDescriptor = {
-      kind: 'content',
-      loader: 'html',
-      ref: 'static',
-      cache: false,
-    };
-    const ctx = { routeInfo: routeInfo as any, signal: new AbortController().signal };
+    const service = new ContentLoadService({ registry, cache: new ContentCache() });
 
-    await expect(resolver.resolve(descriptor, ctx)).rejects.toEqual(
+    await expect(
+      service.resolveDescriptor(
+        { kind: 'content', loader: 'html', ref: 'static', cache: false },
+        routeInfo as never,
+        new AbortController().signal,
+      ),
+    ).rejects.toEqual(
       expect.objectContaining({
         code: 'CONTENT_LOAD_FAILED',
         phase: 'render',

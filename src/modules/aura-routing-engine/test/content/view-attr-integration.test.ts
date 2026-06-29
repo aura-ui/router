@@ -3,9 +3,8 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { RouteContentLoader } from '../../../aura-route/core/route-content-loader';
-import { buildContentDescriptor } from '../../core/content/descriptor';
-import { defaultLoaderRegistry } from '../../core/content/registry';
+import { buildContentDescriptor } from '../../core/content';
+import { defaultLoaderRegistry } from '../../core/content';
 
 function defineDemoElements(): void {
   if (!customElements.get(AuraOutlet.is)) {
@@ -57,8 +56,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    const loader = new RouteContentLoader(route, router.contentLoad);
-    const payload = await loader.resolve(
+    const payload = await router.contentLoad.resolve(
       { href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route },
       new AbortController().signal,
     );
@@ -77,8 +75,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    const loader = new RouteContentLoader(route, router.contentLoad);
-    const payload = await loader.resolve(
+    const payload = await router.contentLoad.resolve(
       { href: '/custom', pathname: '/custom', search: '', hash: '', pattern: '/custom', route },
       new AbortController().signal,
     );

@@ -3,7 +3,7 @@
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { defaultLoaderRegistry } from '../../core/content/registry';
+import { defaultLoaderRegistry } from '../../core/content';
 
 function defineDemoElements(): void {
   if (!customElements.get(AuraOutlet.is)) {

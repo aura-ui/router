@@ -32,7 +32,7 @@ describe('createLifecycleContext', () => {
         },
         action: 'replace',
         router,
-        job,
+        navigationJob: job,
       },
     );
 

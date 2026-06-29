@@ -1,11 +1,15 @@
-import { AuraResolvableCache, type CacheStoreOptions } from '../../../aura-cache-store/core';
-import type { ViewPayload } from './types';
+import { AuraResolvableCache, type CacheStoreOptions } from '../../../../aura-cache-store/core';
+import type { ViewPayload } from '../model/types';
 
 const DEFAULT_CACHE_OPTIONS: CacheStoreOptions<string> = {
   max: 50,
   gcTime: Infinity,
   gcSweepInterval: false,
 };
+
+function isCacheablePayload(payload: ViewPayload | null): payload is string {
+  return typeof payload === 'string';
+}
 
 /** Router-owned content cache with LRU eviction and in-flight deduplication. */
 export class ContentCache {
@@ -23,7 +27,7 @@ export class ContentCache {
   }
 
   set(key: string, payload: ViewPayload): void {
-    if (typeof payload === 'string') {
+    if (isCacheablePayload(payload)) {
       this.store.set(key, payload);
     }
   }
@@ -45,7 +49,7 @@ export class ContentCache {
     load: () => Promise<ViewPayload | null>,
   ): Promise<ViewPayload | null> {
     return this.store.resolve(key, load, (entryKey, payload) => {
-      if (typeof payload === 'string') {
+      if (isCacheablePayload(payload)) {
         this.store.set(entryKey, payload);
       }
     });

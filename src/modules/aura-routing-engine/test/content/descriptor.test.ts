@@ -1,8 +1,9 @@
 import {
   buildContentDescriptor,
+  isLoadableDescriptor,
   parseViewDescriptor,
-} from '../../core/content/descriptor';
-import { NO_PRESERVE } from '../../../aura-routing-engine/core/content/preserve';
+} from '../../core/content';
+import { NO_PRESERVE } from '../../core/content';
 
 describe('parseViewDescriptor', () => {
   it('splits loader and ref on the first ::', () => {
@@ -101,5 +102,25 @@ describe('buildContentDescriptor', () => {
       ref: 'shell',
       cache: false,
     });
+  });
+});
+
+describe('isLoadableDescriptor', () => {
+  it('returns false for content routes without a loader', () => {
+    expect(
+      isLoadableDescriptor({ kind: 'content', loader: '', ref: '', cache: false }),
+    ).toBe(false);
+    expect(
+      isLoadableDescriptor({ kind: 'content', loader: '  ', ref: 'x', cache: false }),
+    ).toBe(false);
+  });
+
+  it('returns true for layout routes and content routes with a loader', () => {
+    expect(
+      isLoadableDescriptor({ kind: 'layout', loader: 'template', ref: 'shell', cache: false }),
+    ).toBe(true);
+    expect(
+      isLoadableDescriptor({ kind: 'content', loader: 'html', ref: '<p>x</p>', cache: false }),
+    ).toBe(true);
   });
 });

@@ -46,3 +46,8 @@ export function buildContentDescriptor(route: RouteContentAttrs): ContentDescrip
     cache: route.preserve.data,
   };
 }
+
+/** False when a content route has no `view` loader — nothing to fetch. */
+export function isLoadableDescriptor(descriptor: ContentDescriptor): boolean {
+  return descriptor.kind !== 'content' || descriptor.loader.trim().length > 0;
+}

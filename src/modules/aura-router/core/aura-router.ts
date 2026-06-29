@@ -1,8 +1,4 @@
 import type { CacheStoreOptions } from '../../aura-cache-store/core';
-import {
-  ContentLoaderRegistry,
-  type LoaderConstructor,
-} from '../../aura-content-loaders/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRoute, RouteViewCache } from '../../aura-route/core';
@@ -11,12 +7,13 @@ import {
   AuraRoutingProcessor,
   ContentCache,
   ContentLoadService,
-  ContentResolver,
   defaultLoaderRegistry,
   defaultHookRegistry,
   isCatchAllRoute,
   type AuraRoutingEngineConfig,
   type HistoryAction,
+  type LoaderFn,
+  type LoaderType,
   type NavigateHistoryOptions,
   type PrefetchOptions,
   type RouteHookDefinition,
@@ -108,8 +105,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
   }
 
-  static registerLoader(type: string, loaderClass: LoaderConstructor): void {
-    ContentLoaderRegistry.register(type, loaderClass);
+  /** Registers a custom content loader on the shared {@link defaultLoaderRegistry}. */
+  static registerLoader(type: LoaderType, loader: LoaderFn): void {
+    defaultLoaderRegistry.register(type, loader);
   }
 
   /** Per-instance override (перекрывает configure и template). Только fallback. */
@@ -123,10 +121,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   get contentLoad(): ContentLoadService {
     if (!this.contentLoadService) {
       this.contentLoadService = new ContentLoadService({
-        resolver: new ContentResolver({
-          registry: this.loaderRegistry,
-          cache: this.contentCache,
-        }),
+        registry: this.loaderRegistry,
+        cache: this.contentCache,
       });
     }
     return this.contentLoadService;

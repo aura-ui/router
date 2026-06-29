@@ -17,7 +17,6 @@ export type {
 export { RouteViewController } from './core/view/view-controller';
 export { createRenderPass, isStale, type RenderPass } from './core/view/render-pass';
 export { loadingBodyClass, loadingEvent } from './core/view/plugins';
-export { RouteContentLoader } from './core/route-content-loader';
 export {
   buildRouteTransition,
   NO_TRANSITION,
@@ -26,8 +25,6 @@ export {
   type TransitionShortcut,
 } from './core/transition/transition';
 export {
-  ContentResolver,
-  type ContentResolverDeps,
   LoaderRegistry,
   defaultLoaderRegistry,
   contentCacheKey,
@@ -36,6 +33,5 @@ export type {
   ContentDescriptor,
   ContentKind,
   LoaderType,
-  ResolveContext,
   LoaderFn,
 } from '../aura-routing-engine/route-api';

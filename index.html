@@ -179,7 +179,8 @@
   <aura-route path="/c" view="template::app"></aura-route>
   <aura-route path="/d" view="component-src::examples/demo/components/test-element1"></aura-route>
   <aura-route path="/f" view="component-src::examples/demo/components/test-element" preserve></aura-route>
-  <aura-route path="/users" layout="users-layout" preserve>
+  <aura-route path="/users" la1yout="users-layout" pr1eserve>
+    <aura-route path="." view="index2.html"></aura-route>
     <aura-route path="about" view="user.html"></aura-route>
   </aura-route>
   <aura-route path="/custom-loader" view="custom-loader::user.html"></aura-route>

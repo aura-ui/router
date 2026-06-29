@@ -18,13 +18,6 @@ export { RouteViewController } from './core/view/view-controller';
 export { createRenderPass, isStale, type RenderPass } from './core/view/render-pass';
 export { loadingBodyClass, loadingEvent } from './core/view/plugins';
 export {
-  buildRouteTransition,
-  NO_TRANSITION,
-  parseTransitionShortcut,
-  type RouteTransition,
-  type TransitionShortcut,
-} from './core/transition/transition';
-export {
   LoaderRegistry,
   defaultLoaderRegistry,
   contentCacheKey,

@@ -1,12 +1,12 @@
 import type { RouteInstance } from '../../core';
-import type { RouteTransition } from '../../../aura-route/core/transition/route-transition';
+import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
 
 const noop = (): void => {};
 
 const noopRender = async (): Promise<ViewRenderResult> => ({ status: 'ok' });
 
-const INACTIVE_TRANSITION: RouteTransition = { order: null, in: null, out: null };
+const INACTIVE_TRANSITION: RouteTransitionType = { order: null, in: null, out: null };
 
 export function createTestRoute(path: string, overrides: Partial<RouteInstance> = {}): RouteInstance {
   return {

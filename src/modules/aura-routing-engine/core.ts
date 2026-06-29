@@ -75,11 +75,6 @@ export type {
 export { BrowserHistoryProvider } from './core/history/browser-provider';
 export { FakeHistoryProvider } from './core/history/fake-provider';
 
-// --- Transition order (route attrs → processor pipeline) ---
-
-export type { TransitionPolicy } from './core/transition/policy';
-export { DEFAULT_TRANSITION_POLICY, isTransitionPolicy, parseTransitionOrder, parseTransitionPolicy } from './core/transition/policy';
-
 // --- Matcher + guards (shared with route hooks lifecycle ctx) ---
 
 export type {
@@ -129,7 +124,7 @@ export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefe
 
 export { resolveHookNames } from './core/lifecycle';
 export { defineRouteHook } from './core/hooks/define-hook';
-export { NO_TRANSITION } from '../aura-route/core/transition/route-transition';
+export { NO_TRANSITION } from '../aura-route/core/attr/transition-attr-parser';
 export {
   HookRegistry,
   defaultHookRegistry,
@@ -154,4 +149,4 @@ export type {
   HookResult,
   HookResultInput,
 } from './core/hooks/types';
-export type { RouteTransition } from '../aura-route/core/transition/route-transition';
+export type { RouteTransitionType as RouteTransition } from '../aura-route/core/attr/transition-attr-parser';

@@ -16,11 +16,7 @@ export {
   type ScrollPolicy,
   type ScrollPolicySource,
 } from './core/navigation/scroll-policy';
-export { NO_TRANSITION } from '../aura-route/core/transition/route-transition';
-export {
-  DEFAULT_TRANSITION_POLICY,
-  parseTransitionOrder,
-} from './core/transition/policy';
+export { NO_TRANSITION } from '../aura-route/core/attr/transition-attr-parser';
 
 export type {
   ContentDescriptor,
@@ -37,6 +33,5 @@ export type {
   RouteInfo,
   RouteLifecycleContext,
 } from './core/route/types';
-export type { TransitionPolicy } from './core/transition/policy';
-export type { RouteTransition } from '../aura-route/core/transition/route-transition';
+export type { RouteTransitionType as RouteTransition } from '../aura-route/core/attr/transition-attr-parser';
 export type { ViewRenderResult } from './core/view-mount/view-commit-render';

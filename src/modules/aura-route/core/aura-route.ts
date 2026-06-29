@@ -3,31 +3,35 @@ import { AuraRouter } from '../../aura-router/core/aura-router';
 import {
   parsePreserveAttr,
   parseScrollPolicy,
-  parseTransitionOrder,
   type MatchedRouteInfo,
   type PreserveFlags,
   type RouteErrorContext,
   type RouteInstance,
   type RouteLifecycleContext,
   type ScrollPolicy,
-  type TransitionPolicy,
   type ViewRenderResult,
 } from '../../aura-routing-engine/route-api';
 import { attr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 
 import { parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
-import {
-  buildRouteTransition,
-  parseTransitionShortcut,
-  type RouteTransition,
-  type TransitionShortcut,
-} from './transition/transition';
+
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
 import { loadingBodyClass, loadingEvent } from './view/plugins';
 import type { MountTargetPort } from './view/ports';
 import { defaultViewCache } from './view/view-cache';
 import { RouteViewController } from './view/view-controller';
+import {
+  NO_TRANSITION,
+  parseTransitionShortcutAttr,
+  type RouteTransitionType,
+  type TransitionShortcutType,
+} from './attr/transition-attr-parser';
+import {
+  DEFAULT_TRANSITION_ORDER,
+  parseTransitionOrder,
+  type TransitionOrderType,
+} from './attr/transition-order-attr-parser';
 
 export type { RouteRenderOptions, AuraRouteInterface };
 
@@ -49,10 +53,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) errorTemplate: string;
 
-  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition', parser: parseTransitionShortcut })
-  transitionShortcut: TransitionShortcut | null;
+  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition', parser: parseTransitionShortcutAttr })
+  transitionShortcut: TransitionShortcutType | null;
   @attr({ readonly: true, inherit: true, allowEmpty: true, parser: parseTransitionOrder })
-  transitionOrder: TransitionPolicy | null;
+  transitionOrder: TransitionOrderType | null;
   @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-in', parser: parseCommaSeparated })
   transitionInDecl: string[] | null;
   @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-out', parser: parseCommaSeparated })
@@ -80,14 +84,12 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   }
 
   //todo memoize
-  get transition(): RouteTransition {
-    return buildRouteTransition({
-      optOut: this.hasAttribute('transition') && this.getAttribute('transition') === '',
-      order: this.transitionOrder,
-      shortcut: this.transitionShortcut,
-      inDecl: this.transitionInDecl,
-      outDecl: this.transitionOutDecl,
-    });
+  get transition(): RouteTransitionType {
+    const inHooks = this.transitionInDecl || this.transitionShortcut?.in || null;
+    const outHooks = this.transitionOutDecl || this.transitionShortcut?.out || null;
+    if (!this.transitionOrder && !inHooks && !outHooks) return NO_TRANSITION;
+    this.transitionOrder ??= DEFAULT_TRANSITION_ORDER;
+    return { order: this.transitionOrder, in: inHooks, out: outHooks };
   }
 
   get transitionIn(): string[] | null {
@@ -195,30 +197,38 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   onEnter(ctx: RouteLifecycleContext): void {
     void ctx;
   }
+
   onLoad(ctx: RouteLifecycleContext): void {
     void ctx;
   }
+
   onAfter(ctx: RouteLifecycleContext): void {
     void ctx;
   }
+
   onLeave(ctx: RouteLifecycleContext): void {
     void ctx;
   }
+
   onTransitionOut(ctx: RouteLifecycleContext): void {
     void ctx;
   }
+
   onTransitionIn(ctx: RouteLifecycleContext): void {
     void ctx;
   }
+
   onLeft(ctx: RouteLifecycleContext): void {
     void ctx;
     this.passId++;
     this.viewController?.onLeft();
   }
+
   onReenter(ctx: RouteLifecycleContext): void {
     void ctx;
     this.passId++;
   }
+
   onError(ctx: RouteErrorContext): void {
     void ctx;
   }

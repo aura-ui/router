@@ -1,7 +1,7 @@
 import { AuraRoutingProcessorJob } from './job';
 
 /**
- * Creates and tracks the active {@link Job}.
+ * Creates and tracks the active {@link AuraRoutingProcessorJob}.
  *
  * Two independent stale guards:
  * - **job** (`id`, `signal`) — superseded by a newer navigation (A→B→C)
@@ -32,10 +32,6 @@ export class AuraRoutingProcessorJobManager {
     return this._active;
   }
 
-  hasActive(): boolean {
-    return this._active !== undefined && !this._active.aborted;
-  }
-
   /**
    * Abort the previous job and start a new one.
    * Call at the start of a navigation pipeline (`leave`, `enter` without prior leave, `reenter`).
@@ -57,19 +53,12 @@ export class AuraRoutingProcessorJobManager {
     this._active = undefined;
   }
 
-  requireActive(): AuraRoutingProcessorJob {
-    if (!this._active) {
-      throw new Error('AuraRoutingProcessorJobManager: no active job');
-    }
-    return this._active;
-  }
-
-  isCurrent(job: AuraRoutingProcessorJob): boolean {
+  private isCurrent(job: AuraRoutingProcessorJob): boolean {
     return this._active === job && !job.aborted;
   }
 
   /** Whether `capturedGeneration` is still the current router generation. */
-  isRouterGeneration(capturedGeneration: number): boolean {
+  private isRouterGeneration(capturedGeneration: number): boolean {
     return capturedGeneration === this._routerGeneration;
   }
 
@@ -81,5 +70,4 @@ export class AuraRoutingProcessorJobManager {
   isJobSuperseded(job: AuraRoutingProcessorJob, capturedGeneration: number): boolean {
     return !this.isRouterGeneration(capturedGeneration) || !this.isCurrent(job);
   }
-
 }

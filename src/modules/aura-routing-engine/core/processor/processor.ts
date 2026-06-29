@@ -36,7 +36,9 @@ export class AuraRoutingProcessor {
     const plan = buildTransitionPlan(input.from, input.to);
 
     const transaction: NavigationTransaction = {
-      ...input,
+      from: input.from,
+      to: input.to,
+      action: input.action,
       plan,
       transitionOrder: getEnterRoute(plan)?.transition?.order ?? null,
     };

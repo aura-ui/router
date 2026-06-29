@@ -6,7 +6,11 @@
  * @module view-mount/view-render
  */
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { AuraRoutingProcessorJob } from '../processor/cancellation/job';
+
+export interface ViewRenderJob {
+  readonly signal: AbortSignal;
+  readonly aborted: boolean;
+}
 
 export type ViewRenderResult =
   | { status: 'ok' }
@@ -23,7 +27,7 @@ export function isRenderError(
 /** Renders the activate-branch route view; aborts when the navigation job is superseded. */
 export async function runViewCommit(
   matchedRoute: MatchedRouteInfo,
-  job: AuraRoutingProcessorJob,
+  job: ViewRenderJob,
 ): Promise<ViewCommitResult> {
   if (job.aborted) return 'aborted';
 

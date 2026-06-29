@@ -27,10 +27,10 @@ export interface LifecycleRuntimeContext {
 
 /**
  * Minimal processor context accepted by {@link ../lifecycle-runtime-adapter!toLifecycleRuntimeContext}.
- * `transaction` may carry processor-only fields (e.g. `transitionOrder`).
+ * Implementations may carry processor-only fields; lifecycle only reads this slice.
  */
 export interface LifecyclePipelineBridge {
-  transaction: LifecycleTransactionContext & Record<string, unknown>;
+  transaction: LifecycleTransactionContext;
   job: LifecycleJobSlice;
   router: RouterInstance;
   hookRegistry: HookRegistry;

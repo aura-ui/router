@@ -60,7 +60,7 @@ function createPipelineContext(overrides: {
       from: null,
       to: enterRoute,
       action: 'push',
-      transitionOrder: overrides.transitionOrder ?? 'parallel',
+      transitionOrder: overrides.transitionOrder === undefined ? 'parallel' : overrides.transitionOrder,
       plan: {
         exitRoutes: overrides.exitRoutes ?? [],
         enterRoutes: overrides.enterRoutes ?? [enterRoute],
@@ -165,7 +165,7 @@ describe('ProcessorPipeline.runRenderWithTransition (parallel)', () => {
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    const outcome = await pipeline.runRenderWithTransition(pipelineContext);
+    const outcome = await pipeline.run(pipelineContext);
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(mockRunPhaseHooks).not.toHaveBeenCalled();
@@ -187,7 +187,7 @@ describe('ProcessorPipeline.runRenderWithTransition (parallel)', () => {
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    await pipeline.runRenderWithTransition(pipelineContext);
+    await pipeline.run(pipelineContext);
 
     expect(callOrder[0]).toBe('render');
     expect(callOrder).toContain('transitionOut');
@@ -200,27 +200,27 @@ describe('ProcessorPipeline.runRenderWithTransition (parallel)', () => {
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    const outcome = await pipeline.runRenderWithTransition(pipelineContext);
+    const outcome = await pipeline.run(pipelineContext);
 
-    expect(outcome).toBeNull();
+    expect(outcome).toEqual({ status: 'navigationSucceeded' });
   });
 
-  it('defers supersede handling to runAfterRender after parallel transitions', async () => {
+  it('cancels before committing when superseded after parallel transitions', async () => {
     let active = true;
+    const commitStagedView = jest.fn();
     const pipelineContext = createPipelineContext({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], commitStagedView })],
     });
     pipelineContext.isJobActive = () => active;
     mockRunPhaseHooks.mockImplementation(async () => {
       active = false;
     });
 
-    const transitionOutcome = await pipeline.runRenderWithTransition(pipelineContext);
-    expect(transitionOutcome).toBeNull();
+    const outcome = await pipeline.run(pipelineContext);
 
-    const afterOutcome = await pipeline.runAfterRender(pipelineContext);
-    expect(afterOutcome).toEqual({ status: 'cancelled' });
+    expect(outcome).toEqual({ status: 'cancelled' });
+    expect(commitStagedView).not.toHaveBeenCalled();
   });
 
   it('returns error from exit transition when it fails', async () => {
@@ -237,7 +237,7 @@ describe('ProcessorPipeline.runRenderWithTransition (parallel)', () => {
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    const outcome = await pipeline.runRenderWithTransition(pipelineContext);
+    const outcome = await pipeline.run(pipelineContext);
 
     expect(outcome).toEqual({
       status: 'error',
@@ -273,7 +273,7 @@ describe('ProcessorPipeline.runRenderWithTransition (parallel)', () => {
       ],
     });
 
-    const outcome = await pipeline.runRenderWithTransition(pipelineContext);
+    const outcome = await pipeline.run(pipelineContext);
 
     expect(outcome).toEqual({
       status: 'error',
@@ -317,7 +317,7 @@ describe('ProcessorPipeline.runRenderWithTransition sequential policies', () => 
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
-    await pipeline.runRenderWithTransition(pipelineContext);
+    await pipeline.run(pipelineContext);
 
     expect(callOrder).toEqual(expectedOrder);
   });
@@ -342,7 +342,7 @@ describe('ProcessorPipeline.runAfterRender', () => {
       enterRoutes: [createMatchedRoute('/to', { afterHook: ['analytics'] })],
     });
 
-    await pipeline.runAfterRender(pipelineContext);
+    await pipeline.run(pipelineContext);
 
     expect(phases).toEqual(['left', 'after']);
   });
@@ -360,12 +360,16 @@ describe('ProcessorPipeline supersede', () => {
   it('runAfterRender skips commit when job is superseded', async () => {
     const commitStagedView = jest.fn();
     const pipelineContext = createPipelineContext({
+      transitionOrder: null,
       enterRoutes: [createMatchedRoute('/to', { commitStagedView })],
     });
-    pipelineContext.isJobActive = () => false;
-    pipelineContext.commitTracker.markViewStaged();
+    let activeChecks = 0;
+    pipelineContext.isJobActive = () => {
+      activeChecks++;
+      return activeChecks === 1;
+    };
 
-    const outcome = await pipeline.runAfterRender(pipelineContext);
+    const outcome = await pipeline.run(pipelineContext);
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(commitStagedView).not.toHaveBeenCalled();
@@ -403,7 +407,7 @@ describe('ProcessorPipeline.runReenter', () => {
     });
     pipelineContext.transaction.plan.reenter = true;
 
-    await pipeline.runReenter(pipelineContext);
+    await pipeline.run(pipelineContext);
 
     expect(phases).toEqual(['reenter']);
   });
@@ -424,11 +428,12 @@ describe('ProcessorPipeline phase hooks attr', () => {
     });
 
     const pipelineContext = createPipelineContext({
+      transitionOrder: null,
       exitRoutes: [createMatchedRoute('/from', { hooks: { left: ['cleanup'] } })],
       enterRoutes: [createMatchedRoute('/to', { hooks: { transitionIn: ['fade-in'] } })],
     });
 
-    await pipeline.runAfterRender(pipelineContext);
+    await pipeline.run(pipelineContext);
 
     expect(phases).toEqual(['left']);
   });

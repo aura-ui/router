@@ -20,7 +20,7 @@ import type { ProcessorRunInput } from './types';
 export type { ProcessorRunInput } from './types';
 
 /** Enriched navigation run: {@link ProcessorRunInput} + transition plan and order. */
-export interface NavigationTransaction extends ProcessorRunInput {
+export interface NavigationTransaction extends Pick<ProcessorRunInput, 'from' | 'to' | 'action'> {
   plan: TransitionMap;
   /** `null` — skip transitionOut/transitionIn (inactive transition package / effect order). */
   transitionOrder: TransitionPolicy | null;
@@ -98,11 +98,11 @@ export class ProcessorPipeline {
     return outcome ?? { status: 'navigationSucceeded' };
   }
 
-  async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+  private async runReenter(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(PHASES.reenter, pipelineContext);
   }
 
-  async runGuards(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+  private async runGuards(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runUntilTerminal(
       [
         (ctx) => this.runLifecycleStep(PHASES.leave, ctx),
@@ -112,11 +112,11 @@ export class ProcessorPipeline {
     );
   }
 
-  async runLoads(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+  private async runLoads(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(PHASES.load, pipelineContext);
   }
 
-  async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+  private async runRenderWithTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     const { transitionOrder } = pipelineContext.transaction;
 
     if (transitionOrder === null) {
@@ -150,7 +150,7 @@ export class ProcessorPipeline {
     return null;
   }
 
-  async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+  private async runAfterRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     if (!pipelineContext.isJobActive()) {
       return { status: 'cancelled' };
     }
@@ -162,15 +162,15 @@ export class ProcessorPipeline {
     return this.runLifecycleStep(PHASES.after, pipelineContext);
   }
 
-  async runExitTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+  private async runExitTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(PHASES.transitionOut, pipelineContext);
   }
 
-  async runEnterTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+  private async runEnterTransition(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     return this.runLifecycleStep(PHASES.transitionIn, pipelineContext);
   }
 
-  async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
+  private async runRender(pipelineContext: PipelineContext): Promise<PipelineOutcome> {
     for (const matchedRoute of pipelineContext.transaction.plan.enterRoutes) {
       const viewCommit = await runViewCommit(matchedRoute, pipelineContext.job);
 

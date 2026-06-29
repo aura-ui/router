@@ -19,6 +19,8 @@ import {
 import { attr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 
+import { parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
+
 import {
   buildRouteTransition,
   parseTransitionShortcut,
@@ -37,13 +39,14 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @attr({ readonly: true }) path: string;
   @attr({ readonly: true }) layout: string;
-  @attr({ readonly: true }) view: string;
+  @attr({ readonly: true, parser: parseViewAttr, cached: true }) view: ViewAttrDescriptor | null;
 
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) enter: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) load: string[] | null;
   @attr({ parser: parseCommaSeparated, name: 'after', inherit: true, allowEmpty: true }) afterHook: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) leave: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) error: string[] | null;
+  /** @deprecated Use phase attrs (`enter`, `leave`, `load`, …) instead. */
   @attr({ parser: parsePhaseHooks }) hooks: PhaseHooksMap | null;
 
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) loadingTemplate: string;
@@ -96,6 +99,36 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   get transitionOut(): string[] | null {
     return this.transition.out;
+  }
+
+  get hasLayout(): boolean {
+    return !!this.layout.trim();
+  }
+
+  get hasEnter(): boolean {
+    return !!this.enter;
+  }
+
+  get hasLeave(): boolean {
+    return !!this.leave;
+  }
+
+  get hasLoad(): boolean {
+    return !!this.load;
+  }
+
+  get hasTransitionIn(): boolean {
+    return !!this.transitionIn;
+  }
+
+  get hasPostEffects(): boolean {
+    return !!this.transitionOut || !!this.afterHook;
+  }
+
+  get hasAsyncContent(): boolean {
+    if (this.hasLoad) return true;
+    const type = this.view?.type;
+    return type === 'html-src' || type === 'component-src';
   }
 
   connectedCallback() {

@@ -1,14 +1,14 @@
 /**
- * Phase attr parsing and hook name resolution for routes.
+ * Route hook attr parsing and hook name resolution.
  *
- * Phase metadata lives in {@link ./phase-registry!PHASES}.
+ * Phase metadata lives in {@link ../phase-registry!PHASES}.
  *
- * @module lifecycle/phase-attrs
+ * @module lifecycle/bindings/route-hook-bindings
  */
 
-import { PHASES } from './phase-registry';
-import type { PhaseHooksMap, RoutePhase } from './types';
-import type { RouteHookNamesSource } from '../route/types';
+import type { RouteHookNamesSource } from '../../route/types';
+import { PHASES } from '../phase-registry';
+import type { PhaseHooksMap, RoutePhase } from '../types';
 
 /**
  * Maps phase names in `hooks="phase::name"` to {@link RoutePhase}.

@@ -1,15 +1,20 @@
-import type { HistoryAction } from '../history/provider.types';
-import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { AuraRoutingProcessorJob } from '../processor/cancellation/job';
-import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../route/types';
-import type { RoutePhase } from './types';
+import type { HistoryAction } from '../../history/provider.types';
+import type { MatchedRouteInfo } from '../../match/url-matcher';
+import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../../route/types';
+import type { RoutePhase } from '../types';
+
+/** Minimal cancellable job slice required by lifecycle callbacks and hooks. */
+export interface LifecycleJobSlice {
+  id: number;
+  signal: AbortSignal;
+}
 
 /** Minimal navigation slice for building {@link RouteLifecycleContext}. */
 export interface LifecycleContextInput {
   from: MatchedRouteInfo | null;
   action: HistoryAction;
   router: RouterInstance;
-  job: AuraRoutingProcessorJob;
+  job: LifecycleJobSlice;
 }
 
 /** {@link RouteInfo} slice for hook ctx (`to` / `from`). */
@@ -21,10 +26,8 @@ export function toRouteInfo(matchedRoute: MatchedRouteInfo): RouteInfo {
   };
 }
 
-/**
- * Builds {@link RouteLifecycleContext} for a route on the current branch.
- */
-export function toLifecycleContext(
+/** Builds {@link RouteLifecycleContext} for a route on the current branch. */
+export function createLifecycleContext(
   lifecyclePhase: RoutePhase,
   matchedRoute: MatchedRouteInfo,
   input: LifecycleContextInput,

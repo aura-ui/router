@@ -1,7 +1,7 @@
 import type { RouteInstance } from '../../core';
-import { runBlockingPhaseHooks } from '../../core/hooks/pipeline-hooks';
 import { runPhaseHooks } from '../../core/hooks/registry';
-import { toLifecycleContext } from '../../core/lifecycle/context';
+import { createLifecycleContext } from '../../core/lifecycle/context/lifecycle-context';
+import { HookPolicyExecutor } from '../../core/lifecycle/execution/hook-policy-executor';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
 import {
@@ -24,13 +24,14 @@ jest.mock('../../core/view-mount/view-render', () => ({
 
 const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
 const mockRunViewCommit = runViewCommit as jest.MockedFunction<typeof runViewCommit>;
+const hookPolicyExecutor = new HookPolicyExecutor();
 
 function runBlockingHooks(
-  lifecycleContext: ReturnType<typeof toLifecycleContext>,
+  lifecycleContext: ReturnType<typeof createLifecycleContext>,
   pipelineContext: PipelineContext,
   hookNames: readonly string[],
 ) {
-  return runBlockingPhaseHooks(lifecycleContext, {
+  return hookPolicyExecutor.runBlocking(lifecycleContext, {
     hookRegistry: pipelineContext.hookRegistry,
     isJobActive: pipelineContext.isJobActive,
   }, hookNames);
@@ -86,7 +87,7 @@ function lifecycleInput(pipelineContext: PipelineContext) {
   };
 }
 
-describe('runBlockingPhaseHooks', () => {
+describe('HookPolicyExecutor.runBlocking', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -98,7 +99,7 @@ describe('runBlockingPhaseHooks', () => {
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
     });
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
-    const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
+    const lifecycleContext = createLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
     const outcome = await runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
@@ -112,7 +113,7 @@ describe('runBlockingPhaseHooks', () => {
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
     });
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
-    const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
+    const lifecycleContext = createLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
     const outcome = await runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
@@ -126,7 +127,7 @@ describe('runBlockingPhaseHooks', () => {
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
     });
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
-    const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
+    const lifecycleContext = createLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
     const outcome = await runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 
@@ -140,7 +141,7 @@ describe('runBlockingPhaseHooks', () => {
       enterRoutes: [createMatchedRoute('/to', { enter: ['auth'] })],
     });
     const matchedRoute = pipelineContext.transaction.plan.enterRoutes[0]!;
-    const lifecycleContext = toLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
+    const lifecycleContext = createLifecycleContext('enter', matchedRoute, lifecycleInput(pipelineContext));
 
     const outcome = await runBlockingHooks(lifecycleContext, pipelineContext, ['auth']);
 

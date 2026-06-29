@@ -1,15 +1,15 @@
+import { createLifecycleContext, toRouteInfo } from '../../core/lifecycle/context/lifecycle-context';
 import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
-import { toLifecycleContext, toRouteInfo } from '../../core/lifecycle/context';
 import { createTestRoute } from '../helpers/create-test-route';
 
-describe('toLifecycleContext', () => {
+describe('createLifecycleContext', () => {
   it('maps matched route and navigation input to hook context', () => {
     const fromRoute = createTestRoute('/from');
     const toRoute = createTestRoute('/to');
     const job = new AuraRoutingProcessorJob(7);
     const router = { navigate: jest.fn() };
 
-    const ctx = toLifecycleContext(
+    const ctx = createLifecycleContext(
       'enter',
       {
         href: '/to',

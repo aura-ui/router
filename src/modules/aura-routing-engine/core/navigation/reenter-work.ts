@@ -1,4 +1,4 @@
-import { resolveHookNames } from '../lifecycle/phase-attrs';
+import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getLeafMatch } from '../route-tree/matched-chain';
 

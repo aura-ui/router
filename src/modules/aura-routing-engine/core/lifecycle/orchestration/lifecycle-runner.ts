@@ -1,4 +1,4 @@
-import type { NavigationErrorPhase } from '../../failure/navigation-error';
+import type { NavigationErrorPhase } from '../../failure';
 import type { MatchedRouteInfo } from '../../match/url-matcher';
 import type { NavigationErrorResult } from '../../navigation/transaction-result';
 import { resolveHookNames } from '../bindings/route-hook-bindings';

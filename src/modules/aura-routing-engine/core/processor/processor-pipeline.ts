@@ -1,4 +1,4 @@
-import type { ReportNavigationHookError } from '../failure/navigation-failure';
+import type { ReportNavigationHookError } from '../failure';
 import type { HookRegistry } from '../hooks/registry';
 import {
   createLifecycleRuntimeContext,

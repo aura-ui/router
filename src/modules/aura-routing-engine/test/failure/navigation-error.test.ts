@@ -4,7 +4,7 @@ import {
   defaultCodeForPhase,
   isNavigationError,
   normalizeFailure,
-} from '../../core/failure/navigation-error';
+} from '../../core/failure';
 
 describe('NavigationError', () => {
   it('preserves cause chain', () => {

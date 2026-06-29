@@ -26,20 +26,20 @@ export type { ProcessorRunInput } from './core/processor/types';
 
 export type {
   NavigationErrorPhase,
-} from './core/failure/navigation-error';
+} from './core/failure';
 
-export { FailedNavigation } from './core/failure/navigation-failure';
+export { FailedNavigation } from './core/failure';
 export type {
   NavigationHookErrorDetail,
   ReportNavigationHookError,
-} from './core/failure/navigation-failure';
-export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/failure/finalize-failure';
+} from './core/failure';
+export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/failure';
 
 export type {
   NavigationFailureCode,
   NavigationErrorInit,
   NormalizeFailureContext,
-} from './core/failure/navigation-error';
+} from './core/failure';
 
 export {
   NavigationError,
@@ -47,7 +47,7 @@ export {
   defaultCodeForPhase,
   isNavigationError,
   normalizeFailure,
-} from './core/failure/navigation-error';
+} from './core/failure';
 
 export type { ViewCommitSnapshot, ViewCommitState } from './core/view-mount/view-commit-state';
 export { isViewCommittedForHistory } from './core/view-mount/view-commit-state';

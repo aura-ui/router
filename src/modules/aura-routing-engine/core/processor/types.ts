@@ -1,6 +1,6 @@
+import type { ReportNavigationHookError } from '../failure';
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { ReportNavigationHookError } from '../failure/navigation-failure';
 import type { RouterInstance } from '../route/types';
 
 /** Synchronous hook invoked at the commit gate after DOM promotion (history + `prev`). */

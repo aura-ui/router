@@ -16,7 +16,7 @@ specific nested route tree model lives in `route-tree/README.md`.
 | `match/` | URL matching and `MatchedRouteInfo` creation. |
 | `history/` | Browser/fake providers and post-outcome history policy. |
 | `view-mount/` | View staging, commit tracking, and route render adapter. |
-| `failure/` | Structured navigation errors, not-found, and failure callbacks. |
+| `failure/` | Structured navigation errors, failure snapshots, and failure callbacks. |
 | `content/` | Content descriptors, resolver/cache, and shared render/prefetch loading. |
 | `prefetch/` | Intent-driven prefetch side channel. |
 

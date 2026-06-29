@@ -1,10 +1,10 @@
-import type { TransactionResult } from '../../core/navigation/transaction-result';
-import { FailedNavigation } from '../../core/failure/navigation-failure';
+import { FailedNavigation } from '../../core/failure';
 import {
   applyTransactionHistory,
   finalizeNotFoundNavigation,
   finalizeProcessorNavigation,
 } from '../../core/navigation/finalize';
+import type { TransactionResult } from '../../core/navigation/transaction-result';
 
 describe('navigation/finalize', () => {
   const provider = { commit: jest.fn(), rollback: jest.fn() };

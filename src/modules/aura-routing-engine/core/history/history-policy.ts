@@ -1,7 +1,8 @@
+import type { NavigationFailureCode } from '../failure';
+import type { TransactionResult } from '../navigation/transaction-result';
 import type { ViewCommitSnapshot } from '../view-mount/view-commit-state';
 import { isViewCommittedForHistory } from '../view-mount/view-commit-state';
-import type { NavigationFailureCode } from '../failure/navigation-error';
-import type { TransactionResult } from '../navigation/transaction-result';
+
 import type { HistoryAction, NavigateHistoryOptions } from './provider.types';
 
 /**

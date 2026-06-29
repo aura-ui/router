@@ -1,16 +1,17 @@
-import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
+import {
+  finalizeFailure,
+  type CompleteFailureDeps,
+  type FailedNavigation,
+} from '../failure';
 import {
   applyHistoryPolicy,
   resolveHistoryPolicy,
   type HistoryProviderLike,
   type ResolveHistoryOptions,
 } from '../history/history-policy';
+import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import {
-  finalizeFailure,
-  type CompleteFailureDeps,
-} from '../failure/finalize-failure';
-import type { FailedNavigation } from '../failure/navigation-failure';
+
 import type { TransactionResult } from './transaction-result';
 
 /** Applies {@link resolveHistoryPolicy} for a processor or failure transaction result. */

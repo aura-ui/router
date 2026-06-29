@@ -1,7 +1,7 @@
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationErrorResult } from '../navigation/transaction-result';
-import { isViewCommittedForHistory, type CommitSnapshot } from '../view-mount/view-mount-state';
+import { isViewCommittedForHistory, type ViewCommitSnapshot } from '../view-mount/view-commit-state';
 import { NavigationError } from './navigation-error';
 
 /**
@@ -11,7 +11,7 @@ import { NavigationError } from './navigation-error';
  */
 export class FailedNavigation {
   readonly error: NavigationError;
-  readonly commit: CommitSnapshot;
+  readonly commit: ViewCommitSnapshot;
   readonly from: MatchedRouteInfo | null;
   readonly action: HistoryAction;
   /** `null` for NOT_FOUND (no route match). */
@@ -19,7 +19,7 @@ export class FailedNavigation {
 
   private constructor(
     error: NavigationError,
-    commit: CommitSnapshot,
+    commit: ViewCommitSnapshot,
     from: MatchedRouteInfo | null,
     to: MatchedRouteInfo | null,
     action: HistoryAction,
@@ -65,7 +65,7 @@ export class FailedNavigation {
 
   static fromPipeline(
     error: NavigationError,
-    commit: CommitSnapshot,
+    commit: ViewCommitSnapshot,
     from: MatchedRouteInfo | null,
     to: MatchedRouteInfo,
     action: HistoryAction,

@@ -37,4 +37,4 @@ export type {
 } from './core/route/types';
 export type { TransitionPolicy } from './core/transition/policy';
 export type { RouteTransition } from './core/transition/route-transition';
-export type { ViewRenderResult } from './core/view-mount/view-render';
+export type { ViewRenderResult } from './core/view-mount/view-commit-render';

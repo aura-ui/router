@@ -1,6 +1,6 @@
 import type { HistoryAction } from '../../core/history/provider.types';
 import type { TransactionResult } from '../../core/navigation/transaction-result';
-import type { ViewCommitState } from '../../core/view-mount/view-mount-state';
+import type { ViewCommitState } from '../../core/view-mount/view-commit-state';
 import { NavigationError } from '../../core/failure/navigation-error';
 import { FailedNavigation } from '../../core/failure/navigation-failure';
 import { createTestRoute } from '../helpers/create-test-route';

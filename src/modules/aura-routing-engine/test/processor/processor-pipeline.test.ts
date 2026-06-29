@@ -7,8 +7,8 @@ import {
   ProcessorPipeline,
   type PipelineContext,
 } from '../../core/processor/processor-pipeline';
-import { CommitTracker } from '../../core/view-mount/view-mount-tracker';
-import { runViewCommit } from '../../core/view-mount/view-render';
+import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
+import { runViewCommit } from '../../core/view-mount/view-commit-render';
 import { createTestRoute } from '../helpers/create-test-route';
 
 jest.mock('../../core/hooks/registry', () => ({
@@ -16,8 +16,8 @@ jest.mock('../../core/hooks/registry', () => ({
   runPhaseHooks: jest.fn(),
 }));
 
-jest.mock('../../core/view-mount/view-render', () => ({
-  ...jest.requireActual('../../core/view-mount/view-render'),
+jest.mock('../../core/view-mount/view-commit-render', () => ({
+  ...jest.requireActual('../../core/view-mount/view-commit-render'),
   runViewCommit: jest.fn(),
 }));
 
@@ -71,7 +71,7 @@ function createPipelineContext(overrides: {
     navigationJob,
     router: { navigate: jest.fn() },
     hookRegistry: {} as PipelineContext['hookRegistry'],
-    viewCommitTracker: new CommitTracker(enterRoute.href),
+    viewCommitTracker: new ViewCommitTracker(enterRoute.href),
     isJobActive: () => true,
   };
 }

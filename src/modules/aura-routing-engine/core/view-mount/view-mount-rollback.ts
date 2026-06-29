@@ -1,6 +1,6 @@
 import type { RouteInstance } from '../route/types';
 import type { TransitionMap } from '../route-tree/transition-plan';
-import type { CommitTracker } from './view-mount-tracker';
+import type { ViewCommitTracker } from './view-commit-tracker';
 
 /** Unique routes touched by enter/exit branches of one transaction. */
 export function collectTransactionRoutes(plan: TransitionMap): RouteInstance[] {
@@ -16,12 +16,12 @@ export function collectTransactionRoutes(plan: TransitionMap): RouteInstance[] {
   return routes;
 }
 
-/** Restores outlet/view state after a cancelled navigation (supersede, guard, render abort). */
-export function rollbackCancelledNavigation(
+/** Restores uncommitted outlet/view state after supersede, guard cancel, or render abort. */
+export function rollbackUncommittedViews(
   plan: TransitionMap,
-  commitTracker: CommitTracker,
+  viewCommitTracker: ViewCommitTracker,
 ): void {
-  if (commitTracker.isViewCommitted()) return;
+  if (viewCommitTracker.isViewCommitted()) return;
 
   // revertInFlightView: full DOM restore only for stage; replace routes — see outlet rollbackStaged TODO.
   for (const route of collectTransactionRoutes(plan)) {

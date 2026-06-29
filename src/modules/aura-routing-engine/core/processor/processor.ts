@@ -7,7 +7,7 @@ import {
 } from './processor-pipeline';
 import type { ProcessorRunInput } from './types';
 import type { TransactionResult } from '../navigation/transaction-result';
-import { CommitTracker } from '../view-mount/view-mount-tracker';
+import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import { withCancelledTransactionScope } from './cancellation/transaction-scope';
 import { AuraRoutingProcessorJobManager } from './cancellation/job-manager';
 
@@ -45,7 +45,7 @@ export class AuraRoutingProcessor {
 
     const navigationJob = this.jobManager.begin();
     const capturedRouterGeneration = this.jobManager.routerGeneration;
-    const viewCommitTracker = new CommitTracker(input.to.href);
+    const viewCommitTracker = new ViewCommitTracker(input.to.href);
 
     return withCancelledTransactionScope({
       transitionPlan,

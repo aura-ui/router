@@ -86,7 +86,7 @@ The engine keeps three related concepts separate:
 
 - `TransactionResult.status === 'navigationSucceeded'`: the processor pipeline
   completed successfully.
-- `CommitSnapshot.view === 'committed'`: the target view was promoted and should
+- `ViewCommitSnapshot.view === 'committed'`: the target view was promoted and should
   be treated as user-visible.
 - History commit: `provider.commit()` writes the target URL according to
   `resolveHistoryPolicy()`.

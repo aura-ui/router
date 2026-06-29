@@ -49,9 +49,9 @@ export {
   normalizeFailure,
 } from './core/failure/navigation-error';
 
-export type { CommitSnapshot, ViewCommitState } from './core/view-mount/view-mount-state';
-export { isViewCommittedForHistory } from './core/view-mount/view-mount-state';
-export type { ViewRenderResult } from './core/view-mount/view-render';
+export type { ViewCommitSnapshot, ViewCommitState } from './core/view-mount/view-commit-state';
+export { isViewCommittedForHistory } from './core/view-mount/view-commit-state';
+export type { ViewRenderResult } from './core/view-mount/view-commit-render';
 
 export type { TransactionResult, NavigationErrorResult } from './core/navigation/transaction-result';
 

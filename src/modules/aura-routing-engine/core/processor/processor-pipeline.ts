@@ -7,7 +7,7 @@ import {
 import { runPhaseHooks } from '../hooks/registry';
 import { toLifecycleContext, type LifecycleContextInput } from '../lifecycle/context';
 import { resolveHookNames } from '../lifecycle/phase-attrs';
-import { PHASES, type LifecycleStepDef } from '../lifecycle/phase-registry';
+import { PHASES, type PipelinePhaseDefinition } from '../lifecycle/phase-registry';
 import { runPhaseStep, phaseStepToPipelineOutcome, type PhaseStepOutcome } from '../lifecycle/phase-runner';
 import type { RoutePhase } from '../lifecycle/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -238,10 +238,10 @@ export class ProcessorPipeline {
   }
 
   private async runLifecycleStep(
-    step: LifecycleStepDef,
+    step: PipelinePhaseDefinition,
     pipelineContext: PipelineContext,
   ): Promise<PipelineOutcome> {
-    const matchedRoutes = pipelineContext.transaction.plan[step.branch];
+    const matchedRoutes = pipelineContext.transaction.plan[step.targetRoutes];
 
     for (const matchedRoute of matchedRoutes) {
       const outcome = await this.runLifecycleStepForRoute(step, matchedRoute, pipelineContext);
@@ -252,17 +252,17 @@ export class ProcessorPipeline {
   }
 
   private async runLifecycleStepForRoute(
-    step: LifecycleStepDef,
+    step: PipelinePhaseDefinition,
     matchedRoute: MatchedRouteInfo,
     pipelineContext: PipelineContext,
   ): Promise<PipelineOutcome> {
     const { route } = matchedRoute;
     const lifecycleContext = toLifecycleContext(
-      step.lifecyclePhase,
+      step.phase,
       matchedRoute,
       this.lifecycleInput(pipelineContext),
     );
-    const hookNames = resolveHookNames(route, step.lifecyclePhase);
+    const hookNames = resolveHookNames(route, step.phase);
     const hookRunner = {
       hookRegistry: pipelineContext.hookRegistry,
       isJobActive: pipelineContext.isJobActive,
@@ -270,32 +270,32 @@ export class ProcessorPipeline {
 
     return phaseStepToPipelineOutcome(
       await runPhaseStep({
-      lifecyclePhase: step.lifecyclePhase,
-      onThrow: step.onThrow,
-      hookKind: step.hooks.kind,
-      hookErrors: step.hooks.kind === 'postCommit' ? step.hooks.hookErrors : undefined,
-      invokeRoute: () => step.onRoute(route, lifecycleContext),
-      hookNames,
-      handlers: {
-        runBlockingHooks: (names) =>
-          runBlockingPhaseHooks(lifecycleContext, hookRunner, names),
-        runPostCommitHooks: (names, hookErrors, phase) =>
-          this.runPostCommitHooksStep(
-            lifecycleContext,
-            hookRunner,
-            names,
-            hookErrors,
-            phase,
-          ),
-        failWithError: (error) =>
-          failPipelineNavigation(
-            matchedRoute,
-            error,
-            step.lifecyclePhase,
-            pipelineContext,
-          ),
-      },
-    }),
+        lifecyclePhase: step.phase,
+        onThrow: step.errorPolicy,
+        hookKind: step.hookPolicy.kind,
+        onError: step.hookPolicy.kind === 'postCommit' ? step.hookPolicy.onError : undefined,
+        invokeRoute: () => step.runRouteLifecycle(route, lifecycleContext),
+        hookNames,
+        handlers: {
+          runBlockingHooks: (names) =>
+            runBlockingPhaseHooks(lifecycleContext, hookRunner, names),
+          runPostCommitHooks: (names, onError, phase) =>
+            this.runPostCommitHooksStep(
+              lifecycleContext,
+              hookRunner,
+              names,
+              onError,
+              phase,
+            ),
+          failWithError: (error) =>
+            failPipelineNavigation(
+              matchedRoute,
+              error,
+              step.phase,
+              pipelineContext,
+            ),
+        },
+      }),
     );
   }
 
@@ -303,11 +303,11 @@ export class ProcessorPipeline {
     lifecycleContext: RouteLifecycleContext,
     hookRunner: { hookRegistry: PipelineContext['hookRegistry']; isJobActive: () => boolean },
     hookNames: readonly string[],
-    hookErrors: 'propagate' | 'log',
+    onError: 'propagate' | 'log',
     lifecyclePhase: RoutePhase,
   ): Promise<PhaseStepOutcome> {
     const hookResult =
-      hookErrors === 'log'
+      onError === 'log'
         ? await runLoggedPostCommitHooks(lifecycleContext, hookRunner, hookNames)
         : await runPhaseHooks(
             hookRunner.hookRegistry,

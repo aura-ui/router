@@ -12,7 +12,7 @@ import type { RouteHookNamesSource } from '../route/types';
 
 /**
  * Maps phase names in `hooks="phase::name"` to {@link RoutePhase}.
- * Includes camelCase keys and kebab-case {@link PhaseDef.htmlAttr} aliases.
+ * Includes camelCase keys and kebab-case {@link RoutePhaseDefinition.htmlAttr} aliases.
  */
 export const PHASE_HTML_ALIAS = Object.fromEntries(
   Object.entries(PHASES).flatMap(([phase, def]) => {
@@ -76,8 +76,8 @@ export function resolveHookNames(
   phase: RoutePhase,
 ): readonly string[] | null {
   const def = PHASES[phase];
-  const routeProp = 'routeProp' in def ? def.routeProp : undefined;
-  const fromAttr = routeProp ? source[routeProp] : null;
+  const routeHookProp = 'routeHookProp' in def ? def.routeHookProp : undefined;
+  const fromAttr = routeHookProp ? source[routeHookProp] : null;
   const fromHooks = source.hooks?.[phase];
   const merged = [...(fromAttr ?? []), ...(fromHooks ?? [])];
   return merged.length > 0 ? merged : null;

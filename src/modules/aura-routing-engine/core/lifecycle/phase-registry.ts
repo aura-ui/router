@@ -17,109 +17,109 @@ import type { RouteInstance, RouteLifecycleContext } from '../route/types';
 
 export type { PhaseThrowPolicy } from './types';
 
-export interface PhaseDef {
-  lifecyclePhase: RoutePhase;
-  branch: LifecycleBranch;
-  hooks: LifecycleHookHandling;
-  onThrow: PhaseThrowPolicy;
+export interface RoutePhaseDefinition {
+  phase: RoutePhase;
+  targetRoutes: LifecycleBranch;
+  hookPolicy: LifecycleHookHandling;
+  errorPolicy: PhaseThrowPolicy;
   htmlAttr?: string;
-  routeProp?: RouteHookAttrProp;
-  onRoute?: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
+  routeHookProp?: RouteHookAttrProp;
+  runRouteLifecycle?: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
 }
 
-/** Pipeline step — {@link PhaseDef} with required {@link PhaseDef.onRoute}. */
-export type LifecycleStepDef = PhaseDef & {
-  lifecyclePhase: LifecyclePhase;
-  onRoute: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
+/** Pipeline phase — {@link RoutePhaseDefinition} with a route lifecycle callback. */
+export type PipelinePhaseDefinition = RoutePhaseDefinition & {
+  phase: LifecyclePhase;
+  runRouteLifecycle: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
 };
 
 /**
  * Per-phase configuration: policy, attr bindings, and pipeline route callback.
  *
- * @see {@link PHASES.error} — terminal phase for route attrs only (no `onRoute`)
+ * @see {@link PHASES.error} — terminal phase for route attrs only (no `runRouteLifecycle`)
  */
 export const PHASES = {
   leave: {
-    lifecyclePhase: 'leave',
-    branch: 'exitRoutes',
-    hooks: { kind: 'blocking' },
-    onThrow: 'failure',
+    phase: 'leave',
+    targetRoutes: 'exitRoutes',
+    hookPolicy: { kind: 'blocking' },
+    errorPolicy: 'failure',
     htmlAttr: 'leave',
-    routeProp: 'leave',
-    onRoute: (route, ctx) => route.onLeave(ctx),
+    routeHookProp: 'leave',
+    runRouteLifecycle: (route, ctx) => route.onLeave(ctx),
   },
   enter: {
-    lifecyclePhase: 'enter',
-    branch: 'enterRoutes',
-    hooks: { kind: 'blocking' },
-    onThrow: 'failure',
+    phase: 'enter',
+    targetRoutes: 'enterRoutes',
+    hookPolicy: { kind: 'blocking' },
+    errorPolicy: 'failure',
     htmlAttr: 'enter',
-    routeProp: 'enter',
-    onRoute: (route, ctx) => route.onEnter(ctx),
+    routeHookProp: 'enter',
+    runRouteLifecycle: (route, ctx) => route.onEnter(ctx),
   },
   load: {
-    lifecyclePhase: 'load',
-    branch: 'enterRoutes',
-    hooks: { kind: 'blocking' },
-    onThrow: 'failure',
+    phase: 'load',
+    targetRoutes: 'enterRoutes',
+    hookPolicy: { kind: 'blocking' },
+    errorPolicy: 'failure',
     htmlAttr: 'load',
-    routeProp: 'load',
-    onRoute: (route, ctx) => route.onLoad(ctx),
+    routeHookProp: 'load',
+    runRouteLifecycle: (route, ctx) => route.onLoad(ctx),
   },
   reenter: {
-    lifecyclePhase: 'reenter',
-    branch: 'enterRoutes',
-    hooks: { kind: 'postCommit', hookErrors: 'propagate' },
-    onThrow: 'failure',
+    phase: 'reenter',
+    targetRoutes: 'enterRoutes',
+    hookPolicy: { kind: 'postCommit', onError: 'propagate' },
+    errorPolicy: 'failure',
     htmlAttr: 'reenter',
-    onRoute: (route, ctx) => route.onReenter(ctx),
+    runRouteLifecycle: (route, ctx) => route.onReenter(ctx),
   },
   transitionOut: {
-    lifecyclePhase: 'transitionOut',
-    branch: 'exitRoutes',
-    hooks: { kind: 'postCommit', hookErrors: 'propagate' },
-    onThrow: 'failure',
+    phase: 'transitionOut',
+    targetRoutes: 'exitRoutes',
+    hookPolicy: { kind: 'postCommit', onError: 'propagate' },
+    errorPolicy: 'failure',
     htmlAttr: 'transition-out',
-    routeProp: 'transitionOut',
-    onRoute: (route, ctx) => route.onTransitionOut(ctx),
+    routeHookProp: 'transitionOut',
+    runRouteLifecycle: (route, ctx) => route.onTransitionOut(ctx),
   },
   transitionIn: {
-    lifecyclePhase: 'transitionIn',
-    branch: 'enterRoutes',
-    hooks: { kind: 'postCommit', hookErrors: 'propagate' },
-    onThrow: 'failure',
+    phase: 'transitionIn',
+    targetRoutes: 'enterRoutes',
+    hookPolicy: { kind: 'postCommit', onError: 'propagate' },
+    errorPolicy: 'failure',
     htmlAttr: 'transition-in',
-    routeProp: 'transitionIn',
-    onRoute: (route, ctx) => route.onTransitionIn(ctx),
+    routeHookProp: 'transitionIn',
+    runRouteLifecycle: (route, ctx) => route.onTransitionIn(ctx),
   },
   left: {
-    lifecyclePhase: 'left',
-    branch: 'exitRoutes',
-    hooks: { kind: 'postCommit', hookErrors: 'log' },
-    onThrow: 'log',
+    phase: 'left',
+    targetRoutes: 'exitRoutes',
+    hookPolicy: { kind: 'postCommit', onError: 'log' },
+    errorPolicy: 'log',
     htmlAttr: 'left',
-    onRoute: (route, ctx) => route.onLeft(ctx),
+    runRouteLifecycle: (route, ctx) => route.onLeft(ctx),
   },
   after: {
-    lifecyclePhase: 'after',
-    branch: 'enterRoutes',
-    hooks: { kind: 'postCommit', hookErrors: 'log' },
-    onThrow: 'log',
+    phase: 'after',
+    targetRoutes: 'enterRoutes',
+    hookPolicy: { kind: 'postCommit', onError: 'log' },
+    errorPolicy: 'log',
     htmlAttr: 'after',
-    routeProp: 'afterHook',
-    onRoute: (route, ctx) => route.onAfter(ctx),
+    routeHookProp: 'afterHook',
+    runRouteLifecycle: (route, ctx) => route.onAfter(ctx),
   },
   error: {
-    lifecyclePhase: 'error',
-    branch: 'enterRoutes',
-    hooks: { kind: 'postCommit', hookErrors: 'log' },
-    onThrow: 'log',
+    phase: 'error',
+    targetRoutes: 'enterRoutes',
+    hookPolicy: { kind: 'postCommit', onError: 'log' },
+    errorPolicy: 'log',
     htmlAttr: 'error',
-    routeProp: 'error',
+    routeHookProp: 'error',
   },
-} as const satisfies Record<RoutePhase, PhaseDef>;
+} as const satisfies Record<RoutePhase, RoutePhaseDefinition>;
 
 /** Pipeline-driven phase keys (excludes terminal `error`). */
-export const LIFECYCLE_PHASES = (
+export const PIPELINE_PHASES = (
   Object.keys(PHASES) as RoutePhase[]
 ).filter((phase): phase is LifecyclePhase => phase !== 'error');

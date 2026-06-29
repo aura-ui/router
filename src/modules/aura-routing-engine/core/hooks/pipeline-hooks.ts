@@ -25,7 +25,7 @@ export async function runBlockingPhaseHooks(
   return guardResultToPhaseOutcome(hookResult);
 }
 
-/** Post-commit hooks with `hookErrors: 'log'`; errors are logged, not propagated. */
+/** Post-commit hooks with `onError: 'log'`; errors are logged, not propagated. */
 export async function runLoggedPostCommitHooks(
   lifecycleContext: RouteLifecycleContext,
   ctx: PhaseHookRunnerContext,

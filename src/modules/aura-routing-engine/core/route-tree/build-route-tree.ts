@@ -1,5 +1,5 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
-import { resolvePattern } from './resolve-pattern';
+import { normalizeRouteSegment, resolvePattern } from './resolve-pattern';
 import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
 
 /**
@@ -127,10 +127,11 @@ function buildRouteNode(
   matchableNodes: RouteNode[],
   childRoutesByParent: Map<AuraRoute, AuraRoute[]>,
 ): RouteNode {
-  const segment = (route as unknown as Element).getAttribute('path') ?? '';
+  const segment = normalizeRouteSegment((route as unknown as Element).getAttribute('path') ?? '');
   const pattern = resolvePattern(parentNode?.pattern ?? null, segment);
 
-  if (nodesByPattern.has(pattern)) {
+  const existing = nodesByPattern.get(pattern);
+  if (existing && !isIndexChildOf(existing, parentNode, segment)) {
     console.warn(`Duplicate route pattern "${pattern}" — previous route will be overwritten`);
   }
 
@@ -157,6 +158,11 @@ function buildRouteNode(
   registerMatchableNode(node, matchableNodes);
 
   return node;
+}
+
+/** Index child shares parent's URL — expected overlap in nodesByPattern, not a duplicate route. */
+function isIndexChildOf(existing: RouteNode, parentNode: RouteNode | null, segment: string): boolean {
+  return segment === '' && parentNode !== null && existing === parentNode;
 }
 
 /**

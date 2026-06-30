@@ -1,52 +1,108 @@
 # Aura UI Router
 
-Declarative nested routing in HTML — MPA→SPA without React, with data-router-style lifecycle.
+[![npm version](https://img.shields.io/npm/v/@aura-ui-web/router.svg)](https://www.npmjs.com/package/@aura-ui-web/router)
+[![license](https://img.shields.io/npm/l/@aura-ui-web/router.svg)](./LICENSE)
 
-SSR-first router for **Aura UI** — Web Components platform: predictable hooks and seamless SPA transitions after hydration.
+**Declarative routing for Web Components — SSR-first, from static HTML to client navigation.**
+
+Composable lifecycle hooks and nested routes, declared in markup.
 
 ```bash
 npm install @aura-ui-web/router
 ```
 
-## Links
+---
 
-| Layer | Name |
+## Table of contents
+
+- [Why Aura Router](#why-aura-router)
+- [Quick start](#quick-start)
+- [Navigation](#navigation)
+- [Views](#views)
+- [Nested routes & layouts](#nested-routes--layouts)
+- [Lifecycle hooks](#lifecycle-hooks)
+- [Router defaults](#router-defaults)
+- [Programmatic API](#programmatic-api)
+- [Custom loaders](#custom-loaders)
+- [Package scope](#package-scope)
+- [Development](#development)
+- [Documentation](#documentation)
+- [License](#license)
+
+---
+
+## Why Aura Router
+
+| | |
 | --- | --- |
-| npm scope | `@aura-ui-web/*` |
-| GitHub | [github.com/aura-ui/router](https://github.com/aura-ui/router) |
+| **No framework lock-in** | Plain HTML + Web Components — works with Lit, vanilla CE, or legacy pages |
+| **MPA → SPA** | Server-rendered `.html` partials, then client-side navigation after hydration |
+| **Progressive enhancement** | Routes live in HTML; plain links work without JS — `data-router-link` upgrades them to SPA navigation |
+| **Legacy-friendly** | One `url` loader for partials and full pages — extract a fragment with `page.html::#main` |
+| **Predictable lifecycle** | Composable hooks (`AuraRouter.use()` + HTML attributes) — guards, load, ready; same mental model as Vue Router / TanStack Router |
 
-### What `web` means in `@aura-ui-web`
+---
 
-In the `@aura-ui-web` npm scope, **`web` stands for Web Components** — the first word of the technology we target (`Web Components`), not a generic “web app” label and not a development/pre-release channel.
+## Quick start
 
+**1. Declare routes in HTML**
+
+```html
+<aura-outlet></aura-outlet>
+
+<aura-router>
+  <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
+  <aura-route path="/users" view="users.html"></aura-route>
+  <aura-route path="*" view="template::404-template"></aura-route>
+</aura-router>
+
+<template id="404-template">
+  <h1>404</h1>
+  <p>URL: <span data-not-found-url></span></p>
+</template>
 ```
-Web Components  →  web  →  @aura-ui-web/router
+
+A bare `view` value (e.g. `users.html`) defaults to the **`url`** loader — it fetches HTML from the server.
+
+**2. Bootstrap the router**
+
+```ts
+import { AuraRouter } from '@aura-ui-web/router';
+
+AuraRouter.install();
 ```
 
-Example packages:
+**3. Add in-app links**
 
-```
-@aura-ui-web/router
-@aura-ui-web/base
-@aura-ui-web/components   (planned)
+```html
+<a href="/users" data-router-link>Users</a>
 ```
 
-## `<aura-route>` attributes
+Clicks on `[data-router-link]` are intercepted; the URL updates and the matching route renders into `<aura-outlet>`.
 
-Register hook implementations with `AuraRouter.use(hook)`. Attributes on the route pick **when** hooks run (comma-separated names).
+> **Demo:** clone the repo and run `npm run dev` — open the Vite dev server to try loaders, nested routes, transitions, and prefetch.
 
-### Route
+---
 
-| Attribute | Description |
+## Navigation
+
+| Mechanism | Usage |
 | --- | --- |
-| `path` | URL pattern (required) |
-| `view` | What to show: `ref` (default `url`) or `loader::ref` for other loaders |
-| `layout` | Nested shell — parent route with `<template id="…">`, children render in its outlet |
-| `preserve` | Keep on leave: `preserve` or `preserve="view"` (DOM), `preserve="data"` (load cache), `preserve="all"` |
+| **Link interception** | `data-router-link` on `<a href="…">` (default selector on `<aura-router>`) |
+| **Custom selector** | `links-selector="a.my-link"` on `<aura-router>` |
+| **Programmatic** | `router.navigate('/path', { replace?: boolean })` |
+| **404 catch-all** | `<aura-route path="*" view="template::404-template">` |
+| **Fallback 404** | `not-found-template="404-template"` on `<aura-router>` when no `path="*"` route exists |
 
-### `view` loaders
+---
+
+## Views
+
+The `view` attribute tells the router **what to render**.
 
 Format: bare **`ref`** defaults to **`url`** loader. Prefix `loader::` only for non-default loaders (`html`, `template`, `component`, `import`, `iframe`).
+
+### Built-in loaders
 
 | Loader | `ref` | Description |
 | --- | --- | --- |
@@ -57,7 +113,9 @@ Format: bare **`ref`** defaults to **`url`** loader. Prefix `loader::` only for 
 | `import` | module path | Dynamic `import()` and register the component |
 | `iframe` | URL | Embed external page in `<iframe>` |
 
-**`url` and fragment selector** — one loader for partials and legacy full pages:
+### `url` and fragment selector
+
+One loader for partials and legacy full pages:
 
 | `ref` | Behavior |
 | --- | --- |
@@ -73,9 +131,60 @@ Format: bare **`ref`** defaults to **`url`** loader. Prefix `loader::` only for 
 
 Use `import` for `.js` / `.ts`, not bare `url` ref.
 
-Parsing: if the token before the first `::` is a **known loader** (`html`, `template`, `component`, …) → `loader::ref`. Otherwise the whole value is a **`url` ref** (may contain `path.html::selector` for extract).
+**Parsing:** if the token before the first `::` is a **known loader** (`html`, `template`, `component`, …) → `loader::ref`. Otherwise the whole value is a **`url` ref** (may contain `path.html::selector` for extract).
 
 Custom loaders: `AuraRouter.registerLoader(type, fn)`.
+
+---
+
+## Nested routes & layouts
+
+Nest `<aura-route>` elements to build a route tree. A parent with `layout` renders a shell; children render into its `<aura-outlet>`.
+
+```html
+<template id="users-shell">
+  <nav>Users section</nav>
+  <aura-outlet></aura-outlet>
+</template>
+
+<aura-router>
+  <aura-route path="/users" layout="users-shell">
+    <aura-route path="." view="users/index.html" />
+    <aura-route path=":id" view="users/detail.html" load="fetch-user" />
+  </aura-route>
+</aura-router>
+```
+
+| Attribute | Description |
+| --- | --- |
+| `path` | URL pattern (required) |
+| `view` | What to show: `ref` (default `url`) or `loader::ref` for other loaders |
+| `layout` | Nested shell — parent route with `<template id="…">`, children render in its outlet |
+| `preserve` | Keep on leave: `preserve` or `preserve="view"` (DOM), `preserve="data"` (load cache), `preserve="all"` |
+
+Hooks on a parent run for every child navigation inside that branch (with inheritance — see below).
+
+---
+
+## Lifecycle hooks
+
+Register hook implementations with `AuraRouter.use(hook)`. Attributes on the route pick **when** hooks run (comma-separated names).
+
+```ts
+import { defineRouteHook, AuraRouter } from '@aura-ui-web/router';
+
+const authHook = defineRouteHook({
+  name: 'auth',
+  version: '1.0.0',
+  fn: async (ctx) => {
+    if (!isLoggedIn()) return '/login'; // redirect URL cancels navigation
+  },
+});
+
+AuraRouter.use(authHook);
+```
+
+Attributes inherit from `<aura-router>` down the tree. Empty value (`guard=""`) opts out of an inherited router default.
 
 ### Lifecycle
 
@@ -100,17 +209,6 @@ With `preserve` on the route, optional teardown hooks: `detach`, `destroy` (on l
 | `transition-order` | `out-in`, `in-out`, or `parallel` |
 | `transition` | Shortcut for symmetric in/out hooks |
 
-### Inherited from `<aura-router>` (override per route)
-
-| Attribute | Description |
-| --- | --- |
-| `scroll` | `restore`, `top`, or `manual` |
-| `prefetch` | Link prefetch policy |
-| `loading-template` | Template id while view loads |
-| `error-template` | Template id on render error |
-
-Empty value (`guard=""`) opts out of an inherited router default.
-
 ### Example
 
 ```html
@@ -131,6 +229,154 @@ Empty value (`guard=""`) opts out of an inherited router default.
   />
 </aura-router>
 ```
-## License & brand
+
+> Deep dive: [docs/HOOKS.md](./docs/HOOKS.md) · [docs/NAVIGATION_MODEL.md](./docs/NAVIGATION_MODEL.md)
+
+---
+
+## Router defaults
+
+Inherited from `<aura-router>` (override per route):
+
+| Attribute | Description |
+| --- | --- |
+| `scroll` | `restore`, `top`, or `manual` |
+| `prefetch` | Link prefetch policy |
+| `loading-template` | Template id while view loads |
+| `error-template` | Template id on render error |
+
+Empty value (`guard=""`) opts out of an inherited router default.
+
+**Prefetch cascade:** `data-prefetch` on the link → `prefetch` on `<aura-route>` → `prefetch` on `<aura-router>`.
+
+```html
+<aura-router prefetch="intent" scroll="restore" loading-template="loading">
+  …
+</aura-router>
+
+<a href="/heavy" data-router-link data-prefetch="tap">Load on tap</a>
+```
+
+---
+
+---
+
+## Programmatic API
+
+```ts
+import { AuraRouter } from '@aura-ui-web/router';
+
+// Register global hooks
+AuraRouter.use(myHook, { /* hook options */ });
+
+// Global config
+AuraRouter.configure({
+  notFoundHandler: (url) => { /* … */ },
+  dataCache: { max: 50 },
+  viewCache: { max: 10 },
+});
+
+// Register a custom view loader
+AuraRouter.registerLoader('custom', myLoaderFn);
+
+// Mount custom elements
+AuraRouter.install();
+
+// Instance methods
+const router = document.querySelector('aura-router');
+router.navigate('/users', { replace: true });
+router.refreshRoutes();
+```
+
+### Events
+
+```ts
+router.addEventListener('not-found', (e) => {
+  const { url, source } = e.detail; // source: 'route' | 'fallback'
+});
+
+router.addEventListener('navigation-error', (e) => {
+  const { error, code, phase } = e.detail;
+});
+
+router.addEventListener('navigation-hook-error', (e) => {
+  const { error, parent } = e.detail;
+});
+```
+
+---
+
+## Custom loaders
+
+```ts
+import { AuraRouter, type LoaderFn } from '@aura-ui-web/router';
+
+const myLoader: LoaderFn = async (ctx) => {
+  const text = await fetch(ctx.ref, { signal: ctx.signal }).then((r) => r.text());
+  return text; // HTML string injected into the outlet
+};
+
+AuraRouter.registerLoader('custom', myLoader);
+```
+
+```html
+<aura-route path="/custom" view="custom::partial.html" />
+```
+
+---
+
+## Package scope
+
+Aura UI packages are published under **`@aura-ui-web/*`**.
+
+In this scope, **`web` means Web Components** — the technology we target — not a generic “web app” label or a pre-release channel.
+
+```
+Web Components  →  web  →  @aura-ui-web/router
+```
+
+| Package | Status |
+| --- | --- |
+| `@aura-ui-web/router` | this repo |
+| `@aura-ui-web/base` | planned |
+| `@aura-ui-web/components` | planned |
+
+| | |
+| --- | --- |
+| **npm** | `@aura-ui-web/*` |
+| **GitHub** | [github.com/aura-ui/router](https://github.com/aura-ui/router) |
+
+---
+
+## Development
+
+```bash
+git clone https://github.com/aura-ui/router.git
+cd router
+npm install
+npm run dev      # Vite demo at localhost
+npm test         # Jest
+npm run check    # lint + build
+```
+
+Commit messages follow [Conventional Commits](./CONTRIBUTING.md).
+
+---
+
+## Documentation
+
+| Topic | Doc |
+| --- | --- |
+| Architecture | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
+| Hook contract & glossary | [docs/HOOKS.md](./docs/HOOKS.md) |
+| Navigation model | [docs/NAVIGATION_MODEL.md](./docs/NAVIGATION_MODEL.md) |
+| Nested routes | [docs/NESTED_ROUTES.md](./docs/NESTED_ROUTES.md) |
+| Prefetch | [docs/PREFETCH_ARCHITECTURE.md](./docs/PREFETCH_ARCHITECTURE.md) |
+| Roadmap | [docs/ROADMAP.md](./docs/ROADMAP.md) |
+| Module: `<aura-router>` | [src/modules/aura-router/README.md](./src/modules/aura-router/README.md) |
+
+---
+
+## License
 
 MIT covers source code only — not the project name or logos. See [LICENSE](./LICENSE) and [TRADEMARKS.md](./TRADEMARKS.md).

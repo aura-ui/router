@@ -1,6 +1,6 @@
-﻿# TODO: кэш контента + prefetch (ContentLoader)
+﻿# Content cache + prefetch (view loaders)
 
-> **Статус:** content cache **в коде** (`DataCache` на router); **SWR для view** — TODO → [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md)  
+> **Статус:** **реализовано (v1)** — `DataCache` на router, prefetch через общий pipeline. **Осталось:** params в ключе, `router.invalidate()` для content, SWR при navigation для view.  
 > **Связь:** [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) · [P1-2](../comparison/FEATURE_PARITY_ROADMAP.md) · [FUTURE_PROOF_ENGINE.md §3](../FUTURE_PROOF_ENGINE.md) · [CACHE_STORE_COMPARISON.md](../comparison/CACHE_STORE_COMPARISON.md)  
 > **Не путать с:** [DATAGRAPH.md](./DATAGRAPH.md) — кэш данных `load` hooks (JSON, store)
 
@@ -8,13 +8,13 @@
 
 ## Зачем
 
-Content loaders (`source`, `data-content`: `html`, `html-src`, `component-src`, `template`) сейчас грузятся в **`render()`** без engine-level кэша и без prefetch по намерению (hover / viewport).
+Content loaders (`view`: `html`, `html-src`, `component-src`; layout: `template`) грузятся через **`ContentLoadService`** — единая точка для prefetch (hover / tap / viewport) и render.
 
-Отдельный **Data cache** — для:
+Router-level **`DataCache`** даёт:
 
-- повторного визита без повторного fetch partial;
+- повторный визит без повторного fetch partial (при `preserve="view"`);
 - prefetch разметки параллельно с DataGraph prefetch;
-- быстрого commit в outlet при cache hit.
+- быстрый commit в outlet при cache hit.
 
 **DataGraph сюда не кладём** — другой тип payload и другой lifecycle (данные до render vs view в DOM).
 
@@ -25,106 +25,126 @@ Content loaders (`source`, `data-content`: `html`, `html-src`, `component-src`, 
 | | **DataGraph** (`preserve="data"`) | **View loader cache** (`preserve="view"`, router `DataCache`) |
 |--|---------------|-------------------|
 | Источник | `load="…"` hooks | `view` / `html-src` / `template` / … |
-| Payload | JSON, объекты | HTML string (view loaders) |
+| Payload | JSON, объекты | HTML **string** (view loaders) |
 | Фаза | `runLoads` (pre-commit) | prefetch intent + `render` |
 | Потребитель | hooks, `ctx.data`, логика | outlet / DOM |
-| SWR | `staleTime`, `gcTime` (DataGraph) | `preloadStaleTime` prefetch only; **navigation SWR** — TODO |
+| Store | `AuraCacheStore` в DataGraph | `AuraResolvableCache` в DataCache |
+| SWR | `staleTime`, `gcTime` (DataGraph, default 30s) | dedupe + LRU; prefetch skip via `staleTimeMs` в prefetch policy; **navigation SWR для view — TODO** |
 
 ```text
 hover /users:
-  dataGraph.prefetch([users])        // load hooks
-  DataCache.prefetch(users)       // html-src partial
+  DataPrefetchExecutor → dataGraph.prefetch(...)   // load hooks
+  ContentPrefetchExecutor → contentLoad.prefetchBranch(...)  // html-src partial → DataCache
 
 click /users:
-  enter → dataGraph.load() → render → DataCache.get() или fetch
+  enter → dataGraph.load() → render → contentLoad.resolve() → cache hit или fetch
 ```
 
 ---
 
-## Архитектура
+## Реализация в коде
 
-### Отдельный кэш, общая инфра (опционально)
+### Модуль
+
+```text
+src/modules/aura-routing-engine/core/content/
+  cache/
+    data-cache.ts       # DataCache — обёртка над AuraResolvableCache
+    data-key.ts         # dataCacheKey(descriptor, routeInfo)
+  content-load-service.ts   # render + prefetch orchestrator
+  loaders/              # LoaderRegistry, builtins
+```
+
+Интеграция:
+
+- `AuraRouter` создаёт `DataCache` и `ContentLoadService`, передаёт в `AuraRoutingEngine`.
+- `AuraRouter.configure({ dataCache: { max, gcTime, staleTime? } })` — LRU / TTL / опциональный SWR на store.
+- Кэш включается **только** при `preserve="view"` (или bare `preserve`) на route → `descriptor.cache === true`.
+
+См. также `src/modules/aura-routing-engine/core/content/README.md`.
+
+### Инфраструктура кэша
+
+Оба store (DataGraph и DataCache) используют общий **`aura-cache-store`**:
 
 ```text
 ┌─────────────────────────────────────────┐
-│  CacheStore (shared infra, optional)    │
-│  buildKey, dedupe in-flight, TTL, gc    │
+│  AuraCacheStore / AuraResolvableCache   │
+│  LRU, in-flight dedupe (Singleflight),  │
+│  gcTime, optional staleTime (SWR)       │
 └──────────────┬──────────────┬───────────┘
                │              │
-        namespace:data   namespace:content
-        (DataGraph)      (DataCache)
+        DataGraph cache   DataCache (view strings)
 ```
 
-Для v1 content достаточно **простого** `Map<key, Entry>` + dedupe + `preloadStaleTime`.  
-Не обязательно тянуть полный SWR day-1 — можно начать с TTL и расширить.
+По умолчанию `DataCache`: `max: 50`, `gcTime: Infinity`, без `staleTime`.
 
-### Ключ кэша
+### Ключ кэша (`dataCacheKey`)
 
-Как у data (согласованность):
+**Фактический формат:**
 
 ```text
-content:{fullPath}:{serializedParams}:{serializedSearch}
+{pathname}|{sortedQuery}|{loader}:{ref}
 ```
 
-Search входит в ключ (смена query → другой partial при необходимости).
+- `pathname` — resolved path; fallback на `pattern`, если pathname нет.
+- `query` — sorted `key=value` pairs (search входит в ключ).
+- `loader:ref` — из `ContentDescriptor` (`html-src:pages/home.html`).
 
----
+**Не входит в ключ (TODO):** dynamic **path params** (`:id`, `*`). Сейчас разные params при одном pathname могут коллизировать, если partial зависит от params.
 
-## API (черновик)
+Исходный черновик `content:{fullPath}:{params}:{search}` — не реализован; при доработке params сверить с data-key в DataGraph.
+
+### API (как в коде)
+
+`DataCache` — thin wrapper:
 
 ```typescript
-interface DataCacheEntry {
-  payload: string | DocumentFragment;
-  fetchedAt: number;
-}
-
-interface DataCache {
-  get(key: string): DataCacheEntry | undefined;
-  set(key: string, entry: DataCacheEntry): void;
-
-  /** Навигация / render: blocking, ошибка → fail render */
-  load(
-    spec: ContentLoadSpec,
-    options: { signal: AbortSignal; mode: 'blocking' },
-  ): Promise<DataCacheEntry>;
-
-  /** Hover / viewport: фон, ошибка тихо */
-  prefetch(
-    spec: ContentLoadSpec,
-    options: { signal: AbortSignal; mode: 'intent' },
-  ): Promise<void>;
+class DataCache {
+  get(key: string): ViewPayload | undefined;
+  set(key: string, payload: ViewPayload): void;  // только string
+  delete(key: string): void;
+  clear(): void;
+  resolve(key, load): Promise<ViewPayload | null>;  // hit + in-flight dedupe
 }
 ```
 
-`ContentLoadSpec` = route `source` + `content` + resolved URL context.
+Render и prefetch — **не** отдельные `load()` / `prefetch()` на `DataCache`, а **`ContentLoadService`**:
 
-### Интеграция с loaders
+```typescript
+class ContentLoadService {
+  resolve(routeInfo, signal, options?): Promise<ViewPayload | null>;     // navigation / render
+  prefetchNode(routeInfo, signal): Promise<void>;
+  prefetchBranch(chain, signal, options?): Promise<void>;
+  prefetchLeaf(leaf, signal, options?): Promise<void>;
+}
+```
+
+Поток при `preserve="view"`:
 
 ```text
-ContentLoaderRegistry.load(...):
-  key = buildContentKey(route, match)
-  hit = DataCache.get(key)
-  if (hit && !isStale(hit, preloadStaleTime)) return hit.payload
-  return fetch → DataCache.set(key, ...)
+ContentLoadService.resolveDescriptor(...):
+  if (!descriptor.cache) → runLoader()
+  key = dataCacheKey(descriptor, routeInfo)
+  return cache.resolve(key, runLoader)
 ```
 
-Prefetch вызывает тот же loader path с `mode: 'intent'` (без блокировки UI).
+- **Abort** → `null` (без throw).
+- **Loader error** при navigation → `ContentLoadError`.
+- **DocumentFragment** не кэшируется (только string payloads).
 
----
-
-## Prefetch (P1-2)
+### Prefetch (P1-2)
 
 | | Data prefetch | Content prefetch |
 |--|---------------|------------------|
-| Триггер | hover, focusin, IO, Speculation Rules | то же |
-| Guards | нет | нет |
-| Attr | `preload="intent"` на route | то же |
-| TTL | `preloadStaleTime` (~30s) | то же |
-| Store | DataGraph | DataCache |
+| Executor | `DataPrefetchExecutor` | `ContentPrefetchExecutor` |
+| Триггер | hover, focusin, IO, tap | то же (общий prefetch pipeline) |
+| Guards | нет на prefetch | нет |
+| Attr | `prefetch` на route / router; `data-prefetch` на link | то же |
+| Skip repeat | `PrefetchPolicy.staleTimeMs` (~30s default) | то же (на уровне plan, не entry TTL) |
+| Store | DataGraph | DataCache (shared instance) |
 
-Политика attr: `prefetch="none" | "intent" | "render"` — из roadmap.
-
-На navigate guards **только** в pipeline; content берётся из кэша если свежий.
+На navigate guards только в pipeline; content берётся из кэша при hit.
 
 ---
 
@@ -132,68 +152,72 @@ Prefetch вызывает тот же loader path с `mode: 'intent'` (без б
 
 ```text
 render(route):
-  payload = DataCache.load(spec)   // или get + fallback fetch
-  outlet.apply(payload, { strategy }) // replace | patch | stage
+  payload = contentLoad.resolve(routeInfo, signal)
+  outlet.apply(payload, { strategy })   // replace | patch | stage
 ```
 
 - **Patch (P0-5)** — на уровне outlet/renderer, не в DataCache.
 - Cache отдаёт **payload**; outlet решает replace vs patch vs stage (анимация).
+- Отдельный **`RouteViewCache`** (`viewCache` в configure) — keep-alive **DOM** (`detachedRoot`), не путать с `DataCache` (string payloads).
 
 ---
 
 ## Nested
 
-| Сценарий | Data cache |
+| Сценарий | Content cache |
 |----------|---------------|
-| Sibling `/profile` → `/security` | prefetch/load только leaf partial; layout из template, не html-src |
+| Sibling `/profile` → `/security` | prefetch/load leaf partial; layout из `template`, не html-src |
 | Cold enter | layout template (local) + prefetch child `html-src` |
 | LCA reuse | layout DOM стабилен; кэш только для меняющегося leaf |
 
-Layout (`layout="..."`) — обычно `<template id>`, не DataCache.  
-Кэш — для **динамических** `html-src` / `component-src`.
+Layout (`layout="..."`) → descriptor `{ kind: 'layout', loader: 'template', cache: false }`.  
+`DataCache` — для **динамических** `html-src` / `html` при `preserve="view"`.
 
 ---
 
-## invalidate
+## invalidate (TODO)
 
 ```typescript
 router.invalidate({ routes?, keys? })  // P1-3
 ```
 
-Должен сбрасывать и **data**, и **content** ключи (или namespace) для затронутых маршрутов.
+`AuraResolvableCache` уже поддерживает `invalidate` / `invalidateMatch` / `invalidateAll`, но:
 
----
+- `DataCache` не пробрасывает invalidate наружу;
+- `AuraRouter` / engine не вызывают invalidate для content keys при навигации или API.
 
-## Модуль (черновик)
-
-```text
-src/modules/aura-routing-engine/core/content/cache/
-  data-cache.ts    # LRU + in-flight dedupe (DataCache)
-  data-key.ts      # dataCacheKey(route, descriptor)
-```
-
-Интеграция: `ContentLoadService` принимает `DataCache` через DI; `AuraRouter.configure({ dataCache })` задаёт LRU-опции.
+DataGraph.invalidate* уже есть — content side нужно связать в том же `router.invalidate()`.
 
 ---
 
 ## Критерии готовности
 
-- [ ] Ключ: fullPath + params + search
-- [ ] `preloadStaleTime`, dedupe in-flight fetch
-- [ ] `prefetch()` intent mode (фон, без throw в UI)
-- [ ] `load()` в render с cache hit
-- [ ] Общий prefetch триггер с DataGraph (href → match → оба warmup)
-- [ ] `invalidate()` чистит content keys
-- [ ] Тесты: hit, miss, stale, prefetch, abort signal
+> **Легенда:** <span style="color: #2ea043; font-weight: bold;">✓</span> готово · <span style="color: #cf222e; font-weight: bold;">✗</span> не сделано
+
+- <span style="color: #2ea043; font-weight: bold;">✓</span> Engine-level cache для view loaders (`DataCache` + `ContentLoadService`)
+- <span style="color: #2ea043; font-weight: bold;">✓</span> Ключ: pathname/pattern + query + loader:ref
+- <span style="color: #cf222e; font-weight: bold;">✗</span> Ключ: **path params** (`:id`, splat)
+- <span style="color: #2ea043; font-weight: bold;">✓</span> In-flight dedupe (`AuraResolvableCache.resolve`)
+- <span style="color: #2ea043; font-weight: bold;">✓</span> LRU (`max`), `gcTime` через `AuraRouter.configure({ dataCache })`)
+- <span style="color: #2ea043; font-weight: bold;">✓</span> Prefetch intent (общий pipeline, `ContentPrefetchExecutor`)
+- <span style="color: #2ea043; font-weight: bold;">✓</span> Cache hit на navigation render (`preserve="view"`)
+- <span style="color: #2ea043; font-weight: bold;">✓</span> Общий prefetch триггер с DataGraph (href → match → data + content resources)
+- <span style="color: #cf222e; font-weight: bold;">✗</span> `router.invalidate()` чистит content keys
+- <span style="color: #cf222e; font-weight: bold;">✗</span> Navigation SWR для view (`staleTime` на DataCache + revalidate on navigate)
+- <span style="color: #2ea043; font-weight: bold;">✓</span> Тесты: hit, miss, dedupe, LRU, prefetch+navigation shared key, query in key
+- <span style="color: #cf222e; font-weight: bold;">✗</span> Тесты: stale/SWR для content, abort на prefetch, params in key
+
+**Тесты:** `src/modules/aura-route/test/loader/data-cache.test.ts`, `data-key.test.ts`, `src/modules/aura-routing-engine/test/content/content-view-flow.test.ts`, prefetch wiring tests.
 
 ---
 
 ## Open questions
 
-1. **Один CacheStore с DataGraph** — вынести key/TTL/dedupe в shared util или дублировать в v1?
-2. **Кэш DocumentFragment vs string** — clone on get vs хранить string и парсить один раз?
+1. ~~**Один CacheStore с DataGraph**~~ — **решено v1:** общий `aura-cache-store`, отдельные инстансы.
+2. ~~**DocumentFragment vs string**~~ — **решено:** кэшируем только `string`; fragment всегда fresh load.
 3. **component-src** — кэш module namespace / custom element registry отдельно от HTML?
-4. **`cache` attr на route** — связать с DataCache TTL или отдельная политика?
+4. **`preserve` / per-route TTL** — связать attr route с `staleTime`/`gcTime` DataCache или только global configure?
+5. **Params в ключе** — сериализация как в DataGraph или отдельный формат?
 
 ---
 

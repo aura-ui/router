@@ -11,7 +11,7 @@ Composable lifecycle hooks and nested routes, declared in markup.
 npm install @aura-ui-web/router
 ```
 
-> **Target API.** This README describes the **intended public API** the project is converging on. A pre-release build may lag behind — see [ROADMAP](./docs/ROADMAP.md) for status. Internal design docs may use interim names until the migration is complete.
+> **Target API.** This README describes the **intended public API** the project is converging on. A pre-release build may lag behind — see [ROADMAP](./ROADMAP.md) for status. Internal design docs may use interim names until the migration is complete.
 
 ---
 
@@ -371,7 +371,7 @@ Commit messages follow [Conventional Commits](./CONTRIBUTING.md).
 | Navigation model | [docs/NAVIGATION_MODEL.md](./docs/NAVIGATION_MODEL.md) |
 | Nested routes | [docs/NESTED_ROUTES.md](./docs/NESTED_ROUTES.md) |
 | Prefetch | [docs/PREFETCH_ARCHITECTURE.md](./docs/PREFETCH_ARCHITECTURE.md) |
-| Roadmap | [docs/ROADMAP.md](./docs/ROADMAP.md) |
+| Roadmap | [ROADMAP.md](./ROADMAP.md) |
 | Module: `<aura-router>` | [src/modules/aura-router/README.md](./src/modules/aura-router/README.md) |
 
 ---

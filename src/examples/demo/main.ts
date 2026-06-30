@@ -8,10 +8,12 @@ import { customLoader, CUSTOM_LOADER_TYPE } from './loaders/custom-loader';
 import { slowLoader, SLOW_LOADER_TYPE } from './loaders/slow-loader';
 import { authHook, type AuthHookOptions } from './hooks/auth.hook';
 import { analyticsHook } from './hooks/analytics.hook';
+import { userStatsHook } from './hooks/user-stats.hook';
 import { fadeTransitionHook, slideTransitionHook } from './hooks/view-transition.hook';
 import { demoAuthEnabled, setDemoAuth } from './demo-state';
 import { resolveScenario } from './scenarios';
 import { storyForPath } from './stories';
+import { DemoTour, isTourDone } from './tour';
 
 defaultLoaderRegistry.register(CUSTOM_LOADER_TYPE, customLoader);
 defaultLoaderRegistry.register(SLOW_LOADER_TYPE, slowLoader);
@@ -23,6 +25,7 @@ AuraRouter.configure({
 
 AuraRouter.use(authHook, { redirect: '/login' } satisfies AuthHookOptions);
 AuraRouter.use(analyticsHook);
+AuraRouter.use(userStatsHook);
 AuraRouter.use(fadeTransitionHook);
 AuraRouter.use(slideTransitionHook);
 AuraRouter.install();
@@ -33,23 +36,44 @@ type LogEntry = { time: string; message: string; kind: LogKind };
 const router = document.querySelector<AuraRouter>(AuraRouter.is);
 const pathLabel = document.getElementById('demo-current-path');
 const urlBadge = document.getElementById('demo-url-badge');
+const urlCopyBtn = document.getElementById('demo-url-copy') as HTMLButtonElement | null;
 const routeRecipe = document.getElementById('demo-route-recipe');
 const logList = document.getElementById('demo-log-list');
 const authToggle = document.getElementById('demo-auth-toggle') as HTMLButtonElement | null;
 const authStatus = document.getElementById('demo-auth-status');
 const policyButtons = document.querySelectorAll<HTMLButtonElement>('[data-transition-policy]');
 const topbarTagline = document.getElementById('topbar-tagline');
+const devToggle = document.getElementById('demo-dev-toggle') as HTMLButtonElement | null;
 
 const storyBar = document.getElementById('demo-story-bar');
 const storyTitle = document.getElementById('demo-story-title');
 const storyTry = document.getElementById('demo-story-try');
 const storyWatch = document.getElementById('demo-story-watch');
+const storyExtras = document.getElementById('demo-story-extras');
 const devPanel = document.getElementById('demo-dev-panel');
+const tourRoot = document.getElementById('demo-tour-root');
 
-const MAX_LOG = 8;
+const MAX_LOG = 12;
 const logEntries: LogEntry[] = [];
 let lastPath = location.pathname;
 let urlPulseTimer = 0;
+let scrollListenerAttached = false;
+let devPanelOpen = false;
+
+const tour = tourRoot ? new DemoTour(tourRoot) : null;
+
+function isDevDetailPath(path: string): boolean {
+  return (
+    path.startsWith('/dev') ||
+    path.startsWith('/loaders/') ||
+    path.startsWith('/ux/') ||
+    path.startsWith('/hooks/data')
+  );
+}
+
+function isTransitionPath(path: string): boolean {
+  return path.startsWith('/t/');
+}
 
 function setPageMode(path: string): void {
   const story = storyForPath(path);
@@ -57,10 +81,17 @@ function setPageMode(path: string): void {
 
   document.body.classList.toggle('mode-home', isHome);
   document.body.classList.toggle('mode-story', !isHome);
+  document.body.classList.toggle('mode-dev-detail', isDevDetailPath(path));
   document.body.classList.toggle('show-auth', !!story?.showAuth);
 
   if (topbarTagline) {
     topbarTagline.textContent = isHome ? 'Страницы без перезагрузки' : (story?.title ?? 'Демо');
+  }
+
+  if (devToggle) {
+    if (isHome) devToggle.setAttribute('hidden', '');
+    else devToggle.removeAttribute('hidden');
+    devToggle.classList.toggle('is-active', devPanelOpen && !devPanel?.hasAttribute('hidden'));
   }
 
   if (storyBar) {
@@ -68,9 +99,16 @@ function setPageMode(path: string): void {
     else storyBar.removeAttribute('hidden');
   }
 
+  if (storyExtras) {
+    if (isTransitionPath(path)) storyExtras.removeAttribute('hidden');
+    else storyExtras.setAttribute('hidden', '');
+  }
+
   if (story && storyTitle) storyTitle.textContent = `${story.icon} ${story.title}`;
   if (story && storyTry) storyTry.textContent = story.try;
   if (story && storyWatch) storyWatch.textContent = story.watch;
+
+  syncScrollUi(path);
 }
 
 function formatRecipe(recipe: string): string {
@@ -129,6 +167,54 @@ function pulseUrlBar(): void {
   }, 2200);
 }
 
+function focusSceneTitle(): void {
+  requestAnimationFrame(() => {
+    const title = document.querySelector<HTMLElement>('.stage__viewport .scene__title');
+    if (!title) return;
+    title.tabIndex = -1;
+    title.focus({ preventScroll: true });
+  });
+}
+
+function syncScrollUi(path: string): void {
+  const onScrollPage = path === '/ux/scroll';
+
+  if (onScrollPage && !scrollListenerAttached) {
+    window.addEventListener('scroll', updateScrollProgress, { passive: true });
+    scrollListenerAttached = true;
+    updateScrollProgress();
+  }
+
+  if (!onScrollPage && scrollListenerAttached) {
+    window.removeEventListener('scroll', updateScrollProgress);
+    scrollListenerAttached = false;
+  }
+}
+
+function updateScrollProgress(): void {
+  const hint = document.querySelector<HTMLElement>('[data-scroll-hint]');
+  const bar = document.querySelector<HTMLElement>('.scroll-progress__bar');
+  const doc = document.documentElement;
+  const max = doc.scrollHeight - doc.clientHeight;
+  const pct = max > 0 ? Math.round((window.scrollY / max) * 100) : 0;
+
+  if (bar) bar.style.width = `${pct}%`;
+  if (hint) {
+    hint.textContent =
+      pct >= 95
+        ? `Прокрутка: ${pct}% — уйдите на главную и вернитесь для restore`
+        : `Прокрутка: ${pct}% — прокрутите до конца для проверки restore`;
+  }
+}
+
+function setDevPanelOpen(open: boolean): void {
+  devPanelOpen = open;
+  if (!devPanel) return;
+  if (open) devPanel.removeAttribute('hidden');
+  else devPanel.setAttribute('hidden', '');
+  devToggle?.classList.toggle('is-active', open);
+}
+
 function updateChrome(): void {
   const path = location.pathname;
 
@@ -139,6 +225,7 @@ function updateChrome(): void {
   if (path !== lastPath) {
     lastPath = path;
     if (path !== '/') pulseUrlBar();
+    focusSceneTitle();
   }
 
   setPageMode(path);
@@ -158,7 +245,7 @@ function updateChrome(): void {
 }
 
 function goHome(): void {
-  devPanel?.setAttribute('hidden', '');
+  setDevPanelOpen(false);
   router?.navigate('/', { syncHistory: true });
 }
 
@@ -176,6 +263,30 @@ function restartRouter(nextPolicy: string): void {
   pushLog(`Анимация: ${nextPolicy}`, 'system');
 }
 
+async function copyCurrentUrl(): Promise<void> {
+  const url = `${location.origin}${location.pathname}${location.search}${location.hash}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    urlCopyBtn?.classList.add('is-copied');
+    urlCopyBtn && (urlCopyBtn.textContent = '✓');
+    window.setTimeout(() => {
+      urlCopyBtn?.classList.remove('is-copied');
+      if (urlCopyBtn) urlCopyBtn.textContent = 'Копировать';
+    }, 1600);
+    pushLog('URL скопирован', 'system');
+  } catch {
+    pushLog('Не удалось скопировать URL', 'error');
+  }
+}
+
+if (router) {
+  const nativePrefetch = router.prefetch.bind(router);
+  router.prefetch = async (href, options) => {
+    pushLog(`Prefetch ${href}${options?.mode ? ` (${options.mode})` : ''}`, 'system');
+    return nativePrefetch(href, options);
+  };
+}
+
 router?.addEventListener(AURA_ROUTER_NOT_FOUND, (event) => {
   const { url, source } = (event as CustomEvent<{ url: string; source: string }>).detail;
   pushLog(`404 (${source}): ${url}`, 'error');
@@ -183,9 +294,25 @@ router?.addEventListener(AURA_ROUTER_NOT_FOUND, (event) => {
 });
 
 router?.addEventListener(AURA_ROUTER_NAVIGATION_ERROR, (event) => {
-  const { code, to } = (event as CustomEvent<{ code: string; to: string }>).detail;
-  pushLog(`Ошибка ${code} на ${to}`, 'error');
+  const detail = (event as CustomEvent<{ code: string; to: string; phase: string }>).detail;
+  pushLog(`Ошибка ${detail.code} (${detail.phase}) → ${detail.to}`, 'error');
   queueMicrotask(updateChrome);
+});
+
+document.addEventListener('demo:pageview', (event) => {
+  const { path } = (event as CustomEvent<{ path: string }>).detail;
+  pushLog(`Открыта ${path}`, 'nav');
+  queueMicrotask(updateChrome);
+});
+
+document.addEventListener('demo:loader', (event) => {
+  const { type } = (event as CustomEvent<{ type: string }>).detail;
+  pushLog(`Loader: ${type}`, 'system');
+});
+
+document.addEventListener('demo:load-hook', (event) => {
+  const { hook } = (event as CustomEvent<{ hook: string }>).detail;
+  pushLog(`Load hook «${hook}» выполнен`, 'system');
 });
 
 document.addEventListener('click', (event) => {
@@ -196,11 +323,23 @@ document.addEventListener('click', (event) => {
     return;
   }
   if (target.closest('#demo-story-code')) {
-    devPanel?.removeAttribute('hidden');
+    setDevPanelOpen(true);
     return;
   }
   if (target.closest('#demo-dev-close')) {
-    devPanel?.setAttribute('hidden', '');
+    setDevPanelOpen(false);
+    return;
+  }
+  if (target.closest('#demo-dev-toggle')) {
+    setDevPanelOpen(!!devPanel?.hasAttribute('hidden'));
+    return;
+  }
+  if (target.closest('#demo-url-copy')) {
+    void copyCurrentUrl();
+    return;
+  }
+  if (target.closest('#demo-tour-start')) {
+    tour?.start();
     return;
   }
 
@@ -230,19 +369,15 @@ document.addEventListener('click', (event) => {
   }
 });
 
-const nativeLog = console.log.bind(console);
-console.log = (...args: unknown[]) => {
-  const first = args[0];
-  if (typeof first === 'string' && first.startsWith('[Analytics]')) {
-    const path = first.replace('[Analytics] pageview: ', '');
-    pushLog(`Открыта ${path}`, 'nav');
-    queueMicrotask(updateChrome);
-  }
-  nativeLog(...args);
-};
-
 syncTransitionPolicyUi(router?.getAttribute('data-transition') ?? 'parallel');
 syncAuthUi();
 updateChrome();
 
-window.addEventListener('popstate', updateChrome);
+window.addEventListener('popstate', () => {
+  pushLog(`popstate → ${location.pathname}`, 'nav');
+  updateChrome();
+});
+
+if (location.pathname === '/' && !isTourDone()) {
+  window.setTimeout(() => tour?.start(), 400);
+}

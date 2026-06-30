@@ -1,7 +1,9 @@
 import { defineRouteHook } from '../../../modules/aura-routing-engine/core';
 
 function track(event: string, path: string): void {
-  console.log(`[Analytics] ${event}: ${path}`);
+  document.dispatchEvent(
+    new CustomEvent('demo:pageview', { detail: { event, path } }),
+  );
 }
 
 export const analyticsHook = defineRouteHook({

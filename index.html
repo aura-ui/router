@@ -1,573 +1,459 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aura Router — Demo</title>
+  <title>Aura Router — демо</title>
   <style>
     :root {
       color-scheme: light;
-      --bg: #f3f4f8;
+      --bg: #eceef4;
       --surface: #fff;
-      --border: #e2e5ee;
-      --border-strong: #c8cdd8;
-      --text: #14171f;
-      --muted: #5c6478;
-      --accent: #3b5bdb;
+      --surface-2: #f6f7fb;
+      --border: #dde1ea;
+      --text: #12151c;
+      --muted: #5f677a;
+      --accent: #4263eb;
       --accent-soft: #edf2ff;
       --accent-border: #bac8ff;
-      --accent-hover: #2f4ac0;
-      --code: #364fc7;
-      --radius: 12px;
-      --shadow: 0 1px 2px rgb(20 23 31 / 6%), 0 8px 24px rgb(20 23 31 / 6%);
-      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
-      --mono: ui-monospace, "Cascadia Code", "SF Mono", monospace;
+      --accent-hover: #364fc7;
+      --ok: #2b8a3e;
+      --ok-soft: #ebfbee;
+      --warn: #e67700;
+      --danger: #c92a2a;
+      --radius: 14px;
+      --shadow: 0 1px 2px rgb(18 21 28 / 4%), 0 12px 32px rgb(18 21 28 / 7%);
+      --font: "Segoe UI", system-ui, sans-serif;
+      --mono: ui-monospace, "Cascadia Code", monospace;
       --sticky-top: 1rem;
-      --outlet-min: 300px;
     }
 
     *, *::before, *::after { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font: 15px/1.5 var(--font);
-      color: var(--text);
-      background: var(--bg);
-    }
-
+    body { margin: 0; min-height: 100vh; font: 15px/1.55 var(--font); color: var(--text); background: var(--bg); }
     a { color: var(--accent); text-decoration: none; }
     a:hover { color: var(--accent-hover); }
+    code { font: 0.85em/1.35 var(--mono); padding: 0.1em 0.35em; border-radius: 4px; background: var(--accent-soft); color: #364fc7; }
 
-    code {
-      font: 0.88em/1.4 var(--mono);
-      padding: 0.12em 0.4em;
-      border-radius: 4px;
-      background: var(--accent-soft);
-      color: var(--code);
+    .shell { max-width: 1200px; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
+
+    /* Top bar */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 0.85rem 1.1rem; margin-bottom: 1rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .topbar__brand { display: flex; align-items: center; gap: 0.75rem; }
+    .topbar__logo {
+      width: 2.35rem; height: 2.35rem; border-radius: 9px;
+      background: linear-gradient(135deg, #4c6ef5, #7048e8);
+      display: grid; place-items: center; color: #fff; font-weight: 700;
+    }
+    .topbar__brand h1 { margin: 0; font-size: 1.05rem; font-weight: 650; letter-spacing: -0.02em; }
+    .topbar__brand p { margin: 0; font-size: 0.82rem; color: var(--muted); }
+    .topbar__actions { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+
+    .auth-chip {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.35rem 0.5rem 0.35rem 0.75rem;
+      border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2);
+      font-size: 0.8rem;
+    }
+    .auth-chip__state { color: var(--warn); font-weight: 600; }
+    .auth-chip__state[data-state="on"] { color: var(--ok); }
+    .auth-chip button {
+      border: 1px solid var(--border); border-radius: 999px; padding: 0.25rem 0.65rem;
+      background: var(--surface); cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+    }
+    .auth-chip button.is-on { border-color: #8ce99a; background: var(--ok-soft); color: var(--ok); }
+
+    .topbar__link { font-size: 0.82rem; color: var(--muted); }
+
+    /* Grid */
+    .grid { display: grid; grid-template-columns: 260px 1fr; gap: 1rem; align-items: start; }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .stage { position: static; }
     }
 
-    .demo-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+    /* Nav — single panel */
+    .nav {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 0.85rem;
+      position: sticky; top: var(--sticky-top); align-self: start;
     }
+    .nav__lead { margin: 0 0 0.85rem; font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
 
-    .demo-header {
-      padding: 1.25rem 1.5rem;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
+    .nav section + section { margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--border); }
+
+    .nav h2 {
+      margin: 0 0 0.35rem; font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
     }
-
-    .demo-header__inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
+    .nav ul { list-style: none; margin: 0; padding: 0; }
+    .nav a {
+      display: block; padding: 0.38rem 0.5rem; border-radius: 8px;
+      color: var(--text); font-size: 0.86rem; transition: background 0.12s;
     }
+    .nav a:hover { background: var(--surface-2); color: var(--accent); }
+    .nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    .nav a.is-external { color: var(--muted); font-size: 0.82rem; }
+    .nav a.is-external::after { content: " ↗"; font-size: 0.75em; opacity: 0.6; }
 
-    .demo-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+    .nav__note { margin: 0.45rem 0 0; font-size: 0.74rem; color: var(--muted); line-height: 1.4; }
+
+    .transition-row { display: flex; gap: 0.25rem; margin: 0.35rem 0 0.45rem; }
+    .transition-row button {
+      flex: 1; border: 1px solid var(--border); border-radius: 7px; padding: 0.28rem;
+      background: var(--surface); cursor: pointer; font: inherit; font-size: 0.72rem; color: var(--muted);
     }
+    .transition-row button.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 
-    .demo-brand__mark {
-      width: 2.25rem;
-      height: 2.25rem;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #4c6ef5, #7950f2);
-      display: grid;
-      place-items: center;
-      color: #fff;
-      font-weight: 700;
-      font-size: 0.95rem;
-      flex-shrink: 0;
-    }
-
-    .demo-brand h1 {
-      margin: 0;
-      font-size: 1.125rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-
-    .demo-brand p {
-      margin: 0.15rem 0 0;
-      font-size: 0.875rem;
-      color: var(--muted);
-    }
-
-    .demo-badge {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      border: 1px solid var(--accent-border);
-    }
-
-    .demo-layout {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 1.5rem;
-      display: grid;
-      grid-template-columns: minmax(240px, 280px) 1fr;
-      gap: 1.25rem;
-      align-items: start;
-    }
-
-    @media (max-width: 768px) {
-      .demo-layout { grid-template-columns: 1fr; }
-      .demo-main { position: static; }
-    }
-
-    .demo-sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-    }
-
-    .demo-main {
-      min-width: 0;
+    /* Stage — main preview (sticky right column) */
+    .stage {
       position: sticky;
       top: var(--sticky-top);
       align-self: start;
+      min-width: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: visible; min-height: 480px; display: flex; flex-direction: column;
     }
 
-    .demo-nav-group { padding: 0.85rem 1rem; }
-
-    .demo-nav-group h2 {
-      margin: 0 0 0.65rem;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
+    .stage__context {
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-2);
+      display: grid; grid-template-columns: 1fr auto; gap: 0.75rem 1.25rem; align-items: start;
+    }
+    .stage__group {
+      display: inline-block; margin-bottom: 0.35rem; font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent);
+    }
+    .stage__context h2 { margin: 0 0 0.25rem; font-size: 1.2rem; font-weight: 650; letter-spacing: -0.02em; }
+    .stage__context p { margin: 0; font-size: 0.88rem; color: var(--muted); max-width: 52ch; }
+    .stage__url {
+      font: 0.8rem/1.4 var(--mono); padding: 0.4rem 0.65rem;
+      border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      white-space: nowrap;
     }
 
-    .demo-nav-group ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
+    .stage__viewport { flex: 1; position: relative; min-height: 320px; overflow: hidden; }
+    .stage__viewport aura-outlet { display: block; min-height: inherit; position: relative; }
+    .stage__viewport aura-outlet > [data-aura-view-root] {
+      padding: 1.35rem 1.5rem; min-height: inherit;
+    }
+    /* stacked roots for transitions */
+    .stage__viewport aura-outlet > [data-aura-view-root]:not(:only-child) {
+      position: absolute; inset: 0; overflow: hidden;
     }
 
-    .demo-nav-group a {
-      display: block;
-      padding: 0.45rem 0.55rem;
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 0.9rem;
-      transition: background 0.15s, color 0.15s;
+    .stage__log {
+      border-top: 1px solid var(--border); padding: 0.55rem 1.25rem; background: var(--surface-2);
+      display: flex; gap: 0.75rem; align-items: baseline; font-size: 0.76rem; color: var(--muted);
+    }
+    .stage__log strong { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); white-space: nowrap; }
+    .stage__log ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; }
+    .stage__log li { font-family: var(--mono); font-size: 0.74rem; }
+
+    /* Scene — unified content blocks inside outlet */
+    .scene { max-width: 40rem; }
+    .scene--welcome { max-width: none; }
+    .scene--narrow { max-width: 28rem; }
+    .scene--center { text-align: center; margin: 0 auto; }
+    .scene--row { display: flex; gap: 1rem; align-items: flex-start; max-width: none; }
+    .scene--scroll { max-width: none; }
+
+    .scene__eyebrow {
+      margin: 0 0 0.35rem; font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent);
+    }
+    .scene__title { margin: 0 0 0.45rem; font-size: 1.45rem; font-weight: 650; letter-spacing: -0.025em; }
+    .scene__text { margin: 0; color: var(--muted); line-height: 1.6; }
+    .scene__text--lead { font-size: 1rem; max-width: 46ch; margin-bottom: 1.25rem; }
+
+    .scene__callout {
+      margin-top: 1rem; padding: 0.7rem 0.85rem; border-radius: 10px;
+      background: var(--accent-soft); border: 1px solid var(--accent-border);
+      font-size: 0.88rem; color: var(--text); line-height: 1.5;
+    }
+    .scene__callout--ok { background: var(--ok-soft); border-color: #8ce99a; }
+
+    .scene__links { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    .scene__links a {
+      font-size: 0.86rem; font-weight: 500; padding: 0.4rem 0.7rem;
+      border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border);
+    }
+    .scene__links a:hover { border-color: var(--accent-border); background: var(--accent-soft); }
+
+    .scene__facts { margin: 1rem 0 0; display: grid; gap: 0.4rem; font-size: 0.86rem; }
+    .scene__facts div { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.5rem; }
+    .scene__facts dt { margin: 0; color: var(--muted); }
+    .scene__facts dd { margin: 0; }
+
+    .scene__field { display: grid; gap: 0.35rem; margin-top: 1rem; font-size: 0.86rem; color: var(--muted); }
+    .scene__field input {
+      padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: 8px; font: inherit;
     }
 
-    .demo-nav-group a:hover {
-      background: var(--bg);
-      color: var(--accent);
+    .scene__btn {
+      margin-top: 1rem; padding: 0.6rem 1.35rem; border: none; border-radius: 9px;
+      background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .scene__btn:hover { background: var(--accent-hover); }
+
+    /* Welcome grid */
+    .start-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+      gap: 0.65rem; max-width: 42rem;
+    }
+    .start-card {
+      display: grid; gap: 0.2rem; padding: 0.85rem 0.95rem;
+      border: 1px solid var(--border); border-radius: 11px; background: var(--surface-2); color: inherit;
+      transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+    .start-card:hover {
+      border-color: var(--accent-border); transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgb(66 99 235 / 10%); color: inherit;
+    }
+    .start-card__num {
+      width: 1.5rem; height: 1.5rem; border-radius: 6px;
+      background: var(--accent-soft); color: var(--accent);
+      display: grid; place-items: center; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.15rem;
+    }
+    .start-card strong { font-size: 0.9rem; color: var(--text); }
+    .start-card span { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+
+    /* User avatar */
+    .user-card__avatar {
+      width: 3.75rem; height: 3.75rem; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, #4c6ef5, #7950f2);
+      color: #fff; font-size: 1.4rem; font-weight: 700;
+      display: grid; place-items: center;
     }
 
-    .demo-nav-group a[aria-current="page"] {
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 600;
+    /* Scroll demo */
+    .scroll-markers { margin-top: 1rem; display: grid; gap: 0.5rem; }
+    .scroll-markers__item {
+      padding: 0.75rem 1rem; border-radius: 8px;
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); font-size: 0.88rem;
     }
+    .scroll-markers__item:nth-child(even) { background: var(--accent-soft); }
+    .scroll-markers__item--end { font-weight: 600; color: var(--accent); text-align: center; }
 
-    .demo-nav-group a.is-external {
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    .demo-nav-group a.is-external::after {
-      content: " ↗";
-      font-size: 0.75em;
-      opacity: 0.7;
-    }
-
-    .demo-nav-hint {
-      margin: 0.5rem 0 0;
-      font-size: 0.78rem;
-      color: var(--muted);
-      line-height: 1.4;
-    }
-
-    .transition-policy {
-      display: flex;
-      gap: 0.35rem;
-      margin-bottom: 0.65rem;
-    }
-
-    .transition-policy button {
-      flex: 1;
-      border: 1px solid var(--border-strong);
-      border-radius: 8px;
-      padding: 0.35rem 0.5rem;
-      background: var(--surface);
-      cursor: pointer;
-      font: inherit;
-      font-size: 0.78rem;
-      color: var(--muted);
-      transition: border-color 0.15s, background 0.15s, color 0.15s;
-    }
-
-    .transition-policy button:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .transition-policy button.is-active {
-      border-color: var(--accent);
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    .demo-outlet-card { overflow: hidden; }
-
-    .demo-outlet-card__bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.65rem 1rem;
-      border-bottom: 1px solid var(--border);
-      background: #fafbfc;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-
-    .demo-outlet-card__bar strong {
-      color: var(--text);
-      font-weight: 600;
-      font-family: var(--mono);
-      font-size: 0.85em;
-    }
-
-    .demo-outlet-wrap {
-      position: relative;
-      min-height: var(--outlet-min);
-    }
-
-    .demo-outlet-wrap aura-outlet {
-      display: block;
-      min-height: inherit;
-    }
-
-    .demo-outlet-wrap aura-outlet > [data-aura-view-root] {
-      position: absolute;
-      inset: 0;
-      padding: 1.5rem;
-    }
-
-    .view-panel {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .view-panel h2 {
-      margin: 0 0 0.35rem;
-      font-size: 1.35rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-
-    .view-panel p,
-    .t-page p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.55;
-    }
-
-    .view-panel p { max-width: 36ch; }
-
-    .view-tag {
-      display: inline-block;
-      margin-bottom: 0.75rem;
-      font-size: 0.72rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--accent);
-    }
-
-    .view-welcome {
-      text-align: center;
-      align-items: center;
-    }
-
-    .view-welcome p { max-width: 42ch; }
-
-    .view-welcome__icon {
-      width: 3rem;
-      height: 3rem;
-      margin-bottom: 1rem;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #edf2ff, #dbe4ff);
-      display: grid;
-      place-items: center;
-      font-size: 1.5rem;
-    }
-
-    .view-links {
-      margin-top: 0.75rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .t-page {
-      height: 100%;
-      border-radius: 8px;
-      padding: 1.25rem;
-      color: var(--text);
-    }
-
-    .t-page h1 {
-      margin: 0 0 0.5rem;
-      font-size: 1.5rem;
-      letter-spacing: -0.02em;
-    }
-
+    /* Transitions */
+    .t-page { min-height: 280px; border-radius: 10px; padding: 1.25rem; height: 100%; box-sizing: border-box; }
+    .t-page h1 { margin: 0 0 0.4rem; font-size: 1.5rem; }
+    .t-page p { margin: 0; color: var(--muted); max-width: 40ch; }
     .t-home { background: linear-gradient(135deg, #edf2ff, #dbe4ff); }
     .t-about { background: linear-gradient(135deg, #e6fcf5, #c3fae8); }
     .t-gallery { background: linear-gradient(135deg, #f3f0ff, #e5dbff); }
-    .t-slide-a { background: linear-gradient(135deg, #fff9db, #ffec99); }
-    .t-slide-b { background: linear-gradient(135deg, #ffe8cc, #ffc078); }
 
-    .tpl-loading,
-    .tpl-error,
-    .tpl-404 {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 200px;
-      text-align: center;
-      gap: 0.5rem;
+    /* Shell templates */
+    .users-shell { display: flex; flex-direction: column; min-height: 260px; margin: -1.35rem -1.5rem; }
+    .users-shell__bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+      padding: 0.55rem 1rem; background: var(--accent-soft); border-bottom: 1px solid var(--accent-border);
+      font-size: 0.82rem; font-weight: 600; color: var(--accent);
     }
+    .users-shell__links { display: flex; gap: 0.25rem; font-weight: 500; }
+    .users-shell__links a { padding: 0.15rem 0.45rem; border-radius: 6px; color: var(--accent); }
+    .users-shell aura-outlet { flex: 1; position: relative; min-height: 180px; }
+    .users-shell aura-outlet > [data-aura-view-root] { padding: 1.25rem 1.5rem; }
 
+    .tpl-loading, .tpl-error, .tpl-404 {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 220px; text-align: center; gap: 0.5rem;
+    }
     .tpl-loading { color: var(--muted); }
-
     .tpl-loading::before {
-      content: "";
-      width: 1.75rem;
-      height: 1.75rem;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      content: ""; width: 1.75rem; height: 1.75rem;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .tpl-error { color: #c92a2a; }
-
-    .tpl-404 h1 {
-      margin: 0;
-      font-size: 3rem;
-      font-weight: 700;
-      color: var(--border-strong);
-    }
-
-    .users-shell {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .users-shell__nav {
-      padding: 0.65rem 1rem;
-      background: var(--accent-soft);
-      border-bottom: 1px solid var(--accent-border);
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    .users-shell aura-outlet {
-      flex: 1;
-      min-height: 160px;
-      position: relative;
-    }
-
-    .users-shell aura-outlet > [data-aura-view-root] {
-      position: absolute;
-      inset: 0;
-      padding: 1.25rem;
-    }
+    .tpl-error { color: var(--danger); }
+    .tpl-404 h1 { margin: 0; font-size: 3rem; font-weight: 700; color: #c8ceda; }
 
     #app-router { display: contents; }
   </style>
 </head>
 <body>
 
-<header class="demo-header">
-  <div class="demo-header__inner">
-    <div class="demo-brand">
-      <div class="demo-brand__mark" aria-hidden="true">A</div>
+<div class="shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo" aria-hidden="true">A</div>
       <div>
         <h1>Aura Router</h1>
-        <p>Declarative routing for Web Components</p>
+        <p>Интерактивное демо маршрутизации</p>
       </div>
     </div>
-    <span class="demo-badge">demo · 0.0.1</span>
-  </div>
-</header>
-
-<div class="demo-layout">
-  <aside class="demo-sidebar" aria-label="Demo navigation">
-    <nav class="demo-nav-group demo-card">
-      <h2>Start</h2>
-      <ul>
-        <li><a href="/" data-router-link>Welcome</a></li>
-      </ul>
-    </nav>
-
-    <nav class="demo-nav-group demo-card">
-      <h2>View loaders</h2>
-      <ul>
-        <li><a href="/a" data-router-link>Inline HTML</a></li>
-        <li><a href="/b" data-router-link>Fetch partial</a></li>
-        <li><a href="/c" data-router-link>Template clone</a></li>
-        <li><a href="/custom-loader" data-router-link>Custom loader</a></li>
-        <li><a href="/d" data-router-link>Component (error)</a></li>
-        <li><a href="/f" data-router-link>Dynamic component</a></li>
-      </ul>
-    </nav>
-
-    <nav class="demo-nav-group demo-card">
-      <h2>Nested routes</h2>
-      <ul>
-        <li><a href="/users" data-router-link>Users layout</a></li>
-        <li><a href="/users/about" data-router-link>Users / about</a></li>
-      </ul>
-    </nav>
-
-    <nav class="demo-nav-group demo-card" id="transitions-nav">
-      <h2>Transitions</h2>
-      <div class="transition-policy" role="group" aria-label="Transition order">
-        <button type="button" data-transition-policy="parallel" class="is-active">parallel</button>
-        <button type="button" data-transition-policy="out-in">out-in</button>
-        <button type="button" data-transition-policy="in-out">in-out</button>
+    <div class="topbar__actions">
+      <div class="auth-chip" title="Нужно для сценария «Защищённая страница»">
+        <span>Auth: <span class="auth-chip__state" id="demo-auth-status" data-state="off">Гость</span></span>
+        <button type="button" id="demo-auth-toggle" data-demo-auth-toggle>Войти</button>
       </div>
-      <ul>
-        <li><a href="/t/home" data-router-link>Home</a></li>
-        <li><a href="/t/about" data-router-link>About</a></li>
-        <li><a href="/t/gallery" data-router-link>Gallery</a></li>
-        <li><a href="/t/slide-a" data-router-link>Slide A</a></li>
-        <li><a href="/t/slide-b" data-router-link>Slide B</a></li>
-      </ul>
-      <p class="demo-nav-hint">
-        Uses <code>transition-in</code> / <code>transition-out</code> hooks with staged outlet views.
-      </p>
+      <a class="topbar__link" href="https://github.com/aura-ui/router" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </header>
+
+  <div class="grid">
+    <nav class="nav" aria-label="Сценарии">
+      <p class="nav__lead">Слева — тема, справа — что происходит при навигации.</p>
+
+      <section>
+        <h2>Загрузка страниц</h2>
+        <ul>
+          <li><a href="/loaders/html" data-router-link data-nav-group="Загрузка">HTML в атрибуте</a></li>
+          <li><a href="/loaders/fetch" data-router-link data-nav-group="Загрузка">HTML с сервера</a></li>
+          <li><a href="/loaders/template" data-router-link data-nav-group="Загрузка">Из &lt;template&gt;</a></li>
+          <li><a href="/loaders/custom" data-router-link data-nav-group="Загрузка">Свой loader</a></li>
+          <li><a href="/loaders/component" data-router-link data-nav-group="Загрузка">Web Component</a></li>
+          <li><a href="/loaders/slow" data-router-link data-nav-group="Загрузка">Спиннер загрузки</a></li>
+          <li><a href="/loaders/error" data-router-link data-nav-group="Загрузка">Ошибка loader</a></li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Структура URL</h2>
+        <ul>
+          <li><a href="/routing/users" data-router-link data-nav-group="Маршруты">Вложенный layout</a></li>
+          <li><a href="/routing/user/1" data-router-link data-nav-group="Маршруты">Профиль /user/:id</a></li>
+          <li><a href="/routing/does-not-exist" data-router-link data-nav-group="Ошибки">404</a></li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Доступ</h2>
+        <ul>
+          <li><a href="/hooks/protected" data-router-link data-nav-group="Доступ">Защищённая страница</a></li>
+        </ul>
+        <p class="nav__note">Сначала «Войти» в шапке или откройте защищённый маршрут — увидите редирект.</p>
+      </section>
+
+      <section>
+        <h2>Анимации</h2>
+        <p class="nav__note">Порядок смены view:</p>
+        <div class="transition-row" role="group" aria-label="Порядок анимации">
+          <button type="button" data-transition-policy="parallel" class="is-active" title="exit и enter одновременно">parallel</button>
+          <button type="button" data-transition-policy="out-in" title="сначала исчезновение">out-in</button>
+          <button type="button" data-transition-policy="in-out" title="сначала появление">in-out</button>
+        </div>
+        <ul>
+          <li><a href="/t/home" data-router-link data-nav-group="Анимации">Home (fade)</a></li>
+          <li><a href="/t/about" data-router-link data-nav-group="Анимации">About (fade)</a></li>
+          <li><a href="/t/gallery" data-router-link data-nav-group="Анимации">Gallery (slide)</a></li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Ещё</h2>
+        <ul>
+          <li><a href="/ux/scroll" data-router-link data-nav-group="Поведение">Прокрутка</a></li>
+          <li><a href="/about.html" class="is-external">Полная перезагрузка</a></li>
+        </ul>
+      </section>
     </nav>
 
-    <nav class="demo-nav-group demo-card">
-      <h2>Other</h2>
-      <ul>
-        <li><a href="/about.html" class="is-external">Full page (MPA)</a></li>
-      </ul>
-      <p class="demo-nav-hint">Plain link — no <code>data-router-link</code>, leaves the SPA.</p>
-    </nav>
-  </aside>
-
-  <main class="demo-main">
-    <div class="demo-outlet-card demo-card">
-      <div class="demo-outlet-card__bar">
-        <span>Route output</span>
-        <strong id="demo-current-path">/</strong>
-      </div>
+    <div class="stage">
+      <header class="stage__context">
+        <div>
+          <span class="stage__group" id="demo-scenario-group">Старт</span>
+          <h2 id="demo-scenario-title">С чего начать</h2>
+          <p id="demo-scenario-hint">Выберите тему слева — справа покажется результат навигации</p>
+        </div>
+        <code class="stage__url" id="demo-current-path">/</code>
+      </header>
 
       <aura-router id="app-router"
                    prefetch="intent"
+                   scroll="manual"
                    data-transition="parallel"
                    error-template="error-template"
                    loading-template="loading-template">
-        <div class="demo-outlet-wrap">
+        <div class="stage__viewport">
           <aura-outlet></aura-outlet>
         </div>
 
-        <aura-route path="/" view='html::<div class="view-panel view-welcome"><div class="view-welcome__icon" aria-hidden="true">⌂</div><span class="view-tag">welcome</span><h2>Interactive demo</h2><p>Select a route in the sidebar to explore loaders, nested layouts, lifecycle hooks, and view transitions.</p></div>'></aura-route>
+        <aura-route path="/" view="demo/welcome.html" after="analytics"></aura-route>
 
-        <aura-route path="/a" view='html::<div class="view-panel"><span class="view-tag">html loader</span><h2>Inline HTML</h2><p>Rendered directly from the <code>view</code> attribute. <a href="/c" data-router-link>Jump to template →</a></p></div>' enter="auth" after="analytics"></aura-route>
+        <aura-route path="/loaders/html" view="demo/loaders-html.html" after="analytics"></aura-route>
+        <aura-route path="/loaders/fetch" view="partials/fetch.html" preserve after="analytics"></aura-route>
+        <aura-route path="/loaders/template" view="template::app"></aura-route>
+        <aura-route path="/loaders/custom" view="custom-loader::demo"></aura-route>
+        <aura-route path="/loaders/component" view="component-src::examples/demo/components/test-element" preserve></aura-route>
+        <aura-route path="/loaders/slow" view="slow-loader::demo"></aura-route>
+        <aura-route path="/loaders/error" view="component-src::examples/demo/components/broken-element"></aura-route>
 
-        <aura-route path="/b" view="index2.html" after="analytics" preserve></aura-route>
-        <aura-route path="/c" view="template::app"></aura-route>
-        <aura-route path="/d" view="component-src::examples/demo/components/test-element1"></aura-route>
-        <aura-route path="/f" view="component-src::examples/demo/components/test-element" preserve></aura-route>
+        <aura-route path="/routing/users" layout="users-layout">
+          <aura-route path="." view="partials/users-list.html"></aura-route>
+          <aura-route path="about" view="partials/users-about.html" preserve></aura-route>
+        </aura-route>
+        <aura-route path="/routing/user/:id" view="component-src::examples/demo/components/test-element"></aura-route>
 
-        <aura-route path="/users" layout="users-layout">
-          <aura-route path="." view="index2.html"></aura-route>
-          <aura-route path="about" view="user.html" preserve></aura-route>
-        </aura-route>
+        <aura-route path="/hooks/protected" enter="auth" view="demo/protected.html" after="analytics"></aura-route>
+        <aura-route path="/login" view="demo/login.html"></aura-route>
 
-        <aura-route path="/custom-loader" view="custom-loader::user.html"></aura-route>
-        <aura-route path="/user/:id" view="component-src::examples/demo/components/test-element"></aura-route>
+        <aura-route path="/ux/scroll" view="demo/scroll.html" scroll="restore"></aura-route>
 
-        <aura-route path="/t/home" view="html::&lt;div class=&quot;t-page t-home&quot;&gt;&lt;h1&gt;Home&lt;/h1&gt;&lt;p&gt;Fade transition between staged view roots. Switch parallel / out-in / in-out in the sidebar.&lt;/p&gt;&lt;/div&gt;"
-          transition-in="fade" transition-out="fade">
-        </aura-route>
-        <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h1&gt;About&lt;/h1&gt;&lt;p&gt;Exit and enter animations run on separate DOM roots inside the outlet.&lt;/p&gt;&lt;/div&gt;"
-          transition-in="fade" transition-out="fade">
-        </aura-route>
-        <aura-route path="/t/gallery" view="html::&lt;div class=&quot;t-page t-gallery&quot;&gt;&lt;h1&gt;Gallery&lt;/h1&gt;&lt;p&gt;Horizontal slide with opacity — a different transition hook.&lt;/p&gt;&lt;/div&gt;"
-          transition-in="slide" transition-out="slide">
-        </aura-route>
-        <aura-route path="/t/slide-a" view="html::&lt;div class=&quot;t-page t-slide-a&quot;&gt;&lt;h1&gt;Slide A&lt;/h1&gt;&lt;p&gt;Navigate to Slide B to compare transition timing.&lt;/p&gt;&lt;/div&gt;"
-          transition-in="slide" transition-out="slide">
-        </aura-route>
-        <aura-route path="/t/slide-b" view="html::&lt;div class=&quot;t-page t-slide-b&quot;&gt;&lt;h1&gt;Slide B&lt;/h1&gt;&lt;p&gt;&lt;strong&gt;out-in&lt;/strong&gt; waits for exit before enter; &lt;strong&gt;parallel&lt;/strong&gt; runs both at once.&lt;/p&gt;&lt;/div&gt;"
-          transition-in="slide" transition-out="slide">
-        </aura-route>
+        <aura-route path="/t/home" view="html::&lt;div class=&quot;t-page t-home&quot;&gt;&lt;h1&gt;Home&lt;/h1&gt;&lt;p&gt;Fade-переход. Переключайте Home ↔ About и меняйте порядок анимации слева.&lt;/p&gt;&lt;/div&gt;"
+          transition-in="fade" transition-out="fade"></aura-route>
+        <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h1&gt;About&lt;/h1&gt;&lt;p&gt;Сравните parallel (одновременно) и out-in (сначала исчезновение).&lt;/p&gt;&lt;/div&gt;"
+          transition-in="fade" transition-out="fade"></aura-route>
+        <aura-route path="/t/gallery" view="html::&lt;div class=&quot;t-page t-gallery&quot;&gt;&lt;h1&gt;Gallery&lt;/h1&gt;&lt;p&gt;Slide-анимация — другой transition hook.&lt;/p&gt;&lt;/div&gt;"
+          transition-in="slide" transition-out="slide"></aura-route>
+
+        <aura-route path="*" view="template::404-template"></aura-route>
       </aura-router>
+
+      <footer class="stage__log" aria-label="Журнал">
+        <strong>Журнал</strong>
+        <ul id="demo-log-list"></ul>
+      </footer>
     </div>
-  </main>
+  </div>
 </div>
 
 <template id="app">
-  <div class="view-panel">
-    <span class="view-tag">template loader</span>
-    <h2>Cloned from &lt;template&gt;</h2>
-    <p>Content is cloned from a <code>&lt;template id="app"&gt;</code> element in the document.</p>
-  </div>
+  <article class="scene">
+    <p class="scene__eyebrow">view="template::app"</p>
+    <h2 class="scene__title">Клон из &lt;template&gt;</h2>
+    <p class="scene__text">Контент копируется из <code>&lt;template id="app"&gt;</code> в DOM. Удобно держать фрагменты в начальном HTML для SSR.</p>
+  </article>
 </template>
 
 <template id="loading-template">
-  <div class="tpl-loading" role="status">Loading view…</div>
+  <div class="tpl-loading" role="status">Загрузка…</div>
 </template>
 
 <template id="error-template">
   <div class="tpl-error" role="alert">
-    <strong>Something went wrong</strong>
-    <span>Check the console for details.</span>
+    <strong>Ошибка загрузки</strong>
+    <span>Смотрите журнал внизу</span>
   </div>
 </template>
 
 <template id="404-template">
   <div class="tpl-404">
     <h1>404</h1>
-    <p>Page not found: <strong data-not-found-url></strong></p>
+    <p>Нет маршрута: <strong data-not-found-url></strong></p>
+    <div class="scene__links" style="justify-content:center">
+      <a href="/" data-router-link>На главную</a>
+    </div>
   </div>
 </template>
 
 <template id="users-layout">
   <div class="users-shell">
-    <div class="users-shell__nav">Users section · nested layout</div>
+    <div class="users-shell__bar">
+      <span>Layout «Users»</span>
+      <div class="users-shell__links">
+        <a href="/routing/users" data-router-link>Список</a>
+        <a href="/routing/users/about" data-router-link>About</a>
+      </div>
+    </div>
     <aura-outlet></aura-outlet>
   </div>
 </template>
 
 <script type="module" src="/src/examples/demo/main.ts"></script>
-
 </body>
 </html>

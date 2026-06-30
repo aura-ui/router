@@ -1,7 +1,8 @@
 import { defineRouteHook, type RouteHookContext } from '../../../modules/aura-routing-engine/core';
+import { demoAuthEnabled } from '../demo-state';
 
 async function checkAuth(): Promise<boolean> {
-  return false;
+  return demoAuthEnabled;
 }
 
 async function authGuard(ctx: RouteHookContext): Promise<string | void> {

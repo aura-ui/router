@@ -5,255 +5,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aura Router — демо</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #eceef4;
-      --surface: #fff;
-      --surface-2: #f6f7fb;
-      --border: #dde1ea;
-      --text: #12151c;
-      --muted: #5f677a;
-      --accent: #4263eb;
-      --accent-soft: #edf2ff;
-      --accent-border: #bac8ff;
-      --accent-hover: #364fc7;
-      --ok: #2b8a3e;
-      --ok-soft: #ebfbee;
-      --danger: #c92a2a;
-      --radius: 14px;
-      --shadow: 0 1px 2px rgb(18 21 28 / 4%), 0 12px 32px rgb(18 21 28 / 7%);
-      --font: "Segoe UI", system-ui, sans-serif;
-      --mono: ui-monospace, "Cascadia Code", monospace;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; font: 15px/1.55 var(--font); color: var(--text); background: var(--bg); }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { color: var(--accent-hover); }
-    code { font: 0.85em/1.35 var(--mono); padding: 0.1em 0.35em; border-radius: 4px; background: var(--accent-soft); color: #364fc7; }
-
-    .shell { max-width: 880px; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
-
-    .topbar {
-      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-      padding: 0.85rem 1.1rem; margin-bottom: 1rem;
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
-    }
-    .topbar__brand { display: flex; align-items: center; gap: 0.75rem; }
-    .topbar__logo {
-      width: 2.35rem; height: 2.35rem; border-radius: 9px;
-      background: linear-gradient(135deg, #4c6ef5, #7048e8);
-      display: grid; place-items: center; color: #fff; font-weight: 700;
-    }
-    .topbar__brand h1 { margin: 0; font-size: 1.05rem; font-weight: 650; }
-    .topbar__brand p { margin: 0; font-size: 0.82rem; color: var(--muted); }
-    .topbar__actions { display: flex; align-items: center; gap: 0.5rem; }
-    .topbar__link { font-size: 0.82rem; color: var(--muted); padding: 0.38rem 0.5rem; }
-
-    .auth-chip {
-      display: none; align-items: center; gap: 0.5rem;
-      padding: 0.35rem 0.5rem 0.35rem 0.75rem;
-      border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); font-size: 0.8rem;
-    }
-    body.show-auth .auth-chip { display: flex; }
-    .auth-chip__state { color: #e67700; font-weight: 600; }
-    .auth-chip__state[data-state="on"] { color: var(--ok); }
-    .auth-chip button {
-      border: 1px solid var(--border); border-radius: 999px; padding: 0.25rem 0.65rem;
-      background: var(--surface); cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 600; color: var(--muted);
-    }
-    .auth-chip button.is-on { border-color: #8ce99a; background: var(--ok-soft); color: var(--ok); }
-
-    .stage {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      box-shadow: var(--shadow); display: flex; flex-direction: column; min-height: 520px; overflow: hidden;
-    }
-
-    .stage__url-header {
-      padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, var(--surface-2), var(--surface));
-      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
-    }
-    .stage__url-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-    .stage__url-row { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; }
-    .stage__url {
-      font: 0.9rem/1.4 var(--mono); padding: 0.45rem 0.75rem; flex: 1; min-width: 0;
-      border-radius: 9px; background: var(--surface); border: 1px solid var(--border);
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .stage__url.is-pulse { border-color: var(--accent); box-shadow: 0 0 0 3px rgb(66 99 235 / 18%); }
-    .stage__url-badge {
-      font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 999px;
-      background: var(--ok-soft); color: var(--ok); white-space: nowrap;
-    }
-    .stage__url-badge[hidden] { display: none; }
-
-    .stage__viewport { flex: 1; position: relative; min-height: 200px; overflow: hidden; }
-    .stage__viewport aura-outlet { display: block; min-height: inherit; position: relative; }
-    .stage__viewport aura-outlet > [data-aura-view-root] { padding: 1.35rem 1.5rem; min-height: inherit; }
-    .stage__viewport aura-outlet > [data-aura-view-root]:not(:only-child) { position: absolute; inset: 0; overflow: hidden; }
-
-    /* Story bar */
-    .story-bar {
-      border-top: 1px solid var(--border); background: var(--surface-2); padding: 1rem 1.25rem 1.15rem;
-    }
-    .story-bar[hidden] { display: none; }
-    .story-bar__head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
-    .story-bar__back {
-      border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.75rem;
-      background: var(--surface); cursor: pointer; font: inherit; font-size: 0.82rem; font-weight: 600; color: var(--text);
-    }
-    .story-bar__back:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-soft); }
-    .story-bar__title { margin: 0; flex: 1; font-size: 1rem; font-weight: 650; min-width: 8rem; }
-    .story-bar__code {
-      border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.75rem;
-      background: var(--surface); cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 600; color: var(--muted);
-    }
-    .story-bar__code:hover { border-color: var(--accent-border); color: var(--accent); }
-    .story-bar__hints { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
-    @media (max-width: 560px) { .story-bar__hints { grid-template-columns: 1fr; } }
-    .story-bar__hint {
-      padding: 0.6rem 0.75rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface);
-    }
-    .story-bar__hint span {
-      display: block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.2rem;
-    }
-    .story-bar__hint--try span { color: var(--accent); }
-    .story-bar__hint--watch span { color: var(--ok); }
-    .story-bar__hint p { margin: 0; font-size: 0.84rem; line-height: 1.45; }
-
-    /* Dev panel */
-    .dev-panel {
-      margin-top: 1rem; padding: 0.85rem 1rem;
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
-    }
-    .dev-panel[hidden] { display: none; }
-    .dev-panel__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }
-    .dev-panel__head h2 { margin: 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-    .dev-panel__close { border: none; background: none; cursor: pointer; font: inherit; font-size: 0.78rem; color: var(--muted); }
-    .dev-panel__recipe {
-      margin: 0 0 0.6rem; padding: 0.45rem 0.6rem; font: 0.74rem/1.45 var(--mono);
-      border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
-      overflow-x: auto; white-space: nowrap;
-    }
-    .dev-panel__recipe em { font-style: normal; color: #ae3ec9; }
-    .dev-panel__log { display: flex; gap: 0.5rem; font-size: 0.74rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 0.5rem; }
-    .dev-panel__log ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem; flex: 1; }
-    .dev-panel__log li { font-family: var(--mono); font-size: 0.72rem; }
-    .dev-panel__log li[data-kind="nav"] { color: var(--accent); }
-    .dev-panel__log li[data-kind="auth"] { color: var(--ok); }
-    .dev-panel__log li[data-kind="error"] { color: var(--danger); }
-
-    /* Scenes */
-    .scene { max-width: 40rem; }
-    .scene--home { max-width: none; }
-    .scene--hub { max-width: none; }
-    .scene--narrow { max-width: 28rem; }
-    .scene--center { text-align: center; margin: 0 auto; }
-    .scene--row { display: flex; gap: 1rem; align-items: flex-start; max-width: none; }
-    body.mode-story .scene__eyebrow { display: none; }
-
-    .home-hero { text-align: center; margin-bottom: 1.5rem; }
-    .hero-badge {
-      display: inline-block; margin-bottom: 0.65rem; padding: 0.25rem 0.65rem; border-radius: 999px;
-      font-size: 0.75rem; font-weight: 600; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border);
-    }
-    .scene__title { margin: 0 0 0.4rem; font-size: 1.4rem; font-weight: 650; letter-spacing: -0.025em; }
-    .scene__text { margin: 0; color: var(--muted); line-height: 1.6; }
-    .scene__text--lead { font-size: 1rem; max-width: 36ch; margin: 0 auto; }
-
-    .story-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.65rem;
-    }
-    .story-card {
-      display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem 1rem 0.9rem;
-      border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: inherit;
-      transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
-    }
-    .story-card:hover {
-      border-color: var(--accent-border); transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgb(66 99 235 / 12%); color: inherit;
-    }
-    .story-card--dev { background: linear-gradient(145deg, var(--surface-2), var(--accent-soft)); }
-    .story-card__icon { font-size: 1.5rem; line-height: 1; }
-    .story-card__title { font-size: 0.92rem; color: var(--text); }
-    .story-card__sub { font-size: 0.76rem; color: var(--muted); line-height: 1.35; }
-
-    .hub-section { margin-top: 1.25rem; }
-    .hub-section__title { margin: 0 0 0.5rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-    .hub-links { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-    .hub-links a {
-      font-size: 0.84rem; font-weight: 500; padding: 0.38rem 0.65rem;
-      border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
-    }
-    .hub-links a:hover { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
-
-    .transition-row { display: flex; gap: 0.25rem; margin-top: 0.35rem; max-width: 14rem; }
-    .transition-row button {
-      flex: 1; border: 1px solid var(--border); border-radius: 7px; padding: 0.28rem;
-      background: var(--surface); cursor: pointer; font: inherit; font-size: 0.72rem; color: var(--muted);
-    }
-    .transition-row button.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-
-    .scene__callout { margin-top: 1rem; padding: 0.7rem 0.85rem; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--accent-border); font-size: 0.88rem; }
-    .scene__callout--ok { background: var(--ok-soft); border-color: #8ce99a; }
-    .scene__links { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.45rem; }
-    .scene__links a { font-size: 0.86rem; font-weight: 500; padding: 0.4rem 0.7rem; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
-    .scene__facts { margin: 1rem 0 0; display: grid; gap: 0.4rem; font-size: 0.86rem; }
-    .scene__facts div { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.5rem; }
-    .scene__facts dt { margin: 0; color: var(--muted); }
-    .scene__facts dd { margin: 0; }
-    .scene__btn {
-      margin-top: 1rem; padding: 0.6rem 1.35rem; border: none; border-radius: 9px;
-      background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
-    }
-    .scene__btn:hover { background: var(--accent-hover); }
-
-    .user-card__avatar {
-      width: 3.75rem; height: 3.75rem; border-radius: 50%; flex-shrink: 0;
-      background: linear-gradient(135deg, #4c6ef5, #7950f2); color: #fff; font-size: 1.4rem; font-weight: 700;
-      display: grid; place-items: center;
-    }
-
-    .scroll-markers { margin-top: 1rem; display: grid; gap: 0.5rem; }
-    .scroll-markers__item { padding: 0.75rem 1rem; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); font-size: 0.88rem; }
-    .scroll-markers__item:nth-child(even) { background: var(--accent-soft); }
-
-    .t-page { min-height: 180px; border-radius: 10px; padding: 1.25rem; }
-    .t-page h1 { margin: 0 0 0.4rem; font-size: 1.5rem; }
-    .t-page p { margin: 0; color: var(--muted); }
-    .t-home { background: linear-gradient(135deg, #edf2ff, #dbe4ff); }
-    .t-about { background: linear-gradient(135deg, #e6fcf5, #c3fae8); }
-    .t-gallery { background: linear-gradient(135deg, #f3f0ff, #e5dbff); }
-
-    .users-shell { display: flex; flex-direction: column; min-height: 180px; margin: -1.35rem -1.5rem; }
-    .users-shell__bar {
-      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-      padding: 0.55rem 1rem; background: var(--accent-soft); border-bottom: 1px solid var(--accent-border);
-      font-size: 0.82rem; font-weight: 600; color: var(--accent);
-    }
-    .users-shell__links { display: flex; gap: 0.25rem; }
-    .users-shell__links a { padding: 0.15rem 0.45rem; border-radius: 6px; color: var(--accent); }
-    .users-shell aura-outlet { flex: 1; position: relative; min-height: 120px; }
-    .users-shell aura-outlet > [data-aura-view-root] { padding: 1.25rem 1.5rem; }
-
-    .tpl-loading, .tpl-error, .tpl-404 {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 160px; text-align: center; gap: 0.5rem;
-    }
-    .tpl-loading { color: var(--muted); }
-    .tpl-loading::before {
-      content: ""; width: 1.75rem; height: 1.75rem;
-      border: 2px solid var(--border); border-top-color: var(--accent);
-      border-radius: 50%; animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .tpl-error { color: var(--danger); }
-    .tpl-404 h1 { margin: 0; font-size: 3rem; font-weight: 700; color: #c8ceda; }
-
-    #app-router { display: contents; }
-  </style>
+  <link rel="stylesheet" href="/demo/demo.css" />
 </head>
 <body class="mode-home">
 
@@ -271,6 +23,8 @@
         <span>Вы: <span class="auth-chip__state" id="demo-auth-status" data-state="off">Гость</span></span>
         <button type="button" id="demo-auth-toggle" data-demo-auth-toggle>Войти</button>
       </div>
+      <button type="button" class="topbar__btn" id="demo-dev-toggle" hidden title="Конфиг маршрута и журнал">Конфиг</button>
+      <button type="button" class="topbar__btn" id="demo-tour-start" title="Подсказки по демо">?</button>
       <a class="topbar__link" href="https://github.com/aura-ui/router" target="_blank" rel="noopener">GitHub ↗</a>
     </div>
   </header>
@@ -279,7 +33,8 @@
     <header class="stage__url-header">
       <span class="stage__url-label">Адрес</span>
       <div class="stage__url-row">
-        <code class="stage__url" id="demo-current-path">/</code>
+        <code class="stage__url" id="demo-current-path" aria-live="polite" aria-atomic="true">/</code>
+        <button type="button" class="stage__url-copy" id="demo-url-copy" title="Скопировать URL">Копировать</button>
         <span class="stage__url-badge" id="demo-url-badge" hidden>обновлён</span>
       </div>
     </header>
@@ -311,11 +66,13 @@
       <aura-route path="/hooks/protected" enter="auth" view="demo/protected.html" after="analytics"></aura-route>
       <aura-route path="/login" view="demo/login.html"></aura-route>
       <aura-route path="/ux/scroll" view="demo/scroll.html" scroll="restore"></aura-route>
-      <aura-route path="/t/home" view="html::&lt;div class=&quot;t-page t-home&quot;&gt;&lt;h1&gt;Home&lt;/h1&gt;&lt;p&gt;Fade между страницами.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/about&quot; data-router-link&gt;About →&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
+      <aura-route path="/ux/prefetch" view="demo/prefetch.html" after="analytics"></aura-route>
+      <aura-route path="/hooks/data" load="user-stats" preserve="data" view="component-src::examples/demo/components/data-demo" after="analytics"></aura-route>
+      <aura-route path="/t/home" view="html::&lt;div class=&quot;t-page t-home&quot;&gt;&lt;h2 class=&quot;scene__title&quot;&gt;Home&lt;/h2&gt;&lt;p&gt;Fade между страницами.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/about&quot; data-router-link&gt;About →&lt;/a&gt;&lt;a href=&quot;/t/gallery&quot; data-router-link&gt;Gallery (slide)&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
         transition-in="fade" transition-out="fade"></aura-route>
-      <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h1&gt;About&lt;/h1&gt;&lt;p&gt;Переключайте туда-сюда.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/home&quot; data-router-link&gt;← Home&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
+      <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h2 class=&quot;scene__title&quot;&gt;About&lt;/h2&gt;&lt;p&gt;Переключайте туда-сюда.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/home&quot; data-router-link&gt;← Home&lt;/a&gt;&lt;a href=&quot;/t/gallery&quot; data-router-link&gt;Gallery (slide)&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
         transition-in="fade" transition-out="fade"></aura-route>
-      <aura-route path="/t/gallery" view="html::&lt;div class=&quot;t-page t-gallery&quot;&gt;&lt;h1&gt;Gallery&lt;/h1&gt;&lt;p&gt;Slide.&lt;/p&gt;&lt;/div&gt;"
+      <aura-route path="/t/gallery" view="html::&lt;div class=&quot;t-page t-gallery&quot;&gt;&lt;h2 class=&quot;scene__title&quot;&gt;Gallery&lt;/h2&gt;&lt;p&gt;Slide-переход.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/home&quot; data-router-link&gt;← Home&lt;/a&gt;&lt;a href=&quot;/t/about&quot; data-router-link&gt;About&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
         transition-in="slide" transition-out="slide"></aura-route>
       <aura-route path="*" view="template::404-template"></aura-route>
     </aura-router>
@@ -334,6 +91,14 @@
         <div class="story-bar__hint story-bar__hint--watch">
           <span>Смотрите</span>
           <p id="demo-story-watch"></p>
+        </div>
+      </div>
+      <div class="story-bar__extras" id="demo-story-extras" hidden>
+        <span class="story-bar__extra-label">Порядок анимации</span>
+        <div class="transition-row" role="group" aria-label="Порядок анимации">
+          <button type="button" data-transition-policy="parallel" class="is-active">parallel</button>
+          <button type="button" data-transition-policy="out-in">out-in</button>
+          <button type="button" data-transition-policy="in-out">in-out</button>
         </div>
       </div>
     </aside>
@@ -376,6 +141,19 @@
     <aura-outlet></aura-outlet>
   </div>
 </template>
+
+<div class="tour-overlay" id="demo-tour-root" hidden>
+  <div class="tour-overlay__backdrop"></div>
+  <div class="tour-overlay__spotlight"></div>
+  <div class="tour-overlay__card">
+    <h3 data-tour-title></h3>
+    <p data-tour-text></p>
+    <div class="tour-overlay__actions">
+      <button type="button" data-tour-skip>Пропустить</button>
+      <button type="button" data-tour-next>Далее</button>
+    </div>
+  </div>
+</div>
 
 <script type="module" src="/src/examples/demo/main.ts"></script>
 </body>

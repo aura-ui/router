@@ -2,7 +2,10 @@ import type { LoaderFn } from '../../../modules/aura-routing-engine/core';
 
 const DELAY_MS = 1400;
 
+export const SLOW_LOADER_TYPE = 'slow-loader' as const;
+
 export const slowLoader: LoaderFn = async () => {
+  document.dispatchEvent(new CustomEvent('demo:loader', { detail: { type: SLOW_LOADER_TYPE } }));
   await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
 
   return `<article class="scene">
@@ -12,5 +15,3 @@ export const slowLoader: LoaderFn = async () => {
     <div class="scene__callout scene__callout--ok">Попробуйте перейти сюда ещё раз — второй раз будет мгновенно (кеш).</div>
   </article>`;
 };
-
-export const SLOW_LOADER_TYPE = 'slow-loader' as const;

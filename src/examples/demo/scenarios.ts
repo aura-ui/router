@@ -69,7 +69,7 @@ export const SCENARIOS: Record<string, ScenarioMeta> = {
   },
   '/routing/users/about': {
     title: 'Дочерний маршрут',
-    hint: 'URL /routing/users/about — контент в том же layout, preserve сохраняет поле ввода',
+    hint: 'Введите текст в поле, перейдите на «Список» и вернитесь — preserve view сохранит ввод',
     group: 'Маршруты',
     recipe: 'path="about" view="partials/users-about.html" preserve',
   },
@@ -114,6 +114,18 @@ export const SCENARIOS: Record<string, ScenarioMeta> = {
     hint: 'Прокрутите вниз, уйдите на другую страницу и вернитесь',
     group: 'Поведение',
     recipe: 'path="/ux/scroll" view="demo/scroll.html" scroll="restore"',
+  },
+  '/ux/prefetch': {
+    title: 'Prefetch',
+    hint: 'Наведите на ссылку intent — loader стартует до клика; сравните с tap и false',
+    group: 'Поведение',
+    recipe: 'prefetch="intent" на router; data-prefetch на ссылках',
+  },
+  '/hooks/data': {
+    title: 'Load hook',
+    hint: 'load="user-stats" загружает данные до рендера; preserve="data" кеширует payload',
+    group: 'Доступ',
+    recipe: 'path="/hooks/data" load="user-stats" preserve="data" view="component-src::…/data-demo"',
   },
 };
 

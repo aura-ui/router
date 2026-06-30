@@ -19,13 +19,30 @@ AuraRouter.use(slideTransitionHook);
 AuraRouter.install();
 
 const router = document.querySelector<AuraRouter>(AuraRouter.is);
+const pathLabel = document.getElementById('demo-current-path');
+const policyButtons = document.querySelectorAll<HTMLButtonElement>('[data-transition-policy]');
 
-function restartRouter(nextPolicy?: string): void {
+function syncTransitionPolicyUi(activePolicy: string): void {
+  policyButtons.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.transitionPolicy === activePolicy);
+  });
+}
+
+function updateChrome(): void {
+  const path = location.pathname;
+  pathLabel && (pathLabel.textContent = path);
+
+  document.querySelectorAll<HTMLAnchorElement>('[data-router-link]').forEach((link) => {
+    if (link.pathname === path) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+}
+
+function restartRouter(nextPolicy: string): void {
   if (!router?.parentNode) return;
 
-  if (nextPolicy) {
-    router.setAttribute('data-transition', nextPolicy);
-  }
+  router.setAttribute('data-transition', nextPolicy);
+  syncTransitionPolicyUi(nextPolicy);
 
   const parent = router.parentNode;
   const anchor = router.nextSibling;
@@ -37,22 +54,20 @@ function restartRouter(nextPolicy?: string): void {
   router.navigate(path, { replace: true, syncHistory: true });
 }
 
-document.querySelectorAll<HTMLButtonElement>('[data-transition-policy]').forEach((button) => {
-  button.addEventListener('click', () => {
-    const policy = button.dataset.transitionPolicy;
-    if (!policy) return;
+document.addEventListener('click', (event) => {
+  const target = event.target as Element;
+  const policyButton = target.closest<HTMLButtonElement>('[data-transition-policy]');
 
-    document.querySelectorAll('[data-transition-policy]').forEach((el) => {
-      el.classList.toggle('is-active', el === button);
-    });
+  if (policyButton?.dataset.transitionPolicy) {
+    restartRouter(policyButton.dataset.transitionPolicy);
+    return;
+  }
 
-    restartRouter(policy);
-  });
+  if (target.closest('[data-router-link]')) {
+    queueMicrotask(updateChrome);
+  }
 });
 
-if (location.pathname.startsWith('/t/')) {
-  const active = document.querySelector(
-    `[data-transition-policy="${router?.getAttribute('data-transition') ?? 'parallel'}"]`,
-  );
-  active?.classList.add('is-active');
-}
+syncTransitionPolicyUi(router?.getAttribute('data-transition') ?? 'parallel');
+updateChrome();
+window.addEventListener('popstate', updateChrome);

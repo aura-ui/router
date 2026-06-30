@@ -11,6 +11,8 @@ Composable lifecycle hooks and nested routes, declared in markup.
 npm install @aura-ui-web/router
 ```
 
+> **Target API.** This README describes the **intended public API** the project is converging on. A pre-release build may lag behind — see [ROADMAP](./docs/ROADMAP.md) for status. Internal design docs may use interim names until the migration is complete.
+
 ---
 
 ## Table of contents
@@ -88,11 +90,10 @@ Clicks on `[data-router-link]` are intercepted; the URL updates and the matching
 
 | Mechanism | Usage |
 | --- | --- |
-| **Link interception** | `data-router-link` on `<a href="…">` (default selector on `<aura-router>`) |
-| **Custom selector** | `links-selector="a.my-link"` on `<aura-router>` |
+| **Link interception** | `data-router-link` on `<a href="…">` — see `links-selector` under [Router defaults](#router-defaults) |
 | **Programmatic** | `router.navigate('/path', { replace?: boolean })` |
 | **404 catch-all** | `<aura-route path="*" view="template::404-template">` |
-| **Fallback 404** | `not-found-template="404-template"` on `<aura-router>` when no `path="*"` route exists |
+| **Fallback 404** | `not-found-template` on `<aura-router>` — see [Router defaults](#router-defaults) |
 
 ---
 
@@ -133,7 +134,7 @@ Use `import` for `.js` / `.ts`, not bare `url` ref.
 
 **Parsing:** if the token before the first `::` is a **known loader** (`html`, `template`, `component`, …) → `loader::ref`. Otherwise the whole value is a **`url` ref** (may contain `path.html::selector` for extract).
 
-Custom loaders: `AuraRouter.registerLoader(type, fn)`.
+See [Custom loaders](#custom-loaders) to register your own loader types.
 
 ---
 
@@ -162,13 +163,13 @@ Nest `<aura-route>` elements to build a route tree. A parent with `layout` rende
 | `layout` | Nested shell — parent route with `<template id="…">`, children render in its outlet |
 | `preserve` | Keep on leave: `preserve` or `preserve="view"` (DOM), `preserve="data"` (load cache), `preserve="all"` |
 
-Hooks on a parent run for every child navigation inside that branch (with inheritance — see below).
+Hooks on a parent run for every child navigation inside that branch (with inheritance — see [Router defaults](#router-defaults)).
 
 ---
 
 ## Lifecycle hooks
 
-Register hook implementations with `AuraRouter.use(hook)`. Attributes on the route pick **when** hooks run (comma-separated names).
+Register hook implementations with `AuraRouter.use(hook)`. Phase attributes (`guard`, `load`, `ready`, …) list **hook names** to run at that phase — comma-separated.
 
 ```ts
 import { defineRouteHook, AuraRouter } from '@aura-ui-web/router';
@@ -184,7 +185,7 @@ const authHook = defineRouteHook({
 AuraRouter.use(authHook);
 ```
 
-Attributes inherit from `<aura-router>` down the tree. Empty value (`guard=""`) opts out of an inherited router default.
+`guard="auth"` runs the hook named `auth` during the guard phase. Attributes inherit from `<aura-router>` down the tree. Empty value (`guard=""`) opts out of an inherited default.
 
 ### Lifecycle
 
@@ -230,22 +231,22 @@ With `preserve` on the route, optional teardown hooks: `detach`, `destroy` (on l
 </aura-router>
 ```
 
-> Deep dive: [docs/HOOKS.md](./docs/HOOKS.md) · [docs/NAVIGATION_MODEL.md](./docs/NAVIGATION_MODEL.md)
+> Deep dive: [docs/HOOKS.md](./docs/HOOKS.md) · [docs/NAVIGATION_MODEL.md](./docs/NAVIGATION_MODEL.md) · [docs/PHASE_NAMING.md](./docs/PHASE_NAMING.md)
 
 ---
 
 ## Router defaults
 
-Inherited from `<aura-router>` (override per route):
+Attributes on `<aura-router>` inherit to child routes (override per route or per link):
 
 | Attribute | Description |
 | --- | --- |
 | `scroll` | `restore`, `top`, or `manual` |
-| `prefetch` | Link prefetch policy |
+| `prefetch` | `intent`, `viewport`, `tap`, `render`, `manual`, or `false` / `none` (off) |
 | `loading-template` | Template id while view loads |
 | `error-template` | Template id on render error |
-
-Empty value (`guard=""`) opts out of an inherited router default.
+| `links-selector` | CSS selector for in-app links (default: `[data-router-link]`) |
+| `not-found-template` | Template id for fallback 404 when no `path="*"` route exists |
 
 **Prefetch cascade:** `data-prefetch` on the link → `prefetch` on `<aura-route>` → `prefetch` on `<aura-router>`.
 
@@ -256,8 +257,6 @@ Empty value (`guard=""`) opts out of an inherited router default.
 
 <a href="/heavy" data-router-link data-prefetch="tap">Load on tap</a>
 ```
-
----
 
 ---
 

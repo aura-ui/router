@@ -1,6 +1,9 @@
 import type { HistoryAction } from '../history/provider.types';
+import type { RouterPrefetchPolicy } from '../prefetch/prefetch-policy';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { RouteHookAttrProp, RoutePhase } from '../lifecycle/types';
+
+export type { RouterPrefetchPolicy };
 
 /** Target route slice passed to lifecycle callbacks and hooks. */
 export interface RouteInfo {
@@ -51,6 +54,8 @@ export type RouteErrorContext = RouteLifecycleContext & {
 /** Route surface used by the routing engine and hook runtime. */
 export interface RouteInstance extends RouteHookNamesSource {
   path: string;
+  /** Inherited from `<aura-route prefetch>` / `<aura-router prefetch>`. */
+  readonly prefetch?: RouterPrefetchPolicy | null;
   readonly transition: RouteTransitionType;
   readonly hasEnter: boolean;
   readonly hasLeave: boolean;

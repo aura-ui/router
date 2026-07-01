@@ -32,6 +32,7 @@ import {
   parseTransitionOrder,
   type TransitionOrderType,
 } from './attr/transition-order-attr-parser';
+import { parsePrefetchAttr, type PrefetchType } from './attr/prefetchAtrrParser';
 
 export type { RouteRenderOptions, AuraRouteInterface };
 
@@ -71,6 +72,9 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     parser: parseScrollPolicy,
   })
   scrollPolicy: ScrollPolicy | null;
+
+  @attr({ readonly: true, inherit: true, allowEmpty: true, cached: true, parser: parsePrefetchAttr })
+  prefetch: PrefetchType | false | null;
 
   @attr({ readonly: true, parser: parsePreserveAttr, inherit: true, allowEmpty: true })
   preserve: PreserveFlags;

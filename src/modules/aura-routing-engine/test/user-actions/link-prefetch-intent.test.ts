@@ -1,10 +1,15 @@
 import { LinkPrefetchIntentTracker } from '../../core/user-actions/link-prefetch-intent';
+import { resolvePrefetchMode } from '../../core/prefetch/prefetch-policy';
 
 function createTracker(handlers: {
   scheduleIntent: jest.Mock;
   cancelIntent: jest.Mock;
 }) {
-  return new LinkPrefetchIntentTracker({ handlers });
+  return new LinkPrefetchIntentTracker({
+    handlers,
+    resolveMode: (anchor, _href, touch) =>
+      resolvePrefetchMode({ anchor, routerDefault: 'intent', touch }),
+  });
 }
 
 describe('LinkPrefetchIntentTracker', () => {

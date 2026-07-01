@@ -11,6 +11,7 @@ import {
   defaultHookRegistry,
   isCatchAllRoute,
   parseScrollPolicy,
+  resolvePrefetchEngineConfig,
   type AuraRoutingEngineConfig,
   type HistoryAction,
   type LoaderFn,
@@ -32,6 +33,7 @@ import {
   dispatchNotFound,
   type NotFoundHandler,
 } from './navigation-events';
+import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetchAtrrParser';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -77,6 +79,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   linksSelector: string;
   /** Default scroll policy for child routes (`restore` | `top` | `manual`). HTML attr: `scroll`. */
   @attr({ parser: parseScrollPolicy, cached: true, name: 'scroll' }) scrollPolicy: ScrollPolicy | null;
+  /**
+   * Default prefetch for `[data-router-link]` (`intent` | `tap` | `false`).
+   * Per-link override: `data-prefetch` on `<a>`.
+   */
+  @attr({ parser: parsePrefetchAttr, cached: true, name: 'prefetch' })
+  prefetchDomAttr: PrefetchType | false | null;
 
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();
@@ -165,6 +173,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
         contentLoad: this.contentLoad,
+        prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
         onNavigationCommitted: (ctx) => {
           this.notFound.hide();

@@ -16,6 +16,15 @@ export {
   type ScrollPolicy,
   type ScrollPolicySource,
 } from './core/navigation/scroll-policy';
+export {
+  DEFAULT_ROUTER_PREFETCH_MODE,
+  LINK_PREFETCH_MODES,
+  parsePrefetchAttr,
+  type PrefetchType,
+} from '../aura-route/core/attr/prefetchAtrrParser';
+export {
+  type RouterPrefetchPolicy,
+} from './core/prefetch/prefetch-policy';
 export { NO_TRANSITION } from '../aura-route/core/attr/transition-attr-parser';
 
 export type {

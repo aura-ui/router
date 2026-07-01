@@ -1,7 +1,3 @@
-import { LINK_PREFETCH_MODES, type LinkPrefetchMode, type PrefetchMode } from '../prefetch/types';
-
-const PREFETCH_MODES = new Set<LinkPrefetchMode>(LINK_PREFETCH_MODES);
-
 export function findRouterLink(
   target: EventTarget | null,
   linksSelector: string,
@@ -33,23 +29,4 @@ export function readRouterLinkFromEvent(
   if (!href) return null;
 
   return { anchor, href };
-}
-
-export function resolveLinkPrefetchMode(
-  anchor: Element,
-  defaultMode: PrefetchMode = 'intent',
-): PrefetchMode | null {
-  const raw = anchor.getAttribute('data-prefetch')?.trim().toLowerCase();
-  if (raw === 'false' || raw === 'none') return null;
-  if (raw && PREFETCH_MODES.has(raw as LinkPrefetchMode)) return raw as LinkPrefetchMode;
-  return defaultMode;
-}
-
-export function resolveLinkTouchPrefetchMode(
-  anchor: Element,
-  defaultMode: PrefetchMode = 'tap',
-): PrefetchMode | null {
-  const raw = anchor.getAttribute('data-prefetch')?.trim().toLowerCase();
-  if (raw === 'tap') return 'tap';
-  return resolveLinkPrefetchMode(anchor, defaultMode);
 }

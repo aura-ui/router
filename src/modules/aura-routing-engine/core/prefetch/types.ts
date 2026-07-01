@@ -1,18 +1,14 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouteNode } from '../route-tree/route-node.types';
+import {
+  DEFAULT_ROUTER_PREFETCH_MODE,
+  LINK_PREFETCH_MODES,
+  type PrefetchType,
+} from '../../../aura-route/core/attr/prefetchAtrrParser';
 
-export type PrefetchMode = 'intent' | 'viewport' | 'tap' | 'render' | 'manual' | 'none';
-
-/** `data-prefetch` values on in-app links (excludes `none`). */
-export const LINK_PREFETCH_MODES = [
-  'intent',
-  'viewport',
-  'tap',
-  'render',
-  'manual',
-] as const satisfies readonly Exclude<PrefetchMode, 'none'>[];
-
-export type LinkPrefetchMode = (typeof LINK_PREFETCH_MODES)[number];
+export { DEFAULT_ROUTER_PREFETCH_MODE, LINK_PREFETCH_MODES };
+export type LinkPrefetchMode = PrefetchType;
+export type PrefetchMode = LinkPrefetchMode | 'none';
 
 /** Resolved match + LCA delta for prefetch planning. */
 export type PrefetchPlan = {

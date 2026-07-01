@@ -1,20 +1,20 @@
+import { PrefetchIntentBus } from './bus';
+import type { LinkPrefetchModeResolver } from '../../user-actions/link-prefetch-intent';
 import { LinkPrefetchIntentTracker } from '../../user-actions/link-prefetch-intent';
-import type { PrefetchIntentBus } from './bus';
-import type { PrefetchMode } from '../types';
 
 export type LinkIntentSourceConfig = {
   linksSelector?: string;
-  defaultMode?: PrefetchMode;
+  resolveMode: LinkPrefetchModeResolver;
 };
 
 /** Bridges link DOM events → {@link PrefetchIntentBus}. */
 export class LinkIntentSource {
   private readonly tracker: LinkPrefetchIntentTracker;
 
-  constructor(bus: PrefetchIntentBus, config: LinkIntentSourceConfig = {}) {
+  constructor(bus: PrefetchIntentBus, config: LinkIntentSourceConfig) {
     this.tracker = new LinkPrefetchIntentTracker({
       linksSelector: config.linksSelector,
-      defaultMode: config.defaultMode,
+      resolveMode: config.resolveMode,
       handlers: {
         scheduleIntent: (href, mode) => {
           bus.emit({ type: 'schedule', href, mode, source: 'link' });

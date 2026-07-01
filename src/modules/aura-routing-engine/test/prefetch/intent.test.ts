@@ -1,5 +1,13 @@
 import { PrefetchIntentBus } from '../../core/prefetch/intent/bus';
 import { LinkIntentSource } from '../../core/prefetch/intent/link-source';
+import { resolvePrefetchMode } from '../../core/prefetch/prefetch-policy';
+
+function createLinkIntentSource(bus: PrefetchIntentBus): LinkIntentSource {
+  return new LinkIntentSource(bus, {
+    resolveMode: (anchor, _href, touch) =>
+      resolvePrefetchMode({ anchor, routerDefault: 'intent', touch }),
+  });
+}
 
 describe('PrefetchIntentBus', () => {
   it('notifies subscribers and supports unsubscribe', () => {
@@ -36,7 +44,7 @@ describe('LinkIntentSource', () => {
     const listener = jest.fn();
     bus.subscribe(listener);
 
-    const source = new LinkIntentSource(bus);
+    const source = createLinkIntentSource(bus);
     source.start();
 
     document.body.innerHTML = '<a href="/about" data-router-link>About</a>';
@@ -57,7 +65,7 @@ describe('LinkIntentSource', () => {
     const listener = jest.fn();
     bus.subscribe(listener);
 
-    const source = new LinkIntentSource(bus);
+    const source = createLinkIntentSource(bus);
     source.start();
 
     document.body.innerHTML = '<a href="/about" data-router-link>About</a>';
@@ -78,7 +86,7 @@ describe('LinkIntentSource', () => {
     const listener = jest.fn();
     bus.subscribe(listener);
 
-    const source = new LinkIntentSource(bus);
+    const source = createLinkIntentSource(bus);
     source.start();
     source.destroy();
 
@@ -90,7 +98,7 @@ describe('LinkIntentSource', () => {
     const listener = jest.fn();
     bus.subscribe(listener);
 
-    const source = new LinkIntentSource(bus);
+    const source = createLinkIntentSource(bus);
     source.start();
 
     document.body.innerHTML =

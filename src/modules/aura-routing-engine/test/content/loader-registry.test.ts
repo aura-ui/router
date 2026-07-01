@@ -1,33 +1,36 @@
 import {
-  BUILTIN_LOADER_TYPES,
   LoaderRegistry,
   createBuiltinLoaders,
 } from '../../core/content';
 
+const BUILTIN_LOADER_TYPES = [
+  'template',
+  'html',
+  'html-src',
+  'component',
+  'component-src',
+] as const;
+
 describe('LoaderRegistry', () => {
   it('exposes built-in loader types', () => {
     const registry = new LoaderRegistry();
-    const types = registry.getRegisteredTypes();
 
-    expect(types).toEqual(
-      expect.arrayContaining([
-        BUILTIN_LOADER_TYPES.template,
-        BUILTIN_LOADER_TYPES.html,
-        BUILTIN_LOADER_TYPES.htmlSrc,
-        BUILTIN_LOADER_TYPES.component,
-        BUILTIN_LOADER_TYPES.componentSrc,
-      ]),
-    );
+    for (const type of BUILTIN_LOADER_TYPES) {
+      expect(() => registry.get(type)).not.toThrow();
+    }
   });
 
-  it('has() reflects registration state', () => {
+  it('get() throws for unknown loader types', () => {
     const registry = new LoaderRegistry();
 
-    expect(registry.has('html')).toBe(true);
-    expect(registry.has('missing-loader')).toBe(false);
+    expect(() => registry.get('missing-loader')).toThrow(/Unknown content loader/);
+  });
+
+  it('register() adds custom loaders', () => {
+    const registry = new LoaderRegistry();
 
     registry.register('probe-loader', async () => 'ok');
-    expect(registry.has('probe-loader')).toBe(true);
+    expect(typeof registry.get('probe-loader')).toBe('function');
   });
 
   it('warns when overwriting an existing loader', () => {
@@ -50,12 +53,6 @@ describe('LoaderRegistry', () => {
       resolveUrl: (path) => path,
     });
 
-    expect(entries.map((entry) => entry.type)).toEqual([
-      BUILTIN_LOADER_TYPES.template,
-      BUILTIN_LOADER_TYPES.html,
-      BUILTIN_LOADER_TYPES.htmlSrc,
-      BUILTIN_LOADER_TYPES.component,
-      BUILTIN_LOADER_TYPES.componentSrc,
-    ]);
+    expect(entries.map((entry) => entry.type)).toEqual([...BUILTIN_LOADER_TYPES]);
   });
 });

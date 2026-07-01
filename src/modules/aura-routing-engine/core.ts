@@ -119,6 +119,13 @@ export type {
 } from './core/content';
 
 export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch/types';
+export {
+  DEFAULT_ROUTER_PREFETCH_MODE,
+  readLinkPrefetchOverride,
+  resolvePrefetchEngineConfig,
+  resolvePrefetchMode,
+} from './core/prefetch/prefetch-policy';
+export type { RouterPrefetchPolicy } from './core/prefetch/prefetch-policy';
 
 // --- Data graph (load hooks + SWR cache) ---
 

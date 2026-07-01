@@ -3,6 +3,10 @@ import { PrefetchPlanResolver } from './plan';
 import { PrefetchRunStore } from './store';
 import { PrefetchIntentBus } from './intent/bus';
 import { LinkIntentSource } from './intent/link-source';
+import {
+  DEFAULT_ROUTER_PREFETCH_MODE,
+  resolvePrefetchMode,
+} from './prefetch-policy';
 import type {
   PrefetchConfig,
   PrefetchIntent,
@@ -46,7 +50,7 @@ export class PrefetchPipeline {
 
     this.linkSource = new LinkIntentSource(this.intentBus, {
       linksSelector: options.linksSelector,
-      defaultMode: config.defaultMode,
+      resolveMode: (anchor, href, touch) => this.resolveModeForLink(anchor, href, touch),
     });
   }
 
@@ -129,6 +133,21 @@ export class PrefetchPipeline {
     this.intentBus.destroy();
     this.store.destroy();
     this.planResolver.clear();
+  }
+
+  private resolveModeForLink(
+    anchor: HTMLAnchorElement,
+    href: string,
+    touch: boolean,
+  ): PrefetchMode | null {
+    const plan = this.planResolver.resolve(href);
+
+    return resolvePrefetchMode({
+      anchor,
+      route: plan?.leaf.route,
+      routerDefault: this.config.defaultMode ?? DEFAULT_ROUTER_PREFETCH_MODE,
+      touch,
+    });
   }
 
   private handleIntent(intent: PrefetchIntent): void {

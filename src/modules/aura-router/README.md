@@ -30,8 +30,15 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 
 | Атрибут | Описание |
 |---------|----------|
+| `prefetch` | Default prefetch для in-app ссылок: `intent` (default), `tap`, `false` / `none` (off). Override на ссылке: `data-prefetch`. |
 | `links-selector` | CSS-селектор in-app ссылок для перехвата кликов. По умолчанию: `[data-router-link]`. |
 | `not-found-template` | Id `<template>` для **fallback**-404 (см. ниже). Используется только когда нет `<aura-route path="*">`. |
+
+### Атрибуты `<aura-route>` (prefetch)
+
+| Атрибут | Описание |
+|---------|----------|
+| `prefetch` | Per-route default (наследуется от `<aura-router>`). Каскад: `data-prefetch` на ссылке → `prefetch` на route → `prefetch` на router. |
 
 ### Статические методы
 

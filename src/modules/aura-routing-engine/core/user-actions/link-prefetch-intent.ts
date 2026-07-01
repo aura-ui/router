@@ -5,8 +5,6 @@ import {
   findRouterLink,
   readLinkHref,
   readRouterLinkFromEvent,
-  resolveLinkPrefetchMode,
-  resolveLinkTouchPrefetchMode,
 } from './router-link';
 
 export type LinkPrefetchHandlers = {
@@ -14,10 +12,16 @@ export type LinkPrefetchHandlers = {
   cancelIntent(href?: string): void;
 };
 
+export type LinkPrefetchModeResolver = (
+  anchor: HTMLAnchorElement,
+  href: string,
+  touch: boolean,
+) => PrefetchMode | null;
+
 export interface LinkPrefetchIntentTrackerConfig {
   linksSelector?: string;
   handlers: LinkPrefetchHandlers;
-  defaultMode?: PrefetchMode;
+  resolveMode: LinkPrefetchModeResolver;
 }
 
 /** Hover / focus / touch на in-app ссылках → prefetch intent. */
@@ -25,12 +29,12 @@ export class LinkPrefetchIntentTracker {
   private readonly handlers: LinkPrefetchHandlers;
   private listening = false;
   private readonly linksSelector: string;
-  private readonly defaultMode: PrefetchMode;
+  private readonly resolveMode: LinkPrefetchModeResolver;
 
   constructor(config: LinkPrefetchIntentTrackerConfig) {
     this.handlers = config.handlers;
     this.linksSelector = config.linksSelector ?? '[data-router-link]';
-    this.defaultMode = config.defaultMode ?? 'intent';
+    this.resolveMode = config.resolveMode;
   }
 
   start(): void {
@@ -56,13 +60,7 @@ export class LinkPrefetchIntentTracker {
 
   @bind
   private onLinkIntent(event: Event): void {
-    const link = readRouterLinkFromEvent(event, this.linksSelector);
-    if (!link) return;
-
-    const mode = resolveLinkPrefetchMode(link.anchor, this.defaultMode);
-    if (!mode) return;
-
-    this.handlers.scheduleIntent(link.href, mode);
+    this.scheduleFromEvent(event, false);
   }
 
   @bind
@@ -81,10 +79,14 @@ export class LinkPrefetchIntentTracker {
 
   @bind
   private onLinkTouch(event: TouchEvent): void {
+    this.scheduleFromEvent(event, true);
+  }
+
+  private scheduleFromEvent(event: Event, touch: boolean): void {
     const link = readRouterLinkFromEvent(event, this.linksSelector);
     if (!link) return;
 
-    const mode = resolveLinkTouchPrefetchMode(link.anchor);
+    const mode = this.resolveMode(link.anchor, link.href, touch);
     if (!mode) return;
 
     this.handlers.scheduleIntent(link.href, mode);

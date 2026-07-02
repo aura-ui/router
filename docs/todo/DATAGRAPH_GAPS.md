@@ -370,9 +370,9 @@ preserve="data"          — кэшировать ли вообще (п. 4)
 
 | Что есть | Что делает на самом деле |
 |----------|--------------------------|
-| `dataGraph.invalidate(...)` | Сбрасывает кэш данных — но только внутри engine, снаружи недоступно |
+| `dataGraph.invalidate(...)` | Сбрасывает кэш данных — внутри engine |
+| `router.invalidate(...)` | ✅ Публичный API на `<aura-router>` + событие `data-invalidated` |
 | `processor.invalidate()` | Отменяет текущую навигацию — **не** чистит кэш |
-| `<aura-router>` | Нет метода вроде `router.invalidate()` |
 
 ### Зачем это нужно
 

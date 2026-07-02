@@ -1,5 +1,9 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { buildTransitionPlan } from '../route-tree/transition-plan';
+import { buildTransitionPlan, type TransitionMap } from '../route-tree/transition-plan';
+import { NavigationTransactionPipeline } from '../navigation-transaction-pipeline/navigation-transaction-pipeline';
+import { AuraRoutingEngine } from '../aura-routing-engine';
+import type { NavigationTransactionOptions } from '../navigation-coordinator/navigation-coordinator';
+import type { HistoryAction } from '../history/provider.types';
 
 type NavigationTransactionState = 'pending' | 'resolved' | 'rejected';
 
@@ -8,27 +12,32 @@ export interface NavigationTransactionResult {
   reason?: any;
 }
 
-type transactionRejectedFunc = (id: number) => {};
+type transactionRejectedFunc = (id: number) => boolean;
 
 export class NavigationTransaction {
-  from: MatchedRouteInfo | null;
-  to: MatchedRouteInfo;
+  readonly from: MatchedRouteInfo | null;
+  readonly to: MatchedRouteInfo;
+  readonly action: HistoryAction;
 
   readonly id: number;
   readonly signal: AbortSignal;
   private readonly abortController: AbortController;
-  private transactionRejected: transactionRejectedFunc;
+  readonly transactionRejected: () => boolean;
+  readonly engine: AuraRoutingEngine;
+  plan: TransitionMap;
 
   // result: NavigationTransactionResult;
   _result: Promise<NavigationTransactionResult>;
 
-  constructor(id: number, from: MatchedRouteInfo | null, to: MatchedRouteInfo, transactionRejected: transactionRejectedFunc) {
+  constructor(id: number, options: NavigationTransactionOptions, transactionRejected: transactionRejectedFunc, engine: AuraRoutingEngine) {
     this.id = id;
-    this.from = from;
-    this.to = to;
+    this.from = options.from;
+    this.to = options.to;
+    this.action = options.action;
     this.abortController = new AbortController();
     this.signal = this.abortController.signal;
-    this.transactionRejected = transactionRejected;
+    this.transactionRejected = () => transactionRejected(id);
+    this.engine = engine;
     this._result = new Promise<NavigationTransactionResult>(() => {
     });
     // this.result = {
@@ -44,7 +53,9 @@ export class NavigationTransaction {
 
   async run(): Promise<NavigationTransactionResult> {
 
-    const transitionPlan = buildTransitionPlan(this.from, this.to);
+    this.plan = buildTransitionPlan(this.from, this.to);
+
+    const pipeline = new NavigationTransactionPipeline(this);
 
     // todo run piplie
     // create roadmap plan
@@ -52,18 +63,19 @@ export class NavigationTransaction {
     return this._result;
   }
 
-  private createRoadMap(){}
+  private createRoadMap() {
+  }
 
   cancel() {
     // todo cancel
     this.abort();
-   // revert view if not commited;
+    // revert view if not commited;
   }
 
   private abort(reason?: unknown): void {
     if (!this.signal.aborted) {
-      this._result = Promise.reject({ state: 'rejected', reason: 'abort-signal' });
       this.abortController.abort(reason);
+      this._result = Promise.reject({ state: 'rejected', reason: 'abort-signal' });
     }
   }
 

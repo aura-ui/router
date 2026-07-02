@@ -43,7 +43,7 @@ navigateTo(/dashboard)
 AuraRoutingEngine.navigateTo()
   │
   ├─ 1. RedirectResolver.resolve()     ← новый слой (только pre-commit)
-  │      match → blocking (leave/enter/load) → redirect? → rematch
+  │      match (incl. route-attr redirect) → blocking → redirect? → rematch
   │      повтор до финала / cancel / error / max hops / cycle
   │
   └─ 2. ProcessorPipeline.run()        ← как сейчас, один раз
@@ -101,6 +101,125 @@ runLoads
 
 ---
 
+## Источники redirect (как детектить)
+
+`RedirectResolver` **не** «смотрит на маршрут, был ли redirect». Он потребляет **единый сигнал** — либо `TransactionResult { status: 'redirect' }` из blocking pipeline, либо **match-time redirect** до pipeline. Разные способы redirect должны **сводиться к этому**, иначе collapse их не увидит.
+
+### As-is (blocking return)
+
+Сейчас collapsible redirect в pipeline — один канал:
+
+```text
+hook return → normalizeHookResult → guardResultToPhaseOutcome → TransactionResult
+```
+
+Поддерживаемые return в blocking (`leave` / `enter` / `load`):
+
+- `return '/login'`
+- `return { url: '/login', replace?: boolean }`
+- `return { type: 'redirect', url: '/login', replace?: boolean }`
+
+Post-commit: return redirect **игнорируется** (warn); по P1-7 — `ctx.router.navigate()`.
+
+`RouterInstance` as-is — только `navigate()`, **`router.redirect()` нет**.
+
+### Внутренняя модель (целевая)
+
+```ts
+type RedirectSource =
+  | 'route-attr'      // declarative redirect на <aura-route>
+  | 'hook-return'     // return из blocking hook / load
+  | 'intent-router';  // опционально: navigate в scope intent (см. ниже)
+
+type RedirectInstruction = {
+  url: string;
+  replace?: boolean;
+  source: RedirectSource;
+  /** false → выход из collapse (async-redirect / side-effect navigate) */
+  sync: boolean;
+};
+```
+
+Производители:
+
+| Источник | Кто создаёт instruction |
+|----------|------------------------|
+| `route-attr` | matcher / `resolveNavigationTarget` |
+| `hook-return` | `runBlockingOnly` → `TransactionResult.redirect` |
+| `intent-router` | engine при intent-scoped navigate (опционально, v2) |
+
+### 1. Return URL из hooks
+
+✅ **Основной путь collapse.**
+
+- Sync return (без `await` до redirect) → `sync: true`, continue loop.
+- Return **после** `await` в load → `async-redirect`, legacy `navigateTo`.
+
+### 2. Атрибут `redirect` на route (план)
+
+```html
+<aura-route path="/old" redirect="/new"></aura-route>
+```
+
+**Не hook** — redirect до render, желательно **без лишних** leave/enter/load на маршруте-заглушке.
+
+**Рекомендация — match-time (вариант A):**
+
+```ts
+type NavigationTarget =
+  | { kind: 'matched'; leaf: MatchedRouteInfo }
+  | { kind: 'redirect'; url: string; replace?: boolean };
+```
+
+```text
+match(/old) → { kind: 'redirect', url: '/new' }
+→ RedirectResolver: href = '/new', continue loop (без runBlockingOnly на этом hop)
+```
+
+**Альтернатива — synthetic blocking (вариант B):** первый шаг `enter` для route с `redirect` attr сразу возвращает `{ status: 'redirect' }`. Проще встроить в pipeline, но возможны лишние `leave*` по плану `A→old`.
+
+**v1:** предпочесть **match-time** для static attr.
+
+### 3. `ctx.router.navigate()` / будущий `router.redirect()`
+
+**Не return** — side-effect или новая транзакция:
+
+```ts
+// blocking hook — collapse не видит TransactionResult.redirect
+enter(ctx) {
+  ctx.router.navigate('/login');  // → engine.navigateTo(), новый job
+}
+```
+
+| API | Рекомендуемая семантика | Collapse |
+|-----|-------------------------|----------|
+| **`return url`** в blocking | канон P1-7 | ✅ sync |
+| **`router.redirect(url)`** (future) | sugar **return**, не `navigateTo` | ✅ если sync |
+| **`router.navigate(url)`** в blocking | новая навигация | ❌ v1 — warn / legacy |
+| **`router.navigate(url)`** post-commit | новая транзакция | ❌ отдельный run |
+
+**v1 политика:** collapsible redirect = **`TransactionResult.redirect`** или **match-time attr**; `navigate()` в blocking — **вне collapse** (warn в dev).
+
+**v2 (опционально):** intent-scoped navigate — пока активен `NavigationIntent` resolve, `router.navigate(url)` пишет в intent pending redirect (тот же job), не стартует новый run.
+
+### Сводная таблица
+
+| Способ | Collapse v1 | Как детектить |
+|--------|-------------|---------------|
+| `return '/url'` в blocking | ✅ sync | `TransactionResult.redirect` |
+| return после `await` | ❌ | `async-redirect` в pipeline |
+| `redirect` attr на route | ✅ | match → `RedirectInstruction` |
+| `router.navigate()` в blocking | ❌ | не TransactionResult; warn / legacy |
+| `router.navigate()` post-commit | ❌ | новый run |
+| `router.redirect()` = sugar return | ✅ | как hook-return |
+
+### Правило для implementers
+
+> Collapse продолжается только при **sync** `RedirectInstruction` / `TransactionResult.redirect`.  
+> Resolver не дублирует детект по типу маршрута — только **результат match** и **результат runBlockingOnly**.
+
+---
+
 ## Алгоритм `RedirectResolver`
 
 ```text
@@ -113,7 +232,14 @@ loop while intent.redirectHop < MAX_REDIRECTS (например 5):
   if href in intent.visited → error 'redirect-cycle'
   intent.visited.add(href)
 
-  to ← matcher.match(href)
+  target ← resolveNavigationTarget(href)   // match + route-attr redirect
+  if target.kind === 'redirect':
+    href ← normalize(target.url)
+    intent.replace ||= target.replace
+    intent.redirectHop++
+    continue loop
+
+  to ← target.leaf
   if !to → not-found (как сейчас)
 
   result ← processor.runBlockingOnly({ from, to, action, router, intent })
@@ -125,6 +251,9 @@ loop while intent.redirectHop < MAX_REDIRECTS (например 5):
       intent.redirectHop++
       // from НЕ меняем: UI ещё на originalFrom, view commit не было
       continue loop
+
+    case 'async-redirect':
+      return result   // выход из collapse → legacy navigateTo
 
     case 'cancelled' | 'error':
       return result
@@ -222,10 +351,11 @@ if (navigationAsyncBoundaryCrossed && isRedirect(hookResult)) {
 ```mermaid
 flowchart TD
   NT[navigateTo href] --> RS[RedirectResolver loop]
-  RS --> M[match href]
-  M --> BO[runBlockingOnly]
+  RS --> M[resolveNavigationTarget]
+  M -->|route-attr redirect| RS
+  M -->|matched| BO[runBlockingOnly]
   BO -->|redirect sync| RS
-  BO -->|cancel / error| FIN[finalizeNavigation]
+  BO -->|cancel / error| FIN[OutcomeHandler]
   BO -->|blocking OK| FULL[ProcessorPipeline.run full]
   RS -->|async-redirect| NT2[navigateTo url legacy path]
   FULL --> FIN
@@ -240,9 +370,11 @@ flowchart TD
 | Файл | Изменение |
 |------|-----------|
 | `core/redirect-resolver.ts` | новый: loop, cycle, max hops |
+| `core/match/resolve-navigation-target.ts` | `NavigationTarget` + route-attr `redirect` |
+| `aura-route` | attr `redirect` (declarative) |
 | `processor-pipeline.ts` | `runBlockingOnly()` или `run({ mode: 'resolve' \| 'full' })` |
 | `processor.ts` | проброс mode / два публичных метода |
-| `aura-routing-engine.ts` | `navigateTo`: resolve → full run; `finalizeNavigation` redirect — fallback для async |
+| `aura-routing-engine.ts` | `navigateTo`: resolve → full run; terminal redirect — fallback для async |
 | `navigation-error.types.ts` | опционально `redirect-cycle`, `redirect-depth-exceeded` |
 
 ---
@@ -252,6 +384,8 @@ flowchart TD
 - post-commit `return url` (warn-only, P1-7)
 - redirect после view commit (`router.navigate` — всегда новая транзакция)
 - цепочки с `await` в load (без отдельной доработки async-границы)
+- `router.navigate()` в blocking hook без intent-scope (v1 — warn, вне collapse)
+- side-effect navigate, маскирующийся под «redirect» без return
 - not-found на промежуточном URL (resolver обрабатывает как сейчас в engine)
 
 ---
@@ -278,6 +412,8 @@ flowchart TD
 
 ## Связанные документы
 
+- [ENGINE_CONSOLIDATION.md](./ENGINE_CONSOLIDATION.md) — общий roadmap и порядок фаз
+- [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md) — NavigationRun, resolve внутри run
 - [NAVIGATION_TRANSACTION_MODEL.md §7](../NAVIGATION_TRANSACTION_MODEL.md#7-redirect-и-cancel--политика-aura-p1-7) — политика redirect
 - [FEATURE_PARITY_ROADMAP.md P1-7](../comparison/FEATURE_PARITY_ROADMAP.md) — статус политики
 - [REACT_ROUTER_COMPARISON.md §5](../comparison/REACT_ROUTER_COMPARISON.md) — unified redirect + dedupe в RR7

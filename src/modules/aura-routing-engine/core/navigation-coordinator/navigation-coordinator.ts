@@ -6,6 +6,18 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import { resolveHookNames } from '../lifecycle';
 import { getLeafMatch } from '../route-tree/matched-chain';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
+import { AuraRoutingEngine } from '../aura-routing-engine';
+import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
+
+
+export interface NavigationTransactionOptions {
+  from: MatchedRouteInfo | null;
+  to: MatchedRouteInfo;
+  action: HistoryAction;
+  href: string;
+  hash: string;
+  options: NavigateHistoryOptions;
+}
 
 export class NavigationCoordinator {
   currentTransaction: NavigationTransaction | null;
@@ -13,17 +25,19 @@ export class NavigationCoordinator {
 
   private currentTransactionId: number;
   private _routerGenerationId: number;
+  engine: AuraRoutingEngine;
 
-  constructor() {
+  constructor(engine: AuraRoutingEngine) {
     this.currentTransaction = null;
     this.currentTransactionId = 0;
+    this.engine = engine;
   }
 
   start() {
-
   }
 
-  async run(from: MatchedRouteInfo | null, to: MatchedRouteInfo) {
+  async run(options: NavigationTransactionOptions) {
+    const {from, to, action} = options;
     // 1. duplicate in-flight target
     if (this.currentTransaction?.to.href === to.href) return;
 
@@ -39,7 +53,7 @@ export class NavigationCoordinator {
     }
 
     this.currentTransactionId++;
-    const transaction = new NavigationTransaction(this.currentTransactionId, from, to, this.transactionRejected);
+    const transaction = new NavigationTransaction(this.currentTransactionId, options, this.transactionRejected, this.engine);
     this.currentTransaction = transaction;
     transaction.run()
       .then((result: NavigationTransactionResult) => {
@@ -54,7 +68,7 @@ export class NavigationCoordinator {
     });
   }
 
-  routeHasReenterWork(to: MatchedRouteInfo): boolean {
+  private routeHasReenterWork(to: MatchedRouteInfo): boolean {
     const hooks = resolveHookNames(getLeafMatch(to).route, 'reenter');
     return !!hooks?.length;
   }

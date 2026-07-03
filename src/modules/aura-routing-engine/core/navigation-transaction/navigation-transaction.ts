@@ -33,9 +33,7 @@ export class NavigationTransaction {
 
   transitionPlan: TransitionMap;
   transitionOrder: TransitionOrderType | null;
-
   dataSnapshot: DataSnapshot;
-
   viewCommitTracker: ViewCommitTracker;
 
   constructor(
@@ -65,6 +63,17 @@ export class NavigationTransaction {
     return this.signal.aborted;
   }
 
+  /** Async work after await must stop when aborted or superseded by a newer transaction. */
+  isActive(): boolean {
+    return !this.isAborted && !this.isStale();
+  }
+
+  cancel(reason?: unknown): void {
+    if (!this.signal.aborted) {
+      this.abortController.abort(reason);
+    }
+  }
+
   commitNavigation() {
     this.engine.commitNavigation(this);
     this.viewCommitTracker.markViewCommitted();
@@ -83,21 +92,6 @@ export class NavigationTransaction {
           ? pipeline.runFastPipeline()
           : pipeline.runFullPipeline();
     });
-  }
-
-  cancel() {
-    this.signalAbort();
-  }
-
-  private signalAbort(reason?: unknown): void {
-    if (!this.signal.aborted) {
-      this.abortController.abort(reason);
-    }
-  }
-
-  /** Async work after await must stop when aborted or superseded by a newer transaction. */
-  isActive(): boolean {
-    return !this.isAborted && !this.isStale();
   }
 
   private async runWithStagedViewRollback(
@@ -136,23 +130,7 @@ export class NavigationTransaction {
     return new ErrorPhaseHandler().failNavigation(route, error, atPhase, runtime);
   }
 
-  createLifecycleRuntime(): LifecycleRuntimeContext {
-    const { transactionId, signal, from, to, action, transitionPlan } = this;
-    return {
-      transaction: { from, to, action, plan: transitionPlan },
-      navigationJob: { id: transactionId, signal },
-      router: this.engine.router,
-      hookRegistry: this.engine.hooksRegistry,
-      viewCommitTracker: this.viewCommitTracker,
-      isJobActive: () => this.isActive(),
-      dataSnapshot: this.dataSnapshot,
-      reportHookError: (hookError, parent) => {
-        this.engine.reportNavigationHookError(hookError, parent);
-      },
-    };
-  }
-
-  canUseFastPath(
+  private canUseFastPath(
     plan: TransitionMap,
     _from: MatchedRouteInfo | null,
     _to: MatchedRouteInfo,
@@ -175,4 +153,21 @@ export class NavigationTransaction {
 
     return true;
   }
+
+  createLifecycleRuntime(): LifecycleRuntimeContext {
+    const { transactionId, signal, from, to, action, transitionPlan } = this;
+    return {
+      transaction: { from, to, action, plan: transitionPlan },
+      navigationJob: { id: transactionId, signal },
+      router: this.engine.router,
+      hookRegistry: this.engine.hooksRegistry,
+      viewCommitTracker: this.viewCommitTracker,
+      isJobActive: () => this.isActive(),
+      dataSnapshot: this.dataSnapshot,
+      reportHookError: (hookError, parent) => {
+        this.engine.reportNavigationHookError(hookError, parent);
+      },
+    };
+  }
+
 }

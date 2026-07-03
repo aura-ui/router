@@ -4,10 +4,51 @@ import {
   FakeHistoryProvider,
 } from '../../core';
 import type { RouterInstance } from '../../core';
-import type { TransactionResult } from '../../core/navigation/transaction-result';
-import type { ProcessorRunInput } from '../../core/processor/types';
+import { NavigationTransaction } from '../../core/navigation-transaction/navigation-transaction';
+import type { TransactionFullResult } from '../../core/navigation-transaction-pipeline/navigation-transaction-pipeline';
 import { createTestRoute } from '../helpers/create-test-route';
-import { mockProcessorRunSuccess, resolveMockProcessorRun } from '../helpers/mock-processor-run';
+
+function mockTransactionRunSuccess(run: jest.SpyInstance): void {
+  run.mockImplementation(async function (this: NavigationTransaction) {
+    this.engine.commitNavigation(this);
+    return { status: 'navigationSucceeded' };
+  });
+}
+
+function resolveMockTransactionRun(
+  transaction: NavigationTransaction,
+  resolve: (result: TransactionFullResult) => void,
+  result: TransactionFullResult,
+): void {
+  if (!result || result.status === 'navigationSucceeded') {
+    transaction.engine.commitNavigation(transaction);
+  }
+  resolve(result);
+}
+
+function mockDeferredTransactionRun() {
+  const resolvers: Array<(result: TransactionFullResult) => void> = [];
+  const transactions: NavigationTransaction[] = [];
+
+  const run = jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
+    function (this: NavigationTransaction) {
+      transactions.push(this);
+      return new Promise<TransactionFullResult>((resolve) => {
+        resolvers.push((result) => resolveMockTransactionRun(this, resolve, result));
+      });
+    },
+  );
+
+  return {
+    run,
+    resolveAt(index: number, result: TransactionFullResult) {
+      resolvers[index](result);
+    },
+    transactionAt(index: number) {
+      return transactions[index];
+    },
+  };
+}
 
 describe('AuraRoutingEngine navigation dedupe', () => {
   const router: RouterInstance = { navigate: jest.fn() };
@@ -16,24 +57,18 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     jest.restoreAllMocks();
   });
 
-  it('ignores duplicate navigateTo calls while the same target is pending', async () => {
+  it('ignores duplicate navigateTo calls while the same target is in flight', async () => {
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
-    const run = jest.spyOn(AuraRoutingProcessor.prototype, 'run');
+    const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
     provider.start();
 
-    mockProcessorRunSuccess(run);
+    mockTransactionRunSuccess(run);
     await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
 
-    let resolveRun!: (result: TransactionResult) => void;
-    run.mockImplementation(
-      (input: ProcessorRunInput) =>
-        new Promise<TransactionResult>((resolve) => {
-          resolveRun = (result) => resolveMockProcessorRun(input, resolve, result);
-        }),
-    );
+    const { resolveAt } = mockDeferredTransactionRun();
     run.mockClear();
 
     const first = engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
@@ -41,7 +76,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
     expect(run).toHaveBeenCalledTimes(1);
 
-    resolveRun({ status: 'navigationSucceeded' });
+    resolveAt(0, { status: 'navigationSucceeded' });
     await first;
     await second;
   });
@@ -49,8 +84,8 @@ describe('AuraRoutingEngine navigation dedupe', () => {
   it('aborts pending navigation when the committed route is clicked again', async () => {
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
-    const run = jest.spyOn(AuraRoutingProcessor.prototype, 'run');
-    const abort = jest.spyOn(AuraRoutingProcessor.prototype, 'abortPendingNavigation');
+    const run = jest.spyOn(NavigationTransaction.prototype, 'run');
+    const cancel = jest.spyOn(NavigationTransaction.prototype, 'cancel');
 
     engine.registerRoutes([
       createTestRoute('/'),
@@ -59,41 +94,36 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     ]);
     provider.start();
 
-    mockProcessorRunSuccess(run);
+    mockTransactionRunSuccess(run);
     await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
-    let resolveGallery!: (result: TransactionResult) => void;
-    run.mockImplementation(
-      (input: ProcessorRunInput) =>
-        new Promise<TransactionResult>((resolve) => {
-          resolveGallery = (result) => resolveMockProcessorRun(input, resolve, result);
-        }),
-    );
+    const { resolveAt } = mockDeferredTransactionRun();
     run.mockClear();
-    abort.mockClear();
+    cancel.mockClear();
 
     const galleryNav = engine.navigateTo('/gallery', 'push', { replace: false, syncHistory: true });
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
     expect(run).toHaveBeenCalledTimes(1);
-    expect(abort).toHaveBeenCalledTimes(1);
+    expect(cancel).toHaveBeenCalledTimes(1);
 
-    resolveGallery({ status: 'cancelled' });
+    resolveAt(0, { status: 'cancelled' });
     await galleryNav;
   });
 
-  it('runs processor when the committed route declares reenter hooks', async () => {
+  it('runs transaction when the committed route declares reenter hooks', async () => {
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
-    const run = jest.spyOn(AuraRoutingProcessor.prototype, 'run');
+    const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([
-      createTestRoute('/', {}),
+      createTestRoute('/'),
       createTestRoute('/about', { reenter: ['sync'] }),
     ]);
     provider.start();
-    mockProcessorRunSuccess(run);
+
+    mockTransactionRunSuccess(run);
     await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
@@ -104,14 +134,15 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
-  it('skips processor when the committed route has no reenter hooks', async () => {
+  it('skips transaction when the committed route has no reenter hooks', async () => {
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
-    const run = jest.spyOn(AuraRoutingProcessor.prototype, 'run');
+    const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
     provider.start();
-    mockProcessorRunSuccess(run);
+
+    mockTransactionRunSuccess(run);
     await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
@@ -125,7 +156,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
   it('still navigates when the in-flight target changes', async () => {
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
-    const run = jest.spyOn(AuraRoutingProcessor.prototype, 'run');
+    const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([
       createTestRoute('/'),
@@ -134,22 +165,20 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     ]);
     provider.start();
 
-    mockProcessorRunSuccess(run);
+    mockTransactionRunSuccess(run);
     await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
 
-    let resolveAbout!: (result: TransactionResult) => void;
+    let resolveAbout!: (result: TransactionFullResult) => void;
     let call = 0;
-    run.mockImplementation((input: ProcessorRunInput) => {
+    run.mockImplementation(async function (this: NavigationTransaction) {
       call += 1;
       if (call === 1) {
-        return new Promise<TransactionResult>((resolve) => {
-          resolveAbout = (result) => resolveMockProcessorRun(input, resolve, result);
+        return new Promise<TransactionFullResult>((resolve) => {
+          resolveAbout = (result) => resolveMockTransactionRun(this, resolve, result);
         });
       }
-      return Promise.resolve({ status: 'navigationSucceeded' }).then((result) => {
-        input.commitGate?.();
-        return result;
-      });
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
     });
     run.mockClear();
     call = 0;

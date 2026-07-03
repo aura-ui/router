@@ -29,6 +29,7 @@ function createMatchedRoute(
 function createMockEngine(): AuraRoutingEngine {
   const hookRegistry = new HookRegistry();
   return {
+    isRunning: true,
     commitNavigation: jest.fn(),
     finalizeCancelled: jest.fn(),
     applyRedirect: jest.fn(),
@@ -148,7 +149,7 @@ describe('NavigationCoordinator', () => {
       expect(coordinator.inFlightHref).toBeNull();
     });
 
-    it('returns noop when in-flight href differs but no transaction is active', async () => {
+    it('is a no-op when only inFlightHref remains after dropping activeTransaction', async () => {
       const engine = createMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const about = createMatchedRoute('/about');
@@ -476,6 +477,24 @@ describe('NavigationCoordinator', () => {
       resolveAt(1, { status: 'navigationSucceeded' });
       await first;
       await second;
+    });
+    it('does not finalize cancelled navigation after engine stop', async () => {
+      const engine = createMockEngine();
+      const coordinator = new NavigationCoordinator(engine);
+      const home = createMatchedRoute('/');
+      const about = createMatchedRoute('/about');
+      const { resolveAt } = mockDeferredTransactionRun();
+
+      const nav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
+
+      engine.isRunning = false;
+      coordinator.invalidate();
+      resolveAt(0, { status: 'cancelled' });
+      await nav;
+
+      expect(engine.finalizeCancelled).not.toHaveBeenCalled();
+      expect(coordinator.inFlightHref).toBeNull();
+      expect(coordinator.activeTransaction).toBeNull();
     });
   });
 });

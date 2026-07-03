@@ -14,7 +14,8 @@ import { ErrorPhaseHandler, type LifecycleRuntimeContext } from '../lifecycle';
 import type { DataSnapshot } from '../data-graph';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 
-type transactionRejectedFunc = (id: number, routerGenerationId: number) => boolean;
+/** Returns true when a newer transaction or router generation superseded this one. */
+type IsTransactionStaleCheck = (transactionId: number, routerGenerationId: number) => boolean;
 
 export class NavigationTransaction {
   readonly from: MatchedRouteInfo | null;
@@ -24,20 +25,27 @@ export class NavigationTransaction {
   readonly action: HistoryAction;
   readonly historyOptions: NavigateHistoryOptions;
 
-  readonly id: number;
+  readonly transactionId: number;
   readonly signal: AbortSignal;
   private readonly abortController: AbortController;
-  readonly transactionRejected: () => boolean;
+  readonly isStale: () => boolean;
   readonly engine: AuraRoutingEngine;
-  plan: TransitionMap;
+
+  transitionPlan: TransitionMap;
   transitionOrder: TransitionOrderType | null;
 
   dataSnapshot: DataSnapshot;
 
   viewCommitTracker: ViewCommitTracker;
 
-  constructor(id: number, routerGenerationId: number, options: NavigationTransactionOptions, transactionRejected: transactionRejectedFunc, engine: AuraRoutingEngine) {
-    this.id = id;
+  constructor(
+    transactionId: number,
+    routerGenerationId: number,
+    options: NavigationTransactionOptions,
+    isTransactionStale: IsTransactionStaleCheck,
+    engine: AuraRoutingEngine,
+  ) {
+    this.transactionId = transactionId;
     this.from = options.from;
     this.to = options.to;
     this.href = options.href;
@@ -47,13 +55,13 @@ export class NavigationTransaction {
 
     this.abortController = new AbortController();
     this.signal = this.abortController.signal;
-    this.transactionRejected = () => transactionRejected(id, routerGenerationId);
+    this.isStale = () => isTransactionStale(transactionId, routerGenerationId);
     this.engine = engine;
 
     this.viewCommitTracker = new ViewCommitTracker(options.to.href);
   }
 
-  get aborted(): boolean {
+  get isAborted(): boolean {
     return this.signal.aborted;
   }
 
@@ -63,50 +71,48 @@ export class NavigationTransaction {
   }
 
   async run(): Promise<TransactionFullResult> {
-    this.plan = buildTransitionPlan(this.from, this.to);
-    this.transitionOrder = getEnterRoute(this.plan)?.transition?.order ?? null;
-    const isFastPath = this.canUseFastPath(this.plan, this.from, this.to);
+    this.transitionPlan = buildTransitionPlan(this.from, this.to);
+    this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+    const useFastPath = this.canUseFastPath(this.transitionPlan, this.from, this.to);
 
-    return this.rollbackViewWrapper(() => {
-      console.log(' PIPLINE running');
+    return this.runWithStagedViewRollback(() => {
       const pipeline = new NavigationTransactionPipeline(this);
-      return this.plan.reenter
+      return this.transitionPlan.reenter
         ? pipeline.reenter()
-        : isFastPath
+        : useFastPath
           ? pipeline.runFastPipeline()
           : pipeline.runFullPipeline();
     });
   }
 
   cancel() {
-    this.abort();
+    this.signalAbort();
   }
 
-  private abort(reason?: unknown): void {
+  private signalAbort(reason?: unknown): void {
     if (!this.signal.aborted) {
-      console.log('abort happened for ' + this.id);
       this.abortController.abort(reason);
     }
   }
 
-  /** Async work after await must stop when aborted or superseded by a newer tx. */
+  /** Async work after await must stop when aborted or superseded by a newer transaction. */
   isActive(): boolean {
-    return !this.aborted && !this.transactionRejected();
+    return !this.isAborted && !this.isStale();
   }
 
-  // rollback view if some error happened but view already in stage mode
-  async rollbackViewWrapper(func: () => Promise<TransactionFullResult>): Promise<TransactionFullResult> {
-
+  private async runWithStagedViewRollback(
+    runPipeline: () => Promise<TransactionFullResult>,
+  ): Promise<TransactionFullResult> {
     const rollbackStagedViews = () => {
-      rollbackUncommittedViews(this.plan, this.viewCommitTracker);
+      rollbackUncommittedViews(this.transitionPlan, this.viewCommitTracker);
     };
 
     this.signal.addEventListener('abort', rollbackStagedViews, { once: true });
 
     let result: TransactionFullResult | undefined;
     try {
-      result = await func();
-      return result ?? { status: 'navigationSucceeded' }; // если нужно
+      result = await runPipeline();
+      return result ?? { status: 'navigationSucceeded' };
     } finally {
       this.signal.removeEventListener('abort', rollbackStagedViews);
       if (this.shouldRollbackAfterRun(result)) {
@@ -117,7 +123,7 @@ export class NavigationTransaction {
 
   private shouldRollbackAfterRun(result: TransactionFullResult | undefined): boolean {
     if (this.viewCommitTracker.isViewCommitted()) return false;
-    if (this.aborted) return false; // уже откатили в abort listener
+    if (this.isAborted) return false;
     return result?.status === 'cancelled';
   }
 
@@ -130,17 +136,16 @@ export class NavigationTransaction {
     return new ErrorPhaseHandler().failNavigation(route, error, atPhase, runtime);
   }
 
-  //todo use it for old code
   createLifecycleRuntime(): LifecycleRuntimeContext {
-    const { id, signal, from, to, action, plan } = this;
+    const { transactionId, signal, from, to, action, transitionPlan } = this;
     return {
-      transaction: { from, to, action, plan },
-      navigationJob: { id, signal },
+      transaction: { from, to, action, plan: transitionPlan },
+      navigationJob: { id: transactionId, signal },
       router: this.engine.router,
       hookRegistry: this.engine.hooksRegistry,
       viewCommitTracker: this.viewCommitTracker,
       isJobActive: () => this.isActive(),
-      dataSnapshot: this.dataSnapshot,      // опционально
+      dataSnapshot: this.dataSnapshot,
       reportHookError: (hookError, parent) => {
         this.engine.reportNavigationHookError(hookError, parent);
       },
@@ -170,5 +175,4 @@ export class NavigationTransaction {
 
     return true;
   }
-
 }

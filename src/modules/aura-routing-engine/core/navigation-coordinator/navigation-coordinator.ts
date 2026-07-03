@@ -4,10 +4,9 @@ import {
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { resolveHookNames } from '../lifecycle';
 import { getLeafMatch } from '../route-tree/matched-chain';
-import { isSameNavigationTarget, type TransitionMap } from '../route-tree/transition-plan';
+import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-
 
 export interface NavigationTransactionOptions {
   from: MatchedRouteInfo | null;
@@ -20,7 +19,6 @@ export interface NavigationTransactionOptions {
 
 export class NavigationCoordinator {
   currentTransaction: NavigationTransaction | null;
-  lastTransaction: NavigationTransaction | null;
 
   private currentTransactionId: number;
   private _routerGenerationId: number;
@@ -65,24 +63,24 @@ export class NavigationCoordinator {
     if (this.currentTransaction) {
       this.currentTransaction.cancel();
     }
-/*
+    /*
 
-    // 1. duplicate in-flight target
-    if (this.currentTransaction?.to.href === to.href) return;
+        // 1. duplicate in-flight target
+        if (this.currentTransaction?.to.href === to.href) return;
 
 
-    // 2. cancel superseded
-    if (this.currentTransaction) {
-      this.currentTransaction.cancel();
-    }
+        // 2. cancel superseded
+        if (this.currentTransaction) {
+          this.currentTransaction.cancel();
+        }
 
-    // 3. already committed, no reenter → только отмена, без нового run
-    if (from && isSameNavigationTarget(from, to) && !this.routeHasReenterWork(to)) {
-      console.log('the same navigation target --------- ' + isSameNavigationTarget(from, to));
-      this.currentTransaction = null;
-      return;
-    }
-*/
+        // 3. already committed, no reenter → только отмена, без нового run
+        if (from && isSameNavigationTarget(from, to) && !this.routeHasReenterWork(to)) {
+          console.log('the same navigation target --------- ' + isSameNavigationTarget(from, to));
+          this.currentTransaction = null;
+          return;
+        }
+    */
 
     this.markPending(href);
     this.currentTransactionId++;
@@ -114,7 +112,7 @@ export class NavigationCoordinator {
       // (result: TransactionFullResult) => {
       // сработает только при throw
       // }
-    //}
+      //}
     finally {
       this.clearPending(href);
       if (this.currentTransaction === transaction) {
@@ -123,7 +121,10 @@ export class NavigationCoordinator {
     }
   }
 
-  markPending(href: string) { this.pendingHref = href; }
+  markPending(href: string) {
+    this.pendingHref = href;
+  }
+
   clearPending(href: string) {
     if (this.pendingHref === href) this.pendingHref = null;
   }

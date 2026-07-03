@@ -42,7 +42,7 @@ export class NavigationTransactionPipelinePhase {
         engine.hooksRegistry,
         context,
         resolveHookNames(route.route, data.phase) || [],
-        transaction.transactionRejected,
+        () => !transaction.transactionRejected(),
       );
 
       if (isBlocking) {
@@ -160,7 +160,7 @@ export class NavigationTransactionPipelinePhase {
       transaction.engine.hooksRegistry,
       context,
       resolveHookNames(route.route, 'error') || [],
-      transaction.transactionRejected,
+      () => !transaction.transactionRejected(),
     );
   }
 }

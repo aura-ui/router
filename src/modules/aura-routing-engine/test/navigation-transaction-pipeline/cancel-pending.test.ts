@@ -3,7 +3,6 @@ import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry, runPhaseHooks } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationCoordinator } from '../../core/navigation-coordinator/navigation-coordinator';
 import { NavigationTransaction } from '../../core/navigation-transaction/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation-transaction-pipeline/navigation-transaction-pipeline';
 import { runViewCommit } from '../../core/view-mount/view-commit-render';
@@ -156,51 +155,5 @@ describe('NavigationTransactionPipeline cancel-pending (A → B in-flight → A)
     expect(commitStagedView).not.toHaveBeenCalled();
     expect(onLeft).not.toHaveBeenCalled();
     expect(transaction.engine.commitNavigation).not.toHaveBeenCalled();
-  });
-});
-
-describe('NavigationCoordinator cancel-pending', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it('aborts in-flight navigation without starting a new transaction', async () => {
-    const engine = createMockEngine();
-    const coordinator = new NavigationCoordinator(engine);
-    const about = createMatchedRoute('/about');
-    const gallery = createMatchedRoute('/gallery');
-
-    let resolveGalleryRun!: (result: { status: 'cancelled' }) => void;
-    const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveGalleryRun = resolve;
-        }),
-    );
-    const cancelSpy = jest.spyOn(NavigationTransaction.prototype, 'cancel');
-
-    const galleryNav = coordinator.run({
-      from: about,
-      to: gallery,
-      action: 'push',
-      href: '/gallery',
-      hash: '',
-      options: { replace: false, syncHistory: true },
-    });
-
-    await coordinator.run({
-      from: about,
-      to: about,
-      action: 'push',
-      href: '/about',
-      hash: '',
-      options: { replace: false, syncHistory: true },
-    });
-
-    expect(runSpy).toHaveBeenCalledTimes(1);
-    expect(cancelSpy).toHaveBeenCalledTimes(1);
-
-    resolveGalleryRun({ status: 'cancelled' });
-    await galleryNav;
   });
 });

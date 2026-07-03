@@ -1,23 +1,28 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { buildTransitionPlan, type TransitionMap } from '../route-tree/transition-plan';
-import { NavigationTransactionPipeline } from '../navigation-transaction-pipeline/navigation-transaction-pipeline';
+import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route-tree/transition-plan';
+import {
+  NavigationTransactionPipeline,
+  type TransactionFullResult,
+} from '../navigation-transaction-pipeline/navigation-transaction-pipeline';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { NavigationTransactionOptions } from '../navigation-coordinator/navigation-coordinator';
-import type { HistoryAction } from '../history/provider.types';
-
-type NavigationTransactionState = 'pending' | 'resolved' | 'rejected';
-
-export interface NavigationTransactionResult {
-  state: NavigationTransactionState;
-  reason?: any;
-}
+import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
+import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
+import { type NavigationErrorPhase } from '../failure';
+import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
+import { ErrorPhaseHandler, type LifecycleRuntimeContext } from '../lifecycle';
+import type { DataSnapshot } from '../data-graph';
+import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 
 type transactionRejectedFunc = (id: number) => boolean;
 
 export class NavigationTransaction {
   readonly from: MatchedRouteInfo | null;
   readonly to: MatchedRouteInfo;
+  readonly href: string;
+  readonly hash: string;
   readonly action: HistoryAction;
+  readonly historyOptions: NavigateHistoryOptions;
 
   readonly id: number;
   readonly signal: AbortSignal;
@@ -25,58 +30,110 @@ export class NavigationTransaction {
   readonly transactionRejected: () => boolean;
   readonly engine: AuraRoutingEngine;
   plan: TransitionMap;
+  transitionOrder: TransitionOrderType | null;
 
-  // result: NavigationTransactionResult;
-  _result: Promise<NavigationTransactionResult>;
+  dataSnapshot: DataSnapshot;
+
+  viewCommitTracker: ViewCommitTracker;
 
   constructor(id: number, options: NavigationTransactionOptions, transactionRejected: transactionRejectedFunc, engine: AuraRoutingEngine) {
     this.id = id;
     this.from = options.from;
     this.to = options.to;
+    this.href = options.href;
+    this.hash = options.hash;
     this.action = options.action;
+    this.historyOptions = options.options;
+
     this.abortController = new AbortController();
     this.signal = this.abortController.signal;
     this.transactionRejected = () => transactionRejected(id);
     this.engine = engine;
-    this._result = new Promise<NavigationTransactionResult>(() => {
-    });
-    // this.result = {
-    //   state: 'pending',
-    // };
-  }
 
+    this.viewCommitTracker = new ViewCommitTracker(options.to.href);
+  }
 
   get aborted(): boolean {
     return this.signal.aborted;
   }
 
-
-  async run(): Promise<NavigationTransactionResult> {
-
-    this.plan = buildTransitionPlan(this.from, this.to);
-
-    const pipeline = new NavigationTransactionPipeline(this);
-
-    // todo run piplie
-    // create roadmap plan
-    // run pipline
-    return this._result;
+  commitNavigation() {
+    this.engine.commitNavigation(this);
+    this.viewCommitTracker.markViewCommitted();
   }
 
-  private createRoadMap() {
+  async run(): Promise<TransactionFullResult> {
+    this.plan = buildTransitionPlan(this.from, this.to);
+    this.transitionOrder = getEnterRoute(this.plan)?.transition?.order ?? null;
+    return this.rollbackViewWrapper(() => {
+      const pipeline = new NavigationTransactionPipeline(this);
+      return this.plan.reenter
+        ? pipeline.reenter()
+        : pipeline.runFullPipeline();
+    });
   }
 
   cancel() {
-    // todo cancel
     this.abort();
-    // revert view if not commited;
   }
 
   private abort(reason?: unknown): void {
     if (!this.signal.aborted) {
       this.abortController.abort(reason);
-      this._result = Promise.reject({ state: 'rejected', reason: 'abort-signal' });
     }
+  }
+
+  // rollback view if some error happened but view already in stage mode
+  async rollbackViewWrapper(func: () => Promise<TransactionFullResult>): Promise<TransactionFullResult> {
+
+    const rollbackStagedViews = () => {
+      rollbackUncommittedViews(this.plan, this.viewCommitTracker);
+    };
+
+    this.signal.addEventListener('abort', rollbackStagedViews, { once: true });
+
+    let result: TransactionFullResult | undefined;
+    try {
+      result = await func();
+      return result ?? { status: 'navigationSucceeded' }; // если нужно
+    } finally {
+      this.signal.removeEventListener('abort', rollbackStagedViews);
+      if (this.shouldRollbackAfterRun(result)) {
+        rollbackStagedViews();
+      }
+    }
+  }
+
+  private shouldRollbackAfterRun(result: TransactionFullResult | undefined): boolean {
+    if (this.viewCommitTracker.isViewCommitted()) return false;
+    if (this.aborted) return false; // уже откатили в abort listener
+    return result?.status === 'cancelled';
+  }
+
+  async fail(
+    route: MatchedRouteInfo,
+    error: unknown,
+    atPhase: NavigationErrorPhase,
+  ): Promise<Extract<TransactionFullResult, { status: 'error' }>> {
+    const runtime = this.createLifecycleRuntime();
+    return new ErrorPhaseHandler().failNavigation(route, error, atPhase, runtime);
+  }
+
+  //todo use it for old code
+  createLifecycleRuntime(): LifecycleRuntimeContext {
+    const { id, signal, from, to, action, plan } = this;
+    return {
+      transaction: { from, to, action, plan },
+      navigationJob: { id, signal },
+      router: this.engine.router,
+      hookRegistry: this.engine.hooksRegistry,
+      viewCommitTracker: this.viewCommitTracker,
+      isJobActive: () => !this.transactionRejected(),
+      dataSnapshot: this.dataSnapshot,      // опционально
+      reportHookError: (hookError, parent) => {
+        this.engine.reportNavigationHookError(hookError, parent);
+      },
+    };
   }
 
 }

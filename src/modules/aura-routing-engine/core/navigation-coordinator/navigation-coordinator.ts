@@ -1,6 +1,5 @@
 import {
   NavigationTransaction,
-  type NavigationTransactionResult,
 } from '../navigation-transaction/navigation-transaction';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { resolveHookNames } from '../lifecycle';
@@ -37,7 +36,7 @@ export class NavigationCoordinator {
   }
 
   async run(options: NavigationTransactionOptions) {
-    const {from, to, action} = options;
+    const { from, to, action } = options;
     // 1. duplicate in-flight target
     if (this.currentTransaction?.to.href === to.href) return;
 
@@ -55,17 +54,35 @@ export class NavigationCoordinator {
     this.currentTransactionId++;
     const transaction = new NavigationTransaction(this.currentTransactionId, options, this.transactionRejected, this.engine);
     this.currentTransaction = transaction;
-    transaction.run()
-      .then((result: NavigationTransactionResult) => {
-        //todo update history
-        // this.lastTransaction = transaction;
-      }).catch((result: NavigationTransactionResult) => {
-      //
-    }).finally(() => {
+
+    try {
+      const result = await transaction.run();
+      if (!result || result.status === 'navigationSucceeded') return;
+      if (result.status === 'cancelled') {
+        this.engine.finalizeCancelled(transaction);
+        return; // supersede — тихо
+      }
+      if (result?.status === 'redirect') {
+        this.engine.applyRedirect(result, transaction);
+        return;
+      }
+      if (result.status === 'error') {
+        this.engine.finalizeError(result, transaction); // или finalizeNavigation
+        return;
+      }
+
+      //todo
+      // this.lastTransaction = transaction;
+
+    } catch (error) {
+      // (result: TransactionFullResult) => {
+      // сработает только при throw
+      // }
+    } finally {
       if (this.currentTransaction === transaction) {
         this.currentTransaction = null;
       }
-    });
+    }
   }
 
   private routeHasReenterWork(to: MatchedRouteInfo): boolean {

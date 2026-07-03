@@ -1,60 +1,204 @@
-import { AuraRoutingEngine } from '../aura-routing-engine';
 import { NavigationTransaction } from '../navigation-transaction/navigation-transaction';
-import { type RoutePhase, type RoutePhaseDefinition } from '../lifecycle';
+import { PHASES, type RoutePhaseDefinition } from '../lifecycle';
+import { NavigationTransactionPipelinePhase, type PhaseError } from './navigation-transaction-pipeline-phase';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import { type DataGraphLoadResult, resolveRouteData } from '../data-graph';
+import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
+import { type FailedNavigation } from '../failure';
 
-import {
-  NavigationTransactionPipelinePhase,
-  type PhaseError,
-  type PhaseRunResult,
-} from './navigation-transaction-pipeline-phase';
+export type TransactionFullResult =
+  | { status: 'navigationSucceeded' }
+  | { status: 'cancelled' }
+  | { status: 'redirect'; url: string; replace?: boolean }
+  | { status: 'error'; failure: FailedNavigation }
+  | null;
+
+type PipelineStep = () => Promise<TransactionFullResult>;
 
 export class NavigationTransactionPipeline {
 
-  private readonly engine: AuraRoutingEngine;
   private readonly transaction: NavigationTransaction;
 
+  // private readonly errorHandler: ErrorPhaseHandler;
+
   constructor(transaction: NavigationTransaction) {
-    this.engine = transaction.engine;
     this.transaction = transaction;
+    // this.errorHandler = new ErrorPhaseHandler();
   }
 
-  run() {
-  };
-
-  reenter() {
+  async runFullPipeline(): Promise<TransactionFullResult> {
+    const outcome = await this.runSequentially([
+      () => this.guards(),
+      () => this.loads(),
+      () => this.renderWithTransitions(),
+      () => this.afterRender(),
+    ]);
+    return outcome ?? { status: 'navigationSucceeded' };
   }
 
-  guards() {
+  async reenter(): Promise<TransactionFullResult> {
+    const reenterOutcome = await this.runPhase(PHASES.reenter);
+    if (reenterOutcome) return reenterOutcome;
+    if (this.transaction.transactionRejected()) {
+      return { status: 'cancelled' };
+    }
+    this.transaction.commitNavigation();
+    return { status: 'navigationSucceeded' };
   }
 
-  loads() {
+  guards(): Promise<TransactionFullResult> {
+    return this.runSequentially(
+      [
+        () => this.runPhase(PHASES.leave),
+        () => this.runPhase(PHASES.enter),
+      ],
+    );
   }
 
-  render() {
+  async loads() {
+    const chain = this.activeChain();
+    const result = await this.transaction.engine.dataGraph.load(
+      this.enterRoutesWithLoadHooks(),
+      {
+        chain,
+        runtime: this.transaction.createLifecycleRuntime(),
+      },
+    );
+
+    this.storeDataSnapshot(result);
+    return result.outcome;
   }
 
-  renderWithTransitions() {
+  private storeDataSnapshot(result: DataGraphLoadResult): void {
+    if (result.outcome !== null) return;
+    this.transaction.dataSnapshot = result.snapshot;
   }
 
-  ready() {
+  /** Full branch root → leaf; reused for LCA snapshot lookup in DataGraph. */
+  private activeChain(): readonly MatchedRouteInfo[] {
+    const { plan, to } = this.transaction;
+    return to.chain ?? plan.enterRoutes;
+  }
+
+  private enterRoutesWithLoadHooks(): MatchedRouteInfo[] {
+    return this.transaction.plan.enterRoutes.filter((route) => route.route.load?.length);
+  }
+
+  async render(): Promise<TransactionFullResult> {
+    const enterRoutes = this.transaction.plan.enterRoutes;
+    for (const matchedRoute of enterRoutes) {
+
+      const routeData = this.transaction.dataSnapshot
+        ? resolveRouteData(this.transaction.dataSnapshot, matchedRoute)
+        : undefined;
+
+      const viewCommit = await runViewCommit(
+        matchedRoute,
+        {
+          signal: this.transaction.signal,
+          aborted: this.transaction.aborted,
+        },
+        routeData !== undefined ? { data: routeData } : undefined,
+      );
+
+      if (viewCommit === 'aborted' || this.transaction.transactionRejected()) {
+        return { status: 'cancelled' };
+      }
+
+      if (isRenderError(viewCommit)) {
+        await this.runPhase(PHASES.left);
+        this.transaction.viewCommitTracker.markViewCommittedAfterErrorRecovery();
+        return this.transaction.fail(matchedRoute, viewCommit.error, 'render');
+      }
+
+      this.transaction.viewCommitTracker.markViewStaged();
+    }
+
+    return null;
   }
 
 
-  async runPhase(data: RoutePhaseDefinition) {
+  async renderWithTransitions(): Promise<TransactionFullResult> {
+    const { transitionOrder } = this.transaction;
+
+    if (transitionOrder === null) {
+      return this.render();
+    }
+
+    if (transitionOrder === 'parallel') {
+      const result = await this.render();
+      if (result) return result;
+
+      const [exitTransitionOutcome, enterTransitionOutcome] = await Promise.all([
+        this.runPhase(PHASES.transitionOut),
+        this.runPhase(PHASES.transitionIn),
+      ]);
+
+      return exitTransitionOutcome || enterTransitionOutcome || null;
+    }
+
+    if (transitionOrder === 'out-in') {
+      return this.runSequentially([
+          () => this.runPhase(PHASES.transitionOut),
+          () => this.render(),
+          () => this.runPhase(PHASES.transitionIn),
+        ],
+      );
+    }
+    if (transitionOrder === 'in-out') {
+      return this.runSequentially([
+          () => this.render(),
+          () => this.runPhase(PHASES.transitionIn),
+          () => this.runPhase(PHASES.transitionOut),
+        ],
+      );
+    }
+    return null;
+  }
+
+  async afterRender(): Promise<TransactionFullResult> {
+    if (this.transaction.transactionRejected()) {
+      return { status: 'cancelled' };
+    }
+
+
+    //just remove stage layer in outlet, after all done
+    for (const matchedRoute of this.transaction.plan.enterRoutes) {
+      matchedRoute.route.commitStagedView?.();
+    }
+
+    //todo - open question if it is ok that we waiting animation and to call commitNavigation
+    //change history, save prev to engine, scroll if needed, call options.onNavigationCommitted
+    this.transaction.commitNavigation();
+    await this.runPhase(PHASES.left);
+    return this.runPhase(PHASES.after);
+  }
+
+  private async runSequentially(steps: PipelineStep[]): Promise<TransactionFullResult> {
+    for (const step of steps) {
+      const outcome = await step();
+      if (outcome) return outcome;
+    }
+    return null;
+  }
+
+
+  async runPhase(data: RoutePhaseDefinition): Promise<TransactionFullResult> {
     const matchedRoutes = this.transaction.plan[data.targetRoutes];
 
     for (const matchedRoute of matchedRoutes) {
       const result = await NavigationTransactionPipelinePhase.run(matchedRoute, data, this.transaction);
-      if (NavigationTransactionPipelinePhase.isPhaseError(result)) {
-        return await this.handlePhaseError(result);
-      }
+      // todo
+      // if (NavigationTransactionPipelinePhase.isPhaseError(result)) {
+      //   return await this.handlePhaseError(result);
+      // }
       if (result) return result;
     }
 
     return null;
   }
 
-  private async handlePhaseError(failure: PhaseError): Promise<PhaseRunResult> {
+  private async handlePhaseError(failure: PhaseError): Promise<TransactionFullResult> {
     await NavigationTransactionPipelinePhase.runError(
       failure.route,
       failure.error,
@@ -62,6 +206,6 @@ export class NavigationTransactionPipeline {
       this.transaction,
     );
     // здесь твоя политика — пока минимально:
-    return { status: 'error', error: failure.error }; // или свой TransactionResult
+    return { status: 'error', failure: failure.error }; // или свой TransactionResult
   }
 }

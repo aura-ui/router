@@ -3,13 +3,13 @@ import type { RouteErrorContext, RouteInfo, RouteLifecycleContext } from '../rou
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
   type GuardResult,
-  guardResultToPhaseOutcome, type PhaseStepOutcome, type PhaseThrowPolicy,
+  type PhaseStepOutcome, type PhaseThrowPolicy,
   resolveHookNames,
   type RoutePhase,
   type RoutePhaseDefinition,
 } from '../lifecycle';
 import { runPhaseHooks } from '../hooks/registry';
-
+import type { TransactionFullResult } from './navigation-transaction-pipeline';
 
 export type PhaseError = {
   kind: 'error';
@@ -17,37 +17,26 @@ export type PhaseError = {
   route: MatchedRouteInfo;
   failedPhase: RoutePhase;
 };
-export type PhaseRunResult = PhaseStepOutcome | PhaseError | null;
 
+export type PhaseRunResult = PhaseStepOutcome | PhaseError | null;
 
 export class NavigationTransactionPipelinePhase {
 
-  static async run(route: MatchedRouteInfo, data: RoutePhaseDefinition, transaction: NavigationTransaction) {
+  static async run(route: MatchedRouteInfo, data: RoutePhaseDefinition, transaction: NavigationTransaction): Promise<TransactionFullResult> {
     const isBlocking = data.hookPolicy.kind === 'blocking';
-    const { engine, from, action, id, signal } = transaction;
-    const { router } = engine;
-    const { errorPolicy, phase } = data;
+    const { engine } = transaction;
+    const { errorPolicy, phase, runRouteLifecycle } = data;
 
-    const context: RouteLifecycleContext = {
-      phase: phase,
-      to: this.toRouteInfo(route),
-      from: from ? this.toRouteInfo(from) : null,
-      router,
-      route: route.route,
-      action,
-      jobId: id, // todo rename
-      signal,
-      /** Load-hook payload from DataGraph when available for this route/phase. */
-      // data?: unknown;
-      // error?: unknown;
-    };
+    const context: RouteLifecycleContext = this.toPipelinePhaseContext(phase, route, transaction);
 
+    // run route onFunctions
     try {
-      data.runRouteLifecycle && data.runRouteLifecycle(route.route, context);
+      runRouteLifecycle && runRouteLifecycle(route.route, context);
     } catch (error) {
       return this.onThrow(errorPolicy, phase, error, route);
     }
 
+    // run route hooks defined inside route html attributes
     try {
       const hookResult = await runPhaseHooks(
         engine.hooksRegistry,
@@ -57,19 +46,41 @@ export class NavigationTransactionPipelinePhase {
       );
 
       if (isBlocking) {
-        return guardResultToPhaseOutcome(hookResult);
+        return this.processBlockingResult(hookResult);
       }
 
-      this.warnIgnoredPostCommitHookResult(data.phase, hookResult);
+      this.validatePostCommitResult(data.phase, hookResult);
       return null;
 
     } catch (error) {
-      return this.onThrow(errorPolicy, phase, error, route);
+      if (isBlocking || data.hookPolicy.onError !== 'log') {
+        return this.onThrow(errorPolicy, phase, error, route);
+      }
+      console.error(`[${phase}] hook failed after view commit:`, error);
+      return null;
     }
-
   }
 
-  private static warnIgnoredPostCommitHookResult(
+
+  private static processBlockingResult(hookResult: GuardResult): PhaseStepOutcome {
+    if (hookResult === false) return { status: 'cancelled' };
+
+    if (typeof hookResult === 'string') {
+      return { status: 'redirect', url: hookResult };
+    }
+
+    if (hookResult && typeof hookResult === 'object' && 'url' in hookResult) {
+      return {
+        status: 'redirect',
+        url: hookResult.url,
+        ...(hookResult.replace !== undefined && { replace: hookResult.replace }),
+      };
+    }
+
+    return null;
+  }
+
+  private static validatePostCommitResult(
     phase: RoutePhase,
     hookResult: GuardResult,
   ): void {
@@ -78,7 +89,7 @@ export class NavigationTransactionPipelinePhase {
       return;
     }
 
-    const redirect = guardResultToPhaseOutcome(hookResult);
+    const redirect = this.processBlockingResult(hookResult);
     if (redirect?.status === 'redirect') {
       console.warn(`[${phase}] hook returned redirect after view commit — ignored: ${redirect.url}`);
     }
@@ -102,6 +113,10 @@ export class NavigationTransactionPipelinePhase {
       console.error(`[${phase}] failed after commit:`, error);
       return null; // left/after — log и идём дальше
     }
+    if (errorPolicy === 'propagate') {
+      throw (error);
+    }
+
     // failure — отдаём управление pipeline
     return { kind: 'error', error, route, failedPhase: phase };
   }
@@ -110,26 +125,30 @@ export class NavigationTransactionPipelinePhase {
     return r !== null && typeof r === 'object' && 'kind' in r && r.kind === 'error';
   }
 
+  static toPipelinePhaseContext(phase: RoutePhase, route: MatchedRouteInfo, transaction: NavigationTransaction) {
+    const { engine, from, action, id, signal } = transaction;
+    return {
+      phase: phase,
+      to: this.toRouteInfo(route),
+      from: from ? this.toRouteInfo(from) : null,
+      router: engine.router,
+      route: route.route,
+      action,
+      jobId: id, // todo rename
+      signal,
+      /** Load-hook payload from DataGraph when available for this route/phase. */
+      // data?: unknown;
+      // error?: unknown;
+    };
+  }
+
   static async runError(
     route: MatchedRouteInfo,
     error: unknown,
     failedPhase: RoutePhase,
     transaction: NavigationTransaction,
   ): Promise<void> {
-    const { engine, from, action, id, signal } = transaction;
-
-    const context: RouteErrorContext = {
-      phase: 'error',
-      error,
-      to: this.toRouteInfo(route),
-      from: from ? this.toRouteInfo(from) : null,
-      router: engine.router,
-      route: route.route,
-      action,
-      jobId: id,
-      signal,
-      // data?: ...
-    };
+    const context: RouteErrorContext = { ...this.toPipelinePhaseContext('error', route, transaction), error };
 
     try {
       route.route.onError(context);
@@ -138,7 +157,7 @@ export class NavigationTransactionPipelinePhase {
     }
 
     await runPhaseHooks(
-      engine.hooksRegistry,
+      transaction.engine.hooksRegistry,
       context,
       resolveHookNames(route.route, 'error') || [],
       transaction.transactionRejected,

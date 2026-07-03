@@ -14,7 +14,7 @@ import { ErrorPhaseHandler, type LifecycleRuntimeContext } from '../lifecycle';
 import type { DataSnapshot } from '../data-graph';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 
-type transactionRejectedFunc = (id: number) => boolean;
+type transactionRejectedFunc = (id: number, routerGenerationId: number) => boolean;
 
 export class NavigationTransaction {
   readonly from: MatchedRouteInfo | null;
@@ -36,7 +36,7 @@ export class NavigationTransaction {
 
   viewCommitTracker: ViewCommitTracker;
 
-  constructor(id: number, options: NavigationTransactionOptions, transactionRejected: transactionRejectedFunc, engine: AuraRoutingEngine) {
+  constructor(id: number, routerGenerationId: number, options: NavigationTransactionOptions, transactionRejected: transactionRejectedFunc, engine: AuraRoutingEngine) {
     this.id = id;
     this.from = options.from;
     this.to = options.to;
@@ -47,7 +47,7 @@ export class NavigationTransaction {
 
     this.abortController = new AbortController();
     this.signal = this.abortController.signal;
-    this.transactionRejected = () => transactionRejected(id);
+    this.transactionRejected = () => transactionRejected(id, routerGenerationId);
     this.engine = engine;
 
     this.viewCommitTracker = new ViewCommitTracker(options.to.href);

@@ -12,7 +12,7 @@ export interface NavigationTransactionOptions {
   action: HistoryAction;
   href: string;
   hash: string;
-  options: NavigateHistoryOptions;
+  options: NavigateHistoryOptions; //todo rename
 }
 
 type NavigationPlan =
@@ -42,8 +42,8 @@ export class NavigationCoordinator {
   }
 
   // call it inside active transaction after async functions to understand if it was rejected or not
-  transactionRejected(id: number, routerGenerationId: number): boolean {
-    return this.activeTransactionId !== id || this.routerGenerationId !== routerGenerationId;
+  isTransactionStale(transactionId: number, routerGenerationId: number): boolean {
+    return this.activeTransactionId !== transactionId || this.routerGenerationId !== routerGenerationId;
   }
 
   invalidate() {
@@ -75,7 +75,7 @@ export class NavigationCoordinator {
       this.activeTransactionId,
       this.routerGenerationId,
       options,
-      this.transactionRejected.bind(this),
+      this.isTransactionStale.bind(this),
       this.engine,
     );
     this.activeTransaction = transaction;

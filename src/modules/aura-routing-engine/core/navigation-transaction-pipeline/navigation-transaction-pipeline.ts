@@ -34,10 +34,10 @@ export class NavigationTransactionPipeline {
   }
 
   async runFastPipeline(): Promise<TransactionFullResult> {
-    const route = this.transaction.plan.enterRoutes[0]!;
+    const route = this.transaction.transitionPlan.enterRoutes[0]!;
     const viewCommit = await runViewCommit(route, {
         signal: this.transaction.signal,
-        aborted: this.transaction.aborted,
+        aborted: this.transaction.isAborted,
       },
     );
     if (viewCommit === 'aborted' || !this.transaction.isActive()) {
@@ -98,11 +98,11 @@ export class NavigationTransactionPipeline {
   }
 
   private enterRoutesWithLoadHooks(): MatchedRouteInfo[] {
-    return this.transaction.plan.enterRoutes.filter((route) => route.route.load?.length);
+    return this.transaction.transitionPlan.enterRoutes.filter((route) => route.route.load?.length);
   }
 
   async render(): Promise<TransactionFullResult> {
-    const enterRoutes = this.transaction.plan.enterRoutes;
+    const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     for (const matchedRoute of enterRoutes) {
 
       const routeData = this.transaction.dataSnapshot
@@ -113,7 +113,7 @@ export class NavigationTransactionPipeline {
         matchedRoute,
         {
           signal: this.transaction.signal,
-          aborted: this.transaction.aborted,
+          aborted: this.transaction.isAborted,
         },
         routeData !== undefined ? { data: routeData } : undefined,
       );
@@ -180,7 +180,7 @@ export class NavigationTransactionPipeline {
 
 
     //just remove stage layer in outlet, after all done
-    for (const matchedRoute of this.transaction.plan.enterRoutes) {
+    for (const matchedRoute of this.transaction.transitionPlan.enterRoutes) {
       matchedRoute.route.commitStagedView?.();
     }
 
@@ -204,7 +204,7 @@ export class NavigationTransactionPipeline {
 
 
   async runPhase(data: RoutePhaseDefinition): Promise<TransactionFullResult> {
-    const matchedRoutes = this.transaction.plan[data.targetRoutes];
+    const matchedRoutes = this.transaction.transitionPlan[data.targetRoutes];
 
     for (const matchedRoute of matchedRoutes) {
       const result = await NavigationTransactionPipelinePhase.run(matchedRoute, data, this.transaction);

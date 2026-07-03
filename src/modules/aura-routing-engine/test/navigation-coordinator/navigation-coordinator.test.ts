@@ -365,7 +365,7 @@ describe('NavigationCoordinator', () => {
     });
   });
 
-  describe('transactionRejected', () => {
+  describe('isTransactionStale', () => {
     it('is false for the active transaction', async () => {
       const coordinator = new NavigationCoordinator(createMockEngine());
       const home = createMatchedRoute('/');
@@ -375,8 +375,8 @@ describe('NavigationCoordinator', () => {
       const nav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
       const transaction = coordinator.activeTransaction!;
 
-      expect(coordinator.transactionRejected(transaction.id, 0)).toBe(false);
-      expect(transaction.transactionRejected()).toBe(false);
+      expect(coordinator.isTransactionStale(transaction.transactionId, 0)).toBe(false);
+      expect(transaction.isStale()).toBe(false);
 
       resolveAt(0, { status: 'navigationSucceeded' });
       await nav;
@@ -391,12 +391,12 @@ describe('NavigationCoordinator', () => {
 
       const aboutNav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
       const firstTransaction = coordinator.activeTransaction!;
-      const firstId = firstTransaction.id;
+      const firstId = firstTransaction.transactionId;
 
       const galleryNav = coordinator.run(navOptions({ from: home, to: gallery, href: '/gallery' }));
 
-      expect(coordinator.transactionRejected(firstId, 0)).toBe(true);
-      expect(firstTransaction.transactionRejected()).toBe(true);
+      expect(coordinator.isTransactionStale(firstId, 0)).toBe(true);
+      expect(firstTransaction.isStale()).toBe(true);
 
       resolveAt(0, { status: 'cancelled' });
       resolveAt(1, { status: 'navigationSucceeded' });
@@ -415,8 +415,8 @@ describe('NavigationCoordinator', () => {
 
       coordinator.invalidate();
 
-      expect(coordinator.transactionRejected(transaction.id, 0)).toBe(true);
-      expect(transaction.transactionRejected()).toBe(true);
+      expect(coordinator.isTransactionStale(transaction.transactionId, 0)).toBe(true);
+      expect(transaction.isStale()).toBe(true);
 
       resolveAt(0, { status: 'cancelled' });
       await nav;
@@ -437,7 +437,7 @@ describe('NavigationCoordinator', () => {
       coordinator.invalidate();
 
       expect(cancelSpy).toHaveBeenCalledTimes(1);
-      expect(transaction.aborted).toBe(true);
+      expect(transaction.isAborted).toBe(true);
 
       resolveAt(0, { status: 'cancelled' });
       await nav;
@@ -452,7 +452,7 @@ describe('NavigationCoordinator', () => {
       expect(cancelSpy).not.toHaveBeenCalled();
       expect(coordinator.inFlightHref).toBeNull();
       expect(coordinator.activeTransaction).toBeNull();
-      expect(coordinator.transactionRejected(1, 0)).toBe(true);
+      expect(coordinator.isTransactionStale(1, 0)).toBe(true);
     });
 
     it('clears inFlightHref so the same href can run again after stop', async () => {

@@ -56,7 +56,7 @@ function createMockEngine(): AuraRoutingEngine {
 function createTransaction(options: {
   from: MatchedRouteInfo;
   to: MatchedRouteInfo;
-  transactionRejected?: () => boolean;
+  isTransactionStale?: () => boolean;
 }): NavigationTransaction {
   const engine = createMockEngine();
   const transaction = new NavigationTransaction(
@@ -70,11 +70,11 @@ function createTransaction(options: {
       hash: '',
       options: { replace: false, syncHistory: true },
     },
-    () => options.transactionRejected?.() ?? false,
+    () => options.isTransactionStale?.() ?? false,
     engine,
   );
 
-  transaction.plan = {
+  transaction.transitionPlan = {
     exitRoutes: [options.from],
     enterRoutes: [options.to],
     lca: null,
@@ -92,12 +92,12 @@ describe('NavigationTransaction.isActive', () => {
     const transaction = createTransaction({ from, to });
 
     expect(transaction.isActive()).toBe(true);
-    expect(transaction.transactionRejected()).toBe(false);
+    expect(transaction.isStale()).toBe(false);
 
     transaction.cancel();
 
-    expect(transaction.aborted).toBe(true);
-    expect(transaction.transactionRejected()).toBe(false);
+    expect(transaction.isAborted).toBe(true);
+    expect(transaction.isStale()).toBe(false);
     expect(transaction.isActive()).toBe(false);
   });
 });

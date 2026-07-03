@@ -1,6 +1,6 @@
 import { NavigationTransaction } from '../navigation-transaction/navigation-transaction';
 import { PHASES, type RoutePhaseDefinition } from '../lifecycle';
-import { NavigationTransactionPipelinePhase, type PhaseError } from './navigation-transaction-pipeline-phase';
+import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { type DataGraphLoadResult, resolveRouteData } from '../data-graph';
 import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
@@ -19,11 +19,8 @@ export class NavigationTransactionPipeline {
 
   private readonly transaction: NavigationTransaction;
 
-  // private readonly errorHandler: ErrorPhaseHandler;
-
   constructor(transaction: NavigationTransaction) {
     this.transaction = transaction;
-    // this.errorHandler = new ErrorPhaseHandler();
   }
 
   async runFullPipeline(): Promise<TransactionFullResult> {
@@ -34,6 +31,26 @@ export class NavigationTransactionPipeline {
       () => this.afterRender(),
     ]);
     return outcome ?? { status: 'navigationSucceeded' };
+  }
+
+  async runFastPipeline(): Promise<TransactionFullResult> {
+    const route = this.transaction.plan.enterRoutes[0]!;
+    const viewCommit = await runViewCommit(route, {
+        signal: this.transaction.signal,
+        aborted: this.transaction.aborted,
+      },
+    );
+    if (viewCommit === 'aborted' || this.transaction.transactionRejected()) {
+      return { status: 'cancelled' };
+    }
+    if (isRenderError(viewCommit)) {
+      await this.runPhase(PHASES.left);
+      this.transaction.viewCommitTracker.markViewCommittedAfterErrorRecovery();
+      return this.transaction.fail(route, viewCommit.error, 'render');
+    }
+    this.transaction.viewCommitTracker.markViewStaged();
+    const result = await this.afterRender();
+    return result ?? { status: 'navigationSucceeded' };
   }
 
   async reenter(): Promise<TransactionFullResult> {

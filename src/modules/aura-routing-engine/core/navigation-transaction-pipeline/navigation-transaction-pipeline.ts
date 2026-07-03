@@ -188,24 +188,12 @@ export class NavigationTransactionPipeline {
 
     for (const matchedRoute of matchedRoutes) {
       const result = await NavigationTransactionPipelinePhase.run(matchedRoute, data, this.transaction);
-      // todo
-      // if (NavigationTransactionPipelinePhase.isPhaseError(result)) {
-      //   return await this.handlePhaseError(result);
-      // }
+      if (NavigationTransactionPipelinePhase.isPhaseError(result)) {
+        return this.transaction.fail(matchedRoute, result.error, result.failedPhase);
+      }
       if (result) return result;
     }
 
     return null;
-  }
-
-  private async handlePhaseError(failure: PhaseError): Promise<TransactionFullResult> {
-    await NavigationTransactionPipelinePhase.runError(
-      failure.route,
-      failure.error,
-      failure.failedPhase,
-      this.transaction,
-    );
-    // здесь твоя политика — пока минимально:
-    return { status: 'error', failure: failure.error }; // или свой TransactionResult
   }
 }

@@ -9,7 +9,7 @@ import {
   type RoutePhaseDefinition,
 } from '../lifecycle';
 import { runPhaseHooks } from '../hooks/registry';
-import type { TransactionFullResult } from './navigation-transaction-pipeline';
+import { resolveRouteData } from '../data-graph';
 
 export type PhaseError = {
   kind: 'error';
@@ -22,7 +22,7 @@ export type PhaseRunResult = PhaseStepOutcome | PhaseError | null;
 
 export class NavigationTransactionPipelinePhase {
 
-  static async run(route: MatchedRouteInfo, data: RoutePhaseDefinition, transaction: NavigationTransaction): Promise<TransactionFullResult> {
+  static async run(route: MatchedRouteInfo, data: RoutePhaseDefinition, transaction: NavigationTransaction): Promise<PhaseRunResult> {
     const isBlocking = data.hookPolicy.kind === 'blocking';
     const { engine } = transaction;
     const { errorPolicy, phase, runRouteLifecycle } = data;
@@ -137,7 +137,7 @@ export class NavigationTransactionPipelinePhase {
       jobId: id, // todo rename
       signal,
       /** Load-hook payload from DataGraph when available for this route/phase. */
-      // data?: unknown;
+      data: transaction.dataSnapshot ? resolveRouteData(transaction.dataSnapshot, route) : undefined,
       // error?: unknown;
     };
   }

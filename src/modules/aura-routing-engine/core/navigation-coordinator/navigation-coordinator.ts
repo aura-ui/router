@@ -29,6 +29,7 @@ export class NavigationCoordinator {
   constructor(engine: AuraRoutingEngine) {
     this.currentTransaction = null;
     this.currentTransactionId = 0;
+    this._routerGenerationId = 0;
     this.engine = engine;
   }
 
@@ -36,7 +37,7 @@ export class NavigationCoordinator {
   }
 
   async run(options: NavigationTransactionOptions) {
-    const { from, to, action } = options;
+    const { from, to } = options;
     // 1. duplicate in-flight target
     if (this.currentTransaction?.to.href === to.href) return;
 
@@ -52,7 +53,7 @@ export class NavigationCoordinator {
     }
 
     this.currentTransactionId++;
-    const transaction = new NavigationTransaction(this.currentTransactionId, options, this.transactionRejected, this.engine);
+    const transaction = new NavigationTransaction(this.currentTransactionId, this._routerGenerationId, options, this.transactionRejected, this.engine);
     this.currentTransaction = transaction;
 
     try {
@@ -91,8 +92,13 @@ export class NavigationCoordinator {
   }
 
   // call it inside active transaction after async functions to understand if it was rejected or not
-  transactionRejected(id: number): boolean {
-    return this.currentTransactionId !== id; // todo add also render generation
+  transactionRejected(id: number, routerGenerationId: number): boolean {
+    return this.currentTransactionId !== id || this._routerGenerationId !== routerGenerationId;
+  }
+
+  invalidate() {
+    this.currentTransaction?.cancel();
+    this._routerGenerationId++;
   }
 
   //check duplicates

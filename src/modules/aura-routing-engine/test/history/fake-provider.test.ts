@@ -5,7 +5,7 @@ import {
 } from '../../core';
 import type { RouterInstance } from '../../core';
 import { defineRouteHook } from '../../core/hooks/define-hook';
-import { HookRegistry } from '../../core/hooks/registry';
+import { defaultHookRegistry } from '../../core/hooks/registry';
 import { createTestRoute } from '../helpers/create-test-route';
 
 describe('FakeHistoryProvider', () => {
@@ -126,8 +126,17 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
   it('при ошибке до render вызывает onNavigationError без commit URL', async () => {
     const fromLeft = jest.fn();
     const enterError = new Error('guard failed');
-    const registry = new HookRegistry();
-    registry.register(
+    const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
+    const toRoute = createTestRoute('/d', { enter: ['guard'] });
+    const onNavigationError = jest.fn();
+
+    const provider = new FakeHistoryProvider('/a');
+    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+      provider,
+      onNavigationError,
+    });
+
+    engine.hooksRegistry.register(
       defineRouteHook({
         name: 'guard',
         version: '1.0.0',
@@ -136,30 +145,25 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
         },
       }),
     );
-    const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
-    const toRoute = createTestRoute('/d', { enter: ['guard'] });
-    const onNavigationError = jest.fn();
-
-    const provider = new FakeHistoryProvider('/a');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(registry), router, {
-      provider,
-      onNavigationError,
-    });
 
     engine.registerRoutes([fromRoute, toRoute]);
     provider.start();
 
-    await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });
-    await engine.navigateTo('/d', 'push', { replace: false, syncHistory: true });
+    try {
+      await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });
+      await engine.navigateTo('/d', 'push', { replace: false, syncHistory: true });
 
-    expect(fromLeft).not.toHaveBeenCalled();
-    expect(provider.currentHref).toBe('/a');
-    expect(onNavigationError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        error: expect.objectContaining({ code: 'GUARD_THROW', phase: 'enter' }),
-        href: '/d',
-        viewCommitted: false,
-      }),
-    );
+      expect(fromLeft).not.toHaveBeenCalled();
+      expect(provider.currentHref).toBe('/a');
+      expect(onNavigationError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: 'GUARD_THROW', phase: 'enter' }),
+          href: '/d',
+          viewCommitted: false,
+        }),
+      );
+    } finally {
+      defaultHookRegistry.unregister('guard');
+    }
   });
 });

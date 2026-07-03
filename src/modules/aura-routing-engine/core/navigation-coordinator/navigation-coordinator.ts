@@ -3,7 +3,6 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-import type { NavigationPlan } from '../navigation/navigation-planner';
 import { hasReenterWork } from '../navigation/reenter-work';
 import type { TransactionFullResult } from '../navigation-transaction-pipeline/navigation-transaction-pipeline';
 
@@ -15,6 +14,11 @@ export interface NavigationTransactionOptions {
   hash: string;
   options: NavigateHistoryOptions;
 }
+
+type NavigationPlan =
+  | { action: 'run' }
+  | { action: 'noop'; reason: 'already-active' | 'duplicate-pending' }
+  | { action: 'cancel-pending' };
 
 export class NavigationCoordinator {
   engine: AuraRoutingEngine;
@@ -89,6 +93,8 @@ export class NavigationCoordinator {
 
   processResult(result: TransactionFullResult, transaction: NavigationTransaction) {
     if (!result || result.status === 'navigationSucceeded') return;
+    if (!this.engine.isRunning) return;
+
     if (result.status === 'cancelled') {
       this.engine.finalizeCancelled(transaction);
       return;

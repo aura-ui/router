@@ -1,6 +1,4 @@
-import {
-  NavigationTransaction,
-} from '../navigation-transaction/navigation-transaction';
+import { NavigationTransaction } from '../navigation-transaction/navigation-transaction';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import { AuraRoutingEngine } from '../aura-routing-engine';
@@ -21,27 +19,34 @@ export interface NavigationTransactionOptions {
 export class NavigationCoordinator {
   engine: AuraRoutingEngine;
 
-  private currentTransaction: NavigationTransaction | null;
-  private currentTransactionId: number;
-  private _routerGenerationId: number;
-  private pendingHref: string | null;
+  /** Transaction the coordinator actively manages (cancel / supersede). */
+  activeTransaction: NavigationTransaction | null;
+  private activeTransactionId: number;
+  private routerGenerationId: number;
+  /**
+   * Href whose navigation has not settled yet.
+   * May outlive {@link activeTransaction} (e.g. cancel-pending drops the ref before finally).
+   */
+  inFlightHref: string | null;
 
   constructor(engine: AuraRoutingEngine) {
-    this.currentTransaction = null;
-    this.currentTransactionId = 0;
-    this._routerGenerationId = 0;
-    this.pendingHref = null;
+    this.activeTransaction = null;
+    this.activeTransactionId = 0;
+    this.routerGenerationId = 0;
+    this.inFlightHref = null;
     this.engine = engine;
   }
 
   // call it inside active transaction after async functions to understand if it was rejected or not
   transactionRejected(id: number, routerGenerationId: number): boolean {
-    return this.currentTransactionId !== id || this._routerGenerationId !== routerGenerationId;
+    return this.activeTransactionId !== id || this.routerGenerationId !== routerGenerationId;
   }
 
   invalidate() {
-    this.currentTransaction?.cancel();
-    this._routerGenerationId++;
+    this.activeTransaction?.cancel();
+    this.activeTransaction = null;
+    this.inFlightHref = null;
+    this.routerGenerationId++;
   }
 
   async run(options: NavigationTransactionOptions) {
@@ -51,27 +56,33 @@ export class NavigationCoordinator {
     if (plan.action === 'noop') return;
 
     if (plan.action === 'cancel-pending') {
-      this.currentTransaction?.cancel();
-      this.currentTransaction = null;
+      this.activeTransaction?.cancel();
+      this.activeTransaction = null;
       return;
     }
 
-    if (this.currentTransaction) {
-      this.currentTransaction.cancel();
+    if (this.activeTransaction) {
+      this.activeTransaction.cancel();
     }
 
-    this.markPending(href);
-    this.currentTransactionId++;
-    const transaction = new NavigationTransaction(this.currentTransactionId, this._routerGenerationId, options, this.transactionRejected.bind(this), this.engine);
-    this.currentTransaction = transaction;
+    this.trackInFlight(href);
+    this.activeTransactionId++;
+    const transaction = new NavigationTransaction(
+      this.activeTransactionId,
+      this.routerGenerationId,
+      options,
+      this.transactionRejected.bind(this),
+      this.engine,
+    );
+    this.activeTransaction = transaction;
 
     try {
       const result = await transaction.run();
       this.processResult(result, transaction);
     } finally {
-      this.clearPending(href);
-      if (this.currentTransaction === transaction) {
-        this.currentTransaction = null;
+      this.clearInFlight(href);
+      if (this.activeTransaction === transaction) {
+        this.activeTransaction = null;
       }
     }
   }
@@ -95,7 +106,7 @@ export class NavigationCoordinator {
   private plan(options: NavigationTransactionOptions): NavigationPlan {
     const { from, to, href } = options;
 
-    if (href === this.pendingHref) {
+    if (href === this.inFlightHref) {
       return { action: 'noop', reason: 'duplicate-pending' };
     }
 
@@ -105,7 +116,7 @@ export class NavigationCoordinator {
       && !hasReenterWork(to);
 
     if (sameCommittedTarget) {
-      if (this.pendingHref !== null && this.pendingHref !== href) {
+      if (this.inFlightHref !== null && this.inFlightHref !== href) {
         return { action: 'cancel-pending' };
       }
       return { action: 'noop', reason: 'already-active' };
@@ -114,11 +125,11 @@ export class NavigationCoordinator {
     return { action: 'run' };
   }
 
-  private markPending(href: string) {
-    this.pendingHref = href;
+  private trackInFlight(href: string) {
+    this.inFlightHref = href;
   }
 
-  private clearPending(href: string) {
-    if (this.pendingHref === href) this.pendingHref = null;
+  private clearInFlight(href: string) {
+    if (this.inFlightHref === href) this.inFlightHref = null;
   }
 }

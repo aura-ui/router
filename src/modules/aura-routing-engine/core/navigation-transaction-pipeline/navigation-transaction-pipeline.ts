@@ -40,7 +40,7 @@ export class NavigationTransactionPipeline {
         aborted: this.transaction.aborted,
       },
     );
-    if (viewCommit === 'aborted' || this.transaction.transactionRejected()) {
+    if (viewCommit === 'aborted' || !this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
     if (isRenderError(viewCommit)) {
@@ -56,7 +56,7 @@ export class NavigationTransactionPipeline {
   async reenter(): Promise<TransactionFullResult> {
     const reenterOutcome = await this.runPhase(PHASES.reenter);
     if (reenterOutcome) return reenterOutcome;
-    if (this.transaction.transactionRejected()) {
+    if (!this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
     this.transaction.commitNavigation();
@@ -118,7 +118,7 @@ export class NavigationTransactionPipeline {
         routeData !== undefined ? { data: routeData } : undefined,
       );
 
-      if (viewCommit === 'aborted' || this.transaction.transactionRejected()) {
+      if (viewCommit === 'aborted' || !this.transaction.isActive()) {
         return { status: 'cancelled' };
       }
 
@@ -174,7 +174,7 @@ export class NavigationTransactionPipeline {
   }
 
   async afterRender(): Promise<TransactionFullResult> {
-    if (this.transaction.transactionRejected()) {
+    if (!this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
 
@@ -193,6 +193,9 @@ export class NavigationTransactionPipeline {
 
   private async runSequentially(steps: PipelineStep[]): Promise<TransactionFullResult> {
     for (const step of steps) {
+      if (!this.transaction.isActive()) {
+        return { status: 'cancelled' };
+      }
       const outcome = await step();
       if (outcome) return outcome;
     }

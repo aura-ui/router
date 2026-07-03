@@ -26,6 +26,8 @@ export class NavigationCoordinator {
   private _routerGenerationId: number;
   engine: AuraRoutingEngine;
 
+  pendingHref: string | null;
+
   constructor(engine: AuraRoutingEngine) {
     this.currentTransaction = null;
     this.currentTransactionId = 0;
@@ -37,9 +39,37 @@ export class NavigationCoordinator {
   }
 
   async run(options: NavigationTransactionOptions) {
-    const { from, to } = options;
+    const { from, to, href } = options;
+
+    console.log(to.href);
+
+    // A1. duplicate-pending
+    if (this.pendingHref === href) return;
+
+    const sameCommitted =
+      from != null
+      && isSameNavigationTarget(from, to)
+      && !this.routeHasReenterWork(to);
+
+    // A2. cancel-pending — committed route, другой href in-flight
+    if (sameCommitted && this.pendingHref != null && this.pendingHref !== href) {
+      this.currentTransaction?.cancel();
+      this.currentTransaction = null;
+      return; // без новой tx, без markPending
+    }
+
+    // A3. already-active
+    if (sameCommitted) return;
+
+    // B. run — supersede
+    if (this.currentTransaction) {
+      this.currentTransaction.cancel();
+    }
+/*
+
     // 1. duplicate in-flight target
     if (this.currentTransaction?.to.href === to.href) return;
+
 
     // 2. cancel superseded
     if (this.currentTransaction) {
@@ -48,14 +78,19 @@ export class NavigationCoordinator {
 
     // 3. already committed, no reenter → только отмена, без нового run
     if (from && isSameNavigationTarget(from, to) && !this.routeHasReenterWork(to)) {
+      console.log('the same navigation target --------- ' + isSameNavigationTarget(from, to));
       this.currentTransaction = null;
       return;
     }
+*/
 
+    this.markPending(href);
     this.currentTransactionId++;
     const transaction = new NavigationTransaction(this.currentTransactionId, this._routerGenerationId, options, this.transactionRejected.bind(this), this.engine);
     this.currentTransaction = transaction;
 
+
+    console.log('run ' + this.currentTransactionId);
     try {
       const result = await transaction.run();
       if (!result || result.status === 'navigationSucceeded') return;
@@ -81,10 +116,16 @@ export class NavigationCoordinator {
       // }
     //}
     finally {
+      this.clearPending(href);
       if (this.currentTransaction === transaction) {
         this.currentTransaction = null;
       }
     }
+  }
+
+  markPending(href: string) { this.pendingHref = href; }
+  clearPending(href: string) {
+    if (this.pendingHref === href) this.pendingHref = null;
   }
 
   private routeHasReenterWork(to: MatchedRouteInfo): boolean {

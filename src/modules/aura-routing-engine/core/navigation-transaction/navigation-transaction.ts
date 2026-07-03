@@ -68,6 +68,7 @@ export class NavigationTransaction {
     const isFastPath = this.canUseFastPath(this.plan, this.from, this.to);
 
     return this.rollbackViewWrapper(() => {
+      console.log(' PIPLINE running');
       const pipeline = new NavigationTransactionPipeline(this);
       return this.plan.reenter
         ? pipeline.reenter()
@@ -83,8 +84,14 @@ export class NavigationTransaction {
 
   private abort(reason?: unknown): void {
     if (!this.signal.aborted) {
+      console.log('abort happened for ' + this.id);
       this.abortController.abort(reason);
     }
+  }
+
+  /** Async work after await must stop when aborted or superseded by a newer tx. */
+  isActive(): boolean {
+    return !this.aborted && !this.transactionRejected();
   }
 
   // rollback view if some error happened but view already in stage mode
@@ -132,7 +139,7 @@ export class NavigationTransaction {
       router: this.engine.router,
       hookRegistry: this.engine.hooksRegistry,
       viewCommitTracker: this.viewCommitTracker,
-      isJobActive: () => !this.transactionRejected(),
+      isJobActive: () => this.isActive(),
       dataSnapshot: this.dataSnapshot,      // опционально
       reportHookError: (hookError, parent) => {
         this.engine.reportNavigationHookError(hookError, parent);

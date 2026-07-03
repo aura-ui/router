@@ -65,11 +65,15 @@ export class NavigationTransaction {
   async run(): Promise<TransactionFullResult> {
     this.plan = buildTransitionPlan(this.from, this.to);
     this.transitionOrder = getEnterRoute(this.plan)?.transition?.order ?? null;
+    const isFastPath = this.canUseFastPath(this.plan, this.from, this.to);
+
     return this.rollbackViewWrapper(() => {
       const pipeline = new NavigationTransactionPipeline(this);
       return this.plan.reenter
         ? pipeline.reenter()
-        : pipeline.runFullPipeline();
+        : isFastPath
+          ? pipeline.runFastPipeline()
+          : pipeline.runFullPipeline();
     });
   }
 
@@ -134,6 +138,30 @@ export class NavigationTransaction {
         this.engine.reportNavigationHookError(hookError, parent);
       },
     };
+  }
+
+  canUseFastPath(
+    plan: TransitionMap,
+    _from: MatchedRouteInfo | null,
+    _to: MatchedRouteInfo,
+  ): boolean {
+    if (plan.reenter) return false;
+    if (plan.exitRoutes.length > 1 || plan.enterRoutes.length !== 1) return false;
+
+    const exitRoute = plan.exitRoutes[0]?.route;
+    const enterRoute = plan.enterRoutes[0]!.route;
+
+    if (exitRoute?.hasLeave) return false;
+    if (enterRoute.hasEnter) return false;
+    if (enterRoute.hasLoad) return false;
+    if (enterRoute.hasTransitionIn) return false;
+    if (exitRoute?.hasPostEffects) return false;
+    if (enterRoute.hasPostEffects) return false;
+    if (enterRoute.hasAsyncContent) return false;
+    if (enterRoute.transition.order != null) return false;
+    if (exitRoute?.transition.order != null) return false;
+
+    return true;
   }
 
 }

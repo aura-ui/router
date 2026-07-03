@@ -4,7 +4,7 @@ import {
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { resolveHookNames } from '../lifecycle';
 import { getLeafMatch } from '../route-tree/matched-chain';
-import { isSameNavigationTarget } from '../route-tree/transition-plan';
+import { isSameNavigationTarget, type TransitionMap } from '../route-tree/transition-plan';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 
@@ -53,7 +53,7 @@ export class NavigationCoordinator {
     }
 
     this.currentTransactionId++;
-    const transaction = new NavigationTransaction(this.currentTransactionId, this._routerGenerationId, options, this.transactionRejected, this.engine);
+    const transaction = new NavigationTransaction(this.currentTransactionId, this._routerGenerationId, options, this.transactionRejected.bind(this), this.engine);
     this.currentTransaction = transaction;
 
     try {
@@ -75,11 +75,12 @@ export class NavigationCoordinator {
       //todo
       // this.lastTransaction = transaction;
 
-    } catch (error) {
+    } //catch (error) {
       // (result: TransactionFullResult) => {
       // сработает только при throw
       // }
-    } finally {
+    //}
+    finally {
       if (this.currentTransaction === transaction) {
         this.currentTransaction = null;
       }

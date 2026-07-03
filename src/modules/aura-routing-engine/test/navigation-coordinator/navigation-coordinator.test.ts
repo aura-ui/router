@@ -85,11 +85,11 @@ describe('NavigationCoordinator', () => {
       await coordinator.run(navOptions({ from: about, to: about, href: '/about' }));
 
       expect(runSpy).not.toHaveBeenCalled();
-      expect(coordinator.currentTransaction).toBeNull();
-      expect(coordinator.pendingHref).toBeNull();
+      expect(coordinator.activeTransaction).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
     });
 
-    it('ignores duplicate href while pending', async () => {
+    it('ignores duplicate href while in flight', async () => {
       const engine = createMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
@@ -100,13 +100,13 @@ describe('NavigationCoordinator', () => {
       const second = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
 
       expect(runSpy).toHaveBeenCalledTimes(1);
-      expect(coordinator.pendingHref).toBe('/about');
+      expect(coordinator.inFlightHref).toBe('/about');
 
       resolveAt(0, { status: 'navigationSucceeded' });
       await first;
       await second;
 
-      expect(coordinator.pendingHref).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
     });
 
     it('runs the first navigation when from is null', async () => {
@@ -138,31 +138,34 @@ describe('NavigationCoordinator', () => {
 
       expect(runSpy).toHaveBeenCalledTimes(1);
       expect(cancelSpy).toHaveBeenCalledTimes(1);
-      expect(coordinator.currentTransaction).toBeNull();
-      expect(coordinator.pendingHref).toBe('/gallery');
+      expect(coordinator.activeTransaction).toBeNull();
+      expect(coordinator.inFlightHref).toBe('/gallery');
 
       resolveAt(0, { status: 'cancelled' });
       await galleryNav;
 
       expect(engine.finalizeCancelled).toHaveBeenCalledTimes(1);
-      expect(coordinator.pendingHref).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
     });
 
-    it('returns noop when pending href differs but no transaction is active', async () => {
+    it('returns noop when in-flight href differs but no transaction is active', async () => {
       const engine = createMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const about = createMatchedRoute('/about');
       const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run');
       const cancelSpy = jest.spyOn(NavigationTransaction.prototype, 'cancel');
 
-      coordinator.markPending('/gallery');
-      coordinator.currentTransaction = null;
+      (coordinator as unknown as {
+        trackInFlight(href: string): void;
+        clearInFlight(href: string): void;
+      }).trackInFlight('/gallery');
+      coordinator.activeTransaction = null;
 
       await coordinator.run(navOptions({ from: about, to: about, href: '/about' }));
 
       expect(runSpy).not.toHaveBeenCalled();
       expect(cancelSpy).not.toHaveBeenCalled();
-      expect(coordinator.pendingHref).toBe('/gallery');
+      expect(coordinator.inFlightHref).toBe('/gallery');
     });
   });
 
@@ -180,7 +183,7 @@ describe('NavigationCoordinator', () => {
       expect(runSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('runs navigation to a different href while another target is pending', async () => {
+    it('runs navigation to a different href while another target is in flight', async () => {
       const engine = createMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
@@ -194,7 +197,7 @@ describe('NavigationCoordinator', () => {
 
       expect(runSpy).toHaveBeenCalledTimes(2);
       expect(cancelSpy).toHaveBeenCalledTimes(1);
-      expect(coordinator.pendingHref).toBe('/gallery');
+      expect(coordinator.inFlightHref).toBe('/gallery');
 
       resolveAt(0, { status: 'cancelled' });
       resolveAt(1, { status: 'navigationSucceeded' });
@@ -202,11 +205,11 @@ describe('NavigationCoordinator', () => {
       await galleryNav;
 
       expect(engine.finalizeCancelled).toHaveBeenCalledTimes(1);
-      expect(coordinator.pendingHref).toBeNull();
-      expect(coordinator.currentTransaction).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
+      expect(coordinator.activeTransaction).toBeNull();
     });
 
-    it('does not clear a newer currentTransaction when a superseded run settles', async () => {
+    it('does not clear a newer activeTransaction when a superseded run settles', async () => {
       const coordinator = new NavigationCoordinator(createMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -215,22 +218,22 @@ describe('NavigationCoordinator', () => {
 
       const aboutNav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
       const galleryNav = coordinator.run(navOptions({ from: home, to: gallery, href: '/gallery' }));
-      const secondTransaction = coordinator.currentTransaction;
+      const secondTransaction = coordinator.activeTransaction;
 
       resolveAt(0, { status: 'cancelled' });
       await aboutNav;
 
-      expect(coordinator.currentTransaction).toBe(secondTransaction);
+      expect(coordinator.activeTransaction).toBe(secondTransaction);
 
       resolveAt(1, { status: 'navigationSucceeded' });
       await galleryNav;
 
-      expect(coordinator.currentTransaction).toBeNull();
+      expect(coordinator.activeTransaction).toBeNull();
     });
   });
 
   describe('execution outcomes', () => {
-    it('clears pending and currentTransaction after navigationSucceeded', async () => {
+    it('clears in-flight state and activeTransaction after navigationSucceeded', async () => {
       const engine = createMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
@@ -242,8 +245,8 @@ describe('NavigationCoordinator', () => {
 
       await coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
 
-      expect(coordinator.pendingHref).toBeNull();
-      expect(coordinator.currentTransaction).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
+      expect(coordinator.activeTransaction).toBeNull();
       expect(engine.finalizeCancelled).not.toHaveBeenCalled();
       expect(engine.applyRedirect).not.toHaveBeenCalled();
       expect(engine.finalizeError).not.toHaveBeenCalled();
@@ -265,8 +268,8 @@ describe('NavigationCoordinator', () => {
       expect(engine.finalizeCancelled).toHaveBeenCalledWith(
         expect.objectContaining({ href: '/about' }),
       );
-      expect(coordinator.pendingHref).toBeNull();
-      expect(coordinator.currentTransaction).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
+      expect(coordinator.activeTransaction).toBeNull();
     });
 
     it('calls applyRedirect on redirect result', async () => {
@@ -285,7 +288,7 @@ describe('NavigationCoordinator', () => {
         redirect,
         expect.objectContaining({ href: '/about' }),
       );
-      expect(coordinator.pendingHref).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
     });
 
     it('calls finalizeError on error result', async () => {
@@ -307,7 +310,7 @@ describe('NavigationCoordinator', () => {
         error,
         expect.objectContaining({ href: '/about' }),
       );
-      expect(coordinator.pendingHref).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
     });
 
     it('treats null pipeline result as success', async () => {
@@ -323,24 +326,28 @@ describe('NavigationCoordinator', () => {
       expect(engine.finalizeCancelled).not.toHaveBeenCalled();
       expect(engine.applyRedirect).not.toHaveBeenCalled();
       expect(engine.finalizeError).not.toHaveBeenCalled();
-      expect(coordinator.pendingHref).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
     });
   });
 
-  describe('pending lifecycle', () => {
-    it('clears pending only for the matching href', () => {
+  describe('in-flight lifecycle', () => {
+    it('clears in-flight href only for the matching href', () => {
       const coordinator = new NavigationCoordinator(createMockEngine());
+      const state = coordinator as unknown as {
+        trackInFlight(href: string): void;
+        clearInFlight(href: string): void;
+      };
 
-      coordinator.markPending('/about');
-      coordinator.clearPending('/gallery');
+      state.trackInFlight('/about');
+      state.clearInFlight('/gallery');
 
-      expect(coordinator.pendingHref).toBe('/about');
+      expect(coordinator.inFlightHref).toBe('/about');
 
-      coordinator.clearPending('/about');
-      expect(coordinator.pendingHref).toBeNull();
+      state.clearInFlight('/about');
+      expect(coordinator.inFlightHref).toBeNull();
     });
 
-    it('keeps pending until the in-flight run settles', async () => {
+    it('keeps in-flight href until the run settles', async () => {
       const coordinator = new NavigationCoordinator(createMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -348,12 +355,12 @@ describe('NavigationCoordinator', () => {
 
       const nav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
 
-      expect(coordinator.pendingHref).toBe('/about');
+      expect(coordinator.inFlightHref).toBe('/about');
 
       resolveAt(0, { status: 'navigationSucceeded' });
       await nav;
 
-      expect(coordinator.pendingHref).toBeNull();
+      expect(coordinator.inFlightHref).toBeNull();
     });
   });
 
@@ -365,7 +372,7 @@ describe('NavigationCoordinator', () => {
       const { resolveAt } = mockDeferredTransactionRun();
 
       const nav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
-      const transaction = coordinator.currentTransaction!;
+      const transaction = coordinator.activeTransaction!;
 
       expect(coordinator.transactionRejected(transaction.id, 0)).toBe(false);
       expect(transaction.transactionRejected()).toBe(false);
@@ -382,7 +389,7 @@ describe('NavigationCoordinator', () => {
       const { resolveAt } = mockDeferredTransactionRun();
 
       const aboutNav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
-      const firstTransaction = coordinator.currentTransaction!;
+      const firstTransaction = coordinator.activeTransaction!;
       const firstId = firstTransaction.id;
 
       const galleryNav = coordinator.run(navOptions({ from: home, to: gallery, href: '/gallery' }));
@@ -403,7 +410,7 @@ describe('NavigationCoordinator', () => {
       const { resolveAt } = mockDeferredTransactionRun();
 
       const nav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
-      const transaction = coordinator.currentTransaction!;
+      const transaction = coordinator.activeTransaction!;
 
       coordinator.invalidate();
 
@@ -416,7 +423,7 @@ describe('NavigationCoordinator', () => {
   });
 
   describe('invalidate', () => {
-    it('cancels the current transaction', async () => {
+    it('cancels the active transaction', async () => {
       const coordinator = new NavigationCoordinator(createMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -424,7 +431,7 @@ describe('NavigationCoordinator', () => {
       const cancelSpy = jest.spyOn(NavigationTransaction.prototype, 'cancel');
 
       const nav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
-      const transaction = coordinator.currentTransaction!;
+      const transaction = coordinator.activeTransaction!;
 
       coordinator.invalidate();
 
@@ -442,7 +449,33 @@ describe('NavigationCoordinator', () => {
       coordinator.invalidate();
 
       expect(cancelSpy).not.toHaveBeenCalled();
+      expect(coordinator.inFlightHref).toBeNull();
+      expect(coordinator.activeTransaction).toBeNull();
       expect(coordinator.transactionRejected(1, 0)).toBe(true);
+    });
+
+    it('clears inFlightHref so the same href can run again after stop', async () => {
+      const engine = createMockEngine();
+      const coordinator = new NavigationCoordinator(engine);
+      const home = createMatchedRoute('/');
+      const about = createMatchedRoute('/about');
+      const { runSpy, resolveAt } = mockDeferredTransactionRun();
+
+      const first = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
+      expect(coordinator.inFlightHref).toBe('/about');
+
+      coordinator.invalidate();
+
+      expect(coordinator.inFlightHref).toBeNull();
+      expect(coordinator.activeTransaction).toBeNull();
+
+      const second = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
+      expect(runSpy).toHaveBeenCalledTimes(2);
+
+      resolveAt(0, { status: 'cancelled' });
+      resolveAt(1, { status: 'navigationSucceeded' });
+      await first;
+      await second;
     });
   });
 });

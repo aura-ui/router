@@ -1,5 +1,5 @@
-import type { MatchedRouteInfo } from '../../match/url-matcher';
-import type { TransitionMap } from '../../route-tree/transition-plan';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { TransitionMap } from './transition-plan';
 
 /** Tier 0: trivial flat navigation without blocking hooks, async content, or transitions. */
 export function canUseFastPath(

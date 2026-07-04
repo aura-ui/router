@@ -4,7 +4,7 @@ import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
 import { AuraRoutingProcessor } from '../../core/processor/processor';
 import { ProcessorPipeline } from '../../core/processor/processor-pipeline';
-import { canUseFastPath } from '../../core/processor/fast-path/can-use-fast-path';
+import { canUseFastPath } from '../../core/route-tree/can-use-fast-path';
 import { createTestRoute } from '../helpers/create-test-route';
 
 jest.mock('../../core/hooks/registry', () => ({

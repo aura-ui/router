@@ -11,7 +11,7 @@ import type { TransactionResult } from '../navigation/transaction-result';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import { withCancelledTransactionScope } from './cancellation/transaction-scope';
 import { AuraRoutingProcessorJobManager } from './cancellation/job-manager';
-import { canUseFastPath } from './fast-path/can-use-fast-path';
+import { canUseFastPath } from '../route-tree/can-use-fast-path';
 import { runFastPath } from './fast-path/run-fast-path';
 
 /**

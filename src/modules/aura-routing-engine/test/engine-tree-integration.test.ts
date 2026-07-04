@@ -3,7 +3,7 @@ import {
   FakeHistoryProvider,
 } from '../core';
 import type { RouterInstance } from '../core';
-import { NavigationTransaction } from '../core/navigation-transaction/navigation-transaction';
+import { NavigationTransaction } from '../core/navigation/navigation-transaction';
 
 import { createDomRoute, collectRoutesFromDom } from './helpers/test-route-dom';
 

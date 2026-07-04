@@ -1,4 +1,4 @@
-import { NavigationTransaction } from '../navigation-transaction/navigation-transaction';
+import { NavigationTransaction } from './navigation-transaction';
 import type { RouteErrorContext, RouteInfo, RouteLifecycleContext } from '../route/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
@@ -126,7 +126,7 @@ export class NavigationTransactionPipelinePhase {
   }
 
   static toPipelinePhaseContext(phase: RoutePhase, route: MatchedRouteInfo, transaction: NavigationTransaction) {
-    const { engine, from, action, id, signal } = transaction;
+    const { engine, from, action, transactionId, signal } = transaction;
     return {
       phase: phase,
       to: this.toRouteInfo(route),
@@ -134,7 +134,7 @@ export class NavigationTransactionPipelinePhase {
       router: engine.router,
       route: route.route,
       action,
-      jobId: id, // todo rename
+      jobId: transactionId,
       signal,
       /** Load-hook payload from DataGraph when available for this route/phase. */
       data: transaction.dataSnapshot ? resolveRouteData(transaction.dataSnapshot, route) : undefined,

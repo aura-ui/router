@@ -1,5 +1,5 @@
 import type { GuardResult } from '../types';
-import type { NavigationErrorResult, TransactionResult } from '../../navigation/transaction-result';
+import type { NavigationErrorResult, TransactionFullResult } from '../../navigation/transaction-result';
 
 export type PhaseStepOutcome =
   | { status: 'cancelled' }
@@ -26,7 +26,7 @@ export function guardResultToPhaseOutcome(hookResult: GuardResult): PhaseStepOut
   return null;
 }
 
-export type PipelineStepOutcome = TransactionResult | null;
+export type PipelineStepOutcome = TransactionFullResult;
 
 /**
  * Lifecycle step → processor terminal result.

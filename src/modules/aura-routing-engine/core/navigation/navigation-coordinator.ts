@@ -1,9 +1,9 @@
-import { NavigationTransaction } from '../navigation-transaction/navigation-transaction';
+import { NavigationTransaction } from './navigation-transaction';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-import type { TransactionFullResult } from '../navigation-transaction-pipeline/navigation-transaction-pipeline';
+import type { TransactionFullResult } from './transaction-result';
 
 export interface NavigationTransactionOptions {
   from: MatchedRouteInfo | null;

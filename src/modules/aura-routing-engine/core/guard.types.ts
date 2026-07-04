@@ -3,7 +3,7 @@
  * by {@link ../hooks/registry!normalizeHookResult}.
  *
  * Shared guard contract for {@link ../hooks/registry}, {@link ../lifecycle/types},
- * Guard outcomes consumed by {@link ../navigation-transaction-pipeline/navigation-transaction-pipeline-phase}
+ * Guard outcomes consumed by {@link ./navigation/navigation-transaction-pipeline-phase}
  * — not the author-facing {@link ../hooks/types!HookResult}.
  *
  * @module guard.types

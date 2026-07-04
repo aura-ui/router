@@ -1,17 +1,12 @@
-import { NavigationTransaction } from '../navigation-transaction/navigation-transaction';
+import { NavigationTransaction } from './navigation-transaction';
 import { PHASES, type RoutePhaseDefinition } from '../lifecycle';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { type DataGraphLoadResult, resolveRouteData } from '../data-graph';
 import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
-import { type FailedNavigation } from '../failure';
+import type { TransactionFullResult } from './transaction-result';
 
-export type TransactionFullResult =
-  | { status: 'navigationSucceeded' }
-  | { status: 'cancelled' }
-  | { status: 'redirect'; url: string; replace?: boolean }
-  | { status: 'error'; failure: FailedNavigation }
-  | null;
+export type { TransactionFullResult } from './transaction-result';
 
 type PipelineStep = () => Promise<TransactionFullResult>;
 

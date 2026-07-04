@@ -3,8 +3,8 @@ import {
   FakeHistoryProvider,
 } from '../../core';
 import type { RouterInstance } from '../../core';
-import { NavigationTransaction } from '../../core/navigation-transaction/navigation-transaction';
-import type { TransactionFullResult } from '../../core/navigation-transaction-pipeline/navigation-transaction-pipeline';
+import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { TransactionFullResult } from '../../core/navigation/transaction-result';
 import { createTestRoute } from '../helpers/create-test-route';
 
 function mockTransactionRunSuccess(run: jest.SpyInstance): void {

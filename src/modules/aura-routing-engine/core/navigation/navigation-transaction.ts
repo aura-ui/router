@@ -101,23 +101,24 @@ export class NavigationTransaction {
       route,
       error,
       atPhase,
-      this.createLifecycleRuntime(),
+      NavigationTransaction.createTransactionContext(this),
     );
   }
 
-  // todo rework
-  createLifecycleRuntime(): LifecycleRuntimeContext {
-    const { transactionId, signal, from, to, action, transitionPlan } = this;
+  /** Builds engine orchestration context for one navigation transaction. */
+  static createTransactionContext(transaction: NavigationTransaction): LifecycleRuntimeContext {
+    const { transactionId, signal, from, to, action, transitionPlan } = transaction;
     return {
       transaction: { from, to, action, plan: transitionPlan },
-      navigationJob: { id: transactionId, signal },
-      router: this.engine.router,
-      hookRegistry: this.engine.hooksRegistry,
-      viewCommitTracker: this.viewCommitTracker,
-      isJobActive: () => this.isActive(),
-      ...(this.dataSnapshot && { dataSnapshot: this.dataSnapshot }),
+      transactionId,
+      transactionSignal: signal,
+      router: transaction.engine.router,
+      hookRegistry: transaction.engine.hooksRegistry,
+      viewCommitTracker: transaction.viewCommitTracker,
+      isJobActive: () => transaction.isActive(),
+      ...(transaction.dataSnapshot && { dataSnapshot: transaction.dataSnapshot }),
       reportHookError: (hookError, parent) => {
-        this.engine.reportNavigationHookError(hookError, parent);
+        transaction.engine.reportNavigationHookError(hookError, parent);
       },
     };
   }

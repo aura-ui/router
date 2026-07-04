@@ -87,7 +87,7 @@ export class NavigationTransactionPipeline {
       this.transaction.transitionPlan.enterRoutes,
       {
         activeChain,
-        runtime: this.transaction.createLifecycleRuntime(),
+        runtime: NavigationTransaction.createTransactionContext(this.transaction),
       },
     );
     snapshot && (this.transaction.dataSnapshot = snapshot);

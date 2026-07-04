@@ -6,7 +6,6 @@ import type { MatchedRouteInfo } from '../../match/url-matcher';
 import type { RouterInstance } from '../../route/types';
 import type { TransitionMap } from '../../route-tree/transition-plan';
 import type { ViewCommitTracker } from '../../view-mount/view-commit-tracker';
-import type { LifecycleJobSlice } from '../context/lifecycle-context';
 
 export interface LifecycleTransactionContext {
   from: MatchedRouteInfo | null;
@@ -15,10 +14,11 @@ export interface LifecycleTransactionContext {
   plan: TransitionMap;
 }
 
-/** Runtime context required for load hooks and error-phase handling. */
+/** Engine orchestration context for one navigation transaction. */
 export interface LifecycleRuntimeContext {
   transaction: LifecycleTransactionContext;
-  navigationJob: LifecycleJobSlice;
+  transactionId: number;
+  transactionSignal: AbortSignal;
   router: RouterInstance;
   hookRegistry: HookRegistry;
   viewCommitTracker: ViewCommitTracker;

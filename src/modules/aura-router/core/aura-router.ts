@@ -86,7 +86,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
-  /** Default scroll policy for child routes (`restore` | `top` | `manual`). HTML attr: `scroll`. */
+  /** Default scroll policy for child routes (`restore` | `top`; `scroll=""` opts out). HTML attr: `scroll`. */
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   /**
    * Default prefetch for `[data-router-link]` (`intent` | `tap` | `false`).

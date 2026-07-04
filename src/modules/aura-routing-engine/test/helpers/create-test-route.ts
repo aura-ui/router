@@ -46,6 +46,7 @@ export function createTestRoute(
 
   Object.defineProperties(route, {
     hasEnter: { get(): boolean { return !!route.enter?.length; } },
+    hasReenter: { get(): boolean { return !!route.reenter?.length; } },
     hasLeave: { get(): boolean { return !!route.leave?.length; } },
     hasLoad: { get(): boolean { return !!route.load?.length; } },
     hasTransitionIn: { get(): boolean { return !!route.transition.in?.length; } },

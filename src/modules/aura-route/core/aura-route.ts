@@ -117,6 +117,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return !!this.enter?.length;
   }
 
+  get hasReenter(): boolean {
+    return !!this.reenter?.length;
+  }
+
   get hasLeave(): boolean {
     return !!this.leave?.length;
   }

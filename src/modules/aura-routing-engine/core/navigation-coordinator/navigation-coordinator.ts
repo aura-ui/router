@@ -3,7 +3,6 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-import { hasReenterWork } from '../navigation/reenter-work';
 import type { TransactionFullResult } from '../navigation-transaction-pipeline/navigation-transaction-pipeline';
 
 export interface NavigationTransactionOptions {
@@ -119,7 +118,7 @@ export class NavigationCoordinator {
     const sameCommittedTarget =
       from != null
       && isSameNavigationTarget(from, to)
-      && !hasReenterWork(to);
+      && !to.route.hasReenter;
 
     if (sameCommittedTarget) {
       if (this.inFlightHref !== null && this.inFlightHref !== href) {

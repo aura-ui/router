@@ -1,4 +1,5 @@
 import type { HistoryAction } from '../history/provider.types';
+import type { PreserveFlags } from '../content/model/preserve';
 import type { RouterPrefetchPolicy } from '../prefetch/prefetch-policy';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { RouteHookAttrProp, RoutePhase } from '../lifecycle/types';
@@ -54,6 +55,8 @@ export type RouteErrorContext = RouteLifecycleContext & {
 /** Route surface used by the routing engine and hook runtime. */
 export interface RouteInstance extends RouteHookNamesSource {
   path: string;
+  /** From `<aura-route preserve="…">` — view DOM and/or load-hook payload retention. */
+  preserve?: PreserveFlags;
   /** Inherited from `<aura-route prefetch>` / `<aura-router prefetch>`. */
   readonly prefetch?: RouterPrefetchPolicy | null;
   readonly transition: RouteTransitionType;

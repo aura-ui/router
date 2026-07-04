@@ -137,7 +137,7 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/users');
-    (route.route as { preserve: typeof NO_PRESERVE }).preserve = NO_PRESERVE;
+    route.route.preserve = NO_PRESERVE;
 
     const ctx = runtime(hookRegistry, route);
 
@@ -217,12 +217,12 @@ describe('DataGraph', () => {
 
     await dataGraph.load([parent], {
       runtime: runtime(hookRegistry, parent),
-      chain: [parent],
+      activeChain: [parent],
     });
 
     const { snapshot } = await dataGraph.load([leaf], {
       runtime: runtime(hookRegistry, leaf),
-      chain: [parent, leaf],
+      activeChain: [parent, leaf],
     });
 
     expect(snapshot.size).toBe(2);

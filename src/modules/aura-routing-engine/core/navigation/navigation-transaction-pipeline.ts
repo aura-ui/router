@@ -2,7 +2,7 @@ import { NavigationTransaction } from './navigation-transaction';
 import { PHASES, type RoutePhaseDefinition } from '../lifecycle';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { type DataGraphLoadResult, resolveRouteData } from '../data-graph';
+import { resolveRouteData } from '../data-graph';
 import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
 import type { TransactionFullResult } from './transaction-result';
 
@@ -82,10 +82,11 @@ export class NavigationTransactionPipeline {
   /** Blocking data load on enter branch — after guards, before render. */
   async runLoads(): Promise<TransactionFullResult> {
     const { to, transitionPlan } = this.transaction;
-    const chain = to.chain ?? transitionPlan.enterRoutes;
+    const activeChain = to.chain ?? transitionPlan.enterRoutes;
     const { outcome, snapshot } = await this.transaction.engine.dataGraph.load(
-      this.transaction.transitionPlan.enterRoutes, {
-        chain,
+      this.transaction.transitionPlan.enterRoutes,
+      {
+        activeChain,
         runtime: this.transaction.createLifecycleRuntime(),
       },
     );

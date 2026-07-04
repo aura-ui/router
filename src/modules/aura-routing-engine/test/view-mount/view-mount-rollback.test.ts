@@ -1,25 +1,19 @@
-import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
-import { withCancelledTransactionScope } from '../../core/processor/cancellation/transaction-scope';
 import {
   collectTransactionRoutes,
   rollbackUncommittedViews,
 } from '../../core/view-mount/view-mount-rollback';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { NavigationTransaction } from '../../core/navigation-transaction/navigation-transaction';
+import { NavigationTransactionPipeline } from '../../core/navigation-transaction-pipeline/navigation-transaction-pipeline';
 import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
+import { createMatchedRoute, createMockEngine } from '../helpers/create-mock-transaction';
 import { createTestRoute } from '../helpers/create-test-route';
 
-function createMatchedRoute(
+function createMatchedRouteLocal(
   path: string,
   overrides: Parameters<typeof createTestRoute>[1] = {},
 ): MatchedRouteInfo {
-  return {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
-  };
+  return createMatchedRoute(path, overrides);
 }
 
 describe('view rollback', () => {
@@ -47,8 +41,8 @@ describe('view rollback', () => {
     const revertExit = jest.fn();
     const revertEnter = jest.fn();
     const plan = {
-      exitRoutes: [createMatchedRoute('/from', { revertInFlightView: revertExit })],
-      enterRoutes: [createMatchedRoute('/to', { revertInFlightView: revertEnter })],
+      exitRoutes: [createMatchedRouteLocal('/from', { revertInFlightView: revertExit })],
+      enterRoutes: [createMatchedRouteLocal('/to', { revertInFlightView: revertEnter })],
       lca: null,
       reenter: false,
     };
@@ -64,7 +58,7 @@ describe('view rollback', () => {
     const revertInFlightView = jest.fn();
     const plan = {
       exitRoutes: [],
-      enterRoutes: [createMatchedRoute('/to', { revertInFlightView })],
+      enterRoutes: [createMatchedRouteLocal('/to', { revertInFlightView })],
       lca: null,
       reenter: false,
     };
@@ -77,78 +71,91 @@ describe('view rollback', () => {
   });
 });
 
-describe('withCancelledTransactionScope', () => {
-  it('rolls back eagerly on job abort', async () => {
+describe('NavigationTransaction staged view rollback', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function createTransactionWithEnterGuard(revertInFlightView: jest.Mock) {
+    const to = createMatchedRouteLocal('/to', { enter: ['auth'], revertInFlightView });
+    const engine = createMockEngine();
+    return new NavigationTransaction(
+      1,
+      0,
+      {
+        from: null,
+        to,
+        action: 'push',
+        href: '/to',
+        hash: '',
+        options: { replace: false, syncHistory: true },
+      },
+      () => false,
+      engine,
+    );
+  }
+
+  it('rolls back eagerly on transaction cancel', async () => {
     const revertInFlightView = jest.fn();
-    const plan = {
-      exitRoutes: [],
-      enterRoutes: [createMatchedRoute('/to', { revertInFlightView })],
-      lca: null,
-      reenter: false,
-    };
-    const job = new AuraRoutingProcessorJob(1);
-    const viewCommitTracker = new ViewCommitTracker('/to');
+    const transaction = createTransactionWithEnterGuard(revertInFlightView);
 
-    let resolveRun!: () => void;
-    const runPromise = withCancelledTransactionScope({
-      transitionPlan: plan,
-      navigationJob: job,
-      viewCommitTracker,
-      runTransaction: () =>
+    let resolvePipeline!: () => void;
+    jest.spyOn(NavigationTransactionPipeline.prototype, 'runFullPipeline').mockImplementation(
+      () =>
         new Promise((resolve) => {
-          resolveRun = () => resolve({ status: 'cancelled' });
+          resolvePipeline = () => resolve({ status: 'cancelled' });
         }),
-    });
+    );
 
-    job.abort();
-    resolveRun();
+    const runPromise = transaction.run();
+    await Promise.resolve();
+    transaction.cancel();
+    resolvePipeline();
     await runPromise;
 
     expect(revertInFlightView).toHaveBeenCalledTimes(1);
   });
 
-  it('rolls back in finally when guard cancels without aborting the job', async () => {
+  it('rolls back in finally when pipeline cancels without aborting the signal', async () => {
     const revertInFlightView = jest.fn();
-    const plan = {
-      exitRoutes: [],
-      enterRoutes: [createMatchedRoute('/to', { revertInFlightView })],
-      lca: null,
-      reenter: false,
-    };
-    const job = new AuraRoutingProcessorJob(1);
-    const viewCommitTracker = new ViewCommitTracker('/to');
+    const transaction = createTransactionWithEnterGuard(revertInFlightView);
 
-    await withCancelledTransactionScope({
-      transitionPlan: plan,
-      navigationJob: job,
-      viewCommitTracker,
-      runTransaction: async () => ({ status: 'cancelled' }),
+    jest.spyOn(NavigationTransactionPipeline.prototype, 'runFullPipeline').mockResolvedValue({
+      status: 'cancelled',
     });
 
-    expect(job.aborted).toBe(false);
+    await transaction.run();
+
+    expect(transaction.isAborted).toBe(false);
     expect(revertInFlightView).toHaveBeenCalledTimes(1);
   });
 
-  it('detaches abort listener when transaction completes without abort', async () => {
+  it('detaches abort listener when transaction completes with committed view', async () => {
     const revertInFlightView = jest.fn();
-    const plan = {
-      exitRoutes: [],
-      enterRoutes: [createMatchedRoute('/to', { revertInFlightView })],
-      lca: null,
-      reenter: false,
-    };
-    const job = new AuraRoutingProcessorJob(1);
-    const viewCommitTracker = new ViewCommitTracker('/to');
-    viewCommitTracker.markViewCommitted();
+    const to = createMatchedRouteLocal('/to', { revertInFlightView });
+    const engine = createMockEngine();
+    const transaction = new NavigationTransaction(
+      1,
+      0,
+      {
+        from: null,
+        to,
+        action: 'push',
+        href: '/to',
+        hash: '',
+        options: { replace: false, syncHistory: true },
+      },
+      () => false,
+      engine,
+    );
 
-    await withCancelledTransactionScope({
-      transitionPlan: plan,
-      navigationJob: job,
-      viewCommitTracker,
-      runTransaction: async () => ({ status: 'navigationSucceeded' }),
+    jest.spyOn(NavigationTransactionPipeline.prototype, 'runFastPipeline').mockImplementation(async function () {
+      transaction.viewCommitTracker.markViewCommitted();
+      return { status: 'navigationSucceeded' };
     });
 
-    job.abort();
+    await transaction.run();
+    transaction.cancel();
 
     expect(revertInFlightView).not.toHaveBeenCalled();
   });

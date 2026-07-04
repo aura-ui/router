@@ -4,7 +4,7 @@ import {
   toLifecycleContextInput,
   type LifecycleRuntimeContext,
 } from '../../core/lifecycle';
-import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
+import { createMockNavigationJob } from '../helpers/mock-navigation-job';
 import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
 import { createTestRoute } from '../helpers/create-test-route';
 
@@ -31,7 +31,7 @@ function createPipelineContext() {
       },
       transitionOrder: null,
     },
-    navigationJob: new AuraRoutingProcessorJob(1),
+    navigationJob: createMockNavigationJob(1),
     router: { navigate: jest.fn() },
     hookRegistry: new HookRegistry(),
     viewCommitTracker: new ViewCommitTracker('/to'),

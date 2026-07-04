@@ -70,7 +70,7 @@ interface StoredHook {
  * Use {@link defaultHookRegistry} via `AuraRouter.use()` / `AuraRouter.unuse()` in apps.
  * That registry is process-wide: every default `AuraRouter` instance shares the
  * same hook catalog. Inject a custom instance into
- * {@link ../processor/processor!AuraRoutingProcessor} for isolated tests.
+ * {@link ../aura-routing-engine!AuraRoutingEngine} uses this registry by default.
  */
 export class HookRegistry {
   private readonly entries = new Map<string, StoredHook>();
@@ -195,7 +195,6 @@ export async function runPhaseHooks(
  * Global hook catalog — wired by `AuraRouter.use()` and `AuraRouter.unuse()`.
  *
  * This singleton is the default public model: hooks are shared by all router
- * instances unless a caller explicitly constructs `AuraRoutingProcessor` with a
- * custom {@link HookRegistry}.
+ * instances; inject a custom {@link HookRegistry} via engine config when that becomes supported.
  */
 export const defaultHookRegistry = new HookRegistry();

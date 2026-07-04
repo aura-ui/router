@@ -1,6 +1,5 @@
 import {
   AuraRoutingEngine,
-  AuraRoutingProcessor,
   FakeHistoryProvider,
 } from '../../core';
 import type { RouterInstance } from '../../core';
@@ -22,7 +21,7 @@ describe('onNavigationHookError', () => {
     const onNavigationError = jest.fn();
 
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+    const engine = new AuraRoutingEngine(router, {
       provider,
       onNavigationError,
       onNavigationHookError,
@@ -45,6 +44,7 @@ describe('onNavigationHookError', () => {
       }),
     ]);
     provider.start();
+    engine.start();
 
     await engine.navigateTo('/broken', 'push', { replace: false, syncHistory: true });
 

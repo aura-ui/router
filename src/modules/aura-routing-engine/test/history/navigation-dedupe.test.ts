@@ -1,6 +1,5 @@
 import {
   AuraRoutingEngine,
-  AuraRoutingProcessor,
   FakeHistoryProvider,
 } from '../../core';
 import type { RouterInstance } from '../../core';
@@ -59,7 +58,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
   it('ignores duplicate navigateTo calls while the same target is in flight', async () => {
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
     const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
@@ -83,7 +82,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
   it('aborts pending navigation when the committed route is clicked again', async () => {
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
     const run = jest.spyOn(NavigationTransaction.prototype, 'run');
     const cancel = jest.spyOn(NavigationTransaction.prototype, 'cancel');
 
@@ -114,7 +113,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
   it('runs transaction when the committed route declares reenter hooks', async () => {
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
     const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([
@@ -136,7 +135,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
   it('skips transaction when the committed route has no reenter hooks', async () => {
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
     const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
@@ -155,7 +154,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
   it('still navigates when the in-flight target changes', async () => {
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
     const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([

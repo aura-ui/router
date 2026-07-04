@@ -1,5 +1,5 @@
 import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
-import { DEFAULT_GC_TIME } from '../../../aura-cache-store/core/aura-cache-store';
+import { DEFAULT_GC_TIME, type InvalidatePolicy } from '../../../aura-cache-store/core/aura-cache-store';
 import { normalizeHookResult, type HookRegistry } from '../hooks/registry';
 import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -105,16 +105,16 @@ export class DataGraph {
     await Promise.all(routes.map((route) => this.prefetchRoute(route, options.signal)));
   }
 
-  invalidate(key: string): void {
-    this.cache.invalidate(key, 'remove');
+  invalidate(key: string, policy: InvalidatePolicy = 'remove'): boolean {
+    return this.cache.invalidate(key, policy);
   }
 
-  invalidateMatch(predicate: (key: string) => boolean): void {
-    this.cache.invalidateMatch(predicate, 'remove');
+  invalidateMatch(predicate: (key: string) => boolean, policy: InvalidatePolicy = 'remove'): number {
+    return this.cache.invalidateMatch(predicate, policy);
   }
 
-  invalidateAll(): void {
-    this.cache.invalidateAll('remove');
+  invalidateAll(policy: InvalidatePolicy = 'remove'): number {
+    return this.cache.invalidateAll(policy);
   }
 
   snapshot(chain: readonly MatchedRouteInfo[]): DataSnapshot {

@@ -93,8 +93,8 @@ export class NavigationTransactionPipeline {
 
   /** Full branch root → leaf; reused for LCA snapshot lookup in DataGraph. */
   private activeChain(): readonly MatchedRouteInfo[] {
-    const { plan, to } = this.transaction;
-    return to.chain ?? plan.enterRoutes;
+    const { transitionPlan, to } = this.transaction;
+    return to.chain ?? transitionPlan.enterRoutes;
   }
 
   private enterRoutesWithLoadHooks(): MatchedRouteInfo[] {

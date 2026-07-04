@@ -110,6 +110,16 @@ export class PrefetchRunStore {
     this.pruneRecords();
   }
 
+  clearRecords(): void {
+    this.records.clear();
+  }
+
+  clearRecordsMatching(predicate: (href: string) => boolean): void {
+    for (const href of this.records.keys()) {
+      if (predicate(href)) this.records.delete(href);
+    }
+  }
+
   lastCompletedAt(href: string): number | undefined {
     return this.records.get(href)?.completedAt;
   }

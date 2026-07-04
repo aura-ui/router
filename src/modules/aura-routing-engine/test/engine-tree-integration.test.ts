@@ -1,45 +1,48 @@
 import {
   AuraRoutingEngine,
   FakeHistoryProvider,
-  type AuraRoutingProcessor,
 } from '../core';
 import type { RouterInstance } from '../core';
+import { NavigationTransaction } from '../core/navigation-transaction/navigation-transaction';
 
 import { createDomRoute, collectRoutesFromDom } from './helpers/test-route-dom';
-
-function createMockProcessor() {
-  return {
-    run: jest.fn().mockImplementation(async (input: { commitGate?: () => void }) => {
-      input.commitGate?.();
-      return { status: 'navigationSucceeded' };
-    }),
-    stop: jest.fn(),
-    invalidate: jest.fn(),
-    abortPendingNavigation: jest.fn(),
-  } as unknown as AuraRoutingProcessor;
-}
 
 describe('AuraRoutingEngine + route tree', () => {
   const router: RouterInstance = { navigate: jest.fn() };
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('flat route match produces single-node chain', async () => {
-    const processor = createMockProcessor();
+    const transactions: NavigationTransaction[] = [];
+    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
+      transactions.push(this);
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
+    });
+
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(processor, router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
 
     engine.replaceRoutes(collectRoutesFromDom(createDomRoute('/'), createDomRoute('/about')));
     provider.start();
 
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
-    const { to } = processor.run.mock.calls[0]![0] as { to: { chain?: { pattern: string }[] } };
-    expect(to.chain?.map((entry) => entry.pattern)).toEqual(['/about']);
+    expect(transactions[0]!.to.chain?.map((entry) => entry.pattern)).toEqual(['/about']);
   });
 
-  it('nested navigation passes branch chains to processor', async () => {
-    const processor = createMockProcessor();
+  it('nested navigation passes branch chains to transaction', async () => {
+    const transactions: NavigationTransaction[] = [];
+    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
+      transactions.push(this);
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
+    });
+
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(processor, router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
 
     const profile = createDomRoute('profile');
     const security = createDomRoute('security');
@@ -51,18 +54,16 @@ describe('AuraRoutingEngine + route tree', () => {
     await engine.navigateTo('/settings/profile', 'push', { replace: false, syncHistory: true });
     await engine.navigateTo('/settings/security', 'push', { replace: false, syncHistory: true });
 
-    const firstTo = processor.run.mock.calls[0]![0].to;
-    expect(firstTo.chain?.map((entry: { pattern: string }) => entry.pattern)).toEqual([
+    expect(transactions[0]!.to.chain?.map((entry) => entry.pattern)).toEqual([
       '/settings',
       '/settings/profile',
     ]);
 
-    const second = processor.run.mock.calls[1]![0];
-    expect(second.from.chain?.map((entry: { pattern: string }) => entry.pattern)).toEqual([
+    expect(transactions[1]!.from!.chain?.map((entry) => entry.pattern)).toEqual([
       '/settings',
       '/settings/profile',
     ]);
-    expect(second.to.chain?.map((entry: { pattern: string }) => entry.pattern)).toEqual([
+    expect(transactions[1]!.to.chain?.map((entry) => entry.pattern)).toEqual([
       '/settings',
       '/settings/security',
     ]);

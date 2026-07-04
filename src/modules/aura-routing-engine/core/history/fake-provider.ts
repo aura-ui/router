@@ -9,7 +9,7 @@ import type {
  *
  * ```ts
  * const provider = new FakeHistoryProvider('/');
- * engine = new AuraRoutingEngine(processor, router, { provider });
+ * engine = new AuraRoutingEngine(router, { provider });
  * provider.start();
  * provider.goBack(); // симуляция Back
  * ```

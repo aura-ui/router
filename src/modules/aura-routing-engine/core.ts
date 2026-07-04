@@ -7,12 +7,12 @@
  * **Implementation modules not exported from this barrel:**
  * - `route-tree/` — nested tree, branch diff implementation, `TransitionMap`, `buildTransitionPlan`
  * - `aura-routing-route-registry.ts` — route catalog snapshot
- * - `navigation/coordinator.ts`, `navigation/finalize.ts` — matched navigation orchestration/finalization
+ * - `navigation-coordinator/`, `navigation-transaction/`, `navigation-transaction-pipeline/`
+ * - `navigation/finalize.ts` — history policy after terminal outcomes
  * - `view-mount/` — tracker/render impl (types partially exported below)
- * - `processor/processor-pipeline.ts`, `ProcessorPipeline`, jobs
  */
 
-// --- Engine + processor (wired by aura-router) ---
+// --- Engine (wired by aura-router) ---
 
 export type {
   NotFoundFallbackHandler,
@@ -20,9 +20,6 @@ export type {
 } from './core/aura-routing-engine';
 
 export { AuraRoutingEngine } from './core/aura-routing-engine';
-
-export { AuraRoutingProcessor } from './core/processor/processor';
-export type { ProcessorRunInput } from './core/processor/types';
 
 export type {
   NavigationErrorPhase,
@@ -137,6 +134,7 @@ export type {
   DataGraphPrefetchOptions,
   DataSnapshot,
 } from './core/data-graph';
+export type { RouterDataInvalidateOptions } from './core/data-graph/invalidate';
 
 // --- Route hooks (registered via AuraRouter.use) ---
 

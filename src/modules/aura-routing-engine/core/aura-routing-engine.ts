@@ -5,7 +5,7 @@ import type { ContentLoadService } from './content/content-load-service';
 import {
   FailedNavigation,
   type CompleteFailureDeps,
-  type NavigationHookErrorDetail,
+  type NavigationHookErrorDetail, finalizeFailure,
 } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
@@ -19,9 +19,9 @@ import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './match/url-matcher';
-import { NavigationCoordinator } from './navigation/coordinator';
-import type { NavigationCommittedContext } from './navigation/commit-gate';
-import { finalizeNotFoundNavigation } from './navigation/finalize';
+import { NavigationCoordinator as NavigationCoordinator2 } from './navigation-coordinator/navigation-coordinator';
+import { type NavigationCommittedContext } from './navigation/commit-gate';
+import { applyTransactionHistory, finalizeNotFoundNavigation } from './navigation/finalize';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
 import {
@@ -35,10 +35,15 @@ import type {
   PrefetchOptions,
   PrefetchResourceExecutor,
 } from './prefetch/types';
-import type { AuraRoutingProcessor } from './processor/processor';
 import type { RouterInstance } from './route/types';
 import { syncChainHref } from './route-tree/matched-chain';
 import { LinkNavigationTracker } from './user-actions/link-navigation';
+import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
+import { DataGraph } from './data-graph';
+import { resolveDataInvalidatePredicate, type RouterDataInvalidateOptions } from './data-graph/invalidate';
+import { NavigationTransaction } from './navigation-transaction/navigation-transaction';
+import { isSameNavigationTarget } from './route-tree/transition-plan';
+import type { TransactionFullResult } from './navigation-transaction-pipeline/navigation-transaction-pipeline';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -74,45 +79,32 @@ export class AuraRoutingEngine {
   private readonly config: AuraRoutingEngineConfig;
 
   public isRunning = false;
-  private processor: AuraRoutingProcessor;
   private prev: MatchedRouteInfo | null;
-  private readonly router: RouterInstance;
+  readonly router: RouterInstance;
 
   private notFoundHandler: NotFoundFallbackHandler | null = null;
   readonly contentLoad?: ContentLoadService;
   private prefetchPipeline?: PrefetchPipeline;
   private readonly linkNavigation: LinkNavigationTracker;
-  private readonly navigationCoordinator: NavigationCoordinator;
+  readonly hooksRegistry: HookRegistry;
+  readonly dataGraph: DataGraph;
+
+  private readonly navigationCoordinator: NavigationCoordinator2;
 
   constructor(
-    processor: AuraRoutingProcessor,
     router: RouterInstance,
     config: AuraRoutingEngineConfig = {},
   ) {
-    this.processor = processor;
     this.router = router;
     this.config = config;
     this.contentLoad = config.contentLoad;
 
+    this.hooksRegistry = defaultHookRegistry;
+    this.dataGraph = new DataGraph(this.hooksRegistry);
+
     this.provider = config.provider ?? new BrowserHistoryProvider();
-    this.navigationCoordinator = new NavigationCoordinator({
-      processor: this.processor,
-      router: this.router,
-      provider: this.provider,
-      callbacks: {
-        onNavigationCommitted: config.onNavigationCommitted,
-        onNavigationHookError: config.onNavigationHookError,
-        failureDeps: () => this.failureDeps(),
-        applyEffects: (effects) => this.applyFinalizeEffects(effects),
-        onRedirect: (url, replace) => {
-          void this.navigateTo(url, replace ? 'replace' : 'push', {
-            replace,
-            syncHistory: true,
-          });
-        },
-        scrollToHash: (hash) => this.scrollToHash(hash),
-      },
-    });
+
+    this.navigationCoordinator = new NavigationCoordinator2(this);
 
     const onNavigation = (request: {
       href: string;
@@ -144,6 +136,44 @@ export class AuraRoutingEngine {
     return this.prefetchPipeline?.prefetch(href, options) ?? Promise.resolve();
   }
 
+  /**
+   * Invalidates load-hook cache entries in {@link DataGraph}.
+   * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
+   */
+  invalidateData(options: RouterDataInvalidateOptions = {}): number {
+    const policy = options.policy ?? 'stale';
+
+    if (options.key) {
+      const count = this.dataGraph.invalidate(options.key, policy) ? 1 : 0;
+      this.resetPrefetchRecords(options);
+      return count;
+    }
+
+    const predicate = resolveDataInvalidatePredicate(options);
+    if (predicate === null) {
+      const count = this.dataGraph.invalidateAll(policy);
+      this.resetPrefetchRecords(options);
+      return count > 0 ? count : -1;
+    }
+
+    const count = this.dataGraph.invalidateMatch(predicate, policy);
+    this.resetPrefetchRecords(options);
+    return count;
+  }
+
+  private resetPrefetchRecords(options: RouterDataInvalidateOptions): void {
+    if (!this.prefetchPipeline) return;
+
+    if (options.path) {
+      this.prefetchPipeline.resetPrefetchRecords(options.path);
+      return;
+    }
+
+    if (!options.key && !options.match) {
+      this.prefetchPipeline.resetPrefetchRecords();
+    }
+  }
+
   registerRoutes(routes: Parameters<AuraRoutingRouteRegistry['register']>[0]) {
     this.registry.register(routes);
   }
@@ -167,7 +197,7 @@ export class AuraRoutingEngine {
 
   stop() {
     this.isRunning = false;
-    this.processor.invalidate();
+    this.navigationCoordinator.invalidate();
     this.prefetchPipeline?.destroy();
     this.linkNavigation.destroy();
     this.provider.destroy();
@@ -177,7 +207,7 @@ export class AuraRoutingEngine {
     this.stop();
     this.registry.clear();
     this.prev = null;
-    this.navigationCoordinator.reset();
+    this.navigationCoordinator.invalidate();
   }
 
   /**
@@ -257,7 +287,6 @@ export class AuraRoutingEngine {
     const to = found.leaf;
 
     const from = this.prev;
-
     await this.navigationCoordinator.run({
       from,
       to,
@@ -316,7 +345,7 @@ export class AuraRoutingEngine {
 
     const prefetchPolicy = new PrefetchPolicy(prefetchConfig);
     const prefetchExecutors: PrefetchResourceExecutor[] = [
-      new DataPrefetchExecutor(this.processor.dataGraph),
+      new DataPrefetchExecutor(this.dataGraph),
     ];
 
     if (this.contentLoad) {
@@ -338,4 +367,98 @@ export class AuraRoutingEngine {
       { linksSelector: config.linksSelector },
     );
   }
+
+
+  // call after render done
+  commitNavigation(transition: NavigationTransaction) {
+    const { from, to, href, action, hash, historyOptions } = transition;
+    const fromHref = from?.href ?? null;
+    const sameTarget = !!from && isSameNavigationTarget(from, to);
+
+    applyTransactionHistory(
+      { status: 'navigationSucceeded' },
+      action,
+      href,
+      fromHref,
+      historyOptions,
+      this.provider,
+      { sameTarget },
+    );
+
+    this.config.onNavigationCommitted?.({
+      from: from,
+      to: to,
+      action: action,
+      hash: hash,
+    });
+
+    if (hash) this.scrollToHash?.(hash);
+
+    this.prev = to;
+  }
+
+  applyRedirect(result: Extract<TransactionFullResult, { status: 'redirect' }>, tx: NavigationTransaction): void {
+    // history commit для redirect не нужен — до commitNavigation guard вернул redirect, URL ещё не коммитили;
+    // prev не трогаем — новая навигация сама определит from/prev;
+    // void — redirect запускает новую transaction асинхронно, текущая уже завершилась с redirect.
+
+    const replace = result.replace ?? tx.action === 'pop';
+    void this.navigateTo(result.url, replace ? 'replace' : 'push', {
+      replace,
+      syncHistory: true,
+    });
+  }
+
+  finalizeError(result: Extract<TransactionFullResult, { status: 'error' }>, tx: NavigationTransaction) {
+    const { failure } = result;
+    const fromHref = tx.from?.href ?? null;
+
+    // 1. App callbacks + hint для prev (бывший finalizeFailure)
+    const outcome = finalizeFailure(failure, this.failureDeps());
+    // 2. History policy (бывший applyTransactionHistory для status: 'error')
+    applyTransactionHistory(
+      result,
+      tx.action,
+      tx.href,              // target URL навигации (как ctx.href в старом finalize)
+      fromHref,
+      tx.historyOptions,
+      this.provider,
+    );
+    // 3. prev (бывший applyFinalizeEffects)
+    if (outcome.setPrev !== undefined) {
+      this.prev = outcome.setPrev;
+    }
+  }
+
+  finalizeCancelled(tx: NavigationTransaction): void {
+    applyTransactionHistory(
+      { status: 'cancelled' },
+      tx.action,
+      tx.href,
+      tx.from?.href ?? null,
+      tx.historyOptions,
+      this.provider,
+    );
+    // prev не меняется
+  }
+
+  reportNavigationHookError(hookError: unknown, parent: FailedNavigation): void {
+    this.config.onNavigationHookError?.({
+      error: hookError,
+      phase: 'error',
+      parent,
+    });
+  }
+
+  /*
+  applyOutcome(result: TransactionFullResult, tx: NavigationTransaction): void {
+    switch (result?.status) {
+      case undefined:
+      case 'navigationSucceeded': return;
+      case 'redirect': /!* navigateTo *!/ break;
+      case 'cancelled': /!* history policy *!/ break;
+      case 'error': /!* finalizeFailure + history + prev *!/ break;
+    }
+  }
+*/
 }

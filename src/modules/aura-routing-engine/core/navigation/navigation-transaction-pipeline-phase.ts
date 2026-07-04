@@ -73,16 +73,16 @@ export class NavigationTransactionPipelinePhase {
 
     const context = this.toPhaseContext(phase, route, transaction);
 
-    // Route instance callback (onEnter, onLeave, …) from {@link RoutePhaseDefinition.runRouteLifecycle}.
+    // 1. Route callback (onEnter, onLeave, …)
     try {
-      runRouteLifecycle?.(route.route, context);
+      runRouteLifecycle(route.route, context);
     } catch (error) {
       return this.applyErrorPolicy(errorPolicy, phase, error, route);
     }
 
-    // Declarative hooks bound via route HTML attributes / registry.
-    const hookNames = resolveHookNames(route.route, phaseDef.phase) || [];
+    const hookNames = resolveHookNames(route.route, phaseDef.phase) ?? [];
 
+    // 2. Blocking hooks — cancel/redirect stops navigation
     if (isBlocking) {
       try {
         const hookResult = await runPhaseHooks(
@@ -97,13 +97,14 @@ export class NavigationTransactionPipelinePhase {
       }
     }
 
-    const hookPolicy = phaseDef.hookPolicy;
+    // 3. Post-commit hooks — cancel/redirect ignored; errors per hookPolicy.onError
+    const { hookPolicy } = phaseDef;
     const onHookError =
       hookPolicy.kind === 'postCommit' && hookPolicy.onError === 'log'
         ? (error: unknown) => console.error(`[${phase}] post-commit hook threw (logged, continuing):`, error)
         : (error: unknown) => {
-            throw error;
-          };
+          throw error;
+        };
 
     try {
       await this.runLoggedPostCommitHooks(
@@ -153,16 +154,16 @@ export class NavigationTransactionPipelinePhase {
     }
 
     const errorHooks = resolveHookNames(route.route, phase);
-    if (errorHooks?.length) {
-      await this.runLoggedPostCommitHooks(
-        errorContext,
-        errorHooks,
-        context.hookRegistry,
-        context.isJobActive,
-        phase,
-        (hookError) => context.reportHookError?.(hookError, failed),
-      );
-    }
+    if (!errorHooks?.length) return;
+
+    await this.runLoggedPostCommitHooks(
+      errorContext,
+      errorHooks,
+      context.hookRegistry,
+      context.isJobActive,
+      phase,
+      (hookError) => context.reportHookError?.(hookError, failed),
+    );
   }
 
   /** Hook/callback context for a pipeline phase step. */
@@ -182,6 +183,30 @@ export class NavigationTransactionPipelinePhase {
         ? resolveRouteData(transaction.dataSnapshot, route)
         : undefined,
     });
+  }
+
+  static buildPhaseContext(
+    phase: RoutePhase,
+    route: MatchedRouteInfo,
+    source: PhaseContextSource,
+  ): RouteLifecycleContext {
+    const { data, error, from, action, router, transactionId, transactionSignal } = source;
+    return {
+      phase,
+      to: this.toRouteInfo(route),
+      from: from ? this.toRouteInfo(from) : null,
+      router,
+      route: route.route,
+      action,
+      transactionId,
+      transactionSignal,
+      ...(data !== undefined && { data }),
+      ...(error !== undefined && { error }),
+    };
+  }
+
+  static isPhaseError(r: PhaseRunResult): r is PhaseError {
+    return r !== null && typeof r === 'object' && 'kind' in r && r.kind === 'error';
   }
 
   /** Maps a blocking {@link GuardResult} to a terminal {@link PhaseStepOutcome}. */
@@ -240,26 +265,6 @@ export class NavigationTransactionPipelinePhase {
     }
   }
 
-  static buildPhaseContext(
-    phase: RoutePhase,
-    route: MatchedRouteInfo,
-    source: PhaseContextSource,
-  ): RouteLifecycleContext {
-    const { data, error, from, action, router, transactionId, transactionSignal } = source;
-    return {
-      phase,
-      to: this.toRouteInfo(route),
-      from: from ? this.toRouteInfo(from) : null,
-      router,
-      route: route.route,
-      action,
-      transactionId,
-      transactionSignal,
-      ...(data !== undefined && { data }),
-      ...(error !== undefined && { error }),
-    };
-  }
-
   private static toRouteInfo(matchedRoute: MatchedRouteInfo): RouteInfo {
     return {
       pathname: matchedRoute.pathname,
@@ -280,13 +285,9 @@ export class NavigationTransactionPipelinePhase {
       return null;
     }
     if (errorPolicy === 'propagate') {
-      throw (error);
+      throw error;
     }
 
     return { kind: 'error', error, route, failedPhase: phase };
-  }
-
-  static isPhaseError(r: PhaseRunResult): r is PhaseError {
-    return r !== null && typeof r === 'object' && 'kind' in r && r.kind === 'error';
   }
 }

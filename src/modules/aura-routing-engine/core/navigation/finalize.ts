@@ -14,6 +14,14 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 
 import type { TransactionResult } from './transaction-result';
 
+/** Payload for {@link AuraRoutingEngineConfig.onNavigationCommitted}. */
+export interface NavigationCommittedContext {
+  from: MatchedRouteInfo | null;
+  to: MatchedRouteInfo;
+  action: HistoryAction;
+  hash: string;
+}
+
 /** Applies {@link resolveHistoryPolicy} for a terminal transaction result. */
 export function applyTransactionHistory(
   result: TransactionResult,

@@ -12,6 +12,7 @@ import { type NavigationErrorPhase } from '../failure';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import { ErrorPhaseHandler, type LifecycleRuntimeContext } from '../lifecycle';
 import type { DataSnapshot } from '../data-graph';
+import { canUseFastPath } from '../route-tree/can-use-fast-path';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 
 /** Returns true when a newer transaction or router generation superseded this one. */
@@ -31,9 +32,9 @@ export class NavigationTransaction {
   readonly isStale: () => boolean;
   readonly engine: AuraRoutingEngine;
 
-  transitionPlan: TransitionMap;
-  transitionOrder: TransitionOrderType | null;
-  dataSnapshot: DataSnapshot;
+  transitionPlan!: TransitionMap;
+  transitionOrder: TransitionOrderType | null = null;
+  dataSnapshot?: DataSnapshot;
   viewCommitTracker: ViewCommitTracker;
 
   constructor(
@@ -74,7 +75,7 @@ export class NavigationTransaction {
     }
   }
 
-  commitNavigation() {
+  commitNavigation(): void {
     this.engine.commitNavigation(this);
     this.viewCommitTracker.markViewCommitted();
   }
@@ -82,16 +83,45 @@ export class NavigationTransaction {
   async run(): Promise<TransactionFullResult> {
     this.transitionPlan = buildTransitionPlan(this.from, this.to);
     this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
-    const useFastPath = this.canUseFastPath(this.transitionPlan, this.from, this.to);
 
     return this.runWithStagedViewRollback(() => {
       const pipeline = new NavigationTransactionPipeline(this);
       return this.transitionPlan.reenter
         ? pipeline.reenter()
-        : useFastPath
+        : canUseFastPath(this.transitionPlan, this.from, this.to)
           ? pipeline.runFastPipeline()
           : pipeline.runFullPipeline();
     });
+  }
+
+  async fail(
+    route: MatchedRouteInfo,
+    error: unknown,
+    atPhase: NavigationErrorPhase,
+  ): Promise<Extract<TransactionFullResult, { status: 'error' }>> {
+    return new ErrorPhaseHandler().failNavigation(
+      route,
+      error,
+      atPhase,
+      this.createLifecycleRuntime(),
+    );
+  }
+
+  // todo rework
+  createLifecycleRuntime(): LifecycleRuntimeContext {
+    const { transactionId, signal, from, to, action, transitionPlan } = this;
+    return {
+      transaction: { from, to, action, plan: transitionPlan },
+      navigationJob: { id: transactionId, signal },
+      router: this.engine.router,
+      hookRegistry: this.engine.hooksRegistry,
+      viewCommitTracker: this.viewCommitTracker,
+      isJobActive: () => this.isActive(),
+      ...(this.dataSnapshot && { dataSnapshot: this.dataSnapshot }),
+      reportHookError: (hookError, parent) => {
+        this.engine.reportNavigationHookError(hookError, parent);
+      },
+    };
   }
 
   private async runWithStagedViewRollback(
@@ -120,54 +150,4 @@ export class NavigationTransaction {
     if (this.isAborted) return false;
     return result?.status === 'cancelled';
   }
-
-  async fail(
-    route: MatchedRouteInfo,
-    error: unknown,
-    atPhase: NavigationErrorPhase,
-  ): Promise<Extract<TransactionFullResult, { status: 'error' }>> {
-    const runtime = this.createLifecycleRuntime();
-    return new ErrorPhaseHandler().failNavigation(route, error, atPhase, runtime);
-  }
-
-  private canUseFastPath(
-    plan: TransitionMap,
-    _from: MatchedRouteInfo | null,
-    _to: MatchedRouteInfo,
-  ): boolean {
-    if (plan.reenter) return false;
-    if (plan.exitRoutes.length > 1 || plan.enterRoutes.length !== 1) return false;
-
-    const exitRoute = plan.exitRoutes[0]?.route;
-    const enterRoute = plan.enterRoutes[0]!.route;
-
-    if (exitRoute?.hasLeave) return false;
-    if (enterRoute.hasEnter) return false;
-    if (enterRoute.hasLoad) return false;
-    if (enterRoute.hasTransitionIn) return false;
-    if (exitRoute?.hasPostEffects) return false;
-    if (enterRoute.hasPostEffects) return false;
-    if (enterRoute.hasAsyncContent) return false;
-    if (enterRoute.transition.order != null) return false;
-    if (exitRoute?.transition.order != null) return false;
-
-    return true;
-  }
-
-  createLifecycleRuntime(): LifecycleRuntimeContext {
-    const { transactionId, signal, from, to, action, transitionPlan } = this;
-    return {
-      transaction: { from, to, action, plan: transitionPlan },
-      navigationJob: { id: transactionId, signal },
-      router: this.engine.router,
-      hookRegistry: this.engine.hooksRegistry,
-      viewCommitTracker: this.viewCommitTracker,
-      isJobActive: () => this.isActive(),
-      dataSnapshot: this.dataSnapshot,
-      reportHookError: (hookError, parent) => {
-        this.engine.reportNavigationHookError(hookError, parent);
-      },
-    };
-  }
-
 }

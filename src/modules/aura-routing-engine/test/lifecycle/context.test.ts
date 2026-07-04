@@ -1,21 +1,14 @@
-import { HookRegistry } from '../../core/hooks/registry';
-import {
-  createLifecycleContext,
-  toLifecycleContextInput,
-  toRouteInfo,
-  type LifecycleRuntimeContext,
-} from '../../core/lifecycle';
-import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
+import { NavigationTransactionPipelinePhase } from '../../core/navigation/navigation-transaction-pipeline-phase';
 import { createTestRoute } from '../helpers/create-test-route';
 
-describe('lifecycle context', () => {
-  it('createLifecycleContext maps matched route and navigation input to hook context', () => {
+describe('NavigationTransactionPipelinePhase.buildPhaseContext', () => {
+  it('maps matched route and navigation slice to hook context', () => {
     const fromRoute = createTestRoute('/from');
     const toRoute = createTestRoute('/to');
-    const job = { id: 7, signal: new AbortController().signal };
+    const transactionSignal = new AbortController().signal;
     const router = { navigate: jest.fn() };
 
-    const ctx = createLifecycleContext(
+    const ctx = NavigationTransactionPipelinePhase.buildPhaseContext(
       'enter',
       {
         href: '/to',
@@ -38,7 +31,8 @@ describe('lifecycle context', () => {
         },
         action: 'replace',
         router,
-        navigationJob: job,
+        transactionId: 7,
+        transactionSignal,
       },
     );
 
@@ -49,60 +43,58 @@ describe('lifecycle context', () => {
       route: toRoute,
       action: 'replace',
       transactionId: 7,
-      transactionSignal: job.signal,
+      transactionSignal,
       router,
     });
   });
 
-  it('toRouteInfo omits empty optional fields', () => {
-    expect(
-      toRouteInfo({
+  it('omits empty optional RouteInfo fields', () => {
+    const ctx = NavigationTransactionPipelinePhase.buildPhaseContext(
+      'enter',
+      {
         href: '/x',
         pathname: '/x',
         search: '',
         hash: '',
         pattern: '/x',
         route: createTestRoute('/x'),
-      }),
-    ).toEqual({ pathname: '/x' });
+      },
+      {
+        from: null,
+        action: 'push',
+        router: { navigate: jest.fn() },
+        transactionId: 1,
+        transactionSignal: new AbortController().signal,
+      },
+    );
+
+    expect(ctx.to).toEqual({ pathname: '/x' });
+    expect(ctx.from).toBeNull();
   });
 
-  it('toLifecycleContextInput maps runtime context to route callback slice', () => {
-    const matchedRoute = {
-      href: '/to',
-      pathname: '/to',
-      search: '',
-      hash: '',
-      pattern: '/to',
-      route: createTestRoute('/to'),
-    };
-
-    const signal = new AbortController().signal;
-    const runtime: LifecycleRuntimeContext = {
-      transaction: {
-        from: null,
-        to: matchedRoute,
-        action: 'push',
-        plan: {
-          exitRoutes: [],
-          enterRoutes: [matchedRoute],
-          lca: null,
-          reenter: false,
-        },
+  it('includes optional data and error fields', () => {
+    const ctx = NavigationTransactionPipelinePhase.buildPhaseContext(
+      'error',
+      {
+        href: '/to',
+        pathname: '/to',
+        search: '',
+        hash: '',
+        pattern: '/to',
+        route: createTestRoute('/to'),
       },
-      transactionId: 1,
-      transactionSignal: signal,
-      router: { navigate: jest.fn() },
-      hookRegistry: new HookRegistry(),
-      viewCommitTracker: new ViewCommitTracker('/to'),
-      isJobActive: () => true,
-    };
+      {
+        from: null,
+        action: 'push',
+        router: { navigate: jest.fn() },
+        transactionId: 1,
+        transactionSignal: new AbortController().signal,
+        data: { id: 1 },
+        error: new Error('failed'),
+      },
+    );
 
-    expect(toLifecycleContextInput(runtime)).toEqual({
-      from: runtime.transaction.from,
-      action: runtime.transaction.action,
-      router: runtime.router,
-      navigationJob: { id: 1, signal },
-    });
+    expect(ctx.data).toEqual({ id: 1 });
+    expect(ctx.error).toEqual(new Error('failed'));
   });
 });

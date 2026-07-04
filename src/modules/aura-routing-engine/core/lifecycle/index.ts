@@ -6,15 +6,6 @@ export type {
   PhaseStepOutcome,
   PipelineStepOutcome,
 } from './execution/phase-outcome';
-export {
-  createLifecycleContext,
-  toLifecycleContextInput,
-  toRouteInfo,
-} from './context/lifecycle-context';
-export type {
-  LifecycleContextInput,
-  LifecycleJobSlice,
-} from './context/lifecycle-context';
 export { HookPolicyExecutor } from './execution/hook-policy-executor';
 export type {
   HookPolicyContext,

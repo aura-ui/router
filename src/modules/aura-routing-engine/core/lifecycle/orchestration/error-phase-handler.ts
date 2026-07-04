@@ -7,9 +7,9 @@ import {
 } from '../../failure';
 import type { MatchedRouteInfo } from '../../match/url-matcher';
 import type { NavigationErrorResult } from '../../navigation/transaction-result';
+import { NavigationTransactionPipelinePhase } from '../../navigation/navigation-transaction-pipeline-phase';
 import type { RouteErrorContext } from '../../route/types';
 import { resolveHookNames } from '../bindings/route-hook-bindings';
-import { createLifecycleContext, toLifecycleContextInput } from '../context/lifecycle-context';
 import { HookPolicyExecutor } from '../execution/hook-policy-executor';
 import { PHASES } from '../phase-registry';
 
@@ -34,23 +34,22 @@ export class ErrorPhaseHandler {
       routePattern: matchedRoute.pattern,
     });
     const failed = this.createFailedNavigation(normalized, context);
-    const input = toLifecycleContextInput(context);
     const routeData = context.dataSnapshot
       ? resolveRouteData(context.dataSnapshot, matchedRoute)
       : undefined;
-    const baseErrorContext = createLifecycleContext(
+    const errorContext = NavigationTransactionPipelinePhase.buildPhaseContext(
       PHASES.error.phase,
       matchedRoute,
       {
-        ...input,
+        from: context.transaction.from,
+        action: context.transaction.action,
+        router: context.router,
+        transactionId: context.transactionId,
+        transactionSignal: context.transactionSignal,
+        error: normalized,
         ...(routeData !== undefined && { data: routeData }),
       },
-      normalized,
-    );
-    const errorContext: RouteErrorContext = {
-      ...baseErrorContext,
-      error: normalized,
-    };
+    ) as RouteErrorContext;
 
     this.runRouteErrorLifecycle(matchedRoute, errorContext, failed, context);
     await this.runErrorHooks(matchedRoute, errorContext, failed, context);

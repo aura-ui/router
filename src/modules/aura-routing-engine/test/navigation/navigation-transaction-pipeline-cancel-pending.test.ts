@@ -3,8 +3,8 @@ import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry, runPhaseHooks } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationTransaction } from '../../core/navigation-transaction/navigation-transaction';
-import { NavigationTransactionPipeline } from '../../core/navigation-transaction-pipeline/navigation-transaction-pipeline';
+import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { runViewCommit } from '../../core/view-mount/view-commit-render';
 import { createTestRoute } from '../helpers/create-test-route';
 

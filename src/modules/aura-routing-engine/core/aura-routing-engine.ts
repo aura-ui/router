@@ -19,7 +19,7 @@ import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './match/url-matcher';
-import { NavigationCoordinator as NavigationCoordinator2 } from './navigation-coordinator/navigation-coordinator';
+import { NavigationCoordinator } from './navigation/navigation-coordinator';
 import {
   applyTransactionHistory,
   finalizeNotFoundNavigation,
@@ -44,9 +44,9 @@ import { LinkNavigationTracker } from './user-actions/link-navigation';
 import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
 import { DataGraph } from './data-graph';
 import { resolveDataInvalidatePredicate, type RouterDataInvalidateOptions } from './data-graph/invalidate';
-import { NavigationTransaction } from './navigation-transaction/navigation-transaction';
+import { NavigationTransaction } from './navigation/navigation-transaction';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
-import type { TransactionFullResult } from './navigation-transaction-pipeline/navigation-transaction-pipeline';
+import type { TransactionFullResult } from './navigation/transaction-result';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -92,7 +92,7 @@ export class AuraRoutingEngine {
   readonly hooksRegistry: HookRegistry;
   readonly dataGraph: DataGraph;
 
-  private readonly navigationCoordinator: NavigationCoordinator2;
+  private readonly navigationCoordinator: NavigationCoordinator;
 
   constructor(
     router: RouterInstance,
@@ -107,7 +107,7 @@ export class AuraRoutingEngine {
 
     this.provider = config.provider ?? new BrowserHistoryProvider();
 
-    this.navigationCoordinator = new NavigationCoordinator2(this);
+    this.navigationCoordinator = new NavigationCoordinator(this);
 
     const onNavigation = (request: {
       href: string;

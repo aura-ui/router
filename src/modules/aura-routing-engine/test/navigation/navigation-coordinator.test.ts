@@ -7,9 +7,9 @@ import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import {
   NavigationCoordinator,
   type NavigationTransactionOptions,
-} from '../../core/navigation-coordinator/navigation-coordinator';
-import { NavigationTransaction } from '../../core/navigation-transaction/navigation-transaction';
-import type { TransactionFullResult } from '../../core/navigation-transaction-pipeline/navigation-transaction-pipeline';
+} from '../../core/navigation/navigation-coordinator';
+import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { TransactionFullResult } from '../../core/navigation/transaction-result';
 import { createTestRoute } from '../helpers/create-test-route';
 
 function createMatchedRoute(

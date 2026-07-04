@@ -8,10 +8,7 @@ specific nested route tree model lives in `route-tree/README.md`.
 | Area | Responsibility |
 | --- | --- |
 | `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and not-found pre-match paths, `invalidateData()`. |
-| `navigation-coordinator/` | Matched navigation control flow: pending dedupe, supersede/cancel, transaction lifecycle. |
-| `navigation-transaction/` | One navigation run: transition plan, abort signal, view rollback scope, lifecycle runtime bridge. |
-| `navigation-transaction-pipeline/` | Phase order inside a transaction: guards → loads → render/transitions → commit → post-commit. |
-| `navigation/` | History policy helpers (`finalize.ts`), scroll policy, terminal result types. |
+| `navigation/` | Coordinator, transaction, pipeline, history finalize (`finalize.ts`), scroll policy, terminal result types. |
 | `lifecycle/` | Phase metadata (`PHASES`), lifecycle context, hook binding, phase execution, and error-phase orchestration. |
 | `hooks/` | Global hook registry and hook result normalization. |
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, and `TransitionMap`. |

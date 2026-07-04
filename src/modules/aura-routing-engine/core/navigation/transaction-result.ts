@@ -4,7 +4,7 @@ import type { FailedNavigation } from '../failure';
 export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation };
 
 /**
- * Terminal processor outcome returned to {@link AuraRoutingEngine}.
+ * Terminal navigation outcome (history policy, engine finalization).
  *
  * `status: 'navigationSucceeded'` — full pipeline succeeded (not the same as
  * {@link ViewCommitSnapshot.view} `committed` or {@link FailedNavigation.viewCommitted}).
@@ -15,3 +15,6 @@ export type TransactionResult =
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
   | NavigationErrorResult;
+
+/** Pipeline step outcome: terminal {@link TransactionResult} or `null` to continue. */
+export type TransactionFullResult = TransactionResult | null;

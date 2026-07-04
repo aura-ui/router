@@ -1,7 +1,7 @@
 import type { RouteInstance } from '../../core';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
-import { NO_PRESERVE, type PreserveFlags } from '../../core/content/model/preserve';
+import { NO_PRESERVE } from '../../core/content/model/preserve';
 
 const noop = (): void => {};
 
@@ -11,7 +11,7 @@ const INACTIVE_TRANSITION: RouteTransitionType = { order: null, in: null, out: n
 
 export function createTestRoute(
   path: string,
-  overrides: Partial<RouteInstance> & { preserve?: PreserveFlags } = {},
+  overrides: Partial<RouteInstance> = {},
 ): RouteInstance {
   const { preserve = { view: false, data: true }, ...routeOverrides } = overrides;
   const route = {

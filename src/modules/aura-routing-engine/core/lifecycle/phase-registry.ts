@@ -49,14 +49,14 @@ export const PHASES = {
     routeHookProp: 'leave',
     runRouteLifecycle: (route, ctx) => route.onLeave(ctx),
   },
-  enter: {
-    phase: 'enter',
+  guard: {
+    phase: 'guard',
     targetRoutes: 'enterRoutes',
     hookPolicy: { kind: 'blocking' },
     errorPolicy: 'failure',
-    htmlAttr: 'enter',
-    routeHookProp: 'enter',
-    runRouteLifecycle: (route, ctx) => route.onEnter(ctx),
+    htmlAttr: 'guard',
+    routeHookProp: 'guard',
+    runRouteLifecycle: (route, ctx) => route.onGuard(ctx),
   },
   load: {
     phase: 'load',
@@ -94,23 +94,23 @@ export const PHASES = {
     routeHookProp: 'transitionIn',
     runRouteLifecycle: (route, ctx) => route.onTransitionIn(ctx),
   },
-  left: {
-    phase: 'left',
+  unmount: {
+    phase: 'unmount',
     targetRoutes: 'exitRoutes',
     hookPolicy: { kind: 'postCommit', onError: 'log' },
     errorPolicy: 'log',
-    htmlAttr: 'left',
-    routeHookProp: 'left',
-    runRouteLifecycle: (route, ctx) => route.onLeft(ctx),
+    htmlAttr: 'unmount',
+    routeHookProp: 'unmount',
+    runRouteLifecycle: (route, ctx) => route.onUnmount(ctx),
   },
-  after: {
-    phase: 'after',
+  ready: {
+    phase: 'ready',
     targetRoutes: 'enterRoutes',
     hookPolicy: { kind: 'postCommit', onError: 'log' },
     errorPolicy: 'log',
-    htmlAttr: 'after',
-    routeHookProp: 'afterHook',
-    runRouteLifecycle: (route, ctx) => route.onAfter(ctx),
+    htmlAttr: 'ready',
+    routeHookProp: 'ready',
+    runRouteLifecycle: (route, ctx) => route.onReady(ctx),
   },
   error: {
     phase: 'error',

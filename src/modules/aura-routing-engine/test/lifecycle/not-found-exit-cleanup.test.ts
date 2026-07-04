@@ -27,8 +27,8 @@ describe('runNotFoundExitCleanup', () => {
   it('runs left lifecycle cleanup for the previous leaf route', () => {
     const parent = createMatchedRoute('/settings');
     const leaf = createMatchedRoute('/settings/profile');
-    const onLeft = jest.fn();
-    leaf.route = createTestRoute('/settings/profile', { onLeft });
+    const onUnmount = jest.fn();
+    leaf.route = createTestRoute('/settings/profile', { onUnmount });
     parent.chain = [parent, leaf];
     leaf.chain = parent.chain;
 
@@ -40,9 +40,9 @@ describe('runNotFoundExitCleanup', () => {
       router,
     });
 
-    expect(onLeft).toHaveBeenCalledWith(
+    expect(onUnmount).toHaveBeenCalledWith(
       expect.objectContaining({
-        phase: 'left',
+        phase: 'unmount',
         from: null,
         to: { pathname: '/settings/profile' },
         route: leaf.route,

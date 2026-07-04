@@ -77,7 +77,7 @@ describe('NavigationTransaction staged view rollback', () => {
   });
 
   function createTransactionWithEnterGuard(revertInFlightView: jest.Mock) {
-    const to = createMatchedRouteLocal('/to', { enter: ['auth'], revertInFlightView });
+    const to = createMatchedRouteLocal('/to', { guard: ['auth'], revertInFlightView });
     const engine = createMockEngine();
     return new NavigationTransaction(
       1,

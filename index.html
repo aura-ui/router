@@ -53,10 +53,10 @@
         <aura-outlet></aura-outlet>
       </div>
 
-      <aura-route path="/" view="demo/welcome.html" after="analytics"></aura-route>
-      <aura-route path="/dev" view="demo/dev-hub.html" after="analytics"></aura-route>
-      <aura-route path="/loaders/html" view="demo/loaders-html.html" after="analytics"></aura-route>
-      <aura-route path="/loaders/fetch" view="partials/fetch.html" preserve after="analytics"></aura-route>
+      <aura-route path="/" view="demo/welcome.html" ready="analytics"></aura-route>
+      <aura-route path="/dev" view="demo/dev-hub.html" ready="analytics"></aura-route>
+      <aura-route path="/loaders/html" view="demo/loaders-html.html" ready="analytics"></aura-route>
+      <aura-route path="/loaders/fetch" view="partials/fetch.html" preserve ready="analytics"></aura-route>
       <aura-route path="/loaders/template" view="template::app"></aura-route>
       <aura-route path="/loaders/custom" view="custom-loader::demo"></aura-route>
       <aura-route path="/loaders/component" view="component-src::examples/demo/components/test-element" preserve></aura-route>
@@ -67,11 +67,11 @@
         <aura-route path="about" view="partials/users-about.html" preserve></aura-route>
       </aura-route>
       <aura-route path="/routing/user/:id" view="component-src::examples/demo/components/test-element"></aura-route>
-      <aura-route path="/hooks/protected" enter="auth" view="demo/protected.html" after="analytics"></aura-route>
+      <aura-route path="/hooks/protected" guard="auth" view="demo/protected.html" ready="analytics"></aura-route>
       <aura-route path="/login" view="demo/login.html"></aura-route>
       <aura-route path="/ux/scroll" view="demo/scroll.html" scroll="restore"></aura-route>
-      <aura-route path="/ux/prefetch" view="demo/prefetch.html" after="analytics"></aura-route>
-      <aura-route path="/hooks/data" load="user-stats" preserve="data" view="component-src::examples/demo/components/data-demo" after="analytics"></aura-route>
+      <aura-route path="/ux/prefetch" view="demo/prefetch.html" ready="analytics"></aura-route>
+      <aura-route path="/hooks/data" load="user-stats" preserve="data" view="component-src::examples/demo/components/data-demo" ready="analytics"></aura-route>
       <aura-route path="/t/home" view="html::&lt;div class=&quot;t-page t-home&quot;&gt;&lt;h2 class=&quot;scene__title&quot;&gt;Home&lt;/h2&gt;&lt;p&gt;Fade между страницами.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/about&quot; data-router-link&gt;About →&lt;/a&gt;&lt;a href=&quot;/t/gallery&quot; data-router-link&gt;Gallery (slide)&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
         transition-in="fade" transition-out="fade"></aura-route>
       <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h2 class=&quot;scene__title&quot;&gt;About&lt;/h2&gt;&lt;p&gt;Переключайте туда-сюда.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/home&quot; data-router-link&gt;← Home&lt;/a&gt;&lt;a href=&quot;/t/gallery&quot; data-router-link&gt;Gallery (slide)&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"

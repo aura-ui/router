@@ -156,7 +156,7 @@ describe('view flow (controller → outlet)', () => {
     expect(viewRoot.style.transform).toBe('');
   });
 
-  it('onLeft during stage removes staged view and unmounts the leaving route view', async () => {
+  it('onUnmount during stage removes staged view and unmounts the leaving route view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       resolve: async (routeInfo) =>
@@ -167,11 +167,11 @@ describe('view flow (controller → outlet)', () => {
     await controller.render(matched('/new'));
     expect(root.children).toHaveLength(2);
 
-    controller.onLeft();
+    controller.onUnmount();
     expect(root.children).toHaveLength(0);
   });
 
-  it('onLeft clears a committed single view', async () => {
+  it('onUnmount clears a committed single view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       resolve: async () => '<span>page</span>',
@@ -180,7 +180,7 @@ describe('view flow (controller → outlet)', () => {
     await controller.render(matched('/page'));
     expect(root.children).toHaveLength(1);
 
-    controller.onLeft();
+    controller.onUnmount();
     expect(root.children).toHaveLength(0);
   });
 });

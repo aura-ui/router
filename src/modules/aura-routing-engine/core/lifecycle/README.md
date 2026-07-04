@@ -28,7 +28,7 @@ Terminal navigation failures are handled outside the happy-path phase loop:
 
 `PHASES` describes *what* each phase does (branch, hook policy, callbacks).
 `NavigationTransactionPipeline` describes *when* phases run (guards → loads →
-render → after, plus transition ordering).
+render → unmount → ready, plus transition ordering).
 
 `PHASES.error` is defined in the registry but excluded from `PIPELINE_PHASES`.
 It runs only on failure via `runError()`, not during a successful navigation.

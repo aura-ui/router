@@ -38,18 +38,18 @@ describe('NavigationError', () => {
 
   it('normalizeFailure wraps unknown errors', () => {
     const normalized = normalizeFailure(new Error('boom'), {
-      phase: 'enter',
+      phase: 'guard',
       routePattern: '/login',
     });
 
     expect(normalized).toBeInstanceOf(NavigationError);
     expect(normalized.code).toBe('GUARD_THROW');
-    expect(normalized.phase).toBe('enter');
+    expect(normalized.phase).toBe('guard');
   });
 
   it('defaultCodeForPhase maps phases via FAILURE_CODE_BY_PHASE', () => {
     expect(defaultCodeForPhase('match')).toBe('NOT_FOUND');
     expect(defaultCodeForPhase('load')).toBe('LOAD_FAILED');
-    expect(defaultCodeForPhase('after')).toBe('HOOK_THROW');
+    expect(defaultCodeForPhase('ready')).toBe('HOOK_THROW');
   });
 });

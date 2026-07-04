@@ -23,7 +23,7 @@ export interface RouterInstance {
  *
  * @example
  * ```html
- * <aura-route path="/admin" enter="auth" after="analytics"></aura-route>
+ * <aura-route path="/admin" guard="auth" ready="analytics"></aura-route>
  * ```
  */
 export type RouteHookNamesSource = Record<RouteHookAttrProp, string[] | null>;
@@ -61,21 +61,21 @@ export interface RouteInstance extends RouteHookNamesSource {
   /** Inherited from `<aura-route prefetch>` / `<aura-router prefetch>`. */
   readonly prefetch?: RouterPrefetchPolicy | null;
   readonly transition: RouteTransitionType;
-  readonly hasEnter: boolean;
+  readonly hasGuard: boolean;
   readonly hasReenter: boolean;
   readonly hasLeave: boolean;
   readonly hasLoad: boolean;
   readonly hasTransitionIn: boolean;
-  readonly hasPostEffects: boolean;
+  readonly hasReady: boolean;
   readonly hasAsyncContent: boolean;
   readonly hasSyncContent: boolean;
-  onEnter(ctx: RouteLifecycleContext): void;
+  onGuard(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;
-  onAfter(ctx: RouteLifecycleContext): void;
+  onReady(ctx: RouteLifecycleContext): void;
   onLeave(ctx: RouteLifecycleContext): void;
   onTransitionOut(ctx: RouteLifecycleContext): void;
-  onLeft(ctx: RouteLifecycleContext): void;
+  onUnmount(ctx: RouteLifecycleContext): void;
   onReenter(ctx: RouteLifecycleContext): void;
   onError(ctx: RouteErrorContext): void;
   commitStagedView?(): void;

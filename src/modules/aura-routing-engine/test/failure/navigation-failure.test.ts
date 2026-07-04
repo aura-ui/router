@@ -88,7 +88,7 @@ describe('FailedNavigation', () => {
   it('finalizeFailure leaves prev unchanged when view not committed', () => {
     const error = new NavigationError({
       code: 'GUARD_THROW',
-      phase: 'enter',
+      phase: 'guard',
       routePattern: '/x',
       message: 'blocked',
     });

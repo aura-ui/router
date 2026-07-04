@@ -28,70 +28,70 @@ describe('AuraRoute lifecycle inherit', () => {
     return el;
   }
 
-  it('inherits enter and after from aura-router', () => {
+  it('inherits guard and ready from aura-router', () => {
     const router = document.createElement('aura-router');
-    router.setAttribute('enter', 'auth');
-    router.setAttribute('after', 'analytics');
+    router.setAttribute('guard', 'auth');
+    router.setAttribute('ready', 'analytics');
     const child = route({ path: '/app' }, router);
 
-    expect(child.enter).toEqual(['auth']);
-    expect(child.afterHook).toEqual(['analytics']);
+    expect(child.guard).toEqual(['auth']);
+    expect(child.ready).toEqual(['analytics']);
   });
 
-  it('enter="" opts out of router default', () => {
+  it('guard="" opts out of router default', () => {
     const router = document.createElement('aura-router');
-    router.setAttribute('enter', 'auth');
-    const child = route({ path: '/login', enter: '' }, router);
+    router.setAttribute('guard', 'auth');
+    const child = route({ path: '/login', guard: '' }, router);
 
-    expect(child.enter).toEqual([]);
+    expect(child.guard).toEqual([]);
   });
 
-  it('after="" opts out of router default', () => {
+  it('ready="" opts out of router default', () => {
     const router = document.createElement('aura-router');
-    router.setAttribute('after', 'analytics');
-    const child = route({ path: '/quiet', after: '' }, router);
+    router.setAttribute('ready', 'analytics');
+    const child = route({ path: '/quiet', ready: '' }, router);
 
-    expect(child.afterHook).toEqual([]);
+    expect(child.ready).toEqual([]);
   });
 
-  it('child overrides inherited enter', () => {
+  it('child overrides inherited guard', () => {
     const router = document.createElement('aura-router');
-    router.setAttribute('enter', 'auth');
-    const child = route({ path: '/admin', enter: 'admin-only' }, router);
+    router.setAttribute('guard', 'auth');
+    const child = route({ path: '/admin', guard: 'admin-only' }, router);
 
-    expect(child.enter).toEqual(['admin-only']);
+    expect(child.guard).toEqual(['admin-only']);
   });
 
   it('nested route inherits from parent route when router has no attr', () => {
     const router = document.createElement('aura-router');
-    const parent = route({ path: '/users', enter: 'admin' }, router);
+    const parent = route({ path: '/users', guard: 'admin' }, router);
     const child = route({ path: ':id' }, parent);
 
-    expect(child.enter).toEqual(['admin']);
+    expect(child.guard).toEqual(['admin']);
   });
 
-  it('nested child overrides parent enter', () => {
+  it('nested child overrides parent guard', () => {
     const router = document.createElement('aura-router');
-    const parent = route({ path: '/users', enter: 'admin' }, router);
-    const child = route({ path: 'public', enter: '' }, parent);
+    const parent = route({ path: '/users', guard: 'admin' }, router);
+    const child = route({ path: 'public', guard: '' }, parent);
 
-    expect(child.enter).toEqual([]);
+    expect(child.guard).toEqual([]);
   });
 
   it('parent route wins over router for nested child', () => {
     const router = document.createElement('aura-router');
-    router.setAttribute('enter', 'auth');
-    const parent = route({ path: '/users', enter: 'admin' }, router);
+    router.setAttribute('guard', 'auth');
+    const parent = route({ path: '/users', guard: 'admin' }, router);
     const child = route({ path: ':id' }, parent);
 
-    expect(child.enter).toEqual(['admin']);
+    expect(child.guard).toEqual(['admin']);
   });
 
-  it('returns null when no enter on route or ancestors', () => {
+  it('returns null when no guard on route or ancestors', () => {
     const router = document.createElement('aura-router');
     const child = route({ path: '/open' }, router);
 
-    expect(child.enter).toBeNull();
-    expect(child.afterHook).toBeNull();
+    expect(child.guard).toBeNull();
+    expect(child.ready).toBeNull();
   });
 });

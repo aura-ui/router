@@ -43,6 +43,10 @@ export class NavigationTransactionPipeline {
       aborted: this.transaction.isAborted,
     });
 
+    if (viewCommit === 'ok') {
+      this.transaction.viewCommitTracker.markViewStaged();
+    }
+
     if (viewCommit === 'aborted' || !this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
@@ -51,9 +55,7 @@ export class NavigationTransactionPipeline {
       return this.failRender(route, viewCommit.error);
     }
 
-    this.transaction.viewCommitTracker.markViewStaged();
-    const result = await this.runAfterRender();
-    return result ?? { status: 'navigationSucceeded' };
+    return await this.runAfterRender() ?? { status: 'navigationSucceeded' };
   }
 
   /** Same URL + same leaf: reenter hooks only, then commit gate (no full pipeline). */
@@ -107,6 +109,10 @@ export class NavigationTransactionPipeline {
         routeData !== undefined ? { data: routeData } : undefined,
       );
 
+      if (viewCommit === 'ok') {
+        this.transaction.viewCommitTracker.markViewStaged();
+      }
+
       if (viewCommit === 'aborted' || !this.transaction.isActive()) {
         return { status: 'cancelled' };
       }
@@ -114,8 +120,6 @@ export class NavigationTransactionPipeline {
       if (isRenderError(viewCommit)) {
         return this.failRender(matchedRoute, viewCommit.error);
       }
-
-      this.transaction.viewCommitTracker.markViewStaged();
     }
 
     return null;
@@ -139,6 +143,10 @@ export class NavigationTransactionPipeline {
         this.runLifecyclePhase(PHASES.transitionOut),
         this.runLifecyclePhase(PHASES.transitionIn),
       ]);
+
+      if (!this.transaction.isActive()) {
+        return { status: 'cancelled' };
+      }
 
       return transitionOutOutcome ?? transitionInOutcome ?? null;
     }

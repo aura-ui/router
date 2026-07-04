@@ -11,11 +11,12 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { HistoryAction } from '../history/provider.types';
 import {
   type GuardResult,
-  type PhaseStepOutcome, type PhaseThrowPolicy,
-  resolveHookNames,
+  type PhaseThrowPolicy,
   type RoutePhase,
-  type RoutePhaseDefinition,
-} from '../lifecycle';
+} from '../lifecycle/types';
+import type { PhaseStepOutcome } from '../lifecycle/execution/phase-outcome';
+import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
+import type { RoutePhaseDefinition } from '../lifecycle/phase-registry';
 import { runPhaseHooks } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
 
@@ -42,6 +43,7 @@ type PhaseContextSource = {
   transactionId: number;
   transactionSignal: AbortSignal;
   data?: unknown;
+  error?: unknown;
 };
 
 /** Executes one {@link RoutePhaseDefinition} for a matched route within a transaction. */
@@ -153,7 +155,7 @@ export class NavigationTransactionPipelinePhase {
     route: MatchedRouteInfo,
     source: PhaseContextSource,
   ): RouteLifecycleContext {
-    const { data, from, action, router, transactionId, transactionSignal } = source;
+    const { data, error, from, action, router, transactionId, transactionSignal } = source;
     return {
       phase,
       to: this.toRouteInfo(route),
@@ -164,6 +166,7 @@ export class NavigationTransactionPipelinePhase {
       transactionId,
       transactionSignal,
       ...(data !== undefined && { data }),
+      ...(error !== undefined && { error }),
     };
   }
 

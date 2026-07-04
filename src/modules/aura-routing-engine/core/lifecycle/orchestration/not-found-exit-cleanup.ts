@@ -1,8 +1,8 @@
 import type { HistoryAction } from '../../history/provider.types';
 import type { MatchedRouteInfo } from '../../match/url-matcher';
+import { NavigationTransactionPipelinePhase } from '../../navigation/navigation-transaction-pipeline-phase';
 import type { RouterInstance } from '../../route/types';
 import { getLeafMatch } from '../../route-tree/matched-chain';
-import { createLifecycleContext } from '../context/lifecycle-context';
 import { PHASES } from '../phase-registry';
 
 export interface NotFoundExitInput {
@@ -24,14 +24,12 @@ export function runNotFoundExitCleanup(input: NotFoundExitInput): void {
   const leaf = getLeafMatch(input.from);
   PHASES.left.runRouteLifecycle(
     leaf.route,
-    createLifecycleContext(PHASES.left.phase, leaf, {
+    NavigationTransactionPipelinePhase.buildPhaseContext(PHASES.left.phase, leaf, {
       from: null,
       action: input.action,
       router: input.router,
-      navigationJob: {
-        id: 0,
-        signal: new AbortController().signal,
-      },
+      transactionId: 0,
+      transactionSignal: new AbortController().signal,
     }),
   );
 }

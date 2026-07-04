@@ -5,7 +5,6 @@ import { createTestRoute } from '../helpers/create-test-route';
 
 function createLogger(): jest.Mocked<LifecycleLogger> {
   return {
-    phaseFailedAfterCommit: jest.fn(),
     postCommitHookFailed: jest.fn(),
     postCommitCancelIgnored: jest.fn(),
     postCommitRedirectIgnored: jest.fn(),

@@ -3,7 +3,6 @@
 import type { RoutePhase } from '../types';
 
 export interface LifecycleLogger {
-  phaseFailedAfterCommit(phase: RoutePhase, error: unknown): void;
   postCommitHookFailed(phase: RoutePhase, error: unknown): void;
   postCommitCancelIgnored(phase: RoutePhase): void;
   postCommitRedirectIgnored(phase: RoutePhase, url: string): void;
@@ -11,10 +10,6 @@ export interface LifecycleLogger {
 
 /** Single console boundary for lifecycle diagnostics. */
 export class ConsoleLifecycleLogger implements LifecycleLogger {
-  phaseFailedAfterCommit(phase: RoutePhase, error: unknown): void {
-    console.error(`[${phase}] failed after commit:`, error);
-  }
-
   postCommitHookFailed(phase: RoutePhase, error: unknown): void {
     console.error(`[${phase}] hook failed after view commit:`, error);
   }

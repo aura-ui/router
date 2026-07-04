@@ -1,37 +1,30 @@
 # Lifecycle Layer
 
-`lifecycle/` owns route lifecycle metadata, context creation, hook binding, phase
-execution, and lifecycle-specific orchestration.
+`lifecycle/` owns route lifecycle metadata, context creation, hook binding, hook
+policy execution, and error-phase orchestration.
 
 Import from `core/lifecycle` (barrel) — not deep paths — unless you are editing
 a file inside this folder.
 
 ## Structure
 
-- `phase-registry.ts` defines `PHASES`, the source of truth for phase policy,
-  branch selection, route callbacks, and route/html hook bindings.
-- `bindings/` parses route hook attributes and resolves hook names for a route
-  phase.
-- `context/` exposes pure helpers for `RouteLifecycleContext` and `RouteInfo`
-  creation from the current navigation and a minimal cancellable job slice.
-- `execution/` runs one route/phase pair: atomic phase step, hook policy, and
-  phase outcome mapping.
-- `logging/` is the single console boundary for lifecycle diagnostics.
-- `orchestration/` runs phases across transition-plan branches and handles the
-  terminal `error` phase. It also owns pre-match `NOT_FOUND` exit cleanup via
-  `runNotFoundExitCleanup`, a callback-only legacy path that still shares lifecycle
-  context construction. `lifecycle-runtime-adapter.ts` bridges processor context
-  into lifecycle runtime context.
+- `phase-registry.ts` — `PHASES`, the source of truth for phase policy, branch
+  selection, route callbacks, and route/html hook bindings.
+- `bindings/` — resolves registered hook names from route attrs.
+- `context/` — `RouteLifecycleContext` builders and runtime context slicing.
+- `execution/` — hook policy (`HookPolicyExecutor`) and outcome mapping
+  (`guardResultToPhaseOutcome`).
+- `logging/` — console boundary for post-commit hook diagnostics.
+- `orchestration/` — `ErrorPhaseHandler`, `runNotFoundExitCleanup`, runtime types.
 
-`types.ts` re-exports `GuardResult` and `RedirectTarget` from `guard.types.ts`
-(the shared blocking-hook contract between hooks and lifecycle execution).
+`types.ts` re-exports `GuardResult` and `RedirectTarget` from `guard.types.ts`.
 
-`ProcessorPipeline` still owns navigation order, rendering, transitions, and the
-commit gate. It delegates lifecycle phase execution to `LifecycleRunner` via
-`createLifecycleRuntimeContext()`.
+`NavigationTransactionPipeline` owns navigation order, rendering, transitions, and
+the commit gate. It runs route callbacks and delegates registered hooks to
+`HookPolicyExecutor` via `NavigationTransactionPipelinePhase`.
 
 ## Phase order vs phase metadata
 
 `PHASES` describes *what* each phase does (branch, hook policy, callbacks).
-`ProcessorPipeline` describes *when* phases run (guards → loads → render →
-after, plus transition ordering). That split is intentional.
+`NavigationTransactionPipeline` describes *when* phases run (guards → loads →
+render → after, plus transition ordering).

@@ -11,8 +11,8 @@ import {
   type LifecycleContextInput,
 } from '../lifecycle/context/lifecycle-context';
 import { ErrorPhaseHandler } from '../lifecycle/orchestration/error-phase-handler';
-import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runner.types';
-import { toLifecycleContextInput } from '../lifecycle/orchestration/lifecycle-runtime-adapter';
+import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
+import { toLifecycleContextInput } from '../lifecycle/context/lifecycle-context';
 import type { RouteLifecycleContext } from '../route/types';
 import type { TransactionResult } from '../navigation/transaction-result';
 import { buildRouteDataKey, routeHasLoadHooks, routeLoadHookNames } from './route-data';

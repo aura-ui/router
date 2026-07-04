@@ -1,6 +1,7 @@
 import type { HistoryAction } from '../../history/provider.types';
 import type { MatchedRouteInfo } from '../../match/url-matcher';
 import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../../route/types';
+import type { LifecycleRuntimeContext } from '../orchestration/lifecycle-runtime.types';
 import type { RoutePhase } from '../types';
 
 /** Minimal cancellable job slice required by lifecycle callbacks and hooks. */
@@ -16,6 +17,18 @@ export interface LifecycleContextInput {
   router: RouterInstance;
   navigationJob: LifecycleJobSlice;
   data?: unknown;
+}
+
+/** Maps lifecycle runtime context to the slice required by route callbacks. */
+export function toLifecycleContextInput(
+  context: LifecycleRuntimeContext,
+): LifecycleContextInput {
+  return {
+    from: context.transaction.from,
+    action: context.transaction.action,
+    router: context.router,
+    navigationJob: context.navigationJob,
+  };
 }
 
 /** {@link RouteInfo} slice for hook ctx (`to` / `from`). */

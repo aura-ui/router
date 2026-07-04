@@ -1,10 +1,9 @@
 import type { GuardResult } from '../types';
-import type { NavigationErrorResult, TransactionFullResult } from '../../navigation/transaction-result';
+import type { TransactionFullResult } from '../../navigation/transaction-result';
 
 export type PhaseStepOutcome =
   | { status: 'cancelled' }
   | { status: 'redirect'; url: string; replace?: boolean }
-  | NavigationErrorResult
   | null;
 
 /** Maps blocking hook result to terminal outcome. */
@@ -27,17 +26,3 @@ export function guardResultToPhaseOutcome(hookResult: GuardResult): PhaseStepOut
 }
 
 export type PipelineStepOutcome = TransactionFullResult;
-
-/**
- * Lifecycle step → processor terminal result.
- * Errors must be {@link NavigationErrorResult} from `failWithError` — unstructured `{ status: 'error' }` throws.
- */
-export function phaseStepToPipelineOutcome(outcome: PhaseStepOutcome): PipelineStepOutcome {
-  if (outcome?.status === 'error' && !('failure' in outcome)) {
-    throw new Error(
-      'Lifecycle phase error must be NavigationErrorResult — return ErrorPhaseHandler output in failWithError',
-    );
-  }
-
-  return outcome;
-}

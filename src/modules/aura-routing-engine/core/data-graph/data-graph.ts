@@ -179,8 +179,8 @@ export class DataGraph {
       from: runtime.transaction.from,
       action: runtime.transaction.action,
       router: runtime.router,
-      jobId: runtime.transactionId,
-      signal: runtime.transactionSignal,
+      transactionId: runtime.transactionId,
+      transactionSignal: runtime.transactionSignal,
     });
     const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
 
@@ -210,8 +210,8 @@ export class DataGraph {
       from: null,
       action: 'push',
       router: { navigate: () => {} },
-      jobId: 0,
-      signal: abort,
+      transactionId: 0,
+      transactionSignal: abort,
     });
 
     try {

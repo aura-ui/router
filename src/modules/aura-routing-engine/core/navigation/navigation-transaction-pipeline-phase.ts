@@ -39,8 +39,8 @@ type PhaseContextSource = {
   from: MatchedRouteInfo | null;
   action: HistoryAction;
   router: RouterInstance;
-  jobId: number;
-  signal: AbortSignal;
+  transactionId: number;
+  transactionSignal: AbortSignal;
   data?: unknown;
 };
 
@@ -105,8 +105,8 @@ export class NavigationTransactionPipelinePhase {
       from,
       action,
       router: engine.router,
-      jobId: transactionId,
-      signal,
+      transactionId,
+      transactionSignal: signal,
       data: transaction.dataSnapshot
         ? resolveRouteData(transaction.dataSnapshot, route)
         : undefined,
@@ -153,7 +153,7 @@ export class NavigationTransactionPipelinePhase {
     route: MatchedRouteInfo,
     source: PhaseContextSource,
   ): RouteLifecycleContext {
-    const { data, from, action, router, jobId, signal } = source;
+    const { data, from, action, router, transactionId, transactionSignal } = source;
     return {
       phase,
       to: this.toRouteInfo(route),
@@ -161,8 +161,8 @@ export class NavigationTransactionPipelinePhase {
       router,
       route: route.route,
       action,
-      jobId,
-      signal,
+      transactionId,
+      transactionSignal,
       ...(data !== undefined && { data }),
     };
   }

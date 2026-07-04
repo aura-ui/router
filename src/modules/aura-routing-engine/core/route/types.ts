@@ -31,7 +31,8 @@ export type RouteHookNamesSource = Record<RouteHookAttrProp, string[] | null>;
 /**
  * Context for route lifecycle callbacks and registered hooks.
  *
- * `signal` aborts when the navigation job is superseded — long async hooks should check it.
+ * `transactionSignal` aborts when the navigation transaction is superseded —
+ * long async hooks should check it.
  */
 export interface RouteLifecycleContext {
   phase: RoutePhase;
@@ -40,8 +41,8 @@ export interface RouteLifecycleContext {
   router: RouterInstance;
   route: RouteInstance;
   action: HistoryAction;
-  jobId: number;
-  signal: AbortSignal;
+  transactionId: number;
+  transactionSignal: AbortSignal;
   /** Load-hook payload from DataGraph when available for this route/phase. */
   data?: unknown;
   error?: unknown;

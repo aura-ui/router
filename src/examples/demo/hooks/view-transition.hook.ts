@@ -90,7 +90,7 @@ function createViewTransitionHook(name: TransitionKind) {
     version: '1.0.0',
     fn: async (ctx) => {
       if (ctx.phase !== 'transitionIn' && ctx.phase !== 'transitionOut') return;
-      if (ctx.signal.aborted) return;
+      if (ctx.transactionSignal.aborted) return;
 
       const root = resolveViewRoot(ctx);
       if (!root) {
@@ -108,7 +108,7 @@ function createViewTransitionHook(name: TransitionKind) {
         fill: 'forwards',
       });
 
-      await waitForAnimation(animation, ctx.signal);
+      await waitForAnimation(animation, ctx.transactionSignal);
     },
   });
 }

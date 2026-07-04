@@ -48,8 +48,8 @@ describe('runNotFoundExitCleanup', () => {
         route: leaf.route,
         action: 'replace',
         router,
-        jobId: 0,
-        signal: expect.any(AbortSignal),
+        transactionId: 0,
+        transactionSignal: expect.any(AbortSignal),
       }),
     );
   });

@@ -116,3 +116,20 @@ export function dispatchNavigationHookError(
 
   console.error('[error] hook failed:', detail.error);
 }
+
+/** CustomEvent name: `data-invalidated` */
+export const AURA_ROUTER_DATA_INVALIDATED = 'data-invalidated';
+
+export interface AuraRouterDataInvalidatedEventDetail {
+  count: number;
+  router: HTMLElement;
+}
+
+export type AuraRouterDataInvalidatedEvent = CustomEvent<AuraRouterDataInvalidatedEventDetail>;
+
+/** Dispatches `data-invalidated` after {@link AuraRouter.invalidate}. */
+export function dispatchDataInvalidated(router: HTMLElement, count: number): void {
+  dispatchCustomEvent(router, AURA_ROUTER_DATA_INVALIDATED, {
+    detail: { count, router },
+  });
+}

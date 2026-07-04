@@ -4,7 +4,6 @@ import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRoute, RouteViewCache } from '../../aura-route/core';
 import {
   AuraRoutingEngine,
-  AuraRoutingProcessor,
   DataCache,
   ContentLoadService,
   defaultLoaderRegistry,
@@ -19,6 +18,7 @@ import {
   type NavigateHistoryOptions,
   type PrefetchOptions,
   type RouteHookDefinition,
+  type RouterDataInvalidateOptions,
   type RouterInstance,
   type ScrollPolicy,
 } from '../../aura-routing-engine/core';
@@ -31,6 +31,10 @@ import {
   dispatchNavigationError,
   dispatchNavigationHookError,
   dispatchNotFound,
+  dispatchDataInvalidated,
+  AURA_ROUTER_DATA_INVALIDATED,
+  type AuraRouterDataInvalidatedEvent,
+  type AuraRouterDataInvalidatedEventDetail,
   type NotFoundHandler,
 } from './navigation-events';
 import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetchAtrrParser';
@@ -55,6 +59,12 @@ export {
   AURA_ROUTER_NAVIGATION_HOOK_ERROR,
   type AuraRouterNavigationHookErrorEventDetail,
   type AuraRouterNavigationHookErrorEvent,
+} from './navigation-events';
+
+export {
+  AURA_ROUTER_DATA_INVALIDATED,
+  type AuraRouterDataInvalidatedEventDetail,
+  type AuraRouterDataInvalidatedEvent,
 } from './navigation-events';
 
 export interface AuraRouterConfigureOptions {
@@ -148,7 +158,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   get appOutlet(): AuraOutlet {
     return this.querySelector(AuraOutlet.is) as AuraOutlet;
-     // ?? this.#ensureDefaultOutlet();
+    // ?? this.#ensureDefaultOutlet();
   }
 
   connectedCallback(): void {
@@ -192,11 +202,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           dispatchNavigationHookError(this, detail);
         },
       };
-      this.engine = new AuraRoutingEngine(
-        new AuraRoutingProcessor(defaultHookRegistry),
-        this,
-        config,
-      );
+      this.engine = new AuraRoutingEngine(this, config);
       this.engine.setNotFoundHandler((url) => {
         this.notFound.recover(url);
       });
@@ -223,5 +229,15 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /** @deprecated Use {@link prefetch}. */
   preload(href: string, options?: PrefetchOptions): Promise<void> {
     return this.prefetch(href, options);
+  }
+
+  /**
+   * Marks load-hook cache entries stale or removes them (see {@link RouterDataInvalidateOptions.policy}).
+   * Dispatches `data-invalidated` with the number of affected entries (`-1` = full invalidate, empty cache).
+   */
+  invalidate(options?: RouterDataInvalidateOptions): number {
+    const count = this.ensureEngine().invalidateData(options);
+    dispatchDataInvalidated(this, count);
+    return count;
   }
 }

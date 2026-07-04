@@ -1,6 +1,5 @@
 import {
   AuraRoutingEngine,
-  AuraRoutingProcessor,
   DataCache,
   ContentLoadService,
   LoaderRegistry,
@@ -24,7 +23,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
 
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { contentLoad });
+    const engine = new AuraRoutingEngine(router, { contentLoad });
     engine.replaceRoutes(collectRoutesFromDom(createDomRoute('/'), about) as never);
 
     await engine.prefetch('/about');
@@ -45,7 +44,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');
 
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+    const engine = new AuraRoutingEngine(router, {
       contentLoad,
       prefetch: false,
     });

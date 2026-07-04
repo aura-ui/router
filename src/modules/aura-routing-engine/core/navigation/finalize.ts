@@ -12,10 +12,9 @@ import {
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
-import type { NavigationCommittedContext } from './commit-gate';
 import type { TransactionResult } from './transaction-result';
 
-/** Applies {@link resolveHistoryPolicy} for a processor or failure transaction result. */
+/** Applies {@link resolveHistoryPolicy} for a terminal transaction result. */
 export function applyTransactionHistory(
   result: TransactionResult,
   action: HistoryAction,
@@ -35,61 +34,9 @@ export function applyTransactionHistory(
   );
 }
 
-export interface FinalizeNavigationContext {
-  action: HistoryAction;
-  href: string;
-  options: NavigateHistoryOptions;
-  from: MatchedRouteInfo | null;
-  to: MatchedRouteInfo;
-  hash: string;
-}
-
-export interface FinalizeNavigationCallbacks {
-  failureDeps: CompleteFailureDeps;
-  onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
-  onRedirect: (url: string, replace: boolean) => void;
-  scrollToHash?: (hash: string) => void;
-}
-
 /** `prev` update for the engine after terminal navigation handling. */
 export interface FinalizeNavigationEffects {
   setPrev?: MatchedRouteInfo | null;
-}
-
-/**
- * Terminal processor outcome: history policy, failure callbacks, redirect, and `prev` hint.
- *
- * Every terminal status uses {@link applyTransactionHistory} except `redirect`.
- */
-export function finalizeProcessorNavigation(
-  result: TransactionResult,
-  ctx: FinalizeNavigationContext,
-  provider: HistoryProviderLike,
-  callbacks: FinalizeNavigationCallbacks,
-): FinalizeNavigationEffects {
-  const fromHref = ctx.from?.href ?? null;
-
-  switch (result.status) {
-    case 'navigationSucceeded':
-      // DOM, history, and `prev` were committed at the processor commit gate.
-      return {};
-
-    case 'cancelled':
-      applyTransactionHistory(result, ctx.action, ctx.href, fromHref, ctx.options, provider);
-      return {};
-
-    case 'error': {
-      const failureOutcome = finalizeFailure(result.failure, callbacks.failureDeps);
-      applyTransactionHistory(result, ctx.action, ctx.href, fromHref, ctx.options, provider);
-      return failureOutcome.setPrev !== undefined ? { setPrev: failureOutcome.setPrev } : {};
-    }
-
-    case 'redirect': {
-      const replace = result.replace ?? ctx.action === 'pop';
-      callbacks.onRedirect(result.url, replace);
-      return {};
-    }
-  }
 }
 
 /** Pre-match NOT_FOUND: failure callbacks then history policy. */

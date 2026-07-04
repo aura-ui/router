@@ -2,7 +2,7 @@ import { DataGraph } from '../../core/data-graph';
 import { NO_PRESERVE } from '../../core/content/model/preserve';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { AuraRoutingProcessorJob } from '../../core/processor/cancellation/job';
+import { createMockNavigationJob } from '../helpers/mock-navigation-job';
 import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
 import { createTestRoute } from '../helpers/create-test-route';
 
@@ -18,7 +18,7 @@ function matchedRoute(path: string, load: string[] | null = ['data']): MatchedRo
 }
 
 function runtime(hookRegistry: HookRegistry, route: MatchedRouteInfo) {
-  const navigationJob = new AuraRoutingProcessorJob(1);
+  const navigationJob = createMockNavigationJob(1);
   return {
     transaction: {
       from: null,

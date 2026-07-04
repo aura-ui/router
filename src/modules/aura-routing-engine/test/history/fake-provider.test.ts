@@ -1,6 +1,5 @@
 import {
   AuraRoutingEngine,
-  AuraRoutingProcessor,
   FakeHistoryProvider,
 } from '../../core';
 import type { RouterInstance } from '../../core';
@@ -65,7 +64,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
   it('после успешного push обновляет URL в provider', async () => {
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
 
     engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
     provider.start();
@@ -79,7 +78,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
   it('clickLink проходит через engine и commit-ит URL', async () => {
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, { provider });
+    const engine = new AuraRoutingEngine(router, { provider });
 
     engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
     provider.start();
@@ -101,13 +100,14 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     const onNavigationError = jest.fn();
 
     const provider = new FakeHistoryProvider('/a');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+    const engine = new AuraRoutingEngine(router, {
       provider,
       onNavigationError,
     });
 
     engine.registerRoutes([fromRoute, toRoute]);
     provider.start();
+    engine.start();
 
     await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });
     await engine.navigateTo('/d', 'push', { replace: false, syncHistory: true });
@@ -131,7 +131,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     const onNavigationError = jest.fn();
 
     const provider = new FakeHistoryProvider('/a');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+    const engine = new AuraRoutingEngine(router, {
       provider,
       onNavigationError,
     });
@@ -148,6 +148,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
     engine.registerRoutes([fromRoute, toRoute]);
     provider.start();
+    engine.start();
 
     try {
       await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });

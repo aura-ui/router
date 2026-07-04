@@ -2,7 +2,6 @@
 
 import {
   AuraRoutingEngine,
-  AuraRoutingProcessor,
   dataCacheKey,
   DataCache,
   ContentLoadService,
@@ -56,7 +55,7 @@ describe('content load flow (view → engine)', () => {
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html-src::about.html');
 
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), routerNav, { contentLoad });
+    const engine = new AuraRoutingEngine(routerNav, { contentLoad });
     engine.replaceRoutes(collectRoutesFromDom(about) as never);
     await engine.prefetch('/about');
 

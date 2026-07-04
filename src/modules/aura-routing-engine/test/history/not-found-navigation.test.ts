@@ -1,6 +1,5 @@
 import {
   AuraRoutingEngine,
-  AuraRoutingProcessor,
   FakeHistoryProvider,
 } from '../../core';
 import type { RouterInstance } from '../../core';
@@ -15,7 +14,7 @@ describe('AuraRoutingEngine NOT_FOUND', () => {
     const recover = jest.fn();
 
     const provider = new FakeHistoryProvider('/home');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+    const engine = new AuraRoutingEngine(router, {
       provider,
       onNotFound,
     });
@@ -42,7 +41,7 @@ describe('AuraRoutingEngine NOT_FOUND', () => {
     const onNotFound = jest.fn().mockReturnValue(false);
 
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(new AuraRoutingProcessor(), router, {
+    const engine = new AuraRoutingEngine(router, {
       provider,
       onNotFound,
     });

@@ -70,6 +70,18 @@ export class PrefetchPipeline {
     this.handleIntent({ type: 'cancel', href, source: 'api' });
   }
 
+  /** Clears prefetch freshness records so the next prefetch can run again. */
+  resetPrefetchRecords(path?: string): void {
+    if (!path) {
+      this.store.clearRecords();
+      return;
+    }
+
+    this.store.clearRecordsMatching(
+      (href) => href === path || href.startsWith(`${path}/`) || href.startsWith(`${path}?`) || href.startsWith(`${path}#`),
+    );
+  }
+
   async prefetch(href: string, options: PrefetchOptions = {}): Promise<void> {
     const mode = options.mode ?? 'manual';
     const normalized = this.resolveRunnableHref(href, mode, {

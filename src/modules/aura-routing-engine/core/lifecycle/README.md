@@ -1,7 +1,7 @@
 # Lifecycle Layer
 
-`lifecycle/` owns route lifecycle metadata, context creation, hook binding, hook
-policy execution, and NOT_FOUND exit cleanup.
+`lifecycle/` owns route lifecycle metadata, context creation, hook binding, and
+NOT_FOUND exit cleanup.
 
 Import from `core/lifecycle` (barrel) — not deep paths — unless you are editing
 a file inside this folder.
@@ -11,10 +11,6 @@ a file inside this folder.
 - `phase-registry.ts` — `PHASES`, the source of truth for phase policy, branch
   selection, route callbacks, and route/html hook bindings.
 - `bindings/` — resolves registered hook names from route attrs.
-- `context/` — `RouteLifecycleContext` builders and runtime context slicing.
-- `execution/` — hook policy (`HookPolicyExecutor`) and outcome mapping
-  (`guardResultToPhaseOutcome`).
-- `logging/` — console boundary for post-commit hook diagnostics.
 - `orchestration/` — `runNotFoundExitCleanup`, runtime types.
 
 `types.ts` re-exports `GuardResult` and `RedirectTarget` from `guard.types.ts`.

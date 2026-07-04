@@ -11,11 +11,12 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { HistoryAction } from '../history/provider.types';
 import {
   type GuardResult,
+  type LifecyclePhase,
   type PhaseThrowPolicy,
   type RoutePhase,
 } from '../lifecycle/types';
 import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
-import { PHASES, type RoutePhaseDefinition } from '../lifecycle/phase-registry';
+import { PHASES, type PipelinePhaseDefinition } from '../lifecycle/phase-registry';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { NavigationError } from '../failure';
@@ -33,7 +34,7 @@ export type PhaseError = {
   kind: 'error';
   error: unknown;
   route: MatchedRouteInfo;
-  failedPhase: RoutePhase;
+  failedPhase: LifecyclePhase;
 };
 
 /**
@@ -63,7 +64,7 @@ export class NavigationTransactionPipelinePhase {
    */
   static async run(
     route: MatchedRouteInfo,
-    phaseDef: RoutePhaseDefinition,
+    phaseDef: PipelinePhaseDefinition,
     transaction: NavigationTransaction,
   ): Promise<PhaseRunResult> {
     const isBlocking = phaseDef.hookPolicy.kind === 'blocking';
@@ -96,8 +97,9 @@ export class NavigationTransactionPipelinePhase {
       }
     }
 
+    const hookPolicy = phaseDef.hookPolicy;
     const onHookError =
-      phaseDef.hookPolicy.onError === 'log'
+      hookPolicy.kind === 'postCommit' && hookPolicy.onError === 'log'
         ? (error: unknown) => console.error(`[${phase}] post-commit hook threw (logged, continuing):`, error)
         : (error: unknown) => {
             throw error;
@@ -269,7 +271,7 @@ export class NavigationTransactionPipelinePhase {
   /** Applies {@link PhaseThrowPolicy} when a lifecycle callback or hook throws. */
   private static applyErrorPolicy(
     errorPolicy: PhaseThrowPolicy,
-    phase: RoutePhase,
+    phase: LifecyclePhase,
     error: unknown,
     route: MatchedRouteInfo,
   ): PhaseRunResult {

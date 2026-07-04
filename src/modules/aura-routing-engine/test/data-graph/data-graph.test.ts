@@ -216,7 +216,7 @@ describe('DataGraph', () => {
       version: '1.0.0',
       fn: async (ctx) => {
         await new Promise((r) => setTimeout(r, 50));
-        if (ctx.signal.aborted) return null;
+        if (ctx.transactionSignal.aborted) return null;
         siblingLoads++;
         return { ok: true };
       },

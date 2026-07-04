@@ -54,8 +54,8 @@ export function createLifecycleContext(
     router: input.router,
     route: matchedRoute.route,
     action: input.action,
-    jobId: input.navigationJob.id,
-    signal: input.navigationJob.signal,
+    transactionId: input.navigationJob.id,
+    transactionSignal: input.navigationJob.signal,
     ...(input.data !== undefined && { data: input.data }),
     ...(error !== undefined && { error }),
   };

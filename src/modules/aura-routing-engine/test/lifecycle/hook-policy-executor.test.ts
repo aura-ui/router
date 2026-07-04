@@ -20,8 +20,8 @@ function createLifecycleContext(): RouteLifecycleContext {
     router: { navigate: jest.fn() },
     route,
     action: 'push',
-    jobId: 1,
-    signal: new AbortController().signal,
+    transactionId: 1,
+    transactionSignal: new AbortController().signal,
   };
 }
 

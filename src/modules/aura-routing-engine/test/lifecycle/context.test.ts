@@ -48,8 +48,8 @@ describe('lifecycle context', () => {
       to: { pathname: '/to', params: { id: '1' }, query: { a: '1' } },
       route: toRoute,
       action: 'replace',
-      jobId: 7,
-      signal: job.signal,
+      transactionId: 7,
+      transactionSignal: job.signal,
       router,
     });
   });

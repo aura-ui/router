@@ -9,7 +9,6 @@ import {
   defaultLoaderRegistry,
   defaultHookRegistry,
   isCatchAllRoute,
-  parseScrollPolicy,
   resolvePrefetchEngineConfig,
   type AuraRoutingEngineConfig,
   type HistoryAction,
@@ -20,7 +19,6 @@ import {
   type RouteHookDefinition,
   type RouterDataInvalidateOptions,
   type RouterInstance,
-  type ScrollPolicy,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
 
@@ -37,7 +35,8 @@ import {
   type AuraRouterDataInvalidatedEventDetail,
   type NotFoundHandler,
 } from './navigation-events';
-import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetchAtrrParser';
+import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
+import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -88,7 +87,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
   /** Default scroll policy for child routes (`restore` | `top` | `manual`). HTML attr: `scroll`. */
-  @attr({ parser: parseScrollPolicy, cached: true, name: 'scroll' }) scrollPolicy: ScrollPolicy | null;
+  @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   /**
    * Default prefetch for `[data-router-link]` (`intent` | `tap` | `false`).
    * Per-link override: `data-prefetch` on `<a>`.

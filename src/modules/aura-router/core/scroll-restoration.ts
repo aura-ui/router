@@ -1,8 +1,4 @@
-import type {
-  MatchedRouteInfo,
-  NavigationCommittedContext,
-} from '../../aura-routing-engine/core';
-import { resolveRouteScrollPolicy } from '../../aura-routing-engine/core';
+import type { MatchedRouteInfo, NavigationCommittedContext } from '../../aura-routing-engine/core';
 
 export type ScrollContainer = Pick<Window, 'scrollY' | 'scrollTo'>;
 
@@ -25,14 +21,14 @@ export class ScrollRestoration {
   }
 
   private saveLeavingRoute(from: MatchedRouteInfo | null): void {
-    if (!from || resolveRouteScrollPolicy(from.route) !== 'restore') return;
+    if (!from || from.route.scrollPolicy !== 'restore') return;
     this.positions.set(this.navigationKey(from), this.container.scrollY);
   }
 
   private applyTargetPolicy(ctx: NavigationCommittedContext): void {
     if (ctx.hash) return;
 
-    const policy = resolveRouteScrollPolicy(ctx.to.route);
+    const policy = ctx.to.route.scrollPolicy;
     if (policy === 'manual') return;
 
     if (policy === 'restore' && ctx.action === 'pop') {

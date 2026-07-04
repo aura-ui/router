@@ -1,4 +1,4 @@
-import { parsePrefetchAttr } from '../../../aura-route/core/attr/prefetchAtrrParser';
+import { parsePrefetchAttr } from '../../../aura-route/core/attr/prefetch-attr-parser';
 import {
   DEFAULT_ROUTER_PREFETCH_MODE,
   readLinkPrefetchOverride,

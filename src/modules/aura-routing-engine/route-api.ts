@@ -9,19 +9,15 @@
 export { NO_PRESERVE, parsePreserveAttr } from './core/content';
 export { resolveHookNames } from './core/lifecycle/bindings/route-hook-bindings';
 export {
-  DEFAULT_SCROLL_POLICY,
-  parseScrollPolicy,
-  resolveRouteScrollPolicy,
-  resolveScrollPolicy,
-  type ScrollPolicy,
-  type ScrollPolicySource,
-} from './core/navigation/scroll-policy';
+  parseScrollAttr,
+  type ScrollAttr,
+} from '../aura-route/core/attr/scroll-attr-parser';
 export {
   DEFAULT_ROUTER_PREFETCH_MODE,
   LINK_PREFETCH_MODES,
   parsePrefetchAttr,
   type PrefetchType,
-} from '../aura-route/core/attr/prefetchAtrrParser';
+} from '../aura-route/core/attr/prefetch-attr-parser';
 export {
   type RouterPrefetchPolicy,
 } from './core/prefetch/prefetch-policy';

@@ -251,7 +251,7 @@ function goHome(): void {
 
 function restartRouter(nextPolicy: string): void {
   if (!router?.parentNode) return;
-  router.setAttribute('data-transition', nextPolicy);
+  router.setAttribute('transition-order', nextPolicy);
   syncTransitionPolicyUi(nextPolicy);
   const parent = router.parentNode;
   const anchor = router.nextSibling;
@@ -369,7 +369,7 @@ document.addEventListener('click', (event) => {
   }
 });
 
-syncTransitionPolicyUi(router?.getAttribute('data-transition') ?? 'parallel');
+syncTransitionPolicyUi(router?.getAttribute('transition-order') ?? 'parallel');
 syncAuthUi();
 updateChrome();
 

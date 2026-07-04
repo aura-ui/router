@@ -1,5 +1,10 @@
 import { createTestRoute } from '../helpers/create-test-route';
-import { buildTransitionPlan, getEnterRoute } from '../../core/route-tree/transition-plan';
+import {
+  buildTransitionPlan,
+  getEnterRoute,
+  isSameNavigationTarget,
+  isSameRouteLeaf,
+} from '../../core/route-tree/transition-plan';
 import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
@@ -130,6 +135,40 @@ describe('buildTransitionPlan', () => {
     expect(plan.exitRoutes).toEqual([]);
     expect(plan.enterRoutes).toHaveLength(1);
     expect(routeMatchKey(plan.enterRoutes[0]!)).toBe('/settings/profile');
+  });
+
+  it('reenter shortcut when pathname matches same leaf and search changes', () => {
+    const from = chainFromPaths(['/settings', '/settings/profile'])[1]!;
+    const to = {
+      ...from,
+      href: '/settings/profile?tab=2',
+      search: '?tab=2',
+      query: { tab: '2' },
+    };
+
+    const plan = buildTransitionPlan(from, to);
+
+    expect(plan.reenter).toBe(true);
+    expect(isSameRouteLeaf(from, to)).toBe(true);
+    expect(isSameNavigationTarget(from, to)).toBe(false);
+  });
+});
+
+describe('isSameRouteLeaf / isSameNavigationTarget', () => {
+  it('distinguishes query change from exact same URL', () => {
+    const from = chainFromPaths(['/users'])[0]!;
+    const toSame = { ...from };
+    const toQuery = {
+      ...from,
+      href: '/users?page=2',
+      search: '?page=2',
+      query: { page: '2' },
+    };
+
+    expect(isSameRouteLeaf(from, toQuery)).toBe(true);
+    expect(isSameNavigationTarget(from, toQuery)).toBe(false);
+    expect(isSameRouteLeaf(from, toSame)).toBe(true);
+    expect(isSameNavigationTarget(from, toSame)).toBe(true);
   });
 });
 

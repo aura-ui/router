@@ -83,7 +83,7 @@ router.addEventListener('navigation-hook-error', (event) => {
 
 Catch-all маршрут матчит любой pathname, но **проигрывает** конкретным маршрутам (`/users` важнее `*`).
 
-Переход идёт через обычный lifecycle: guards → load → render → commit URL. Контент рендерит `AuraRoute` (template, html, component-src и т.д.).
+Переход идёт через обычный lifecycle: `leave`/`guard` → load → render → commit URL. Контент рендерит `AuraRoute` (template, html, component-src и т.д.).
 
 После успешного commit:
 
@@ -100,7 +100,7 @@ Catch-all маршрут матчит любой pathname, но **проигры
 
 Если ни один маршрут не подошёл и catch-all не зарегистрирован, engine создаёт structured `NOT_FOUND` failure:
 
-1. У предыдущего маршрута вызывается `onLeft`.
+1. У предыдущего маршрута вызывается `onUnmount` (фаза `unmount`).
 2. Диспатчится cancelable `not-found` (`source: 'fallback'`).
 3. При отсутствии `preventDefault()` — fallback UI (`recover()`).
 4. URL коммитится в history (для push/replace), чтобы адресная строка отражала несуществующий путь.
@@ -138,7 +138,7 @@ router.addEventListener('not-found', (event: AuraRouterNotFoundEvent) => {
 
 | | `path="*"` | Fallback |
 |---|------------|----------|
-| Route lifecycle | ✅ | ❌ (только `onLeft` у предыдущего) |
+| Route lifecycle | ✅ | ❌ (только `onUnmount` у предыдущего) |
 | Контент | через `AuraRoute` | handler / template / текст |
 | `source` в событии | `'route'` | `'fallback'` |
 

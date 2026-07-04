@@ -196,7 +196,7 @@ AuraRouter.use(authHook);
 | `load` | Fetch data before render | yes |
 | `ready` | After view is committed (analytics, focus) | no |
 | `unmount` | Exit cleanup after commit | no |
-| `reenter` | Same URL re-navigate (shortcut) | no |
+| `reenter` | Same route leaf; query may change (shortcut) | no |
 | `error` | Navigation or render failure | terminal |
 
 With `preserve` on the route, optional teardown hooks: `detach`, `destroy` (on leave) and `restore` (reattach from view cache on enter).
@@ -231,7 +231,7 @@ With `preserve` on the route, optional teardown hooks: `detach`, `destroy` (on l
 </aura-router>
 ```
 
-> Deep dive: [docs/HOOKS.md](./docs/HOOKS.md) · [docs/NAVIGATION_MODEL.md](./docs/NAVIGATION_MODEL.md) · [docs/PHASE_NAMING.md](./docs/PHASE_NAMING.md)
+> Deep dive: [docs/HOOKS.md](./docs/HOOKS.md) · [docs/NAVIGATION_MODEL.md](./docs/NAVIGATION_MODEL.md) · [docs/todo/LIFECYCLE_PHASE_NAMING.md](./docs/todo/LIFECYCLE_PHASE_NAMING.md)
 
 ---
 

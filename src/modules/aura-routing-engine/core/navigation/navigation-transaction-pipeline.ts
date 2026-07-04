@@ -58,10 +58,13 @@ export class NavigationTransactionPipeline {
     return await this.runAfterRender() ?? { status: 'navigationSucceeded' };
   }
 
-  /** Same URL + same leaf: reenter hooks only, then commit gate (no full pipeline). */
+  /** Same URL + same leaf: conditional load (DataGraph) → reenter hooks → commit (no full pipeline). */
   async runReenter(): Promise<TransactionFullResult> {
-    const reenterOutcome = await this.runLifecyclePhase(PHASES.reenter);
-    if (reenterOutcome) return reenterOutcome;
+    const outcome = await this.runSequentially([
+      () => this.runLoads(),
+      () => this.runLifecyclePhase(PHASES.reenter),
+    ]);
+    if (outcome) return outcome;
 
     if (!this.transaction.isActive()) {
       return { status: 'cancelled' };

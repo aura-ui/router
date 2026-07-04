@@ -6,8 +6,9 @@
  */
 
 import { NavigationTransaction } from './navigation-transaction';
-import type { RouteInfo, RouteLifecycleContext } from '../route/types';
+import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../route/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { HistoryAction } from '../history/provider.types';
 import {
   type GuardResult,
   type PhaseStepOutcome, type PhaseThrowPolicy,
@@ -15,8 +16,9 @@ import {
   type RoutePhase,
   type RoutePhaseDefinition,
 } from '../lifecycle';
+import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
 import { runPhaseHooks } from '../hooks/registry';
-import { resolveRouteData } from '../data-graph';
+import { resolveRouteData } from '../data-graph/route-data';
 
 /** Structured failure handed back to the pipeline (see {@link PhaseThrowPolicy `'failure'`}). */
 export type PhaseError = {
@@ -34,6 +36,15 @@ export type PhaseError = {
  */
 export type PhaseRunResult = PhaseStepOutcome | PhaseError | null;
 
+type PhaseContextSource = {
+  from: MatchedRouteInfo | null;
+  action: HistoryAction;
+  router: RouterInstance;
+  jobId: number;
+  signal: AbortSignal;
+  data?: unknown;
+};
+
 /** Executes one {@link RoutePhaseDefinition} for a matched route within a transaction. */
 export class NavigationTransactionPipelinePhase {
 
@@ -50,7 +61,7 @@ export class NavigationTransactionPipelinePhase {
     const { engine } = transaction;
     const { errorPolicy, phase, runRouteLifecycle } = phaseDef;
 
-    const context: RouteLifecycleContext = this.toPipelinePhaseContext(phase, route, transaction);
+    const context = this.toPhaseContext(phase, route, transaction);
 
     // Route instance callback (onEnter, onLeave, …) from {@link RoutePhaseDefinition.runRouteLifecycle}.
     try {
@@ -82,6 +93,53 @@ export class NavigationTransactionPipelinePhase {
       console.error(`[${phase}] post-commit hook threw (logged, continuing):`, error);
       return null;
     }
+  }
+
+  /** Hook/callback context for a pipeline phase step. */
+  static toPhaseContext(
+    phase: RoutePhase,
+    route: MatchedRouteInfo,
+    transaction: NavigationTransaction,
+  ): RouteLifecycleContext {
+    const { engine, from, action, transactionId, signal } = transaction;
+    return this.buildPhaseContext(phase, route, {
+      from,
+      action,
+      router: engine.router,
+      jobId: transactionId,
+      signal,
+      data: transaction.dataSnapshot
+        ? resolveRouteData(transaction.dataSnapshot, route)
+        : undefined,
+    });
+  }
+
+  /** Load-phase context from navigation runtime (DataGraph, no snapshot data yet). */
+  static toLoadPhaseContext(
+    route: MatchedRouteInfo,
+    runtime: LifecycleRuntimeContext,
+  ): RouteLifecycleContext {
+    return this.buildPhaseContext('load', route, {
+      from: runtime.transaction.from,
+      action: runtime.transaction.action,
+      router: runtime.router,
+      jobId: runtime.transactionId,
+      signal: runtime.transactionSignal,
+    });
+  }
+
+  /** Minimal load context for intent prefetch (no active transaction). */
+  static toPrefetchLoadPhaseContext(
+    route: MatchedRouteInfo,
+    signal: AbortSignal,
+  ): RouteLifecycleContext {
+    return this.buildPhaseContext('load', route, {
+      from: null,
+      action: 'push',
+      router: { navigate: () => {} },
+      jobId: 0,
+      signal,
+    });
   }
 
   /** Maps a blocking {@link GuardResult} to a terminal {@link PhaseStepOutcome}. */
@@ -119,6 +177,25 @@ export class NavigationTransactionPipelinePhase {
     }
   }
 
+  private static buildPhaseContext(
+    phase: RoutePhase,
+    route: MatchedRouteInfo,
+    source: PhaseContextSource,
+  ): RouteLifecycleContext {
+    const { data, from, action, router, jobId, signal } = source;
+    return {
+      phase,
+      to: this.toRouteInfo(route),
+      from: from ? this.toRouteInfo(from) : null,
+      router,
+      route: route.route,
+      action,
+      jobId,
+      signal,
+      ...(data !== undefined && { data }),
+    };
+  }
+
   private static toRouteInfo(matchedRoute: MatchedRouteInfo): RouteInfo {
     return {
       pathname: matchedRoute.pathname,
@@ -147,25 +224,5 @@ export class NavigationTransactionPipelinePhase {
 
   static isPhaseError(r: PhaseRunResult): r is PhaseError {
     return r !== null && typeof r === 'object' && 'kind' in r && r.kind === 'error';
-  }
-
-  /** Builds {@link RouteLifecycleContext} for pipeline-driven phases. */
-  static toPipelinePhaseContext(
-    phase: RoutePhase,
-    route: MatchedRouteInfo,
-    transaction: NavigationTransaction,
-  ): RouteLifecycleContext {
-    const { engine, from, action, transactionId, signal } = transaction;
-    return {
-      phase: phase,
-      to: this.toRouteInfo(route),
-      from: from ? this.toRouteInfo(from) : null,
-      router: engine.router,
-      route: route.route,
-      action,
-      jobId: transactionId,
-      signal,
-      data: transaction.dataSnapshot ? resolveRouteData(transaction.dataSnapshot, route) : undefined,
-    };
   }
 }

@@ -18,7 +18,7 @@ function matchedRoute(path: string, load: string[] | null = ['data']): MatchedRo
 }
 
 function runtime(hookRegistry: HookRegistry, route: MatchedRouteInfo) {
-  const navigationJob = createMockNavigationJob(1);
+  const job = createMockNavigationJob(1);
   return {
     transaction: {
       from: null,
@@ -26,7 +26,8 @@ function runtime(hookRegistry: HookRegistry, route: MatchedRouteInfo) {
       action: 'push' as const,
       plan: { enterRoutes: [route], exitRoutes: [], lca: null, reenter: false },
     },
-    navigationJob,
+    transactionId: job.id,
+    transactionSignal: job.signal,
     router: { navigate: jest.fn() },
     hookRegistry,
     viewCommitTracker: new ViewCommitTracker(route.href),

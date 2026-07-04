@@ -17,10 +17,11 @@ function createMatchedRoute(path: string, overrides: Partial<RouteInstance> = {}
   };
 }
 
-function createRuntimeContext(
+function createTransactionContext(
   matchedRoute: MatchedRouteInfo,
   overrides: Partial<LifecycleRuntimeContext> = {},
 ): LifecycleRuntimeContext {
+  const job = createMockNavigationJob(1);
   return {
     transaction: {
       from: null,
@@ -33,7 +34,8 @@ function createRuntimeContext(
         reenter: false,
       },
     },
-    navigationJob: createMockNavigationJob(1),
+    transactionId: job.id,
+    transactionSignal: job.signal,
     router: { navigate: jest.fn() },
     hookRegistry: new HookRegistry(),
     viewCommitTracker: new ViewCommitTracker(matchedRoute.href),
@@ -52,7 +54,7 @@ describe('ErrorPhaseHandler', () => {
         throw routeError;
       },
     });
-    const context = createRuntimeContext(matchedRoute, { reportHookError });
+    const context = createTransactionContext(matchedRoute, { reportHookError });
 
     const outcome = await new ErrorPhaseHandler().failNavigation(
       matchedRoute,
@@ -83,7 +85,7 @@ describe('ErrorPhaseHandler', () => {
     const matchedRoute = createMatchedRoute('/to', {
       error: ['bad-error-hook'],
     });
-    const context = createRuntimeContext(matchedRoute, {
+    const context = createTransactionContext(matchedRoute, {
       hookRegistry,
       reportHookError,
     });

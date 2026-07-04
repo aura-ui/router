@@ -27,7 +27,7 @@ export function toLifecycleContextInput(
     from: context.transaction.from,
     action: context.transaction.action,
     router: context.router,
-    navigationJob: context.navigationJob,
+    navigationJob: { id: context.transactionId, signal: context.transactionSignal },
   };
 }
 

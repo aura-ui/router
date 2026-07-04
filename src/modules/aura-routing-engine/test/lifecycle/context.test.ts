@@ -77,6 +77,7 @@ describe('lifecycle context', () => {
       route: createTestRoute('/to'),
     };
 
+    const signal = new AbortController().signal;
     const runtime: LifecycleRuntimeContext = {
       transaction: {
         from: null,
@@ -89,7 +90,8 @@ describe('lifecycle context', () => {
           reenter: false,
         },
       },
-      navigationJob: { id: 1, signal: new AbortController().signal },
+      transactionId: 1,
+      transactionSignal: signal,
       router: { navigate: jest.fn() },
       hookRegistry: new HookRegistry(),
       viewCommitTracker: new ViewCommitTracker('/to'),
@@ -100,7 +102,7 @@ describe('lifecycle context', () => {
       from: runtime.transaction.from,
       action: runtime.transaction.action,
       router: runtime.router,
-      navigationJob: runtime.navigationJob,
+      navigationJob: { id: 1, signal },
     });
   });
 });

@@ -5,13 +5,9 @@ import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { PipelineStepOutcome } from '../lifecycle/execution/phase-outcome';
 import { guardResultToPhaseOutcome } from '../lifecycle/execution/phase-outcome';
-import {
-  createLifecycleContext,
-  toLifecycleContextInput,
-  type LifecycleContextInput,
-} from '../lifecycle/context/lifecycle-context';
 import { ErrorPhaseHandler } from '../lifecycle/orchestration/error-phase-handler';
 import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
+import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import type { RouteLifecycleContext } from '../route/types';
 import { buildRouteDataKey, routeHasLoadHooks, routeLoadHookNames } from './route-data';
 
@@ -96,7 +92,8 @@ export class DataGraph {
         return { outcome: terminal };
       }
     }
-    return { snapshot: this.snapshot(activeChain) };
+    const snapshot = this.snapshot(activeChain);
+    return snapshot ? { snapshot } : {};
   }
 
   /** Intent prefetch — guards skipped; redirect/cancel/errors ignored. */
@@ -152,7 +149,10 @@ export class DataGraph {
     runtime: LifecycleRuntimeContext,
   ): Promise<PipelineStepOutcome> {
     const siblingAbort = new AbortController();
-    const loadRuntime = this.withSiblingAbort(runtime, siblingAbort);
+    const loadRuntime: LifecycleRuntimeContext = {
+      ...runtime,
+      transactionSignal: AbortSignal.any([runtime.transactionSignal, siblingAbort.signal]),
+    };
     const outcomes: PipelineStepOutcome[] = [];
 
     await Promise.all(
@@ -167,20 +167,6 @@ export class DataGraph {
     return outcomes.find((outcome) => outcome) ?? null;
   }
 
-  private withSiblingAbort(
-    runtime: LifecycleRuntimeContext,
-    siblingAbort: AbortController,
-  ): LifecycleRuntimeContext {
-    const base = toLifecycleContextInput(runtime);
-    return {
-      ...runtime,
-      navigationJob: {
-        ...runtime.navigationJob,
-        signal: AbortSignal.any([base.navigationJob.signal, siblingAbort.signal]),
-      },
-    };
-  }
-
   private async ensureNavigationLoad(
     route: MatchedRouteInfo,
     runtime: LifecycleRuntimeContext,
@@ -189,7 +175,7 @@ export class DataGraph {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return null;
 
-    const ctx = createLifecycleContext('load', route, toLifecycleContextInput(runtime));
+    const ctx = NavigationTransactionPipelinePhase.toLoadPhaseContext(route, runtime);
     const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
 
     try {
@@ -214,7 +200,7 @@ export class DataGraph {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return;
 
-    const ctx = createLifecycleContext('load', route, this.prefetchContextInput(abort));
+    const ctx = NavigationTransactionPipelinePhase.toPrefetchLoadPhaseContext(route, abort);
 
     try {
       await this.resolveRouteLoad(route, descriptor, () =>
@@ -241,18 +227,6 @@ export class DataGraph {
     } else {
       await load();
     }
-  }
-
-  private prefetchContextInput(signal: AbortSignal): LifecycleContextInput {
-    return {
-      from: null,
-      action: 'push',
-      router: {
-        navigate: () => {
-        },
-      },
-      navigationJob: { id: 0, signal },
-    };
   }
 
   /**

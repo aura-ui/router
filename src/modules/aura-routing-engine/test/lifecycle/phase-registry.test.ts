@@ -14,8 +14,8 @@ describe('PHASES', () => {
     expect(phaseDef.errorPolicy).toMatch(/failure|log|propagate/);
   });
 
-  it('error phase is route-only and has no pipeline callback', () => {
-    expect(PHASES.error.runRouteLifecycle).toBeUndefined();
+  it('error phase is terminal recovery and excluded from the happy-path pipeline', () => {
+    expect(PHASES.error.runRouteLifecycle).toEqual(expect.any(Function));
     expect(PHASES.error.phase).toBe('error');
     expect(PHASES.error.routeHookProp).toBe('error');
   });

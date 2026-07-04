@@ -81,16 +81,16 @@ export class NavigationTransactionPipeline {
 
   /** Blocking data load on enter branch — after guards, before render. */
   async runLoads(): Promise<TransactionFullResult> {
-    const chain = this.activeChain();
-    const result = await this.transaction.engine.dataGraph.load(
-      this.enterRoutesWithLoadHooks(),
-      {
+    const { to, transitionPlan } = this.transaction;
+    const chain = to.chain ?? transitionPlan.enterRoutes;
+    const { outcome, snapshot } = await this.transaction.engine.dataGraph.load(
+      this.transaction.transitionPlan.enterRoutes, {
         chain,
         runtime: this.transaction.createLifecycleRuntime(),
       },
     );
-    this.storeDataSnapshot(result);
-    return result.outcome;
+    snapshot && (this.transaction.dataSnapshot = snapshot);
+    return outcome;
   }
 
   /** Staged view commit for all enter routes (no transition wrappers). */
@@ -177,12 +177,10 @@ export class NavigationTransactionPipeline {
     if (!this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
-
     for (const matchedRoute of this.transaction.transitionPlan.enterRoutes) {
       matchedRoute.route.commitStagedView?.();
     }
     this.transaction.commitNavigation();
-
     await this.runLifecyclePhase(PHASES.left);
     return this.runLifecyclePhase(PHASES.after);
   }
@@ -211,23 +209,6 @@ export class NavigationTransactionPipeline {
     await this.runLifecyclePhase(PHASES.left);
     this.transaction.viewCommitTracker.markViewCommittedAfterErrorRecovery();
     return this.transaction.fail(matchedRoute, error, 'render');
-  }
-
-  private storeDataSnapshot(result: DataGraphLoadResult): void {
-    if (result.outcome !== null) return;
-    this.transaction.dataSnapshot = result.snapshot;
-  }
-
-  //todo need only for datagraph
-  /** Full branch root → leaf; reused for LCA snapshot lookup in DataGraph. */
-  private activeChain(): readonly MatchedRouteInfo[] {
-    const { transitionPlan, to } = this.transaction;
-    return to.chain ?? transitionPlan.enterRoutes;
-  }
-
-  // todo duplicats with data graph and prefetch
-  private enterRoutesWithLoadHooks(): MatchedRouteInfo[] {
-    return this.transaction.transitionPlan.enterRoutes.filter((route) => route.route.load?.length);
   }
 
   private async runSequentially(steps: PipelineStep[]): Promise<TransactionFullResult> {

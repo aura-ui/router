@@ -90,7 +90,7 @@ describe('DataGraph', () => {
     expect(snapshot.get(key)).toEqual({ id: 42, name: 'Ada' });
   });
 
-  it('returns redirect from navigation load with empty snapshot', async () => {
+  it('returns redirect from navigation load without snapshot', async () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
@@ -103,7 +103,7 @@ describe('DataGraph', () => {
     });
 
     expect(outcome).toEqual({ status: 'redirect', url: '/login' });
-    expect(snapshot.size).toBe(0);
+    expect(snapshot).toBeUndefined();
   });
 
   it('prefetch ignores redirect and does not cache', async () => {

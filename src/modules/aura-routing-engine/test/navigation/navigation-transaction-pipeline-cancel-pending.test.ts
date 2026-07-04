@@ -138,7 +138,7 @@ describe('NavigationTransactionPipeline cancel-pending (A → B in-flight → A)
     expect(transaction.viewCommitTracker.isViewCommitted()).toBe(false);
   });
 
-  it('afterRender returns cancelled when only abort happened (same transaction id)', async () => {
+  it('runAfterRender returns cancelled when only abort happened (same transaction id)', async () => {
     const commitStagedView = jest.fn();
     const onLeft = jest.fn();
     const from = createMatchedRoute('/about', { onLeft });
@@ -149,7 +149,7 @@ describe('NavigationTransactionPipeline cancel-pending (A → B in-flight → A)
     transaction.cancel();
 
     const pipeline = new NavigationTransactionPipeline(transaction);
-    const outcome = await pipeline.afterRender();
+    const outcome = await pipeline.runAfterRender();
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(commitStagedView).not.toHaveBeenCalled();

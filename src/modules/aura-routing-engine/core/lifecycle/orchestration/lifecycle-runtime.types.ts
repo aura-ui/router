@@ -15,7 +15,7 @@ export interface LifecycleTransactionContext {
   plan: TransitionMap;
 }
 
-/** Processor-facing context required to execute lifecycle phases. */
+/** Runtime context required for load hooks and error-phase handling. */
 export interface LifecycleRuntimeContext {
   transaction: LifecycleTransactionContext;
   navigationJob: LifecycleJobSlice;
@@ -24,22 +24,5 @@ export interface LifecycleRuntimeContext {
   viewCommitTracker: ViewCommitTracker;
   reportHookError?: ReportNavigationHookError;
   isJobActive: () => boolean;
-  /** Load-hook payloads from DataGraph after the load phase. */
-  dataSnapshot?: DataSnapshot;
-}
-
-/**
- * Minimal processor context accepted by {@link ../lifecycle-runtime-adapter!createLifecycleRuntimeContext}.
- * Implementations may carry processor-only fields; lifecycle only reads this slice.
- */
-export interface LifecyclePipelineBridge {
-  transaction: LifecycleTransactionContext;
-  navigationJob: LifecycleJobSlice;
-  router: RouterInstance;
-  hookRegistry: HookRegistry;
-  viewCommitTracker: ViewCommitTracker;
-  reportHookError?: ReportNavigationHookError;
-  isJobActive: () => boolean;
-  /** Load-hook payloads from DataGraph after the load phase. */
   dataSnapshot?: DataSnapshot;
 }

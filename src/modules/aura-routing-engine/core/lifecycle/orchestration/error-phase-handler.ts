@@ -9,12 +9,11 @@ import type { MatchedRouteInfo } from '../../match/url-matcher';
 import type { NavigationErrorResult } from '../../navigation/transaction-result';
 import type { RouteErrorContext } from '../../route/types';
 import { resolveHookNames } from '../bindings/route-hook-bindings';
-import { createLifecycleContext } from '../context/lifecycle-context';
+import { createLifecycleContext, toLifecycleContextInput } from '../context/lifecycle-context';
 import { HookPolicyExecutor } from '../execution/hook-policy-executor';
 import { PHASES } from '../phase-registry';
 
-import type { LifecycleRuntimeContext } from './lifecycle-runner.types';
-import { toLifecycleContextInput } from './lifecycle-runtime-adapter';
+import type { LifecycleRuntimeContext } from './lifecycle-runtime.types';
 
 /** Handles route `error` lifecycle callbacks and registered error hooks. */
 export class ErrorPhaseHandler {

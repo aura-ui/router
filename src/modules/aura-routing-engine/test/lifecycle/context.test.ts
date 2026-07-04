@@ -1,12 +1,18 @@
-import { createLifecycleContext, toRouteInfo } from '../../core/lifecycle';
-import { createMockNavigationJob } from '../helpers/mock-navigation-job';
+import { HookRegistry } from '../../core/hooks/registry';
+import {
+  createLifecycleContext,
+  toLifecycleContextInput,
+  toRouteInfo,
+  type LifecycleRuntimeContext,
+} from '../../core/lifecycle';
+import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
 import { createTestRoute } from '../helpers/create-test-route';
 
-describe('createLifecycleContext', () => {
-  it('maps matched route and navigation input to hook context', () => {
+describe('lifecycle context', () => {
+  it('createLifecycleContext maps matched route and navigation input to hook context', () => {
     const fromRoute = createTestRoute('/from');
     const toRoute = createTestRoute('/to');
-    const job = createMockNavigationJob(7);
+    const job = { id: 7, signal: new AbortController().signal };
     const router = { navigate: jest.fn() };
 
     const ctx = createLifecycleContext(
@@ -59,5 +65,42 @@ describe('createLifecycleContext', () => {
         route: createTestRoute('/x'),
       }),
     ).toEqual({ pathname: '/x' });
+  });
+
+  it('toLifecycleContextInput maps runtime context to route callback slice', () => {
+    const matchedRoute = {
+      href: '/to',
+      pathname: '/to',
+      search: '',
+      hash: '',
+      pattern: '/to',
+      route: createTestRoute('/to'),
+    };
+
+    const runtime: LifecycleRuntimeContext = {
+      transaction: {
+        from: null,
+        to: matchedRoute,
+        action: 'push',
+        plan: {
+          exitRoutes: [],
+          enterRoutes: [matchedRoute],
+          lca: null,
+          reenter: false,
+        },
+      },
+      navigationJob: { id: 1, signal: new AbortController().signal },
+      router: { navigate: jest.fn() },
+      hookRegistry: new HookRegistry(),
+      viewCommitTracker: new ViewCommitTracker('/to'),
+      isJobActive: () => true,
+    };
+
+    expect(toLifecycleContextInput(runtime)).toEqual({
+      from: runtime.transaction.from,
+      action: runtime.transaction.action,
+      router: runtime.router,
+      navigationJob: runtime.navigationJob,
+    });
   });
 });

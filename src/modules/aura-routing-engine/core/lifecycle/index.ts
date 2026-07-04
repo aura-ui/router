@@ -1,23 +1,14 @@
 export { resolveHookNames } from './bindings/route-hook-bindings';
 export { PHASES, PIPELINE_PHASES } from './phase-registry';
 export type { PipelinePhaseDefinition, RoutePhaseDefinition } from './phase-registry';
-export {
-  guardResultToPhaseOutcome,
-  phaseStepToPipelineOutcome,
-} from './execution/phase-outcome';
+export { guardResultToPhaseOutcome } from './execution/phase-outcome';
 export type {
   PhaseStepOutcome,
   PipelineStepOutcome,
 } from './execution/phase-outcome';
 export {
-  runPhaseStep,
-} from './execution/phase-step';
-export type {
-  PhaseStepHandlers,
-  PhaseStepInput,
-} from './execution/phase-step';
-export {
   createLifecycleContext,
+  toLifecycleContextInput,
   toRouteInfo,
 } from './context/lifecycle-context';
 export type {
@@ -29,8 +20,6 @@ export type {
   HookPolicyContext,
   PostCommitHookPolicyOptions,
 } from './execution/hook-policy-executor';
-export { PhaseExecutor } from './execution/phase-executor';
-export type { PhaseExecutionInput } from './execution/phase-executor';
 export {
   ConsoleLifecycleLogger,
   defaultLifecycleLogger,
@@ -39,16 +28,10 @@ export type { LifecycleLogger } from './logging/lifecycle-logger';
 export { ErrorPhaseHandler } from './orchestration/error-phase-handler';
 export { runNotFoundExitCleanup } from './orchestration/not-found-exit-cleanup';
 export type { NotFoundExitInput } from './orchestration/not-found-exit-cleanup';
-export { LifecycleRunner } from './orchestration/lifecycle-runner';
-export {
-  createLifecycleRuntimeContext,
-  toLifecycleContextInput,
-} from './orchestration/lifecycle-runtime-adapter';
 export type {
-  LifecyclePipelineBridge,
   LifecycleRuntimeContext,
   LifecycleTransactionContext,
-} from './orchestration/lifecycle-runner.types';
+} from './orchestration/lifecycle-runtime.types';
 export type {
   GuardResult,
   RedirectTarget,

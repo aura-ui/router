@@ -7,13 +7,12 @@ import type { PipelineStepOutcome } from '../lifecycle/execution/phase-outcome';
 import { guardResultToPhaseOutcome } from '../lifecycle/execution/phase-outcome';
 import {
   createLifecycleContext,
+  toLifecycleContextInput,
   type LifecycleContextInput,
 } from '../lifecycle/context/lifecycle-context';
 import { ErrorPhaseHandler } from '../lifecycle/orchestration/error-phase-handler';
 import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
-import { toLifecycleContextInput } from '../lifecycle/context/lifecycle-context';
 import type { RouteLifecycleContext } from '../route/types';
-import type { TransactionResult } from '../navigation/transaction-result';
 import { buildRouteDataKey, routeHasLoadHooks, routeLoadHookNames } from './route-data';
 
 export type DataSnapshot = ReadonlyMap<string, unknown>;
@@ -52,10 +51,12 @@ type RouteLoadDescriptor = {
   key: string;
 };
 
-class DataGraphTerminalError extends Error {
-  readonly outcome: TransactionResult;
+type TerminalOutcome = Exclude<PipelineStepOutcome, null>;
 
-  constructor(outcome: TransactionResult) {
+class DataGraphTerminalError extends Error {
+  readonly outcome: TerminalOutcome;
+
+  constructor(outcome: TerminalOutcome) {
     super('DataGraph terminal hook outcome');
     this.name = 'DataGraphTerminalError';
     this.outcome = outcome;
@@ -69,6 +70,7 @@ class DataGraphTerminalError extends Error {
 export class DataGraph {
   private readonly cache: AuraResolvableCache<unknown>;
   private readonly errorHandler: ErrorPhaseHandler;
+  /** Engine hook registry; prefetch uses this (no navigation runtime). */
   private readonly hooks: HookRegistry;
 
   constructor(hooks: HookRegistry, options: DataGraphOptions = {}) {
@@ -85,10 +87,7 @@ export class DataGraph {
    * Blocking navigation load — after guards, before render.
    * @param enterRoutes Routes entering this transition (LCA delta); load hooks run only here.
    */
-  async load(
-    enterRoutes: readonly MatchedRouteInfo[],
-    options: DataGraphLoadOptions,
-  ): Promise<DataGraphLoadResult> {
+  async load(enterRoutes: readonly MatchedRouteInfo[], options: DataGraphLoadOptions): Promise<DataGraphLoadResult> {
     const activeChain = options.activeChain ?? enterRoutes;
     const enterRoutesWithLoadHooks = this.filterRoutesWithLoadHooks(enterRoutes);
 
@@ -182,7 +181,7 @@ export class DataGraph {
       ...runtime,
       navigationJob: {
         ...runtime.navigationJob,
-        signal: mergeAbortSignals(base.navigationJob.signal, siblingAbort.signal),
+        signal: AbortSignal.any([base.navigationJob.signal, siblingAbort.signal]),
       },
     };
   }
@@ -200,14 +199,9 @@ export class DataGraph {
     const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
 
     try {
-      const load = () =>
-        this.runLoadPhaseHooks(runtime.hookRegistry, ctx, descriptor.hookNames, isActive, 'navigation');
-
-      if (routePreservesLoadData(route)) {
-        await this.cache.resolve(descriptor.key, load);
-      } else {
-        await load();
-      }
+      await this.resolveRouteLoad(route, descriptor, () =>
+        this.runLoadPhaseHooks(runtime.hookRegistry, ctx, descriptor.hookNames, isActive, 'navigation'),
+      );
 
       // Immutable pipeline step: onLoad runs on every navigation, including cache hits.
       route.route.onLoad(ctx);
@@ -229,14 +223,9 @@ export class DataGraph {
     const ctx = this.loadContext(route, this.prefetchContextInput(abort));
 
     try {
-      const load = () =>
-        this.runLoadPhaseHooks(this.hooks, ctx, descriptor.hookNames, () => !abort.aborted, 'prefetch');
-
-      if (routePreservesLoadData(route)) {
-        await this.cache.resolve(descriptor.key, load);
-      } else {
-        await load();
-      }
+      await this.resolveRouteLoad(route, descriptor, () =>
+        this.runLoadPhaseHooks(this.hooks, ctx, descriptor.hookNames, () => !abort.aborted, 'prefetch'),
+      );
     } catch {
       // intent: silent
     }
@@ -244,6 +233,18 @@ export class DataGraph {
 
   private filterRoutesWithLoadHooks(routes: readonly MatchedRouteInfo[]): MatchedRouteInfo[] {
     return routes.filter(routeHasLoadHooks);
+  }
+
+  private async resolveRouteLoad(
+    route: MatchedRouteInfo,
+    descriptor: RouteLoadDescriptor,
+    load: () => Promise<unknown>,
+  ): Promise<void> {
+    if (routePreservesLoadData(route)) {
+      await this.cache.resolve(descriptor.key, load);
+    } else {
+      await load();
+    }
   }
 
   private buildRouteLoadDescriptor(route: MatchedRouteInfo): RouteLoadDescriptor | null {
@@ -332,20 +333,15 @@ function routePreservesLoadData(route: MatchedRouteInfo): boolean {
 /** Non-terminal hook return stored in the data graph cache. */
 function extractLoadPayload(raw: unknown): unknown {
   if (raw === undefined || raw === true || raw === false) return SKIP_PAYLOAD;
-  if (typeof raw === 'string') return SKIP_PAYLOAD;
-  if (typeof raw === 'object' && raw !== null && 'type' in raw) return SKIP_PAYLOAD;
+
+  const normalized = normalizeHookResult(raw as HookResultInput);
+  if (normalized === false || typeof normalized === 'string') return SKIP_PAYLOAD;
+  if (typeof normalized === 'object' && normalized !== null && 'url' in normalized) return SKIP_PAYLOAD;
+
+  if (typeof raw === 'object' && raw !== null && 'type' in raw) {
+    const { type } = raw as { type: string };
+    if (type === 'continue' || type === 'cancel' || type === 'redirect') return SKIP_PAYLOAD;
+  }
+
   return raw;
-}
-
-function mergeAbortSignals(primary: AbortSignal, secondary: AbortSignal): AbortSignal {
-  if (primary.aborted) return primary;
-  if (secondary.aborted) return secondary;
-
-  const merged = new AbortController();
-  const abort = (): void => merged.abort();
-
-  primary.addEventListener('abort', abort, { once: true });
-  secondary.addEventListener('abort', abort, { once: true });
-
-  return merged.signal;
 }

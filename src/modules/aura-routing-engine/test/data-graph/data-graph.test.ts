@@ -90,6 +90,22 @@ describe('DataGraph', () => {
     expect(snapshot.get(key)).toEqual({ id: 42, name: 'Ada' });
   });
 
+  it('stores hook payload with arbitrary type field', async () => {
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => ({ type: 'article', id: 7, title: 'Hello' }),
+    });
+
+    const route = matchedRoute('/posts/7');
+    const { snapshot } = await dataGraph.load([route], {
+      runtime: runtime(hookRegistry, route),
+    });
+
+    const key = [...snapshot.keys()][0]!;
+    expect(snapshot.get(key)).toEqual({ type: 'article', id: 7, title: 'Hello' });
+  });
+
   it('returns redirect from navigation load without snapshot', async () => {
     hookRegistry.register({
       name: 'data',

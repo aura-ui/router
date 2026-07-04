@@ -218,12 +218,14 @@ export class NavigationTransactionPipeline {
     this.transaction.dataSnapshot = result.snapshot;
   }
 
+  //todo need only for datagraph
   /** Full branch root → leaf; reused for LCA snapshot lookup in DataGraph. */
   private activeChain(): readonly MatchedRouteInfo[] {
     const { transitionPlan, to } = this.transaction;
     return to.chain ?? transitionPlan.enterRoutes;
   }
 
+  // todo duplicats with data graph and prefetch
   private enterRoutesWithLoadHooks(): MatchedRouteInfo[] {
     return this.transaction.transitionPlan.enterRoutes.filter((route) => route.route.load?.length);
   }

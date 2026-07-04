@@ -6,7 +6,7 @@
  */
 
 import { NavigationTransaction } from './navigation-transaction';
-import type { RouteErrorContext, RouteInfo, RouteLifecycleContext } from '../route/types';
+import type { RouteInfo, RouteLifecycleContext } from '../route/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
   type GuardResult,
@@ -54,7 +54,7 @@ export class NavigationTransactionPipelinePhase {
 
     // Route instance callback (onEnter, onLeave, …) from {@link RoutePhaseDefinition.runRouteLifecycle}.
     try {
-      runRouteLifecycle && runRouteLifecycle(route.route, context);
+      runRouteLifecycle?.(route.route, context);
     } catch (error) {
       return this.applyErrorPolicy(errorPolicy, phase, error, route);
     }
@@ -167,28 +167,5 @@ export class NavigationTransactionPipelinePhase {
       signal,
       data: transaction.dataSnapshot ? resolveRouteData(transaction.dataSnapshot, route) : undefined,
     };
-  }
-
-  /** Terminal `error` phase: route `onError` + error hooks (non-blocking). */
-  static async runError(
-    route: MatchedRouteInfo,
-    error: unknown,
-    failedPhase: RoutePhase,
-    transaction: NavigationTransaction,
-  ): Promise<void> {
-    const context: RouteErrorContext = { ...this.toPipelinePhaseContext('error', route, transaction), error };
-
-    try {
-      route.route.onError(context);
-    } catch (e) {
-      console.error('[error] onError callback threw:', e);
-    }
-
-    await runPhaseHooks(
-      transaction.engine.hooksRegistry,
-      context,
-      resolveHookNames(route.route, 'error') || [],
-      () => transaction.isActive(),
-    );
   }
 }

@@ -177,16 +177,16 @@ export async function runPhaseHooks(
   registry: HookRegistry,
   lifecycleContext: RouteLifecycleContext,
   hookNames: readonly string[],
-  isJobActive: () => boolean,
+  isTransactionActive: () => boolean,
 ): Promise<GuardResult> {
   if (!hookNames.length) return undefined;
 
   try {
-    const result = await registry.run(lifecycleContext, hookNames, isJobActive);
-    if (!isJobActive()) return false;
+    const result = await registry.run(lifecycleContext, hookNames, isTransactionActive);
+    if (!isTransactionActive()) return false;
     return result;
   } catch (error) {
-    if (!isJobActive()) return false;
+    if (!isTransactionActive()) return false;
     throw error;
   }
 }

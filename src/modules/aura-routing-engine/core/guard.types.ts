@@ -9,7 +9,7 @@
  * @module guard.types
  */
 
-/** Redirect URL from a blocking phase hook (`enter` / `leave` / `load`). */
+/** Redirect URL from a blocking phase hook (`guard` / `leave` / `load`). */
 export type RedirectTarget =
   | string
   | { url: string; replace?: boolean };

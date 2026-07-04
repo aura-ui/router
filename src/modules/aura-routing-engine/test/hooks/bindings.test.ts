@@ -5,22 +5,22 @@ function route(overrides: Partial<RouteInstance> = {}): RouteInstance {
   const noop = (): void => {};
   return {
     path: '/',
-    enter: null,
+    guard: null,
     transitionIn: null,
     load: null,
-    afterHook: null,
+    ready: null,
     leave: null,
     transitionOut: null,
     error: null,
-    left: null,
-    reenter: null,
-    onEnter: noop,
+    unmount: null,
+    reguard: null,
+    onGuard: noop,
     onTransitionIn: noop,
     onLoad: noop,
-    onAfter: noop,
+    onReady: noop,
     onLeave: noop,
     onTransitionOut: noop,
-    onLeft: noop,
+    onUnmount: noop,
     onReenter: noop,
     onError: noop,
     transition: { order: null, in: null, out: null },
@@ -30,8 +30,8 @@ function route(overrides: Partial<RouteInstance> = {}): RouteInstance {
 
 describe('resolveHookNames', () => {
   it('reads hook names from phase attrs', () => {
-    expect(resolveHookNames(route({ afterHook: ['analytics'] }), 'after')).toEqual(['analytics']);
-    expect(resolveHookNames(route({ left: ['abort-polling'] }), 'left')).toEqual(['abort-polling']);
+    expect(resolveHookNames(route({ ready: ['analytics'] }), 'ready')).toEqual(['analytics']);
+    expect(resolveHookNames(route({ unmount: ['abort-polling'] }), 'unmount')).toEqual(['abort-polling']);
     expect(resolveHookNames(route({ reenter: ['sync'] }), 'reenter')).toEqual(['sync']);
   });
 
@@ -40,7 +40,7 @@ describe('resolveHookNames', () => {
   });
 
   it('returns null when phase attr is absent (null) or explicit opt-out ([])', () => {
-    expect(resolveHookNames(route(), 'enter')).toBeNull();
-    expect(resolveHookNames(route({ enter: [] }), 'enter')).toBeNull();
+    expect(resolveHookNames(route(), 'guard')).toBeNull();
+    expect(resolveHookNames(route({ guard: [] }), 'guard')).toBeNull();
   });
 });

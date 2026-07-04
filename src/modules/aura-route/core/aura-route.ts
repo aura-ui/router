@@ -42,12 +42,12 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @attr({ readonly: true }) layout: string;
   @attr({ readonly: true, parser: parseViewAttr, cached: true }) view: ViewAttrDescriptor | null;
 
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) enter: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) guard: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) load: string[] | null;
-  @attr({ parser: parseCommaSeparated, name: 'after', inherit: true, allowEmpty: true }) afterHook: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) ready: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) leave: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) error: string[] | null;
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) left: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) unmount: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) reenter: string[] | null;
 
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) loadingTemplate: string;
@@ -112,8 +112,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return !!this.layout.trim();
   }
 
-  get hasEnter(): boolean {
-    return !!this.enter?.length;
+  get hasGuard(): boolean {
+    return !!this.guard?.length;
   }
 
   get hasReenter(): boolean {
@@ -132,8 +132,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return !!this.transitionIn;
   }
 
-  get hasPostEffects(): boolean {
-    return !!this.transitionOut || !!this.afterHook?.length;
+  get hasReady(): boolean {
+    return !!this.transitionOut || !!this.ready?.length;
   }
 
   get hasAsyncContent(): boolean {
@@ -214,7 +214,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.viewController?.commitStagedView();
   }
 
-  onEnter(ctx: RouteLifecycleContext): void {
+  onGuard(ctx: RouteLifecycleContext): void {
     void ctx;
   }
 
@@ -222,7 +222,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     void ctx;
   }
 
-  onAfter(ctx: RouteLifecycleContext): void {
+  onReady(ctx: RouteLifecycleContext): void {
     void ctx;
   }
 
@@ -238,10 +238,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     void ctx;
   }
 
-  onLeft(ctx: RouteLifecycleContext): void {
+  onUnmount(ctx: RouteLifecycleContext): void {
     void ctx;
     this.passId++;
-    this.viewController?.onLeft();
+    this.viewController?.onUnmount();
   }
 
   onReenter(ctx: RouteLifecycleContext): void {

@@ -11,7 +11,7 @@ Composable lifecycle hooks and nested routes, declared in markup.
 npm install @aura-ui-web/router
 ```
 
-> **Target API.** This README describes the **intended public API** the project is converging on. A pre-release build may lag behind — see [ROADMAP](./ROADMAP.md) for status. Internal design docs may use interim names until the migration is complete.
+> **Target API.** This README describes the public lifecycle attribute names. Other areas may still lag — see [ROADMAP](./ROADMAP.md).
 
 ---
 
@@ -196,7 +196,7 @@ AuraRouter.use(authHook);
 | `load` | Fetch data before render | yes |
 | `ready` | After view is committed (analytics, focus) | no |
 | `unmount` | Exit cleanup after commit | no |
-| `update` | Same route, query/hash change (shortcut) | no |
+| `reenter` | Same URL re-navigate (shortcut) | no |
 | `error` | Navigation or render failure | terminal |
 
 With `preserve` on the route, optional teardown hooks: `detach`, `destroy` (on leave) and `restore` (reattach from view cache on enter).

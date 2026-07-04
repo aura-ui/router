@@ -22,9 +22,9 @@ describe('PHASES', () => {
 
   it('reenter and left expose route hook attrs', () => {
     expect(PHASES.reenter.routeHookProp).toBe('reenter');
-    expect(PHASES.left.routeHookProp).toBe('left');
+    expect(PHASES.unmount.routeHookProp).toBe('unmount');
     expect(PHASES.reenter.htmlAttr).toBe('reenter');
-    expect(PHASES.left.htmlAttr).toBe('left');
+    expect(PHASES.unmount.htmlAttr).toBe('unmount');
   });
 
   it('PIPELINE_PHASES excludes error', () => {

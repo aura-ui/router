@@ -73,7 +73,7 @@ export class NavigationTransactionPipelinePhase {
 
     const context = this.toPhaseContext(phase, route, transaction);
 
-    // 1. Route callback (onEnter, onLeave, …)
+    // 1. Route callback (onGuard, onLeave, …)
     try {
       runRouteLifecycle(route.route, context);
     } catch (error) {

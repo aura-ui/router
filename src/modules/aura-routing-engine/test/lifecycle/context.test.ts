@@ -9,7 +9,7 @@ describe('NavigationTransactionPipelinePhase.buildPhaseContext', () => {
     const router = { navigate: jest.fn() };
 
     const ctx = NavigationTransactionPipelinePhase.buildPhaseContext(
-      'enter',
+      'guard',
       {
         href: '/to',
         pathname: '/to',
@@ -37,7 +37,7 @@ describe('NavigationTransactionPipelinePhase.buildPhaseContext', () => {
     );
 
     expect(ctx).toMatchObject({
-      phase: 'enter',
+      phase: 'guard',
       from: { pathname: '/from' },
       to: { pathname: '/to', params: { id: '1' }, query: { a: '1' } },
       route: toRoute,
@@ -50,7 +50,7 @@ describe('NavigationTransactionPipelinePhase.buildPhaseContext', () => {
 
   it('omits empty optional RouteInfo fields', () => {
     const ctx = NavigationTransactionPipelinePhase.buildPhaseContext(
-      'enter',
+      'guard',
       {
         href: '/x',
         pathname: '/x',

@@ -11,25 +11,25 @@ export const SCENARIOS: Record<string, ScenarioMeta> = {
     title: 'Каталог историй',
     hint: 'Выберите карточку — откроется сценарий без перезагрузки',
     group: 'Старт',
-    recipe: 'path="/" view="demo/welcome.html" after="analytics"',
+    recipe: 'path="/" view="demo/welcome.html" ready="analytics"',
   },
   '/dev': {
     title: 'Хаб разработчика',
     hint: 'Все loaders, scroll, prefetch и прочие сценарии',
     group: 'Dev',
-    recipe: 'path="/dev" view="demo/dev-hub.html" after="analytics"',
+    recipe: 'path="/dev" view="demo/dev-hub.html" ready="analytics"',
   },
   '/loaders/html': {
     title: 'HTML прямо в маршруте',
     hint: 'Контент в атрибуте view — страница без дополнительных запросов',
     group: 'Загрузка',
-    recipe: 'path="/loaders/html" view="demo/loaders-html.html" after="analytics"',
+    recipe: 'path="/loaders/html" view="demo/loaders-html.html" ready="analytics"',
   },
   '/loaders/fetch': {
     title: 'HTML с сервера',
     hint: 'Файл подгружается по сети; при повторном визите view кешируется (preserve)',
     group: 'Загрузка',
-    recipe: 'path="/loaders/fetch" view="partials/fetch.html" preserve after="analytics"',
+    recipe: 'path="/loaders/fetch" view="partials/fetch.html" preserve ready="analytics"',
   },
   '/loaders/template': {
     title: 'Клон из <template>',
@@ -81,9 +81,9 @@ export const SCENARIOS: Record<string, ScenarioMeta> = {
   },
   '/hooks/protected': {
     title: 'Защищённая страница',
-    hint: 'Без авторизации enter="auth" перенаправит на /login',
+    hint: 'Без авторизации guard="auth" перенаправит на /login',
     group: 'Доступ',
-    recipe: 'path="/hooks/protected" enter="auth" view="demo/protected.html"',
+    recipe: 'path="/hooks/protected" guard="auth" view="demo/protected.html"',
   },
   '/login': {
     title: 'Страница входа',

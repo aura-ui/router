@@ -111,9 +111,9 @@ describe('NavigationTransactionPipeline cancel-pending (A → B in-flight → A)
 
   it('skips commit and left when aborted after parallel transitions without supersede', async () => {
     const commitStagedView = jest.fn();
-    const onLeft = jest.fn();
+    const onUnmount = jest.fn();
     const from = createMatchedRoute('/about', {
-      onLeft,
+      onUnmount,
       transition: PARALLEL_TRANSITION,
       transitionOut: ['fade'],
     });
@@ -133,15 +133,15 @@ describe('NavigationTransactionPipeline cancel-pending (A → B in-flight → A)
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(commitStagedView).not.toHaveBeenCalled();
-    expect(onLeft).not.toHaveBeenCalled();
+    expect(onUnmount).not.toHaveBeenCalled();
     expect(transaction.engine.commitNavigation).not.toHaveBeenCalled();
     expect(transaction.viewCommitTracker.isViewCommitted()).toBe(false);
   });
 
   it('runAfterRender returns cancelled when only abort happened (same transaction id)', async () => {
     const commitStagedView = jest.fn();
-    const onLeft = jest.fn();
-    const from = createMatchedRoute('/about', { onLeft });
+    const onUnmount = jest.fn();
+    const from = createMatchedRoute('/about', { onUnmount });
     const to = createMatchedRoute('/gallery', { commitStagedView });
     const transaction = createTransaction({ from, to });
 
@@ -153,7 +153,7 @@ describe('NavigationTransactionPipeline cancel-pending (A → B in-flight → A)
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(commitStagedView).not.toHaveBeenCalled();
-    expect(onLeft).not.toHaveBeenCalled();
+    expect(onUnmount).not.toHaveBeenCalled();
     expect(transaction.engine.commitNavigation).not.toHaveBeenCalled();
   });
 });

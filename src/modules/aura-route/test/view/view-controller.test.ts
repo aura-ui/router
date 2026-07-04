@@ -65,10 +65,10 @@ function createController(
     () => passId,
   );
 
-  const originalOnLeft = controller.onLeft.bind(controller);
-  controller.onLeft = () => {
+  const originalOnUnmount = controller.onUnmount.bind(controller);
+  controller.onUnmount = () => {
     passId++;
-    originalOnLeft();
+    originalOnUnmount();
   };
 
   const originalRender = controller.render.bind(controller);
@@ -113,7 +113,7 @@ describe('RouteViewController keep-alive integration', () => {
 
     await controller.render(route);
     await controller.render(route);
-    controller.onLeft();
+    controller.onUnmount();
 
     expect(stash.has(cacheKey(route, 'user/:id'))).toBe(true);
     expect(stash.has('user/:id')).toBe(false);
@@ -143,7 +143,7 @@ describe('RouteViewController keep-alive integration', () => {
     const keyB = cacheKey(routeB, 'search');
 
     await controller.render(routeA);
-    controller.onLeft();
+    controller.onUnmount();
     expect(stash.has(keyA)).toBe(true);
     expect(keyA).toBe('/search|q=a');
 
@@ -151,7 +151,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(resolveCount).toBe(2);
     expect(stash.has(keyB)).toBe(false);
 
-    controller.onLeft();
+    controller.onUnmount();
     expect(stash.has(keyA)).toBe(true);
     expect(stash.has(keyB)).toBe(true);
     expect(keyA).not.toBe(keyB);
@@ -189,7 +189,7 @@ describe('RouteViewController keep-alive integration', () => {
     await child.render(childRoute);
     expect(parent.nestedOutlet?.querySelector('#child-view')).not.toBeNull();
 
-    child.onLeft();
+    child.onUnmount();
     expect(stash.has(cacheKey(childRoute, ':id'))).toBe(true);
 
     let resolveAfterStash = 0;
@@ -236,7 +236,7 @@ describe('RouteViewController keep-alive integration', () => {
         viewCache,
       );
       await controller.render(matched(pathname, { pattern: attrPath }));
-      controller.onLeft();
+      controller.onUnmount();
     }
 
     await visit('/a', 'a');

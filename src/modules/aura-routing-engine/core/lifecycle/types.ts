@@ -26,28 +26,28 @@ export type LifecycleHookHandling =
   | { kind: 'blocking' }
   | { kind: 'postCommit'; onError: PostCommitHookErrors };
 
-/** `<aura-route>` getter backing a phase attr (`enter`, `load`, `afterHook`, …). */
+/** `<aura-route>` getter backing a phase attr (`guard`, `load`, `ready`, …). */
 export type RouteHookAttrProp =
-  | 'enter'
+  | 'guard'
   | 'load'
-  | 'afterHook'
+  | 'ready'
   | 'leave'
   | 'error'
   | 'transitionIn'
   | 'transitionOut'
-  | 'left'
+  | 'unmount'
   | 'reenter';
 
 /** All navigation lifecycle phases, including terminal `error`. */
 export type RoutePhase =
   | 'leave'
-  | 'enter'
+  | 'guard'
   | 'load'
   | 'reenter'
   | 'transitionOut'
   | 'transitionIn'
-  | 'left'
-  | 'after'
+  | 'unmount'
+  | 'ready'
   | 'error';
 
 /** Pipeline-driven phases (excludes terminal `error`). */

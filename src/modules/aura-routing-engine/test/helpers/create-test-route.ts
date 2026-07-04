@@ -1,7 +1,6 @@
 import type { RouteInstance } from '../../core';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
-import { NO_PRESERVE } from '../../core/content/model/preserve';
 
 const noop = (): void => {};
 
@@ -20,23 +19,23 @@ export function createTestRoute(
     getAttribute(name: string): string | null {
       return name === 'path' ? path : null;
     },
-    enter: null,
+    guard: null,
     transitionIn: null,
     load: null,
-    afterHook: null,
+    ready: null,
     leave: null,
     transitionOut: null,
     error: null,
-    left: null,
+    unmount: null,
     reenter: null,
     transition: INACTIVE_TRANSITION,
-    onEnter: noop,
+    onGuard: noop,
     onTransitionIn: noop,
     onLoad: noop,
-    onAfter: noop,
+    onReady: noop,
     onLeave: noop,
     onTransitionOut: noop,
-    onLeft: noop,
+    onUnmount: noop,
     onReenter: noop,
     onError: noop,
     commitStagedView: noop,
@@ -45,14 +44,14 @@ export function createTestRoute(
   } as RouteInstance;
 
   Object.defineProperties(route, {
-    hasEnter: { get(): boolean { return !!route.enter?.length; } },
+    hasGuard: { get(): boolean { return !!route.guard?.length; } },
     hasReenter: { get(): boolean { return !!route.reenter?.length; } },
     hasLeave: { get(): boolean { return !!route.leave?.length; } },
     hasLoad: { get(): boolean { return !!route.load?.length; } },
     hasTransitionIn: { get(): boolean { return !!route.transition.in?.length; } },
-    hasPostEffects: {
+    hasReady: {
       get(): boolean {
-        return !!route.transition.out?.length || !!route.afterHook?.length;
+        return !!route.transition.out?.length || !!route.ready?.length;
       },
     },
     hasAsyncContent: {

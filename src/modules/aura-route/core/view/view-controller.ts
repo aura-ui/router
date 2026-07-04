@@ -42,7 +42,7 @@ export class RouteViewController {
   private readonly getPassId: () => number;
   private readonly renderSignal = new RenderSignal();
   private mount: MountSnapshot = { ...EMPTY_MOUNT };
-  /** Cache key from the last {@link render}; used by {@link onLeft} for keep-alive DOM. */
+  /** Cache key from the last {@link render}; used by {@link onUnmount} for keep-alive DOM. */
   private lastCacheKey: string | null = null;
 
   constructor(config: RouteViewConfig, getPassId: () => number) {
@@ -73,7 +73,7 @@ export class RouteViewController {
   }
 
   /** Detaches or destroys the active view; caches DOM when view preservation is on. */
-  onLeft(): void {
+  onUnmount(): void {
     this.renderSignal.cancel();
 
     const preserveView = this.config.route.preserve.view;

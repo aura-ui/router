@@ -14,14 +14,14 @@ export type NavigationFailureCode =
 export const FAILURE_CODE_BY_PHASE = {
   match: 'NOT_FOUND',
   leave: 'GUARD_THROW',
-  enter: 'GUARD_THROW',
+  guard: 'GUARD_THROW',
   load: 'LOAD_FAILED',
   render: 'RENDER_FAILED',
   reenter: 'REENTER_FAILED',
   transitionOut: 'TRANSITION_FAILED',
   transitionIn: 'TRANSITION_FAILED',
-  left: 'HOOK_THROW',
-  after: 'HOOK_THROW',
+  unmount: 'HOOK_THROW',
+  ready: 'HOOK_THROW',
 } as const satisfies Record<string, NavigationFailureCode>;
 
 /** Phases where a navigation error can be attributed (pipeline + match + render). */

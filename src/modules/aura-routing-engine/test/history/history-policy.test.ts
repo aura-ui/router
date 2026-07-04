@@ -45,7 +45,7 @@ describe('resolveHistoryPolicy', () => {
     ],
     ['cancelled push', { status: 'cancelled' } satisfies TransactionResult, 'push', 'preserve'],
     ['cancelled pop', { status: 'cancelled' } satisfies TransactionResult, 'pop', 'rollback-source'],
-    ['error pre-render push', pipelineErrorResult('GUARD_THROW', 'enter', 'none', '/d'), 'push', 'preserve'],
+    ['error pre-render push', pipelineErrorResult('GUARD_THROW', 'guard', 'none', '/d'), 'push', 'preserve'],
     ['error render push', pipelineErrorResult('RENDER_FAILED', 'render', 'committed', '/d'), 'push', 'commit-target'],
     ['error staged transition push', pipelineErrorResult('TRANSITION_FAILED', 'transitionOut', 'staged', '/d'), 'push', 'preserve'],
     ['error pre-render pop', pipelineErrorResult('LOAD_FAILED', 'load', 'none', '/d'), 'pop', 'rollback-source'],

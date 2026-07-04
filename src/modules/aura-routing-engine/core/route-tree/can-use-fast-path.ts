@@ -14,11 +14,11 @@ export function canUseFastPath(
   const enterRoute = plan.enterRoutes[0]!.route;
 
   if (exitRoute?.hasLeave) return false;
-  if (enterRoute.hasEnter) return false;
+  if (enterRoute.hasGuard) return false;
   if (enterRoute.hasLoad) return false;
   if (enterRoute.hasTransitionIn) return false;
-  if (exitRoute?.hasPostEffects) return false;
-  if (enterRoute.hasPostEffects) return false;
+  if (exitRoute?.hasReady) return false;
+  if (enterRoute.hasReady) return false;
   if (enterRoute.hasAsyncContent) return false;
   if (enterRoute.transition.order != null) return false;
   if (exitRoute?.transition.order != null) return false;

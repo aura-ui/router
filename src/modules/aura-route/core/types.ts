@@ -16,11 +16,11 @@ export interface AuraRouteInterface {
   scrollPolicy: ScrollAttr | null;
   readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;
-  readonly hasEnter: boolean;
+  readonly hasGuard: boolean;
   readonly hasLeave: boolean;
   readonly hasLoad: boolean;
   readonly hasTransitionIn: boolean;
-  readonly hasPostEffects: boolean;
+  readonly hasReady: boolean;
   readonly hasAsyncContent: boolean;
   readonly hasSyncContent: boolean;
 }

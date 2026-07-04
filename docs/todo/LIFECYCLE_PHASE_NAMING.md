@@ -1,6 +1,6 @@
 # Lifecycle phase naming — переименование public API
 
-> **Статус:** черновик / решение по именам, реализация не начата  
+> **Статус:** черновик / решение по именам · **в коде as-is: `reenter`** (не `update`) · `guard` / `ready` / `unmount` — в коде ✓  
 > **Цель:** короткие HTML-атрибуты, понятные без чтения docs  
 > **Область:** `<aura-route>` / `<aura-router>` lifecycle attrs, `ctx.phase`, route hooks  
 > **Связь:** [PHASE_NAMING.md](../PHASE_NAMING.md) · [LIFECYCLE_PLACEMENT.md](../LIFECYCLE_PLACEMENT.md) · [MAIN_PIPELINE.md](../MAIN_PIPELINE.md) · [ROUTE_API_V3.md](./ROUTE_API_V3.md)

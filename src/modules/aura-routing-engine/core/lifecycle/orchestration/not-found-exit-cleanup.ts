@@ -12,7 +12,7 @@ export interface NotFoundExitInput {
 }
 
 /**
- * Runs legacy `left` cleanup for the previous leaf route before fallback 404.
+ * Runs legacy `unmount` cleanup for the previous leaf route before fallback 404.
  *
  * Pre-match NOT_FOUND has no processor job or transition plan, so this function
  * deliberately keeps the old callback-only semantics while sharing lifecycle
@@ -22,9 +22,9 @@ export function runNotFoundExitCleanup(input: NotFoundExitInput): void {
   if (!input.from) return;
 
   const leaf = getLeafMatch(input.from);
-  PHASES.left.runRouteLifecycle(
+  PHASES.unmount.runRouteLifecycle(
     leaf.route,
-    NavigationTransactionPipelinePhase.buildPhaseContext(PHASES.left.phase, leaf, {
+    NavigationTransactionPipelinePhase.buildPhaseContext(PHASES.unmount.phase, leaf, {
       from: null,
       action: input.action,
       router: input.router,

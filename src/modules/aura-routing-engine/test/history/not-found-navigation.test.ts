@@ -8,8 +8,8 @@ import { createTestRoute } from '../helpers/create-test-route';
 describe('AuraRoutingEngine NOT_FOUND', () => {
   const router: RouterInstance = { navigate: jest.fn() };
 
-  it('runs onLeft, reports onNotFound, recovery, and commits URL on push', async () => {
-    const onLeft = jest.fn();
+  it('runs onUnmount, reports onNotFound, recovery, and commits URL on push', async () => {
+    const onUnmount = jest.fn();
     const onNotFound = jest.fn();
     const recover = jest.fn();
 
@@ -19,13 +19,13 @@ describe('AuraRoutingEngine NOT_FOUND', () => {
       onNotFound,
     });
     engine.setNotFoundHandler(recover);
-    engine.registerRoutes([createTestRoute('/home', { onLeft })]);
+    engine.registerRoutes([createTestRoute('/home', { onUnmount })]);
     provider.start();
 
     await engine.navigateTo('/home', 'system', { replace: true, syncHistory: false });
     await engine.navigateTo('/missing', 'push', { replace: false, syncHistory: true });
 
-    expect(onLeft).toHaveBeenCalledTimes(1);
+    expect(onUnmount).toHaveBeenCalledTimes(1);
     expect(onNotFound).toHaveBeenCalledWith(
       expect.objectContaining({
         href: '/missing',

@@ -90,10 +90,10 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(provider.currentHref).toBe('/about');
   });
 
-  it('при ошибке render вызывает onLeft у from и коммитит URL', async () => {
+  it('при ошибке render вызывает onUnmount у from и коммитит URL', async () => {
     const fromLeft = jest.fn();
     const renderError = new Error('load failed');
-    const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
+    const fromRoute = createTestRoute('/a', { onUnmount: fromLeft });
     const toRoute = createTestRoute('/d', {
       render: jest.fn().mockResolvedValue({ status: 'error', error: renderError }),
     });
@@ -126,8 +126,8 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
   it('при ошибке до render вызывает onNavigationError без commit URL', async () => {
     const fromLeft = jest.fn();
     const enterError = new Error('guard failed');
-    const fromRoute = createTestRoute('/a', { onLeft: fromLeft });
-    const toRoute = createTestRoute('/d', { enter: ['guard'] });
+    const fromRoute = createTestRoute('/a', { onUnmount: fromLeft });
+    const toRoute = createTestRoute('/d', { guard: ['guard'] });
     const onNavigationError = jest.fn();
 
     const provider = new FakeHistoryProvider('/a');
@@ -158,7 +158,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
       expect(provider.currentHref).toBe('/a');
       expect(onNavigationError).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: expect.objectContaining({ code: 'GUARD_THROW', phase: 'enter' }),
+          error: expect.objectContaining({ code: 'GUARD_THROW', phase: 'guard' }),
           href: '/d',
           viewCommitted: false,
         }),

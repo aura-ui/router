@@ -15,9 +15,9 @@ import type { RoutePhase } from '../types';
  *
  * @example
  * ```ts
- * // route: enter="auth" after="analytics"
- * resolveHookNames(route, 'enter');  // → ['auth']
- * resolveHookNames(route, 'left');   // → ['cleanup'] when left="cleanup"
+ * // route: guard="auth" ready="analytics"
+ * resolveHookNames(route, 'guard');    // → ['auth']
+ * resolveHookNames(route, 'unmount');  // → ['cleanup'] when unmount="cleanup"
  * ```
  */
 export function resolveHookNames(

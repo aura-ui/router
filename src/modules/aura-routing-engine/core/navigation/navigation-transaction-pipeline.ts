@@ -24,7 +24,7 @@ export class NavigationTransactionPipeline {
     this.transaction = transaction;
   }
 
-  /** Full path: blocking guards/loads, staged render, promote → gate → left → after. */
+  /** Full path: blocking guards/loads, staged render, promote → gate → unmount → ready. */
   async runFullPipeline(): Promise<TransactionFullResult> {
     const outcome = await this.runSequentially([
       () => this.runGuards(),
@@ -35,7 +35,7 @@ export class NavigationTransactionPipeline {
     return outcome ?? { status: 'navigationSucceeded' };
   }
 
-  /** Tier-0 swap: view commit → promote → gate → left → after (no guards/loads). */
+  /** Tier-0 swap: view commit → promote → gate → unmount → ready (no guards/loads). */
   async runFastPipeline(): Promise<TransactionFullResult> {
     const route = this.transaction.transitionPlan.enterRoutes[0]!;
     const viewCommit = await runViewCommit(route, {
@@ -71,11 +71,11 @@ export class NavigationTransactionPipeline {
     return { status: 'navigationSucceeded' };
   }
 
-  /** Blocking pre-render phases: leave (exit) → enter (enter). */
+  /** Blocking pre-render phases: leave (exit) → guard (enter). */
   runGuards(): Promise<TransactionFullResult> {
     return this.runSequentially([
       () => this.runLifecyclePhase(PHASES.leave),
-      () => this.runLifecyclePhase(PHASES.enter),
+      () => this.runLifecyclePhase(PHASES.guard),
     ]);
   }
 
@@ -172,7 +172,7 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Post-commit effects: promote staged views → commit gate → left → after.
+   * Post-commit effects: promote staged views → commit gate → unmount → ready.
    */
   async runAfterRender(): Promise<TransactionFullResult> {
     if (!this.transaction.isActive()) {
@@ -182,8 +182,8 @@ export class NavigationTransactionPipeline {
       matchedRoute.route.commitStagedView?.();
     }
     this.transaction.commitNavigation();
-    await this.runLifecyclePhase(PHASES.left);
-    return this.runLifecyclePhase(PHASES.after);
+    await this.runLifecyclePhase(PHASES.unmount);
+    return this.runLifecyclePhase(PHASES.ready);
   }
 
   /** Runs one lifecycle phase for every route on its target branch. */
@@ -207,7 +207,7 @@ export class NavigationTransactionPipeline {
     matchedRoute: MatchedRouteInfo,
     error: unknown,
   ): Promise<TransactionFullResult> {
-    await this.runLifecyclePhase(PHASES.left);
+    await this.runLifecyclePhase(PHASES.unmount);
     this.transaction.viewCommitTracker.markViewCommittedAfterErrorRecovery();
     return this.transaction.fail(matchedRoute, error, 'render');
   }

@@ -16,7 +16,6 @@ import {
   type RoutePhase,
   type RoutePhaseDefinition,
 } from '../lifecycle';
-import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
 import { runPhaseHooks } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
 
@@ -114,34 +113,6 @@ export class NavigationTransactionPipelinePhase {
     });
   }
 
-  /** Load-phase context from navigation runtime (DataGraph, no snapshot data yet). */
-  static toLoadPhaseContext(
-    route: MatchedRouteInfo,
-    runtime: LifecycleRuntimeContext,
-  ): RouteLifecycleContext {
-    return this.buildPhaseContext('load', route, {
-      from: runtime.transaction.from,
-      action: runtime.transaction.action,
-      router: runtime.router,
-      jobId: runtime.transactionId,
-      signal: runtime.transactionSignal,
-    });
-  }
-
-  /** Minimal load context for intent prefetch (no active transaction). */
-  static toPrefetchLoadPhaseContext(
-    route: MatchedRouteInfo,
-    signal: AbortSignal,
-  ): RouteLifecycleContext {
-    return this.buildPhaseContext('load', route, {
-      from: null,
-      action: 'push',
-      router: { navigate: () => {} },
-      jobId: 0,
-      signal,
-    });
-  }
-
   /** Maps a blocking {@link GuardResult} to a terminal {@link PhaseStepOutcome}. */
   private static resolveBlockingHookOutcome(hookResult: GuardResult): PhaseStepOutcome {
     if (hookResult === false) return { status: 'cancelled' };
@@ -177,7 +148,7 @@ export class NavigationTransactionPipelinePhase {
     }
   }
 
-  private static buildPhaseContext(
+  static buildPhaseContext(
     phase: RoutePhase,
     route: MatchedRouteInfo,
     source: PhaseContextSource,

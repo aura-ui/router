@@ -19,8 +19,9 @@ files inside this folder.
 ## Ownership Boundaries
 
 `failure/` does not execute route lifecycle callbacks or registered hooks.
-Lifecycle-owned error handling lives in `lifecycle/orchestration/ErrorPhaseHandler`
-because it runs route `onError` and `error="..."` hooks.
+Terminal error recovery lives in `navigation/navigation-failure-handler.ts` and
+`NavigationTransactionPipelinePhase.runError()` because they run route `onError`
+and attr `error` hooks after a `FailedNavigation` is assembled.
 
 Pre-match `NOT_FOUND` exit cleanup also belongs to lifecycle orchestration via
 `runNotFoundExitCleanup`. It is a callback-only legacy path, but it still uses the

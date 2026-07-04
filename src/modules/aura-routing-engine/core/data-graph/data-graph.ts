@@ -4,8 +4,7 @@ import { normalizeHookResult, type HookRegistry } from '../hooks/registry';
 import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { TransactionFullResult } from '../navigation/transaction-result';
-import { ErrorPhaseHandler } from '../lifecycle/orchestration/error-phase-handler';
-import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
+import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import type { RouteLifecycleContext } from '../route/types';
 import { buildRouteDataKey, routeHasLoadHooks, routeLoadHookNames } from './route-data';
@@ -31,7 +30,7 @@ export type DataGraphLoadOptions = {
    * Includes LCA parents outside {@link load} enterRoutes (cache hits without re-fetch).
    */
   activeChain?: readonly MatchedRouteInfo[];
-  runtime: LifecycleRuntimeContext;
+  transaction: NavigationTransaction;
 };
 
 export type DataGraphPrefetchOptions = {
@@ -64,7 +63,6 @@ class DataGraphTerminalError extends Error {
  */
 export class DataGraph {
   private readonly cache: AuraResolvableCache<unknown>;
-  private readonly errorHandler: ErrorPhaseHandler;
   /** Engine hook registry; prefetch uses this (no navigation runtime). */
   private readonly hooks: HookRegistry;
 
@@ -75,7 +73,6 @@ export class DataGraph {
       gcTime: options.gcTime ?? DEFAULT_GC_TIME,
       gcSweepInterval: false,
     });
-    this.errorHandler = new ErrorPhaseHandler();
   }
 
   /**
@@ -86,7 +83,7 @@ export class DataGraph {
     const activeChain = options.activeChain ?? routes;
     const routesWithLoadHooks = routes.filter(routeHasLoadHooks);
     if (routesWithLoadHooks.length) {
-      const terminal = await this.runParallelNavigationLoads(routesWithLoadHooks, options.runtime);
+      const terminal = await this.runParallelNavigationLoads(routesWithLoadHooks, options.transaction);
       if (terminal) {
         return { outcome: terminal };
       }
@@ -145,18 +142,15 @@ export class DataGraph {
    */
   private async runParallelNavigationLoads(
     enterRoutesWithLoadHooks: readonly MatchedRouteInfo[],
-    runtime: LifecycleRuntimeContext,
+    transaction: NavigationTransaction,
   ): Promise<TransactionFullResult> {
     const siblingAbort = new AbortController();
-    const loadRuntime: LifecycleRuntimeContext = {
-      ...runtime,
-      transactionSignal: AbortSignal.any([runtime.transactionSignal, siblingAbort.signal]),
-    };
+    const loadSignal = AbortSignal.any([transaction.signal, siblingAbort.signal]);
     const outcomes: TransactionFullResult[] = [];
 
     await Promise.all(
       enterRoutesWithLoadHooks.map(async (route, index) => {
-        outcomes[index] = await this.ensureNavigationLoad(route, loadRuntime, siblingAbort);
+        outcomes[index] = await this.ensureNavigationLoad(route, transaction, loadSignal, siblingAbort);
         if (outcomes[index]) {
           siblingAbort.abort();
         }
@@ -168,24 +162,31 @@ export class DataGraph {
 
   private async ensureNavigationLoad(
     route: MatchedRouteInfo,
-    runtime: LifecycleRuntimeContext,
+    transaction: NavigationTransaction,
+    loadSignal: AbortSignal,
     siblingAbort: AbortController,
   ): Promise<TransactionFullResult> {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return null;
 
     const ctx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
-      from: runtime.transaction.from,
-      action: runtime.transaction.action,
-      router: runtime.router,
-      transactionId: runtime.transactionId,
-      transactionSignal: runtime.transactionSignal,
+      from: transaction.from,
+      action: transaction.action,
+      router: transaction.engine.router,
+      transactionId: transaction.transactionId,
+      transactionSignal: loadSignal,
     });
-    const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
+    const isActive = () => transaction.isActive() && !siblingAbort.signal.aborted;
 
     try {
       await this.resolveRouteLoad(route, descriptor, () =>
-        this.runLoadPhaseHooks(runtime.hookRegistry, ctx, descriptor.hookNames, isActive, 'navigation'),
+        this.runLoadPhaseHooks(
+          transaction.engine.hooksRegistry,
+          ctx,
+          descriptor.hookNames,
+          isActive,
+          'navigation',
+        ),
       );
 
       // Immutable pipeline step: onLoad runs on every navigation, including cache hits.
@@ -194,7 +195,7 @@ export class DataGraph {
     } catch (error) {
       if (error instanceof DataGraphTerminalError) return error.outcome;
       if (!isActive()) return { status: 'cancelled' };
-      return this.errorHandler.failNavigation(route, error, 'load', runtime);
+      return transaction.fail(route, error, 'load');
     }
   }
 

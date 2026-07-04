@@ -8,10 +8,11 @@ import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { type NavigationErrorPhase } from '../failure';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
-import { ErrorPhaseHandler, type LifecycleRuntimeContext } from '../lifecycle';
+import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
 import type { DataSnapshot } from '../data-graph';
 import { canUseFastPath } from '../route-tree/can-use-fast-path';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
+import { NavigationFailureHandler } from './navigation-failure-handler';
 
 /** Returns true when a newer transaction or router generation superseded this one. */
 type IsTransactionStaleCheck = (transactionId: number, routerGenerationId: number) => boolean;
@@ -96,13 +97,15 @@ export class NavigationTransaction {
     route: MatchedRouteInfo,
     error: unknown,
     atPhase: NavigationErrorPhase,
-  ): Promise<Extract<TransactionFullResult, { status: 'error' }>> {
-    return new ErrorPhaseHandler().failNavigation(
-      route,
-      error,
-      atPhase,
-      NavigationTransaction.createTransactionContext(this),
-    );
+  ): Promise<TransactionFullResult> {
+    return !this.isActive()
+      ? { status: 'cancelled' }
+      : NavigationFailureHandler.handle(
+        route,
+        error,
+        atPhase,
+        NavigationTransaction.createTransactionContext(this),
+      );
   }
 
   /** Builds engine orchestration context for one navigation transaction. */

@@ -5,7 +5,7 @@
  * @module lifecycle/phase-registry
  */
 
-import type { RouteInstance, RouteLifecycleContext } from '../route/types';
+import type { RouteErrorContext, RouteInstance, RouteLifecycleContext } from '../route/types';
 
 import type {
   LifecycleBranch,
@@ -37,7 +37,7 @@ export type PipelinePhaseDefinition = RoutePhaseDefinition & {
 /**
  * Per-phase configuration: policy, attr bindings, and pipeline route callback.
  *
- * @see {@link PHASES.error} — terminal phase for route attrs only (no `runRouteLifecycle`)
+ * @see {@link PHASES.error} — terminal recovery phase (not in {@link PIPELINE_PHASES})
  */
 export const PHASES = {
   leave: {
@@ -119,6 +119,7 @@ export const PHASES = {
     errorPolicy: 'log',
     htmlAttr: 'error',
     routeHookProp: 'error',
+    runRouteLifecycle: (route, ctx) => route.onError(ctx as RouteErrorContext),
   },
 } as const satisfies Record<RoutePhase, RoutePhaseDefinition>;
 

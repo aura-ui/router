@@ -16,7 +16,6 @@ export {
   defaultLifecycleLogger,
 } from './logging/lifecycle-logger';
 export type { LifecycleLogger } from './logging/lifecycle-logger';
-export { ErrorPhaseHandler } from './orchestration/error-phase-handler';
 export { runNotFoundExitCleanup } from './orchestration/not-found-exit-cleanup';
 export type { NotFoundExitInput } from './orchestration/not-found-exit-cleanup';
 export type {

@@ -15,9 +15,12 @@ import {
   type RoutePhase,
 } from '../lifecycle/types';
 import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
-import type { RoutePhaseDefinition } from '../lifecycle/phase-registry';
-import { runPhaseHooks } from '../hooks/registry';
+import { PHASES, type RoutePhaseDefinition } from '../lifecycle/phase-registry';
+import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
+import type { NavigationError } from '../failure';
+import type { FailedNavigation } from '../failure/navigation-failure';
+import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
 
 /** Terminal outcome of one blocking hook step (cancel / redirect) or continue. */
 export type PhaseStepOutcome =
@@ -77,27 +80,86 @@ export class NavigationTransactionPipelinePhase {
     }
 
     // Declarative hooks bound via route HTML attributes / registry.
-    try {
-      const hookResult = await runPhaseHooks(
-        engine.hooksRegistry,
-        context,
-        resolveHookNames(route.route, phaseDef.phase) || [],
-        () => transaction.isActive(),
-      );
+    const hookNames = resolveHookNames(route.route, phaseDef.phase) || [];
 
-      if (isBlocking) {
+    if (isBlocking) {
+      try {
+        const hookResult = await runPhaseHooks(
+          engine.hooksRegistry,
+          context,
+          hookNames,
+          () => transaction.isActive(),
+        );
         return this.resolveBlockingHookOutcome(hookResult);
-      }
-
-      this.logIgnoredPostCommitOutcome(phase, hookResult);
-      return null;
-
-    } catch (error) {
-      if (isBlocking || phaseDef.hookPolicy.onError !== 'log') {
+      } catch (error) {
         return this.applyErrorPolicy(errorPolicy, phase, error, route);
       }
-      console.error(`[${phase}] post-commit hook threw (logged, continuing):`, error);
+    }
+
+    const onHookError =
+      phaseDef.hookPolicy.onError === 'log'
+        ? (error: unknown) => console.error(`[${phase}] post-commit hook threw (logged, continuing):`, error)
+        : (error: unknown) => {
+            throw error;
+          };
+
+    try {
+      await this.runLoggedPostCommitHooks(
+        context,
+        hookNames,
+        engine.hooksRegistry,
+        () => transaction.isActive(),
+        phase,
+        onHookError,
+      );
       return null;
+    } catch (error) {
+      return this.applyErrorPolicy(errorPolicy, phase, error, route);
+    }
+  }
+
+  /**
+   * Terminal `error` recovery: `onError` + attr `error` hooks.
+   * Caller supplies a normalized error and assembled {@link FailedNavigation}.
+   */
+  static async runError(
+    route: MatchedRouteInfo,
+    normalized: NavigationError,
+    failed: FailedNavigation,
+    context: LifecycleRuntimeContext,
+  ): Promise<void> {
+    const { phase, runRouteLifecycle } = PHASES.error;
+
+    const routeData = context.dataSnapshot
+      ? resolveRouteData(context.dataSnapshot, route)
+      : undefined;
+
+    const errorContext = this.buildPhaseContext(phase, route, {
+      from: context.transaction.from,
+      action: context.transaction.action,
+      router: context.router,
+      transactionId: context.transactionId,
+      transactionSignal: context.transactionSignal,
+      error: normalized,
+      ...(routeData !== undefined && { data: routeData }),
+    });
+
+    try {
+      runRouteLifecycle(route.route, errorContext);
+    } catch (routeError) {
+      context.reportHookError?.(routeError, failed);
+    }
+
+    const errorHooks = resolveHookNames(route.route, phase);
+    if (errorHooks?.length) {
+      await this.runLoggedPostCommitHooks(
+        errorContext,
+        errorHooks,
+        context.hookRegistry,
+        context.isJobActive,
+        phase,
+        (hookError) => context.reportHookError?.(hookError, failed),
+      );
     }
   }
 
@@ -152,6 +214,27 @@ export class NavigationTransactionPipelinePhase {
     const redirect = this.resolveBlockingHookOutcome(hookResult);
     if (redirect?.status === 'redirect') {
       console.warn(`[${phase}] post-commit hook returned redirect — ignored: ${redirect.url}`);
+    }
+  }
+
+  private static async runLoggedPostCommitHooks(
+    lifecycleContext: RouteLifecycleContext,
+    hookNames: readonly string[],
+    hookRegistry: HookRegistry,
+    isJobActive: () => boolean,
+    phase: RoutePhase,
+    onHookError: (error: unknown) => void,
+  ): Promise<void> {
+    try {
+      const hookResult = await runPhaseHooks(
+        hookRegistry,
+        lifecycleContext,
+        hookNames,
+        isJobActive,
+      );
+      this.logIgnoredPostCommitOutcome(phase, hookResult);
+    } catch (error) {
+      onHookError(error);
     }
   }
 

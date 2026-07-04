@@ -19,7 +19,7 @@ export type DataSnapshot = ReadonlyMap<string, unknown>;
 
 export type DataGraphLoadResult = {
   outcome?: PipelineStepOutcome;
-  /** Set when load step completes; omitted on redirect / cancel / error. */
+  /** Preserved load-hook payloads on the active branch; omitted when empty or on terminal outcome. */
   snapshot?: DataSnapshot;
 };
 
@@ -87,19 +87,15 @@ export class DataGraph {
    * Blocking navigation load — after guards, before render.
    * @param enterRoutes Routes entering this transition (LCA delta); load hooks run only here.
    */
-  async load(enterRoutes: readonly MatchedRouteInfo[], options: DataGraphLoadOptions): Promise<DataGraphLoadResult> {
-    const activeChain = options.activeChain ?? enterRoutes;
-    const enterRoutesWithLoadHooks = this.filterRoutesWithLoadHooks(enterRoutes);
-
-    if (!enterRoutesWithLoadHooks.length) {
-      return { snapshot: this.snapshot(activeChain) };
+  async load(routes: readonly MatchedRouteInfo[], options: DataGraphLoadOptions): Promise<DataGraphLoadResult> {
+    const activeChain = options.activeChain ?? routes;
+    const routesWithLoadHooks = routes.filter(routeHasLoadHooks);
+    if (routesWithLoadHooks.length) {
+      const terminal = await this.runParallelNavigationLoads(routesWithLoadHooks, options.runtime);
+      if (terminal) {
+        return { outcome: terminal };
+      }
     }
-
-    const terminal = await this.runParallelNavigationLoads(enterRoutesWithLoadHooks, options.runtime);
-    if (terminal) {
-      return { outcome: terminal };
-    }
-
     return { snapshot: this.snapshot(activeChain) };
   }
 
@@ -108,7 +104,7 @@ export class DataGraph {
     routes: readonly MatchedRouteInfo[],
     options: DataGraphPrefetchOptions,
   ): Promise<void> {
-    const routesWithLoadHooks = this.filterRoutesWithLoadHooks(routes);
+    const routesWithLoadHooks = routes.filter(routeHasLoadHooks);
     await Promise.all(routesWithLoadHooks.map((route) => this.prefetchRoute(route, options.signal)));
   }
 
@@ -124,23 +120,22 @@ export class DataGraph {
     return this.cache.invalidateAll(policy);
   }
 
-  /** Reads cached load-hook payloads for every route on the active branch. */
-  snapshot(activeChain: readonly MatchedRouteInfo[]): DataSnapshot {
+  /**
+   * Reads cached load-hook payloads for preserve.data routes on the active branch.
+   * @returns `null` when no preserved entries — keeps truthy checks meaningful downstream.
+   */
+  snapshot(activeChain: readonly MatchedRouteInfo[]): DataSnapshot | undefined {
     const data = new Map<string, unknown>();
-
     for (const route of activeChain) {
       if (!routePreservesLoadData(route)) continue;
-
       const descriptor = this.buildRouteLoadDescriptor(route);
       if (!descriptor) continue;
-
       const value = this.cache.get(descriptor.key);
       if (value !== undefined) {
         data.set(descriptor.key, value);
       }
     }
-
-    return data;
+    return data.size > 0 ? data : undefined;
   }
 
   destroy(): void {
@@ -194,8 +189,7 @@ export class DataGraph {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return null;
 
-    const input = toLifecycleContextInput(runtime);
-    const ctx = this.loadContext(route, input);
+    const ctx = createLifecycleContext('load', route, toLifecycleContextInput(runtime));
     const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
 
     try {
@@ -220,7 +214,7 @@ export class DataGraph {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return;
 
-    const ctx = this.loadContext(route, this.prefetchContextInput(abort));
+    const ctx = createLifecycleContext('load', route, this.prefetchContextInput(abort));
 
     try {
       await this.resolveRouteLoad(route, descriptor, () =>
@@ -231,8 +225,10 @@ export class DataGraph {
     }
   }
 
-  private filterRoutesWithLoadHooks(routes: readonly MatchedRouteInfo[]): MatchedRouteInfo[] {
-    return routes.filter(routeHasLoadHooks);
+  private buildRouteLoadDescriptor(route: MatchedRouteInfo): RouteLoadDescriptor | null {
+    const hookNames = routeLoadHookNames(route);
+    if (!hookNames) return null;
+    return { hookNames, key: buildRouteDataKey(route, hookNames) };
   }
 
   private async resolveRouteLoad(
@@ -245,17 +241,6 @@ export class DataGraph {
     } else {
       await load();
     }
-  }
-
-  private buildRouteLoadDescriptor(route: MatchedRouteInfo): RouteLoadDescriptor | null {
-    const hookNames = routeLoadHookNames(route);
-    if (!hookNames) return null;
-
-    return { hookNames, key: buildRouteDataKey(route, hookNames) };
-  }
-
-  private loadContext(route: MatchedRouteInfo, input: LifecycleContextInput): RouteLifecycleContext {
-    return createLifecycleContext('load', route, input);
   }
 
   private prefetchContextInput(signal: AbortSignal): LifecycleContextInput {

@@ -140,6 +140,23 @@ describe('DataGraph', () => {
     expect(loads).toBe(2);
   });
 
+  it('omits snapshot when no preserve.data entries on the active branch', async () => {
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => ({ id: 1 }),
+    });
+
+    const route = matchedRoute('/users');
+    route.route.preserve = NO_PRESERVE;
+
+    const { snapshot } = await dataGraph.load([route], {
+      runtime: runtime(hookRegistry, route),
+    });
+
+    expect(snapshot).toBeUndefined();
+  });
+
   it('does not cache load hooks when preserve data is off', async () => {
     let hookCalls = 0;
 

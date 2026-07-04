@@ -147,10 +147,10 @@ interface TransitionMap {
 | Сценарий | Условие | exit | enter | reenter |
 |----------|---------|------|-------|-----------|
 | Cold enter | `from === null` | `[]` | вся `to.chain` | `false` |
-| Reentered | тот же pathname + search + leaf | `[]` | `[leaf]` | `true` |
+| Reentered | тот же pathname + leaf (`search`/`hash` могут отличаться) | `[]` | `[leaf]` | `true` |
 | Branch diff | иначе | `buildExitRoutes` | `buildEnterRoutes` | `false` |
 
-`ProcessorPipeline` уже итерирует `exitRoutes` / `enterRoutes` — nested не требует новых фаз pipeline.
+`NavigationTransactionPipeline` уже итерирует `exitRoutes` / `enterRoutes` — nested не требует новых фаз pipeline.
 
 ---
 
@@ -218,15 +218,17 @@ lca:         null
 ### 5. Reentered
 
 ```text
-/settings/profile?tab=1  →  /settings/profile?tab=1
-(same pathname, search, leaf)
+/settings/profile?tab=1  →  /settings/profile?tab=2
+(same pathname + leaf; search may differ)
 
 exitRoutes:  []
 enterRoutes: [ profile ]
-reenter:   true
+reenter:     true
 ```
 
-Processor идёт в `runReentered` без leave/enter/load/render.
+Детекция: `isSameRouteLeaf(from, to)`. Точное совпадение URL для dedupe/history — `isSameNavigationTarget()` (pathname + search + leaf).
+
+Pipeline: `runReenter` — `runLoads()` (DataGraph) → `reenter` hooks → `commitNavigation`. Без `leave`, `guard`, render, `unmount`, `ready`.
 
 ---
 

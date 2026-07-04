@@ -23,7 +23,7 @@ export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | 
  * Строит TransitionMap для processor: exitRoutes, enterRoutes, lca, reenter.
  * @example null → profile: enter [settings, profile], exit []
  * @example profile → security: exit [profile], enter [security], lca settings
- * @example profile → profile (same url): reenter true
+ * @example profile → profile?tab=2 (same pathname + leaf): reenter true
  */
 export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRouteInfo): TransitionMap {
   if (!from) {
@@ -35,7 +35,7 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
     };
   }
 
-  if (isSameNavigationTarget(from, to)) {
+  if (isSameRouteLeaf(from, to)) {
     const leaf = getLeafMatch(to);
     return {
       exitRoutes: [],
@@ -58,8 +58,19 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
 }
 
 /**
- * Тот же URL (pathname + search) и тот же leaf route — shortcut reenter.
+ * Same leaf on the same pathname — reenter shortcut (`search` / `hash` may differ).
+ * @example `/users?q=1` → `/users?q=2` with the same leaf → true
+ */
+export function isSameRouteLeaf(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
+  if (from.pathname !== to.pathname) return false;
+  return isSameRouteMatch(getLeafMatch(from), getLeafMatch(to));
+}
+
+/**
+ * Exact same navigation slice for dedupe and history: pathname + search + leaf.
+ * Hash is not compared — hash-only navigations bypass the transaction in the engine.
  * @example `/settings/profile` → `/settings/profile` → true
+ * @example `/users?q=1` → `/users?q=2` → false
  */
 export function isSameNavigationTarget(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
   if (from.pathname !== to.pathname || from.search !== to.search) return false;

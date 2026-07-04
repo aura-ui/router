@@ -3,8 +3,7 @@ import { DEFAULT_GC_TIME, type InvalidatePolicy } from '../../../aura-cache-stor
 import { normalizeHookResult, type HookRegistry } from '../hooks/registry';
 import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { PipelineStepOutcome } from '../lifecycle/execution/phase-outcome';
-import { guardResultToPhaseOutcome } from '../lifecycle/execution/phase-outcome';
+import type { TransactionFullResult } from '../navigation/transaction-result';
 import { ErrorPhaseHandler } from '../lifecycle/orchestration/error-phase-handler';
 import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
@@ -14,7 +13,7 @@ import { buildRouteDataKey, routeHasLoadHooks, routeLoadHookNames } from './rout
 export type DataSnapshot = ReadonlyMap<string, unknown>;
 
 export type DataGraphLoadResult = {
-  outcome?: PipelineStepOutcome;
+  outcome?: TransactionFullResult;
   /** Preserved load-hook payloads on the active branch; omitted when empty or on terminal outcome. */
   snapshot?: DataSnapshot;
 };
@@ -47,7 +46,7 @@ type RouteLoadDescriptor = {
   key: string;
 };
 
-type TerminalOutcome = Exclude<PipelineStepOutcome, null>;
+type TerminalOutcome = Exclude<TransactionFullResult, null>;
 
 class DataGraphTerminalError extends Error {
   readonly outcome: TerminalOutcome;
@@ -147,13 +146,13 @@ export class DataGraph {
   private async runParallelNavigationLoads(
     enterRoutesWithLoadHooks: readonly MatchedRouteInfo[],
     runtime: LifecycleRuntimeContext,
-  ): Promise<PipelineStepOutcome> {
+  ): Promise<TransactionFullResult> {
     const siblingAbort = new AbortController();
     const loadRuntime: LifecycleRuntimeContext = {
       ...runtime,
       transactionSignal: AbortSignal.any([runtime.transactionSignal, siblingAbort.signal]),
     };
-    const outcomes: PipelineStepOutcome[] = [];
+    const outcomes: TransactionFullResult[] = [];
 
     await Promise.all(
       enterRoutesWithLoadHooks.map(async (route, index) => {
@@ -171,7 +170,7 @@ export class DataGraph {
     route: MatchedRouteInfo,
     runtime: LifecycleRuntimeContext,
     siblingAbort: AbortController,
-  ): Promise<PipelineStepOutcome> {
+  ): Promise<TransactionFullResult> {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return null;
 
@@ -268,7 +267,9 @@ export class DataGraph {
       const raw = await entry.fn({ ...lifecycleContext, options: entry.options });
       this.assertJobActive(isJobActive, mode);
 
-      const terminal = guardResultToPhaseOutcome(normalizeHookResult(raw as HookResultInput));
+      const terminal = NavigationTransactionPipelinePhase.resolveBlockingHookOutcome(
+        normalizeHookResult(raw as HookResultInput),
+      );
       this.throwIfTerminal(terminal, mode);
 
       const data = extractLoadPayload(raw);
@@ -287,7 +288,7 @@ export class DataGraph {
     throw new DataGraphTerminalError({ status: 'cancelled' });
   }
 
-  private throwIfTerminal(terminal: PipelineStepOutcome, mode: LoadHookMode): void {
+  private throwIfTerminal(terminal: TransactionFullResult, mode: LoadHookMode): void {
     if (!terminal) return;
 
     if (mode === 'prefetch') throw new Error('prefetch ignored terminal');

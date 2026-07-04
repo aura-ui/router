@@ -2,7 +2,7 @@ import {
   DEFAULT_ROUTER_PREFETCH_MODE,
   parsePrefetchAttr,
   type PrefetchType,
-} from '../../../aura-route/core/attr/prefetchAtrrParser';
+} from '../../../aura-route/core/attr/prefetch-attr-parser';
 import type { RouteInstance } from '../route/types';
 import type { PrefetchConfig, PrefetchMode } from './types';
 

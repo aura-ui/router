@@ -4,7 +4,7 @@ import {
   DEFAULT_ROUTER_PREFETCH_MODE,
   LINK_PREFETCH_MODES,
   type PrefetchType,
-} from '../../../aura-route/core/attr/prefetchAtrrParser';
+} from '../../../aura-route/core/attr/prefetch-attr-parser';
 
 export { DEFAULT_ROUTER_PREFETCH_MODE, LINK_PREFETCH_MODES };
 export type LinkPrefetchMode = PrefetchType;

@@ -7,7 +7,7 @@
  * **Implementation modules not exported from this barrel:**
  * - `route-tree/` — nested tree, branch diff implementation, `TransitionMap`, `buildTransitionPlan`
  * - `aura-routing-route-registry.ts` — route catalog snapshot
- * - `navigation/` — coordinator, transaction, pipeline, history finalize, scroll policy
+ * - `navigation/` — coordinator, transaction, pipeline, history finalize
  * - `navigation/finalize.ts` — history policy after terminal outcomes
  * - `view-mount/` — tracker/render impl (types partially exported below)
  */
@@ -52,13 +52,6 @@ export type { ViewRenderResult } from './core/view-mount/view-commit-render';
 
 export type { TransactionResult, TransactionFullResult, NavigationErrorResult } from './core/navigation/transaction-result';
 export type { NavigationCommittedContext } from './core/navigation/finalize';
-export {
-  DEFAULT_SCROLL_POLICY,
-  parseScrollPolicy,
-  resolveRouteScrollPolicy,
-  resolveScrollPolicy,
-} from './core/navigation/scroll-policy';
-export type { ScrollPolicy, ScrollPolicySource } from './core/navigation/scroll-policy';
 
 // --- History layer (default provider + DI for tests) ---
 

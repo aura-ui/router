@@ -1,8 +1,6 @@
-import type {
-  MatchedRouteInfo,
-  PreserveFlags,
-  ScrollPolicy,
-} from '../../aura-routing-engine/route-api';
+import type { MatchedRouteInfo, PreserveFlags } from '../../aura-routing-engine/route-api';
+
+import type { ScrollAttr } from './attr/scroll-attr-parser';
 
 import type { RouteTransitionType } from './attr/transition-attr-parser';
 import type { ViewAttrDescriptor } from './attr/view-attr-parser';
@@ -15,7 +13,7 @@ export interface AuraRouteInterface {
   loadingTemplate: string;
   errorTemplate: string;
   preserve: PreserveFlags;
-  scrollPolicy: ScrollPolicy | null;
+  scrollPolicy: ScrollAttr | null;
   readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;
   readonly hasEnter: boolean;

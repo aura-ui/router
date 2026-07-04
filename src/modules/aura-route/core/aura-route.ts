@@ -2,13 +2,11 @@ import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import {
   parsePreserveAttr,
-  parseScrollPolicy,
   type MatchedRouteInfo,
   type PreserveFlags,
   type RouteErrorContext,
   type RouteInstance,
   type RouteLifecycleContext,
-  type ScrollPolicy,
   type ViewRenderResult,
 } from '../../aura-routing-engine/route-api';
 import { attr } from '../../aura-utils/decorators';
@@ -32,7 +30,8 @@ import {
   parseTransitionOrder,
   type TransitionOrderType,
 } from './attr/transition-order-attr-parser';
-import { parsePrefetchAttr, type PrefetchType } from './attr/prefetchAtrrParser';
+import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parser';
+import { parseScrollAttr, type ScrollAttr } from './attr/scroll-attr-parser';
 
 export type { RouteRenderOptions, AuraRouteInterface };
 
@@ -69,9 +68,9 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     allowEmpty: true,
     cached: true,
     name: 'scroll',
-    parser: parseScrollPolicy,
+    parser: parseScrollAttr,
   })
-  scrollPolicy: ScrollPolicy | null;
+  scrollPolicy: ScrollAttr | null;
 
   @attr({ readonly: true, inherit: true, allowEmpty: true, cached: true, parser: parsePrefetchAttr })
   prefetch: PrefetchType | false | null;

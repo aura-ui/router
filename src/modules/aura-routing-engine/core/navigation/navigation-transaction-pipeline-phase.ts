@@ -1,3 +1,10 @@
+/**
+ * Single-route lifecycle step inside {@link NavigationTransactionPipeline}:
+ * route callback → registered hooks, with blocking vs post-commit policy.
+ *
+ * @module navigation/navigation-transaction-pipeline-phase
+ */
+
 import { NavigationTransaction } from './navigation-transaction';
 import type { RouteErrorContext, RouteInfo, RouteLifecycleContext } from '../route/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -11,6 +18,7 @@ import {
 import { runPhaseHooks } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph';
 
+/** Structured failure handed back to the pipeline (see {@link PhaseThrowPolicy `'failure'`}). */
 export type PhaseError = {
   kind: 'error';
   error: unknown;
@@ -18,51 +26,66 @@ export type PhaseError = {
   failedPhase: RoutePhase;
 };
 
+/**
+ * Outcome of one route × phase step.
+ * - `null` — continue the pipeline
+ * - {@link PhaseStepOutcome} — terminal (cancel / redirect) for blocking phases
+ * - {@link PhaseError} — route-level failure for the pipeline to handle
+ */
 export type PhaseRunResult = PhaseStepOutcome | PhaseError | null;
 
+/** Executes one {@link RoutePhaseDefinition} for a matched route within a transaction. */
 export class NavigationTransactionPipelinePhase {
 
-  static async run(route: MatchedRouteInfo, data: RoutePhaseDefinition, transaction: NavigationTransaction): Promise<PhaseRunResult> {
-    const isBlocking = data.hookPolicy.kind === 'blocking';
+  /**
+   * Runs the route lifecycle callback, then phase hooks from the registry.
+   * Blocking phases may return cancel/redirect; post-commit phases always continue.
+   */
+  static async run(
+    route: MatchedRouteInfo,
+    phaseDef: RoutePhaseDefinition,
+    transaction: NavigationTransaction,
+  ): Promise<PhaseRunResult> {
+    const isBlocking = phaseDef.hookPolicy.kind === 'blocking';
     const { engine } = transaction;
-    const { errorPolicy, phase, runRouteLifecycle } = data;
+    const { errorPolicy, phase, runRouteLifecycle } = phaseDef;
 
     const context: RouteLifecycleContext = this.toPipelinePhaseContext(phase, route, transaction);
 
-    // run route onFunctions
+    // Route instance callback (onEnter, onLeave, …) from {@link RoutePhaseDefinition.runRouteLifecycle}.
     try {
       runRouteLifecycle && runRouteLifecycle(route.route, context);
     } catch (error) {
-      return this.onThrow(errorPolicy, phase, error, route);
+      return this.applyErrorPolicy(errorPolicy, phase, error, route);
     }
 
-    // run route hooks defined inside route html attributes
+    // Declarative hooks bound via route HTML attributes / registry.
     try {
       const hookResult = await runPhaseHooks(
         engine.hooksRegistry,
         context,
-        resolveHookNames(route.route, data.phase) || [],
+        resolveHookNames(route.route, phaseDef.phase) || [],
         () => transaction.isActive(),
       );
 
       if (isBlocking) {
-        return this.processBlockingResult(hookResult);
+        return this.resolveBlockingHookOutcome(hookResult);
       }
 
-      this.validatePostCommitResult(data.phase, hookResult);
+      this.logIgnoredPostCommitOutcome(phase, hookResult);
       return null;
 
     } catch (error) {
-      if (isBlocking || data.hookPolicy.onError !== 'log') {
-        return this.onThrow(errorPolicy, phase, error, route);
+      if (isBlocking || phaseDef.hookPolicy.onError !== 'log') {
+        return this.applyErrorPolicy(errorPolicy, phase, error, route);
       }
-      console.error(`[${phase}] hook failed after view commit:`, error);
+      console.error(`[${phase}] post-commit hook threw (logged, continuing):`, error);
       return null;
     }
   }
 
-
-  private static processBlockingResult(hookResult: GuardResult): PhaseStepOutcome {
+  /** Maps a blocking {@link GuardResult} to a terminal {@link PhaseStepOutcome}. */
+  private static resolveBlockingHookOutcome(hookResult: GuardResult): PhaseStepOutcome {
     if (hookResult === false) return { status: 'cancelled' };
 
     if (typeof hookResult === 'string') {
@@ -80,18 +103,19 @@ export class NavigationTransactionPipelinePhase {
     return null;
   }
 
-  private static validatePostCommitResult(
+  /** Post-commit hooks cannot cancel or redirect — log and discard non-void results. */
+  private static logIgnoredPostCommitOutcome(
     phase: RoutePhase,
     hookResult: GuardResult,
   ): void {
     if (hookResult === false) {
-      console.warn(`[${phase}] hook returned false after view commit — ignored`);
+      console.warn(`[${phase}] post-commit hook returned false — ignored`);
       return;
     }
 
-    const redirect = this.processBlockingResult(hookResult);
+    const redirect = this.resolveBlockingHookOutcome(hookResult);
     if (redirect?.status === 'redirect') {
-      console.warn(`[${phase}] hook returned redirect after view commit — ignored: ${redirect.url}`);
+      console.warn(`[${phase}] post-commit hook returned redirect — ignored: ${redirect.url}`);
     }
   }
 
@@ -103,21 +127,21 @@ export class NavigationTransactionPipelinePhase {
     };
   }
 
-  private static onThrow(
+  /** Applies {@link PhaseThrowPolicy} when a lifecycle callback or hook throws. */
+  private static applyErrorPolicy(
     errorPolicy: PhaseThrowPolicy,
     phase: RoutePhase,
     error: unknown,
     route: MatchedRouteInfo,
   ): PhaseRunResult {
     if (errorPolicy === 'log') {
-      console.error(`[${phase}] failed after commit:`, error);
-      return null; // left/after — log и идём дальше
+      console.error(`[${phase}] phase threw (logged, continuing pipeline):`, error);
+      return null;
     }
     if (errorPolicy === 'propagate') {
       throw (error);
     }
 
-    // failure — отдаём управление pipeline
     return { kind: 'error', error, route, failedPhase: phase };
   }
 
@@ -125,7 +149,12 @@ export class NavigationTransactionPipelinePhase {
     return r !== null && typeof r === 'object' && 'kind' in r && r.kind === 'error';
   }
 
-  static toPipelinePhaseContext(phase: RoutePhase, route: MatchedRouteInfo, transaction: NavigationTransaction) {
+  /** Builds {@link RouteLifecycleContext} for pipeline-driven phases. */
+  static toPipelinePhaseContext(
+    phase: RoutePhase,
+    route: MatchedRouteInfo,
+    transaction: NavigationTransaction,
+  ): RouteLifecycleContext {
     const { engine, from, action, transactionId, signal } = transaction;
     return {
       phase: phase,
@@ -136,12 +165,11 @@ export class NavigationTransactionPipelinePhase {
       action,
       jobId: transactionId,
       signal,
-      /** Load-hook payload from DataGraph when available for this route/phase. */
       data: transaction.dataSnapshot ? resolveRouteData(transaction.dataSnapshot, route) : undefined,
-      // error?: unknown;
     };
   }
 
+  /** Terminal `error` phase: route `onError` + error hooks (non-blocking). */
   static async runError(
     route: MatchedRouteInfo,
     error: unknown,
@@ -153,7 +181,7 @@ export class NavigationTransactionPipelinePhase {
     try {
       route.route.onError(context);
     } catch (e) {
-      console.error('[error] onError threw:', e);
+      console.error('[error] onError callback threw:', e);
     }
 
     await runPhaseHooks(

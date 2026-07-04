@@ -21,7 +21,8 @@ export type DataSnapshot = ReadonlyMap<string, unknown>;
 
 export type DataGraphLoadResult = {
   outcome: PipelineStepOutcome;
-  snapshot: DataSnapshot;
+  /** Present only when load step completed; absent on redirect / cancel / error. */
+  snapshot?: DataSnapshot;
 };
 
 export type DataGraphOptions = {
@@ -64,7 +65,7 @@ class DataGraphTerminalError extends Error {
  */
 export class DataGraph {
   private readonly cache: AuraResolvableCache<unknown>;
-  private readonly errorHandler = new ErrorPhaseHandler();
+  private readonly errorHandler: ErrorPhaseHandler;
   private readonly hooks: HookRegistry;
 
   constructor(hooks: HookRegistry, options: DataGraphOptions = {}) {
@@ -74,26 +75,27 @@ export class DataGraph {
       gcTime: options.gcTime ?? DEFAULT_GC_TIME,
       gcSweepInterval: false,
     });
+    this.errorHandler = new ErrorPhaseHandler();
   }
 
   /** Blocking navigation load — after guards, before render. */
   async load(
-    targets: readonly MatchedRouteInfo[],
+    enterRoutes: readonly MatchedRouteInfo[],
     options: DataGraphLoadOptions,
   ): Promise<DataGraphLoadResult> {
-    const chain = options.chain ?? targets;
-    const routes = this.routesWithLoadHooks(targets);
+    const activeChain = options.chain ?? enterRoutes;
+    const routesWithLoad = this.routesWithLoadHooks(enterRoutes);
 
-    if (!routes.length) {
-      return this.loadSucceeded(chain);
+    if (!routesWithLoad.length) {
+      return this.loadSucceeded(activeChain);
     }
 
-    const terminal = await this.runParallelNavigationLoads(routes, options.runtime);
+    const terminal = await this.runParallelNavigationLoads(routesWithLoad, options.runtime);
     if (terminal) {
-      return { outcome: terminal, snapshot: new Map() };
+      return { outcome: terminal };
     }
 
-    return this.loadSucceeded(chain);
+    return this.loadSucceeded(activeChain);
   }
 
   /** Intent prefetch — guards skipped; redirect/cancel/errors ignored. */
@@ -256,7 +258,10 @@ export class DataGraph {
     return {
       from: null,
       action: 'push',
-      router: { navigate: () => {} },
+      router: {
+        navigate: () => {
+        },
+      },
       navigationJob: { id: 0, signal },
     };
   }

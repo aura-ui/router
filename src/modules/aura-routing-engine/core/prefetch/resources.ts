@@ -1,5 +1,6 @@
 import type { ContentLoadService } from '../content/content-load-service';
 import type { DataGraph } from '../data-graph';
+import { routeHasLoadHooks } from '../data-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
   CONTENT_PREFETCH_MIN_CONFIDENCE,
@@ -65,7 +66,7 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
       return 'low-confidence';
     }
 
-    const hasDataTargets = plan.enterRoutes.some((route) => this.routeHasLoadHooks(route));
+    const hasDataTargets = plan.enterRoutes.some(routeHasLoadHooks);
     if (this.dataEnabled && hasDataTargets && !this.policy.shouldPrefetchData(ctx)) {
       return 'low-confidence';
     }
@@ -89,7 +90,7 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
   private planData(plan: PrefetchPlan, ctx: PrefetchPlanContext): PrefetchResource | null {
     if (!this.dataEnabled || !this.policy.shouldPrefetchData(ctx)) return null;
 
-    const targets = plan.enterRoutes.filter((route) => this.routeHasLoadHooks(route));
+    const targets = plan.enterRoutes.filter(routeHasLoadHooks);
     if (!targets.length) return null;
 
     return {
@@ -106,10 +107,6 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
     };
 
     return Boolean(route.layout || route.view?.type);
-  }
-
-  private routeHasLoadHooks(routeInfo: MatchedRouteInfo): boolean {
-    return Boolean(routeInfo.route.load?.length);
   }
 }
 

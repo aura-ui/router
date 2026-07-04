@@ -20,8 +20,11 @@ import {
   type MatchedRouteInfo,
 } from './match/url-matcher';
 import { NavigationCoordinator as NavigationCoordinator2 } from './navigation-coordinator/navigation-coordinator';
-import { type NavigationCommittedContext } from './navigation/commit-gate';
-import { applyTransactionHistory, finalizeNotFoundNavigation } from './navigation/finalize';
+import {
+  applyTransactionHistory,
+  finalizeNotFoundNavigation,
+  type NavigationCommittedContext,
+} from './navigation/finalize';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
 import {

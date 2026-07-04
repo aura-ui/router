@@ -7,9 +7,11 @@ specific nested route tree model lives in `route-tree/README.md`.
 
 | Area | Responsibility |
 | --- | --- |
-| `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and not-found pre-match paths. |
-| `navigation/` | Matched navigation coordination, pending dedupe, commit gate, terminal finalize, and history policy integration. |
-| `processor/` | One navigation transaction: transition plan, cancellation scope, lifecycle pipeline, and rollback on supersede/cancel. |
+| `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and not-found pre-match paths, `invalidateData()`. |
+| `navigation-coordinator/` | Matched navigation control flow: pending dedupe, supersede/cancel, transaction lifecycle. |
+| `navigation-transaction/` | One navigation run: transition plan, abort signal, view rollback scope, lifecycle runtime bridge. |
+| `navigation-transaction-pipeline/` | Phase order inside a transaction: guards → loads → render/transitions → commit → post-commit. |
+| `navigation/` | History policy helpers (`finalize.ts`), scroll policy, terminal result types. |
 | `lifecycle/` | Phase metadata (`PHASES`), lifecycle context, hook binding, phase execution, and error-phase orchestration. |
 | `hooks/` | Global hook registry and hook result normalization. |
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, and `TransitionMap`. |
@@ -18,6 +20,7 @@ specific nested route tree model lives in `route-tree/README.md`.
 | `view-mount/` | View staging, commit tracking, and route render adapter. |
 | `failure/` | Structured navigation errors, failure snapshots, and failure callbacks. |
 | `content/` | Route attrs → `ContentLoadService` → cache → loader payload. |
+| `data-graph/` | Route `load` hooks, SWR cache, prefetch intent, cache invalidation. |
 | `prefetch/` | Intent-driven prefetch side channel. |
 
 ## Navigation Flow
@@ -28,35 +31,38 @@ sequenceDiagram
   participant Engine as AuraRoutingEngine
   participant Match as UrlMatcher + route registry
   participant Coord as NavigationCoordinator
-  participant Processor as AuraRoutingProcessor
-  participant Pipeline as ProcessorPipeline
-  participant Gate as commitGate
-  participant Finalize as finalizeProcessorNavigation
+  participant Tx as NavigationTransaction
+  participant Pipeline as NavigationTransactionPipeline
   participant History as NavigationProvider
 
   Source->>Engine: navigateTo(href, action, options)
   Engine->>Engine: normalize href, hash-only shortcut
   Engine->>Match: resolveNavigationTarget(href, matchableNodes)
   alt no match
-    Engine->>Finalize: finalizeNotFoundNavigation(...)
-    Finalize->>History: apply history policy
+    Engine->>Engine: finalizeNotFoundNavigation(...)
+    Engine->>History: apply history policy
   else matched
     Engine->>Coord: run({ from, to, href, action, options })
-    Coord->>Coord: NavigationPlanner.plan()
+    Coord->>Coord: plan() — noop / cancel-pending / run
     alt noop / cancel pending
       Coord-->>Engine: return
     else run transaction
-      Coord->>Processor: run({ from, to, router, commitGate })
-      Processor->>Processor: buildTransitionPlan(from, to)
-      Processor->>Pipeline: guards -> loads -> render/transition -> after
-      Pipeline->>Gate: commitGate() after view promotion
-      Gate->>History: commit target or preserve same target
-      Gate-->>Engine: setPrev(to)
-      Pipeline-->>Processor: TransactionResult
-      Processor-->>Coord: navigationSucceeded / cancelled / redirect / error
-      Coord->>Finalize: finalizeProcessorNavigation(result, ...)
-      Finalize->>History: cancellation/error policy when needed
-      Finalize-->>Engine: optional setPrev
+      Coord->>Tx: new NavigationTransaction(...)
+      Tx->>Tx: buildTransitionPlan(from, to)
+      alt fast path
+        Tx->>Pipeline: runFastPipeline()
+      else reenter
+        Tx->>Pipeline: reenter()
+      else full
+        Tx->>Pipeline: runFullPipeline()
+      end
+      Pipeline->>Engine: commitNavigation() after view promotion
+      Engine->>History: commit target or preserve same target
+      Engine->>Engine: setPrev(to)
+      Pipeline-->>Tx: TransactionFullResult
+      Tx-->>Coord: navigationSucceeded / cancelled / redirect / error
+      Coord->>Engine: finalizeCancelled / applyRedirect / finalizeError
+      Engine->>History: cancellation/error policy when needed
     end
   end
 ```
@@ -64,49 +70,63 @@ sequenceDiagram
 ## Ownership Boundaries
 
 `AuraRoutingEngine` owns external I/O: history provider lifecycle, link tracking,
-route registration, prefetch setup, hash-only navigation, and pre-match
-`NOT_FOUND`.
+route registration, prefetch setup, hash-only navigation, pre-match `NOT_FOUND`,
+and `DataGraph` cache invalidation via `invalidateData()`.
 
 `NavigationCoordinator` owns matched navigation control flow: duplicate pending
 requests, aborting a pending transaction when the active route is clicked,
-processor invocation, commit gate wiring, redirects, and terminal finalize.
+superseding in-flight transactions, and routing terminal outcomes back to the
+engine.
 
-`AuraRoutingProcessor` owns a single transaction. It builds `TransitionMap`,
-starts a cancellable job, tracks view commit state, and delegates lifecycle work
-to `ProcessorPipeline`.
+`NavigationTransaction` owns a single run: `AbortSignal`, transition plan,
+view commit tracker, staged-view rollback on cancel/supersede, and the lifecycle
+runtime slice passed to hooks.
 
-`ProcessorPipeline` owns phase order, rendering, transitions, and the commit
-gate. It delegates route lifecycle execution to `LifecycleRunner`. Blocking
-phases may cancel or redirect before view commit. Post-commit phases warn/log
-ignored cancel/redirect results.
+`NavigationTransactionPipeline` owns phase order, rendering, transitions, and
+the commit gate (`commitNavigation`). It delegates route lifecycle execution to
+`NavigationTransactionPipelinePhase` / `LifecycleRunner`. Blocking phases may
+cancel or redirect before view commit.
 
 ## Commit Vocabulary
 
 The engine keeps three related concepts separate:
 
-- `TransactionResult.status === 'navigationSucceeded'`: the processor pipeline
+- `TransactionFullResult` with `status: 'navigationSucceeded'`: the pipeline
   completed successfully.
 - `ViewCommitSnapshot.view === 'committed'`: the target view was promoted and should
   be treated as user-visible.
 - History commit: `provider.commit()` writes the target URL according to
   `resolveHistoryPolicy()`.
 
-The commit gate is the success-path boundary where the staged view is already
-promoted, history may be committed, `prev` is updated, and
+`commitNavigation()` on the engine is the success-path boundary where the staged
+view is already promoted, history may be committed, `prev` is updated, and
 `onNavigationCommitted` runs.
+
+## Data Invalidation
+
+`<aura-router>.invalidate()` delegates to `AuraRoutingEngine.invalidateData()`:
+
+- Filters: exact `key`, route `path` prefix, or custom `match` predicate.
+- `policy: 'stale'` (default) — keep readable values, mark outdated (SWR on next load).
+- `policy: 'remove'` — drop entries immediately.
+- Return value: number of affected entries; `-1` when a full invalidate ran against an empty cache.
+- Dispatches `data-invalidated` on the router element.
+
+`NavigationCoordinator.invalidate()` is unrelated — it aborts in-flight navigation
+and bumps router generation on teardown.
 
 ## Hook Registry Model
 
 `defaultHookRegistry` is intentionally a process-wide singleton. `AuraRouter.use()`
-and `AuraRouter.unuse()` mutate this shared registry, and every `AuraRouter`
-instance created by the default wiring passes it to `AuraRoutingProcessor`.
+and `AuraRouter.unuse()` mutate this shared registry; `AuraRoutingEngine` reads it
+via `hooksRegistry`.
 
 Implications:
 
 - Hooks registered through `AuraRouter.use()` are global for all router instances
   on the page.
-- Tests that need isolation should construct `new HookRegistry()` and pass it to
-  `new AuraRoutingProcessor(customRegistry)`.
+- Tests that need isolation should construct `new HookRegistry()` and inject it
+  when per-router registries become supported.
 - A future per-router hook model should be introduced explicitly rather than
   changing `defaultHookRegistry` semantics silently.
 

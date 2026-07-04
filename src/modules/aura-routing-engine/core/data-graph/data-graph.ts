@@ -175,7 +175,13 @@ export class DataGraph {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return null;
 
-    const ctx = NavigationTransactionPipelinePhase.toLoadPhaseContext(route, runtime);
+    const ctx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
+      from: runtime.transaction.from,
+      action: runtime.transaction.action,
+      router: runtime.router,
+      jobId: runtime.transactionId,
+      signal: runtime.transactionSignal,
+    });
     const isActive = () => runtime.isJobActive() && !siblingAbort.signal.aborted;
 
     try {
@@ -200,7 +206,13 @@ export class DataGraph {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return;
 
-    const ctx = NavigationTransactionPipelinePhase.toPrefetchLoadPhaseContext(route, abort);
+    const ctx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
+      from: null,
+      action: 'push',
+      router: { navigate: () => {} },
+      jobId: 0,
+      signal: abort,
+    });
 
     try {
       await this.resolveRouteLoad(route, descriptor, () =>

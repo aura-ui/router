@@ -58,6 +58,7 @@ export interface RouteInstance extends RouteHookNamesSource {
   readonly prefetch?: RouterPrefetchPolicy | null;
   readonly transition: RouteTransitionType;
   readonly hasEnter: boolean;
+  readonly hasReenter: boolean;
   readonly hasLeave: boolean;
   readonly hasLoad: boolean;
   readonly hasTransitionIn: boolean;

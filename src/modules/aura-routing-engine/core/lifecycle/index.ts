@@ -6,16 +6,6 @@ export {
   type PhaseStepOutcome,
 } from '../navigation/navigation-transaction-pipeline-phase';
 export type { TransactionFullResult as PipelineStepOutcome } from '../navigation/transaction-result';
-export { HookPolicyExecutor } from './execution/hook-policy-executor';
-export type {
-  HookPolicyContext,
-  PostCommitHookPolicyOptions,
-} from './execution/hook-policy-executor';
-export {
-  ConsoleLifecycleLogger,
-  defaultLifecycleLogger,
-} from './logging/lifecycle-logger';
-export type { LifecycleLogger } from './logging/lifecycle-logger';
 export { runNotFoundExitCleanup } from './orchestration/not-found-exit-cleanup';
 export type { NotFoundExitInput } from './orchestration/not-found-exit-cleanup';
 export type {

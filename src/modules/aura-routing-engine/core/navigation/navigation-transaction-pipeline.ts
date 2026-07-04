@@ -1,5 +1,5 @@
 import { NavigationTransaction } from './navigation-transaction';
-import { PHASES, type RoutePhaseDefinition } from '../lifecycle';
+import { PHASES, type PipelinePhaseDefinition } from '../lifecycle';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { resolveRouteData } from '../data-graph';
@@ -91,7 +91,7 @@ export class NavigationTransactionPipeline {
       },
     );
     snapshot && (this.transaction.dataSnapshot = snapshot);
-    return outcome;
+    return outcome ?? null;
   }
 
   /** Staged view commit for all enter routes (no transition wrappers). */
@@ -187,7 +187,7 @@ export class NavigationTransactionPipeline {
   }
 
   /** Runs one lifecycle phase for every route on its target branch. */
-  async runLifecyclePhase(phaseDef: RoutePhaseDefinition): Promise<TransactionFullResult> {
+  async runLifecyclePhase(phaseDef: PipelinePhaseDefinition): Promise<TransactionFullResult> {
     const matchedRoutes = this.transaction.transitionPlan[phaseDef.targetRoutes];
     for (const matchedRoute of matchedRoutes) {
       const result = await NavigationTransactionPipelinePhase.run(
@@ -206,7 +206,7 @@ export class NavigationTransactionPipeline {
   private async failRender(
     matchedRoute: MatchedRouteInfo,
     error: unknown,
-  ): Promise<Extract<TransactionFullResult, { status: 'error' }>> {
+  ): Promise<TransactionFullResult> {
     await this.runLifecyclePhase(PHASES.left);
     this.transaction.viewCommitTracker.markViewCommittedAfterErrorRecovery();
     return this.transaction.fail(matchedRoute, error, 'render');

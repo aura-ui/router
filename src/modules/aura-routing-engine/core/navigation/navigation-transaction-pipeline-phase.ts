@@ -14,11 +14,16 @@ import {
   type PhaseThrowPolicy,
   type RoutePhase,
 } from '../lifecycle/types';
-import type { PhaseStepOutcome } from '../lifecycle/execution/phase-outcome';
 import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
 import type { RoutePhaseDefinition } from '../lifecycle/phase-registry';
 import { runPhaseHooks } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
+
+/** Terminal outcome of one blocking hook step (cancel / redirect) or continue. */
+export type PhaseStepOutcome =
+  | { status: 'cancelled' }
+  | { status: 'redirect'; url: string; replace?: boolean }
+  | null;
 
 /** Structured failure handed back to the pipeline (see {@link PhaseThrowPolicy `'failure'`}). */
 export type PhaseError = {
@@ -116,7 +121,7 @@ export class NavigationTransactionPipelinePhase {
   }
 
   /** Maps a blocking {@link GuardResult} to a terminal {@link PhaseStepOutcome}. */
-  private static resolveBlockingHookOutcome(hookResult: GuardResult): PhaseStepOutcome {
+  static resolveBlockingHookOutcome(hookResult: GuardResult): PhaseStepOutcome {
     if (hookResult === false) return { status: 'cancelled' };
 
     if (typeof hookResult === 'string') {

@@ -1,11 +1,11 @@
 export { resolveHookNames } from './bindings/route-hook-bindings';
 export { PHASES, PIPELINE_PHASES } from './phase-registry';
 export type { PipelinePhaseDefinition, RoutePhaseDefinition } from './phase-registry';
-export { guardResultToPhaseOutcome } from './execution/phase-outcome';
-export type {
-  PhaseStepOutcome,
-  PipelineStepOutcome,
-} from './execution/phase-outcome';
+export {
+  NavigationTransactionPipelinePhase,
+  type PhaseStepOutcome,
+} from '../navigation/navigation-transaction-pipeline-phase';
+export type { TransactionFullResult as PipelineStepOutcome } from '../navigation/transaction-result';
 export { HookPolicyExecutor } from './execution/hook-policy-executor';
 export type {
   HookPolicyContext,

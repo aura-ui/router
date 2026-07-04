@@ -4,7 +4,10 @@ import type { RouteLifecycleContext } from '../../route/types';
 import { defaultLifecycleLogger, type LifecycleLogger } from '../logging/lifecycle-logger';
 import type { PostCommitHookErrors, RoutePhase } from '../types';
 
-import { guardResultToPhaseOutcome, type PhaseStepOutcome } from './phase-outcome';
+import {
+  NavigationTransactionPipelinePhase,
+  type PhaseStepOutcome,
+} from '../../navigation/navigation-transaction-pipeline-phase';
 
 export interface HookPolicyContext {
   hookRegistry: HookRegistry;
@@ -35,7 +38,7 @@ export class HookPolicyExecutor {
       ctx.isJobActive,
     );
 
-    return guardResultToPhaseOutcome(hookResult);
+    return NavigationTransactionPipelinePhase.resolveBlockingHookOutcome(hookResult);
   }
 
   async runPostCommit(
@@ -92,7 +95,7 @@ export class HookPolicyExecutor {
       return;
     }
 
-    const redirect = guardResultToPhaseOutcome(hookResult);
+    const redirect = NavigationTransactionPipelinePhase.resolveBlockingHookOutcome(hookResult);
     if (redirect?.status === 'redirect') {
       this.logger.postCommitRedirectIgnored(lifecyclePhase, redirect.url);
     }

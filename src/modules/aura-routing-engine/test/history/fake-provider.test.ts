@@ -110,6 +110,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     engine.start();
 
     await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });
+    await new Promise(resolve => setTimeout(resolve, 1));
     await engine.navigateTo('/d', 'push', { replace: false, syncHistory: true });
 
     expect(fromLeft).toHaveBeenCalledTimes(1);

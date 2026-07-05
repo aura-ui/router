@@ -147,7 +147,7 @@ interface TransitionMap {
 | Сценарий | Условие | exit | enter | reenter |
 |----------|---------|------|-------|-----------|
 | Cold enter | `from === null` | `[]` | вся `to.chain` | `false` |
-| Reentered | тот же pathname + leaf (`search`/`hash` могут отличаться) | `[]` | `[leaf]` | `true` |
+| Reentered | тот же leaf (`pathname` и/или `search`/`params` могут отличаться) | `[]` | `[leaf]` | `true` |
 | Branch diff | иначе | `buildExitRoutes` | `buildEnterRoutes` | `false` |
 
 `NavigationTransactionPipeline` уже итерирует `exitRoutes` / `enterRoutes` — nested не требует новых фаз pipeline.
@@ -215,18 +215,22 @@ lca:         null
 
 Поведение совпадает с flat `buildTransitionPlan` до nested.
 
-### 5. Reentered
+### 5. Reentered (query or param change)
 
 ```text
-/settings/profile?tab=1  →  /settings/profile?tab=2
-(same pathname + leaf; search may differ)
+/settings/profile?tab=1  →  /settings/profile?tab=2   (query)
+/users/1               →  /users/2                    (params)
+```
 
+```text
 exitRoutes:  []
-enterRoutes: [ profile ]
+enterRoutes: [ leaf with new query/params ]
 reenter:     true
 ```
 
-Детекция: `isSameRouteLeaf(from, to)`. Точное совпадение URL для dedupe/history — `isSameNavigationTarget()` (pathname + search + leaf).
+Детекция: `isSameRouteRecord(from, to)` (тот же leaf `node`).  
+Подмножество с тем же pathname: `isSameRouteLeaf`.  
+Точное совпадение URL для dedupe/history — `isSameNavigationTarget()` (pathname + search + leaf).
 
 Pipeline: `runReenter` — `runLoads()` (DataGraph) → `reenter` hooks → `commitNavigation`. Без `leave`, `guard`, render, `unmount`, `ready`.
 

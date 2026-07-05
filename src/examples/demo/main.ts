@@ -1,18 +1,10 @@
-import {
-  AuraRouter,
-  AURA_ROUTER_NAVIGATION,
-  AURA_ROUTER_NAVIGATION_START,
-  type AuraRouterNavigationStartEvent,
-} from '../../modules/aura-router/core';
+import { AuraRouter } from '../../modules/aura-router/core';
 import { highlightDemoCode } from './highlight-code';
 
 AuraRouter.install();
 
-const router = document.querySelector<AuraRouter>(AuraRouter.is);
-let currentPath = location.pathname;
-
 function syncActiveLinks(): void {
-  const path = currentPath;
+  const path = location.pathname;
 
   document.querySelectorAll<HTMLAnchorElement>('[data-router-link]').forEach((link) => {
     const linkPath = link.pathname;
@@ -29,7 +21,7 @@ function syncActiveLinks(): void {
 
 function syncSiteUrl(): void {
   const urlEl = document.getElementById('demo-site-url');
-  if (urlEl) urlEl.textContent = currentPath;
+  if (urlEl) urlEl.textContent = location.pathname;
 }
 
 function refreshDemoUi(): void {
@@ -38,25 +30,17 @@ function refreshDemoUi(): void {
   highlightDemoCode(document);
 }
 
-router?.addEventListener(AURA_ROUTER_NAVIGATION_START, (event) => {
-  const { pathname } = (event as AuraRouterNavigationStartEvent).detail;
-  currentPath = pathname;
-  syncActiveLinks();
-  syncSiteUrl();
+document.addEventListener('click', (event) => {
+  if ((event.target as Element).closest('[data-router-link]')) {
+    queueMicrotask(refreshDemoUi);
+  }
 });
 
-router?.addEventListener(AURA_ROUTER_NAVIGATION, () => {
-  highlightDemoCode(document);
-});
-
-window.addEventListener('popstate', () => {
-  currentPath = location.pathname;
-  refreshDemoUi();
-});
+window.addEventListener('popstate', refreshDemoUi);
 
 const outlet = document.querySelector('.demo-site-outlet');
 if (outlet) {
-  new MutationObserver(() => highlightDemoCode(outlet)).observe(outlet, {
+  new MutationObserver(() => refreshDemoUi()).observe(outlet, {
     childList: true,
     subtree: true,
   });

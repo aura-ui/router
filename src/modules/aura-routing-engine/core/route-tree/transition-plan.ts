@@ -20,6 +20,11 @@ export interface TransitionMap {
   lca: MatchedRouteInfo | null;
   /** `true` — update shortcut (тот же leaf, без leave/guard/render). */
   update: boolean;
+  /**
+   * Synthetic param remount на том же leaf `<aura-route>`: render enter уже заменил DOM.
+   * Controller в `onUnmount` не трогает active view; `unmount="…"` hooks на exitRoutes остаются.
+   */
+  paramChangeRemount?: boolean;
 }
 
 /**
@@ -119,6 +124,7 @@ function buildSameRecordPlan(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInf
     enterRoutes: [toLeaf],
     lca: parentIndex >= 0 ? chain[parentIndex]! : null,
     update: false,
+    paramChangeRemount: true,
   };
 }
 

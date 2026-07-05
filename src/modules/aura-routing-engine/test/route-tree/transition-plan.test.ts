@@ -179,6 +179,7 @@ describe('buildTransitionPlan', () => {
     const plan = buildTransitionPlan(from, to);
 
     expect(plan.update).toBe(false);
+    expect(plan.paramChangeRemount).toBe(true);
     expect(plan.exitRoutes).toHaveLength(1);
     expect(plan.enterRoutes).toHaveLength(1);
     expect(plan.enterRoutes[0]!.params).toEqual({ id: '2' });
@@ -196,6 +197,7 @@ describe('buildTransitionPlan', () => {
     const plan = buildTransitionPlan(from, to);
 
     expect(plan.update).toBe(false);
+    expect(plan.paramChangeRemount).toBe(true);
     expect(plan.exitRoutes.map(routeMatchKey)).toEqual(['/users/:id']);
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/users/:id']);
     expect(plan.lca).toBeNull();

@@ -154,6 +154,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     const { transaction } = await runNavigation(from, to);
 
     expect(transaction.transitionPlan.update).toBe(false);
+    expect(transaction.transitionPlan.paramChangeRemount).toBe(true);
     expect(transaction.transitionPlan.exitRoutes).toHaveLength(1);
     expect(transaction.transitionPlan.lca?.pattern).toBe('/users');
     expect(transaction.transitionPlan.exitRoutes[0]!.pattern).toBe('/users/:id');

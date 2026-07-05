@@ -346,6 +346,33 @@ describe('NavigationTransactionPipeline.runAfterRender', () => {
 
     expect(phases).toEqual(['unmount', 'ready']);
   });
+
+  it('runs onUnmount during param-change remount unmount phase', async () => {
+    const phases: string[] = [];
+    const onUnmount = jest.fn();
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
+      phases.push(ctx.phase);
+    });
+
+    const exitRoute = createMatchedRoute('/users/:id', { unmount: ['cleanup'], ready: ['analytics'] });
+    exitRoute.params = { id: '1' };
+    exitRoute.route.onUnmount = onUnmount;
+    const enterRoute = createMatchedRoute('/users/:id', { unmount: ['cleanup'], ready: ['analytics'] });
+    enterRoute.params = { id: '2' };
+
+    const transaction = createMockTransaction({
+      transitionOrder: null,
+      exitRoutes: [exitRoute],
+      enterRoutes: [enterRoute],
+    });
+    transaction.transitionPlan.paramChangeRemount = true;
+    transaction.viewCommitTracker.markViewStaged();
+
+    await new NavigationTransactionPipeline(transaction).runAfterRender();
+
+    expect(onUnmount).toHaveBeenCalledTimes(1);
+    expect(phases).toEqual(['unmount', 'ready']);
+  });
 });
 
 describe('NavigationTransactionPipeline supersede', () => {

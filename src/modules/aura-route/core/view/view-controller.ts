@@ -15,6 +15,7 @@ import {
   rollbackStaged,
   toMountSlice,
   unmountOnLeave,
+  unmountParamChangeOutgoing,
   finalizeLeave,
   type MountContext,
   type MountSnapshot,
@@ -44,6 +45,8 @@ export class RouteViewController {
   private mount: MountSnapshot = { ...EMPTY_MOUNT };
   /** Cache key from the last {@link render}; used by {@link onUnmount} for keep-alive DOM. */
   private lastCacheKey: string | null = null;
+  /** Set during {@link render} for synthetic param remount on the same leaf route. */
+  private paramChangeRemount = false;
 
   constructor(config: RouteViewConfig, getPassId: () => number) {
     this.config = config;
@@ -63,6 +66,7 @@ export class RouteViewController {
    * Returns `{ status: 'error' }` after mounting recovery UI — does not rethrow.
    */
   async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
+    this.paramChangeRemount = options?.paramChangeRemount === true;
     const pass = this.beginPass(routeInfo, options?.parentSignal, options?.data);
     this.lastCacheKey = pass.cacheKey;
     return this.renderPass(pass);
@@ -72,12 +76,18 @@ export class RouteViewController {
     this.mount = commitStaged(this.mount);
   }
 
-  /** Detaches or destroys the active view; caches DOM when view preservation is on. */
+  /** Detaches or destroys exit view; param-change remount only touches lingering outgoing handle. */
   onUnmount(): void {
     this.renderSignal.cancel();
 
     const preserveView = this.config.route.preserve.view;
-    const { snapshot, detachedRoot } = unmountOnLeave(this.mount, preserveView);
+    const paramChange = this.paramChangeRemount;
+    this.paramChangeRemount = false;
+
+    const { snapshot, detachedRoot } = paramChange
+      ? unmountParamChangeOutgoing(this.mount, preserveView)
+      : unmountOnLeave(this.mount, preserveView);
+
     this.mount = finalizeLeave(snapshot, preserveView, detachedRoot);
 
     if (preserveView && detachedRoot) {
@@ -113,7 +123,14 @@ export class RouteViewController {
 
   private beginPass(routeInfo: MatchedRouteInfo, parentSignal?: AbortSignal, data?: unknown): RenderPass {
     const signal = this.renderSignal.begin(parentSignal);
-    return createRenderPass(this.getPassId(), this.config.route, routeInfo, signal, data);
+    return createRenderPass(
+      this.getPassId(),
+      this.config.route,
+      routeInfo,
+      signal,
+      data,
+      this.paramChangeRemount,
+    );
   }
 
   private async renderPass(pass: RenderPass): Promise<ViewRenderResult> {
@@ -121,7 +138,7 @@ export class RouteViewController {
 
     try {
       if (this.tryCacheRestore(pass)) return { status: 'ok' };
-      if (this.shouldSkipKeepAlive(pass)) return { status: 'ok' };
+      if (this.isViewAlreadyInOutlet(pass)) return { status: 'ok' };
 
       this.emit('onPassStart', pass);
       loadingHooks = true;
@@ -148,7 +165,9 @@ export class RouteViewController {
     return this.applyMount(pass, cachedRoot, pass.viewKind, cachedRoot);
   }
 
-  private shouldSkipKeepAlive(pass: RenderPass): boolean {
+  private isViewAlreadyInOutlet(pass: RenderPass): boolean {
+    if (this.paramChangeRemount) return false;
+
     return this.config.route.preserve.view
       && hasActiveMount(toMountSlice(this.mount), pass.viewKind === 'layout');
   }

@@ -1,3 +1,5 @@
+@charset "UTF-8";
+
 /**
  * Визуализация outlet / layout / view в demo-сценариях.
  * Подключается через @import в demo.css.
@@ -20,7 +22,7 @@
 }
 
 .demo-root-outlet::before {
-  content: 'корневой outlet';
+  content: 'Корневой <aura-outlet>';
   display: block;
   margin-bottom: 0.65rem;
   font-size: 0.68rem;
@@ -41,7 +43,7 @@
 }
 
 .demo-nested-outlet::before {
-  content: 'вложенный outlet';
+  content: '<aura-outlet>';
   display: block;
   margin-bottom: 0.45rem;
   font-size: 0.65rem;
@@ -137,7 +139,7 @@
 }
 
 .demo-site-view.demo-layout-view::before {
-  content: 'конечный view';
+  content: 'Конечный view';
   display: block;
   margin-bottom: 0.55rem;
   font-size: 0.68rem;

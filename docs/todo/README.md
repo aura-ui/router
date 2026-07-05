@@ -25,6 +25,7 @@
 | [LIFECYCLE_PHASE_NAMING.md](./LIFECYCLE_PHASE_NAMING.md) | Lifecycle attrs (tiers) + **parity с мировыми роутерами** (как думать в будущем) |
 | [PARAM_CHANGE_POLICY.md](./PARAM_CHANGE_POLICY.md) | **RFC:** param-change на `:id` — view-key inference (update vs full) + `param-change` override |
 | [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) | DOM events: что есть (`not-found`, errors) и roadmap (`navigation-commit`, cancel, …) |
+| [OPTIMISTIC_URL.md](./OPTIMISTIC_URL.md) | **RFC:** optimistic URL vs stage-until-commit; текущий рассинхрон content/history и TODO |
 | [RENDERER_ABSTRACTION.md](./RENDERER_ABSTRACTION.md) | **Фаза 6:** engine-level `Renderer.renderNode()` + централизованный `dispose`; ViewHandle ✓, engine Renderer ✗ |
 | [EVENT_BUS.md](./EVENT_BUS.md) | **Фаза 7:** внутренний EventBus (`navigation:*`, `load:*`, `node:*`) — as-is, точки emit, план EB0–EB4 |
 | [SSR_MPA_STRATEGY.md](./SSR_MPA_STRATEGY.md) | MPA→SPA (roadmap Phase 8) + SSR runtime как исследование (не в roadmap) |

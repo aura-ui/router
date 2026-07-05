@@ -2,163 +2,24 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#f2f5f7" />
-  <title>Aura Router — демо</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,650;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/demo/demo.css" />
+  <title>Aura UI &gt; Router — демо</title>
+  <link rel="stylesheet" href="/demo.css" />
 </head>
-<body class="mode-home">
-
-<div class="shell">
-  <header class="topbar">
-    <div class="topbar__brand">
-      <div class="topbar__logo" aria-hidden="true">A</div>
-      <div>
-        <h1>Aura Router</h1>
-        <p id="topbar-tagline">Страницы без перезагрузки</p>
-      </div>
-    </div>
-    <div class="topbar__actions">
-      <div class="auth-chip" id="demo-auth-chip">
-        <span>Вы: <span class="auth-chip__state" id="demo-auth-status" data-state="off">Гость</span></span>
-        <button type="button" id="demo-auth-toggle" data-demo-auth-toggle>Войти</button>
-      </div>
-      <button type="button" class="topbar__btn" id="demo-dev-toggle" hidden title="Конфиг маршрута и журнал">Конфиг</button>
-      <button type="button" class="topbar__btn" id="demo-tour-start" title="Подсказки по демо">?</button>
-      <a class="topbar__link" href="https://github.com/aura-ui/router" target="_blank" rel="noopener">GitHub ↗</a>
-    </div>
-  </header>
-
-  <div class="stage">
-    <header class="stage__url-header">
-      <span class="stage__url-label">Адрес</span>
-      <div class="stage__url-row">
-        <code class="stage__url" id="demo-current-path" aria-live="polite" aria-atomic="true">/</code>
-        <button type="button" class="stage__url-copy" id="demo-url-copy" title="Скопировать URL">Копировать</button>
-        <span class="stage__url-badge" id="demo-url-badge" hidden>обновлён</span>
-      </div>
-    </header>
-
-    <aura-router id="app-router"
-                 prefetch="intent"
-                 scroll="manual"
-                 transition-order="parallel"
-                 error-template="error-template"
-                 loading-template="loading-template">
-      <div class="stage__viewport">
-        <aura-outlet></aura-outlet>
-      </div>
-
-      <aura-route path="/" view="demo/welcome.html" ready="analytics"></aura-route>
-      <aura-route path="/dev" view="demo/dev-hub.html" ready="analytics"></aura-route>
-      <aura-route path="/loaders/html" view="demo/loaders-html.html" ready="analytics"></aura-route>
-      <aura-route path="/loaders/fetch" view="partials/fetch.html" preserve ready="analytics"></aura-route>
-      <aura-route path="/loaders/template" view="template::app"></aura-route>
-      <aura-route path="/loaders/custom" view="custom-loader::demo"></aura-route>
-      <aura-route path="/loaders/component" view="component-src::examples/demo/components/test-element" preserve></aura-route>
-      <aura-route path="/loaders/slow" view="slow-loader::demo"></aura-route>
-      <aura-route path="/loaders/error" view="component-src::examples/demo/components/broken-element"></aura-route>
-      <aura-route path="/routing/users" layout="users-layout">
-        <aura-route path="." view="partials/users-list.html"></aura-route>
-        <aura-route path="about" view="partials/users-about.html" preserve></aura-route>
-        <aura-route path=":id" update="user-sync" view="component-src::examples/demo/components/test-element"></aura-route>
-      </aura-route>
-      <aura-route path="/hooks/protected" guard="auth" view="demo/protected.html" ready="analytics"></aura-route>
-      <aura-route path="/login" view="demo/login.html"></aura-route>
-      <aura-route path="/ux/scroll" view="demo/scroll.html" scroll="restore"></aura-route>
-      <aura-route path="/ux/prefetch" view="demo/prefetch.html" ready="analytics"></aura-route>
-      <aura-route path="/hooks/data" load="user-stats" preserve="data" view="component-src::examples/demo/components/data-demo" ready="analytics"></aura-route>
-      <aura-route path="/t/home" view="html::&lt;div class=&quot;t-page t-home&quot;&gt;&lt;h2 class=&quot;scene__title&quot;&gt;Home&lt;/h2&gt;&lt;p&gt;Fade между страницами.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/about&quot; data-router-link&gt;About →&lt;/a&gt;&lt;a href=&quot;/t/gallery&quot; data-router-link&gt;Gallery (slide)&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
-        transition-in="fade" transition-out="fade"></aura-route>
-      <aura-route path="/t/about" view="html::&lt;div class=&quot;t-page t-about&quot;&gt;&lt;h2 class=&quot;scene__title&quot;&gt;About&lt;/h2&gt;&lt;p&gt;Переключайте туда-сюда.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/home&quot; data-router-link&gt;← Home&lt;/a&gt;&lt;a href=&quot;/t/gallery&quot; data-router-link&gt;Gallery (slide)&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
-        transition-in="fade" transition-out="fade"></aura-route>
-      <aura-route path="/t/gallery" view="html::&lt;div class=&quot;t-page t-gallery&quot;&gt;&lt;h2 class=&quot;scene__title&quot;&gt;Gallery&lt;/h2&gt;&lt;p&gt;Slide-переход.&lt;/p&gt;&lt;div class=&quot;scene__links&quot;&gt;&lt;a href=&quot;/t/home&quot; data-router-link&gt;← Home&lt;/a&gt;&lt;a href=&quot;/t/about&quot; data-router-link&gt;About&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;"
-        transition-in="slide" transition-out="slide"></aura-route>
-      <aura-route path="*" view="template::404-template"></aura-route>
-    </aura-router>
-
-    <aside class="story-bar" id="demo-story-bar" hidden>
-      <div class="story-bar__head">
-        <button type="button" class="story-bar__back" id="demo-story-back">← Все истории</button>
-        <h2 class="story-bar__title" id="demo-story-title"></h2>
-        <button type="button" class="story-bar__code" id="demo-story-code">Код</button>
-      </div>
-      <div class="story-bar__hints">
-        <div class="story-bar__hint story-bar__hint--try">
-          <span>Попробуйте</span>
-          <p id="demo-story-try"></p>
-        </div>
-        <div class="story-bar__hint story-bar__hint--watch">
-          <span>Смотрите</span>
-          <p id="demo-story-watch"></p>
-        </div>
-      </div>
-      <div class="story-bar__extras" id="demo-story-extras" hidden>
-        <span class="story-bar__extra-label">Порядок анимации</span>
-        <div class="transition-row" role="group" aria-label="Порядок анимации">
-          <button type="button" data-transition-policy="parallel" class="is-active">parallel</button>
-          <button type="button" data-transition-policy="out-in">out-in</button>
-          <button type="button" data-transition-policy="in-out">in-out</button>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <aside class="dev-panel" id="demo-dev-panel" hidden>
-    <div class="dev-panel__head">
-      <h2>Конфиг маршрута</h2>
-      <button type="button" class="dev-panel__close" id="demo-dev-close">скрыть</button>
-    </div>
-    <code class="dev-panel__recipe" id="demo-route-recipe"></code>
-    <div class="dev-panel__log">
-      <strong>Журнал</strong>
-      <ul id="demo-log-list"></ul>
-    </div>
-  </aside>
-</div>
-
-<template id="app">
-  <article class="scene"><h2 class="scene__title">Клон из &lt;template&gt;</h2></article>
-</template>
-<template id="loading-template"><div class="tpl-loading" role="status">Загрузка…</div></template>
-<template id="error-template"><div class="tpl-error" role="alert"><strong>Ошибка</strong></div></template>
-<template id="404-template">
-  <div class="tpl-404">
-    <h1>404</h1>
-    <p>Нет маршрута: <strong data-not-found-url></strong></p>
-    <div class="scene__links" style="justify-content:center"><a href="/" data-router-link>На главную</a></div>
-  </div>
-</template>
-<template id="users-layout">
-  <div class="users-shell">
-    <div class="users-shell__bar">
-      <span>Раздел «Users»</span>
-      <div class="users-shell__links">
-        <a href="/routing/users" data-router-link>Список</a>
-        <a href="/routing/users/about" data-router-link>About</a>
-      </div>
-    </div>
-    <aura-outlet></aura-outlet>
-  </div>
-</template>
-
-<div class="tour-overlay" id="demo-tour-root" hidden>
-  <div class="tour-overlay__backdrop"></div>
-  <div class="tour-overlay__spotlight"></div>
-  <div class="tour-overlay__card">
-    <h3 data-tour-title></h3>
-    <p data-tour-text></p>
-    <div class="tour-overlay__actions">
-      <button type="button" data-tour-skip>Пропустить</button>
-      <button type="button" data-tour-next>Далее</button>
+<body>
+  <div class="shell">
+    <div class="demo-page">
+      <header class="demo-header">
+        <span class="demo-header__brand">Aura UI &gt; Router</span>
+      </header>
+      <main>
+        <h1>Демо</h1>
+        <p>Оглавление. Каждый пункт — отдельный сценарий (полная загрузка страницы).</p>
+        <nav class="demo-links">
+          <a href="/features/routing/index.html">Роутинг — обычный и вложенный</a>
+        </nav>
+      </main>
     </div>
   </div>
-</div>
-
-<script type="module" src="/src/examples/demo/main.ts"></script>
 </body>
 </html>

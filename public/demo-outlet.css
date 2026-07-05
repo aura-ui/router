@@ -46,7 +46,7 @@
 .demo-nested-outlet {
   display: block;
   position: relative;
-  min-height: 2rem;
+  min-height: 26rem;
   padding: 1rem 0 0;
   border: none;
   border-top: 1px solid var(--border);
@@ -112,6 +112,7 @@
   position: relative;
   margin-top: 1rem;
   padding: 1rem 0 0;
+  min-height: 28rem;
   border: none;
   border-top: 1px dashed var(--border);
   border-radius: 0;

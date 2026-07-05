@@ -24,6 +24,7 @@ export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | 
  * @example null → profile: enter [settings, profile], exit []
  * @example profile → security: exit [profile], enter [security], lca settings
  * @example profile → profile?tab=2 (same pathname + leaf): reenter true
+ * @example /users/1 → /users/2 (same leaf node, params change): reenter true
  */
 export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRouteInfo): TransitionMap {
   if (!from) {
@@ -35,7 +36,7 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
     };
   }
 
-  if (isSameRouteLeaf(from, to)) {
+  if (isSameRouteRecord(from, to)) {
     const leaf = getLeafMatch(to);
     return {
       exitRoutes: [],
@@ -58,12 +59,21 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
 }
 
 /**
- * Same leaf on the same pathname — reenter shortcut (`search` / `hash` may differ).
+ * Same route record (leaf node / pattern) — reenter/update shortcut.
+ * Pathname may differ when only dynamic params change (`/users/1` → `/users/2`).
+ * @example `/users/1` → `/users/2` on `/users/:id` → true
+ */
+export function isSameRouteRecord(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
+  return isSameRouteMatch(getLeafMatch(from), getLeafMatch(to));
+}
+
+/**
+ * Same leaf on the same pathname — query/hash shortcut subset of {@link isSameRouteRecord}.
  * @example `/users?q=1` → `/users?q=2` with the same leaf → true
  */
 export function isSameRouteLeaf(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
   if (from.pathname !== to.pathname) return false;
-  return isSameRouteMatch(getLeafMatch(from), getLeafMatch(to));
+  return isSameRouteRecord(from, to);
 }
 
 /**

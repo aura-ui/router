@@ -4,10 +4,12 @@ import {
   getEnterRoute,
   isSameNavigationTarget,
   isSameRouteLeaf,
+  isSameRouteRecord,
 } from '../../core/route-tree/transition-plan';
 import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
+import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
 
 function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
   return {
@@ -152,9 +154,26 @@ describe('buildTransitionPlan', () => {
     expect(isSameRouteLeaf(from, to)).toBe(true);
     expect(isSameNavigationTarget(from, to)).toBe(false);
   });
+
+  it('reenter shortcut when dynamic params change on the same leaf node', () => {
+    const node = createUsersIdNode();
+    const from = createUsersIdMatch('1', node);
+    const to = createUsersIdMatch('2', node);
+
+    const plan = buildTransitionPlan(from, to);
+
+    expect(isSameRouteRecord(from, to)).toBe(true);
+    expect(isSameRouteLeaf(from, to)).toBe(false);
+    expect(isSameNavigationTarget(from, to)).toBe(false);
+    expect(plan.reenter).toBe(true);
+    expect(plan.exitRoutes).toEqual([]);
+    expect(plan.enterRoutes).toHaveLength(1);
+    expect(plan.enterRoutes[0]!.params).toEqual({ id: '2' });
+    expect(routeMatchKey(plan.enterRoutes[0]!)).toBe('/users/:id');
+  });
 });
 
-describe('isSameRouteLeaf / isSameNavigationTarget', () => {
+describe('isSameRouteRecord / isSameRouteLeaf / isSameNavigationTarget', () => {
   it('distinguishes query change from exact same URL', () => {
     const from = chainFromPaths(['/users'])[0]!;
     const toSame = { ...from };
@@ -169,6 +188,16 @@ describe('isSameRouteLeaf / isSameNavigationTarget', () => {
     expect(isSameNavigationTarget(from, toQuery)).toBe(false);
     expect(isSameRouteLeaf(from, toSame)).toBe(true);
     expect(isSameNavigationTarget(from, toSame)).toBe(true);
+  });
+
+  it('detects param change as same route record but not same leaf pathname', () => {
+    const node = createUsersIdNode();
+    const from = createUsersIdMatch('1', node);
+    const to = createUsersIdMatch('2', node);
+
+    expect(isSameRouteRecord(from, to)).toBe(true);
+    expect(isSameRouteLeaf(from, to)).toBe(false);
+    expect(isSameNavigationTarget(from, to)).toBe(false);
   });
 });
 

@@ -11,6 +11,7 @@ import {
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { TransactionFullResult } from '../../core/navigation/transaction-result';
 import { createTestRoute } from '../helpers/create-test-route';
+import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
 
 function createMatchedRoute(
   path: string,
@@ -180,6 +181,21 @@ describe('NavigationCoordinator', () => {
         .mockResolvedValue({ status: 'navigationSucceeded' });
 
       await coordinator.run(navOptions({ from: about, to: about, href: '/about' }));
+
+      expect(runSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('runs when dynamic params change on the same route record', async () => {
+      const engine = createMockEngine();
+      const coordinator = new NavigationCoordinator(engine);
+      const node = createUsersIdNode();
+      const from = createUsersIdMatch('1', node);
+      const to = createUsersIdMatch('2', node);
+      const runSpy = jest
+        .spyOn(NavigationTransaction.prototype, 'run')
+        .mockResolvedValue({ status: 'navigationSucceeded' });
+
+      await coordinator.run(navOptions({ from, to, href: '/users/2' }));
 
       expect(runSpy).toHaveBeenCalledTimes(1);
     });

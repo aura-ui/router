@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Обновление по query — Aura UI &gt; Router</title>
+  <title>Update shortcut — Aura UI &gt; Router</title>
   <link rel="stylesheet" href="/demo.css" />
 </head>
 <body>
@@ -19,10 +19,12 @@
           <span class="demo-site-bar__label">URL</span>
           <code id="demo-site-url" aria-live="polite"></code>
         </div>
-        <nav class="demo-links demo-site-nav" aria-label="Вкладки">
-          <a href="/features/phase-update?tab=info" data-router-link>Информация</a>
-          <a href="/features/phase-update?tab=posts" data-router-link>Записи</a>
-          <a href="/features/phase-update?tab=settings" data-router-link>Настройки</a>
+        <nav class="demo-links demo-site-nav" aria-label="Сценарии update">
+          <a href="/features/phase-update" data-router-link>Обзор</a>
+          <a href="/features/phase-update/search?tab=info" data-router-link>Search</a>
+          <a href="/features/phase-update/hash#one" data-router-link>Hash</a>
+          <a href="/features/phase-update/remount/1" data-router-link>:id remount</a>
+          <a href="/features/phase-update/update/1" data-router-link>param-update</a>
         </nav>
       </div>
 
@@ -30,8 +32,14 @@
         <aura-router id="app">
           <aura-outlet class="demo-site-outlet"></aura-outlet>
 
-          <aura-route path="/features/phase-update/index.html" view="features/phase-update/panel.html"></aura-route>
-          <aura-route path="/features/phase-update" view="features/phase-update/panel.html"></aura-route>
+          <aura-route path="/features/phase-update/index.html" view="features/phase-update/intro.html"></aura-route>
+          <aura-route path="/features/phase-update" view="features/phase-update/intro.html"></aura-route>
+
+          <aura-route path="/features/phase-update/search" view="features/phase-update/search.html"></aura-route>
+          <aura-route path="/features/phase-update/hash" view="features/phase-update/hash.html"></aura-route>
+
+          <aura-route path="/features/phase-update/remount/:id" view="features/phase-update/user-{{id}}.html"></aura-route>
+          <aura-route path="/features/phase-update/update/:id" view="features/phase-update/user-shell.html"></aura-route>
         </aura-router>
       </div>
     </div>

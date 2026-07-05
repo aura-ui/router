@@ -7,24 +7,40 @@ import {
 } from './branch-diff';
 import { getActiveChain, getLeafMatch, isSameRouteMatch } from './matched-chain';
 
-/** Branch diff (exit/enter routes) — not {@link ../../../aura-route/core/attr/transition-order-attr-parser!TransitionOrderType | view effect order}. */
+/**
+ * План перехода между двумя match-состояниями: какие ветки деактивировать/активировать.
+ * Branch diff (exit/enter routes) — не {@link ../../../aura-route/core/attr/transition-order-attr-parser!TransitionOrderType | view effect order}.
+ */
 export interface TransitionMap {
+  /** Узлы для deactivate, leaf → root (LCA не входит). */
   exitRoutes: MatchedRouteInfo[];
+  /** Узлы для activate, root → leaf (LCA не входит). */
   enterRoutes: MatchedRouteInfo[];
+  /** Lowest common ancestor; `null` при cold enter или полной смене ветки. */
   lca: MatchedRouteInfo | null;
+  /** `true` — update shortcut (тот же leaf, без leave/guard/render). */
   update: boolean;
 }
 
-/** Target `<aura-route>` of the enter branch (content leaf). */
+/**
+ * Конечный `<aura-route>` enter-ветки (content leaf).
+ * @example enter [settings, profile] → route profile
+ */
 export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | undefined {
-  return plan.enterRoutes.at(-1)?.route;
+  const enterRoutes = plan.enterRoutes;
+  return enterRoutes[enterRoutes.length - 1]?.route;
 }
 
 /**
- * Строит TransitionMap для processor: exitRoutes, enterRoutes, lca, update.
+ * Строит {@link TransitionMap} для navigation processor.
+ *
+ * @param from — текущий committed match; `null` при cold enter
+ * @param to — целевой match после matchPath
+ * @returns exit/enter ветки, LCA и флаг update shortcut
+ *
  * @example null → profile: enter [settings, profile], exit []
  * @example profile → security: exit [profile], enter [security], lca settings
- * @example profile → profile?tab=2 (same pathname + leaf): update true
+ * @example profile → profile?tab=2 (same leaf): update true
  * @example /users/1 → /users/2 (same leaf, same view key): update true
  * @example /users/1 → /users/2 (same leaf, per-id view ref): update false, synthetic remount
  */
@@ -57,30 +73,35 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
   };
 }
 
+/**
+ * Режим param-change для того же leaf: update shortcut или synthetic remount.
+ * Учитывает `param-change` attr и совпадение `viewKey` (auto по умолчанию).
+ */
 function resolveParamChangeMode(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInfo): 'update' | 'navigate' {
   const mode = toLeaf.route.paramChange as RouteInstance['paramChange'];
   if (mode === 'navigate') return 'navigate';
-  if (mode === 'update') {
-    warnParamChangeUpdateMismatch(fromLeaf, toLeaf);
-    return 'update';
-  }
+
   const fromKey = fromLeaf.resolvedView?.viewKey ?? null;
   const toKey = toLeaf.resolvedView?.viewKey ?? null;
+
+  if (mode === 'update') {
+    if (fromKey && toKey && fromKey !== toKey) {
+      console.warn(
+        `[aura-router] param-change="update" with different viewKey (${fromKey} → ${toKey}): `
+        + 'UPDATE shortcut skips render — stale HTML risk. Omit param-change or use param-change="navigate".',
+      );
+    }
+    return 'update';
+  }
+
   if (fromKey === null || toKey === null) return 'update';
   return fromKey === toKey ? 'update' : 'navigate';
 }
 
-function warnParamChangeUpdateMismatch(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInfo): void {
-  const fromKey = fromLeaf.resolvedView?.viewKey;
-  const toKey = toLeaf.resolvedView?.viewKey;
-  if (!fromKey || !toKey || fromKey === toKey) return;
-
-  console.warn(
-    `[aura-router] param-change="update" with different viewKey (${fromKey} → ${toKey}): `
-    + 'UPDATE shortcut skips render — stale HTML risk. Omit param-change or use param-change="navigate".',
-  );
-}
-
+/**
+ * План для того же route record (тот же leaf `RouteNode`): update или synthetic exit/enter leaf.
+ * Pathname/search/params могут отличаться.
+ */
 function buildSameRecordPlan(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInfo): TransitionMap {
   if (resolveParamChangeMode(fromLeaf, toLeaf) === 'update') {
     return {
@@ -102,8 +123,9 @@ function buildSameRecordPlan(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInf
 }
 
 /**
- * Exact same navigation slice for dedupe and history: pathname + search + leaf.
- * Hash is not compared — hash-only navigations bypass the transaction in the engine.
+ * Точное совпадение navigation slice для dedupe и history: pathname + search + leaf.
+ * Hash не сравнивается — hash-only навигации обходят transaction в engine.
+ *
  * @example `/settings/profile` → `/settings/profile` → true
  * @example `/users?q=1` → `/users?q=2` → false
  */

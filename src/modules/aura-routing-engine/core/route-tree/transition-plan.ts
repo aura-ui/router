@@ -38,8 +38,11 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
     };
   }
 
-  if (isSameRouteRecord(from, to)) {
-    return buildSameRecordPlan(from, to);
+  const fromLeaf = getLeafMatch(from);
+  const toLeaf = getLeafMatch(to);
+
+  if (isSameRouteMatch(fromLeaf, toLeaf)) {
+    return buildSameRecordPlan(fromLeaf, toLeaf);
   }
 
   const fromChain = getActiveChain(from);
@@ -54,21 +57,32 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
   };
 }
 
-function resolveParamChangeMode(from: MatchedRouteInfo, to: MatchedRouteInfo): 'update' | 'navigate' {
-  const mode = getLeafMatch(to).route.paramChange as RouteInstance['paramChange'];
+function resolveParamChangeMode(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInfo): 'update' | 'navigate' {
+  const mode = toLeaf.route.paramChange as RouteInstance['paramChange'];
   if (mode === 'navigate') return 'navigate';
-  if (mode === 'update') return 'update';
-  const fromKey = getLeafMatch(from).resolvedView?.viewKey ?? null;
-  const toKey = getLeafMatch(to).resolvedView?.viewKey ?? null;
+  if (mode === 'update') {
+    warnParamChangeUpdateMismatch(fromLeaf, toLeaf);
+    return 'update';
+  }
+  const fromKey = fromLeaf.resolvedView?.viewKey ?? null;
+  const toKey = toLeaf.resolvedView?.viewKey ?? null;
   if (fromKey === null || toKey === null) return 'update';
   return fromKey === toKey ? 'update' : 'navigate';
 }
 
-function buildSameRecordPlan(from: MatchedRouteInfo, to: MatchedRouteInfo): TransitionMap {
-  const fromLeaf = getLeafMatch(from);
-  const toLeaf = getLeafMatch(to);
+function warnParamChangeUpdateMismatch(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInfo): void {
+  const fromKey = fromLeaf.resolvedView?.viewKey;
+  const toKey = toLeaf.resolvedView?.viewKey;
+  if (!fromKey || !toKey || fromKey === toKey) return;
 
-  if (resolveParamChangeMode(from, to) === 'update') {
+  console.warn(
+    `[aura-router] param-change="update" with different viewKey (${fromKey} → ${toKey}): `
+    + 'UPDATE shortcut skips render — stale HTML risk. Omit param-change or use param-change="navigate".',
+  );
+}
+
+function buildSameRecordPlan(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInfo): TransitionMap {
+  if (resolveParamChangeMode(fromLeaf, toLeaf) === 'update') {
     return {
       exitRoutes: [],
       enterRoutes: [toLeaf],
@@ -77,7 +91,7 @@ function buildSameRecordPlan(from: MatchedRouteInfo, to: MatchedRouteInfo): Tran
     };
   }
 
-  const chain = getActiveChain(from);
+  const chain = getActiveChain(fromLeaf);
   const parentIndex = chain.length - 2;
   return {
     exitRoutes: [fromLeaf],
@@ -85,24 +99,6 @@ function buildSameRecordPlan(from: MatchedRouteInfo, to: MatchedRouteInfo): Tran
     lca: parentIndex >= 0 ? chain[parentIndex]! : null,
     update: false,
   };
-}
-
-/**
- * Same route record (leaf node / pattern) — update shortcut.
- * Pathname may differ when only dynamic params change (`/users/1` → `/users/2`).
- * @example `/users/1` → `/users/2` on `/users/:id` → true
- */
-export function isSameRouteRecord(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
-  return isSameRouteMatch(getLeafMatch(from), getLeafMatch(to));
-}
-
-/**
- * Same leaf on the same pathname — query/hash shortcut subset of {@link isSameRouteRecord}.
- * @example `/users?q=1` → `/users?q=2` with the same leaf → true
- */
-export function isSameRouteLeaf(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
-  if (from.pathname !== to.pathname) return false;
-  return isSameRouteRecord(from, to);
 }
 
 /**

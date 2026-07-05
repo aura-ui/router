@@ -228,8 +228,7 @@ enterRoutes: [ leaf with new query/params ]
 update:      true
 ```
 
-Детекция: `isSameRouteRecord(from, to)` (тот же leaf `node`).  
-Подмножество с тем же pathname: `isSameRouteLeaf`.  
+Детекция: `isSameRouteMatch(fromLeaf, toLeaf)` в `buildTransitionPlan` (тот же leaf `node`).  
 Точное совпадение URL для dedupe/history — `isSameNavigationTarget()` (pathname + search + leaf).
 
 Pipeline: `runUpdate` — `runLoads()` (DataGraph) → `update` hooks → `commitNavigation`. Без `leave`, `guard`, render, `unmount`, `ready`.

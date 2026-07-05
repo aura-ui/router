@@ -184,17 +184,25 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Post-commit effects: promote staged views → view finalize → unmount → ready.
+   * Post-render effects: promote staged views → commit gate → unmount → ready.
+   * Param remount (same leaf): unmount outgoing → promote → commit gate → ready.
    */
   async runAfterRender(): Promise<TransactionFullResult> {
     if (!this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
+
+    const unmountOutcome = await this.runLifecyclePhase(PHASES.unmount);
+    if (unmountOutcome) return unmountOutcome;
+
+    if (!this.transaction.isActive()) {
+      return { status: 'cancelled' };
+    }
+
     for (const matchedRoute of this.transaction.transitionPlan.enterRoutes) {
       matchedRoute.route.commitStagedView?.();
     }
     this.transaction.commitNavigation();
-    await this.runLifecyclePhase(PHASES.unmount);
     return this.runLifecyclePhase(PHASES.ready);
   }
 

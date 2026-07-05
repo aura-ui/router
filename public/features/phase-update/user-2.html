@@ -1,12 +1,14 @@
 <article class="demo-site-view demo-layout-view" data-demo-view="features/phase-update/user-2.html">
   <h1>Пользователь 2</h1>
-  <p class="demo-site-view__lead">Тот же leaf <code>remount/:id</code>, но viewKey <code>user-2.html</code>. Переход с User 1 — synthetic exit/enter, render + unmount.</p>
+  <p class="demo-site-view__lead">Leaf <code>remount/:id</code>, viewKey <code>user-2.html</code> (шаблон <code>user-{{id}}.html</code>). Смена id — другой resolved view → FULL remount, не <code>runUpdate()</code>.</p>
   <p>Параметр <code>id</code>: <strong data-demo-param="id">—</strong></p>
 
   <nav class="demo-links">
     <a href="/features/phase-update/remount/1" data-router-link>User 1</a>
     <a href="/features/phase-update/remount/2" data-router-link>User 2</a>
   </nav>
+
+  <p class="demo-hint">Переключайте User 1 ↔ User 2: synthetic exit/enter leaf, render, unmount.</p>
 
   <div class="demo-code-window">
     <div class="demo-code-window__bar">

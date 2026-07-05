@@ -1,6 +1,6 @@
 # Param-change policy — view-key inference + override
 
-> **Статус:** draft · **частично в коде** (`param-change`, view-key inference)  
+> **Статус:** implemented (core + acceptance tests)  
 > **Заменяет:** безусловный `update: true` при `isSameRouteRecord` (as-is)  
 > **Default:** inference по `viewKey` (атрибут не задаётся)  
 > **Связь:** [HOOKS.md § update shortcut](../HOOKS.md#update-shortcut--query-hash-и-params) · [LIFECYCLE_PLACEMENT.md](../LIFECYCLE_PLACEMENT.md) · [MAIN_PIPELINE.md](../MAIN_PIPELINE.md) · [route-tree/README.md](../../src/modules/aura-routing-engine/core/route-tree/README.md)
@@ -306,8 +306,8 @@ aura-route/
 
 aura-routing-engine/
   route-tree/resolved-view.ts         attachResolvedView, viewKey на match
-  route-tree/transition-plan.ts     resolveParamChangeMode (inline)
-  content/cache/data-key.ts         resolvedView.ref fallback
+  route-tree/transition-plan.ts       resolveParamChangeMode + dev-warn
+  content/cache/data-key.ts           pathname + loader:ref
 ```
 
 ### Поток в `buildTransitionPlan` (псевдокод)
@@ -347,7 +347,7 @@ flowchart TD
   B -->|yes| C{param-change attr}
   C -->|navigate| NAV[Synthetic leaf remount\nFULL pipeline]
   C -->|update| UPD[UPDATE shortcut]
-  C -->|auto| D{viewKey from === viewKey to?}
+  C -->|inference| D{viewKey from === viewKey to?}
   D -->|yes| UPD
   D -->|no| NAV
 ```
@@ -356,12 +356,12 @@ flowchart TD
 
 ## 11. Acceptance criteria
 
-- [ ] `/user/1` → `/user/2` + static shell → UPDATE, render 0 раз, update-hook 1 раз
-- [ ] `/user/1` → `/user/2` + `{{id}}.html` → FULL, render 1 раз, unmount 1 раз
-- [ ] same shell + `param-change="navigate"` → FULL, refetch shell
-- [ ] nested layout не unmount при NAVIGATE leaf
-- [ ] view cache keys согласованы с viewKey
-- [ ] dev warn: `param-change="update"` + diff viewKey → stale HTML risk
+- [x] `/user/1` → `/user/2` + static shell → UPDATE, render 0 раз, update-hook 1 раз
+- [x] `/user/1` → `/user/2` + `{{id}}.html` → FULL, render 1 раз, unmount 1 раз
+- [x] same shell + `param-change="navigate"` → FULL, refetch shell
+- [x] nested layout не unmount при NAVIGATE leaf
+- [x] view cache keys согласованы с viewKey (pathname + loader:ref)
+- [x] dev warn: `param-change="update"` + diff viewKey → stale HTML risk
 
 ---
 

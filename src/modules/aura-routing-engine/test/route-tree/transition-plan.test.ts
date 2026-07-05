@@ -3,13 +3,11 @@ import {
   buildTransitionPlan,
   getEnterRoute,
   isSameNavigationTarget,
-  isSameRouteLeaf,
-  isSameRouteRecord,
 } from '../../core/route-tree/transition-plan';
 import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
-import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
+import { createUsersIdMatch, createUsersIdNode, createNestedUsersIdMatch, createNestedUsersIdSetup } from '../helpers/create-dynamic-leaf-match';
 
 function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
   return {
@@ -151,7 +149,6 @@ describe('buildTransitionPlan', () => {
     const plan = buildTransitionPlan(from, to);
 
     expect(plan.update).toBe(true);
-    expect(isSameRouteLeaf(from, to)).toBe(true);
     expect(isSameNavigationTarget(from, to)).toBe(false);
   });
 
@@ -164,8 +161,6 @@ describe('buildTransitionPlan', () => {
 
     const plan = buildTransitionPlan(from, to);
 
-    expect(isSameRouteRecord(from, to)).toBe(true);
-    expect(isSameRouteLeaf(from, to)).toBe(false);
     expect(isSameNavigationTarget(from, to)).toBe(false);
     expect(plan.update).toBe(true);
     expect(plan.exitRoutes).toEqual([]);
@@ -207,6 +202,7 @@ describe('buildTransitionPlan', () => {
   });
 
   it('update shortcut when param-change is update despite per-id view ref', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const node = createUsersIdNode({
       paramChange: 'update',
       view: { type: 'html-src', content: 'content/user/{{id}}.html' },
@@ -215,10 +211,29 @@ describe('buildTransitionPlan', () => {
     const to = createUsersIdMatch('2', node);
 
     expect(buildTransitionPlan(from, to).update).toBe(true);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('stale HTML risk'),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('keeps layout parent as lca on synthetic param remount', () => {
+    const { leaf } = createNestedUsersIdSetup({
+      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+    });
+    const from = createNestedUsersIdMatch('1', leaf);
+    const to = createNestedUsersIdMatch('2', leaf);
+
+    const plan = buildTransitionPlan(from, to);
+
+    expect(plan.update).toBe(false);
+    expect(plan.lca?.pattern).toBe('/users');
+    expect(plan.exitRoutes).toHaveLength(1);
+    expect(routeMatchKey(plan.exitRoutes[0]!)).toBe('/users/:id');
   });
 });
 
-describe('isSameRouteRecord / isSameRouteLeaf / isSameNavigationTarget', () => {
+describe('isSameNavigationTarget', () => {
   it('distinguishes query change from exact same URL', () => {
     const from = chainFromPaths(['/users'])[0]!;
     const toSame = { ...from };
@@ -229,20 +244,8 @@ describe('isSameRouteRecord / isSameRouteLeaf / isSameNavigationTarget', () => {
       query: { page: '2' },
     };
 
-    expect(isSameRouteLeaf(from, toQuery)).toBe(true);
     expect(isSameNavigationTarget(from, toQuery)).toBe(false);
-    expect(isSameRouteLeaf(from, toSame)).toBe(true);
     expect(isSameNavigationTarget(from, toSame)).toBe(true);
-  });
-
-  it('detects param change as same route record but not same leaf pathname', () => {
-    const node = createUsersIdNode();
-    const from = createUsersIdMatch('1', node);
-    const to = createUsersIdMatch('2', node);
-
-    expect(isSameRouteRecord(from, to)).toBe(true);
-    expect(isSameRouteLeaf(from, to)).toBe(false);
-    expect(isSameNavigationTarget(from, to)).toBe(false);
   });
 });
 

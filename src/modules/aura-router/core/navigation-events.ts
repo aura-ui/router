@@ -120,6 +120,18 @@ export function dispatchNavigationHookError(
 /** CustomEvent name: `data-invalidated` */
 export const AURA_ROUTER_DATA_INVALIDATED = 'data-invalidated';
 
+/** CustomEvent name: `navigation` — after URL and view commit succeeded. */
+export const AURA_ROUTER_NAVIGATION = 'navigation';
+
+export interface AuraRouterNavigationEventDetail {
+  from: string | null;
+  to: string;
+  pathname: string;
+  router: HTMLElement;
+}
+
+export type AuraRouterNavigationEvent = CustomEvent<AuraRouterNavigationEventDetail>;
+
 export interface AuraRouterDataInvalidatedEventDetail {
   count: number;
   router: HTMLElement;
@@ -131,5 +143,15 @@ export type AuraRouterDataInvalidatedEvent = CustomEvent<AuraRouterDataInvalidat
 export function dispatchDataInvalidated(router: HTMLElement, count: number): void {
   dispatchCustomEvent(router, AURA_ROUTER_DATA_INVALIDATED, {
     detail: { count, router },
+  });
+}
+
+/** Dispatches `navigation` after history commit and successful view transition. */
+export function dispatchNavigationCommitted(
+  router: HTMLElement,
+  detail: Omit<AuraRouterNavigationEventDetail, 'router'>,
+): void {
+  dispatchCustomEvent(router, AURA_ROUTER_NAVIGATION, {
+    detail: { ...detail, router },
   });
 }

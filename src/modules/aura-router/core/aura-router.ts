@@ -28,6 +28,7 @@ import { ScrollRestoration } from './scroll-restoration';
 import {
   dispatchNavigationError,
   dispatchNavigationHookError,
+  dispatchNavigationCommitted,
   dispatchNotFound,
   dispatchDataInvalidated,
   AURA_ROUTER_DATA_INVALIDATED,
@@ -58,6 +59,12 @@ export {
   AURA_ROUTER_NAVIGATION_HOOK_ERROR,
   type AuraRouterNavigationHookErrorEventDetail,
   type AuraRouterNavigationHookErrorEvent,
+} from './navigation-events';
+
+export {
+  AURA_ROUTER_NAVIGATION,
+  type AuraRouterNavigationEventDetail,
+  type AuraRouterNavigationEvent,
 } from './navigation-events';
 
 export {
@@ -190,6 +197,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
             dispatchNotFound(this, ctx.to.href, 'route');
           }
           this.scrollRestoration.handleCommit(ctx);
+          dispatchNavigationCommitted(this, {
+            from: ctx.from?.pathname ?? null,
+            to: ctx.to.href,
+            pathname: ctx.to.pathname,
+          });
         },
         onNavigationError: (failure) => {
           if (failure.viewCommitted) {

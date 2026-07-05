@@ -35,6 +35,8 @@ export class NavigationTransaction {
   transitionOrder: TransitionOrderType | null = null;
   dataSnapshot?: DataSnapshot;
   viewCommitTracker: ViewCommitTracker;
+  /** Set when {@link AuraRoutingEngine.commitHistoryIfNeeded} wrote the URL for this transaction. */
+  historyCommitted = false;
 
   constructor(
     transactionId: number,
@@ -74,6 +76,7 @@ export class NavigationTransaction {
     }
   }
 
+  /** View success gate: `prev` + tracker (URL was written earlier in the pipeline). */
   commitNavigation(): void {
     this.engine.commitNavigation(this);
     this.viewCommitTracker.markViewCommitted();

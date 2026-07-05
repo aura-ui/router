@@ -29,6 +29,7 @@ import {
   dispatchNavigationError,
   dispatchNavigationHookError,
   dispatchNavigationCommitted,
+  dispatchNavigationStart,
   dispatchNotFound,
   dispatchDataInvalidated,
   AURA_ROUTER_DATA_INVALIDATED,
@@ -63,8 +64,10 @@ export {
 
 export {
   AURA_ROUTER_NAVIGATION,
+  AURA_ROUTER_NAVIGATION_START,
   type AuraRouterNavigationEventDetail,
   type AuraRouterNavigationEvent,
+  type AuraRouterNavigationStartEvent,
 } from './navigation-events';
 
 export {
@@ -191,6 +194,13 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         contentLoad: this.contentLoad,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
+        onNavigationHistoryCommitted: (ctx) => {
+          dispatchNavigationStart(this, {
+            from: ctx.from?.pathname ?? null,
+            to: ctx.to.href,
+            pathname: ctx.to.pathname,
+          });
+        },
         onNavigationCommitted: (ctx) => {
           this.notFound.hide();
           if (isCatchAllRoute(ctx.to.pattern)) {

@@ -56,7 +56,9 @@ export interface AuraRoutingEngineConfig {
   linksSelector?: string;
   /** Use hash-based routing. Default: `false`. */
   hash?: boolean;
-  /** Вызывается после history commit navigation (в т.ч. catch-all). */
+  /** После `pushState` / `replaceState` (post-guard, до load/render). */
+  onNavigationHistoryCommitted?: (ctx: NavigationCommittedContext) => void;
+  /** После view commit и обновления `prev` (в т.ч. catch-all). */
   onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
   /** Matched-route navigation failure (after processor). */
   onNavigationError?: (failure: FailedNavigation) => void;
@@ -214,15 +216,16 @@ export class AuraRoutingEngine {
   }
 
   /**
-   * Центральный метод навигации: match → processor (view commit внутри) → history commit URL.
+   * Центральный метод навигации: match → processor → finalize.
    *
-   * **Порядок history commit (атомарность перехода):**
-   * 1. `processor.run({ from, to, action })` — guards, load, view commit (`runRender`), effects.
-   * 2. При `status: 'navigationSucceeded'` и `syncHistory: true` — `provider.commit()` (`pushState` / `replaceState`).
-   * 3. Обновление `prevMatchedRouteInfo`.
+   * **Порядок history commit (push/replace, `syncHistory: true`):**
+   * 1. `runGuards` — leave + guard.
+   * 2. `runLoads` — DataGraph / load hooks.
+   * 3. `commitHistoryIfNeeded` — `pushState` / `replaceState` (до render).
+   * 4. render → `commitNavigation` (prev + callbacks, без повторного pushState).
    *
-   * **Отмена при `push` / `replace`:** URL ещё не менялся — engine просто выходит.
-   * Откат history не нужен.
+   * **Отмена до load:** URL не менялся (guard cancel или load error).
+   * **Отмена/error после history commit (push/replace):** URL остаётся на target, rollback не делается.
    *
    * **Отмена при `pop` (Back/Forward) — особый случай:**
    * Браузер меняет адресную строку *до* `popstate`. К моменту `processor.run` `window.location`
@@ -372,40 +375,38 @@ export class AuraRoutingEngine {
   }
 
 
-  // call after render done
-  commitNavigation(transition: NavigationTransaction) {
+  /** Post-load address-bar write (`pushState` / `replaceState`). Idempotent per transaction. */
+  commitHistoryIfNeeded(transition: NavigationTransaction): void {
+    if (transition.historyCommitted) return;
+
     const { from, to, href, action, hash, historyOptions } = transition;
-    const fromHref = from?.href ?? null;
-    const sameTarget = !!from && isSameNavigationTarget(from, to);
+    if (!historyOptions.syncHistory || (action !== 'push' && action !== 'replace')) return;
+    if (from && isSameNavigationTarget(from, to)) return;
 
     applyTransactionHistory(
       { status: 'navigationSucceeded' },
       action,
       href,
-      fromHref,
+      from?.href ?? null,
       historyOptions,
       this.provider,
-      { sameTarget },
     );
 
-    this.config.onNavigationCommitted?.({
-      from: from,
-      to: to,
-      action: action,
-      hash: hash,
-    });
+    transition.historyCommitted = true;
+    this.config.onNavigationHistoryCommitted?.({ from, to, action, hash });
+  }
 
+  /** After view commit: `prev`, scroll, `onNavigationCommitted` (URL already written). */
+  commitNavigation(transition: NavigationTransaction): void {
+    const { from, to, action, hash } = transition;
+    this.config.onNavigationCommitted?.({ from, to, action, hash });
     if (hash) this.scrollToHash?.(hash);
-
     this.prev = to;
   }
 
   applyRedirect(result: Extract<TransactionFullResult, { status: 'redirect' }>, tx: NavigationTransaction): void {
-    // history commit для redirect не нужен — до commitNavigation guard вернул redirect, URL ещё не коммитили;
-    // prev не трогаем — новая навигация сама определит from/prev;
-    // void — redirect запускает новую transaction асинхронно, текущая уже завершилась с redirect.
-
-    const replace = result.replace ?? tx.action === 'pop';
+    // Guard redirect: history ещё не коммитили. Load redirect после commit: replace по умолчанию.
+    const replace = result.replace ?? (tx.historyCommitted || tx.action === 'pop');
     void this.navigateTo(result.url, replace ? 'replace' : 'push', {
       replace,
       syncHistory: true,
@@ -413,27 +414,29 @@ export class AuraRoutingEngine {
   }
 
   finalizeError(result: Extract<TransactionFullResult, { status: 'error' }>, tx: NavigationTransaction) {
-    const { failure } = result;
-    const fromHref = tx.from?.href ?? null;
+    const outcome = finalizeFailure(result.failure, this.failureDeps());
 
-    // 1. App callbacks + hint для prev (бывший finalizeFailure)
-    const outcome = finalizeFailure(failure, this.failureDeps());
-    // 2. History policy (бывший applyTransactionHistory для status: 'error')
-    applyTransactionHistory(
-      result,
-      tx.action,
-      tx.href,              // target URL навигации (как ctx.href в старом finalize)
-      fromHref,
-      tx.historyOptions,
-      this.provider,
-    );
-    // 3. prev (бывший applyFinalizeEffects)
+    if (this.shouldApplyTerminalHistoryPolicy(tx)) {
+      applyTransactionHistory(
+        result,
+        tx.action,
+        tx.href,
+        tx.from?.href ?? null,
+        tx.historyOptions,
+        this.provider,
+      );
+    }
+
     if (outcome.setPrev !== undefined) {
       this.prev = outcome.setPrev;
     }
   }
 
   finalizeCancelled(tx: NavigationTransaction): void {
+    if (!this.shouldApplyTerminalHistoryPolicy(tx)) {
+      return;
+    }
+
     applyTransactionHistory(
       { status: 'cancelled' },
       tx.action,
@@ -442,7 +445,11 @@ export class AuraRoutingEngine {
       tx.historyOptions,
       this.provider,
     );
-    // prev не меняется
+  }
+
+  /** Pop always; push/replace only before post-load history commit. */
+  private shouldApplyTerminalHistoryPolicy(tx: NavigationTransaction): boolean {
+    return !tx.historyCommitted || tx.action === 'pop';
   }
 
   reportNavigationHookError(hookError: unknown, parent: FailedNavigation): void {

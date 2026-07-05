@@ -58,11 +58,11 @@ export class NavigationTransactionPipeline {
     return await this.runAfterRender() ?? { status: 'navigationSucceeded' };
   }
 
-  /** Same URL + same leaf: conditional load (DataGraph) → reenter hooks → commit (no full pipeline). */
-  async runReenter(): Promise<TransactionFullResult> {
+  /** Same leaf route record: conditional load (DataGraph) → update hooks → commit (no full pipeline). */
+  async runUpdate(): Promise<TransactionFullResult> {
     const outcome = await this.runSequentially([
       () => this.runLoads(),
-      () => this.runLifecyclePhase(PHASES.reenter),
+      () => this.runLifecyclePhase(PHASES.update),
     ]);
     if (outcome) return outcome;
 

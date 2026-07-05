@@ -83,7 +83,7 @@ describe('buildTransitionPlan', () => {
     expect(plan.exitRoutes.map(routeMatchKey)).toEqual(['/a']);
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/b']);
     expect(plan.lca).toBeNull();
-    expect(plan.reenter).toBe(false);
+    expect(plan.update).toBe(false);
   });
 
   it('builds sibling nested transition through shared parent LCA', () => {
@@ -127,19 +127,19 @@ describe('buildTransitionPlan', () => {
     expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/']);
   });
 
-  it('reenter shortcut when pathname and search match same leaf', () => {
+  it('update shortcut when pathname and search match same leaf', () => {
     const from = chainFromPaths(['/settings', '/settings/profile'])[1]!;
     const to = { ...from, query: { tab: '1' } };
 
     const plan = buildTransitionPlan(from, to);
 
-    expect(plan.reenter).toBe(true);
+    expect(plan.update).toBe(true);
     expect(plan.exitRoutes).toEqual([]);
     expect(plan.enterRoutes).toHaveLength(1);
     expect(routeMatchKey(plan.enterRoutes[0]!)).toBe('/settings/profile');
   });
 
-  it('reenter shortcut when pathname matches same leaf and search changes', () => {
+  it('update shortcut when pathname matches same leaf and search changes', () => {
     const from = chainFromPaths(['/settings', '/settings/profile'])[1]!;
     const to = {
       ...from,
@@ -150,12 +150,12 @@ describe('buildTransitionPlan', () => {
 
     const plan = buildTransitionPlan(from, to);
 
-    expect(plan.reenter).toBe(true);
+    expect(plan.update).toBe(true);
     expect(isSameRouteLeaf(from, to)).toBe(true);
     expect(isSameNavigationTarget(from, to)).toBe(false);
   });
 
-  it('reenter shortcut when dynamic params change on the same leaf node', () => {
+  it('update shortcut when dynamic params change on the same leaf node', () => {
     const node = createUsersIdNode();
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -165,7 +165,7 @@ describe('buildTransitionPlan', () => {
     expect(isSameRouteRecord(from, to)).toBe(true);
     expect(isSameRouteLeaf(from, to)).toBe(false);
     expect(isSameNavigationTarget(from, to)).toBe(false);
-    expect(plan.reenter).toBe(true);
+    expect(plan.update).toBe(true);
     expect(plan.exitRoutes).toEqual([]);
     expect(plan.enterRoutes).toHaveLength(1);
     expect(plan.enterRoutes[0]!.params).toEqual({ id: '2' });
@@ -210,7 +210,7 @@ describe('getEnterRoute', () => {
   });
 
   it('returns undefined for empty enter branch', () => {
-    const plan = { exitRoutes: [], enterRoutes: [], lca: null, reenter: false };
+    const plan = { exitRoutes: [], enterRoutes: [], lca: null, update: false };
 
     expect(getEnterRoute(plan)).toBeUndefined();
   });

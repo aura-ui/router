@@ -10,7 +10,7 @@ export function routeMatchKey(info: MatchedRouteInfo): string {
 }
 
 /**
- * Один и тот же route instance (reenter shortcut, identity check).
+ * Один и тот же route instance (update shortcut, identity check).
  * @example same node → true; `/a` vs `/b` → false
  */
 export function isSameRouteMatch(a: MatchedRouteInfo, b: MatchedRouteInfo): boolean {

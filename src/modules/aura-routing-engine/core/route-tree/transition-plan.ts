@@ -11,7 +11,7 @@ export interface TransitionMap {
   exitRoutes: MatchedRouteInfo[];
   enterRoutes: MatchedRouteInfo[];
   lca: MatchedRouteInfo | null;
-  reenter: boolean;
+  update: boolean;
 }
 
 /** Target `<aura-route>` of the enter branch (content leaf). */
@@ -20,11 +20,11 @@ export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | 
 }
 
 /**
- * Строит TransitionMap для processor: exitRoutes, enterRoutes, lca, reenter.
+ * Строит TransitionMap для processor: exitRoutes, enterRoutes, lca, update.
  * @example null → profile: enter [settings, profile], exit []
  * @example profile → security: exit [profile], enter [security], lca settings
- * @example profile → profile?tab=2 (same pathname + leaf): reenter true
- * @example /users/1 → /users/2 (same leaf node, params change): reenter true
+ * @example profile → profile?tab=2 (same pathname + leaf): update true
+ * @example /users/1 → /users/2 (same leaf node, params change): update true
  */
 export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRouteInfo): TransitionMap {
   if (!from) {
@@ -32,7 +32,7 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
       exitRoutes: [],
       enterRoutes: getActiveChain(to),
       lca: null,
-      reenter: false,
+      update: false,
     };
   }
 
@@ -42,7 +42,7 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
       exitRoutes: [],
       enterRoutes: [leaf],
       lca: leaf,
-      reenter: true,
+      update: true,
     };
   }
 
@@ -54,12 +54,12 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
     exitRoutes: buildExitRoutes(fromChain, lcaIndex),
     enterRoutes: buildEnterRoutes(toChain, lcaIndex),
     lca: lcaIndex >= 0 ? fromChain[lcaIndex]! : null, // NOTE: in future for incremental render vs data cache
-    reenter: false,
+    update: false,
   };
 }
 
 /**
- * Same route record (leaf node / pattern) — reenter/update shortcut.
+ * Same route record (leaf node / pattern) — update shortcut.
  * Pathname may differ when only dynamic params change (`/users/1` → `/users/2`).
  * @example `/users/1` → `/users/2` on `/users/:id` → true
  */

@@ -27,7 +27,7 @@ export function createTestRoute(
     transitionOut: null,
     error: null,
     unmount: null,
-    reenter: null,
+    update: null,
     transition: INACTIVE_TRANSITION,
     onGuard: noop,
     onTransitionIn: noop,
@@ -36,7 +36,7 @@ export function createTestRoute(
     onLeave: noop,
     onTransitionOut: noop,
     onUnmount: noop,
-    onReenter: noop,
+    onUpdate: noop,
     onError: noop,
     commitStagedView: noop,
     render: noopRender,
@@ -45,7 +45,7 @@ export function createTestRoute(
 
   Object.defineProperties(route, {
     hasGuard: { get(): boolean { return !!route.guard?.length; } },
-    hasReenter: { get(): boolean { return !!route.reenter?.length; } },
+    hasUpdate: { get(): boolean { return !!route.update?.length; } },
     hasLeave: { get(): boolean { return !!route.leave?.length; } },
     hasLoad: { get(): boolean { return !!route.load?.length; } },
     hasTransitionIn: { get(): boolean { return !!route.transition.in?.length; } },

@@ -172,10 +172,10 @@ describe('NavigationCoordinator', () => {
   });
 
   describe('planning — run', () => {
-    it('runs when the committed route declares reenter hooks', async () => {
+    it('runs when the committed route declares update hooks', async () => {
       const engine = createMockEngine();
       const coordinator = new NavigationCoordinator(engine);
-      const about = createMatchedRoute('/about', { reenter: ['sync'] });
+      const about = createMatchedRoute('/about', { update: ['sync'] });
       const runSpy = jest
         .spyOn(NavigationTransaction.prototype, 'run')
         .mockResolvedValue({ status: 'navigationSucceeded' });

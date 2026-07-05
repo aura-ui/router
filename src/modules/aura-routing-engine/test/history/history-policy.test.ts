@@ -37,7 +37,7 @@ describe('resolveHistoryPolicy', () => {
   it.each([
     ['navigationSucceeded', { status: 'navigationSucceeded' } satisfies TransactionResult, 'push', 'commit-target'],
     [
-      'navigationSucceeded same target (reenter)',
+      'navigationSucceeded same target (update)',
       { status: 'navigationSucceeded' } satisfies TransactionResult,
       'push',
       'preserve',

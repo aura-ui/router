@@ -30,7 +30,7 @@ export interface HistoryProviderLike {
 
 export interface ResolveHistoryOptions {
   syncHistory?: boolean;
-  /** Target URL + route already committed (reenter shortcut). */
+  /** Target URL + route already committed (update shortcut). */
   sameTarget?: boolean;
 }
 

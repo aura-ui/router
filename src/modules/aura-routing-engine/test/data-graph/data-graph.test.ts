@@ -42,7 +42,7 @@ function loadTransaction(
     enterRoutes: [...enterRoutes],
     exitRoutes: [],
     lca: null,
-    reenter: false,
+    update: false,
   };
   return transaction;
 }

@@ -7,7 +7,7 @@ export function canUseFastPath(
   _from: MatchedRouteInfo | null,
   _to: MatchedRouteInfo,
 ): boolean {
-  if (plan.reenter) return false;
+  if (plan.update) return false;
   if (plan.exitRoutes.length > 1 || plan.enterRoutes.length !== 1) return false;
 
   const exitRoute = plan.exitRoutes[0]?.route;

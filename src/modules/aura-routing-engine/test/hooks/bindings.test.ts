@@ -13,7 +13,7 @@ function route(overrides: Partial<RouteInstance> = {}): RouteInstance {
     transitionOut: null,
     error: null,
     unmount: null,
-    reguard: null,
+    update: null,
     onGuard: noop,
     onTransitionIn: noop,
     onLoad: noop,
@@ -21,7 +21,7 @@ function route(overrides: Partial<RouteInstance> = {}): RouteInstance {
     onLeave: noop,
     onTransitionOut: noop,
     onUnmount: noop,
-    onReenter: noop,
+    onUpdate: noop,
     onError: noop,
     transition: { order: null, in: null, out: null },
     ...overrides,
@@ -32,7 +32,7 @@ describe('resolveHookNames', () => {
   it('reads hook names from phase attrs', () => {
     expect(resolveHookNames(route({ ready: ['analytics'] }), 'ready')).toEqual(['analytics']);
     expect(resolveHookNames(route({ unmount: ['abort-polling'] }), 'unmount')).toEqual(['abort-polling']);
-    expect(resolveHookNames(route({ reenter: ['sync'] }), 'reenter')).toEqual(['sync']);
+    expect(resolveHookNames(route({ update: ['sync'] }), 'update')).toEqual(['sync']);
   });
 
   it('reads transition hooks from route getters (aura-route)', () => {

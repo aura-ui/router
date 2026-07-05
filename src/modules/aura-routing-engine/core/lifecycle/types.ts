@@ -36,14 +36,14 @@ export type RouteHookAttrProp =
   | 'transitionIn'
   | 'transitionOut'
   | 'unmount'
-  | 'reenter';
+  | 'update';
 
 /** All navigation lifecycle phases, including terminal `error`. */
 export type RoutePhase =
   | 'leave'
   | 'guard'
   | 'load'
-  | 'reenter'
+  | 'update'
   | 'transitionOut'
   | 'transitionIn'
   | 'unmount'

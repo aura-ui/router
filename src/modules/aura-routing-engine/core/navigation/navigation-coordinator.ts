@@ -118,7 +118,7 @@ export class NavigationCoordinator {
     const sameCommittedTarget =
       from != null
       && isSameNavigationTarget(from, to)
-      && !to.route.hasReenter;
+      && !to.route.hasUpdate;
 
     if (sameCommittedTarget) {
       if (this.inFlightHref !== null && this.inFlightHref !== href) {

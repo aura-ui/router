@@ -48,7 +48,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) leave: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) error: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) unmount: string[] | null;
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) reenter: string[] | null;
+  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) update: string[] | null;
 
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) errorTemplate: string;
@@ -116,8 +116,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return !!this.guard?.length;
   }
 
-  get hasReenter(): boolean {
-    return !!this.reenter?.length;
+  get hasUpdate(): boolean {
+    return !!this.update?.length;
   }
 
   get hasLeave(): boolean {
@@ -244,7 +244,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.viewController?.onUnmount();
   }
 
-  onReenter(ctx: RouteLifecycleContext): void {
+  onUpdate(ctx: RouteLifecycleContext): void {
     void ctx;
     this.passId++;
   }

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Обновление по query — Aura UI &gt; Router</title>
+  <link rel="stylesheet" href="/demo.css" />
+</head>
+<body>
+  <div class="shell">
+    <div class="demo-page demo-site" data-demo-scenario="phase-update">
+      <header class="demo-header">
+        <span class="demo-header__brand">Aura UI &gt; Router</span>
+        <a href="/" class="demo-header__back">← Оглавление</a>
+      </header>
+
+      <div class="demo-site-bar">
+        <div class="demo-site-bar__url">
+          <span class="demo-site-bar__label">URL</span>
+          <code id="demo-site-url" aria-live="polite"></code>
+        </div>
+        <nav class="demo-links demo-site-nav" aria-label="Вкладки">
+          <a href="/features/phase-update?tab=info" data-router-link>Информация</a>
+          <a href="/features/phase-update?tab=posts" data-router-link>Записи</a>
+          <a href="/features/phase-update?tab=settings" data-router-link>Настройки</a>
+        </nav>
+      </div>
+
+      <div class="demo-site-stage">
+        <aura-router id="app">
+          <aura-outlet class="demo-site-outlet"></aura-outlet>
+
+          <aura-route path="/features/phase-update/index.html" view="features/phase-update/panel.html"></aura-route>
+          <aura-route path="/features/phase-update" view="features/phase-update/panel.html"></aura-route>
+        </aura-router>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/examples/demo/main.ts"></script>
+</body>
+</html>

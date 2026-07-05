@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Основы маршрутизации — Aura UI &gt; Router</title>
+  <link rel="stylesheet" href="/demo.css" />
+</head>
+<body>
+  <div class="shell">
+    <div class="demo-page demo-site" data-demo-scenario="routing-basics">
+      <header class="demo-header">
+        <span class="demo-header__brand">Aura UI &gt; Router</span>
+        <a href="/" class="demo-header__back">← Оглавление</a>
+      </header>
+
+      <div class="demo-site-bar">
+        <div class="demo-site-bar__url">
+          <span class="demo-site-bar__label">URL</span>
+          <code id="demo-site-url" aria-live="polite"></code>
+        </div>
+        <nav class="demo-links demo-site-nav" aria-label="Навигация">
+          <a href="/features/routing-basics" data-router-link>Обзор</a>
+          <a href="/features/routing-basics/a" data-router-link>Страница A</a>
+          <a href="/features/routing-basics/b" data-router-link>Страница B</a>
+        </nav>
+      </div>
+
+      <div class="demo-site-stage">
+        <aura-router id="app">
+          <aura-outlet class="demo-site-outlet"></aura-outlet>
+
+          <aura-route path="/features/routing-basics/index.html" view="features/routing-basics/intro.html"></aura-route>
+          <aura-route path="/features/routing-basics" view="features/routing-basics/intro.html"></aura-route>
+          <aura-route path="/features/routing-basics/a" view="features/routing-basics/page-a.html"></aura-route>
+          <aura-route path="/features/routing-basics/b" view="features/routing-basics/page-b.html"></aura-route>
+        </aura-router>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/examples/demo/main.ts"></script>
+</body>
+</html>

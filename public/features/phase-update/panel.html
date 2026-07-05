@@ -1,0 +1,39 @@
+<article class="demo-site-view demo-layout-view">
+  <h1>Обновление по query</h1>
+  <p class="demo-site-view__lead">Pathname не меняется — обновляется только строка query (<code>?tab=…</code>). Роутер выполняет update того же маршрута, а не полный цикл exit/enter.</p>
+
+  <dl class="demo-facts">
+    <dt>Pathname</dt>
+    <dd><code>/features/phase-update</code></dd>
+    <dt>Активная вкладка</dt>
+    <dd><strong data-demo-param="tab">info</strong> (query-параметр <code>tab</code>)</dd>
+    <dt>Действие роутера</dt>
+    <dd>Тот же route record → update shortcut: shell не размонтируется, обновляется содержимое view.</dd>
+  </dl>
+
+  <nav class="demo-links">
+    <a href="/features/phase-update?tab=info" data-router-link>Информация</a>
+    <a href="/features/phase-update?tab=posts" data-router-link>Записи</a>
+    <a href="/features/phase-update?tab=settings" data-router-link>Настройки</a>
+  </nav>
+
+  <p class="demo-hint">Переключайте вкладки и следите за строкой URL: меняется только query. «Назад» восстановит предыдущее значение <code>tab</code>.</p>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="phase-update-code"></code></pre>
+  </div>
+  <template id="phase-update-code">
+<aura-router>
+  <aura-outlet></aura-outlet>
+
+  <aura-route path="/features/phase-update" view="features/phase-update/panel.html"></aura-route>
+</aura-router>
+
+<a href="/features/phase-update?tab=info" data-router-link>Информация</a>
+<a href="/features/phase-update?tab=posts" data-router-link>Записи</a>
+  </template>
+</article>

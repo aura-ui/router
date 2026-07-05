@@ -1,0 +1,148 @@
+/**
+ * Визуализация outlet / layout / view в demo-сценариях.
+ * Подключается через @import в demo.css.
+ */
+
+.demo-nested-label {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.demo-root-outlet {
+  position: relative;
+  padding: 0.85rem;
+  border: 2px dashed color-mix(in srgb, var(--text) 22%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+
+.demo-root-outlet::before {
+  content: 'корневой outlet';
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.demo-nested-outlet {
+  display: block;
+  position: relative;
+  min-height: 2.5rem;
+  padding: 0.55rem;
+  border-radius: 6px;
+  border: 2px dashed color-mix(in srgb, #2ea872 38%, transparent);
+  background: color-mix(in srgb, #2ea872 3%, transparent);
+}
+
+.demo-nested-outlet::before {
+  content: 'вложенный outlet';
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2a8f62;
+}
+
+[data-nested-layout],
+[data-user-layout] {
+  position: relative;
+  margin: 0;
+  padding: 0.85rem 0.85rem 1rem;
+  border-radius: 8px;
+}
+
+[data-nested-layout] {
+  border: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+[data-user-layout] {
+  border: 2px solid color-mix(in srgb, #9b6dff 55%, transparent);
+  background: color-mix(in srgb, #9b6dff 7%, transparent);
+}
+
+.demo-layout-badge {
+  display: inline-block;
+  margin: 0 0 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+[data-nested-layout] > .demo-layout-badge {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, white);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+[data-user-layout] > .demo-layout-badge {
+  color: #7c4fe0;
+  background: color-mix(in srgb, #9b6dff 14%, white);
+  border: 1px solid color-mix(in srgb, #9b6dff 35%, transparent);
+}
+
+.demo-layout-chrome {
+  padding: 0.55rem 0.65rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, white 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.demo-layout-chrome > .demo-nested-label {
+  margin-top: 0;
+}
+
+.demo-layout-chrome .demo-links {
+  margin-bottom: 0;
+}
+
+.demo-layout-slot {
+  position: relative;
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.65rem 0.65rem;
+  border-radius: 6px;
+  border: 2px dashed color-mix(in srgb, #2ea872 50%, transparent);
+  background: color-mix(in srgb, #2ea872 5%, transparent);
+}
+
+.demo-layout-slot__label {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2a8f62;
+}
+
+.demo-site-view.demo-layout-view {
+  position: relative;
+  margin: 0;
+  padding: 0.85rem 0.85rem 0.85rem 1rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, #2ea872 45%, transparent);
+  background: color-mix(in srgb, #2ea872 6%, white);
+  box-shadow: inset 3px 0 0 #2ea872;
+}
+
+.demo-site-view.demo-layout-view::before {
+  content: 'конечный view';
+  display: block;
+  margin-bottom: 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2a8f62;
+}

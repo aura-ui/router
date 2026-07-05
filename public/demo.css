@@ -73,6 +73,22 @@ body {
   padding: 1.5rem 1.25rem 1.75rem;
 }
 
+.demo-site-footer {
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.demo-site-footer__text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.demo-site-footer a {
+  color: var(--accent);
+}
+
 .demo-site-outlet {
   display: block;
   min-height: inherit;

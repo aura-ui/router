@@ -3,7 +3,7 @@ import type {
   MatchedRouteInfo,
   ViewRenderResult,
 } from '../../../aura-routing-engine/route-api';
-import type { RouteRenderOptions } from '../types';
+import type { RouteRenderOptions, RouteUnmountOptions } from '../types';
 
 import {
   EMPTY_MOUNT,
@@ -43,7 +43,7 @@ export class RouteViewController {
   private readonly getPassId: () => number;
   private readonly renderSignal = new RenderSignal();
   private mount: MountSnapshot = { ...EMPTY_MOUNT };
-  /** Cache key from the last {@link render}; used by {@link onUnmount} for keep-alive DOM. */
+  /** Cache key for the active view; fallback when {@link onUnmount} has no {@link RouteUnmountOptions.cacheKey}. */
   private lastCacheKey: string | null = null;
   /** Set during {@link render} for synthetic param remount on the same leaf route. */
   private paramChangeRemount = false;
@@ -77,7 +77,7 @@ export class RouteViewController {
   }
 
   /** Detaches or destroys exit view; param-change remount only touches lingering outgoing handle. */
-  onUnmount(): void {
+  onUnmount(options?: RouteUnmountOptions): void {
     this.renderSignal.cancel();
 
     const preserveView = this.config.route.preserve.view;
@@ -91,7 +91,10 @@ export class RouteViewController {
     this.mount = finalizeLeave(snapshot, preserveView, detachedRoot);
 
     if (preserveView && detachedRoot) {
-      this.config.cache.put(this.lastCacheKey ?? this.config.route.path, detachedRoot);
+      this.config.cache.put(
+        options?.cacheKey ?? this.lastCacheKey ?? this.config.route.path,
+        detachedRoot,
+      );
     }
   }
 

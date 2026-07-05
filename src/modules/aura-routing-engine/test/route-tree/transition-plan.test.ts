@@ -231,6 +231,64 @@ describe('buildTransitionPlan', () => {
     expect(plan.exitRoutes).toHaveLength(1);
     expect(routeMatchKey(plan.exitRoutes[0]!)).toBe('/users/:id');
   });
+
+  describe('param-change policy by view type', () => {
+    it.each([
+      ['html', 'partials/user-shell.html', true],
+      ['html', 'content/user/{{id}}.html', false],
+      ['html-src', 'partials/user-shell.html', true],
+      ['html-src', 'content/user/{{id}}.html', false],
+      ['component', 'user-profile', true],
+      ['component', 'user-{{id}}', false],
+      ['component-src', 'user-profile', true],
+      ['component-src', 'widgets/user-{{id}}', false],
+      ['template', 'app-shell', true],
+      ['template', 'shells/user-{{id}}', false],
+    ] as const)(
+      '%s with %s → update=%s',
+      (type, content, expectUpdate) => {
+        const node = createUsersIdNode({ view: { type, content } });
+        const from = createUsersIdMatch('1', node);
+        const to = createUsersIdMatch('2', node);
+
+        if (expectUpdate) {
+          expect(from.resolvedView?.viewKey).toBe(to.resolvedView?.viewKey);
+        } else {
+          expect(from.resolvedView?.viewKey).not.toBe(to.resolvedView?.viewKey);
+        }
+
+        expect(buildTransitionPlan(from, to).update).toBe(expectUpdate);
+      },
+    );
+
+    it('layout-only leaf (resolvedView null) → update on param change', () => {
+      const node = createUsersIdNode({
+        layout: 'users-shell',
+        view: { type: 'html-src', content: 'ignored.html' },
+      });
+      const from = createUsersIdMatch('1', node);
+      const to = createUsersIdMatch('2', node);
+
+      expect(from.resolvedView).toBeNull();
+      expect(to.resolvedView).toBeNull();
+
+      const plan = buildTransitionPlan(from, to);
+
+      expect(plan.update).toBe(true);
+      expect(plan.exitRoutes).toEqual([]);
+    });
+
+    it('unresolved {{placeholder}} keeps same viewKey → update (misconfiguration)', () => {
+      const node = createUsersIdNode({
+        view: { type: 'html-src', content: 'content/{{missing}}.html' },
+      });
+      const from = createUsersIdMatch('1', node);
+      const to = createUsersIdMatch('2', node);
+
+      expect(from.resolvedView?.viewKey).toBe(to.resolvedView?.viewKey);
+      expect(buildTransitionPlan(from, to).update).toBe(true);
+    });
+  });
 });
 
 describe('isSameNavigationTarget', () => {

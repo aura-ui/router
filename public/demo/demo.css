@@ -324,6 +324,11 @@ body.mode-story:not(.mode-dev-detail) .scene__eyebrow { display: none; }
   font-size: 0.85rem; line-height: 1.55; color: var(--text);
 }
 .scene__callout--ok { background: var(--ok-soft); border-color: #b8e6d0; }
+.scene__callout.is-flash { animation: update-flash 0.55s ease; }
+@keyframes update-flash {
+  0%, 100% { box-shadow: none; }
+  35% { box-shadow: 0 0 0 3px rgb(15 159 116 / 28%); }
+}
 .scene__links { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .scene__links a {
   font-size: 0.82rem; font-weight: 500; padding: 0.36rem 0.65rem;

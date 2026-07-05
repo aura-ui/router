@@ -73,11 +73,11 @@ export const SCENARIOS: Record<string, ScenarioMeta> = {
     group: 'Маршруты',
     recipe: 'path="about" view="partials/users-about.html" preserve',
   },
-  '/routing/user/1': {
-    title: 'Параметр :id в URL',
-    hint: 'Сегмент /routing/user/1 передаётся в компонент как params.id',
+  '/routing/users/1': {
+    title: 'update при смене :id',
+    hint: 'User 1 → User 2: nested :id, layout остаётся, фаза update без remount leaf',
     group: 'Маршруты',
-    recipe: 'path="/routing/user/:id" view="component-src::…/test-element"',
+    recipe: 'path=":id" update="user-sync" (child of /routing/users)',
   },
   '/hooks/protected': {
     title: 'Защищённая страница',
@@ -145,13 +145,13 @@ export function resolveScenario(path: string): {
     };
   }
 
-  if (path.startsWith('/routing/user/')) {
+  if (/^\/routing\/users\/[^/]+$/.test(path) && path !== '/routing/users/about') {
     const id = path.split('/').pop() ?? '?';
     return {
       title: `Профиль пользователя #${id}`,
-      hint: 'Динамический сегмент :id из URL попадает в компонент',
+      hint: 'Nested :id под layout Users — переключите User 1 ↔ User 2, синяя оболочка остаётся',
       group: 'Маршруты',
-      recipe: 'path="/routing/user/:id" view="component-src::…/test-element"',
+      recipe: 'path=":id" update="user-sync" (child of /routing/users)',
     };
   }
 

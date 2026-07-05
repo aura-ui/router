@@ -66,9 +66,9 @@ function createController(
   );
 
   const originalOnUnmount = controller.onUnmount.bind(controller);
-  controller.onUnmount = () => {
+  controller.onUnmount = (options) => {
     passId++;
-    originalOnUnmount();
+    originalOnUnmount(options);
   };
 
   const originalRender = controller.render.bind(controller);
@@ -359,10 +359,11 @@ describe('RouteViewController keep-alive integration', () => {
 
     expect(root.children).toHaveLength(2);
 
-    controller.onUnmount();
+    controller.onUnmount({ cacheKey: cacheKey(route1, 'user/:id') });
 
     expect(root.textContent).toBe('view-2');
     expect(root.children).toHaveLength(1);
-    expect([...stash.values()].some((root) => root.textContent === 'view-1')).toBe(true);
+    expect(stash.has('/user/1')).toBe(true);
+    expect(stash.get('/user/1')?.textContent).toBe('view-1');
   });
 });

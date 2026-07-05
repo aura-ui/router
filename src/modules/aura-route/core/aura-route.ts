@@ -17,7 +17,7 @@ import { parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser'
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
 import { loadingBodyClass, loadingEvent } from './view/plugins';
 import type { MountTargetPort } from './view/ports';
-import { defaultViewCache } from './view/view-cache';
+import { cacheKey, defaultViewCache } from './view/view-cache';
 import { RouteViewController } from './view/view-controller';
 import {
   NO_TRANSITION,
@@ -242,9 +242,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   }
 
   onUnmount(ctx: RouteLifecycleContext): void {
-    void ctx;
     this.passId++;
-    this.viewController?.onUnmount();
+    this.viewController?.onUnmount({ cacheKey: cacheKey(ctx.to, this.path) });
   }
 
   onUpdate(ctx: RouteLifecycleContext): void {

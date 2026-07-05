@@ -33,4 +33,9 @@ export type RouteRenderOptions = {
   paramChangeRemount?: boolean;
 };
 
+export type RouteUnmountOptions = {
+  /** ViewCache key for detached outgoing DOM (exit route slice from unmount phase). */
+  cacheKey?: string;
+};
+
 export type { MatchedRouteInfo };

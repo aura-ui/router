@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Продвинутые сценарии — Aura UI &gt; Router</title>
+  <link rel="stylesheet" href="/demo.css" />
+</head>
+<body>
+  <div class="shell">
+    <div class="demo-page demo-site" data-demo-scenario="routing-advanced">
+      <header class="demo-header">
+        <span class="demo-header__brand">Aura UI &gt; Router</span>
+        <a href="/" class="demo-header__back">← Оглавление</a>
+      </header>
+
+      <div class="demo-site-bar">
+        <div class="demo-site-bar__url">
+          <span class="demo-site-bar__label">URL</span>
+          <code id="demo-site-url" aria-live="polite"></code>
+        </div>
+        <nav class="demo-links demo-site-nav" aria-label="Навигация">
+          <a href="/features/routing-advanced" data-router-link>Обзор</a>
+          <a href="/features/routing-advanced/users" data-router-link>Список</a>
+          <a href="/features/routing-advanced/users/about" data-router-link>О разделе</a>
+          <a href="/features/routing-advanced/users/1" data-router-link>User 1</a>
+          <a href="/features/routing-advanced/users/1/settings" data-router-link>Настройки</a>
+          <a href="/features/routing-advanced/unknown-page" data-router-link>404</a>
+        </nav>
+      </div>
+
+      <div class="demo-site-stage">
+        <aura-router id="app">
+          <aura-outlet class="demo-site-outlet"></aura-outlet>
+
+          <aura-route path="/features/routing-advanced/index.html" view="features/routing-advanced/intro.html"></aura-route>
+          <aura-route path="/features/routing-advanced" view="features/routing-advanced/intro.html"></aura-route>
+
+          <aura-route path="/features/routing-advanced/users" layout="users-layout">
+            <aura-route path="." view="features/routing-advanced/users-list.html"></aura-route>
+            <aura-route path="about" view="features/routing-advanced/users-about.html"></aura-route>
+            <aura-route path=":id" layout="user-layout">
+              <aura-route path="." view="features/routing-advanced/user.html"></aura-route>
+              <aura-route path="settings" view="features/routing-advanced/user-settings.html"></aura-route>
+            </aura-route>
+          </aura-route>
+
+          <aura-route path="*" view="features/routing-advanced/not-found.html"></aura-route>
+        </aura-router>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/examples/demo/main.ts"></script>
+</body>
+</html>

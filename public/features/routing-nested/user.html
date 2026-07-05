@@ -1,0 +1,20 @@
+<article class="demo-site-view demo-layout-view">
+  <h1>Профиль пользователя</h1>
+  <p class="demo-site-view__lead">Динамический сегмент <code>:id</code>. Переход между пользователями — update конечного view без размонтирования layout.</p>
+
+  <dl class="demo-facts">
+    <dt>Path</dt>
+    <dd><code>/features/routing-nested/users/:id</code></dd>
+    <dt>Параметр id</dt>
+    <dd><strong data-demo-param="id">—</strong></dd>
+    <dt>Действие роутера</dt>
+    <dd>Update во вложенном outlet; <code>users-layout</code> остаётся смонтированным.</dd>
+  </dl>
+
+  <nav class="demo-links">
+    <a href="/features/routing-nested/users/1" data-router-link>User 1</a>
+    <a href="/features/routing-nested/users/2" data-router-link>User 2</a>
+    <a href="/features/routing-nested/users/3" data-router-link>User 3</a>
+    <a href="/features/routing-nested/users" data-router-link>← К списку</a>
+  </nav>
+</article>

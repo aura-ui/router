@@ -1,0 +1,44 @@
+<article class="demo-site-view demo-layout-view">
+  <h1>Продвинутые сценарии</h1>
+  <p class="demo-site-view__lead">Приоритет сопоставления URL, многоуровневая вложенность layout и declarative catch-all для 404.</p>
+
+  <p class="demo-hint">Синий — layout первого уровня, фиолетовый — layout второго уровня, зелёный — конечный view во вложенном outlet.</p>
+
+  <h2>Приоритет маршрутов</h2>
+  <p>При нескольких кандидатах побеждает более специфичный pattern: статический сегмент → динамический <code>:id</code> → catch-all <code>*</code>.</p>
+  <nav class="demo-links">
+    <a href="/features/routing-advanced/users/about" data-router-link>/users/about</a>
+    <a href="/features/routing-advanced/users/1" data-router-link>/users/1</a>
+    <a href="/features/routing-advanced/unknown-page" data-router-link>несуществующий path</a>
+  </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="advanced-code-priority"></code></pre>
+  </div>
+  <template id="advanced-code-priority">
+<aura-route path="/features/routing-advanced/users" layout="users-layout">
+  <aura-route path="about" view="..."></aura-route>
+  <aura-route path=":id" layout="user-layout">...</aura-route>
+</aura-route>
+<aura-route path="*" view="features/routing-advanced/not-found.html"></aura-route>
+  </template>
+
+  <h2>Третий уровень вложенности</h2>
+  <p>Цепочка outlet: корневой → <code>users-layout</code> → <code>user-layout</code> → конечный view. Профиль и настройки одного пользователя разделяют layout второго уровня.</p>
+  <nav class="demo-links">
+    <a href="/features/routing-advanced/users/1" data-router-link>Профиль</a>
+    <a href="/features/routing-advanced/users/1/settings" data-router-link>Настройки</a>
+  </nav>
+
+  <h2>Catch-all и 404</h2>
+  <p>Маршрут <code>path="*"</code> обрабатывает path, для которого нет более специфичного совпадения. URL в адресной строке сохраняется; страница не перезагружается.</p>
+  <nav class="demo-links">
+    <a href="/features/routing-advanced/unknown-page" data-router-link>Открыть 404</a>
+  </nav>
+
+  <p class="demo-hint">Смена query без смены pathname — в сценарии <a href="/features/phase-update/index.html">обновление по query</a>.</p>
+</article>

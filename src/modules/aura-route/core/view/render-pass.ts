@@ -21,14 +21,18 @@ export function createRenderPass(
   routeInfo: MatchedRouteInfo,
   signal: AbortSignal,
   data?: unknown,
+  paramChangeRemount?: boolean,
 ): RenderPass {
+  const useStagedMount = route.transition.order !== null
+    || (paramChangeRemount === true && route.preserve.view);
+
   return {
     id: passId,
     routeInfo,
     signal,
     cacheKey: cacheKey(routeInfo, route.path),
     viewKind: route.layout.trim() ? 'layout' : 'content',
-    useStagedMount: route.transition.order !== null,
+    useStagedMount,
     ...(data !== undefined && { data }),
   };
 }

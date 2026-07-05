@@ -3,7 +3,7 @@ import { PHASES, type PipelinePhaseDefinition } from '../lifecycle';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { resolveRouteData } from '../data-graph';
-import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
+import { isRenderError, runViewCommit, type ViewCommitRenderOptions } from '../view-mount/view-commit-render';
 import type { TransactionFullResult } from './transaction-result';
 
 export type { TransactionFullResult } from './transaction-result';
@@ -113,17 +113,13 @@ export class NavigationTransactionPipeline {
   /** Staged view commit for all enter routes (no transition wrappers). */
   async runRender(): Promise<TransactionFullResult> {
     for (const matchedRoute of this.transaction.transitionPlan.enterRoutes) {
-      const routeData = this.transaction.dataSnapshot
-        ? resolveRouteData(this.transaction.dataSnapshot, matchedRoute)
-        : undefined;
-
       const viewCommit = await runViewCommit(
         matchedRoute,
         {
           signal: this.transaction.signal,
           aborted: this.transaction.isAborted,
         },
-        routeData !== undefined ? { data: routeData } : undefined,
+        this.viewCommitOptions(matchedRoute),
       );
 
       if (viewCommit === 'ok') {
@@ -226,6 +222,20 @@ export class NavigationTransactionPipeline {
     await this.runLifecyclePhase(PHASES.unmount);
     this.transaction.viewCommitTracker.markViewCommittedAfterErrorRecovery();
     return this.transaction.fail(matchedRoute, error, 'render');
+  }
+
+  /** Load payload + remount flag for one enter route (full pipeline render only). */
+  private viewCommitOptions(matchedRoute: MatchedRouteInfo): ViewCommitRenderOptions | undefined {
+    const options: ViewCommitRenderOptions = {};
+    const snapshot = this.transaction.dataSnapshot;
+    if (snapshot) {
+      const routeData = resolveRouteData(snapshot, matchedRoute);
+      if (routeData !== undefined) options.data = routeData;
+    }
+    if (this.transaction.transitionPlan.paramChangeRemount) {
+      options.paramChangeRemount = true;
+    }
+    return Object.keys(options).length > 0 ? options : undefined;
   }
 
   private async runSequentially(steps: PipelineStep[]): Promise<TransactionFullResult> {

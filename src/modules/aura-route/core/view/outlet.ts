@@ -132,13 +132,8 @@ export function commitStaged(snapshot: MountSnapshot): MountSnapshot {
 
 export function cancelStagedIncoming(snapshot: MountSnapshot): MountSnapshot {
   if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
-
   snapshot.activeHandle.mountOutlet.cancelStage();
-
-  return {
-    ...snapshot,
-    strategy: 'replace',
-  };
+  return { ...snapshot, strategy: 'replace' };
 }
 
 /**
@@ -183,20 +178,32 @@ export function unmountOnLeave(
     const afterCancel = cancelStagedIncoming(snapshot);
     return {
       detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, preserveView),
-      snapshot: {
-        ...afterCancel,
-        activeHandle: null,
-        stageOutgoingHandle: null,
-      },
+      snapshot: { ...afterCancel, activeHandle: null, stageOutgoingHandle: null },
     };
   }
 
   return {
     detachedRoot: unmountHandle(snapshot.activeHandle, preserveView),
-    snapshot: {
-      ...snapshot,
-      activeHandle: null,
-    },
+    snapshot: { ...snapshot, activeHandle: null },
+  };
+}
+
+/**
+ * Param-change remount after render/commit: teardown only a lingering outgoing handle.
+ * Active (enter) view must stay mounted — render already replaced or commitStaged promoted it.
+ */
+export function unmountParamChangeOutgoing(
+  snapshot: MountSnapshot,
+  preserveView: boolean,
+): { snapshot: MountSnapshot; detachedRoot: ViewRoot | null } {
+  const outgoing = snapshot.stageOutgoingHandle;
+  if (!outgoing) {
+    return { snapshot, detachedRoot: null };
+  }
+
+  return {
+    detachedRoot: unmountHandle(outgoing, preserveView),
+    snapshot: { ...snapshot, stageOutgoingHandle: null },
   };
 }
 

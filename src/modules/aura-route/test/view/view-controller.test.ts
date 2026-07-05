@@ -249,4 +249,120 @@ describe('RouteViewController keep-alive integration', () => {
     expect(viewCache.extract(cacheKey(matched('/c', { pattern: 'c' }), 'c'))).toBeDefined();
     expect(evicted[0]?.isConnected).toBe(false);
   });
+
+  it('param-change onUnmount preserves active view after remount', async () => {
+    const root = createOutlet();
+    let resolveCount = 0;
+    const controller = createController(
+      'user/:id',
+      { root: () => root },
+      { resolve: async () => `<span>view-${++resolveCount}</span>` },
+      createMockViewCache(),
+      false,
+    );
+
+    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+
+    await controller.render(route1);
+    expect(root.textContent).toBe('view-1');
+
+    await controller.render(route2, { paramChangeRemount: true });
+    expect(root.textContent).toBe('view-2');
+
+    controller.onUnmount();
+    expect(root.textContent).toBe('view-2');
+    expect(root.children).toHaveLength(1);
+  });
+
+  it('isViewAlreadyInOutlet skips re-render for same target with preserve.view', async () => {
+    const root = createOutlet();
+    let resolveCount = 0;
+    const controller = createController(
+      'user/:id',
+      { root: () => root },
+      { resolve: async () => `<span>view-${++resolveCount}</span>` },
+      createMockViewCache(),
+      true,
+    );
+
+    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+
+    await controller.render(route1);
+    await controller.render(route1);
+
+    expect(resolveCount).toBe(1);
+    expect(root.textContent).toBe('view-1');
+  });
+
+  it('param-change remount re-renders despite preserve.view and active mount', async () => {
+    const root = createOutlet();
+    let resolveCount = 0;
+    const controller = createController(
+      'user/:id',
+      { root: () => root },
+      { resolve: async () => `<span>view-${++resolveCount}</span>` },
+      createMockViewCache(),
+      true,
+    );
+
+    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+
+    await controller.render(route1);
+    await controller.render(route2, { paramChangeRemount: true });
+    controller.commitStagedView();
+
+    expect(resolveCount).toBe(2);
+    expect(root.textContent).toBe('view-2');
+  });
+
+  it('onUnmount without paramChangeRemount clears view after param swap', async () => {
+    const root = createOutlet();
+    const controller = createController(
+      'user/:id',
+      { root: () => root },
+      { resolve: async (info) => `<span>view-${info.params?.id}</span>` },
+      createMockViewCache(),
+      false,
+    );
+
+    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+
+    await controller.render(route1);
+    await controller.render(route2);
+    expect(root.textContent).toBe('view-2');
+
+    controller.onUnmount();
+    expect(root.children).toHaveLength(0);
+  });
+
+  it('staged param-change remount stashes outgoing DOM before commit when preserve.view', async () => {
+    const root = createOutlet();
+    const stash = new Map<string, Element>();
+    const viewCache = createMockViewCache(stash);
+    let resolveCount = 0;
+    const controller = createController(
+      'user/:id',
+      { root: () => root },
+      { resolve: async () => `<span>view-${++resolveCount}</span>` },
+      viewCache,
+      true,
+    );
+
+    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+
+    await controller.render(route1);
+    await controller.render(route2, { paramChangeRemount: true });
+
+    expect(root.children).toHaveLength(2);
+
+    controller.onUnmount();
+
+    expect(root.textContent).toBe('view-2');
+    expect(root.children).toHaveLength(1);
+    expect([...stash.values()].some((root) => root.textContent === 'view-1')).toBe(true);
+  });
 });

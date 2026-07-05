@@ -29,6 +29,8 @@ export type RouteRenderOptions = {
   parentSignal?: AbortSignal;
   /** Load-hook payload from DataGraph snapshot for this navigation. */
   data?: unknown;
+  /** Synthetic param remount on the same `<aura-route>` leaf. */
+  paramChangeRemount?: boolean;
 };
 
 export type { MatchedRouteInfo };

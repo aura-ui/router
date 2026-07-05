@@ -32,6 +32,8 @@ export function isRenderError(
 export type ViewCommitRenderOptions = {
   /** Load-hook payload for this route from DataGraph snapshot. */
   data?: unknown;
+  /** Synthetic param remount on the same `<aura-route>` leaf. */
+  paramChangeRemount?: boolean;
 };
 
 /** Renders the activate-branch route view; aborts when the navigation job is superseded. */
@@ -44,7 +46,7 @@ export async function runViewCommit(
 
   const result = await matchedRoute.route.render(matchedRoute, {
     parentSignal: cancellation.signal,
-    ...(options?.data !== undefined && { data: options.data }),
+    ...options,
   });
 
   if (cancellation.aborted) return 'aborted';

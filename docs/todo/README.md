@@ -24,6 +24,7 @@
 | [PREFETCH_NEXT_GEN.md](./PREFETCH_NEXT_GEN.md) | Prefetch следующего поколения (ISNR); **топ-3 SSR** post-parity |
 | [LIFECYCLE_PHASE_NAMING.md](./LIFECYCLE_PHASE_NAMING.md) | Lifecycle attrs (tiers) + **parity с мировыми роутерами** (как думать в будущем) |
 | [PARAM_CHANGE_POLICY.md](./PARAM_CHANGE_POLICY.md) | **RFC:** param-change на `:id` — view-key inference (update vs full) + `param-change` override |
+| [IN_PLACE_REMOUNT.md](./IN_PLACE_REMOUNT.md) | **TODO:** in-place remount — controller-first, оба cache, упрощение plan (убрать hook/view exit split) |
 | [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) | DOM events: что есть (`not-found`, errors) и roadmap (`navigation-commit`, cancel, …) |
 | [OPTIMISTIC_URL.md](./OPTIMISTIC_URL.md) | **RFC:** optimistic URL vs stage-until-commit; текущий рассинхрон content/history и TODO |
 | [RENDERER_ABSTRACTION.md](./RENDERER_ABSTRACTION.md) | **Фаза 6:** engine-level `Renderer.renderNode()` + централизованный `dispose`; ViewHandle ✓, engine Renderer ✗ |

@@ -218,7 +218,7 @@ type RenderPass = {
 
 ```text
 1. tryCacheRestore(pass)           ✅
-2. shouldSkipKeepAlive(pass)       ✅
+2. isViewAlreadyInOutlet(pass)       ✅
 3. loading (plugin, не remount)    ✅
 4. resolve content                 ✅
 5. mount content                   ✅

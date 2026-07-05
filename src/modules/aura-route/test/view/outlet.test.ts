@@ -10,6 +10,7 @@ import {
   rollbackStaged,
   hasActiveMount,
   unmountOnLeave,
+  unmountParamChangeOutgoing,
   unmountHandle,
   type MountContext,
   type MountSlice,
@@ -395,6 +396,30 @@ describe('outlet', () => {
       expect(root.children).toHaveLength(0);
       expect(detachedRoot).not.toBeNull();
       expect(snapshot.activeHandle).toBeNull();
+      expect(snapshot.stageOutgoingHandle).toBeNull();
+    });
+
+    it('unmountParamChangeOutgoing only tears down lingering outgoing handle', () => {
+      const root = createOutlet();
+      const staged = stageTwoViews(root);
+      const committed = commitStaged(staged);
+
+      const { snapshot, detachedRoot } = unmountParamChangeOutgoing(committed, false);
+      expect(detachedRoot).toBeNull();
+      expect(snapshot.activeHandle).toBe(committed.activeHandle);
+      expect(root.children).toHaveLength(1);
+      expect(root.textContent).toBe('new');
+    });
+
+    it('unmountParamChangeOutgoing detaches outgoing when still staged', () => {
+      const root = createOutlet();
+      const staged = stageTwoViews(root);
+
+      const { snapshot, detachedRoot } = unmountParamChangeOutgoing(staged, true);
+      expect(root.children).toHaveLength(1);
+      expect(root.textContent).toBe('new');
+      expect(detachedRoot).not.toBeNull();
+      expect(snapshot.activeHandle).toBe(staged.activeHandle);
       expect(snapshot.stageOutgoingHandle).toBeNull();
     });
 

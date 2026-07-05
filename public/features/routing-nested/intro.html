@@ -1,7 +1,7 @@
 <article class="demo-site-view demo-layout-view">
   <h1>Вложенные маршруты</h1>
   <p class="demo-site-view__lead">Родительский layout содержит внутренний outlet: оболочка сохраняется, меняется только вложенный view.</p>
-  <p class="demo-hint">Синяя рамка — layout, зелёная пунктирная область — вложенный outlet, зелёный блок — конечный view.</p>
+  <p class="demo-hint">Синяя рамка — layout, зелёный слот — зона view, метка <code>&lt;aura-outlet&gt;</code> — точка монтирования, зелёный блок — конечный view.</p>
 
   <h2>Layout и вложенный outlet</h2>
   <p>Маршрут с атрибутом <code>layout</code> рендерит шаблон с собственным <code>&lt;aura-outlet&gt;</code>. Дочерние маршруты монтируют view во внутренний outlet. При переходе «User 1» → «User 2» layout остаётся в DOM, обновляется только содержимое slot.</p>
@@ -9,6 +9,7 @@
     <a href="/features/routing-nested/users" data-router-link>Список</a>
     <a href="/features/routing-nested/users/1" data-router-link>User 1</a>
     <a href="/features/routing-nested/users/2" data-router-link>User 2</a>
+    <a href="/features/routing-nested/users/3" data-router-link>User 3</a>
   </nav>
 
   <div class="demo-code-window">
@@ -19,31 +20,72 @@
     <pre class="demo-code"><code class="language-html" data-code-from="nested-code-layout"></code></pre>
   </div>
   <template id="nested-code-layout">
-<aura-route path="/features/routing-nested/users" layout="users-layout">
-  <aura-route path="." view="features/routing-nested/users-list.html"></aura-route>
-  <aura-route path=":id" view="features/routing-nested/user.html"></aura-route>
-</aura-route>
+<aura-router>
+  <aura-outlet></aura-outlet>
+
+  <aura-route path="/features/routing-nested/users" layout="users-layout">
+    <aura-route path="." view="features/routing-nested/users-list.html"></aura-route>
+    <aura-route path=":id" view="features/routing-nested/user.html"></aura-route>
+  </aura-route>
+</aura-router>
+
+<template id="users-layout">
+  <div>
+    <nav>...</nav>
+    <aura-outlet></aura-outlet>
+  </div>
+</template>
   </template>
 
   <h2>Index-дочерний маршрут (<code>path="."</code>)</h2>
-  <p>Точка (<code>path="."</code>) задаёт view по умолчанию для ветки. URL остаётся <code>/users</code> — без дополнительного сегмента и без редиректа.</p>
+  <p>Точка (<code>path="."</code>) задаёт view по умолчанию для ветки. URL остаётся <code>/features/routing-nested/users</code> — без дополнительного сегмента и без редиректа.</p>
   <nav class="demo-links">
     <a href="/features/routing-nested/users" data-router-link>/users</a>
     <a href="/features/routing-nested/users/1" data-router-link>/users/1</a>
   </nav>
 
-  <h2>Переключение sibling-маршрутов</h2>
-  <p>Список и профиль пользователя — sibling-маршруты под одним layout. При переключении между ними layout не размонтируется: происходит смена только конечного view во вложенном outlet.</p>
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="nested-code-index"></code></pre>
+  </div>
+  <template id="nested-code-index">
+<aura-route path="/features/routing-nested/users" layout="users-layout">
+  <aura-route path="." view="features/routing-nested/users-list.html"></aura-route>
+  <aura-route path=":id" view="features/routing-nested/user.html"></aura-route>
+</aura-route>
+
+<a href="/features/routing-nested/users" data-router-link>Список</a>
+  </template>
+
+  <h2>Sibling-маршруты и сегмент <code>:id</code></h2>
+  <p>Под layout — два sibling-маршрута: index (<code>path="."</code>, список) и профиль (<code>path=":id"</code>). Переход «Список» → «User 2» — смена sibling: layout остаётся, меняется конечный view. Переход «User 1» → «User 2» — update того же маршрута <code>:id</code>: view тот же, меняются параметр <code>id</code> и URL.</p>
   <nav class="demo-links">
     <a href="/features/routing-nested/users" data-router-link>Список</a>
-    <a href="/features/routing-nested/users/2" data-router-link>User 2</a>
-  </nav>
-
-  <h2>Динамический сегмент <code>:id</code></h2>
-  <p>Один view обслуживает произвольный идентификатор в path. Переход User 1 → User 2 — обновление (update) того же маршрута: layout стабилен, меняются параметр <code>id</code> и URL.</p>
-  <nav class="demo-links">
     <a href="/features/routing-nested/users/1" data-router-link>User 1</a>
     <a href="/features/routing-nested/users/2" data-router-link>User 2</a>
     <a href="/features/routing-nested/users/3" data-router-link>User 3</a>
   </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="nested-code-sibling-id"></code></pre>
+  </div>
+  <template id="nested-code-sibling-id">
+<aura-route path="/features/routing-nested/users" layout="users-layout">
+  <!-- sibling: index -->
+  <aura-route path="." view="features/routing-nested/users-list.html"></aura-route>
+  <!-- sibling: :id — один view на любой id -->
+  <aura-route path=":id" view="features/routing-nested/user.html"></aura-route>
+</aura-route>
+
+<a href="/features/routing-nested/users" data-router-link>Список</a>
+<a href="/features/routing-nested/users/1" data-router-link>User 1</a>
+<a href="/features/routing-nested/users/2" data-router-link>User 2</a>
+  </template>
 </article>

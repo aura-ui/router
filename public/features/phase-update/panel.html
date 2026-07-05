@@ -1,15 +1,6 @@
-<article class="demo-site-view demo-layout-view">
+<article class="demo-site-view demo-layout-view" data-demo-view="features/phase-update/panel.html">
   <h1>Обновление по query</h1>
   <p class="demo-site-view__lead">Pathname не меняется — обновляется только строка query (<code>?tab=…</code>). Роутер выполняет update того же маршрута, а не полный цикл exit/enter.</p>
-
-  <dl class="demo-facts">
-    <dt>Pathname</dt>
-    <dd><code>/features/phase-update</code></dd>
-    <dt>Активная вкладка</dt>
-    <dd><strong data-demo-param="tab">info</strong> (query-параметр <code>tab</code>)</dd>
-    <dt>Действие роутера</dt>
-    <dd>Тот же route record → update shortcut: shell не размонтируется, обновляется содержимое view.</dd>
-  </dl>
 
   <nav class="demo-links">
     <a href="/features/phase-update?tab=info" data-router-link>Информация</a>

@@ -23,6 +23,7 @@
 | [ROUTE_CONTENT_SNAPSHOT_PATCH.md](./ROUTE_CONTENT_SNAPSHOT_PATCH.md) | Точечное обновление `RouteNode.content` vs полный `refreshRoutes()` |
 | [PREFETCH_NEXT_GEN.md](./PREFETCH_NEXT_GEN.md) | Prefetch следующего поколения (ISNR); **топ-3 SSR** post-parity |
 | [LIFECYCLE_PHASE_NAMING.md](./LIFECYCLE_PHASE_NAMING.md) | Lifecycle attrs (tiers) + **parity с мировыми роутерами** (как думать в будущем) |
+| [PARAM_CHANGE_POLICY.md](./PARAM_CHANGE_POLICY.md) | **RFC:** param-change на `:id` — view-key inference (update vs full) + `param-change` override |
 | [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) | DOM events: что есть (`not-found`, errors) и roadmap (`navigation-commit`, cancel, …) |
 | [RENDERER_ABSTRACTION.md](./RENDERER_ABSTRACTION.md) | **Фаза 6:** engine-level `Renderer.renderNode()` + централизованный `dispose`; ViewHandle ✓, engine Renderer ✗ |
 | [EVENT_BUS.md](./EVENT_BUS.md) | **Фаза 7:** внутренний EventBus (`navigation:*`, `load:*`, `node:*`) — as-is, точки emit, план EB0–EB4 |

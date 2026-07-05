@@ -9,6 +9,7 @@ import {
 } from '../../core';
 import type { RouterInstance } from '../../core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
+import { withResolvedView } from '../helpers/with-resolved-view';
 
 describe('content load flow (view → engine)', () => {
   const routerNav: RouterInstance = { navigate: jest.fn() };
@@ -29,16 +30,17 @@ describe('content load flow (view → engine)', () => {
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'html-src::feed.html');
 
-    const routeInfo = {
-      href: '/feed',
-      pathname: '/feed',
-      search: '',
-      hash: '',
-      pattern: '/feed',
-      route,
-    };
-
-    await contentLoad.resolve(routeInfo, new AbortController().signal);
+    await contentLoad.resolve(
+      withResolvedView({
+        href: '/feed',
+        pathname: '/feed',
+        search: '',
+        hash: '',
+        pattern: '/feed',
+        route,
+      }),
+      new AbortController().signal,
+    );
     expect(loads).toEqual(['feed.html']);
   });
 
@@ -76,7 +78,14 @@ describe('content load flow (view → engine)', () => {
     route.setAttribute('view', 'html::<b>page</b>');
 
     await contentLoad.resolve(
-      { href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route: route as never },
+      withResolvedView({
+        href: '/x',
+        pathname: '/x',
+        search: '',
+        hash: '',
+        pattern: '/x',
+        route: route as never,
+      }),
       new AbortController().signal,
     );
 
@@ -93,14 +102,14 @@ describe('content load flow (view → engine)', () => {
     route.setAttribute('view', 'html-src::feed.html');
     route.setAttribute('preserve', 'view');
 
-    const routeInfo = {
+    const routeInfo = withResolvedView({
       href: '/feed',
       pathname: '/feed',
       search: '',
       hash: '',
       pattern: '/feed',
       route,
-    };
+    });
 
     await contentLoad.resolve(routeInfo, new AbortController().signal);
     expect(cache.get(dataCacheKey({
@@ -144,7 +153,15 @@ describe('content load flow (view → engine)', () => {
     route.setAttribute('view', 'html-src::user.html');
 
     await contentLoad.resolve(
-      { href: '/users/1', pathname: '/users/1', search: '', hash: '', pattern: '/users/:id', route: route as never },
+      withResolvedView({
+        href: '/users/1',
+        pathname: '/users/1',
+        search: '',
+        hash: '',
+        pattern: '/users/:id',
+        route: route as never,
+        params: { id: '1' },
+      }),
       new AbortController().signal,
     );
     expect(loads).toEqual(['user.html']);

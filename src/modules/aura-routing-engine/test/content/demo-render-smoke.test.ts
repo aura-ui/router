@@ -3,6 +3,7 @@
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import { withResolvedView } from '../helpers/with-resolved-view';
 
 function mountDemoRouter(): AuraRouter {
   document.body.innerHTML = `
@@ -28,14 +29,16 @@ describe('demo render smoke', () => {
 
     expect(route.view).toEqual({ type: 'template', content: 'app' });
 
-    await route.render({
-      href: '/c',
-      pathname: '/c',
-      search: '',
-      hash: '',
-      pattern: '/c',
-      route,
-    });
+    await route.render(
+      withResolvedView({
+        href: '/c',
+        pathname: '/c',
+        search: '',
+        hash: '',
+        pattern: '/c',
+        route,
+      }),
+    );
 
     const outlet = router.appOutlet;
     const text = outlet.textContent ?? '';

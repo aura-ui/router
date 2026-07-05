@@ -1,7 +1,7 @@
 import type { MatchedRouteInfo } from '../../match/url-matcher';
 import type { ContentDescriptor } from '../model/types';
 
-/** Stable data-cache key: URL identity + loader + ref. */
+/** Stable data-cache key: URL identity + loader + resolved ref. */
 export function dataCacheKey(
   descriptor: ContentDescriptor,
   routeInfo: MatchedRouteInfo,

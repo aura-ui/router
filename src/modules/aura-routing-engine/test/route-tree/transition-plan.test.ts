@@ -155,8 +155,10 @@ describe('buildTransitionPlan', () => {
     expect(isSameNavigationTarget(from, to)).toBe(false);
   });
 
-  it('update shortcut when dynamic params change on the same leaf node', () => {
-    const node = createUsersIdNode();
+  it('update shortcut when dynamic params change on the same leaf node and view key', () => {
+    const node = createUsersIdNode({
+      view: { type: 'component-src', content: 'user-profile' },
+    });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
@@ -170,6 +172,49 @@ describe('buildTransitionPlan', () => {
     expect(plan.enterRoutes).toHaveLength(1);
     expect(plan.enterRoutes[0]!.params).toEqual({ id: '2' });
     expect(routeMatchKey(plan.enterRoutes[0]!)).toBe('/users/:id');
+  });
+
+  it('synthetic remount when per-id view ref changes on the same leaf node', () => {
+    const node = createUsersIdNode({
+      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+    });
+    const from = createUsersIdMatch('1', node);
+    const to = createUsersIdMatch('2', node);
+
+    const plan = buildTransitionPlan(from, to);
+
+    expect(plan.update).toBe(false);
+    expect(plan.exitRoutes).toHaveLength(1);
+    expect(plan.enterRoutes).toHaveLength(1);
+    expect(plan.enterRoutes[0]!.params).toEqual({ id: '2' });
+    expect(plan.lca).toBeNull();
+  });
+
+  it('synthetic remount on flat leaf when param-change is navigate', () => {
+    const node = createUsersIdNode({
+      paramChange: 'navigate',
+      view: { type: 'html-src', content: 'partials/user-shell.html' },
+    });
+    const from = createUsersIdMatch('1', node);
+    const to = createUsersIdMatch('2', node);
+
+    const plan = buildTransitionPlan(from, to);
+
+    expect(plan.update).toBe(false);
+    expect(plan.exitRoutes.map(routeMatchKey)).toEqual(['/users/:id']);
+    expect(plan.enterRoutes.map(routeMatchKey)).toEqual(['/users/:id']);
+    expect(plan.lca).toBeNull();
+  });
+
+  it('update shortcut when param-change is update despite per-id view ref', () => {
+    const node = createUsersIdNode({
+      paramChange: 'update',
+      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+    });
+    const from = createUsersIdMatch('1', node);
+    const to = createUsersIdMatch('2', node);
+
+    expect(buildTransitionPlan(from, to).update).toBe(true);
   });
 });
 

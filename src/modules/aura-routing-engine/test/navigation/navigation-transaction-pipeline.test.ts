@@ -397,6 +397,125 @@ describe('NavigationTransactionPipeline.runAfterRender', () => {
 
     expect(callOrder).toEqual(['unmount', 'commit']);
   });
+
+  it('runs unmount before commitStagedView on cross-route navigation', async () => {
+    const callOrder: string[] = [];
+    const onUnmount = jest.fn(() => callOrder.push('unmount'));
+    const commitStagedView = jest.fn(() => callOrder.push('commitStaged'));
+
+    const exitRoute = createMatchedRoute('/from', { unmount: ['cleanup'] });
+    exitRoute.route.onUnmount = onUnmount;
+    const enterRoute = createMatchedRoute('/to', { commitStagedView, ready: ['analytics'] });
+
+    const transaction = createMockTransaction({
+      transitionOrder: null,
+      from: exitRoute,
+      exitRoutes: [exitRoute],
+      enterRoutes: [enterRoute],
+    });
+    transaction.viewCommitTracker.markViewStaged();
+
+    await new NavigationTransactionPipeline(transaction).runAfterRender();
+
+    expect(callOrder).toEqual(['unmount', 'commitStaged']);
+  });
+
+  it('runs commitNavigation after exit unmount and view promote, before ready', async () => {
+    const callOrder: string[] = [];
+    const onUnmount = jest.fn(() => callOrder.push('unmount'));
+    const commitStagedView = jest.fn(() => callOrder.push('commitStaged'));
+
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
+      if (ctx.phase === 'ready') callOrder.push('ready');
+    });
+
+    const exitRoute = createMatchedRoute('/from', { unmount: ['cleanup'] });
+    exitRoute.route.onUnmount = onUnmount;
+    const enterRoute = createMatchedRoute('/to', { commitStagedView, ready: ['analytics'] });
+
+    const transaction = createMockTransaction({
+      transitionOrder: null,
+      from: exitRoute,
+      exitRoutes: [exitRoute],
+      enterRoutes: [enterRoute],
+    });
+    transaction.viewCommitTracker.markViewStaged();
+
+    const originalCommitNavigation = transaction.commitNavigation.bind(transaction);
+    jest.spyOn(transaction, 'commitNavigation').mockImplementation(() => {
+      callOrder.push('commitNavigation');
+      originalCommitNavigation();
+    });
+
+    await new NavigationTransactionPipeline(transaction).runAfterRender();
+
+    expect(callOrder).toEqual(['unmount', 'commitStaged', 'commitNavigation', 'ready']);
+    expect(transaction.engine.commitNavigation).toHaveBeenCalledWith(transaction);
+    expect(transaction.viewCommitTracker.isViewCommitted()).toBe(true);
+  });
+
+  it('does not promote or commit navigation when transaction is inactive after unmount', async () => {
+    const commitStagedView = jest.fn();
+    const transaction = createMockTransaction({
+      transitionOrder: null,
+      exitRoutes: [createMatchedRoute('/from', { unmount: ['cleanup'] })],
+      enterRoutes: [createMatchedRoute('/to', { commitStagedView, ready: ['analytics'] })],
+    });
+    transaction.viewCommitTracker.markViewStaged();
+
+    let activeChecks = 0;
+    jest.spyOn(transaction, 'isActive').mockImplementation(() => {
+      activeChecks++;
+      return activeChecks === 1;
+    });
+
+    const outcome = await new NavigationTransactionPipeline(transaction).runAfterRender();
+
+    expect(outcome).toEqual({ status: 'cancelled' });
+    expect(commitStagedView).not.toHaveBeenCalled();
+    expect(transaction.engine.commitNavigation).not.toHaveBeenCalled();
+    expect(transaction.viewCommitTracker.isViewCommitted()).toBe(false);
+  });
+});
+
+describe('NavigationTransactionPipeline post-render commit order (full pipeline)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRunViewCommit.mockResolvedValue('ok');
+    mockRunPhaseHooks.mockResolvedValue(undefined);
+  });
+
+  it('runFullPipeline finalizes exit before navigation commit gate', async () => {
+    const callOrder: string[] = [];
+    const onUnmount = jest.fn(() => callOrder.push('unmount'));
+    const commitStagedView = jest.fn(() => callOrder.push('commitStaged'));
+
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
+      if (ctx.phase === 'ready') callOrder.push('ready');
+    });
+
+    const exitRoute = createMatchedRoute('/from', { unmount: ['cleanup'] });
+    exitRoute.route.onUnmount = onUnmount;
+    const enterRoute = createMatchedRoute('/to', { commitStagedView, ready: ['analytics'] });
+
+    const transaction = createMockTransaction({
+      transitionOrder: null,
+      from: exitRoute,
+      exitRoutes: [exitRoute],
+      enterRoutes: [enterRoute],
+    });
+
+    const originalCommitNavigation = transaction.commitNavigation.bind(transaction);
+    jest.spyOn(transaction, 'commitNavigation').mockImplementation(() => {
+      callOrder.push('commitNavigation');
+      originalCommitNavigation();
+    });
+
+    const result = await new NavigationTransactionPipeline(transaction).runFullPipeline();
+
+    expect(result).toEqual({ status: 'navigationSucceeded' });
+    expect(callOrder).toEqual(['unmount', 'commitStaged', 'commitNavigation', 'ready']);
+  });
 });
 
 describe('NavigationTransactionPipeline supersede', () => {

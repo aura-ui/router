@@ -366,4 +366,51 @@ describe('RouteViewController keep-alive integration', () => {
     expect(stash.has('/user/1')).toBe(true);
     expect(stash.get('/user/1')?.textContent).toBe('view-1');
   });
+
+  it('param-change remount with parallel transition stages both views; param unmount keeps incoming', async () => {
+    const root = createOutlet();
+    let passId = 0;
+    const route = {
+      path: 'user/:id',
+      layout: '',
+      view: '',
+      loadingTemplate: '',
+      errorTemplate: '',
+      scrollPolicy: null,
+      preserve: NO_PRESERVE,
+      transition: { order: 'parallel' as const, in: null, out: null },
+    };
+
+    const controller = new RouteViewController(
+      {
+        route,
+        content: {
+          resolve: async (info) => `<span data-id="${info.params?.id}">view-${info.params?.id}</span>`,
+        },
+        cache: createMockViewCache(),
+        mountTarget: { appOutlet: () => root, nestedOutlet: () => null },
+      },
+      () => passId,
+    );
+
+    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+
+    await controller.render(route1);
+    await controller.render(route2, { paramChangeRemount: true });
+
+    expect(root.children).toHaveLength(2);
+    expect(root.querySelector('[data-id="1"]')).not.toBeNull();
+    expect(root.querySelector('[data-id="2"]')).not.toBeNull();
+
+    controller.onUnmount({ cacheKey: cacheKey(route1, 'user/:id') });
+
+    expect(root.children).toHaveLength(1);
+    expect(root.querySelector('[data-id="2"]')).not.toBeNull();
+    expect(root.textContent).toBe('view-2');
+
+    controller.commitStagedView();
+    expect(root.children).toHaveLength(1);
+    expect(root.textContent).toBe('view-2');
+  });
 });

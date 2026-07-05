@@ -518,6 +518,95 @@ describe('NavigationTransactionPipeline post-render commit order (full pipeline)
   });
 });
 
+describe('NavigationTransactionPipeline in-place param remount + transition', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRunViewCommit.mockResolvedValue('ok');
+    mockRunPhaseHooks.mockResolvedValue(undefined);
+  });
+
+  it('parallel: transitions run after render, unmount runs before commitStaged', async () => {
+    const callOrder: string[] = [];
+    mockRunViewCommit.mockImplementation(async () => {
+      callOrder.push('render');
+      return 'ok';
+    });
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
+      callOrder.push(ctx.phase);
+    });
+
+    const onUnmount = jest.fn(() => callOrder.push('routeOnUnmount'));
+    const commitStagedView = jest.fn(() => callOrder.push('commitStaged'));
+
+    const exitRoute = createMatchedRoute('/users/:id', {
+      transition: { order: 'parallel', in: ['fade-in'], out: ['fade-out'] },
+      transitionIn: ['fade-in'],
+      transitionOut: ['fade-out'],
+      onUnmount,
+    });
+    exitRoute.params = { id: '1' };
+    const enterRoute = createMatchedRoute('/users/:id', {
+      transition: { order: 'parallel', in: ['fade-in'], out: ['fade-out'] },
+      transitionIn: ['fade-in'],
+      transitionOut: ['fade-out'],
+      commitStagedView,
+    });
+    enterRoute.params = { id: '2' };
+
+    const transaction = createMockTransaction({
+      transitionOrder: 'parallel',
+      exitRoutes: [exitRoute],
+      enterRoutes: [enterRoute],
+    });
+    transaction.transitionPlan.paramChangeRemount = true;
+
+    await new NavigationTransactionPipeline(transaction).runFullPipeline();
+
+    const renderIdx = callOrder.indexOf('render');
+    expect(renderIdx).toBeGreaterThan(-1);
+    expect(callOrder.indexOf('transitionOut')).toBeGreaterThan(renderIdx);
+    expect(callOrder.indexOf('transitionIn')).toBeGreaterThan(renderIdx);
+    expect(callOrder.indexOf('routeOnUnmount')).toBeGreaterThan(callOrder.indexOf('transitionIn'));
+    expect(callOrder.indexOf('commitStaged')).toBeGreaterThan(callOrder.indexOf('routeOnUnmount'));
+    expect(callOrder.indexOf('ready')).toBeGreaterThan(callOrder.indexOf('commitStaged'));
+    expect(onUnmount).toHaveBeenCalledTimes(1);
+    expect(commitStagedView).toHaveBeenCalledTimes(1);
+  });
+
+  it('out-in: transitionOut before render on same leaf param remount', async () => {
+    const callOrder: string[] = [];
+    mockRunViewCommit.mockImplementation(async () => {
+      callOrder.push('render');
+      return 'ok';
+    });
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
+      callOrder.push(ctx.phase);
+    });
+
+    const exitRoute = createMatchedRoute('/users/:id', {
+      transition: { order: 'out-in', in: ['fade-in'], out: ['fade-out'] },
+      transitionOut: ['fade-out'],
+    });
+    exitRoute.params = { id: '1' };
+    const enterRoute = createMatchedRoute('/users/:id', {
+      transition: { order: 'out-in', in: ['fade-in'], out: ['fade-out'] },
+      transitionIn: ['fade-in'],
+    });
+    enterRoute.params = { id: '2' };
+
+    const transaction = createMockTransaction({
+      transitionOrder: 'out-in',
+      exitRoutes: [exitRoute],
+      enterRoutes: [enterRoute],
+    });
+    transaction.transitionPlan.paramChangeRemount = true;
+
+    await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
+
+    expect(callOrder).toEqual(['transitionOut', 'render', 'transitionIn']);
+  });
+});
+
 describe('NavigationTransactionPipeline supersede', () => {
   beforeEach(() => {
     jest.clearAllMocks();

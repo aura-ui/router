@@ -132,6 +132,8 @@ describe('param-change UPDATE integration (real view)', () => {
     await from.route.render(from);
     expect(outlet.textContent).toBe('User profile shell');
     expect(resolveCount()).toBe(1);
+    const shellBefore = outlet.querySelector('#user-shell');
+    expect(shellBefore).not.toBeNull();
 
     const { result, transaction } = await runParamUpdateNavigation(from, to);
 
@@ -139,7 +141,8 @@ describe('param-change UPDATE integration (real view)', () => {
     expect(transaction.transitionPlan.update).toBe(true);
     expect(resolveCount()).toBe(1);
     expect(outlet.textContent).toBe('User profile shell');
-    expect(outlet.querySelector('#user-shell')).not.toBeNull();
+    const shellAfter = outlet.querySelector('#user-shell');
+    expect(shellAfter).toBe(shellBefore);
     expect(phases).toEqual(['update']);
     expect(phases).not.toContain('unmount');
     expect(phases).not.toContain('remount');

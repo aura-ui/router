@@ -65,8 +65,8 @@
       <aura-route path="/routing/users" layout="users-layout">
         <aura-route path="." view="partials/users-list.html"></aura-route>
         <aura-route path="about" view="partials/users-about.html" preserve></aura-route>
+        <aura-route path=":id" update="user-sync" view="component-src::examples/demo/components/test-element"></aura-route>
       </aura-route>
-      <aura-route path="/routing/user/:id" view="component-src::examples/demo/components/test-element"></aura-route>
       <aura-route path="/hooks/protected" guard="auth" view="demo/protected.html" ready="analytics"></aura-route>
       <aura-route path="/login" view="demo/login.html"></aura-route>
       <aura-route path="/ux/scroll" view="demo/scroll.html" scroll="restore"></aura-route>

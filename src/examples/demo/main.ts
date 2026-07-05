@@ -9,6 +9,7 @@ import { slowLoader, SLOW_LOADER_TYPE } from './loaders/slow-loader';
 import { authHook, type AuthHookOptions } from './hooks/auth.hook';
 import { analyticsHook } from './hooks/analytics.hook';
 import { userStatsHook } from './hooks/user-stats.hook';
+import { userSyncHook } from './hooks/user-sync.hook';
 import { fadeTransitionHook, slideTransitionHook } from './hooks/view-transition.hook';
 import { demoAuthEnabled, setDemoAuth } from './demo-state';
 import { resolveScenario } from './scenarios';
@@ -26,6 +27,7 @@ AuraRouter.configure({
 AuraRouter.use(authHook, { redirect: '/login' } satisfies AuthHookOptions);
 AuraRouter.use(analyticsHook);
 AuraRouter.use(userStatsHook);
+AuraRouter.use(userSyncHook);
 AuraRouter.use(fadeTransitionHook);
 AuraRouter.use(slideTransitionHook);
 AuraRouter.install();
@@ -237,8 +239,7 @@ function updateChrome(): void {
     const linkPath = link.pathname;
     const active =
       linkPath === path ||
-      (linkPath !== '/' && path.startsWith(linkPath + '/')) ||
-      (linkPath.startsWith('/routing/user/') && path.startsWith('/routing/user/'));
+      (linkPath !== '/' && path.startsWith(linkPath + '/'));
     if (active) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   });
@@ -313,6 +314,12 @@ document.addEventListener('demo:loader', (event) => {
 document.addEventListener('demo:load-hook', (event) => {
   const { hook } = (event as CustomEvent<{ hook: string }>).detail;
   pushLog(`Load hook «${hook}» выполнен`, 'system');
+});
+
+document.addEventListener('demo:update-hook', (event) => {
+  const { fromId, toId } = (event as CustomEvent<{ fromId: string | null; toId: string }>).detail;
+  const label = fromId ? `${fromId} → ${toId}` : toId;
+  pushLog(`Update hook «user-sync»: ${label}`, 'nav');
 });
 
 document.addEventListener('click', (event) => {

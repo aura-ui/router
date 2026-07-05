@@ -423,15 +423,33 @@ describe('outlet', () => {
       expect(snapshot.stageOutgoingHandle).toBeNull();
     });
 
-    it('finalizeLeave keeps nestedOutlet when stashing detached view', () => {
-      const nested = {} as never;
-      const state = { ...EMPTY_MOUNT, nestedOutlet: nested };
-      const detached = document.createElement('div');
+    it('param remount post-render: unmount outgoing then commitStaged promotes incoming', () => {
+      const root = createOutlet();
+      const staged = stageTwoViews(root);
+      expect(root.children).toHaveLength(2);
 
-      expect(finalizeLeave(state, true, detached)).toBe(state);
+      const { snapshot: afterUnmount } = unmountParamChangeOutgoing(staged, false);
+      expect(root.children).toHaveLength(1);
+      expect(root.textContent).toBe('new');
+
+      const committed = commitStaged(afterUnmount);
+      expect(root.children).toHaveLength(1);
+      expect(root.textContent).toBe('new');
+      expect(committed.strategy).toBe('replace');
+      expect(committed.stageOutgoingHandle).toBeNull();
     });
 
-    it('finalizeLeave clears nestedOutlet when view is destroyed', () => {
+    it('ordinary stage unmount clears both layers (contrast with param remount path)', () => {
+      const root = createOutlet();
+      const staged = stageTwoViews(root);
+
+      const { snapshot } = unmountOnLeave(staged, false);
+      expect(root.children).toHaveLength(0);
+      expect(snapshot.activeHandle).toBeNull();
+      expect(snapshot.stageOutgoingHandle).toBeNull();
+    });
+
+    it('finalizeLeave keeps nestedOutlet when stashing detached view', () => {
       const state = { ...EMPTY_MOUNT, nestedOutlet: {} as never };
 
       expect(finalizeLeave(state, false, null)).toEqual({

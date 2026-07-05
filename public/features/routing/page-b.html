@@ -1,0 +1,21 @@
+<article class="demo-site-view">
+  <h1>Страница B</h1>
+  <p class="demo-site-view__lead">Второй flat-маршрут — sibling к странице A, тот же уровень дерева.</p>
+
+  <dl class="demo-facts">
+    <dt>Маршрут</dt>
+    <dd><code>/features/routing/b</code></dd>
+    <dt>view</dt>
+    <dd><code>features/routing/page-b.html</code></dd>
+    <dt>Что сделал роутер</dt>
+    <dd>Exit маршрута A → enter маршрута B. Предыдущий view выгружен, новый отрисован в том же outlet.</dd>
+  </dl>
+
+  <nav class="demo-links">
+    <a href="/features/routing/a" data-router-link>Страница A</a>
+    <a href="/features/routing/users/1" data-router-link>User 1</a>
+    <a href="/features/routing" data-router-link>Обзор</a>
+  </nav>
+
+  <p class="demo-hint">Нажмите «Назад» в браузере — вернётесь на A без reload. Или выберите «User 1» — откроется вложенный layout.</p>
+</article>

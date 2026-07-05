@@ -1,7 +1,8 @@
 import {
   AuraRouter,
   AURA_ROUTER_NAVIGATION,
-  type AuraRouterNavigationEvent,
+  AURA_ROUTER_NAVIGATION_START,
+  type AuraRouterNavigationStartEvent,
 } from '../../modules/aura-router/core';
 import { highlightDemoCode } from './highlight-code';
 
@@ -37,10 +38,15 @@ function refreshDemoUi(): void {
   highlightDemoCode(document);
 }
 
-router?.addEventListener(AURA_ROUTER_NAVIGATION, (event) => {
-  const { pathname } = (event as AuraRouterNavigationEvent).detail;
+router?.addEventListener(AURA_ROUTER_NAVIGATION_START, (event) => {
+  const { pathname } = (event as AuraRouterNavigationStartEvent).detail;
   currentPath = pathname;
-  refreshDemoUi();
+  syncActiveLinks();
+  syncSiteUrl();
+});
+
+router?.addEventListener(AURA_ROUTER_NAVIGATION, () => {
+  highlightDemoCode(document);
 });
 
 window.addEventListener('popstate', () => {

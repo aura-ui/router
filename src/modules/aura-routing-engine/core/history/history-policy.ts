@@ -14,6 +14,9 @@ import type { HistoryAction, NavigateHistoryOptions } from './provider.types';
  * - `preserve` — address bar unchanged (cancelled push, pre-render error)
  * - `commit-target` — pushState / replaceState to navigation target
  * - `rollback-source` — pop cancelled/error: restore `from` URL
+ *
+ * Programmatic push/replace: URL is written in {@link AuraRoutingEngine.commitHistoryIfNeeded}
+ * after guards and load, before render.
  */
 export type HistoryPolicy = 'preserve' | 'commit-target' | 'rollback-source';
 

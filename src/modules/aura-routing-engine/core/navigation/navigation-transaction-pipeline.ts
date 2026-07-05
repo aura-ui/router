@@ -11,7 +11,7 @@ export type { TransactionFullResult } from './transaction-result';
 type PipelineStep = () => Promise<TransactionFullResult>;
 
 /**
- * Navigation pipeline: guards → loads → render (+ transitions) → effects.
+ * Navigation pipeline: guards → loads → history → render (+ transitions) → effects.
  *
  * Terminal outcomes are returned immediately; `null` means the step succeeded
  * and the next step should run ({@link TransactionFullResult}).
@@ -29,14 +29,17 @@ export class NavigationTransactionPipeline {
     const outcome = await this.runSequentially([
       () => this.runGuards(),
       () => this.runLoads(),
+      () => this.commitHistoryStep(),
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
     ]);
     return outcome ?? { status: 'navigationSucceeded' };
   }
 
-  /** Tier-0 swap: view commit → promote → gate → unmount → ready (no guards/loads). */
+  /** Tier-0 swap: history → view commit → promote → gate → unmount → ready (no guards/loads). */
   async runFastPipeline(): Promise<TransactionFullResult> {
+    this.commitHistory();
+
     const route = this.transaction.transitionPlan.enterRoutes[0]!;
     const viewCommit = await runViewCommit(route, {
       signal: this.transaction.signal,
@@ -58,10 +61,11 @@ export class NavigationTransactionPipeline {
     return await this.runAfterRender() ?? { status: 'navigationSucceeded' };
   }
 
-  /** Same leaf route record: conditional load (DataGraph) → update hooks → commit (no full pipeline). */
+  /** Same leaf route record: load → history → update hooks → view finalize (no guards/render). */
   async runUpdate(): Promise<TransactionFullResult> {
     const outcome = await this.runSequentially([
       () => this.runLoads(),
+      () => this.commitHistoryStep(),
       () => this.runLifecyclePhase(PHASES.update),
     ]);
     if (outcome) return outcome;
@@ -72,6 +76,15 @@ export class NavigationTransactionPipeline {
 
     this.transaction.commitNavigation();
     return { status: 'navigationSucceeded' };
+  }
+
+  private commitHistory(): void {
+    this.transaction.engine.commitHistoryIfNeeded(this.transaction);
+  }
+
+  private commitHistoryStep(): Promise<TransactionFullResult> {
+    this.commitHistory();
+    return Promise.resolve(null);
   }
 
   /** Blocking pre-render phases: leave (exit) → guard (enter). */
@@ -175,7 +188,7 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Post-commit effects: promote staged views → commit gate → unmount → ready.
+   * Post-commit effects: promote staged views → view finalize → unmount → ready.
    */
   async runAfterRender(): Promise<TransactionFullResult> {
     if (!this.transaction.isActive()) {

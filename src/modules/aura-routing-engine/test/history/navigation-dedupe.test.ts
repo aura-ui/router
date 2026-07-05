@@ -111,14 +111,14 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     await galleryNav;
   });
 
-  it('runs transaction when the committed route declares reenter hooks', async () => {
+  it('runs transaction when the committed route declares update hooks', async () => {
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(router, { provider });
     const run = jest.spyOn(NavigationTransaction.prototype, 'run');
 
     engine.registerRoutes([
       createTestRoute('/'),
-      createTestRoute('/about', { reenter: ['sync'] }),
+      createTestRoute('/about', { update: ['sync'] }),
     ]);
     provider.start();
 
@@ -133,7 +133,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
-  it('skips transaction when the committed route has no reenter hooks', async () => {
+  it('skips transaction when the committed route has no update hooks', async () => {
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(router, { provider });
     const run = jest.spyOn(NavigationTransaction.prototype, 'run');

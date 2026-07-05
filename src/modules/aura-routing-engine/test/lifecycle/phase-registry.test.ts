@@ -20,10 +20,10 @@ describe('PHASES', () => {
     expect(PHASES.error.routeHookProp).toBe('error');
   });
 
-  it('reenter and left expose route hook attrs', () => {
-    expect(PHASES.reenter.routeHookProp).toBe('reenter');
+  it('update and unmount expose route hook attrs', () => {
+    expect(PHASES.update.routeHookProp).toBe('update');
     expect(PHASES.unmount.routeHookProp).toBe('unmount');
-    expect(PHASES.reenter.htmlAttr).toBe('reenter');
+    expect(PHASES.update.htmlAttr).toBe('update');
     expect(PHASES.unmount.htmlAttr).toBe('unmount');
   });
 

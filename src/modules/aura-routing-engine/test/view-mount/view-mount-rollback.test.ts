@@ -31,7 +31,7 @@ describe('view rollback', () => {
       exitRoutes: [shared],
       enterRoutes: [shared],
       lca: null,
-      reenter: false,
+      update: false,
     };
 
     expect(collectTransactionRoutes(plan)).toHaveLength(1);
@@ -44,7 +44,7 @@ describe('view rollback', () => {
       exitRoutes: [createMatchedRouteLocal('/from', { revertInFlightView: revertExit })],
       enterRoutes: [createMatchedRouteLocal('/to', { revertInFlightView: revertEnter })],
       lca: null,
-      reenter: false,
+      update: false,
     };
     const viewCommitTracker = new ViewCommitTracker('/to');
 
@@ -60,7 +60,7 @@ describe('view rollback', () => {
       exitRoutes: [],
       enterRoutes: [createMatchedRouteLocal('/to', { revertInFlightView })],
       lca: null,
-      reenter: false,
+      update: false,
     };
     const viewCommitTracker = new ViewCommitTracker('/to');
     viewCommitTracker.markViewCommitted();

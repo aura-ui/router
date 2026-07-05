@@ -67,14 +67,14 @@ export const PHASES = {
     routeHookProp: 'load',
     runRouteLifecycle: (route, ctx) => route.onLoad(ctx),
   },
-  reenter: {
-    phase: 'reenter',
+  update: {
+    phase: 'update',
     targetRoutes: 'enterRoutes',
     hookPolicy: { kind: 'postCommit', onError: 'propagate' },
     errorPolicy: 'failure',
-    htmlAttr: 'reenter',
-    routeHookProp: 'reenter',
-    runRouteLifecycle: (route, ctx) => route.onReenter(ctx),
+    htmlAttr: 'update',
+    routeHookProp: 'update',
+    runRouteLifecycle: (route, ctx) => route.onUpdate(ctx),
   },
   transitionOut: {
     phase: 'transitionOut',

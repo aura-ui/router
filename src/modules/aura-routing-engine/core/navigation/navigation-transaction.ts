@@ -85,8 +85,8 @@ export class NavigationTransaction {
 
     return this.runWithStagedViewRollback(() => {
       const pipeline = new NavigationTransactionPipeline(this);
-      return this.transitionPlan.reenter
-        ? pipeline.runReenter()
+      return this.transitionPlan.update
+        ? pipeline.runUpdate()
         : canUseFastPath(this.transitionPlan, this.from, this.to)
           ? pipeline.runFastPipeline()
           : pipeline.runFullPipeline();

@@ -48,8 +48,8 @@ sequenceDiagram
       Tx->>Tx: buildTransitionPlan(from, to)
       alt fast path
         Tx->>Pipeline: runFastPipeline()
-      else reenter
-        Tx->>Pipeline: reenter()
+      else update
+        Tx->>Pipeline: runUpdate()
       else full
         Tx->>Pipeline: runFullPipeline()
       end

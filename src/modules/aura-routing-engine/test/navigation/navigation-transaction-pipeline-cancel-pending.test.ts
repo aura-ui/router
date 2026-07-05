@@ -78,7 +78,7 @@ function createTransaction(options: {
     exitRoutes: [options.from],
     enterRoutes: [options.to],
     lca: null,
-    reenter: false,
+    update: false,
   };
   transaction.transitionOrder = 'parallel';
 

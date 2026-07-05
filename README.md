@@ -196,7 +196,7 @@ AuraRouter.use(authHook);
 | `load` | Fetch data before render | yes |
 | `ready` | After view is committed (analytics, focus) | no |
 | `unmount` | Exit cleanup after commit | no |
-| `reenter` | Same route leaf; query may change (shortcut) | no |
+| `update` | Same route leaf; query, hash or params may change (shortcut) | no |
 | `error` | Navigation or render failure | terminal |
 
 With `preserve` on the route, optional teardown hooks: `detach`, `destroy` (on leave) and `restore` (reattach from view cache on enter).

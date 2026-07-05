@@ -62,7 +62,7 @@ export interface RouteInstance extends RouteHookNamesSource {
   readonly prefetch?: RouterPrefetchPolicy | null;
   readonly transition: RouteTransitionType;
   readonly hasGuard: boolean;
-  readonly hasReenter: boolean;
+  readonly hasUpdate: boolean;
   readonly hasLeave: boolean;
   readonly hasLoad: boolean;
   readonly hasTransitionIn: boolean;
@@ -76,7 +76,7 @@ export interface RouteInstance extends RouteHookNamesSource {
   onLeave(ctx: RouteLifecycleContext): void;
   onTransitionOut(ctx: RouteLifecycleContext): void;
   onUnmount(ctx: RouteLifecycleContext): void;
-  onReenter(ctx: RouteLifecycleContext): void;
+  onUpdate(ctx: RouteLifecycleContext): void;
   onError(ctx: RouteErrorContext): void;
   commitStagedView?(): void;
   /** Drops staged views and clears in-flight transition presentation (cancel / supersede). */

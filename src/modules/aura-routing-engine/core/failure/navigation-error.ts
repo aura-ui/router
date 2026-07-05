@@ -7,7 +7,7 @@ export type NavigationFailureCode =
   | 'CONTENT_LOAD_FAILED'
   | 'RENDER_FAILED'
   | 'TRANSITION_FAILED'
-  | 'REENTER_FAILED'
+  | 'UPDATE_FAILED'
   | 'INTERNAL';
 
 /** Default failure code per error phase — single registry (replaces switch in `defaultCodeForPhase`). */
@@ -17,7 +17,7 @@ export const FAILURE_CODE_BY_PHASE = {
   guard: 'GUARD_THROW',
   load: 'LOAD_FAILED',
   render: 'RENDER_FAILED',
-  reenter: 'REENTER_FAILED',
+  update: 'UPDATE_FAILED',
   transitionOut: 'TRANSITION_FAILED',
   transitionIn: 'TRANSITION_FAILED',
   unmount: 'HOOK_THROW',

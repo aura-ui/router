@@ -1,0 +1,25 @@
+<article class="demo-site-view demo-layout-view" data-demo-view="features/phase-update/user-2.html">
+  <h1>Пользователь 2</h1>
+  <p class="demo-site-view__lead">Тот же leaf <code>remount/:id</code>, но viewKey <code>user-2.html</code>. Переход с User 1 — synthetic exit/enter, render + unmount.</p>
+  <p>Параметр <code>id</code>: <strong data-demo-param="id">—</strong></p>
+
+  <nav class="demo-links">
+    <a href="/features/phase-update/remount/1" data-router-link>User 1</a>
+    <a href="/features/phase-update/remount/2" data-router-link>User 2</a>
+  </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="phase-update-remount-code"></code></pre>
+  </div>
+  <template id="phase-update-remount-code">
+<aura-route path="/features/phase-update/remount/:id"
+            view="features/phase-update/user-{{id}}.html"></aura-route>
+
+<a href="/features/phase-update/remount/1" data-router-link>User 1</a>
+<a href="/features/phase-update/remount/2" data-router-link>User 2</a>
+  </template>
+</article>

@@ -1,0 +1,93 @@
+<article class="demo-site-view demo-layout-view">
+  <h1>Update shortcut</h1>
+  <p class="demo-site-view__lead">Три pipeline без полного exit/enter — search, hash и param-update. Контрпример remount: тот же leaf <code>:id</code>, но view с шаблоном — viewKey меняется, update не применяется.</p>
+  <p class="demo-hint">Следите за строкой URL и меткой «Конечный view»: при update shortcut блок не пересоздаётся; при remount — новый HTML и полный lifecycle.</p>
+
+  <h2>Search — смена query</h2>
+  <p>Pathname тот же, меняется только <code>?tab=…</code>. Pipeline: <code>runUpdate()</code> — load → history → <code>update</code>-хуки. Без render и unmount.</p>
+  <nav class="demo-links">
+    <a href="/features/phase-update/search?tab=info" data-router-link>Информация</a>
+    <a href="/features/phase-update/search?tab=posts" data-router-link>Записи</a>
+    <a href="/features/phase-update/search?tab=settings" data-router-link>Настройки</a>
+  </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="phase-update-code-search"></code></pre>
+  </div>
+  <template id="phase-update-code-search">
+<aura-route path="/features/phase-update/search" view="features/phase-update/search.html"></aura-route>
+
+<a href="/features/phase-update/search?tab=info" data-router-link>Информация</a>
+<a href="/features/phase-update/search?tab=posts" data-router-link>Записи</a>
+  </template>
+
+  <h2>Hash — смена якоря</h2>
+  <p>Pathname и search те же, меняется только <code>#…</code>. Processor <strong>не запускается</strong>: history + scroll. View и хуки не вызываются.</p>
+  <nav class="demo-links">
+    <a href="/features/phase-update/hash#one" data-router-link>#one</a>
+    <a href="/features/phase-update/hash#two" data-router-link>#two</a>
+    <a href="/features/phase-update/hash#three" data-router-link>#three</a>
+  </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="phase-update-code-hash"></code></pre>
+  </div>
+  <template id="phase-update-code-hash">
+<aura-route path="/features/phase-update/hash" view="features/phase-update/hash.html"></aura-route>
+
+<a href="/features/phase-update/hash#one" data-router-link>#one</a>
+<a href="/features/phase-update/hash#two" data-router-link>#two</a>
+  </template>
+
+  <h2><code>:id</code> remount — не update, свой HTML на id</h2>
+  <p>Один leaf <code>remount/:id</code>, param меняется, но view — шаблон <code>user-{{id}}.html</code>: <code>viewKey</code> разный (<code>user-1.html</code> ≠ <code>user-2.html</code>). Engine выбирает FULL, не <code>runUpdate()</code> — synthetic exit/enter leaf, render, unmount, ready.</p>
+  <nav class="demo-links">
+    <a href="/features/phase-update/remount/1" data-router-link>User 1</a>
+    <a href="/features/phase-update/remount/2" data-router-link>User 2</a>
+  </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="phase-update-code-remount"></code></pre>
+  </div>
+  <template id="phase-update-code-remount">
+<aura-route path="/features/phase-update/remount/:id"
+            view="features/phase-update/user-{{id}}.html"></aura-route>
+
+<a href="/features/phase-update/remount/1" data-router-link>User 1</a>
+<a href="/features/phase-update/remount/2" data-router-link>User 2</a>
+  </template>
+
+  <h2>Param-update — update shortcut для <code>:id</code></h2>
+  <p>Тот же leaf <code>update/:id</code> и тот же <code>viewKey</code> (<code>user-shell.html</code> на все id). Pipeline: <code>runUpdate()</code> — меняется param <code>id</code>, view остаётся в DOM.</p>
+  <nav class="demo-links">
+    <a href="/features/phase-update/update/1" data-router-link>User 1</a>
+    <a href="/features/phase-update/update/2" data-router-link>User 2</a>
+    <a href="/features/phase-update/update/3" data-router-link>User 3</a>
+  </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="phase-update-code-update"></code></pre>
+  </div>
+  <template id="phase-update-code-update">
+<aura-route path="/features/phase-update/update/:id" view="features/phase-update/user-shell.html"></aura-route>
+
+<a href="/features/phase-update/update/1" data-router-link>User 1</a>
+<a href="/features/phase-update/update/2" data-router-link>User 2</a>
+  </template>
+</article>

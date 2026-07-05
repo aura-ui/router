@@ -1,4 +1,5 @@
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
+import type { ResolvedView } from '../route-tree/resolved-view';
 import { parsePath, parseQuery } from '../../../aura-utils/misc/url';
 import {
   isGlobalCatchAllPattern,
@@ -24,6 +25,8 @@ export interface MatchedRouteInfo {
   node?: RouteNode;
   /** Active branch root → leaf. */
   chain?: MatchedRouteInfo[];
+  /** Resolved `view` attr for this navigation (leaf); set in {@link attachNavigationChain}. */
+  resolvedView?: ResolvedView | null;
 }
 
 export interface NodePathMatch {

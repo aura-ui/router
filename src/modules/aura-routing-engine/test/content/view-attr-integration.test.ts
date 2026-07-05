@@ -4,6 +4,7 @@ import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { defaultLoaderRegistry } from '../../core/content';
+import { withResolvedView } from '../helpers/with-resolved-view';
 
 function defineDemoElements(): void {
   if (!customElements.get(AuraOutlet.is)) {
@@ -50,7 +51,7 @@ describe('view attr end-to-end', () => {
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
     const payload = await router.contentLoad.resolve(
-      { href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route },
+      withResolvedView({ href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route }),
       new AbortController().signal,
     );
 
@@ -69,7 +70,14 @@ describe('view attr end-to-end', () => {
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
     const payload = await router.contentLoad.resolve(
-      { href: '/custom', pathname: '/custom', search: '', hash: '', pattern: '/custom', route },
+      withResolvedView({
+        href: '/custom',
+        pathname: '/custom',
+        search: '',
+        hash: '',
+        pattern: '/custom',
+        route,
+      }),
       new AbortController().signal,
     );
 

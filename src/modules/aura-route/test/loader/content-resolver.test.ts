@@ -6,6 +6,7 @@ import {
   type ContentDescriptor,
 } from '../../../aura-routing-engine/core';
 import { parseViewAttr } from '../../core/attr/view-attr-parser';
+import { withResolvedView } from '../../../aura-routing-engine/test/helpers/with-resolved-view';
 
 const routeInfo = {
   href: '/page',
@@ -77,14 +78,14 @@ describe('ContentLoadService', () => {
       ref: 'static',
       cache: true,
     };
-    const info = {
+    const info = withResolvedView({
       ...routeInfo,
       route: {
         layout: '',
         view: parseViewAttr('html::static'),
         preserve: { view: true, data: false },
       },
-    };
+    });
 
     await service.prefetchNode(info as never, new AbortController().signal);
     expect(cache.get(dataCacheKey(descriptor, info as never))).toBeDefined();

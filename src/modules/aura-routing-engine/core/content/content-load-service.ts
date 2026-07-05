@@ -45,17 +45,15 @@ export class ContentLoadService {
     options?: { data?: unknown },
   ): Promise<ViewPayload | null> {
     const route = routeInfo.route as ContentRoute;
+    const resolved = routeInfo.resolvedView;
 
-    const descriptor: ContentDescriptor = route.layout
+    const descriptor: ContentDescriptor | null = route.layout?.trim()
       ? { kind: 'layout', loader: 'template', ref: route.layout, cache: false }
-      : {
-        kind: 'content',
-        loader: route.view?.type ?? '',
-        ref: route.view?.content ?? '',
-        cache: route.preserve.view,
-      };
+      : resolved?.type
+        ? { kind: 'content', loader: resolved.type, ref: resolved.ref, cache: route.preserve.view }
+        : null;
 
-    if (descriptor.kind === 'content' && !descriptor.loader) {
+    if (!descriptor) {
       return Promise.resolve(null);
     }
 

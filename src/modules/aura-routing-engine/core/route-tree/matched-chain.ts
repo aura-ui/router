@@ -1,4 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import { attachResolvedView } from './resolved-view';
 import type { RouteNode } from './route-node.types';
 
 /**
@@ -148,7 +149,9 @@ export function attachNavigationChain(
     info.chain = chain;
   }
 
-  return chain[chain.length - 1]!;
+  const leafInfo = chain[chain.length - 1]!;
+  attachResolvedView(leafInfo);
+  return leafInfo;
 }
 
 /**

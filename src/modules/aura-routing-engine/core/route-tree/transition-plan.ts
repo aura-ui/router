@@ -1,4 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { RouteInstance } from '../route/types';
 import {
   buildEnterRoutes,
   buildExitRoutes,
@@ -24,7 +25,8 @@ export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | 
  * @example null → profile: enter [settings, profile], exit []
  * @example profile → security: exit [profile], enter [security], lca settings
  * @example profile → profile?tab=2 (same pathname + leaf): update true
- * @example /users/1 → /users/2 (same leaf node, params change): update true
+ * @example /users/1 → /users/2 (same leaf, same view key): update true
+ * @example /users/1 → /users/2 (same leaf, per-id view ref): update false, synthetic remount
  */
 export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRouteInfo): TransitionMap {
   if (!from) {
@@ -37,13 +39,7 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
   }
 
   if (isSameRouteRecord(from, to)) {
-    const leaf = getLeafMatch(to);
-    return {
-      exitRoutes: [],
-      enterRoutes: [leaf],
-      lca: leaf,
-      update: true,
-    };
+    return buildSameRecordPlan(from, to);
   }
 
   const fromChain = getActiveChain(from);
@@ -54,6 +50,39 @@ export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRo
     exitRoutes: buildExitRoutes(fromChain, lcaIndex),
     enterRoutes: buildEnterRoutes(toChain, lcaIndex),
     lca: lcaIndex >= 0 ? fromChain[lcaIndex]! : null, // NOTE: in future for incremental render vs data cache
+    update: false,
+  };
+}
+
+function resolveParamChangeMode(from: MatchedRouteInfo, to: MatchedRouteInfo): 'update' | 'navigate' {
+  const mode = getLeafMatch(to).route.paramChange as RouteInstance['paramChange'];
+  if (mode === 'navigate') return 'navigate';
+  if (mode === 'update') return 'update';
+  const fromKey = getLeafMatch(from).resolvedView?.viewKey ?? null;
+  const toKey = getLeafMatch(to).resolvedView?.viewKey ?? null;
+  if (fromKey === null || toKey === null) return 'update';
+  return fromKey === toKey ? 'update' : 'navigate';
+}
+
+function buildSameRecordPlan(from: MatchedRouteInfo, to: MatchedRouteInfo): TransitionMap {
+  const fromLeaf = getLeafMatch(from);
+  const toLeaf = getLeafMatch(to);
+
+  if (resolveParamChangeMode(from, to) === 'update') {
+    return {
+      exitRoutes: [],
+      enterRoutes: [toLeaf],
+      lca: toLeaf,
+      update: true,
+    };
+  }
+
+  const chain = getActiveChain(from);
+  const parentIndex = chain.length - 2;
+  return {
+    exitRoutes: [fromLeaf],
+    enterRoutes: [toLeaf],
+    lca: parentIndex >= 0 ? chain[parentIndex]! : null,
     update: false,
   };
 }

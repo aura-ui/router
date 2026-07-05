@@ -32,6 +32,7 @@ import {
 } from './attr/transition-order-attr-parser';
 import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from './attr/scroll-attr-parser';
+import { parseParamChangeAttr, type ParamChangePolicy } from './attr/param-change-attr-parser';
 
 export type { RouteRenderOptions, AuraRouteInterface };
 
@@ -49,6 +50,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) error: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) unmount: string[] | null;
   @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) update: string[] | null;
+
+  @attr({ inherit: true, parser: parseParamChangeAttr }) paramChange: ParamChangePolicy | null;
 
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) loadingTemplate: string;
   @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) errorTemplate: string;

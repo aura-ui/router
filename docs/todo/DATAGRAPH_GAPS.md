@@ -1,8 +1,8 @@
 # DataGraph: что ещё не доделано
 
-> **Проверено по коду:** 2026-06-30  
+> **Проверено по коду:** 2026-07-06  
 > **Базовая версия (v1)** уже в `src/modules/aura-routing-engine/core/data-graph/`  
-> **См. также:** [DATAGRAPH.md](./DATAGRAPH.md) · [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md)
+> **См. также:** [DATAGRAPH.md](./DATAGRAPH.md) · [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) · [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md)
 
 ---
 
@@ -522,6 +522,8 @@ preserve="data"          — кэшировать ли вообще (п. 4)
 
 Данные родительского маршрута попадают в контекст **после** загрузки — в render и post-хуках. Если дочерний `load` должен использовать результат родительского в том же проходе — сейчас только через внешний store, не через graph.
 
+**Подробно:** порядок parent→child, parallel siblings vs DAG, сценарии и план — [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md).
+
 ### 11d. «Быстрый путь» без загрузки данных
 
 Для простых плоских переходов без хуков роутер вообще не вызывает `load` — так задумано. Как только на маршруте появится `load`, быстрый путь отключится сам.
@@ -543,6 +545,9 @@ preserve="data"          — кэшировать ли вообще (п. 4)
 | 9 | SWR для HTML-кэша | средний | нет (другой слой) |
 | 10 | События загрузки и кэша | средний | нет |
 | 11 | Мелочи из §11 | низкий | нет |
+| 12 | **DAG load dependencies** (parent→child, wave scheduling) | средний–высокий | да (nested data-heavy) |
+
+П. 12 — полное описание: [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md).
 
 ---
 
@@ -564,5 +569,6 @@ preserve="data"          — кэшировать ли вообще (п. 4)
 |----------|-------|
 | [DATAGRAPH.md](./DATAGRAPH.md) | Как устроен v1 сейчас |
 | [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) | Сравнение с TanStack / RR7, оценки по срокам |
+| [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md) | DAG зависимостей load: parent→child, wave scheduling |
 | [CONTENT_CACHE.md](./CONTENT_CACHE.md) | Кэш HTML и шаблонов |
 | [FUTURE_PROOF_ENGINE.md](../FUTURE_PROOF_ENGINE.md) | Data graph в общей картине engine |

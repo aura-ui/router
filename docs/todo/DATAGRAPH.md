@@ -2,6 +2,7 @@
 
 > **Статус:** **v1 реализован** в `src/modules/aura-routing-engine/core/data-graph/` (2026-06-30)  
 > **Gaps по коду** (детально, зачем каждый пункт): [DATAGRAPH_GAPS.md](./DATAGRAPH_GAPS.md)  
+> **Load DAG** (parent→child deps, wave scheduling): [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md)  
 > **Parity gaps** (effort, roadmap): [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md)  
 > **Связь:** [P0-3](../comparison/FEATURE_PARITY_ROADMAP.md) · [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) · [CONTENT_CACHE.md](./CONTENT_CACHE.md)  
 > **Не путать с:** Content `DataCache` — кэш view/HTML (`html-src`, loaders)

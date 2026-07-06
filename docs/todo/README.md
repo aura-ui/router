@@ -8,6 +8,9 @@
 | [OUTLET_AND_RENDER.md](./OUTLET_AND_RENDER.md) | Nested outlet, ViewHandle, layout/content, patch/анимация; без `aura-route-view` |
 | [OUT_IN_PREFETCH.md](./OUT_IN_PREFETCH.md) | Политика `out-in-prefetch`: параллельный hidden render + строгий out-in |
 | [DATAGRAPH.md](./DATAGRAPH.md) | DataGraph v1 в коде: `load` hooks, SWR, prefetch; parity → [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) |
+| [DATAGRAPH_GAPS.md](./DATAGRAPH_GAPS.md) | Пробелы DataGraph v1: defer, revalidate, UI на stale, … |
+| [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md) | **TODO:** DAG зависимостей load (parent→child) vs flat `Promise.all` на enter-ветке |
+| [NAVIGATION_PERF_AUDIT.md](./NAVIGATION_PERF_AUDIT.md) | **Аудит:** hot path perf — узкие места + ссылка на `bench/` |
 | [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) | **Что такое зрелый data/SWR слой**, gap vs TanStack/RR7, roadmap |
 | [CONTENT_CACHE.md](./CONTENT_CACHE.md) | Кэш контента (ContentLoader): prefetch `html-src` / partial; SWR для view — TODO |
 | [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) | **Принятая стратегия:** link-driven prefetch + router-owned Data cache |

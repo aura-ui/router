@@ -8,7 +8,7 @@ import {
   resolveEnterBranch,
   shouldUseBranchAtomic,
 } from '../view-mount/branch-resolver';
-import { applyEnterBranch } from '../view-mount/branch-apply';
+import { mountEnterBranch } from '../view-mount/branch-mount';
 import {
   isRenderError,
   runViewCommit,
@@ -157,13 +157,13 @@ export class NavigationTransactionPipeline {
       return this.failRender(branch.route, branch.error);
     }
 
-    const apply = applyEnterBranch(enterRoutes, branch.payloads, ctx);
+    const mount = mountEnterBranch(enterRoutes, branch.payloads, ctx);
 
-    if (apply.status === 'aborted' || !this.transaction.isActive()) {
+    if (mount.status === 'aborted' || !this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
-    if (apply.status === 'error') {
-      return this.failRender(apply.route, apply.error);
+    if (mount.status === 'error') {
+      return this.failRender(mount.route, mount.error);
     }
 
     this.transaction.viewCommitTracker.markViewStaged();

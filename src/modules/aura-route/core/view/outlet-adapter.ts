@@ -4,6 +4,8 @@ import type {
   ViewHandle,
   ViewRoot,
 } from '../../../aura-outlet/core/aura-outlet';
+import type { AuraRouteInterface } from '../types';
+import type { ViewKind } from './types';
 
 type StageStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
@@ -58,6 +60,18 @@ export function mergeMount(snapshot: MountSnapshot, slice: MountSlice): MountSna
 
 export function hasActiveMount(slice: MountSlice, isLayoutRoute: boolean): boolean {
   return !!slice.activeHandle && (!isLayoutRoute || !!slice.nestedOutlet);
+}
+
+export function warnMissingLayoutOutlet(
+  route: AuraRouteInterface,
+  viewKind: ViewKind,
+  nestedOutlet: AuraOutlet | null,
+): void {
+  if (viewKind !== 'layout' || nestedOutlet) return;
+
+  console.warn(
+    `AuraRoute layout "${route.layout}" (path: ${route.path}) has no <aura-outlet>`,
+  );
 }
 
 function resolveStageStrategy(

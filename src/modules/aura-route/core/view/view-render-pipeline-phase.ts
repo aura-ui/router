@@ -1,3 +1,4 @@
+import { escapeHtml, getTemplate } from '../../../aura-utils/misc';
 import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import type { ViewRenderResult } from '../../../aura-routing-engine/route-api';
 
@@ -7,9 +8,10 @@ import {
   mountContent,
   reattachContent,
   toMountSlice,
+  warnMissingLayoutOutlet,
   type MountContext,
 } from './outlet-adapter';
-import { emptyContent, resolveError, warnMissingLayoutOutlet } from './payloads';
+import type { AuraRouteInterface } from '../types';
 import type { RenderPass, ViewPayload } from './types';
 import type { ViewContext } from './view-context';
 
@@ -133,4 +135,31 @@ export class ViewRenderPipelinePhase {
       useStagedMount: pass.useStagedMount,
     };
   }
+}
+
+const EMPTY_CONTENT = '<div>No content to display</div>';
+
+function emptyContent(): ViewPayload {
+  return EMPTY_CONTENT;
+}
+
+function resolveError(route: AuraRouteInterface, error: unknown): ViewPayload {
+  if (route.errorTemplate) {
+    try {
+      return getTemplate(route.errorTemplate);
+    } catch (templateError) {
+      console.warn(`Failed to render errorTemplate for route "${route.path}":`, templateError);
+    }
+  }
+
+  console.error(`Error rendering route (path: ${route.path}):`, error);
+  const err = error instanceof Error ? error : null;
+  const message = escapeHtml(err?.message ?? 'Error loading content');
+  const stack = escapeHtml(err?.stack ?? '');
+
+  return `<div class="aura-route-error">
+    <h2>Content Loading Error</h2>
+    <p>${message}</p>
+    ${stack ? `<pre class="error-stack">${stack}</pre>` : ''}
+  </div>`;
 }

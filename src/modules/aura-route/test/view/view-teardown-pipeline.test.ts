@@ -24,16 +24,10 @@ function mountCtx(root: AuraOutlet, overrides: Partial<MountContext> = {}): Moun
 
 function stageTwoViews(root: AuraOutlet): MountSnapshot {
   const first = mountContent(mountCtx(root), '<span>old</span>')!;
+  const snapshot = mergeMount(EMPTY_MOUNT, first);
   const second = mountContent(mountCtx(root, { useStagedMount: true }), '<span>new</span>')!;
 
-  return mergeMount(
-    {
-      ...EMPTY_MOUNT,
-      activeHandle: first.activeHandle,
-      nestedOutlet: first.nestedOutlet,
-    },
-    second,
-  );
+  return mergeMount(snapshot, second);
 }
 
 function createTeardown(

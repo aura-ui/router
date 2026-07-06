@@ -34,7 +34,7 @@ function mount(context: MountContext, content: Node | string): MountSlice {
 
 function layoutWithOutlet(headerTag = 'header'): { fragment: DocumentFragment; nested: AuraOutlet } {
   const fragment = document.createDocumentFragment();
-  const nested = document.createElement(AuraOutlet.is);
+  const nested = document.createElement(AuraOutlet.is) as AuraOutlet;
   fragment.append(document.createElement(headerTag), nested);
   return { fragment, nested };
 }
@@ -329,20 +329,13 @@ describe('outlet-adapter', () => {
 
     function stageTwoViews(root: AuraOutlet): MountSnapshot {
       const first = mount(ctx({ appOutlet: root }), '<span>old</span>');
-      let snapshot = mergeMount(EMPTY_MOUNT, first);
+      const snapshot = mergeMount(EMPTY_MOUNT, first);
       const second = mountContent(
         ctx({ appOutlet: root, useStagedMount: true }),
         '<span>new</span>',
       )!;
 
-      return mergeMount(
-        {
-          ...EMPTY_MOUNT,
-          activeHandle: first.activeHandle,
-          nestedOutlet: first.nestedOutlet,
-        },
-        second,
-      );
+      return mergeMount(snapshot, second);
     }
 
     it('commitStaged promotes incoming view', () => {

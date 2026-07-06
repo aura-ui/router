@@ -370,7 +370,6 @@ describe('RouteViewController keep-alive integration', () => {
 
   it('param-change remount with parallel transition stages both views; param unmount keeps incoming', async () => {
     const root = createOutlet();
-    let passId = 0;
     const route = {
       path: 'user/:id',
       layout: '',
@@ -391,7 +390,7 @@ describe('RouteViewController keep-alive integration', () => {
         cache: createMockViewCache(),
         mountTarget: { appOutlet: () => root, nestedOutlet: () => null },
       },
-      () => passId,
+      () => 1,
     );
 
     const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });

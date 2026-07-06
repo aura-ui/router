@@ -172,9 +172,7 @@ export class NavigationTransactionPipeline {
       return this.failRender(apply.route, apply.error);
     }
 
-    for (const _route of enterRoutes) {
-      this.transaction.viewCommitTracker.markViewStaged();
-    }
+    this.transaction.viewCommitTracker.markViewStaged();
 
     return null;
   }

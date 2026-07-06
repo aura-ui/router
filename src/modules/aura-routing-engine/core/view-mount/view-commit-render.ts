@@ -5,7 +5,6 @@
  *
  * @module view-mount/view-commit-render
  */
-import type { ViewPayload } from '../content/model/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
 export interface ViewRenderCancellation {
@@ -36,8 +35,6 @@ export type ViewCommitRenderOptions = {
   data?: unknown;
   /** Synthetic param remount on the same `<aura-route>` leaf. */
   paramChangeRemount?: boolean;
-  /** Pre-resolved view/layout payload — skips content resolve in the view layer. */
-  preResolvedContent?: ViewPayload | null;
 };
 
 /** Renders the activate-branch route view; aborts when the navigation job is superseded. */

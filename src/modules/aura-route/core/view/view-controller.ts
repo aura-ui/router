@@ -1,7 +1,7 @@
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo, ViewRenderResult } from '../../../aura-routing-engine/route-api';
-import type { RouteRenderOptions, RouteUnmountOptions } from '../types';
-import type { RenderPass, RouteViewConfig } from './types';
+import type { RouteRenderOptions, ApplyPreResolvedOptions, RouteUnmountOptions } from '../types';
+import type { RenderPass, RouteViewConfig, ViewPayload } from './types';
 import { cacheKey } from './view-cache';
 
 import { ViewContext } from './view-context';
@@ -50,15 +50,19 @@ export class RouteViewController {
    */
   applyPreResolved(
     routeInfo: MatchedRouteInfo,
-    options?: RouteRenderOptions,
+    options: ApplyPreResolvedOptions,
   ): ViewRenderResult | 'aborted' {
-    if (options?.parentSignal?.aborted) return 'aborted';
-    const pass = this.beginPass(routeInfo, options);
+    if (options.parentSignal?.aborted) return 'aborted';
+    const pass = this.beginPass(routeInfo, options, options.preResolvedContent);
     this.ctx.lastCacheKey = pass.cacheKey;
     return this.renderPipeline.mountPreResolved(pass);
   }
 
-  private beginPass(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): RenderPass {
+  private beginPass(
+    routeInfo: MatchedRouteInfo,
+    options?: RouteRenderOptions,
+    preResolvedContent?: ViewPayload | null,
+  ): RenderPass {
     this.ctx.paramChangeRemount = options?.paramChangeRemount === true;
     const route = this.ctx.config.route;
 
@@ -72,9 +76,7 @@ export class RouteViewController {
         route.transition.order !== null
         || (this.ctx.paramChangeRemount && route.preserve.view),
       ...(options?.data !== undefined && { data: options.data }),
-      ...(options?.preResolvedContent !== undefined && {
-        preResolvedContent: options.preResolvedContent,
-      }),
+      ...(preResolvedContent !== undefined && { preResolvedContent }),
     };
   }
 

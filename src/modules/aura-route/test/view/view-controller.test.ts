@@ -414,7 +414,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.textContent).toBe('view-2');
   });
 
-  it('mounts preResolvedContent without calling content.resolve', async () => {
+  it('applyPreResolved mounts content without calling content.resolve', () => {
     const root = createOutlet();
     const resolve = jest.fn(async () => '<span>from-resolve</span>');
     const controller = createController(
@@ -425,10 +425,11 @@ describe('RouteViewController keep-alive integration', () => {
       false,
     );
 
-    await controller.render(matched('/page'), {
+    const result = controller.applyPreResolved(matched('/page'), {
       preResolvedContent: '<span>instant</span>',
     });
 
+    expect(result).toEqual({ status: 'ok' });
     expect(resolve).not.toHaveBeenCalled();
     expect(root.textContent).toBe('instant');
   });

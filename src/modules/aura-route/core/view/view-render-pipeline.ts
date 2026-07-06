@@ -4,7 +4,8 @@ import type { ViewContext } from './view-context';
 import { ViewRenderPipelinePhase } from './view-render-pipeline-phase';
 
 /**
- * Render pass pipeline: cache → skip → (pre-resolved | resolve) → mount.
+ * Render pass pipeline: cache → skip → resolve → mount (async)
+ * or cache → skip → mount (sync via {@link mountPreResolved}).
  *
  * Terminal `ViewRenderResult` ends the pass; `null` means continue to the next step.
  */
@@ -23,15 +24,12 @@ export class ViewRenderPipeline {
    */
   mountPreResolved(pass: RenderPass): ViewRenderResult | 'aborted' {
     if (this.ctx.renderSignal.aborted) return 'aborted';
-
     const early = this.tryEarlyExit(pass);
     if (early) return early;
-
-    if (pass.preResolvedContent === undefined) {
-      throw new Error('mountPreResolved requires preResolvedContent');
-    }
-
     try {
+      if (pass.preResolvedContent === undefined) {
+        throw new Error('mountPreResolved requires preResolvedContent');
+      }
       this.phase.applyResolvedContent(pass, pass.preResolvedContent);
       return { status: 'ok' };
     } catch (error) {
@@ -46,10 +44,6 @@ export class ViewRenderPipeline {
       const early = this.tryEarlyExit(pass);
       if (early) return early;
 
-      if (pass.preResolvedContent !== undefined) {
-        this.phase.applyResolvedContent(pass, pass.preResolvedContent);
-        return { status: 'ok' };
-      }
       this.fireLoadingStart(pass);
       loadingHooks = true;
 

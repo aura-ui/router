@@ -3,11 +3,12 @@
  *
  * @module view-mount/branch-apply
  */
-import type { RouteRenderOptions } from '../../../aura-route/core/types';
+import type { RouteRenderOptions, ApplyPreResolvedOptions } from '../../../aura-route/core/types';
 import type { ViewPayload } from '../content/model/types';
 import type { DataSnapshot } from '../data-graph';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { RouteInstance } from '../route/types';
 import type { BranchResolveTransaction } from './branch-resolver';
 import { isRenderError } from './view-commit-render';
 
@@ -27,14 +28,6 @@ export type BranchApplyResult =
   | { status: 'ok' }
   | { status: 'aborted' }
   | { status: 'error'; error: unknown; route: MatchedRouteInfo };
-
-type BranchApplicableRoute = {
-  applyPreResolved?(
-    routeInfo: MatchedRouteInfo,
-    options?: RouteRenderOptions,
-  ): { status: 'ok' } | { status: 'error'; error: unknown } | 'aborted';
-  revertInFlightView?(): void;
-};
 
 export function createBranchApplyContext(transaction: BranchApplyTransaction): BranchApplyContext {
   const { dataSnapshot } = transaction;
@@ -72,20 +65,9 @@ export function applyEnterBranch(
 
   for (let i = 0; i < enterRoutes.length; i++) {
     const matchedRoute = enterRoutes[i]!;
-    const route = matchedRoute.route as BranchApplicableRoute;
-    const applyPreResolved = route.applyPreResolved;
+    const route: RouteInstance = matchedRoute.route;
 
-    if (!applyPreResolved) {
-      rollbackApplied(enterRoutes, i);
-      return {
-        status: 'error',
-        error: new Error('Route does not support sync branch apply'),
-        route: matchedRoute,
-      };
-    }
-
-    const result = applyPreResolved.call(
-      route,
+    const result = route.applyPreResolved(
       matchedRoute,
       buildApplyOptions(matchedRoute, payloads[i] ?? null, ctx),
     );
@@ -107,8 +89,8 @@ function buildApplyOptions(
   matchedRoute: MatchedRouteInfo,
   payload: ViewPayload | null,
   ctx: BranchApplyContext,
-): RouteRenderOptions {
-  const options: RouteRenderOptions = {
+): ApplyPreResolvedOptions {
+  const options: ApplyPreResolvedOptions = {
     parentSignal: ctx.signal,
     preResolvedContent: payload,
   };
@@ -123,6 +105,6 @@ function buildApplyOptions(
 
 function rollbackApplied(enterRoutes: readonly MatchedRouteInfo[], failedIndex: number): void {
   for (let i = failedIndex - 1; i >= 0; i--) {
-    (enterRoutes[i]!.route as BranchApplicableRoute).revertInFlightView?.();
+    enterRoutes[i]!.route.revertInFlightView?.();
   }
 }

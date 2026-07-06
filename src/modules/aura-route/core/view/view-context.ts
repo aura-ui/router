@@ -1,13 +1,13 @@
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { EMPTY_MOUNT, type MountSnapshot } from './outlet-adapter';
 import type { RouteViewConfig } from './types';
-import { RenderSignal } from './render-signal';
+import { AbortScope } from '../../../aura-utils/async/abort-scope';
 
 /** Mutable view state shared by render and teardown pipelines. */
 export class ViewContext {
   readonly config: RouteViewConfig;
   readonly getPassId: () => number;
-  readonly renderSignal = new RenderSignal();
+    readonly renderSignal = new AbortScope();
 
   mount: MountSnapshot = { ...EMPTY_MOUNT };
   /** Fallback when {@link RouteUnmountOptions.cacheKey} is omitted. */

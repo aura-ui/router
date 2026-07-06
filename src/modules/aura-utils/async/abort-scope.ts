@@ -1,5 +1,5 @@
-/** Local + optional parent abort for one render pass. */
-export class RenderSignal {
+/** Local + optional parent abort for one cancellable scope. */
+export class AbortScope {
   private local = new AbortController();
   private parent?: AbortSignal;
 

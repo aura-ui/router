@@ -2,6 +2,7 @@ import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_PRESERVE } from '../../../aura-routing-engine/core';
 import type { AuraRouteInterface } from '../../core/types';
 import {
+  applyMountToSnapshot,
   EMPTY_MOUNT,
   mergeMount,
   mountContent,
@@ -141,5 +142,55 @@ describe('ViewTeardownPipeline', () => {
 
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('new');
+  });
+
+  it('param-change replace unmount discards pending outgoing snapshot', () => {
+    const root = createOutlet();
+    const first = applyMountToSnapshot(EMPTY_MOUNT, mountCtx(root), '<span>view-1</span>')!;
+    const replaced = applyMountToSnapshot(
+      first,
+      mountCtx(root, { pattern: '/user/2' }),
+      '<span>view-2</span>',
+    )!;
+    const pending = replaced.pendingOutgoingRoot!;
+    const { teardown, ctx } = createTeardown(root, { mount: replaced });
+    ctx.paramChangeRemount = true;
+
+    teardown.onUnmount();
+
+    expect(root.textContent).toBe('view-2');
+    expect(pending.isConnected).toBe(false);
+    expect(ctx.mount.pendingOutgoingRoot).toBeNull();
+  });
+
+  it('commitStaged discards pending outgoing on replace mount', () => {
+    const root = createOutlet();
+    const first = applyMountToSnapshot(EMPTY_MOUNT, mountCtx(root), '<span>old</span>')!;
+    const replaced = applyMountToSnapshot(
+      first,
+      mountCtx(root, { pattern: '/new' }),
+      '<span>new</span>',
+    )!;
+    const { teardown } = createTeardown(root, { mount: replaced });
+
+    teardown.commitStaged();
+
+    teardown.revertInFlight();
+    expect(root.textContent).toBe('new');
+  });
+
+  it('revertInFlight restores replace mount from detached snapshot', () => {
+    const root = createOutlet();
+    const first = applyMountToSnapshot(EMPTY_MOUNT, mountCtx(root), '<span>old</span>')!;
+    const replaced = applyMountToSnapshot(
+      first,
+      mountCtx(root, { pattern: '/new' }),
+      '<span>new</span>',
+    )!;
+    const { teardown } = createTeardown(root, { mount: replaced });
+
+    teardown.revertInFlight();
+
+    expect(root.textContent).toBe('old');
   });
 });

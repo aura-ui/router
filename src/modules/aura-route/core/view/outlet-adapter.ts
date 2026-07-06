@@ -6,6 +6,7 @@ import type {
 } from '../../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface } from '../types';
 import type { ViewKind } from './types';
+import { destroyViewRoot } from './view-cache';
 
 type StageStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
@@ -29,6 +30,8 @@ export type MountSnapshot = {
   strategy: StageStrategy;
   activeHandle: ViewHandle | null;
   stageOutgoingHandle: ViewHandle | null;
+  /** Replace routes: outgoing view detached off-DOM until commit gate or rollback. */
+  pendingOutgoingRoot: ViewRoot | null;
   nestedOutlet: AuraOutlet | null;
 };
 
@@ -36,6 +39,7 @@ export const EMPTY_MOUNT: MountSnapshot = {
   strategy: 'replace',
   activeHandle: null,
   stageOutgoingHandle: null,
+  pendingOutgoingRoot: null,
   nestedOutlet: null,
 };
 
@@ -47,13 +51,30 @@ export function toMountSlice(snapshot: MountSnapshot): MountSlice {
   };
 }
 
-export function mergeMount(snapshot: MountSnapshot, slice: MountSlice): MountSnapshot {
+export function mergeMount(
+  snapshot: MountSnapshot,
+  slice: MountSlice,
+  detachedOutgoing: ViewRoot | null = null,
+): MountSnapshot {
   const strategy = slice.appliedStrategy;
 
+  if (strategy === 'stage') {
+    if (snapshot.pendingOutgoingRoot) destroyViewRoot(snapshot.pendingOutgoingRoot);
+
+    return {
+      strategy,
+      activeHandle: slice.activeHandle,
+      stageOutgoingHandle: snapshot.activeHandle,
+      pendingOutgoingRoot: null,
+      nestedOutlet: slice.nestedOutlet,
+    };
+  }
+
   return {
-    strategy,
+    strategy: 'replace',
     activeHandle: slice.activeHandle,
-    stageOutgoingHandle: strategy === 'stage' ? snapshot.activeHandle : null,
+    stageOutgoingHandle: null,
+    pendingOutgoingRoot: detachedOutgoing,
     nestedOutlet: slice.nestedOutlet,
   };
 }
@@ -74,14 +95,30 @@ export function warnMissingLayoutOutlet(
   );
 }
 
-function resolveStageStrategy(
+/**
+ * Mount content and update {@link MountSnapshot} with replace-rollback bookkeeping.
+ *
+ * Before a replace mount, the current view is detached off-DOM (not destroyed) so
+ * {@link rollbackReplace} can restore it if navigation is cancelled before commit gate.
+ */
+export function applyMountToSnapshot(
+  snapshot: MountSnapshot,
   ctx: MountContext,
-  targetOutlet: AuraOutlet,
-): StageStrategy {
-  if (ctx.strategy) return ctx.strategy;
-  if (!ctx.useStagedMount) return 'replace';
-  // Empty outlet: applyStage falls back to replace; skip staging when nothing is visible yet.
-  return targetOutlet.children.length > 0 ? 'stage' : 'replace';
+  payload: Node | string | ViewRoot,
+): MountSnapshot | null {
+  if (ctx.signal?.aborted) return null;
+
+  const outlet = resolveOutlet(ctx);
+  const strategy = resolveStageStrategy(ctx, outlet);
+  const detachedOutgoing = detachOutgoingBeforeReplace(snapshot, outlet, strategy);
+
+  const slice = applyMount(ctx, outlet, payload, strategy);
+  if (!slice?.activeHandle) {
+    if (detachedOutgoing) replaceRootInOutlet(outlet, detachedOutgoing);
+    return null;
+  }
+
+  return mergeMount(snapshot, slice, detachedOutgoing);
 }
 
 export function mountContent(
@@ -111,6 +148,20 @@ export function unmountHandle(
   return null;
 }
 
+/** Promote staged view and discard replace rollback snapshot after commit gate. */
+export function promoteStagedView(snapshot: MountSnapshot): MountSnapshot {
+  return discardPendingOutgoing(commitStaged(snapshot));
+}
+
+/** Destroy detached outgoing snapshot after successful commit gate. */
+export function discardPendingOutgoing(snapshot: MountSnapshot): MountSnapshot {
+  if (!snapshot.pendingOutgoingRoot) return snapshot;
+
+  destroyViewRoot(snapshot.pendingOutgoingRoot);
+
+  return { ...snapshot, pendingOutgoingRoot: null };
+}
+
 /** @remarks Mutates the outlet DOM via {@link AuraOutlet.commitStage}. */
 export function commitStaged(snapshot: MountSnapshot): MountSnapshot {
   if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
@@ -123,6 +174,117 @@ export function commitStaged(snapshot: MountSnapshot): MountSnapshot {
     strategy: 'replace',
     stageOutgoingHandle: null,
   };
+}
+
+/** Roll back uncommitted mount: stage restore or replace reattach from detached snapshot. */
+export function rollbackUncommittedMount(snapshot: MountSnapshot): MountSnapshot {
+  return snapshot.strategy === 'stage'
+    ? rollbackStaged(snapshot)
+    : rollbackReplace(snapshot);
+}
+
+/** Stage-only DOM rollback — restores outgoing view still present in the outlet. */
+export function rollbackStaged(snapshot: MountSnapshot): MountSnapshot {
+  if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
+
+  const afterCancel = cancelStagedIncoming(snapshot);
+  const outgoing = afterCancel.stageOutgoingHandle;
+
+  return {
+    strategy: 'replace',
+    activeHandle: outgoing,
+    stageOutgoingHandle: null,
+    pendingOutgoingRoot: null,
+    nestedOutlet: outgoing?.findChildOutlet() ?? null,
+  };
+}
+
+/** Replace-only DOM rollback — reattaches {@link MountSnapshot.pendingOutgoingRoot}. */
+export function rollbackReplace(snapshot: MountSnapshot): MountSnapshot {
+  const outgoing = snapshot.pendingOutgoingRoot;
+  if (!outgoing) return snapshot;
+
+  const mountOutlet = snapshot.activeHandle?.mountOutlet;
+  const incoming = snapshot.activeHandle;
+  incoming?.destroy();
+
+  if (!mountOutlet) {
+    destroyViewRoot(outgoing);
+    return { ...snapshot, activeHandle: null, pendingOutgoingRoot: null };
+  }
+
+  const handle = replaceRootInOutlet(mountOutlet, outgoing);
+  if (!handle) {
+    destroyViewRoot(outgoing);
+    return { ...snapshot, activeHandle: null, pendingOutgoingRoot: null, nestedOutlet: null };
+  }
+
+  return {
+    strategy: 'replace',
+    activeHandle: handle,
+    stageOutgoingHandle: null,
+    pendingOutgoingRoot: null,
+    nestedOutlet: handle.findChildOutlet(),
+  };
+}
+
+export function unmountOnLeave(
+  snapshot: MountSnapshot,
+  preserveView: boolean,
+): { snapshot: MountSnapshot; detachedRoot: ViewRoot | null } {
+  const cleared = discardPendingOutgoing(snapshot);
+
+  if (cleared.strategy === 'stage') {
+    const afterCancel = cancelStagedIncoming(cleared);
+    return {
+      detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, preserveView),
+      snapshot: { ...afterCancel, activeHandle: null, stageOutgoingHandle: null },
+    };
+  }
+
+  return {
+    detachedRoot: unmountHandle(cleared.activeHandle, preserveView),
+    snapshot: { ...cleared, activeHandle: null },
+  };
+}
+
+/**
+ * Param-change remount after render/commit: teardown only a lingering outgoing handle.
+ * Active (enter) view must stay mounted — render already replaced or commitStaged promoted it.
+ */
+export function unmountParamChangeOutgoing(
+  snapshot: MountSnapshot,
+  preserveView: boolean,
+): { snapshot: MountSnapshot; detachedRoot: ViewRoot | null } {
+  const cleared = discardPendingOutgoing(snapshot);
+  const outgoing = cleared.stageOutgoingHandle;
+
+  if (!outgoing) {
+    return { snapshot: cleared, detachedRoot: null };
+  }
+
+  return {
+    detachedRoot: unmountHandle(outgoing, preserveView),
+    snapshot: { ...cleared, stageOutgoingHandle: null },
+  };
+}
+
+export function finalizeLeave(
+  snapshot: MountSnapshot,
+  preserveView: boolean,
+  detachedRoot: ViewRoot | null,
+): MountSnapshot {
+  return preserveView && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
+}
+
+function resolveStageStrategy(
+  ctx: MountContext,
+  targetOutlet: AuraOutlet,
+): StageStrategy {
+  if (ctx.strategy) return ctx.strategy;
+  if (!ctx.useStagedMount) return 'replace';
+  // Empty outlet: applyStage falls back to replace; skip staging when nothing is visible yet.
+  return targetOutlet.children.length > 0 ? 'stage' : 'replace';
 }
 
 /**
@@ -139,64 +301,23 @@ function cancelStagedIncoming(snapshot: MountSnapshot): MountSnapshot {
   return { ...snapshot, strategy: 'replace', activeHandle: null };
 }
 
-/** Stage-only DOM rollback for `revertInFlightView`. Replace routes: no-op — see docs/todo/REPLACE_SUPERSEDE_ROLLBACK.md. */
-export function rollbackStaged(snapshot: MountSnapshot): MountSnapshot {
-  if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
+function detachOutgoingBeforeReplace(
+  snapshot: MountSnapshot,
+  targetOutlet: AuraOutlet,
+  strategy: StageStrategy,
+): ViewRoot | null {
+  if (strategy !== 'replace') return null;
 
-  const afterCancel = cancelStagedIncoming(snapshot);
-  const outgoing = afterCancel.stageOutgoingHandle;
+  const handle = snapshot.activeHandle;
+  if (!handle || handle.mountOutlet !== targetOutlet) return null;
 
-  return {
-    strategy: 'replace',
-    activeHandle: outgoing,
-    stageOutgoingHandle: null,
-    nestedOutlet: outgoing?.findChildOutlet() ?? null,
-  };
+  if (snapshot.pendingOutgoingRoot) destroyViewRoot(snapshot.pendingOutgoingRoot);
+
+  return handle.detach();
 }
 
-export function unmountOnLeave(
-  snapshot: MountSnapshot,
-  preserveView: boolean,
-): { snapshot: MountSnapshot; detachedRoot: ViewRoot | null } {
-  if (snapshot.strategy === 'stage') {
-    const afterCancel = cancelStagedIncoming(snapshot);
-    return {
-      detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, preserveView),
-      snapshot: { ...afterCancel, activeHandle: null, stageOutgoingHandle: null },
-    };
-  }
-
-  return {
-    detachedRoot: unmountHandle(snapshot.activeHandle, preserveView),
-    snapshot: { ...snapshot, activeHandle: null },
-  };
-}
-
-/**
- * Param-change remount after render/commit: teardown only a lingering outgoing handle.
- * Active (enter) view must stay mounted — render already replaced or commitStaged promoted it.
- */
-export function unmountParamChangeOutgoing(
-  snapshot: MountSnapshot,
-  preserveView: boolean,
-): { snapshot: MountSnapshot; detachedRoot: ViewRoot | null } {
-  const outgoing = snapshot.stageOutgoingHandle;
-  if (!outgoing) {
-    return { snapshot, detachedRoot: null };
-  }
-
-  return {
-    detachedRoot: unmountHandle(outgoing, preserveView),
-    snapshot: { ...snapshot, stageOutgoingHandle: null },
-  };
-}
-
-export function finalizeLeave(
-  snapshot: MountSnapshot,
-  preserveView: boolean,
-  detachedRoot: ViewRoot | null,
-): MountSnapshot {
-  return preserveView && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
+function replaceRootInOutlet(outlet: AuraOutlet, root: ViewRoot): ViewHandle | null {
+  return outlet.apply(root, { strategy: 'replace' });
 }
 
 function applyMount(

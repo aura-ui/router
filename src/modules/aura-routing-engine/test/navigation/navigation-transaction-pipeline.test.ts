@@ -4,6 +4,8 @@ import { PHASES } from '../../core/lifecycle';
 import { NavigationTransactionPipelinePhase } from '../../core/navigation/navigation-transaction-pipeline-phase';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { runViewCommit } from '../../core/view-mount/view-commit-render';
+import * as branchResolver from '../../core/view-mount/branch-resolver';
+import type { ContentLoadService } from '../../core';
 import {
   createMatchedRoute,
   createMockTransaction,
@@ -793,5 +795,102 @@ describe('NavigationTransactionPipeline phase hook attrs', () => {
     await new NavigationTransactionPipeline(transaction).runLifecyclePhase(PHASES.unmount);
 
     expect(phases).toEqual(['unmount']);
+  });
+});
+
+describe('NavigationTransactionPipeline branch-atomic render', () => {
+  let resolveEnterBranchSpy: jest.SpiedFunction<typeof branchResolver.resolveEnterBranch>;
+
+  function withContentLoad(
+    options: Parameters<typeof createMockTransaction>[0],
+  ): ReturnType<typeof createMockTransaction> {
+    const transaction = createMockTransaction(options);
+    transaction.engine.contentLoad = { resolve: jest.fn() } as unknown as ContentLoadService;
+    return transaction;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRunViewCommit.mockResolvedValue('ok');
+    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resolveEnterBranchSpy = jest
+      .spyOn(branchResolver, 'resolveEnterBranch')
+      .mockResolvedValue({ status: 'ok', payloads: ['<layout/>', '<index/>'] });
+  });
+
+  afterEach(() => {
+    resolveEnterBranchSpy.mockRestore();
+  });
+
+  it('resolves branch then mounts with pre-resolved payloads for multi-route enter', async () => {
+    const layout = createMatchedRoute('/users');
+    const index = createMatchedRoute('/users/1');
+    const transaction = withContentLoad({
+      enterRoutes: [layout, index],
+      transitionOrder: null,
+    });
+
+    await new NavigationTransactionPipeline(transaction).runRender();
+
+    expect(resolveEnterBranchSpy).toHaveBeenCalledWith(
+      [layout, index],
+      transaction.engine.contentLoad,
+      expect.objectContaining({ signal: transaction.signal }),
+    );
+    expect(mockRunViewCommit).toHaveBeenCalledTimes(2);
+    expect(mockRunViewCommit).toHaveBeenNthCalledWith(
+      1,
+      layout,
+      expect.objectContaining({ isAborted: expect.any(Function) }),
+      expect.objectContaining({ preResolvedContent: '<layout/>' }),
+    );
+    expect(mockRunViewCommit).toHaveBeenNthCalledWith(
+      2,
+      index,
+      expect.anything(),
+      expect.objectContaining({ preResolvedContent: '<index/>' }),
+    );
+  });
+
+  it('uses eager per-route render for a single sync route', async () => {
+    const transaction = withContentLoad({
+      enterRoutes: [createMatchedRoute('/page')],
+      transitionOrder: null,
+    });
+
+    await new NavigationTransactionPipeline(transaction).runRender();
+
+    expect(resolveEnterBranchSpy).not.toHaveBeenCalled();
+    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
+    expect(mockRunViewCommit).toHaveBeenCalledWith(
+      transaction.transitionPlan.enterRoutes[0],
+      expect.objectContaining({ isAborted: expect.any(Function) }),
+      undefined,
+    );
+  });
+
+  it('skips branch atomic when transition order is set', async () => {
+    const transaction = withContentLoad({
+      enterRoutes: [createMatchedRoute('/users'), createMatchedRoute('/users/1')],
+      transitionOrder: 'parallel',
+    });
+
+    await new NavigationTransactionPipeline(transaction).runRender();
+
+    expect(resolveEnterBranchSpy).not.toHaveBeenCalled();
+    expect(mockRunViewCommit).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns cancelled when branch resolve aborts', async () => {
+    resolveEnterBranchSpy.mockResolvedValue({ status: 'aborted' });
+    const transaction = withContentLoad({
+      enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
+      transitionOrder: null,
+    });
+
+    const outcome = await new NavigationTransactionPipeline(transaction).runRender();
+
+    expect(outcome).toEqual({ status: 'cancelled' });
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 });

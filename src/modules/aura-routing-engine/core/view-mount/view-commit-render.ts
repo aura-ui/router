@@ -5,11 +5,13 @@
  *
  * @module view-mount/view-commit-render
  */
+import type { ViewPayload } from '../content/model/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
 export interface ViewRenderCancellation {
   readonly signal: AbortSignal;
-  readonly aborted: boolean;
+  /** Live check — prefer `() => !transaction.isActive()` over a boolean snapshot. */
+  readonly isAborted: () => boolean;
 }
 
 export type ViewRenderResult =
@@ -34,6 +36,8 @@ export type ViewCommitRenderOptions = {
   data?: unknown;
   /** Synthetic param remount on the same `<aura-route>` leaf. */
   paramChangeRemount?: boolean;
+  /** Pre-resolved view/layout payload — skips content resolve in the view layer. */
+  preResolvedContent?: ViewPayload | null;
 };
 
 /** Renders the activate-branch route view; aborts when the navigation job is superseded. */
@@ -42,14 +46,14 @@ export async function runViewCommit(
   cancellation: ViewRenderCancellation,
   options?: ViewCommitRenderOptions,
 ): Promise<ViewCommitResult> {
-  if (cancellation.aborted) return 'aborted';
+  if (cancellation.isAborted()) return 'aborted';
 
   const result = await matchedRoute.route.render(matchedRoute, {
     parentSignal: cancellation.signal,
     ...options,
   });
 
-  if (cancellation.aborted) return 'aborted';
+  if (cancellation.isAborted()) return 'aborted';
   if (isRenderError(result)) return result;
 
   return 'ok';

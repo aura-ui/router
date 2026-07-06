@@ -15,21 +15,66 @@
           <code class="demo-header__tag">&lt;aura-router&gt;</code>
         </div>
       </header>
-      <main>
-        <h1>Демонстрации</h1>
-        <p>Каждый сценарий — отдельная страница со своим экземпляром <code>&lt;aura-router&gt;</code>. Переход из оглавления выполняет полную загрузку документа; внутри сценария навигация работает без перезагрузки вкладки.</p>
 
-        <h2>Маршрутизация</h2>
-        <nav class="demo-links">
-          <a href="/features/routing-basics/index.html">Основы — плоские маршруты и history</a>
-          <a href="/features/routing-nested/index.html">Вложенные — layout, index, параметр :id</a>
-          <a href="/features/routing-advanced/index.html">Продвинутые — глубина, приоритет, 404</a>
-        </nav>
+      <main class="demo-index">
+        <div class="demo-index__hero">
+          <h1 class="demo-index__title">Демонстрации</h1>
+          <p class="demo-index__lead">
+            Каждый сценарий — отдельная страница со своим экземпляром
+            <code>&lt;aura-router&gt;</code>. Переход из оглавления выполняет полную загрузку документа;
+            внутри сценария навигация работает без перезагрузки вкладки.
+          </p>
+        </div>
 
-        <h2>Жизненный цикл</h2>
-        <nav class="demo-links">
-          <a href="/features/phase-update/index.html">Update shortcut — search, hash, :id, param-update</a>
-        </nav>
+        <section class="demo-index__section" aria-labelledby="demo-index-routing">
+          <h2 class="demo-index__section-title" id="demo-index-routing">
+            <span class="demo-index__section-label">01</span>
+            Маршрутизация
+          </h2>
+          <ul class="demo-index__grid">
+            <li>
+              <a class="demo-index__card" href="/features/routing-basics/index.html">
+                <span class="demo-index__card-kicker">Basics</span>
+                <span class="demo-index__card-title">Основы</span>
+                <span class="demo-index__card-desc">Плоские маршруты, смена view, history API</span>
+                <span class="demo-index__card-action" aria-hidden="true">Открыть →</span>
+              </a>
+            </li>
+            <li>
+              <a class="demo-index__card" href="/features/routing-nested/index.html">
+                <span class="demo-index__card-kicker">Nested</span>
+                <span class="demo-index__card-title">Вложенные</span>
+                <span class="demo-index__card-desc">Layout, index-маршрут <code>path="."</code>, параметр <code>:id</code></span>
+                <span class="demo-index__card-action" aria-hidden="true">Открыть →</span>
+              </a>
+            </li>
+            <li>
+              <a class="demo-index__card" href="/features/routing-advanced/index.html">
+                <span class="demo-index__card-kicker">Advanced</span>
+                <span class="demo-index__card-title">Продвинутые</span>
+                <span class="demo-index__card-desc">Глубина layout, приоритет matching, catch-all 404</span>
+                <span class="demo-index__card-action" aria-hidden="true">Открыть →</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="demo-index__section" aria-labelledby="demo-index-lifecycle">
+          <h2 class="demo-index__section-title" id="demo-index-lifecycle">
+            <span class="demo-index__section-label">02</span>
+            Жизненный цикл
+          </h2>
+          <ul class="demo-index__grid demo-index__grid--single">
+            <li>
+              <a class="demo-index__card" href="/features/phase-update/index.html">
+                <span class="demo-index__card-kicker">Update</span>
+                <span class="demo-index__card-title">Update shortcut</span>
+                <span class="demo-index__card-desc">Search, hash, remount по <code>:id</code>, param-update без remount</span>
+                <span class="demo-index__card-action" aria-hidden="true">Открыть →</span>
+              </a>
+            </li>
+          </ul>
+        </section>
       </main>
     </div>
   </div>

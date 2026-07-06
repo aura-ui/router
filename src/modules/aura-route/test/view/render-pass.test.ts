@@ -1,7 +1,8 @@
+import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_PRESERVE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
+import { RouteViewController } from '../../core/view2/view-controller';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
-import { createRenderPass } from '../../core/view/render-pass';
-import type { AuraRouteInterface } from '../../core/types';
+import type { AuraRouteInterface, RouteRenderOptions } from '../../core/types';
 
 function matched(pathname: string): MatchedRouteInfo {
   return {
@@ -9,7 +10,7 @@ function matched(pathname: string): MatchedRouteInfo {
     pathname,
     search: '',
     hash: '',
-    pattern: pathname,
+    pattern: 'user/:id',
   } as MatchedRouteInfo;
 }
 
@@ -35,54 +36,81 @@ function route(overrides: Partial<AuraRouteInterface> = {}): AuraRouteInterface 
   };
 }
 
-describe('createRenderPass useStagedMount', () => {
-  const signal = new AbortController().signal;
+async function captureUseStagedMount(
+  routeConfig: AuraRouteInterface,
+  routeInfo: MatchedRouteInfo,
+  options?: RouteRenderOptions,
+): Promise<boolean | undefined> {
+  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+  document.body.append(outlet);
 
-  it('stages when route declares transition order', () => {
-    const pass = createRenderPass(
-      1,
+  let useStagedMount: boolean | undefined;
+
+  const controller = new RouteViewController(
+    {
+      route: routeConfig,
+      content: { resolve: async () => '<span>view</span>' },
+      cache: { extract: () => undefined, put: () => {} },
+      mountTarget: { appOutlet: () => outlet, nestedOutlet: () => null },
+      plugins: [{
+        onContentResolved(pass) {
+          useStagedMount = pass.useStagedMount;
+        },
+      }],
+    },
+    () => 1,
+  );
+
+  await controller.render(routeInfo, options);
+  return useStagedMount;
+}
+
+describe('RouteViewController RenderPass.useStagedMount', () => {
+  beforeAll(() => {
+    if (!customElements.get(AuraOutlet.is)) {
+      customElements.define(AuraOutlet.is, AuraOutlet);
+    }
+  });
+
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  it('stages when route declares transition order', async () => {
+    const value = await captureUseStagedMount(
       route({ transition: { order: 'parallel', in: ['fade'], out: ['fade'] } }),
       matched('/users/1'),
-      signal,
     );
 
-    expect(pass.useStagedMount).toBe(true);
+    expect(value).toBe(true);
   });
 
-  it('stages on param-change remount with preserve.view', () => {
-    const pass = createRenderPass(
-      1,
+  it('stages on param-change remount with preserve.view', async () => {
+    const value = await captureUseStagedMount(
       route({ preserve: { view: true, data: false } }),
       matched('/users/2'),
-      signal,
-      undefined,
-      true,
+      { paramChangeRemount: true },
     );
 
-    expect(pass.useStagedMount).toBe(true);
+    expect(value).toBe(true);
   });
 
-  it('replaces on param-change remount without preserve.view', () => {
-    const pass = createRenderPass(
-      1,
+  it('replaces on param-change remount without preserve.view', async () => {
+    const value = await captureUseStagedMount(
       route({ preserve: NO_PRESERVE }),
       matched('/users/2'),
-      signal,
-      undefined,
-      true,
+      { paramChangeRemount: true },
     );
 
-    expect(pass.useStagedMount).toBe(false);
+    expect(value).toBe(false);
   });
 
-  it('replaces on ordinary navigation without transition', () => {
-    const pass = createRenderPass(
-      1,
+  it('replaces on ordinary navigation without transition', async () => {
+    const value = await captureUseStagedMount(
       route({ preserve: { view: true, data: false } }),
       matched('/users/2'),
-      signal,
     );
 
-    expect(pass.useStagedMount).toBe(false);
+    expect(value).toBe(false);
   });
 });

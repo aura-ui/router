@@ -1,5 +1,5 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { RouteViewController } from '../../core/view/view-controller';
+import { RouteViewController } from '../../core/view2/view-controller';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 import {
   NavigationError,

@@ -5,8 +5,9 @@ import type {
 } from '../../../aura-routing-engine/route-api';
 
 import type { RouteRenderOptions, RouteUnmountOptions } from '../types';
-import { createRenderPass } from '../view/render-pass';
 import type { RouteViewConfig } from '../view/ports';
+import type { RenderPass } from '../view/render-pass';
+import { cacheKey } from '../view/view-cache';
 
 import { ViewContext } from './view-context';
 import { ViewRenderPipeline } from './view-render-pipeline';
@@ -44,15 +45,19 @@ export class RouteViewController {
    */
   async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
     this.ctx.paramChangeRemount = options?.paramChangeRemount === true;
+    const route = this.ctx.config.route;
 
-    const pass = createRenderPass(
-      this.ctx.getPassId(),
-      this.ctx.config.route,
+    const pass: RenderPass = {
+      id: this.ctx.getPassId(),
       routeInfo,
-      this.ctx.renderSignal.begin(options?.parentSignal),
-      options?.data,
-      this.ctx.paramChangeRemount,
-    );
+      signal: this.ctx.renderSignal.begin(options?.parentSignal),
+      cacheKey: cacheKey(routeInfo, route.path),
+      viewKind: route.layout.trim() ? 'layout' : 'content',
+      useStagedMount:
+        route.transition.order !== null
+        || (this.ctx.paramChangeRemount && route.preserve.view),
+      ...(options?.data !== undefined && { data: options.data }),
+    };
 
     this.ctx.lastCacheKey = pass.cacheKey;
     return this.renderPipeline.run(pass);

@@ -1,6 +1,6 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_PRESERVE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
-import { RouteViewController } from '../../core/view/view-controller';
+import { RouteViewController } from '../../core/view2/view-controller';
 import { RouteViewCache, destroyViewRoot, cacheKey } from '../../core/view/view-cache';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 import type { ContentResolverPort, ViewCachePort } from '../../core/view/ports';

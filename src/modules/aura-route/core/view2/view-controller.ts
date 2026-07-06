@@ -6,7 +6,7 @@ import type {
 
 import type { RouteRenderOptions, RouteUnmountOptions } from '../types';
 import type { RouteViewConfig } from '../view/ports';
-import type { RenderPass } from '../view/render-pass';
+import type { RenderPass } from './render-pass';
 import { cacheKey } from '../view/view-cache';
 
 import { ViewContext } from './view-context';

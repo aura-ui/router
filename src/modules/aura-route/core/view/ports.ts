@@ -1,7 +1,7 @@
 import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 
-import type { RenderPass } from './render-pass';
+import type { RenderPass } from '../view2/render-pass';
 
 export type ViewKind = 'layout' | 'content';
 export type ViewPayload = Node | string;

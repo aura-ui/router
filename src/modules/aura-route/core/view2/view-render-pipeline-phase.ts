@@ -11,7 +11,7 @@ import {
 } from '../view/outlet';
 import { emptyContent, resolveError, warnMissingLayoutOutlet } from '../view/payloads';
 import type { ViewPayload } from '../view/ports';
-import { isStale, type RenderPass } from '../view/render-pass';
+import type { RenderPass } from './render-pass';
 
 import type { ViewContext } from './view-context';
 
@@ -121,8 +121,8 @@ export class ViewRenderPipelinePhase {
     return true;
   }
 
-  isStale(pass: RenderPass): boolean {
-    return isStale(pass, this.ctx.getPassId, () => this.ctx.renderSignal.aborted);
+  private isStale(pass: RenderPass): boolean {
+    return this.ctx.renderSignal.aborted || this.ctx.getPassId() !== pass.id;
   }
 
   private buildMountContext(pass: RenderPass): MountContext {

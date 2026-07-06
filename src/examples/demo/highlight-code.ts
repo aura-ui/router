@@ -1,6 +1,6 @@
 import hljs from 'highlight.js/lib/core';
 import xml from 'highlight.js/lib/languages/xml';
-import 'highlight.js/styles/atom-one-dark.min.css';
+import 'highlight.js/styles/atom-one-light.min.css';
 
 hljs.registerLanguage('html', xml);
 

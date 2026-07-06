@@ -31,7 +31,7 @@ export class ViewRenderPipeline {
       ]);
       if (early) return early;
 
-      this.firePassStart(pass);
+      this.fireLoadingStart(pass);
       loadingHooks = true;
 
       await this.phase.resolveContent(pass);
@@ -40,7 +40,7 @@ export class ViewRenderPipeline {
       return this.phase.handleError(pass, error);
     } finally {
       if (loadingHooks) {
-        this.firePassEnd(pass);
+        this.fireLoadingEnd(pass);
       }
     }
   }
@@ -53,19 +53,19 @@ export class ViewRenderPipeline {
     return null;
   }
 
-  private firePassStart(pass: RenderPass): void {
+  private fireLoadingStart(pass: RenderPass): void {
     const plugins = this.ctx.config.plugins;
     if (!plugins) return;
     for (let i = 0; i < plugins.length; i++) {
-      plugins[i]!.onPassStart?.(pass);
+      plugins[i]!.onLoadingStart?.(pass);
     }
   }
 
-  private firePassEnd(pass: RenderPass): void {
+  private fireLoadingEnd(pass: RenderPass): void {
     const plugins = this.ctx.config.plugins;
     if (!plugins) return;
     for (let i = 0; i < plugins.length; i++) {
-      plugins[i]!.onPassEnd?.(pass);
+      plugins[i]!.onLoadingEnd?.(pass);
     }
   }
 }

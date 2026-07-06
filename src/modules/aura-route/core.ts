@@ -14,7 +14,7 @@ export type {
   RouteViewConfig,
   ViewPayload,
 } from './core/view/ports';
-export { RouteViewController } from './core/view/view-controller';
+export { RouteViewController } from './core/view2/view-controller';
 export { createRenderPass, isStale, type RenderPass } from './core/view/render-pass';
 export { loadingBodyClass, loadingEvent } from './core/view/plugins';
 export {

@@ -25,7 +25,7 @@ import type { ViewPayload, RouteViewConfig } from './ports';
 import { createRenderPass, isStale, type RenderPass } from './render-pass';
 import { RenderSignal } from './render-signal';
 
-type PluginHook = 'onPassStart' | 'onPassEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
+type PluginHook = 'onLoadingStart' | 'onLoadingEnd' | 'onContentResolved' | 'onMounted' | 'onPassError';
 
 /** Clears transition inline styles and cancels element animations. */
 export function resetViewRootPresentation(root: HTMLElement): void {
@@ -143,7 +143,7 @@ export class RouteViewController {
       if (this.tryCacheRestore(pass)) return { status: 'ok' };
       if (this.isViewAlreadyInOutlet(pass)) return { status: 'ok' };
 
-      this.emit('onPassStart', pass);
+      this.emit('onLoadingStart', pass);
       loadingHooks = true;
       await this.resolveAndMount(pass);
       return { status: 'ok' };
@@ -154,7 +154,7 @@ export class RouteViewController {
       return { status: 'error', error };
     } finally {
       if (loadingHooks) {
-        this.emit('onPassEnd', pass);
+        this.emit('onLoadingEnd', pass);
       }
     }
   }

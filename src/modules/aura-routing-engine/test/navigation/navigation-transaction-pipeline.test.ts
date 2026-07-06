@@ -5,7 +5,7 @@ import { NavigationTransactionPipelinePhase } from '../../core/navigation/naviga
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { runViewCommit } from '../../core/view-mount/view-commit-render';
 import * as branchResolver from '../../core/view-mount/branch-resolver';
-import * as branchApply from '../../core/view-mount/branch-apply';
+import * as branchMount from '../../core/view-mount/branch-mount';
 import type { ContentLoadService } from '../../core';
 import {
   createMatchedRoute,
@@ -76,7 +76,7 @@ describe('NavigationTransactionPipeline history commit', () => {
       return 'ok';
     });
     jest.spyOn(branchResolver, 'resolveEnterBranch').mockResolvedValue({ status: 'ok', payloads: [null] });
-    jest.spyOn(branchApply, 'applyEnterBranch').mockImplementation(() => {
+    jest.spyOn(branchMount, 'mountEnterBranch').mockImplementation(() => {
       order.push('render');
       return { status: 'ok' };
     });
@@ -810,7 +810,7 @@ describe('NavigationTransactionPipeline phase hook attrs', () => {
 
 describe('NavigationTransactionPipeline branch-atomic render', () => {
   let resolveEnterBranchSpy: jest.SpiedFunction<typeof branchResolver.resolveEnterBranch>;
-  let applyEnterBranchSpy: jest.SpiedFunction<typeof branchApply.applyEnterBranch>;
+  let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
 
   function withContentLoad(
     options: Parameters<typeof createMockTransaction>[0],
@@ -827,17 +827,17 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     resolveEnterBranchSpy = jest
       .spyOn(branchResolver, 'resolveEnterBranch')
       .mockResolvedValue({ status: 'ok', payloads: ['<layout/>', '<index/>'] });
-    applyEnterBranchSpy = jest
-      .spyOn(branchApply, 'applyEnterBranch')
+    mountEnterBranchSpy = jest
+      .spyOn(branchMount, 'mountEnterBranch')
       .mockReturnValue({ status: 'ok' });
   });
 
   afterEach(() => {
     resolveEnterBranchSpy.mockRestore();
-    applyEnterBranchSpy.mockRestore();
+    mountEnterBranchSpy.mockRestore();
   });
 
-  it('resolves branch then sync-applies pre-resolved payloads for multi-route enter', async () => {
+  it('resolves branch then sync-mounts pre-resolved payloads for multi-route enter', async () => {
     const layout = createMatchedRoute('/users');
     const index = createMatchedRoute('/users/1');
     const transaction = withContentLoad({
@@ -852,7 +852,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
       transaction.engine.contentLoad,
       expect.objectContaining({ signal: transaction.signal }),
     );
-    expect(applyEnterBranchSpy).toHaveBeenCalledWith(
+    expect(mountEnterBranchSpy).toHaveBeenCalledWith(
       [layout, index],
       ['<layout/>', '<index/>'],
       expect.objectContaining({ signal: transaction.signal }),
@@ -899,7 +899,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     const outcome = await new NavigationTransactionPipeline(transaction).runRender();
 
     expect(outcome).toEqual({ status: 'cancelled' });
-    expect(applyEnterBranchSpy).not.toHaveBeenCalled();
+    expect(mountEnterBranchSpy).not.toHaveBeenCalled();
     expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 });

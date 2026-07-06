@@ -56,8 +56,8 @@ export type {
   BranchResolveResult,
   BranchResolveTransaction,
 } from './core/view-mount/branch-resolver';
-export { applyEnterBranch } from './core/view-mount/branch-apply';
-export type { BranchApplyResult } from './core/view-mount/branch-apply';
+export { mountEnterBranch } from './core/view-mount/branch-mount';
+export type { MountEnterBranchResult } from './core/view-mount/branch-mount';
 
 export type { TransactionResult, TransactionFullResult, NavigationErrorResult } from './core/navigation/transaction-result';
 export type { NavigationCommittedContext } from './core/navigation/finalize';

@@ -1,7 +1,7 @@
 /**
- * Sync apply for a resolved enter branch — root→leaf in one task, no `await` between nodes.
+ * Sync mount for a resolved enter branch — root→leaf in one task, no `await` between nodes.
  *
- * @module view-mount/branch-apply
+ * @module view-mount/branch-mount
  */
 import type { ApplyPreResolvedOptions } from '../../../aura-route/core/types';
 import type { ViewPayload } from '../content/model/types';
@@ -9,27 +9,27 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { BranchResolveContext } from './branch-resolver';
 import { isRenderError } from './view-commit-render';
 
-export type BranchApplyResult =
+export type MountEnterBranchResult =
   | { status: 'ok' }
   | { status: 'aborted' }
   | { status: 'error'; error: unknown; route: MatchedRouteInfo };
 
 /**
  * Mount all enter routes synchronously using pre-resolved payloads.
- * Reuses {@link BranchResolveContext} from {@link resolveEnterBranch}.
+ * Pair of {@link resolveEnterBranch} — reuses the same {@link BranchResolveContext}.
  */
-export function applyEnterBranch(
+export function mountEnterBranch(
   enterRoutes: readonly MatchedRouteInfo[],
   payloads: readonly (ViewPayload | null)[],
   ctx: BranchResolveContext,
-): BranchApplyResult {
+): MountEnterBranchResult {
   if (ctx.aborted()) return { status: 'aborted' };
 
   if (payloads.length !== enterRoutes.length) {
     return {
       status: 'error',
       error: new Error(
-        `Branch apply: expected ${enterRoutes.length} payloads, got ${payloads.length}`,
+        `Branch mount: expected ${enterRoutes.length} payloads, got ${payloads.length}`,
       ),
       route: enterRoutes[0]!,
     };
@@ -47,11 +47,11 @@ export function applyEnterBranch(
     const result = matchedRoute.route.applyPreResolved(matchedRoute, options);
 
     if (result === 'aborted' || ctx.aborted()) {
-      rollbackApplied(enterRoutes, i);
+      rollbackMounted(enterRoutes, i);
       return { status: 'aborted' };
     }
     if (isRenderError(result)) {
-      rollbackApplied(enterRoutes, i);
+      rollbackMounted(enterRoutes, i);
       return { status: 'error', error: result.error, route: matchedRoute };
     }
   }
@@ -59,7 +59,7 @@ export function applyEnterBranch(
   return { status: 'ok' };
 }
 
-function rollbackApplied(enterRoutes: readonly MatchedRouteInfo[], failedIndex: number): void {
+function rollbackMounted(enterRoutes: readonly MatchedRouteInfo[], failedIndex: number): void {
   for (let i = failedIndex - 1; i >= 0; i--) {
     enterRoutes[i]!.route.revertInFlightView?.();
   }

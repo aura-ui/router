@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fade — Aura UI - Router</title>
+  <link rel="stylesheet" href="/demo.css" />
+</head>
+<body>
+  <div class="shell">
+    <div class="demo-page demo-site" data-demo-scenario="animations">
+      <header class="demo-header">
+        <div class="demo-header__brand">
+          <span class="demo-header__title">Aura UI</span>
+          <code class="demo-header__tag">&lt;aura-router&gt;</code>
+        </div>
+        <a href="/" class="demo-header__back">← Оглавление</a>
+      </header>
+
+      <div class="demo-site-bar">
+        <div class="demo-site-bar__url">
+          <span class="demo-site-bar__label">URL</span>
+          <code id="demo-site-url" aria-live="polite"></code>
+        </div>
+
+        <div class="demo-site-bar__tools">
+          <div class="demo-order-picker-wrap">
+            <span class="demo-site-bar__label">transition-order</span>
+            <div
+              class="demo-order-picker"
+              role="group"
+              aria-label="Порядок анимации"
+              data-demo-transition-order-picker
+            >
+              <button type="button" class="demo-order-picker__btn" data-demo-transition-order="parallel" aria-pressed="true">parallel</button>
+              <button type="button" class="demo-order-picker__btn" data-demo-transition-order="out-in" aria-pressed="false">out-in</button>
+              <button type="button" class="demo-order-picker__btn" data-demo-transition-order="in-out" aria-pressed="false">in-out</button>
+            </div>
+          </div>
+
+          <nav class="demo-links demo-site-nav" aria-label="Навигация">
+            <a href="/features/animations" data-router-link>Обзор</a>
+            <a href="/features/animations/a" data-router-link>Страница A</a>
+            <a href="/features/animations/b" data-router-link>Страница B</a>
+          </nav>
+        </div>
+      </div>
+
+      <div class="demo-site-stage">
+        <aura-router id="app" transition="fade" transition-order="parallel">
+          <aura-outlet class="demo-site-outlet"></aura-outlet>
+
+          <aura-route path="/features/animations/index.html" view="features/animations/intro.html"></aura-route>
+          <aura-route path="/features/animations" view="features/animations/intro.html"></aura-route>
+          <aura-route path="/features/animations/a" view="features/animations/page-a.html"></aura-route>
+          <aura-route path="/features/animations/b" view="features/animations/page-b.html"></aura-route>
+        </aura-router>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/examples/demo/main.ts"></script>
+</body>
+</html>

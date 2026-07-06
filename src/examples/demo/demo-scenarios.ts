@@ -86,6 +86,10 @@ export const DEMO_SCENARIOS: Record<string, DemoScenario> = {
   },
   'phase-update': {
     root: '/features/phase-update',
+    nextStep: [{ href: '/features/animations/index.html', label: 'анимации переходов: fade, slide, transition-order' }],
+  },
+  animations: {
+    root: '/features/animations',
     nextStep: [{ href: '/', label: 'оглавление демо' }],
   },
 };

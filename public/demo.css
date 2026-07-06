@@ -26,6 +26,7 @@
   --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --mono: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
   --prose: 42rem;
+  --code-prose: 52rem;
 }
 
 *,
@@ -445,7 +446,7 @@ body {
 }
 
 .demo-site-view {
-  max-width: var(--prose);
+  max-width: var(--code-prose);
 }
 
 .demo-site-view__lead {
@@ -624,7 +625,7 @@ code.demo-header__tag {
 .demo-code {
   margin: 0;
   padding: 1.125rem 1.25rem;
-  overflow-x: auto;
+  overflow-x: visible;
   font-family: var(--mono);
   font-size: 0.875rem;
   line-height: 1.65;
@@ -641,10 +642,13 @@ code.demo-header__tag {
 
 .demo-code-window {
   margin: 0 0 1.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  width: 100%;
+  max-width: var(--code-prose);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  background: #1e1e1e;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .demo-code-window__bar {
@@ -652,8 +656,8 @@ code.demo-header__tag {
   align-items: center;
   gap: 0.625rem;
   padding: 0.5rem 0.875rem;
-  background: #2d2d2d;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
 }
 
 .demo-code-window__dots {
@@ -687,11 +691,11 @@ code.demo-header__tag {
   font-size: 0.75rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: #999;
+  color: var(--muted);
 }
 
 .demo-code-window .demo-code {
-  background: #1e1e1e;
+  background: var(--surface);
 }
 
 .demo-code-window .hljs {

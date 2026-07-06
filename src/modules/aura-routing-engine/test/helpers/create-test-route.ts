@@ -28,6 +28,7 @@ export function createTestRoute(
     error: null,
     unmount: null,
     update: null,
+    mountStrategy: null,
     view: null,
     transition: INACTIVE_TRANSITION,
     onGuard: noop,

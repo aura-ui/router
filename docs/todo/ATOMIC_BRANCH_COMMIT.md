@@ -1,6 +1,6 @@
 # Atomic branch commit — resolve-then-apply для enter-ветки
 
-> **Статус:** <span style="color: #cf222e; font-weight: bold;">✗ не реализовано</span> (2026-07-06).  
+> **Статус:** <span style="color: #1a7f37; font-weight: bold;">✓ P0 реализовано</span> (2026-07-06).  
 > **Приоритет:** P0 (roadmap engine).  
 > **Связь:** [MAIN_PIPELINE.md](../MAIN_PIPELINE.md) · [OPTIMISTIC_URL.md](./OPTIMISTIC_URL.md) · [REPLACE_SUPERSEDE_ROLLBACK.md](./REPLACE_SUPERSEDE_ROLLBACK.md) · [OUTLET_AND_RENDER.md](./OUTLET_AND_RENDER.md) · [POP_NAVIGATION.md](../POP_NAVIGATION.md) · [ENGINE_ARCHITECTURE_COMPARISON.md](../comparison/ENGINE_ARCHITECTURE_COMPARISON.md)
 
@@ -14,7 +14,7 @@
 | `replace` уничтожает outgoing до commit gate | Cancel/supersede после replace не откатывает DOM | **Detached snapshot** (`pendingOutgoingRoot`) до gate |
 | URL пишется до render (optimistic history) | DOM может отставать | P0: **dom-deferred**; P1: **fully-atomic** (URL после promote) |
 
-**Рекомендуемый P0 default:** `commit="branch-atomic"` + `dom-deferred` — outgoing visible до полного resolve ветки; один sync apply root→leaf.
+**Рекомендуемый P0 default:** `mount-strategy="branch"` + `dom-deferred` — outgoing visible до полного resolve ветки; один sync apply root→leaf.
 
 ---
 
@@ -429,13 +429,15 @@ resolve branch (payloads in memory, DOM unchanged)
 ## 8. Config surface
 
 ```html
-<aura-router commit="branch-atomic">
-<!-- eager | branch-atomic | fully-atomic (P1) -->
+<aura-router mount-strategy="branch">
+<!-- per-route | branch | full (P1) -->
 
-<aura-route path="/users" layout="users-layout" commit="eager">
+<aura-route path="/users" layout="users-layout" mount-strategy="per-route">
 ```
 
-**Cascade:** route → router → default `branch-atomic` для `hasAsyncContent`, `eager` для sync-only.
+**Cascade:** route → router → эвристика (`per-route` для sync-only single route, `branch` для nested/async).
+
+**Значения:** `per-route` — mount по узлам · `branch` — mount всей enter-ветки · `full` — DOM + URL вместе (P1).
 
 **Авто-эвристика (без attr):**
 
@@ -471,18 +473,18 @@ Atomic commit **не зависит** от prefetch.
 
 ## 11. Фазы реализации
 
-### P0 (~2–3 дня) — закрывает nested gap
+### P0 (~2–3 дня) — закрывает nested gap ✓
 
-1. `BranchCommitCoordinator.resolveBranch` — parallel resolve enter nodes.
-2. `runRender` refactor: resolve → sync apply (вариант A).
-3. `RouteViewController`: pre-resolved payload path.
+1. `resolveEnterBranch` — parallel resolve enter nodes (`branch-resolver.ts`).
+2. `runRender` refactor: resolve → sync mount (`mountEnterBranch` in `branch-mount.ts`).
+3. `RouteViewController.applyPreResolved` / `AuraRoute.applyPreResolved` — pre-resolved payload path.
 4. `pendingOutgoingRoot` в `MountSnapshot` + rollback on cancel.
-5. Tests: slow html-src + nested layout (no empty slot); cancel during resolve; supersede before gate.
+5. Tests: `atomic-branch-commit.integration.test.ts`; cancel during resolve; supersede before gate.
 
 ### P1 (~3–5 дней)
 
 6. Off-DOM branch tree (вариант B) при необходимости.
-7. `commit-timing="fully-atomic"`.
+7. `mount-strategy="full"` (URL + DOM).
 8. Router loading overlay + a11y.
 9. Transition + atomic: resolve до mount, stage только при `transition-order` (§4.4).
 
@@ -524,12 +526,12 @@ Atomic commit **не зависит** от prefetch.
 
 ## 14. Рекомендуемое решение (summary)
 
-**P0 default: `branch-atomic` + `dom-deferred`**
+**P0 default: `mount-strategy="branch"` + `dom-deferred`**
 
 ```text
 guards → loads → history (optimistic URL)
       → resolveEnterBranch (parallel, no DOM)
-      → syncApplyEnterBranch (root→leaf, one paint)
+      → mountEnterBranch (root→leaf, one paint)
       → [transitions]
       → promote → commitNavigation → unmount → ready
 ```
@@ -540,17 +542,18 @@ CSS (`scrollbar-gutter`, min-height) — defense-in-depth, не primary fix.
 
 ---
 
-## 15. Checklist по файлам (первый PR)
+## 15. Checklist по файлам (P0 PR)
 
-| Файл | Изменение |
-|------|-----------|
-| `aura-routing-engine/core/view-mount/branch-commit.ts` | **новый** — `BranchCommitCoordinator` |
-| `aura-routing-engine/core/navigation/navigation-transaction-pipeline.ts` | `runRender` → resolve + sync apply |
-| `aura-routing-engine/core/view-mount/view-commit-render.ts` | pre-resolved payload в `runViewCommit` |
-| `aura-route/core/view/view-controller.ts` | `deferApply`, skip inline resolve |
-| `aura-route/core/view/outlet.ts` | `pendingOutgoingRoot`, `rollbackReplace` |
-| `aura-route/core/attr/` | parser `commit` attr (optional P0) |
-| `aura-routing-engine/test/navigation/atomic-branch-commit.integration.test.ts` | **новый** |
+| Файл | Изменение | Статус |
+|------|-----------|--------|
+| `aura-routing-engine/core/view-mount/branch-resolver.ts` | `resolveEnterBranch`, `shouldUseBranchMount` | ✓ |
+| `aura-routing-engine/core/view-mount/branch-mount.ts` | `mountEnterBranch` — sync apply root→leaf | ✓ |
+| `aura-routing-engine/core/route-tree/transition-plan.ts` | `isCrossOutletReplace` | ✓ |
+| `aura-routing-engine/core/navigation/navigation-transaction-pipeline.ts` | `runRender` → resolve + sync mount | ✓ |
+| `aura-route/core/view/view-controller.ts` | `applyPreResolved`, skip inline resolve | ✓ |
+| `aura-route/core/view/outlet-adapter.ts` | `pendingOutgoingRoot`, `rollbackReplace` | ✓ |
+| `aura-route/core/attr/mount-strategy-attr-parser.ts` | parser `mount-strategy` attr | ✓ |
+| `aura-routing-engine/test/navigation/atomic-branch-commit.integration.test.ts` | integration matrix §12 | ✓ |
 
 ---
 

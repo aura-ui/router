@@ -2,8 +2,10 @@ import { createTestRoute } from '../helpers/create-test-route';
 import {
   buildTransitionPlan,
   getEnterRoute,
+  isCrossOutletReplace,
   isSameNavigationTarget,
 } from '../../core/route-tree/transition-plan';
+import { createMatchedRoute } from '../helpers/create-mock-transaction';
 import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
@@ -321,5 +323,29 @@ describe('getEnterRoute', () => {
     const plan = { exitRoutes: [], enterRoutes: [], lca: null, update: false };
 
     expect(getEnterRoute(plan)).toBeUndefined();
+  });
+});
+
+describe('isCrossOutletReplace', () => {
+  it('detects full branch swap with a single enter leaf', () => {
+    expect(
+      isCrossOutletReplace({
+        exitRoutes: [createMatchedRoute('/settings/profile')],
+        enterRoutes: [createMatchedRoute('/about')],
+        lca: null,
+        update: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('returns false for sibling nested swaps', () => {
+    expect(
+      isCrossOutletReplace({
+        exitRoutes: [createMatchedRoute('/settings/profile')],
+        enterRoutes: [createMatchedRoute('/settings/security')],
+        lca: createMatchedRoute('/settings'),
+        update: false,
+      }),
+    ).toBe(false);
   });
 });

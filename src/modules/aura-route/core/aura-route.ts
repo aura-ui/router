@@ -28,6 +28,7 @@ import {
   parseTransitionOrder,
   type TransitionOrderType,
 } from './attr/transition-order-attr-parser';
+import { parseMountStrategyAttr, type MountStrategy } from './attr/mount-strategy-attr-parser';
 import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from './attr/scroll-attr-parser';
 import { parseParamChangeAttr, type ParamChangePolicy } from './attr/param-change-attr-parser';
@@ -75,6 +76,9 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @attr({ readonly: true, inherit: true, allowEmpty: true, cached: true, parser: parsePrefetchAttr })
   prefetch: PrefetchType | false | null;
+
+  @attr({ readonly: true, inherit: true, allowEmpty: true, cached: true, parser: parseMountStrategyAttr })
+  mountStrategy: MountStrategy | null;
 
   @attr({ readonly: true, parser: parsePreserveAttr, inherit: true, allowEmpty: true })
   preserve: PreserveFlags;

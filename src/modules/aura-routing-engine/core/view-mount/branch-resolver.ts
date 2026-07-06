@@ -3,6 +3,7 @@
  *
  * @module view-mount/branch-resolver
  */
+import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { DataSnapshot } from '../data-graph';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { ViewPayload } from '../content/model/types';
@@ -40,6 +41,21 @@ export type BranchResolveResult =
   | { status: 'aborted' }
   | { status: 'error'; error: unknown; route: MatchedRouteInfo };
 
+/** When to resolve the full enter branch before any DOM mount. */
+export function shouldUseBranchAtomic(options: {
+  enterRoutes: readonly MatchedRouteInfo[];
+  transitionOrder: TransitionOrderType | null;
+  paramChangeRemount: boolean | undefined;
+}): boolean {
+  const { enterRoutes, transitionOrder, paramChangeRemount } = options;
+
+  if (transitionOrder !== null) return false;
+  if (paramChangeRemount) return false;
+  if (enterRoutes.length === 0) return false;
+  if (enterRoutes.length > 1) return true;
+  return enterRoutes[0]!.route.hasAsyncContent;
+}
+
 /** Build resolve context: `isActive()` covers abort and supersede. */
 export function createBranchResolveContext(
   transaction: BranchResolveTransaction,
@@ -59,7 +75,8 @@ export function createBranchResolveContext(
  * Resolve all enter-route payloads in parallel. DOM is not touched.
  * Any loader failure fails the whole branch.
  */
-export async function resolveEnterBranch(  enterRoutes: readonly MatchedRouteInfo[],
+export async function resolveEnterBranch(
+  enterRoutes: readonly MatchedRouteInfo[],
   resolver: BranchContentResolver,
   ctx: BranchResolveContext,
 ): Promise<BranchResolveResult> {

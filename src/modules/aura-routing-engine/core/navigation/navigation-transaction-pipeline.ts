@@ -2,8 +2,19 @@ import { NavigationTransaction } from './navigation-transaction';
 import { PHASES, type PipelinePhaseDefinition } from '../lifecycle';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { ViewPayload } from '../content/model/types';
 import { resolveRouteData } from '../data-graph';
-import { isRenderError, runViewCommit, type ViewCommitRenderOptions } from '../view-mount/view-commit-render';
+import {
+  createBranchResolveContext,
+  resolveEnterBranch,
+  shouldUseBranchAtomic,
+} from '../view-mount/branch-resolver';
+import {
+  isRenderError,
+  runViewCommit,
+  type ViewCommitRenderOptions,
+  type ViewRenderCancellation,
+} from '../view-mount/view-commit-render';
 import type { TransactionFullResult } from './transaction-result';
 
 export type { TransactionFullResult } from './transaction-result';
@@ -43,7 +54,7 @@ export class NavigationTransactionPipeline {
     const route = this.transaction.transitionPlan.enterRoutes[0]!;
     const viewCommit = await runViewCommit(route, {
       signal: this.transaction.signal,
-      aborted: this.transaction.isAborted,
+      isAborted: () => !this.transaction.isActive(),
     });
 
     if (viewCommit === 'ok') {
@@ -112,24 +123,63 @@ export class NavigationTransactionPipeline {
 
   /** Staged view commit for all enter routes (no transition wrappers). */
   async runRender(): Promise<TransactionFullResult> {
-    for (const matchedRoute of this.transaction.transitionPlan.enterRoutes) {
-      const viewCommit = await runViewCommit(
-        matchedRoute,
-        {
-          signal: this.transaction.signal,
-          aborted: this.transaction.isAborted,
-        },
-        this.viewCommitOptions(matchedRoute),
-      );
+    const { enterRoutes, paramChangeRemount } = this.transaction.transitionPlan;
+    const cancellation: ViewRenderCancellation = {
+      signal: this.transaction.signal,
+      isAborted: () => !this.transaction.isActive(),
+    };
+
+    const canRunAtomicRender = shouldUseBranchAtomic({
+      enterRoutes,
+      transitionOrder: this.transaction.transitionOrder,
+      paramChangeRemount,
+    });
+
+    return canRunAtomicRender
+      ? this.runBranchAtomicRender(enterRoutes, cancellation)
+      : this.mountEnterRoutes(enterRoutes, cancellation);
+  }
+
+  private async runBranchAtomicRender(
+    enterRoutes: readonly MatchedRouteInfo[],
+    cancellation: ViewRenderCancellation,
+  ): Promise<TransactionFullResult> {
+    const branch = await resolveEnterBranch(
+      enterRoutes,
+      this.transaction.engine.contentLoad!,
+      createBranchResolveContext(this.transaction),
+    );
+
+    if (branch.status === 'aborted' || !this.transaction.isActive()) {
+      return { status: 'cancelled' };
+    }
+    if (branch.status === 'error') {
+      return this.failRender(branch.route, branch.error);
+    }
+
+    return this.mountEnterRoutes(enterRoutes, cancellation, branch.payloads);
+  }
+
+  private async mountEnterRoutes(
+    enterRoutes: readonly MatchedRouteInfo[],
+    cancellation: ViewRenderCancellation,
+    payloads?: readonly (ViewPayload | null)[],
+  ): Promise<TransactionFullResult> {
+    for (let i = 0; i < enterRoutes.length; i++) {
+      const matchedRoute = enterRoutes[i]!;
+      const baseOptions = this.viewCommitOptions(matchedRoute);
+      const options = payloads
+        ? { ...baseOptions, preResolvedContent: payloads[i] ?? null }
+        : baseOptions;
+
+      const viewCommit = await runViewCommit(matchedRoute, cancellation, options);
 
       if (viewCommit === 'ok') {
         this.transaction.viewCommitTracker.markViewStaged();
       }
-
       if (viewCommit === 'aborted' || !this.transaction.isActive()) {
         return { status: 'cancelled' };
       }
-
       if (isRenderError(viewCommit)) {
         return this.failRender(matchedRoute, viewCommit.error);
       }

@@ -20,9 +20,9 @@
         <div class="demo-index__hero">
           <h1 class="demo-index__title">Демонстрации</h1>
           <p class="demo-index__lead">
-            Каждый сценарий — отдельная страница со своим экземпляром
-            <code>&lt;aura-router&gt;</code>. Переход из оглавления выполняет полную загрузку документа;
-            внутри сценария навигация работает без перезагрузки вкладки.
+            Каждый сценарий — отдельная страница со своим
+            <code>&lt;aura-router&gt;</code>.
+            Из оглавления — полная загрузка документа; внутри сценария — навигация без перезагрузки вкладки.
           </p>
         </div>
 
@@ -34,25 +34,25 @@
           <ul class="demo-index__grid">
             <li>
               <a class="demo-index__card" href="/features/routing-basics/index.html">
-                <span class="demo-index__card-kicker">Basics</span>
+                <span class="demo-index__card-kicker demo-index__card-kicker--basics">Basics</span>
                 <span class="demo-index__card-title">Основы</span>
-                <span class="demo-index__card-desc">Плоские маршруты, смена view, history API</span>
+                <span class="demo-index__card-desc">Плоские маршруты, полная замена view, back/forward</span>
                 <span class="demo-index__card-action" aria-hidden="true">Открыть →</span>
               </a>
             </li>
             <li>
               <a class="demo-index__card" href="/features/routing-nested/index.html">
-                <span class="demo-index__card-kicker">Nested</span>
+                <span class="demo-index__card-kicker demo-index__card-kicker--nested">Nested</span>
                 <span class="demo-index__card-title">Вложенные</span>
-                <span class="demo-index__card-desc">Layout, index-маршрут <code>path="."</code>, параметр <code>:id</code></span>
+                <span class="demo-index__card-desc">Layout-оболочка, index <code>path="."</code>, параметр <code>:id</code></span>
                 <span class="demo-index__card-action" aria-hidden="true">Открыть →</span>
               </a>
             </li>
             <li>
               <a class="demo-index__card" href="/features/routing-advanced/index.html">
-                <span class="demo-index__card-kicker">Advanced</span>
+                <span class="demo-index__card-kicker demo-index__card-kicker--advanced">Advanced</span>
                 <span class="demo-index__card-title">Продвинутые</span>
-                <span class="demo-index__card-desc">Глубина layout, приоритет matching, catch-all 404</span>
+                <span class="demo-index__card-desc">Layout L1/L2, приоритет matching, catch-all <code>*</code></span>
                 <span class="demo-index__card-action" aria-hidden="true">Открыть →</span>
               </a>
             </li>
@@ -67,9 +67,9 @@
           <ul class="demo-index__grid demo-index__grid--single">
             <li>
               <a class="demo-index__card" href="/features/phase-update/index.html">
-                <span class="demo-index__card-kicker">Update</span>
+                <span class="demo-index__card-kicker demo-index__card-kicker--update">Lifecycle</span>
                 <span class="demo-index__card-title">Update shortcut</span>
-                <span class="demo-index__card-desc">Search, hash, remount по <code>:id</code>, param-update без remount</span>
+                <span class="demo-index__card-desc">Query, hash и <code>:id</code> — remount vs param-update</span>
                 <span class="demo-index__card-action" aria-hidden="true">Открыть →</span>
               </a>
             </li>

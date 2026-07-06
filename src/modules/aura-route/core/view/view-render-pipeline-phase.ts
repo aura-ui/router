@@ -8,11 +8,9 @@ import {
   reattachContent,
   toMountSlice,
   type MountContext,
-} from '../view/outlet';
-import { emptyContent, resolveError, warnMissingLayoutOutlet } from '../view/payloads';
-import type { ViewPayload } from '../view/ports';
-import type { RenderPass } from './render-pass';
-
+} from './outlet-adapter';
+import { emptyContent, resolveError, warnMissingLayoutOutlet } from './payloads';
+import type { RenderPass, ViewPayload } from './types';
 import type { ViewContext } from './view-context';
 
 /**

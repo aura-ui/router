@@ -11,14 +11,12 @@ import {
 } from '../../aura-routing-engine/route-api';
 import { attr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
-
 import { parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
-
 import type { AuraRouteInterface, RouteRenderOptions } from './types';
-import { loadingBodyClass, loadingEvent } from './view/plugins';
-import type { MountTargetPort } from './view/ports';
+import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
+import type { MountTargetPort } from './view/types';
 import { cacheKey, defaultViewCache } from './view/view-cache';
-import { RouteViewController } from './view2/view-controller';
+import { RouteViewController } from './view/view-controller';
 import {
   NO_TRANSITION,
   parseTransitionShortcutAttr,

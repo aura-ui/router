@@ -1,4 +1,6 @@
-import type { ViewRenderPlugin } from './ports';
+import type { ViewRenderPlugin } from '../view/types';
+
+export type { ViewRenderPlugin };
 
 const LOADING_CLASS = 'aura-route-loading';
 

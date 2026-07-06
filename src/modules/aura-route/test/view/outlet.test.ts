@@ -15,7 +15,7 @@ import {
   type MountContext,
   type MountSlice,
   type MountSnapshot,
-} from '../../core/view/outlet';
+} from '../../core/view/outlet-adapter';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;

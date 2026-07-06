@@ -3,7 +3,7 @@ import { NavigationTransaction } from '../../core/navigation/navigation-transact
 import { runPhaseHooks } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
-import { RouteViewController } from '../../../aura-route/core/view2/view-controller';
+import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
 import {
   createUsersIdMatch,

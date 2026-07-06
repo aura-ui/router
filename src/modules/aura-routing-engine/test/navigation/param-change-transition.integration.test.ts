@@ -4,7 +4,7 @@ import { runPhaseHooks } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
-import { RouteViewController } from '../../../aura-route/core/view2/view-controller';
+import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import { cacheKey } from '../../../aura-route/core/view/view-cache';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { RouteLifecycleContext } from '../../core/route/types';

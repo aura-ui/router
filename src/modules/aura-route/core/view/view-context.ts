@@ -1,8 +1,7 @@
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-
-import { EMPTY_MOUNT, type MountSnapshot } from '../view/outlet';
-import type { RouteViewConfig } from '../view/ports';
-import { RenderSignal } from '../view/render-signal';
+import { EMPTY_MOUNT, type MountSnapshot } from './outlet-adapter';
+import type { RouteViewConfig } from './types';
+import { RenderSignal } from './render-signal';
 
 /** Mutable view state shared by render and teardown pipelines. */
 export class ViewContext {

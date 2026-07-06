@@ -2,7 +2,7 @@
 
 > **Статус:** <span style="color: #cf222e; font-weight: bold;">✗</span> не сделано · **фаза 7**  
 > **Последнее обновление:** 2026-06-30  
-> **Связанные документы:** [FUTURE_PROOF_ENGINE.md §2](../FUTURE_PROOF_ENGINE.md), [IMPLEMENTATION_STEPS.md §фаза 7](../IMPLEMENTATION_STEPS.md)
+> **Связанные документы:** [FUTURE_PROOF_ENGINE.md §2](../FUTURE_PROOF_ENGINE.md), [IMPLEMENTATION_STEPS.md §фаза 7](../IMPLEMENTATION_STEPS.md), [TRANSITION_PRESENTATION_CORE.md](./TRANSITION_PRESENTATION_CORE.md)
 
 ---
 
@@ -55,7 +55,7 @@ guards → loads → runRenderWithTransition → after
 
 ### Что есть в demo (не engine)
 
-`src/examples/demo/hooks/view-transition.hook.ts` — хуки `fade` / `slide`:
+`src/examples/demo/hooks/view-transition.ts` — хуки `fade` / `slide` (см. [TRANSITION_PRESENTATION_CORE.md](./TRANSITION_PRESENTATION_CORE.md)):
 
 - Ищут `[aura-view-root]` в outlet.
 - На фазах `transitionOut` / `transitionIn` вызывают `element.animate()`.

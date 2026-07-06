@@ -6,7 +6,6 @@ import {
   mergeMount,
   mountContent,
   reattachContent,
-  resolveStageStrategy,
   rollbackStaged,
   hasActiveMount,
   unmountOnLeave,
@@ -200,16 +199,22 @@ describe('outlet', () => {
   });
 
   describe('staged mount', () => {
-    it('resolveStageStrategy stages only when useStagedMount is true', () => {
+    it('mountContent stages only when useStagedMount is true', () => {
       const root = createOutlet();
       mount(ctx({ appOutlet: root }), '<span>old</span>');
 
-      expect(resolveStageStrategy(ctx({ appOutlet: root, useStagedMount: true }), root))
-        .toBe('stage');
-      expect(resolveStageStrategy(ctx({ appOutlet: root, useStagedMount: false }), root))
-        .toBe('replace');
-      expect(resolveStageStrategy(ctx({ appOutlet: root }), root))
-        .toBe('replace');
+      expect(
+        mountContent(ctx({ appOutlet: root, useStagedMount: true }), '<span>x</span>')?.appliedStrategy,
+      ).toBe('stage');
+      expect(
+        mountContent(ctx({ appOutlet: root, useStagedMount: false }), '<span>y</span>')?.appliedStrategy,
+      ).toBe('replace');
+      expect(mountContent(ctx({ appOutlet: root }), '<span>z</span>')?.appliedStrategy).toBe('replace');
+
+      const empty = createOutlet();
+      expect(
+        mountContent(ctx({ appOutlet: empty, useStagedMount: true }), '<span>first</span>')?.appliedStrategy,
+      ).toBe('replace');
     });
 
     it('mountContent stages alongside existing view; commitStage swaps roots', () => {
@@ -272,13 +277,13 @@ describe('outlet', () => {
 
   describe('hasActiveMount', () => {
     it('requires nested outlet for layout routes', () => {
-      const withHandle = { activeHandle: {} as never, nestedOutlet: null };
-      const withLayout = { activeHandle: {} as never, nestedOutlet: {} as never };
+      const withHandle = { activeHandle: {} as never, nestedOutlet: null, appliedStrategy: 'replace' as const };
+      const withLayout = { activeHandle: {} as never, nestedOutlet: {} as never, appliedStrategy: 'replace' as const };
 
       expect(hasActiveMount(withHandle, false)).toBe(true);
       expect(hasActiveMount(withLayout, true)).toBe(true);
       expect(hasActiveMount(withHandle, true)).toBe(false);
-      expect(hasActiveMount({ activeHandle: null, nestedOutlet: null }, false)).toBe(false);
+      expect(hasActiveMount({ activeHandle: null, nestedOutlet: null, appliedStrategy: 'replace' }, false)).toBe(false);
     });
   });
 

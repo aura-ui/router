@@ -20,7 +20,7 @@ export type MountContext = {
 export type MountSlice = {
   activeHandle: ViewHandle | null;
   nestedOutlet: AuraOutlet | null;
-  appliedStrategy?: StageStrategy;
+  appliedStrategy: StageStrategy;
 };
 
 export type MountSnapshot = {
@@ -41,11 +41,12 @@ export function toMountSlice(snapshot: MountSnapshot): MountSlice {
   return {
     activeHandle: snapshot.activeHandle,
     nestedOutlet: snapshot.nestedOutlet,
+    appliedStrategy: snapshot.strategy,
   };
 }
 
 export function mergeMount(snapshot: MountSnapshot, slice: MountSlice): MountSnapshot {
-  const strategy = slice.appliedStrategy ?? 'replace';
+  const strategy = slice.appliedStrategy;
 
   return {
     strategy,
@@ -59,7 +60,7 @@ export function hasActiveMount(slice: MountSlice, isLayoutRoute: boolean): boole
   return !!slice.activeHandle && (!isLayoutRoute || !!slice.nestedOutlet);
 }
 
-export function resolveStageStrategy(
+function resolveStageStrategy(
   ctx: MountContext,
   targetOutlet: AuraOutlet,
 ): StageStrategy {
@@ -101,6 +102,7 @@ export function commitStaged(snapshot: MountSnapshot): MountSnapshot {
   if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
 
   snapshot.activeHandle.mountOutlet.commitStage(snapshot.activeHandle.viewRoot);
+  snapshot.stageOutgoingHandle?.destroy();
 
   return {
     ...snapshot,
@@ -123,24 +125,7 @@ function cancelStagedIncoming(snapshot: MountSnapshot): MountSnapshot {
   return { ...snapshot, strategy: 'replace', activeHandle: null };
 }
 
-/**
- * TODO(revert-in-flight-view): DOM rollback semantics (stage vs replace)
- *
- * revertInFlightView is primarily for transition/stage mounts (two view roots in the outlet).
- *
- * | Phase                         | replace (no transition)     | stage (transition)        |
- * |-------------------------------|-----------------------------|---------------------------|
- * | During fetch/load (pre-mount) | abort via renderSignal only | abort + optional rollback |
- * | After mount, before gate      | new view visible, no revert | rollbackStaged restores outgoing |
- * | clearViewPresentation         | mostly no-op                | cancels fade/slide styles |
- *
- * Replace swaps the view root at render time — outgoing handle is destroyed; rollbackStaged is a no-op.
- * Supersede before mount is handled by signal cancel; after replace the gap is history-not-yet-committed
- * but DOM already new — intentional tradeoff for patch (single activeRoot).
- *
- * If full DOM restore on replace-only supersede is needed: keep a detached outgoing snapshot until
- * commit gate (no second DOM layer — unlike stage). See docs/todo/REPLACE_SUPERSEDE_ROLLBACK.md.
- */
+/** Stage-only DOM rollback for `revertInFlightView`. Replace routes: no-op — see docs/todo/REPLACE_SUPERSEDE_ROLLBACK.md. */
 export function rollbackStaged(snapshot: MountSnapshot): MountSnapshot {
   if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
 
@@ -163,7 +148,7 @@ export function unmountOnLeave(
     const afterCancel = cancelStagedIncoming(snapshot);
     return {
       detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, preserveView),
-      snapshot: { ...afterCancel, stageOutgoingHandle: null },
+      snapshot: { ...afterCancel, activeHandle: null, stageOutgoingHandle: null },
     };
   }
 

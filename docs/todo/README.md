@@ -16,6 +16,7 @@
 | [../comparison/PREFETCH_INDUSTRY_COMPARISON.md](../comparison/PREFETCH_INDUSTRY_COMPARISON.md) | Оценка prefetch vs TanStack / Remix / SvelteKit (6.5/10) |
 | [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md) | Devtools для кеша: события, dev-панель, регистрация в demo (пошагово) |
 | [VIEW_LAYER_ARCHITECTURE.md](./VIEW_LAYER_ARCHITECTURE.md) | Поток view-слоя, слабые места, greenfield (`aura-route-2` ~75%) и статус v1/v2 |
+| [ATOMIC_BRANCH_COMMIT.md](./ATOMIC_BRANCH_COMMIT.md) | **P0:** branch resolve → sync apply enter-ветки; defer replace, detached snapshot, nested gap |
 | [REPLACE_SUPERSEDE_ROLLBACK.md](./REPLACE_SUPERSEDE_ROLLBACK.md) | `revertInFlightView`: stage vs replace, supersede до/после mount, detached snapshot TODO |
 | [../comparison/ENGINE_ARCHITECTURE_COMPARISON.md](../comparison/ENGINE_ARCHITECTURE_COMPARISON.md) | Сравнение архитектуры engine vs Vue/RR/Angular/TanStack + roadmap (P0–P3) |
 | [../POP_NAVIGATION.md](../POP_NAVIGATION.md) | Pop (Back/Forward): asymmetry, history policy, guard recipes |

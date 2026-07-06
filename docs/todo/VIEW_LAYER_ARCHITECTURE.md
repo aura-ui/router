@@ -1,328 +1,264 @@
-﻿# View-слой — поток, слабые места, greenfield-архитектура
+﻿# View-слой — поток, статус, что осталось
 
-> **Статус документа:** актуализирован 2026-06-25  
-> **Уровень кода:** greenfield **не полностью** реализован — см. [сводку статуса](#сводка-статуса)  
-> **Связь:** [OUTLET_AND_RENDER.md](./OUTLET_AND_RENDER.md) · [CONTENT_CACHE.md](./CONTENT_CACHE.md) · [view/README.md](../../src/modules/aura-route/core/view/README.md)
+> **Статус документа:** актуализирован **2026-07-06** (после merge pipeline-архитектуры в production `view/`)  
+> **Сверка с кодом:** `src/modules/aura-route/core/view/`  
+> **Связь:** [OUTLET_AND_RENDER.md](./OUTLET_AND_RENDER.md) · [CONTENT_CACHE.md](./CONTENT_CACHE.md)
 
-### Легенда пометок
+### Легенда
 
 | Метка | Значение |
 |-------|----------|
-| ✅ **v1** | сделано в `src/modules/aura-route/core/view/` (production path) |
-| ✅ **v2** | сделано в `src/modules/aura-route-2/` (изолированный модуль) |
-| ⚠️ **v1** / ⚠️ **v2** | частично |
-| ❌ | не сделано ни в v1, ни в v2 |
-| 🔌 | требует интеграции с engine / router / demo |
+| <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | реализовано в production path |
+| <span style="color: #bf8700; font-weight: bold;">~ ЧАСТИЧНО</span> | есть, но не доведено до цели документа |
+| <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> | не сделано |
+| <span style="color: #8250df; font-weight: bold;">⊘ СНЯТО</span> | было в плане, отменено / неактуально |
 
 ---
 
-## Сводка статуса
+## Сводка (одна production-линия)
 
-| Область | v1 `aura-route` | v2 `aura-route-2` | Production |
-|---------|-----------------|-------------------|------------|
-| **Базовый поток** render → commit → onLeft | ✅ работает | ✅ реализован | только v1 |
-| **Рефакторинг adapter / cache / key** | ✅ | — (новый код) | v1 |
-| **RenderPass** | ❌ | ✅ | — |
-| **RouteViewCoordinator + 4 порта** | ❌ (6 deps controller) | ✅ | — |
-| **Loading без double mount** | ❌ (TODO в controller) | ✅ plugins | — |
-| **`transition` ≠ staged mount** | ❌ (`data-transition`) | ✅ (`data-crossfade`) | v1: transition |
-| **Data cache (`preserve="data"`)** | ✅ | ❌ | v1 |
-| **View cache (keep-alive)** | ✅ | ✅ | v1 |
-| **Plugin hooks** | ❌ | ✅ | — |
-| **Тесты view-слоя** | ✅ 6 файлов | ❌ | v1 |
-| **Engine / matcher / demo** | ✅ | 🔌 не подключён | v1 |
+> **2026-07:** greenfield pipeline (`view2`) **влит в** `aura-route/core/view/`.  
+> Отдельного `aura-route-2` в репозитории **нет**. Сравнение «v1 vs v2» ниже — **историческое**.
 
-**Итог:** документ описывает **две линии** — эволюцию v1 (частично) и greenfield v2 (~**75%** целевой архитектуры в коде, **0%** интеграции в routing engine). Полной реализации документа **нет**.
+| Область | Статус | Где |
+|---------|--------|-----|
+| **Базовый поток** render → commitStaged → onUnmount | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | engine + `RouteViewController` |
+| **RenderPass** (id, cacheKey, viewKind, useStagedMount) | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | inline в `view-controller.ts`, тип в `types.ts` |
+| **Pipeline orchestration** (cache → skip → resolve → mount) | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `view-render-pipeline.ts` + `view-render-pipeline-phase.ts` |
+| **Teardown pipeline** (commit / rollback / unmount) | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `view-teardown-pipeline.ts` |
+| **Тонкий controller** (state + делегирование) | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `view-controller.ts` ~70 строк |
+| **4 порта + config** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `types.ts` |
+| **Loading без double mount** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `plugins/view-loading-plugins.ts` |
+| **Plugin hooks** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `ViewRenderPlugin` в `types.ts` |
+| **View cache (keep-alive)** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `view-cache.ts` + `cacheKey()` |
+| **Data cache (`preserve="data"`)** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | loader / engine (не view-слой) |
+| **Stale pass** (`passId` + `AbortSignal`) | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `isStale` inline в phase |
+| **Тесты view-слоя** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | 8 файлов + engine integration (~202 теста) |
+| **`data-crossfade` ≠ `transition`** | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> | staging по `transition.order` |
+| **`MountTargetPort` без tree walk** | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> | `routeInfo.node?.parent?.route` в `aura-route.ts` |
+| **`OutletMountPort` как интерфейс** | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> | функции в `outlet-adapter.ts` |
+| **Nested batch render** | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> | layout sync → leaf async |
+| **`view/README.md`** | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> | файл не создан |
+| **Миграция v1→v2 / `aura-route-2`** | <span style="color: #8250df; font-weight: bold;">⊘ СНЯТО</span> | merge в `view/`, отдельный CE не нужен |
 
-**Текущий production path:** `<aura-route>` + `AuraRouteViewController` + engine hardcode на `aura-route`.
+**Итог:** целевая **orchestration-архитектура view-слоя — готова** в production.  
+Остались **точечные улучшения** (crossfade attr, MountTarget, nested batch, docs).
 
-**Экспериментальный path:** `<aura-route-2>` — компилируется, не участвует в `buildRouteTree`, не в demo.
+**Production path:** `<aura-route>` → `RouteViewController` → `ViewRenderPipeline` / `ViewTeardownPipeline`.
 
 ---
 
-## Карта модулей
+## Карта модулей (актуальная)
 
-### v1 — `aura-route/core/view/` (production)
+`src/modules/aura-route/core/view/`
 
-| Модуль | Роль | Статус |
-|--------|------|--------|
-| `view-controller.ts` | orchestration, guards, cache, errors | ✅ рефакторинг 2026-06 |
-| `outlet-adapter.ts` | mount policy (`replace`/`stage`), leave/commit | ✅ |
-| `render-signal.ts` | local + parent `AbortSignal` | ✅ `parentSignal` в options |
-| `view-cache.ts` + `view-cache-key.ts` | keep-alive (`extract` / `put`), `viewCacheKey()` | ✅ API урезан |
-| `route-error-view.ts` | HTML ошибки + warn layout | ✅ |
-| `view-controller.types.ts` | `RouteContentPort`, `RouteRenderOptions` | ✅ |
+| Файл | Роль | Статус |
+|------|------|--------|
+| `view-controller.ts` | фасад: `render`, `onUnmount`, `commitStagedView`, `revertInFlightView` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `view-context.ts` | mutable state: mount, signal, passId flags | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `view-render-pipeline.ts` | оглавление render: cache → skip → loading → resolve | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `view-render-pipeline-phase.ts` | шаги: cache, skip, resolve, mount, error | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `view-teardown-pipeline.ts` | commit / rollback / unmount | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `types.ts` | `RenderPass`, порты, `ViewRenderPlugin`, `RouteViewConfig` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `outlet-adapter.ts` | mount policy (`replace`/`stage`), snapshot ops | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `payloads.ts` | empty content, error UI, layout warn | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `view-cache.ts` | keep-alive LRU + `cacheKey()` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `render-signal.ts` | local + parent `AbortSignal` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `index.ts` | barrel export | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 
-Загрузка: `route-content-loader.ts` → `RouteContentPort`.
+`src/modules/aura-route/core/plugins/`
 
-### v2 — `aura-route-2/view/` (greenfield)
+| Файл | Роль | Статус |
+|------|------|--------|
+| `view-loading-plugins.ts` | `loadingBodyClass`, `loadingEvent` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 
-| Модуль | Роль в доке | Фактический файл | Статус |
-|--------|-------------|------------------|--------|
-| Coordinator | `coordinator.ts` | `coordinator.ts` | ✅ |
-| RenderPass | pass object | `render-pass.ts` | ✅ |
-| Порты | `ports.ts` | `ports.ts` | ✅ 4 порта |
-| Signal | `signal.ts` | `signal.ts` | ✅ |
-| View cache | `stash/` → cache | `view-cache.ts` + `cacheKey()` | ✅ |
-| Outlet ops | `outlet/` | `outlet.ts` (snapshot + ops в одном файле) | ✅ ⚠️ не отдельный `OutletMountPort` |
-| Payloads | `content/payloads.ts` | `payloads.ts` | ✅ |
-| Plugins | `plugins/loading-overlay.ts` | `plugins.ts` | ✅ |
-| Facade | `RouteView` | `route-view.ts` | ✅ |
-| Element | — | `core/aura-route.ts` (`aura-route-2`) | ✅ 🔌 |
-| Content resolver | `content/resolver.ts` | `core/route-content-loader.ts` | ✅ ⚠️ без Data cache |
+Загрузка контента: `route-content-loader.ts` → `ContentResolverPort` (вне view/).
 
 ---
 
 ## Полный поток: engine → DOM
 
-Актуален для **v1**. v2 повторяет тот же контракт lifecycle, но через `RouteView` / `RenderPass`.
-
 ```mermaid
 sequenceDiagram
-  participant Engine as ProcessorPipeline
+  participant Engine as NavigationPipeline
   participant Route as AuraRoute
-  participant VC as ViewController
-  participant Content as RouteContentLoader
+  participant VC as RouteViewController
+  participant Pipe as ViewRenderPipeline
+  participant Phase as ViewRenderPipelinePhase
+  participant Content as ContentResolverPort
   participant Outlet as outlet-adapter
-  participant AO as AuraOutlet
-  participant Cache as RouteViewCache
+  participant Cache as ViewCachePort
 
-  Engine->>Route: render(routeInfo, { parentSignal })
-  Route->>Route: viewLifecycleToken++
+  Engine->>Route: render(routeInfo, { parentSignal, data })
+  Route->>Route: passId++
   Route->>VC: render()
 
-  VC->>VC: renderSignal.begin(parentSignal)
-  VC->>VC: lastCacheKey = viewCacheKey(...)
+  VC->>VC: build RenderPass (inline)
+  VC->>Pipe: run(pass)
 
-  alt keepAlive + cache hit
-    VC->>Cache: extract(key)
-    VC->>Outlet: reattachRoute()
-    Outlet->>AO: apply(cachedRoot, replace)
-  else keepAlive + already mounted
-    VC-->>Engine: return (skip)
+  alt cache hit
+    Pipe->>Phase: tryCacheRestore
+    Phase->>Cache: extract(key)
+    Phase->>Outlet: reattachContent
+  else already mounted (keep-alive skip)
+    Pipe->>Phase: trySkipAlreadyMounted
   else fresh render
-    opt loadingTemplate (v1 only)
-      VC->>Outlet: mountRoute(loading)
-      Outlet->>AO: apply(...)
-    end
-    VC->>Content: resolve(routeInfo, signal)
-    Content-->>VC: Node | string
-    VC->>Outlet: mountRoute(content)
-    Outlet->>AO: apply(..., stage|replace)
+    Pipe->>Pipe: fireLoadingStart (plugins)
+    Pipe->>Phase: resolveContent
+    Phase->>Content: resolve(routeInfo, signal)
+    Content-->>Phase: payload
+    Phase->>Outlet: mountContent
+    Pipe->>Pipe: fireLoadingEnd (plugins)
   end
 
   Note over Engine: transitionIn / transitionOut
 
   Engine->>Route: commitStagedView()
-  VC->>Outlet: commitStagedMount()
-  Outlet->>AO: commitStage()
+  Route->>VC: commitStagedView()
+  VC->>Outlet: commitStaged
 
-  Engine->>Route: onLeft()
-  Route->>Route: viewLifecycleToken++
-  VC->>Outlet: unmountOnLeave()
-  alt keepAlive
+  Engine->>Route: onUnmount()
+  Route->>Route: passId++
+  Route->>VC: onUnmount({ cacheKey })
+  VC->>Outlet: unmountOnLeave / unmountParamChangeOutgoing
+  alt preserve.view
     VC->>Cache: put(key, detachedRoot)
   end
 ```
 
-**v2 отличия в этом потоке:**
-- `RenderPass` создаётся один раз (`cacheKey`, `viewKind`, `useStagedMount` из `data-crossfade`)
-- loading — plugins (`onPassStart` / `onPassEnd`), **без** промежуточного `outlet.apply`
-- staged mount: `crossfade` attr, не `data-transition`
+---
 
-**Порядок в pipeline (parallel policy):** без изменений.
+## Render pipeline (код)
 
-1. `runRender` → `route.render()`  
-2. `transitionOut` ‖ `transitionIn`  
-3. `commitEnterViews` → `commitStagedView()`  
-4. `runExitCleanup` → `onLeft()` → cache put / destroy  
+`ViewRenderPipeline.run(pass)`:
+
+```text
+1. tryCacheRestore(pass)              → ok | continue
+2. trySkipAlreadyMounted(pass)        → ok | continue
+3. fireLoadingStart(pass)             → plugins only, без outlet mount
+4. resolveContent(pass)               → content.resolve + mount
+5. fireLoadingEnd(pass)               → finally
+   catch → handleError(pass)           → recovery UI, { status: 'error' }
+```
+
+`isStale(pass)` = `signal.aborted || getPassId() !== pass.id` — inline в phase.
+
+---
+
+## Plugin hooks (актуальные имена)
+
+| Hook | Когда | Статус |
+|------|-------|--------|
+| `onLoadingStart` | перед async resolve | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `onLoadingEnd` | после resolve / в finally | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `onContentResolved` | payload получен | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `onMounted` | DOM смонтирован | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `onPassError` | ошибка resolve | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+
+В production подключаются только **внутренние** loading-plugins при `loading-template` на `<aura-route>`.
 
 ---
 
 ## Что уже хорошо
 
-1. **Разделение orchestration / outlet policy** — ✅ v1, ✅ v2  
-2. **Порты для DI** — ✅ v1 (`RouteContentPort`, `RouteViewCachePort`); ✅ v2 (4 порта)  
-3. **`lifecycleToken` / pass id + abort signal** — ✅ v1 (token callback); ✅ v2 (`RenderPass.id` + `RenderSignal`)  
-4. **`RouteMountSnapshot` / staged lifecycle** — ✅ v1, ✅ v2  
-5. **Урезанный view cache API** (`extract` / `put`) — ✅ v1, ✅ v2  
+1. <span style="color: #2ea043; font-weight: bold;">✓</span> **Orchestration / outlet policy разделены** — pipeline vs `outlet-adapter.ts`
+2. <span style="color: #2ea043; font-weight: bold;">✓</span> **Порты для DI** — `types.ts`
+3. <span style="color: #2ea043; font-weight: bold;">✓</span> **`passId` + `RenderPass.id` + abort signal** — supersede in-flight render
+4. <span style="color: #2ea043; font-weight: bold;">✓</span> **Staged lifecycle** — `MountSnapshot`, commit / rollback
+5. <span style="color: #2ea043; font-weight: bold;">✓</span> **View cache API** — `extract` / `put`, `cacheKey()`
+6. <span style="color: #2ea043; font-weight: bold;">✓</span> **Читаемость** — pipeline как оглавление (аналог `navigation-transaction-pipeline.ts`)
 
 ---
 
-## Слабые места
+## Слабые места (что осталось)
 
 ### Производительность
 
-| Проблема | Где | v1 | v2 |
-|----------|-----|----|----|
-| Двойной mount при loading | controller | ❌ | ✅ plugins |
-| `resolveViewKind()` многократно | view-controller | ❌ | ✅ в pass |
-| `cacheKey` дважды | render + restore | ❌ `viewCacheKey` ×2 | ✅ один раз в pass |
-| `findChildOutlet()` на каждый mount | outlet | ❌ | ❌ (тот же outlet API) |
-| Два кэша: `preserve="data"` vs keep-alive | loader / view | ✅ v1 | ❌ |
+| Проблема | Статус |
+|----------|--------|
+| Двойной mount при loading | <span style="color: #2ea043; font-weight: bold;">✓ исправлено</span> (plugins) |
+| `viewKind` / `cacheKey` пересчёт | <span style="color: #2ea043; font-weight: bold;">✓ исправлено</span> (один `RenderPass`) |
+| `findChildOutlet()` на каждый mount | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> (outlet API) |
+| Два кэша: `preserve="data"` vs keep-alive | <span style="color: #bf8700; font-weight: bold;">~ ЧАСТИЧНО</span> (разные слои, слабая связность) |
+| Nested batch (layout sync → leaf async) | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> |
 
-### Модульность / связность
+### Модульность
 
-| Проблема | v1 | v2 |
-|----------|----|----|
-| Много зависимостей в orchestrator | ❌ 6 в constructor | ✅ config + ports |
-| `nestedOutlet` через `node.parent.route` | ❌ | ⚠️ тот же паттерн в `MountTargetPort` |
-| `data-transition` = policy + stage | ❌ | ✅ `crossfade` отдельно |
-| Два типа mount state | ⚠️ | ⚠️ `MountSnapshot` в outlet.ts |
-| Token split element / controller | ⚠️ callback | ✅ passId на element |
+| Проблема | Статус |
+|----------|--------|
+| Толстый orchestrator | <span style="color: #2ea043; font-weight: bold;">✓ исправлено</span> |
+| `nestedOutlet` через tree walk | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> |
+| `transition` = policy + stage flag | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> (`useStagedMount` от `transition.order`) |
+| `OutletMountPort` как интерфейс | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> |
 
 ### Расширяемость
 
-| Возможность | v1 | v2 |
-|-------------|----|----|
-| Loading className / event | ❌ TODO | ✅ `loadingBodyClass`, `loadingEvent` |
-| Plugin hooks | ❌ | ✅ `ViewRenderPlugin` |
-| Единый `ViewPayload` | ⚠️ разбросано | ✅ `payloads.ts` |
+| Возможность | Статус |
+|-------------|--------|
+| Loading class / event | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> |
+| Plugin hooks | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> |
+| Публичный API plugins для приложений | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> (только `loading-template`) |
+| Единый `ViewPayload` | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> |
 
 ---
 
-## Greenfield: целевая архитектура
+## Чеклист: сделано / осталось
 
-Ниже — **целевое состояние** из первоначального плана. Статус реализации — в правой колонке.
+### <span style="color: #2ea043; font-weight: bold;">✓ СДЕЛАНО</span>
 
-### Принцип: один проход = один `RenderPass` — ✅ **v2**
+- [x] `RenderPass` + inline сборка в `view-controller.render()`
+- [x] `ViewRenderPipeline` + `ViewRenderPipelinePhase` + `ViewTeardownPipeline`
+- [x] `ViewContext` (shared mutable state)
+- [x] 4 порта в `types.ts`
+- [x] `ViewRenderPlugin` + loading plugins (`onLoadingStart` / `onLoadingEnd`)
+- [x] Loading **без** промежуточного `outlet.apply`
+- [x] `outlet-adapter.ts` (replace / stage / rollback / unmount)
+- [x] `payloads.ts`, `view-cache.ts`, `render-signal.ts`
+- [x] Keep-alive + param remount + staged transition
+- [x] Error recovery UI (`{ status: 'error' }`)
+- [x] Тесты: controller, flow, outlet, cache, payloads, render-pass rules, engine integration
+- [x] Merge pipeline в production `view/` (бывший `view2`)
 
-```typescript
-type RenderPass = {
-  readonly id: number;
-  readonly routeInfo: MatchedRouteInfo;
-  readonly signal: AbortSignal;
-  readonly cacheKey: string;
-  readonly viewKind: 'layout' | 'content';
-  readonly useStagedMount: boolean;
-};
-```
+### <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span>
 
-❌ **v1** — token + разрозненные поля; `viewCacheKey` вычисляется дважды.
+- [ ] **`data-crossfade`** — отдельный attr для staged mount (не смешивать с `transition`)
+- [ ] **`MountTargetPort`** из tree builder — убрать `routeInfo.node?.parent?.route.nestedOutlet`
+- [ ] **`OutletMountPort`** — формальный интерфейс вместо pure functions
+- [ ] **Nested batch render** — layout sync, leaf async в одном navigation pass
+- [ ] **Публичный plugin API** на `<aura-route>` (если нужен apps)
+- [ ] **`view/README.md`** — диаграмма pass + pipeline для onboarding
+- [ ] **Явное разведение Data cache / View cache** в документации loader ↔ view
 
-### Три порта + координатор — ✅ **v2** (4 порта)
+### <span style="color: #8250df; font-weight: bold;">⊘ СНЯТО / неактуально</span>
 
-```text
-┌─────────────────────────────────────────┐
-│           RouteViewCoordinator          │  ✅ v2
-├─────────────────────────────────────────┤
-│  ContentResolverPort   (async DOM/HTML) │  ✅
-│  outlet ops (sync)     в outlet.ts      │  ✅ ⚠️ не отдельный OutletMountPort
-│  ViewCachePort         (keep-alive)     │  ✅
-│  MountTargetPort       (куда монтировать)│  ⚠️ closure + tree walk
-│  ViewRenderPlugin[]    (loading, etc.)  │  ✅
-└─────────────────────────────────────────┘
-```
-
-**`RouteViewCoordinator.render(pass)`** — ✅ **v2**:
-
-```text
-1. tryCacheRestore(pass)           ✅
-2. isViewAlreadyInOutlet(pass)       ✅
-3. loading (plugin, не remount)    ✅
-4. resolve content                 ✅
-5. mount content                   ✅
-6. on error → mount error view     ✅
-```
-
-### Разделение файлов — ⚠️ **v2** (упрощённая структура)
-
-Планировалось `stash/`, `outlet/`, `content/`, `plugins/` — фактически плоский `view/` + `core/`. Семантика совпадает, папки не разбиты.
-
-### Производительность: конкретные решения
-
-| Решение | v1 | v2 |
-|---------|----|----|
-| 1. Loading без remount | ❌ | ✅ |
-| 2. Pass вычисляется один раз | ❌ | ✅ |
-| 3. `MountTargetPort` вынесен | ⚠️ closures в aura-route | ✅ интерфейс, ❌ tree walk остался |
-| 4. Развести DataCache и ViewCache | ❌ | ❌ |
-| 5. Nested batch (layout sync → leaf async) | ❌ | ❌ |
-| 6. Stage flag отдельно от transition | ❌ | ✅ `data-crossfade` |
-
-### Plugin-точки — ✅ **v2**
-
-Реализовано: `onPassStart`, `onPassEnd`, `onContentResolved`, `onMounted`, `onPassError`.
-
-Отличие от черновика: `onMounted(pass)` без `snapshot` в сигнатуре.
-
-### Что оставить из текущего кода
-
-| Элемент | Статус |
-|---------|--------|
-| outlet-adapter / outlet.ts pure DOM | ✅ v1 + v2 |
-| render-signal | ✅ оба |
-| view-cache-key / cacheKey | ✅ оба |
-| engine lifecycle order | ✅ без изменений |
+- [ ] ~~`aura-route-2` element~~ — merge в `view/`
+- [ ] ~~`RouteViewCoordinator`~~ — переименовано в pipeline + `RouteViewController`
+- [ ] ~~`createRenderPass()`~~ — inline в controller
+- [ ] ~~`isStale()` export~~ — private inline в phase
+- [ ] ~~`ports.ts` / `render-pass.ts`~~ — сведены в `types.ts`
+- [ ] ~~Миграция v1→v2~~ — выполнена in-place
 
 ---
 
-## Сравнение: v1 сейчас vs v2 greenfield vs production
+## Историческая справка (до 2026-07)
 
-| Критерий | v1 (prod) | v2 (изолирован) | Цель документа |
-|----------|-----------|-----------------|----------------|
-| Понятность | 7/10 | 9/10 | Pass + coordinator |
-| Производительность | 6/10 | 8/10 | loading plugin, single pass |
-| Модульность | 7/10 | 8/10 | порты; MountTarget всё ещё хрупкий |
-| Расширяемость | 5/10 | 8/10 | plugins |
-| Интеграция | **10/10** | **0/10** | engine + demo |
-| Тесты | **8/10** | **0/10** | — |
+До рефакторинга `view-controller.ts` был монолитом (~250 строк): cache, resolve, mount, plugins, teardown в одном классе.  
+Greenfield-план (`aura-route-2`, `RouteViewCoordinator`) описывал целевую декомпозицию.  
+**Июль 2026:** pipeline-архитектура внедрена **напрямую в production** `view/` без отдельного CE.
 
----
-
-## Прагматичный план эволюции
-
-### В v1 (`aura-route`) — эволюция без переписывания
-
-- [ ] **`RenderPass`** внутри `render()` — ❌
-- [ ] **`MountTargetPort`** — ❌ (closures в `aura-route.ts`)
-- [ ] **Loading** без двойного `apply` — ❌ (TODO в `view-controller.ts:175`)
-- [ ] **Разделить `transition` и staged mount** — ❌ (`data-transition` на route)
-- [ ] **`readCache` / `writeCache`** — ⚠️ заглушки в `route-content-loader.ts`
-- [ ] **Обновить `view/README.md`** — ❌ (диаграмма pass + порты)
-
-### В v2 (`aura-route-2`) — greenfield
-
-- [x] **`RenderPass`** + `isStale` — `render-pass.ts`
-- [x] **`RouteViewCoordinator`** — `coordinator.ts`
-- [x] **4 порта** — `ports.ts`
-- [x] **`RouteView` facade** — `route-view.ts`
-- [x] **Loading plugins** — `plugins.ts`
-- [x] **`data-crossfade`** для staged mount — `aura-route.ts`
-- [x] **View cache** (`cacheKey`, `ViewCachePort`) — `view-cache.ts`
-- [x] **Payloads** (empty, error, layout) — `payloads.ts`
-- [x] **`<aura-route-2>` element** — `core/aura-route.ts`
-- [ ] **Тесты coordinator / outlet / cache** — ❌
-- [ ] **Engine: `buildRouteTree` + registry** — 🔌 только `AuraRoute`
-- [ ] **Demo / `index.html`** — 🔌
-- [x] **Data cache (`preserve="data"`)** — ✅ v1
-- [ ] **`MountTargetPort` без tree walk** — ❌ (нужен engine / tree builder)
-- [ ] **Nested batch render** — ❌
-- [ ] **`OutletMountPort` как интерфейс** — ❌ (функции в `outlet.ts`)
-- [ ] **Экспорт из пакета / AuraRouter** — 🔌
-
-### Миграция v1 → v2 (не начата)
-
-- [ ] Подключить v2 к engine (generic `RouteInstance` / dual tag)
-- [ ] Перенести тесты с v1 на v2
-- [ ] Deprecate `AuraRouteViewController` или сделать thin wrapper над v2
-- [ ] Добавить `data-crossfade` на `<aura-router>` для inherit
+| Критерий | До (2026-06) | Сейчас (2026-07) |
+|----------|--------------|------------------|
+| Понятность | 7/10 | <span style="color: #2ea043; font-weight: bold;">9/10</span> |
+| Производительность | 6/10 | <span style="color: #2ea043; font-weight: bold;">8/10</span> |
+| Модульность | 7/10 | <span style="color: #2ea043; font-weight: bold;">8/10</span> |
+| Расширяемость | 5/10 | <span style="color: #2ea043; font-weight: bold;">7/10</span> |
+| Интеграция engine | 10/10 | <span style="color: #2ea043; font-weight: bold;">10/10</span> |
+| Тесты | 8/10 | <span style="color: #2ea043; font-weight: bold;">9/10</span> |
 
 ---
 
-## Заметки по `lifecycleToken` — ✅ учтено
+## Связанные TODO
 
-**v1:** token как параметр / callback (`getLifecycleToken`), не mutable-поле controller — ✅  
-**v2:** `passId` на element + `RenderPass.id` — ✅  
-
-`viewKind` выводится из `route` без протаскивания — ✅ **v2** (в pass); ⚠️ **v1** (`resolveViewKind` многократно).
-
----
-
-## Что осталось для «полной» реализации документа
-
-1. **Интеграция v2** — engine, matcher types, demo (блокер «готовности»).
-2. **View loader cache** — `preserve="view"` / router `DataCache` (см. [CONTENT_CACHE.md](./CONTENT_CACHE.md)).
-3. **MountTarget из tree builder** — убрать `routeInfo.node?.parent?.route.nestedOutlet`.
-4. **Тесты v2** — parity с v1 test suite.
-5. **v1 backlog** — либо дотянуть эволюцией, либо заморозить в пользу v2.
+- [RENDERER_ABSTRACTION.md](./RENDERER_ABSTRACTION.md) — engine-level `Renderer.renderNode()`
+- [CONTENT_CACHE.md](./CONTENT_CACHE.md) — `preserve="data"` vs view keep-alive
+- [REPLACE_SUPERSEDE_ROLLBACK.md](./REPLACE_SUPERSEDE_ROLLBACK.md) — rollback semantics stage vs replace

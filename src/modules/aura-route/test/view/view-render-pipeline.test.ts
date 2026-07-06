@@ -35,6 +35,7 @@ function createPipeline(
   overrides: {
     route?: Partial<AuraRouteInterface>;
     content?: ViewContext['config']['content'];
+    cache?: ViewContext['config']['cache'];
     plugins?: ViewContext['config']['plugins'];
   } = {},
 ): ViewRenderPipeline {
@@ -52,7 +53,7 @@ function createPipeline(
         ...overrides.route,
       } as AuraRouteInterface,
       content: overrides.content ?? { resolve: async () => '<span>ok</span>' },
-      cache: defaultViewCache,
+      cache: overrides.cache ?? defaultViewCache,
       mountTarget: {
         appOutlet: () => root,
         nestedOutlet: () => null,
@@ -118,7 +119,7 @@ describe('ViewRenderPipeline', () => {
     expect(root.textContent).toContain('load failed');
   });
 
-  it('mountPreResolved mounts pre-resolved content without calling resolve', () => {
+  it('syncBranchMount mounts pre-resolved content without calling resolve', () => {
     const root = createOutlet();
     const resolve = jest.fn(async () => '<span>from-resolve</span>');
     const onLoadingStart = jest.fn();
@@ -129,7 +130,7 @@ describe('ViewRenderPipeline', () => {
       plugins: [{ onLoadingStart, onLoadingEnd, onContentResolved }],
     });
 
-    const result = pipeline.mountPreResolved({
+    const result = pipeline.syncBranchMount({
       ...renderPass(),
       preResolvedContent: '<span>pre-resolved</span>',
     });
@@ -145,12 +146,12 @@ describe('ViewRenderPipeline', () => {
     );
   });
 
-  it('mountPreResolved null mounts empty placeholder for content routes', () => {
+  it('syncBranchMount null mounts empty placeholder for content routes', () => {
     const root = createOutlet();
     const resolve = jest.fn();
     const pipeline = createPipeline(root, { content: { resolve } });
 
-    pipeline.mountPreResolved({
+    pipeline.syncBranchMount({
       ...renderPass(),
       preResolvedContent: null,
     });
@@ -159,23 +160,21 @@ describe('ViewRenderPipeline', () => {
     expect(root.textContent).toBe('No content to display');
   });
 
-  it('mountPreResolved mounts pre-resolved content without async resolve', () => {
+  it('syncBranchMount does not use cache restore shortcuts', () => {
     const root = createOutlet();
-    const resolve = jest.fn(async () => '<span>from-resolve</span>');
-    const onLoadingStart = jest.fn();
+    const cache = { extract: jest.fn(() => document.createElement('div')), stash: jest.fn() };
     const pipeline = createPipeline(root, {
-      content: { resolve },
-      plugins: [{ onLoadingStart }],
+      route: { preserve: { view: true, data: true } },
+      cache,
     });
 
-    const result = pipeline.mountPreResolved({
+    const result = pipeline.syncBranchMount({
       ...renderPass(),
-      preResolvedContent: '<span>sync</span>',
+      preResolvedContent: '<span>from-branch</span>',
     });
 
     expect(result).toEqual({ status: 'ok' });
-    expect(root.textContent).toBe('sync');
-    expect(resolve).not.toHaveBeenCalled();
-    expect(onLoadingStart).not.toHaveBeenCalled();
+    expect(root.textContent).toBe('from-branch');
+    expect(cache.extract).not.toHaveBeenCalled();
   });
 });

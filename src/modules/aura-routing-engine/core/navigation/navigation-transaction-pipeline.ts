@@ -8,10 +8,7 @@ import {
   resolveEnterBranch,
   shouldUseBranchAtomic,
 } from '../view-mount/branch-resolver';
-import {
-  applyEnterBranch,
-  createBranchApplyContext,
-} from '../view-mount/branch-apply';
+import { applyEnterBranch } from '../view-mount/branch-apply';
 import {
   isRenderError,
   runViewCommit,
@@ -146,10 +143,11 @@ export class NavigationTransactionPipeline {
   private async runBranchAtomicRender(
     enterRoutes: readonly MatchedRouteInfo[],
   ): Promise<TransactionFullResult> {
+    const ctx = createBranchResolveContext(this.transaction);
     const branch = await resolveEnterBranch(
       enterRoutes,
       this.transaction.engine.contentLoad!,
-      createBranchResolveContext(this.transaction),
+      ctx,
     );
 
     if (branch.status === 'aborted' || !this.transaction.isActive()) {
@@ -159,11 +157,7 @@ export class NavigationTransactionPipeline {
       return this.failRender(branch.route, branch.error);
     }
 
-    const apply = applyEnterBranch(
-      enterRoutes,
-      branch.payloads,
-      createBranchApplyContext(this.transaction),
-    );
+    const apply = applyEnterBranch(enterRoutes, branch.payloads, ctx);
 
     if (apply.status === 'aborted' || !this.transaction.isActive()) {
       return { status: 'cancelled' };

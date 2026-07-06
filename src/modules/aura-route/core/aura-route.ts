@@ -82,6 +82,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   private viewController!: RouteViewController;
   private passId = 0;
   private setupDone!: Promise<void>;
+  private viewReady = false;
   private initGeneration = 0;
 
   get nestedOutlet(): AuraOutlet | null {
@@ -154,6 +155,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.initGeneration++;
     const generation = this.initGeneration;
     this.transition = this.initTransition();
+    this.viewReady = false;
     this.setupDone = this.init(generation);
   }
 
@@ -192,11 +194,13 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
       },
       () => this.passId,
     );
+    this.viewReady = true;
   }
 
   disconnectedCallback(): void {
     this.passId++;
     this.initGeneration++;
+    this.viewReady = false;
     this.viewController?.cancel();
   }
 
@@ -212,7 +216,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     routeInfo: MatchedRouteInfo,
     options: ApplyPreResolvedOptions,
   ): ViewRenderResult | 'aborted' {
-    if (!this.viewController) {
+    if (!this.viewReady || !this.viewController) {
       return { status: 'error', error: new DOMException('AuraRoute not initialized', 'InvalidStateError') };
     }
     this.passId++;

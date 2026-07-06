@@ -413,6 +413,60 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('view-2');
   });
+
+  it('mounts preResolvedContent without calling content.resolve', async () => {
+    const root = createOutlet();
+    const resolve = jest.fn(async () => '<span>from-resolve</span>');
+    const controller = createController(
+      '/page',
+      { root: () => root },
+      { resolve },
+      createMockViewCache(),
+      false,
+    );
+
+    await controller.render(matched('/page'), {
+      preResolvedContent: '<span>instant</span>',
+    });
+
+    expect(resolve).not.toHaveBeenCalled();
+    expect(root.textContent).toBe('instant');
+  });
+
+  it('sync-mounts pre-resolved layout and child in nested outlet', async () => {
+    const root = createOutlet();
+    const resolve = jest.fn();
+
+    const parent = createController(
+      'users',
+      { root: () => root },
+      { resolve },
+      createMockViewCache(),
+      false,
+    );
+
+    const child = createController(
+      ':id',
+      {
+        root: () => root,
+        mount: () => parent.nestedOutlet,
+      },
+      { resolve },
+      createMockViewCache(),
+      false,
+    );
+
+    await parent.render(matched('/users', { pattern: '/users' }), {
+      preResolvedContent: layoutShell(),
+    });
+    await child.render(matched('/users/1', { pattern: '/users/:id' }), {
+      preResolvedContent: '<span>user-list</span>',
+    });
+
+    expect(resolve).not.toHaveBeenCalled();
+    expect(root.querySelector('header')).not.toBeNull();
+    expect(parent.nestedOutlet?.textContent).toBe('user-list');
+  });
 });
 
 function matchedUser(pathname: string): MatchedRouteInfo {

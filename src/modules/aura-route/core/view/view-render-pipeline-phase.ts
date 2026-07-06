@@ -14,7 +14,7 @@ import type { RenderPass, ViewPayload } from './types';
 import type { ViewContext } from './view-context';
 
 /**
- * One render-pass step: cache, skip, resolve, mount, error recovery.
+ * One render-pass step: cache, skip, resolve / apply content, mount, error recovery.
  * Mutates {@link ViewContext.mount}; does not own orchestration order.
  */
 export class ViewRenderPipelinePhase {
@@ -49,6 +49,21 @@ export class ViewRenderPipelinePhase {
     return null;
   }
 
+  /** Mount resolved content (from branch resolve or {@link ContentResolverPort}). */
+  applyResolvedContent(pass: RenderPass, payload: ViewPayload | null): void {
+    if (this.isStale(pass)) return;
+
+    if (payload == null) {
+      if (pass.viewKind === 'content') {
+        this.mountPayload(pass, emptyContent(), 'content');
+      }
+      return;
+    }
+
+    this.fireContentResolved(pass, payload);
+    this.mountPayload(pass, payload, pass.viewKind);
+  }
+
   /** Load content via port, then mount (or empty placeholder for null content routes). */
   async resolveContent(pass: RenderPass): Promise<void> {
     const payload = await this.ctx.config.content.resolve(
@@ -59,21 +74,7 @@ export class ViewRenderPipelinePhase {
 
     if (this.isStale(pass)) return;
 
-    if (payload == null) {
-      if (pass.viewKind === 'content') {
-        this.mountPayload(pass, emptyContent(), 'content');
-      }
-      return;
-    }
-
-    const plugins = this.ctx.config.plugins;
-    if (plugins) {
-      for (let i = 0; i < plugins.length; i++) {
-        plugins[i]!.onContentResolved?.(pass, payload);
-      }
-    }
-
-    this.mountPayload(pass, payload, pass.viewKind);
+    this.applyResolvedContent(pass, payload);
   }
 
   /** Recovery UI after resolve failure — does not rethrow. */
@@ -115,6 +116,15 @@ export class ViewRenderPipelinePhase {
     }
 
     return true;
+  }
+
+  private fireContentResolved(pass: RenderPass, payload: ViewPayload): void {
+    const plugins = this.ctx.config.plugins;
+    if (!plugins) return;
+
+    for (let i = 0; i < plugins.length; i++) {
+      plugins[i]!.onContentResolved?.(pass, payload);
+    }
   }
 
   private isStale(pass: RenderPass): boolean {

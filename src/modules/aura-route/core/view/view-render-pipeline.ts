@@ -1,12 +1,12 @@
 import type { ViewRenderResult } from '../../../aura-routing-engine/route-api';
-import type { RenderPass } from './types';
+import { type RenderPass } from './types';
 import type { ViewContext } from './view-context';
 import { ViewRenderPipelinePhase } from './view-render-pipeline-phase';
 
 type RenderStep = () => ViewRenderResult | null | Promise<ViewRenderResult | null>;
 
 /**
- * Render pass pipeline: cache → skip → resolve → mount.
+ * Render pass pipeline: cache → skip → (pre-resolved | resolve) → mount.
  *
  * Terminal `ViewRenderResult` ends the pass; `null` means continue to the next step.
  */
@@ -29,6 +29,10 @@ export class ViewRenderPipeline {
       ]);
       if (early) return early;
 
+      if (pass.preResolvedContent !== undefined) {
+        this.phase.applyResolvedContent(pass, pass.preResolvedContent);
+        return { status: 'ok' };
+      }
       this.fireLoadingStart(pass);
       loadingHooks = true;
 

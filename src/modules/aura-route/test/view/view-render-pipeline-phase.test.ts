@@ -107,4 +107,24 @@ describe('ViewRenderPipelinePhase', () => {
       expect(root.textContent).toBe('No content to display');
     });
   });
+
+  describe('applyResolvedContent', () => {
+    it('mounts payload without resolve', () => {
+      const root = createOutlet();
+      const phase = createPhase(root, {});
+
+      phase.applyResolvedContent(renderPass(), '<span>ready</span>');
+
+      expect(root.textContent).toBe('ready');
+    });
+
+    it('mounts empty placeholder when payload is null', () => {
+      const root = createOutlet();
+      const phase = createPhase(root, {});
+
+      phase.applyResolvedContent(renderPass(), null);
+
+      expect(root.textContent).toBe('No content to display');
+    });
+  });
 });

@@ -52,6 +52,9 @@ export class RouteViewController {
         route.transition.order !== null
         || (this.ctx.paramChangeRemount && route.preserve.view),
       ...(options?.data !== undefined && { data: options.data }),
+      ...(options?.preResolvedContent !== undefined && {
+        preResolvedContent: options.preResolvedContent,
+      }),
     };
 
     this.ctx.lastCacheKey = pass.cacheKey;

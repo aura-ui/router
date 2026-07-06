@@ -10,6 +10,15 @@ export function highlightDemoOutlets(root: ParentNode = document): void {
 
   root.querySelectorAll<HTMLElement>('.demo-layout-slot > aura-outlet').forEach((outlet) => {
     outlet.classList.add('demo-nested-outlet');
+    outlet.classList.remove('demo-nested-outlet--l1', 'demo-nested-outlet--l2');
+  });
+
+  root.querySelectorAll<HTMLElement>('[data-nested-layout] > .demo-layout-slot > aura-outlet').forEach((outlet) => {
+    outlet.classList.add('demo-nested-outlet--l1');
+  });
+
+  root.querySelectorAll<HTMLElement>('[data-user-layout] > .demo-layout-slot > aura-outlet').forEach((outlet) => {
+    outlet.classList.add('demo-nested-outlet--l2');
   });
 }
 

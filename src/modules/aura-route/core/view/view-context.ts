@@ -7,7 +7,7 @@ import { AbortScope } from '../../../aura-utils/async/abort-scope';
 export class ViewContext {
   readonly config: RouteViewConfig;
   readonly getPassId: () => number;
-    readonly renderSignal = new AbortScope();
+  readonly renderSignal = new AbortScope();
 
   mount: MountSnapshot = { ...EMPTY_MOUNT };
   /** Fallback when {@link RouteUnmountOptions.cacheKey} is omitted. */

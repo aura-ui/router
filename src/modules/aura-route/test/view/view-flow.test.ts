@@ -115,6 +115,37 @@ describe('view flow (controller → outlet)', () => {
     expect(root.textContent).toBe('new');
   });
 
+  it('revertInFlightView restores replace mount from detached snapshot', async () => {
+    const root = createOutlet();
+    const { controller } = createController(root, {
+      resolve: async (routeInfo) =>
+        routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
+    });
+
+    await controller.render(matched('/old'));
+    await controller.render(matched('/new'));
+    expect(root.textContent).toBe('new');
+
+    controller.revertInFlightView();
+    expect(root.textContent).toBe('old');
+  });
+
+  it('commitStagedView discards pending outgoing so replace cannot roll back', async () => {
+    const root = createOutlet();
+    const { controller } = createController(root, {
+      resolve: async (routeInfo) =>
+        routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
+    });
+
+    await controller.render(matched('/old'));
+    await controller.render(matched('/new'));
+
+    controller.commitStagedView();
+    controller.revertInFlightView();
+
+    expect(root.textContent).toBe('new');
+  });
+
   it('revertInFlightView rolls back staged mount and clears presentation', async () => {
     const root = createOutlet();
     const { controller, route } = createController(root, {

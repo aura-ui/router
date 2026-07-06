@@ -1,11 +1,14 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import {
+  applyMountToSnapshot,
   commitStaged,
+  discardPendingOutgoing,
   EMPTY_MOUNT,
   finalizeLeave,
   mergeMount,
   mountContent,
   reattachContent,
+  rollbackReplace,
   rollbackStaged,
   hasActiveMount,
   unmountOnLeave,
@@ -301,6 +304,7 @@ describe('outlet-adapter', () => {
         strategy: 'stage',
         activeHandle: incoming,
         stageOutgoingHandle: outgoing,
+        pendingOutgoingRoot: null,
         nestedOutlet: null,
       });
     });
@@ -323,6 +327,7 @@ describe('outlet-adapter', () => {
         strategy: 'replace',
         activeHandle: incoming,
         stageOutgoingHandle: null,
+        pendingOutgoingRoot: null,
         nestedOutlet: null,
       });
     });
@@ -454,6 +459,57 @@ describe('outlet-adapter', () => {
         ...state,
         nestedOutlet: null,
       });
+    });
+  });
+
+  describe('replace rollback snapshot', () => {
+    function replaceTwoViews(root: AuraOutlet): MountSnapshot {
+      const first = applyMountToSnapshot(EMPTY_MOUNT, ctx({ appOutlet: root }), '<span>old</span>')!;
+      return applyMountToSnapshot(first, ctx({ appOutlet: root, pattern: '/new' }), '<span>new</span>')!;
+    }
+
+    it('applyMountToSnapshot detaches outgoing before replace', () => {
+      const root = createOutlet();
+      const snapshot = replaceTwoViews(root);
+
+      expect(root.textContent).toBe('new');
+      expect(snapshot.pendingOutgoingRoot?.textContent).toBe('old');
+      expect(snapshot.pendingOutgoingRoot?.isConnected).toBe(false);
+    });
+
+    it('rollbackReplace restores outgoing view', () => {
+      const root = createOutlet();
+      const replaced = replaceTwoViews(root);
+
+      const restored = rollbackReplace(replaced);
+
+      expect(root.textContent).toBe('old');
+      expect(restored.pendingOutgoingRoot).toBeNull();
+      expect(restored.activeHandle?.viewRoot.textContent).toBe('old');
+    });
+
+    it('discardPendingOutgoing destroys detached root', () => {
+      const root = createOutlet();
+      const replaced = replaceTwoViews(root);
+      const detached = replaced.pendingOutgoingRoot!;
+
+      const cleared = discardPendingOutgoing(replaced);
+
+      expect(cleared.pendingOutgoingRoot).toBeNull();
+      expect(detached.isConnected).toBe(false);
+      expect(root.textContent).toBe('new');
+    });
+
+    it('first mount has no pending outgoing snapshot', () => {
+      const root = createOutlet();
+      const snapshot = applyMountToSnapshot(
+        EMPTY_MOUNT,
+        ctx({ appOutlet: root }),
+        '<span>first</span>',
+      );
+
+      expect(snapshot?.pendingOutgoingRoot).toBeNull();
+      expect(root.textContent).toBe('first');
     });
   });
 });

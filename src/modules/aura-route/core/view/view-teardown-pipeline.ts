@@ -1,7 +1,7 @@
 import {
-  commitStaged,
   finalizeLeave,
-  rollbackStaged,
+  promoteStagedView,
+  rollbackUncommittedMount,
   unmountOnLeave,
   unmountParamChangeOutgoing,
 } from './outlet-adapter';
@@ -28,16 +28,12 @@ export class ViewTeardownPipeline {
   }
 
   commitStaged(): void {
-    this.ctx.mount = commitStaged(this.ctx.mount);
+    this.ctx.mount = promoteStagedView(this.ctx.mount);
   }
 
-  /**
-   * Roll back staged mount and transition presentation without post-commit teardown.
-   *
-   * @see rollbackStaged — replace vs stage semantics in `outlet-adapter.ts`.
-   */
+  /** Roll back uncommitted view mount without post-commit teardown. */
   revertInFlight(): void {
-    this.ctx.mount = rollbackStaged(this.ctx.mount);
+    this.ctx.mount = rollbackUncommittedMount(this.ctx.mount);
     this.ctx.renderSignal.cancel();
     this.clearViewPresentation();
   }

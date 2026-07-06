@@ -3,10 +3,8 @@ import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import type { ViewRenderResult } from '../../../aura-routing-engine/route-api';
 
 import {
+  applyMountToSnapshot,
   hasActiveMount,
-  mergeMount,
-  mountContent,
-  reattachContent,
   toMountSlice,
   warnMissingLayoutOutlet,
   type MountContext,
@@ -102,14 +100,12 @@ export class ViewRenderPipelinePhase {
     if (this.isStale(pass)) return false;
 
     const mountCtx = this.buildMountContext(pass);
-    const slice = cachedRoot
-      ? reattachContent(mountCtx, cachedRoot)
-      : mountContent(mountCtx, payload as ViewPayload);
+    const next = applyMountToSnapshot(this.ctx.mount, mountCtx, cachedRoot ?? (payload as ViewPayload));
 
-    if (!slice?.activeHandle) return false;
+    if (!next?.activeHandle) return false;
 
-    this.ctx.mount = mergeMount(this.ctx.mount, slice);
-    warnMissingLayoutOutlet(this.ctx.config.route, viewKind, slice.nestedOutlet);
+    this.ctx.mount = next;
+    warnMissingLayoutOutlet(this.ctx.config.route, viewKind, next.nestedOutlet);
 
     const plugins = this.ctx.config.plugins;
     if (plugins) {

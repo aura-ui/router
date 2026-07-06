@@ -39,10 +39,30 @@ export class RouteViewController {
    * Returns `{ status: 'error' }` after mounting recovery UI — does not rethrow.
    */
   async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
+    const pass = this.beginPass(routeInfo, options);
+    this.ctx.lastCacheKey = pass.cacheKey;
+    return this.renderPipeline.resolveAndMount(pass);
+  }
+
+  /**
+   * Sync mount with a pre-resolved payload — used by branch-atomic apply.
+   * Parent→child calls must stay in one task (no `await` between routes).
+   */
+  applyPreResolved(
+    routeInfo: MatchedRouteInfo,
+    options?: RouteRenderOptions,
+  ): ViewRenderResult | 'aborted' {
+    if (options?.parentSignal?.aborted) return 'aborted';
+    const pass = this.beginPass(routeInfo, options);
+    this.ctx.lastCacheKey = pass.cacheKey;
+    return this.renderPipeline.mountPreResolved(pass);
+  }
+
+  private beginPass(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): RenderPass {
     this.ctx.paramChangeRemount = options?.paramChangeRemount === true;
     const route = this.ctx.config.route;
 
-    const pass: RenderPass = {
+    return {
       id: this.ctx.getPassId(),
       routeInfo,
       signal: this.ctx.renderSignal.begin(options?.parentSignal),
@@ -56,9 +76,6 @@ export class RouteViewController {
         preResolvedContent: options.preResolvedContent,
       }),
     };
-
-    this.ctx.lastCacheKey = pass.cacheKey;
-    return this.renderPipeline.run(pass);
   }
 
   commitStagedView(): void {

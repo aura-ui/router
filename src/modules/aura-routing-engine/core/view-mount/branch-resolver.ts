@@ -77,14 +77,14 @@ export function createBranchResolveContext(
  */
 export async function resolveEnterBranch(
   enterRoutes: readonly MatchedRouteInfo[],
-  resolver: BranchContentResolver,
+  contentLoader: BranchContentResolver,
   ctx: BranchResolveContext,
 ): Promise<BranchResolveResult> {
   if (ctx.aborted()) return { status: 'aborted' };
   if (enterRoutes.length === 0) return { status: 'ok', payloads: [] };
 
   const outcomes = await Promise.all(
-    enterRoutes.map((route) => resolveRouteOutcome(resolver, route, ctx)),
+    enterRoutes.map((route) => resolveRouteOutcome(contentLoader, route, ctx)),
   );
 
   if (ctx.aborted()) return { status: 'aborted' };
@@ -107,7 +107,7 @@ type RouteOutcome =
   | { kind: 'error'; error: unknown };
 
 async function resolveRouteOutcome(
-  resolver: BranchContentResolver,
+  contentLoader: BranchContentResolver,
   route: MatchedRouteInfo,
   ctx: BranchResolveContext,
 ): Promise<RouteOutcome> {
@@ -115,7 +115,7 @@ async function resolveRouteOutcome(
 
   try {
     const data = ctx.dataFor?.(route);
-    const payload = await resolver.resolve(
+    const payload = await contentLoader.resolve(
       route,
       ctx.signal,
       data !== undefined ? { data } : undefined,

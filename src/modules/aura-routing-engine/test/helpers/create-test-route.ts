@@ -40,6 +40,7 @@ export function createTestRoute(
     onUpdate: noop,
     onError: noop,
     commitStagedView: noop,
+    applyPreResolved: () => ({ status: 'ok' as const }),
     render: noopRender,
     ...routeOverrides,
   } as RouteInstance;

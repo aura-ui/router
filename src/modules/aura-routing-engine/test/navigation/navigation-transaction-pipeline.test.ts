@@ -5,6 +5,7 @@ import { NavigationTransactionPipelinePhase } from '../../core/navigation/naviga
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { runViewCommit } from '../../core/view-mount/view-commit-render';
 import * as branchResolver from '../../core/view-mount/branch-resolver';
+import * as branchApply from '../../core/view-mount/branch-apply';
 import type { ContentLoadService } from '../../core';
 import {
   createMatchedRoute,
@@ -74,6 +75,11 @@ describe('NavigationTransactionPipeline history commit', () => {
       order.push('render');
       return 'ok';
     });
+    jest.spyOn(branchResolver, 'resolveEnterBranch').mockResolvedValue({ status: 'ok', payloads: [null] });
+    jest.spyOn(branchApply, 'applyEnterBranch').mockImplementation(() => {
+      order.push('render');
+      return { status: 'ok' };
+    });
 
     await new NavigationTransactionPipeline(transaction).runFullPipeline();
 
@@ -81,6 +87,10 @@ describe('NavigationTransactionPipeline history commit', () => {
     expect(order.indexOf('history')).toBeGreaterThan(order.indexOf('hook:load'));
     expect(order.indexOf('render')).toBeGreaterThan(order.indexOf('history'));
     expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
+
+    jest.restoreAllMocks();
+    mockRunViewCommit.mockResolvedValue('ok');
+    mockRunPhaseHooks.mockResolvedValue(undefined);
   });
 
   it('does not commit history when guard cancels', async () => {
@@ -800,6 +810,7 @@ describe('NavigationTransactionPipeline phase hook attrs', () => {
 
 describe('NavigationTransactionPipeline branch-atomic render', () => {
   let resolveEnterBranchSpy: jest.SpiedFunction<typeof branchResolver.resolveEnterBranch>;
+  let applyEnterBranchSpy: jest.SpiedFunction<typeof branchApply.applyEnterBranch>;
 
   function withContentLoad(
     options: Parameters<typeof createMockTransaction>[0],
@@ -816,13 +827,17 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     resolveEnterBranchSpy = jest
       .spyOn(branchResolver, 'resolveEnterBranch')
       .mockResolvedValue({ status: 'ok', payloads: ['<layout/>', '<index/>'] });
+    applyEnterBranchSpy = jest
+      .spyOn(branchApply, 'applyEnterBranch')
+      .mockReturnValue({ status: 'ok' });
   });
 
   afterEach(() => {
     resolveEnterBranchSpy.mockRestore();
+    applyEnterBranchSpy.mockRestore();
   });
 
-  it('resolves branch then mounts with pre-resolved payloads for multi-route enter', async () => {
+  it('resolves branch then sync-applies pre-resolved payloads for multi-route enter', async () => {
     const layout = createMatchedRoute('/users');
     const index = createMatchedRoute('/users/1');
     const transaction = withContentLoad({
@@ -837,19 +852,12 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
       transaction.engine.contentLoad,
       expect.objectContaining({ signal: transaction.signal }),
     );
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(2);
-    expect(mockRunViewCommit).toHaveBeenNthCalledWith(
-      1,
-      layout,
-      expect.objectContaining({ isAborted: expect.any(Function) }),
-      expect.objectContaining({ preResolvedContent: '<layout/>' }),
+    expect(applyEnterBranchSpy).toHaveBeenCalledWith(
+      [layout, index],
+      ['<layout/>', '<index/>'],
+      expect.objectContaining({ signal: transaction.signal }),
     );
-    expect(mockRunViewCommit).toHaveBeenNthCalledWith(
-      2,
-      index,
-      expect.anything(),
-      expect.objectContaining({ preResolvedContent: '<index/>' }),
-    );
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 
   it('uses eager per-route render for a single sync route', async () => {
@@ -891,6 +899,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     const outcome = await new NavigationTransactionPipeline(transaction).runRender();
 
     expect(outcome).toEqual({ status: 'cancelled' });
+    expect(applyEnterBranchSpy).not.toHaveBeenCalled();
     expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 });

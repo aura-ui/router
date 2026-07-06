@@ -207,6 +207,18 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     });
   }
 
+  /** Sync branch-atomic mount — caller must finish branch resolve first. */
+  applyPreResolved(
+    routeInfo: MatchedRouteInfo,
+    options?: RouteRenderOptions,
+  ): ViewRenderResult | 'aborted' {
+    if (!this.viewController) {
+      return { status: 'error', error: new DOMException('AuraRoute not initialized', 'InvalidStateError') };
+    }
+    this.passId++;
+    return this.viewController.applyPreResolved(routeInfo, options);
+  }
+
   revertInFlightView(): void {
     this.viewController?.revertInFlightView();
   }

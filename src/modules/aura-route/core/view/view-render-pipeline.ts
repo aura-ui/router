@@ -3,8 +3,6 @@ import { type RenderPass } from './types';
 import type { ViewContext } from './view-context';
 import { ViewRenderPipelinePhase } from './view-render-pipeline-phase';
 
-type RenderStep = () => ViewRenderResult | null | Promise<ViewRenderResult | null>;
-
 /**
  * Render pass pipeline: cache → skip → (pre-resolved | resolve) → mount.
  *
@@ -19,14 +17,33 @@ export class ViewRenderPipeline {
     this.phase = new ViewRenderPipelinePhase(ctx);
   }
 
-  async run(pass: RenderPass): Promise<ViewRenderResult> {
+  /**
+   * Sync mount for branch-atomic apply — no `await` between enter routes.
+   * Requires `preResolvedContent` on {@link RenderPass}; skips async resolve.
+   */
+  mountPreResolved(pass: RenderPass): ViewRenderResult | 'aborted' {
+    if (this.ctx.renderSignal.aborted) return 'aborted';
+
+    const early = this.tryEarlyExit(pass);
+    if (early) return early;
+
+    if (pass.preResolvedContent === undefined) {
+      throw new Error('mountPreResolved requires preResolvedContent');
+    }
+
+    try {
+      this.phase.applyResolvedContent(pass, pass.preResolvedContent);
+      return { status: 'ok' };
+    } catch (error) {
+      return this.phase.handleError(pass, error);
+    }
+  }
+
+  async resolveAndMount(pass: RenderPass): Promise<ViewRenderResult> {
     let loadingHooks = false;
 
     try {
-      const early = await this.runSequentially([
-        () => this.phase.tryCacheRestore(pass),
-        () => this.phase.trySkipAlreadyMounted(pass),
-      ]);
+      const early = this.tryEarlyExit(pass);
       if (early) return early;
 
       if (pass.preResolvedContent !== undefined) {
@@ -47,12 +64,8 @@ export class ViewRenderPipeline {
     }
   }
 
-  private async runSequentially(steps: RenderStep[]): Promise<ViewRenderResult | null> {
-    for (let i = 0; i < steps.length; i++) {
-      const outcome = await steps[i]!();
-      if (outcome) return outcome;
-    }
-    return null;
+  private tryEarlyExit(pass: RenderPass): ViewRenderResult | null {
+    return this.phase.tryCacheRestore(pass) ?? this.phase.trySkipAlreadyMounted(pass);
   }
 
   private fireLoadingStart(pass: RenderPass): void {

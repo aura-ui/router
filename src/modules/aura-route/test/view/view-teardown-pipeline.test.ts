@@ -8,8 +8,8 @@ import {
   type MountContext,
   type MountSnapshot,
 } from '../../core/view/outlet-adapter';
-import { ViewContext } from '../../core/view/view-context';
-import { ViewTeardownPipeline } from '../../core/view/view-teardown-pipeline';
+import { ViewContext } from '../../core/view';
+import { ViewTeardownPipeline } from '../../core/view';
 import { defaultViewCache } from '../../core/view/view-cache';
 
 function createOutlet(): AuraOutlet {
@@ -19,7 +19,7 @@ function createOutlet(): AuraOutlet {
 }
 
 function mountCtx(root: AuraOutlet, overrides: Partial<MountContext> = {}): MountContext {
-  return { appOutlet: root, ...overrides };
+  return { appOutlet: root, ...overrides } as MountContext;
 }
 
 function stageTwoViews(root: AuraOutlet): MountSnapshot {

@@ -45,10 +45,12 @@ export function toMountSlice(snapshot: MountSnapshot): MountSlice {
 }
 
 export function mergeMount(snapshot: MountSnapshot, slice: MountSlice): MountSnapshot {
+  const strategy = slice.appliedStrategy ?? 'replace';
+
   return {
-    strategy: slice.appliedStrategy ?? 'replace',
+    strategy,
     activeHandle: slice.activeHandle,
-    stageOutgoingHandle: slice.appliedStrategy === 'stage' ? snapshot.activeHandle : null,
+    stageOutgoingHandle: strategy === 'stage' ? snapshot.activeHandle : null,
     nestedOutlet: slice.nestedOutlet,
   };
 }
@@ -63,6 +65,7 @@ export function resolveStageStrategy(
 ): StageStrategy {
   if (ctx.strategy) return ctx.strategy;
   if (!ctx.useStagedMount) return 'replace';
+  // Empty outlet: applyStage falls back to replace; skip staging when nothing is visible yet.
   return targetOutlet.children.length > 0 ? 'stage' : 'replace';
 }
 
@@ -73,39 +76,14 @@ export function mountContent(
   if (ctx.signal?.aborted) return null;
 
   const outlet = resolveOutlet(ctx);
-  const strategy = resolveStageStrategy(ctx, outlet);
-  const handle = outlet.apply(payload, {
-    strategy,
-    key: ctx.pattern,
-    signal: ctx.signal,
-  });
-
-  if (!handle) return null;
-
-  return {
-    activeHandle: handle,
-    nestedOutlet: handle.findChildOutlet(),
-    appliedStrategy: strategy,
-  };
+  return applyMount(ctx, outlet, payload, resolveStageStrategy(ctx, outlet));
 }
 
 export function reattachContent(ctx: MountContext, cachedRoot: ViewRoot): MountSlice | null {
   if (ctx.signal?.aborted) return null;
 
   const outlet = resolveOutlet(ctx);
-  const handle = outlet.apply(cachedRoot, {
-    strategy: 'replace',
-    key: ctx.pattern,
-    signal: ctx.signal,
-  });
-
-  if (!handle) return null;
-
-  return {
-    activeHandle: handle,
-    nestedOutlet: handle.findChildOutlet(),
-    appliedStrategy: 'replace',
-  };
+  return applyMount(ctx, outlet, cachedRoot, 'replace');
 }
 
 export function unmountHandle(
@@ -118,6 +96,7 @@ export function unmountHandle(
   return null;
 }
 
+/** @remarks Mutates the outlet DOM via {@link AuraOutlet.commitStage}. */
 export function commitStaged(snapshot: MountSnapshot): MountSnapshot {
   if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
 
@@ -130,10 +109,18 @@ export function commitStaged(snapshot: MountSnapshot): MountSnapshot {
   };
 }
 
-export function cancelStagedIncoming(snapshot: MountSnapshot): MountSnapshot {
+/**
+ * Abort staged incoming view: cancel outlet DOM layer and destroy the incoming handle.
+ * Outgoing handle in `stageOutgoingHandle` is preserved for rollback/teardown callers.
+ */
+function cancelStagedIncoming(snapshot: MountSnapshot): MountSnapshot {
   if (snapshot.strategy !== 'stage' || !snapshot.activeHandle) return snapshot;
-  snapshot.activeHandle.mountOutlet.cancelStage();
-  return { ...snapshot, strategy: 'replace' };
+
+  const incoming = snapshot.activeHandle;
+  incoming.mountOutlet.cancelStage();
+  incoming.destroy();
+
+  return { ...snapshot, strategy: 'replace', activeHandle: null };
 }
 
 /**
@@ -168,8 +155,6 @@ export function rollbackStaged(snapshot: MountSnapshot): MountSnapshot {
   };
 }
 
-// TODO(replace-supersede): see rollbackStaged block comment above.
-
 export function unmountOnLeave(
   snapshot: MountSnapshot,
   preserveView: boolean,
@@ -178,7 +163,7 @@ export function unmountOnLeave(
     const afterCancel = cancelStagedIncoming(snapshot);
     return {
       detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, preserveView),
-      snapshot: { ...afterCancel, activeHandle: null, stageOutgoingHandle: null },
+      snapshot: { ...afterCancel, stageOutgoingHandle: null },
     };
   }
 
@@ -213,6 +198,27 @@ export function finalizeLeave(
   detachedRoot: ViewRoot | null,
 ): MountSnapshot {
   return preserveView && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
+}
+
+function applyMount(
+  ctx: MountContext,
+  outlet: AuraOutlet,
+  payload: Node | string | ViewRoot,
+  strategy: StageStrategy,
+): MountSlice | null {
+  const handle = outlet.apply(payload, {
+    strategy,
+    key: ctx.pattern,
+    signal: ctx.signal,
+  });
+
+  if (!handle) return null;
+
+  return {
+    activeHandle: handle,
+    nestedOutlet: handle.findChildOutlet(),
+    appliedStrategy: strategy,
+  };
 }
 
 function resolveOutlet(ctx: MountContext): AuraOutlet {

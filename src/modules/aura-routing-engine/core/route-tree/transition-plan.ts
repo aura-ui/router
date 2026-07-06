@@ -36,6 +36,11 @@ export function getEnterRoute(plan: TransitionMap): MatchedRouteInfo['route'] | 
   return enterRoutes[enterRoutes.length - 1]?.route;
 }
 
+/** Full branch swap with a single enter leaf (e.g. nested tree → flat route). */
+export function isCrossOutletReplace(plan: TransitionMap): boolean {
+  return plan.lca === null && plan.enterRoutes.length === 1 && plan.exitRoutes.length > 0;
+}
+
 /**
  * Строит {@link TransitionMap} для navigation processor.
  *

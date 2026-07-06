@@ -6,8 +6,9 @@ import { resolveRouteData } from '../data-graph';
 import {
   createBranchResolveContext,
   resolveEnterBranch,
-  shouldUseBranchAtomic,
+  shouldUseBranchMount,
 } from '../view-mount/branch-resolver';
+import { getEnterRoute } from '../route-tree/transition-plan';
 import { mountEnterBranch } from '../view-mount/branch-mount';
 import {
   isRenderError,
@@ -123,12 +124,16 @@ export class NavigationTransactionPipeline {
 
   /** Staged view commit for all enter routes (no transition wrappers). */
   async runRender(): Promise<TransactionFullResult> {
-    const { enterRoutes, paramChangeRemount } = this.transaction.transitionPlan;
+    const plan = this.transaction.transitionPlan;
+    const { enterRoutes, paramChangeRemount } = plan;
+    const mountStrategy = getEnterRoute(plan)?.mountStrategy ?? null;
 
-    if (shouldUseBranchAtomic({
+    if (shouldUseBranchMount({
       enterRoutes,
       transitionOrder: this.transaction.transitionOrder,
       paramChangeRemount,
+      mountStrategy,
+      transitionPlan: plan,
     })) {
       return this.runBranchAtomicRender(enterRoutes);
     }

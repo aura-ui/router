@@ -32,11 +32,9 @@ import {
   dispatchNavigationStart,
   dispatchNotFound,
   dispatchDataInvalidated,
-  AURA_ROUTER_DATA_INVALIDATED,
-  type AuraRouterDataInvalidatedEvent,
-  type AuraRouterDataInvalidatedEventDetail,
   type NotFoundHandler,
 } from './navigation-events';
+import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
 import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 
@@ -104,6 +102,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
    */
   @attr({ parser: parsePrefetchAttr, cached: true, name: 'prefetch' })
   prefetchDomAttr: PrefetchType | false | null;
+  /** Default enter-branch mount strategy for child routes (`per-route` | `branch` | `full`). */
+  @attr({ parser: parseMountStrategyAttr, cached: true }) mountStrategy: MountStrategy | null;
 
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();

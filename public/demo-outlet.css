@@ -194,7 +194,7 @@
   padding: 1.25rem;
   border: 2px solid var(--demo-border-view);
   border-radius: var(--radius-sm);
-  background: var(--demo-bg-view);
+  background: var(--surface, #fff);
   box-shadow: none;
   max-width: var(--prose, 42rem);
 }

@@ -1,4 +1,4 @@
-import { getTemplate } from '../../../aura-utils/misc';
+import { escapeHtml, getTemplate } from '../../../aura-utils/misc';
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface } from '../types';
 import type { ViewKind, ViewPayload } from './types';
@@ -41,11 +41,3 @@ export function warnMissingLayoutOutlet(
   );
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}

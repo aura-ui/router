@@ -69,20 +69,46 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  padding: 1.125rem 1.5rem;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
 .demo-header__brand {
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  min-width: 0;
+}
+
+.demo-header__title {
+  font-size: clamp(1.625rem, 2.8vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
   color: var(--heading);
 }
 
+.demo-header__tag {
+  position: relative;
+  top: -0.0625rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
 .demo-header__back {
-  font-size: 0.875rem;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--muted);
+  text-decoration: none;
   transition: color 0.15s;
 }
 
@@ -114,9 +140,9 @@ body {
 
 .demo-site-bar__label {
   flex-shrink: 0;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -159,7 +185,8 @@ body {
 
 .demo-site-nav a[aria-current='page'] {
   color: var(--text);
-  background: var(--accent-soft);
+  background: var(--surface);
+  border: 1px solid var(--border);
   text-decoration: none;
 }
 
@@ -171,16 +198,25 @@ body {
 }
 
 .demo-site-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.875rem 1.5rem;
   border-top: 1px solid var(--border);
   background: var(--surface-2);
 }
 
 .demo-site-footer__text {
   margin: 0;
-  font-size: 0.9375rem;
-  line-height: 1.65;
+  font-size: 0.875rem;
+  line-height: 1.6;
   color: var(--muted);
+}
+
+.demo-site-footer a {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.demo-site-footer a:hover {
+  color: var(--accent);
 }
 
 .demo-site-outlet {

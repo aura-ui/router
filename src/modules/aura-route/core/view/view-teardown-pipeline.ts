@@ -4,7 +4,7 @@ import {
   rollbackStaged,
   unmountOnLeave,
   unmountParamChangeOutgoing,
-} from '../view/outlet';
+} from './outlet-adapter';
 
 import type { RouteUnmountOptions } from '../types';
 
@@ -34,7 +34,7 @@ export class ViewTeardownPipeline {
   /**
    * Roll back staged mount and transition presentation without post-commit teardown.
    *
-   * @see rollbackStaged — replace vs stage semantics in `view/outlet.ts`.
+   * @see rollbackStaged — replace vs stage semantics in `outlet-adapter.ts`.
    */
   revertInFlight(): void {
     this.ctx.mount = rollbackStaged(this.ctx.mount);

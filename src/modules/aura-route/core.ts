@@ -13,9 +13,10 @@ export type {
   ViewRenderPlugin,
   RouteViewConfig,
   ViewPayload,
-} from './core/view/ports';
-export { RouteViewController } from './core/view2/view-controller';
-export { loadingBodyClass, loadingEvent } from './core/view/plugins';
+  RenderPass,
+} from './core/view/types';
+export { RouteViewController } from './core/view/view-controller';
+export { loadingBodyClass, loadingEvent } from './core/plugins/view-loading-plugins';
 export {
   LoaderRegistry,
   defaultLoaderRegistry,

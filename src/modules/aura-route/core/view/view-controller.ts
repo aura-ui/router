@@ -1,13 +1,8 @@
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import type {
-  MatchedRouteInfo,
-  ViewRenderResult,
-} from '../../../aura-routing-engine/route-api';
-
+import type { MatchedRouteInfo, ViewRenderResult } from '../../../aura-routing-engine/route-api';
 import type { RouteRenderOptions, RouteUnmountOptions } from '../types';
-import type { RouteViewConfig } from '../view/ports';
-import type { RenderPass } from './render-pass';
-import { cacheKey } from '../view/view-cache';
+import type { RenderPass, RouteViewConfig } from './types';
+import { cacheKey } from './view-cache';
 
 import { ViewContext } from './view-context';
 import { ViewRenderPipeline } from './view-render-pipeline';
@@ -18,7 +13,7 @@ import { ViewTeardownPipeline } from './view-teardown-pipeline';
  *
  * Render flow: {@link ViewRenderPipeline}.
  * Teardown flow: {@link ViewTeardownPipeline}.
- * Mount primitives: `view/outlet.ts`; content loading via {@link ContentResolverPort}.
+ * Mount primitives: {@link outlet-adapter}; content loading via {@link ContentResolverPort}.
  */
 export class RouteViewController {
   private readonly ctx: ViewContext;

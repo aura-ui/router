@@ -118,7 +118,7 @@ describe('ViewRenderPipeline', () => {
     expect(root.textContent).toContain('load failed');
   });
 
-  it('mounts pre-resolved content without calling resolve', async () => {
+  it('mountPreResolved mounts pre-resolved content without calling resolve', () => {
     const root = createOutlet();
     const resolve = jest.fn(async () => '<span>from-resolve</span>');
     const onLoadingStart = jest.fn();
@@ -129,7 +129,7 @@ describe('ViewRenderPipeline', () => {
       plugins: [{ onLoadingStart, onLoadingEnd, onContentResolved }],
     });
 
-    const result = await pipeline.resolveAndMount({
+    const result = pipeline.mountPreResolved({
       ...renderPass(),
       preResolvedContent: '<span>pre-resolved</span>',
     });
@@ -145,12 +145,12 @@ describe('ViewRenderPipeline', () => {
     );
   });
 
-  it('pre-resolved null mounts empty placeholder for content routes', async () => {
+  it('mountPreResolved null mounts empty placeholder for content routes', () => {
     const root = createOutlet();
     const resolve = jest.fn();
     const pipeline = createPipeline(root, { content: { resolve } });
 
-    await pipeline.resolveAndMount({
+    pipeline.mountPreResolved({
       ...renderPass(),
       preResolvedContent: null,
     });

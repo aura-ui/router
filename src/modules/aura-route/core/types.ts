@@ -32,12 +32,12 @@ export type RouteRenderOptions = {
   data?: unknown;
   /** Synthetic param remount on the same `<aura-route>` leaf. */
   paramChangeRemount?: boolean;
-  /**
-   * Pre-fetched view payload from branch resolve.
-   * When set, skips {@link ContentResolverPort.resolve} and mounts directly.
-   * `null` means an empty content route.
-   */
-  preResolvedContent?: ViewPayload | null;
+};
+
+/** Options for sync branch-atomic mount ({@link RouteViewController.applyPreResolved}). */
+export type ApplyPreResolvedOptions = RouteRenderOptions & {
+  /** Pre-fetched payload from branch resolve. `null` = empty content route. */
+  preResolvedContent: ViewPayload | null;
 };
 
 export type RouteUnmountOptions = {

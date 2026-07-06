@@ -1,5 +1,5 @@
 export { AuraRoute, type AuraRouteInterface } from './core/aura-route';
-export type { RouteRenderOptions, MatchedRouteInfo } from './core/types';
+export type { RouteRenderOptions, ApplyPreResolvedOptions, MatchedRouteInfo } from './core/types';
 export {
   RouteViewCache,
   defaultViewCache,

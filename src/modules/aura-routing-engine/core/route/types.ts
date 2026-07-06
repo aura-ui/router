@@ -4,7 +4,10 @@ import type { RouterPrefetchPolicy } from '../prefetch/prefetch-policy';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { ParamChangePolicy } from '../../../aura-route/core/attr/param-change-attr-parser';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
+import type { RouteRenderOptions, ApplyPreResolvedOptions } from '../../../aura-route/core/types';
 import type { RouteHookAttrProp, RoutePhase } from '../lifecycle/types';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { ViewRenderResult } from '../view-mount/view-commit-render';
 
 export type { RouterPrefetchPolicy };
 
@@ -82,6 +85,18 @@ export interface RouteInstance extends RouteHookNamesSource {
   onUnmount(ctx: RouteLifecycleContext): void;
   onUpdate(ctx: RouteLifecycleContext): void;
   onError(ctx: RouteErrorContext): void;
+  render(
+    routeInfo: MatchedRouteInfo,
+    options?: RouteRenderOptions,
+  ): Promise<ViewRenderResult>;
+  /**
+   * Sync mount with a pre-resolved payload (branch-atomic apply).
+   * Caller must finish branch resolve first; no `await` between parent and child.
+   */
+  applyPreResolved(
+    routeInfo: MatchedRouteInfo,
+    options: ApplyPreResolvedOptions,
+  ): ViewRenderResult | 'aborted';
   commitStagedView?(): void;
   /** Drops staged views and clears in-flight transition presentation (cancel / supersede). */
   revertInFlightView?(): void;

@@ -12,7 +12,7 @@ import {
 import { attr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 import { parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
-import type { AuraRouteInterface, RouteRenderOptions } from './types';
+import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
 import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
 import type { MountTargetPort } from './view';
 import { cacheKey, defaultViewCache } from './view/view-cache';
@@ -32,7 +32,7 @@ import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parse
 import { parseScrollAttr, type ScrollAttr } from './attr/scroll-attr-parser';
 import { parseParamChangeAttr, type ParamChangePolicy } from './attr/param-change-attr-parser';
 
-export type { RouteRenderOptions, AuraRouteInterface };
+export type { RouteRenderOptions, ApplyPreResolvedOptions, AuraRouteInterface };
 
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
   static is = 'aura-route';
@@ -210,7 +210,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   /** Sync branch-atomic mount — caller must finish branch resolve first. */
   applyPreResolved(
     routeInfo: MatchedRouteInfo,
-    options?: RouteRenderOptions,
+    options: ApplyPreResolvedOptions,
   ): ViewRenderResult | 'aborted' {
     if (!this.viewController) {
       return { status: 'error', error: new DOMException('AuraRoute not initialized', 'InvalidStateError') };

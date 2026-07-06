@@ -3,6 +3,7 @@ import { NO_PRESERVE, type MatchedRouteInfo } from '../../../aura-routing-engine
 import { RouteViewController } from '../../core/view/view-controller';
 import { RouteViewCache, destroyViewRoot, cacheKey } from '../../core/view/view-cache';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
+import type { AuraRouteInterface, RouteRenderOptions } from '../../core/types';
 import type { ContentResolverPort, ViewCachePort } from '../../core/view/types';
 
 function createOutlet(): AuraOutlet {
@@ -412,5 +413,106 @@ describe('RouteViewController keep-alive integration', () => {
     controller.commitStagedView();
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('view-2');
+  });
+});
+
+function matchedUser(pathname: string): MatchedRouteInfo {
+  return {
+    href: pathname,
+    pathname,
+    search: '',
+    hash: '',
+    pattern: 'user/:id',
+  } as MatchedRouteInfo;
+}
+
+function routeConfig(overrides: Partial<AuraRouteInterface> = {}): AuraRouteInterface {
+  return {
+    path: 'user/:id',
+    layout: '',
+    view: null,
+    loadingTemplate: '',
+    errorTemplate: '',
+    scrollPolicy: null,
+    preserve: NO_PRESERVE,
+    transition: NO_TRANSITION,
+    hasLayout: false,
+    hasGuard: false,
+    hasLeave: false,
+    hasLoad: false,
+    hasTransitionIn: false,
+    hasReady: false,
+    hasAsyncContent: false,
+    hasSyncContent: false,
+    ...overrides,
+  };
+}
+
+async function captureUseStagedMount(
+  config: AuraRouteInterface,
+  routeInfo: MatchedRouteInfo,
+  options?: RouteRenderOptions,
+): Promise<boolean | undefined> {
+  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+  document.body.append(outlet);
+
+  let useStagedMount: boolean | undefined;
+
+  const controller = new RouteViewController(
+    {
+      route: config,
+      content: { resolve: async () => '<span>view</span>' },
+      cache: { extract: () => undefined, put: () => {} },
+      mountTarget: { appOutlet: () => outlet, nestedOutlet: () => null },
+      plugins: [{
+        onContentResolved(pass) {
+          useStagedMount = pass.useStagedMount;
+        },
+      }],
+    },
+    () => 1,
+  );
+
+  await controller.render(routeInfo, options);
+  return useStagedMount;
+}
+
+describe('RouteViewController useStagedMount', () => {
+  it('stages when route declares transition order', async () => {
+    const value = await captureUseStagedMount(
+      routeConfig({ transition: { order: 'parallel', in: ['fade'], out: ['fade'] } }),
+      matchedUser('/users/1'),
+    );
+
+    expect(value).toBe(true);
+  });
+
+  it('stages on param-change remount with preserve.view', async () => {
+    const value = await captureUseStagedMount(
+      routeConfig({ preserve: { view: true, data: false } }),
+      matchedUser('/users/2'),
+      { paramChangeRemount: true },
+    );
+
+    expect(value).toBe(true);
+  });
+
+  it('replaces on param-change remount without preserve.view', async () => {
+    const value = await captureUseStagedMount(
+      routeConfig({ preserve: NO_PRESERVE }),
+      matchedUser('/users/2'),
+      { paramChangeRemount: true },
+    );
+
+    expect(value).toBe(false);
+  });
+
+  it('replaces on ordinary navigation without transition', async () => {
+    const value = await captureUseStagedMount(
+      routeConfig({ preserve: { view: true, data: false } }),
+      matchedUser('/users/2'),
+    );
+
+    expect(value).toBe(false);
   });
 });

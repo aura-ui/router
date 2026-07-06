@@ -1,4 +1,4 @@
-import { RenderSignal } from '../core/view/render-signal';
+import { RenderSignal } from '../../core/view/render-signal';
 
 describe('RenderSignal', () => {
   it('begin returns a non-aborted local signal', () => {

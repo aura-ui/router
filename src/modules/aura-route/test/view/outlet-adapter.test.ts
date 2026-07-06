@@ -39,7 +39,7 @@ function layoutWithOutlet(headerTag = 'header'): { fragment: DocumentFragment; n
   return { fragment, nested };
 }
 
-describe('outlet', () => {
+describe('outlet-adapter', () => {
   beforeAll(() => {
     if (!customElements.get(AuraOutlet.is)) {
       customElements.define(AuraOutlet.is, AuraOutlet);

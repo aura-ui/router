@@ -4,6 +4,7 @@ import type { ScrollAttr } from './attr/scroll-attr-parser';
 
 import type { RouteTransitionType } from './attr/transition-attr-parser';
 import type { ViewAttrDescriptor } from './attr/view-attr-parser';
+import type { ViewPayload } from './view/types';
 
 /** Public surface of `<aura-route>` attributes. */
 export interface AuraRouteInterface {
@@ -31,6 +32,12 @@ export type RouteRenderOptions = {
   data?: unknown;
   /** Synthetic param remount on the same `<aura-route>` leaf. */
   paramChangeRemount?: boolean;
+  /**
+   * Pre-fetched view payload from branch resolve.
+   * When set, skips {@link ContentResolverPort.resolve} and mounts directly.
+   * `null` means an empty content route.
+   */
+  preResolvedContent?: ViewPayload | null;
 };
 
 export type RouteUnmountOptions = {

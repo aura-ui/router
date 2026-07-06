@@ -14,6 +14,11 @@ export type RenderPass = {
   readonly useStagedMount: boolean;
   /** Load-hook payload from DataGraph snapshot. */
   readonly data?: unknown;
+  /**
+   * Pre-fetched view payload from branch resolve.
+   * When set, skips {@link ContentResolverPort.resolve} and mounts directly.
+   */
+  readonly preResolvedContent?: ViewPayload | null;
 };
 
 export interface ViewRenderPlugin {

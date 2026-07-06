@@ -117,4 +117,45 @@ describe('ViewRenderPipeline', () => {
     expect(result.status).toBe('error');
     expect(root.textContent).toContain('load failed');
   });
+
+  it('mounts pre-resolved content without calling resolve', async () => {
+    const root = createOutlet();
+    const resolve = jest.fn(async () => '<span>from-resolve</span>');
+    const onLoadingStart = jest.fn();
+    const onLoadingEnd = jest.fn();
+    const onContentResolved = jest.fn();
+    const pipeline = createPipeline(root, {
+      content: { resolve },
+      plugins: [{ onLoadingStart, onLoadingEnd, onContentResolved }],
+    });
+
+    const result = await pipeline.run({
+      ...renderPass(),
+      preResolvedContent: '<span>pre-resolved</span>',
+    });
+
+    expect(result).toEqual({ status: 'ok' });
+    expect(root.textContent).toBe('pre-resolved');
+    expect(resolve).not.toHaveBeenCalled();
+    expect(onLoadingStart).not.toHaveBeenCalled();
+    expect(onLoadingEnd).not.toHaveBeenCalled();
+    expect(onContentResolved).toHaveBeenCalledWith(
+      expect.objectContaining({ preResolvedContent: '<span>pre-resolved</span>' }),
+      '<span>pre-resolved</span>',
+    );
+  });
+
+  it('pre-resolved null mounts empty placeholder for content routes', async () => {
+    const root = createOutlet();
+    const resolve = jest.fn();
+    const pipeline = createPipeline(root, { content: { resolve } });
+
+    await pipeline.run({
+      ...renderPass(),
+      preResolvedContent: null,
+    });
+
+    expect(resolve).not.toHaveBeenCalled();
+    expect(root.textContent).toBe('No content to display');
+  });
 });

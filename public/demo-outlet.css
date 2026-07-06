@@ -7,21 +7,13 @@
  */
 
 :root {
-  --demo-border-root: #e8a0b4;
-  --demo-border-layout-l1: #e8b88a;
-  --demo-border-slot: #d9cc8a;
-  --demo-border-outlet: #8ecfb0;
-  --demo-border-layout-l2: #8ec5dc;
-  --demo-border-outlet-l2: #b8a8e0;
-  --demo-border-view: #dea8c8;
-
-  --demo-bg-root: #fdf4f7;
-  --demo-bg-layout-l1: #fef7f0;
-  --demo-bg-layout-l2: #f2f9fc;
-  --demo-bg-slot: #fdfbf2;
-  --demo-bg-outlet: #f3fbf6;
-  --demo-bg-outlet-l2: #f7f4fd;
-  --demo-bg-view: #fdf5f9;
+  --demo-border-root: #ebc4d0;
+  --demo-border-layout-l1: #ecd8c4;
+  --demo-border-slot: #e4dcc0;
+  --demo-border-outlet: #b8ddd0;
+  --demo-border-layout-l2: #b8d5e4;
+  --demo-border-outlet-l2: #d0c8e8;
+  --demo-border-view: #e8c4d8;
 
   --demo-label-root: #b06880;
   --demo-label-layout-l1: #b07848;
@@ -58,7 +50,7 @@
   padding: 1.25rem;
   border: 2px solid var(--demo-border-root);
   border-radius: var(--radius-sm);
-  background: var(--demo-bg-root);
+  background: linear-gradient(155deg, #fffcfd 0%, #f9f5f7 48%, #fffafb 100%);
 }
 
 .demo-root-outlet::before {
@@ -82,7 +74,7 @@
   padding: 1rem;
   border: 2px solid var(--demo-border-outlet);
   border-radius: var(--radius-sm);
-  background: var(--demo-bg-outlet);
+  background: linear-gradient(155deg, #fcfefd 0%, #f4faf7 48%, #fbfffe 100%);
 }
 
 .demo-nested-outlet::before {
@@ -98,7 +90,7 @@
 
 .demo-nested-outlet--l2 {
   border-color: var(--demo-border-outlet-l2);
-  background: var(--demo-bg-outlet-l2);
+  background: linear-gradient(155deg, #fdfcfe 0%, #f7f5fa 48%, #fefdff 100%);
 }
 
 .demo-nested-outlet--l2::before {
@@ -126,12 +118,12 @@
 
 [data-nested-layout] {
   border: 2px solid var(--demo-border-layout-l1);
-  background: var(--demo-bg-layout-l1);
+  background: linear-gradient(155deg, #fffdfb 0%, #faf7f3 48%, #fffef9 100%);
 }
 
 [data-user-layout] {
   border: 2px solid var(--demo-border-layout-l2);
-  background: var(--demo-bg-layout-l2);
+  background: linear-gradient(155deg, #fbfdfe 0%, #f3f8fa 48%, #fafeff 100%);
 }
 
 .demo-layout-badge {
@@ -176,7 +168,7 @@
   min-height: 8rem;
   border: 2px dashed var(--demo-border-slot);
   border-radius: var(--radius-sm);
-  background: var(--demo-bg-slot);
+  background: linear-gradient(155deg, #fffef9 0%, #faf8f2 48%, #fffdf8 100%);
 }
 
 .demo-layout-slot__label {
@@ -217,7 +209,7 @@
   padding: 1rem 1.125rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--demo-border-view);
-  background: var(--demo-bg-view);
+  background: linear-gradient(155deg, #fffcfd 0%, #faf6f8 100%);
   scroll-margin-top: 0.75rem;
 }
 

@@ -50,12 +50,21 @@ export type { ViewCommitSnapshot, ViewCommitState } from './core/view-mount/view
 export { isViewCommittedForHistory } from './core/view-mount/view-commit-state';
 export type { ViewRenderResult } from './core/view-mount/view-commit-render';
 export { resolveEnterBranch, createBranchResolveContext } from './core/view-mount/branch-resolver';
+export {
+  applyEnterBranch,
+  createBranchApplyContext,
+} from './core/view-mount/branch-apply';
 export type {
   BranchContentResolver,
   BranchResolveContext,
   BranchResolveResult,
   BranchResolveTransaction,
 } from './core/view-mount/branch-resolver';
+export type {
+  BranchApplyContext,
+  BranchApplyResult,
+  BranchApplyTransaction,
+} from './core/view-mount/branch-apply';
 
 export type { TransactionResult, TransactionFullResult, NavigationErrorResult } from './core/navigation/transaction-result';
 export type { NavigationCommittedContext } from './core/navigation/finalize';

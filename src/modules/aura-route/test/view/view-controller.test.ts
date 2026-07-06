@@ -433,7 +433,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.textContent).toBe('instant');
   });
 
-  it('sync-mounts pre-resolved layout and child in nested outlet', async () => {
+  it('sync-mounts pre-resolved layout and child in nested outlet', () => {
     const root = createOutlet();
     const resolve = jest.fn();
 
@@ -456,10 +456,10 @@ describe('RouteViewController keep-alive integration', () => {
       false,
     );
 
-    await parent.render(matched('/users', { pattern: '/users' }), {
+    parent.applyPreResolved(matched('/users', { pattern: '/users' }), {
       preResolvedContent: layoutShell(),
     });
-    await child.render(matched('/users/1', { pattern: '/users/:id' }), {
+    child.applyPreResolved(matched('/users/1', { pattern: '/users/:id' }), {
       preResolvedContent: '<span>user-list</span>',
     });
 

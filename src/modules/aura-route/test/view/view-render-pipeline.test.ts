@@ -80,7 +80,7 @@ describe('ViewRenderPipeline', () => {
     const root = createOutlet();
     const pipeline = createPipeline(root);
 
-    const result = await pipeline.run(renderPass());
+    const result = await pipeline.resolveAndMount(renderPass());
 
     expect(result).toEqual({ status: 'ok' });
     expect(root.textContent).toBe('ok');
@@ -95,7 +95,7 @@ describe('ViewRenderPipeline', () => {
     });
     const pass = renderPass();
 
-    await pipeline.run(pass);
+    await pipeline.resolveAndMount(pass);
 
     expect(onLoadingStart).toHaveBeenCalledWith(pass);
     expect(onLoadingEnd).toHaveBeenCalledWith(pass);
@@ -112,7 +112,7 @@ describe('ViewRenderPipeline', () => {
       },
     });
 
-    const result = await pipeline.run(renderPass());
+    const result = await pipeline.resolveAndMount(renderPass());
 
     expect(result.status).toBe('error');
     expect(root.textContent).toContain('load failed');
@@ -129,7 +129,7 @@ describe('ViewRenderPipeline', () => {
       plugins: [{ onLoadingStart, onLoadingEnd, onContentResolved }],
     });
 
-    const result = await pipeline.run({
+    const result = await pipeline.resolveAndMount({
       ...renderPass(),
       preResolvedContent: '<span>pre-resolved</span>',
     });
@@ -150,12 +150,32 @@ describe('ViewRenderPipeline', () => {
     const resolve = jest.fn();
     const pipeline = createPipeline(root, { content: { resolve } });
 
-    await pipeline.run({
+    await pipeline.resolveAndMount({
       ...renderPass(),
       preResolvedContent: null,
     });
 
     expect(resolve).not.toHaveBeenCalled();
     expect(root.textContent).toBe('No content to display');
+  });
+
+  it('mountPreResolved mounts pre-resolved content without async resolve', () => {
+    const root = createOutlet();
+    const resolve = jest.fn(async () => '<span>from-resolve</span>');
+    const onLoadingStart = jest.fn();
+    const pipeline = createPipeline(root, {
+      content: { resolve },
+      plugins: [{ onLoadingStart }],
+    });
+
+    const result = pipeline.mountPreResolved({
+      ...renderPass(),
+      preResolvedContent: '<span>sync</span>',
+    });
+
+    expect(result).toEqual({ status: 'ok' });
+    expect(root.textContent).toBe('sync');
+    expect(resolve).not.toHaveBeenCalled();
+    expect(onLoadingStart).not.toHaveBeenCalled();
   });
 });

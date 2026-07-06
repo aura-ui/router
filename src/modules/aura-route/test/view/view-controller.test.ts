@@ -1,6 +1,6 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_PRESERVE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
-import { RouteViewController } from '../../core/view/view-controller';
+import { RouteViewController } from '../../core/view';
 import { RouteViewCache, destroyViewRoot, cacheKey } from '../../core/view/view-cache';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions } from '../../core/types';
@@ -28,7 +28,7 @@ function createMockViewCache(stash = new Map<string, Element>()): ViewCachePort 
     extract: (key) => {
       const root = stash.get(key);
       if (root) stash.delete(key);
-      return root;
+      return root as HTMLElement;
     },
     put: (key, root) => stash.set(key, root),
   };
@@ -45,13 +45,13 @@ function createController(
   const route = {
     path,
     layout: '',
-    view: '',
+    view: null,
     loadingTemplate: '',
     errorTemplate: '',
     scrollPolicy: null,
     preserve: preserveView ? { view: true, data: false } : NO_PRESERVE,
     transition: NO_TRANSITION,
-  };
+  } as AuraRouteInterface;
 
   const controller = new RouteViewController(
     {
@@ -373,13 +373,13 @@ describe('RouteViewController keep-alive integration', () => {
     const route = {
       path: 'user/:id',
       layout: '',
-      view: '',
+      view: null,
       loadingTemplate: '',
       errorTemplate: '',
       scrollPolicy: null,
       preserve: NO_PRESERVE,
       transition: { order: 'parallel' as const, in: null, out: null },
-    };
+    } as AuraRouteInterface;
 
     const controller = new RouteViewController(
       {

@@ -195,6 +195,67 @@ body {
   text-decoration: none;
 }
 
+.demo-site-bar__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.875rem 1.25rem;
+}
+
+.demo-order-picker-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.demo-order-picker {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.1875rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.demo-order-picker__btn {
+  margin: 0;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.demo-order-picker__btn:hover {
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+}
+
+.demo-order-picker__btn[aria-pressed='true'] {
+  color: var(--brand-darker);
+  background: var(--brand-soft);
+  border-color: rgba(188, 111, 176, 0.22);
+}
+
+.demo-order-legend {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.demo-order-legend li {
+  margin-bottom: 0.375rem;
+}
+
 /* ── Stage ── */
 
 .demo-site-stage {
@@ -343,6 +404,7 @@ body {
 .demo-index__card-kicker--nested { color: var(--brand-dark); }
 .demo-index__card-kicker--advanced { color: var(--brand-darker); }
 .demo-index__card-kicker--update { color: var(--brand); }
+.demo-index__card-kicker--animations { color: var(--heading); }
 
 .demo-index__card-title {
   font-size: 1.125rem;

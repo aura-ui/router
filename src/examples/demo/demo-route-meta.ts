@@ -3,7 +3,7 @@ export type DemoRouteFact =
   | { term: string; kind: 'code'; value: string }
   | { term: string; kind: 'text'; value: string }
   | { term: string; kind: 'html'; value: string }
-  | { term: string; kind: 'param'; param: 'id' | 'tab' | 'section'; hint?: string };
+  | { term: string; kind: 'param'; param: 'id' | 'tab' | 'section' | 'transition-order'; hint?: string };
 
 /**
  * Метаданные view по пути partial (атрибут data-demo-view на &lt;article&gt;).
@@ -213,6 +213,28 @@ export const DEMO_VIEW_META: Record<string, DemoRouteFact[]> = {
       kind: 'text',
       value:
         'Шаблон user-{{id}}.html → user-2.html; тот же leaf, другой viewKey — FULL, не update.',
+    },
+  ],
+  'features/animations/page-a.html': [
+    { term: 'Path', kind: 'code', value: '/features/animations/a' },
+    { term: 'View', kind: 'code', value: 'features/animations/page-a.html' },
+    { term: 'Transition', kind: 'code', value: 'fade (parallel)' },
+    { term: 'transition-order', kind: 'param', param: 'transition-order' },
+    {
+      term: 'Действие роутера',
+      kind: 'text',
+      value: 'Staged mount: outgoing и incoming view в outlet; хуки fade на transitionOut/In.',
+    },
+  ],
+  'features/animations/page-b.html': [
+    { term: 'Path', kind: 'code', value: '/features/animations/b' },
+    { term: 'View', kind: 'code', value: 'features/animations/page-b.html' },
+    { term: 'Transition', kind: 'code', value: 'fade (parallel)' },
+    { term: 'transition-order', kind: 'param', param: 'transition-order' },
+    {
+      term: 'Действие роутера',
+      kind: 'text',
+      value: 'После commit staged view становится active; outgoing root размонтирован.',
     },
   ],
 };

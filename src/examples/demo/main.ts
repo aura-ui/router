@@ -2,13 +2,20 @@ import {
   AuraRouter,
   AURA_ROUTER_NAVIGATION,
 } from '../../modules/aura-router/core';
+import { AuraRoute } from '../../modules/aura-route/core/aura-route';
+import { installAnimationsDemoControls, syncAnimationsOrderUi } from './animations-demo';
+import { installDemoTransitionHooks } from './hooks/view-transition';
 import { DEMO_ROOTS } from './demo-scenarios';
 import { renderRouteFacts } from './demo-route-facts';
 import { highlightDemoCode } from './highlight-code';
 import { highlightDemoOutlets, installDemoShell } from './outlet-demo';
 
 installDemoShell();
+installDemoTransitionHooks();
 AuraRouter.install();
+void customElements.whenDefined(AuraRoute.is).then(() => {
+  installAnimationsDemoControls();
+});
 
 function isDemoRoot(linkPath: string): boolean {
   return DEMO_ROOTS.includes(linkPath);
@@ -94,6 +101,11 @@ function syncRouteParams(): void {
 
     if (key === 'section') {
       el.textContent = location.hash.slice(1) || '—';
+      return;
+    }
+
+    if (key === 'transition-order') {
+      el.textContent = sessionStorage.getItem('demo-animations-transition-order') ?? 'parallel';
     }
   });
 }
@@ -103,6 +115,7 @@ function refreshDemoUi(): void {
   syncSiteUrl();
   renderRouteFacts();
   syncRouteParams();
+  syncAnimationsOrderUi(root);
   highlightDemoOutlets();
   highlightDemoCode(document);
 }

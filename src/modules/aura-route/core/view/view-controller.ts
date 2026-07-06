@@ -55,7 +55,7 @@ export class RouteViewController {
     if (options.parentSignal?.aborted) return 'aborted';
     const pass = this.beginPass(routeInfo, options, options.preResolvedContent);
     this.ctx.lastCacheKey = pass.cacheKey;
-    return this.renderPipeline.mountPreResolved(pass);
+    return this.renderPipeline.syncBranchMount(pass);
   }
 
   private beginPass(

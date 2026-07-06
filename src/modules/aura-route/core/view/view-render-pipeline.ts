@@ -5,7 +5,7 @@ import { ViewRenderPipelinePhase } from './view-render-pipeline-phase';
 
 /**
  * Render pass pipeline: cache → skip → resolve → mount (async)
- * or cache → skip → mount (sync via {@link mountPreResolved}).
+ * or direct mount (sync via {@link syncBranchMount}).
  *
  * Terminal `ViewRenderResult` ends the pass; `null` means continue to the next step.
  */
@@ -19,17 +19,19 @@ export class ViewRenderPipeline {
   }
 
   /**
-   * Sync mount for branch-atomic apply — no `await` between enter routes.
-   * Requires `preResolvedContent` on {@link RenderPass}; skips async resolve.
+   * Branch-atomic sync mount — applies payload as-is (no cache restore / skip shortcuts).
    */
-  mountPreResolved(pass: RenderPass): ViewRenderResult | 'aborted' {
+  syncBranchMount(pass: RenderPass): ViewRenderResult | 'aborted' {
     if (this.ctx.renderSignal.aborted) return 'aborted';
-    const early = this.tryEarlyExit(pass);
-    if (early) return early;
+
+    if (pass.preResolvedContent === undefined) {
+      return {
+        status: 'error',
+        error: new Error('syncBranchMount requires preResolvedContent on pass'),
+      };
+    }
+
     try {
-      if (pass.preResolvedContent === undefined) {
-        throw new Error('mountPreResolved requires preResolvedContent');
-      }
       this.phase.applyResolvedContent(pass, pass.preResolvedContent);
       return { status: 'ok' };
     } catch (error) {

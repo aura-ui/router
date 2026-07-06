@@ -3,24 +3,33 @@
 /**
  * Визуализация outlet / layout / view в demo-сценариях.
  * Подключается через @import в demo.css.
+ * Пастельная радуга: мягкие оттенки, тонкие рамки.
  */
 
 :root {
-  --demo-border-root: #64748b;
-  --demo-border-layout-l1: #2563eb;
-  --demo-border-layout-l2: #7c3aed;
-  --demo-border-slot: #22c55e;
-  --demo-border-outlet: #0ea5e9;
-  --demo-border-outlet-l2: #a855f7;
-  --demo-border-view: #16a34a;
+  --demo-border-root: #e8a0b4;
+  --demo-border-layout-l1: #e8b88a;
+  --demo-border-slot: #d9cc8a;
+  --demo-border-outlet: #8ecfb0;
+  --demo-border-layout-l2: #8ec5dc;
+  --demo-border-outlet-l2: #b8a8e0;
+  --demo-border-view: #dea8c8;
 
-  --demo-bg-root: rgba(100, 116, 139, 0.06);
-  --demo-bg-layout-l1: rgba(37, 99, 235, 0.06);
-  --demo-bg-layout-l2: rgba(124, 58, 237, 0.06);
-  --demo-bg-slot: rgba(34, 197, 94, 0.05);
-  --demo-bg-outlet: rgba(14, 165, 233, 0.05);
-  --demo-bg-outlet-l2: rgba(168, 85, 247, 0.05);
-  --demo-bg-view: rgba(22, 163, 74, 0.06);
+  --demo-bg-root: #fdf4f7;
+  --demo-bg-layout-l1: #fef7f0;
+  --demo-bg-layout-l2: #f2f9fc;
+  --demo-bg-slot: #fdfbf2;
+  --demo-bg-outlet: #f3fbf6;
+  --demo-bg-outlet-l2: #f7f4fd;
+  --demo-bg-view: #fdf5f9;
+
+  --demo-label-root: #b06880;
+  --demo-label-layout-l1: #b07848;
+  --demo-label-slot: #9a8848;
+  --demo-label-outlet: #4a9470;
+  --demo-label-layout-l2: #4a8aa8;
+  --demo-label-outlet-l2: #7868a8;
+  --demo-label-view: #a86888;
 }
 
 /* ── Shared label pill ── */
@@ -39,6 +48,7 @@
   letter-spacing: 0;
   text-transform: none;
   line-height: 1.4;
+  box-shadow: none;
 }
 
 /* ── Root outlet ── */
@@ -57,7 +67,7 @@
   top: -0.6875rem;
   left: 0.875rem;
   margin: 0;
-  color: var(--demo-border-root);
+  color: var(--demo-label-root);
   background: var(--surface, #fff);
   border: 1px solid var(--demo-border-root);
 }
@@ -81,7 +91,7 @@
   top: -0.6875rem;
   left: 0.75rem;
   margin: 0;
-  color: var(--demo-border-outlet);
+  color: var(--demo-label-outlet);
   background: var(--surface, #fff);
   border: 1px solid var(--demo-border-outlet);
 }
@@ -93,7 +103,7 @@
 
 .demo-nested-outlet--l2::before {
   content: '<aura-outlet> L2';
-  color: var(--demo-border-outlet-l2);
+  color: var(--demo-label-outlet-l2);
   border-color: var(--demo-border-outlet-l2);
 }
 
@@ -129,14 +139,14 @@
 }
 
 [data-nested-layout] > .demo-layout-badge {
-  color: var(--demo-border-layout-l1);
-  background: rgba(37, 99, 235, 0.12);
+  color: var(--demo-label-layout-l1);
+  background: var(--surface, #fff);
   border: 1px solid var(--demo-border-layout-l1);
 }
 
 [data-user-layout] > .demo-layout-badge {
-  color: var(--demo-border-layout-l2);
-  background: rgba(124, 58, 237, 0.12);
+  color: var(--demo-label-layout-l2);
+  background: var(--surface, #fff);
   border: 1px solid var(--demo-border-layout-l2);
 }
 
@@ -147,7 +157,6 @@
   border-radius: var(--radius-sm);
   background: var(--surface, #fff);
   border: 1px solid var(--border);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
 }
 
 .demo-layout-chrome > .demo-nested-label {
@@ -172,7 +181,7 @@
 
 .demo-layout-slot__label {
   margin-bottom: 0.5rem;
-  color: var(--demo-border-slot);
+  color: var(--demo-label-slot);
   background: var(--surface, #fff);
   border: 1px solid var(--demo-border-slot);
 }
@@ -196,7 +205,7 @@
   top: -0.6875rem;
   left: 0.875rem;
   margin: 0;
-  color: var(--demo-border-view);
+  color: var(--demo-label-view);
   background: var(--surface, #fff);
   border: 1px solid var(--demo-border-view);
 }
@@ -207,8 +216,8 @@
   margin-top: 1rem;
   padding: 1rem 1.125rem;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 1px solid var(--demo-border-view);
+  background: var(--demo-bg-view);
   scroll-margin-top: 0.75rem;
 }
 

@@ -1,7 +1,7 @@
 <article class="demo-site-view demo-layout-view">
   <h1>Update shortcut</h1>
   <p class="demo-site-view__lead">Три pipeline без полного exit/enter — search, hash и param-update. Контрпример remount: тот же leaf <code>:id</code>, но view с шаблоном — viewKey меняется, update не применяется.</p>
-  <p class="demo-hint">Серая рамка — корневой <code>&lt;aura-outlet&gt;</code>, зелёный блок — конечный view. При update shortcut view не пересоздаётся; при remount — новый HTML и полный lifecycle.</p>
+  <p class="demo-hint">Розовая рамка — корневой outlet, нежно-розовая — конечный view. При update shortcut view не пересоздаётся; при remount — новый HTML и полный lifecycle.</p>
 
   <h2>Search — смена query</h2>
   <p>Pathname тот же, меняется только <code>?tab=…</code>. Pipeline: <code>runUpdate()</code> — load → history → <code>update</code>-хуки. Без render и unmount.</p>

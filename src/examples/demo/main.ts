@@ -6,11 +6,13 @@ import { AuraRoute } from '../../modules/aura-route/core/aura-route';
 import { installAnimationsDemoControls, syncAnimationsOrderUi } from './animations-demo';
 import { installDemoTransitionHooks } from './hooks/view-transition';
 import { DEMO_ROOTS } from './demo-scenarios';
-import { renderRouteFacts } from './demo-route-facts';
+import { renderRouteFacts, installDemoRouteFactsObserver } from './demo-route-facts';
+import { syncRouteParams } from './demo-route-params';
 import { highlightDemoCode } from './highlight-code';
 import { highlightDemoOutlets, installDemoShell } from './outlet-demo';
 
 installDemoShell();
+installDemoRouteFactsObserver();
 installDemoTransitionHooks();
 AuraRouter.install();
 void customElements.whenDefined(AuraRoute.is).then(() => {
@@ -78,44 +80,12 @@ function syncSiteUrl(): void {
   if (urlEl) urlEl.textContent = location.pathname + location.search + location.hash;
 }
 
-function syncRouteParams(): void {
-  const path = location.pathname;
-  const search = new URLSearchParams(location.search);
-
-  document.querySelectorAll<HTMLElement>('[data-demo-param]').forEach((el) => {
-    const key = el.dataset.demoParam;
-    if (!key) return;
-
-    if (key === 'id') {
-      const match =
-        path.match(/\/users\/([^/]+)(?:\/|$)/)
-        ?? path.match(/\/phase-update\/(?:remount|update)\/([^/]+)(?:\/|$)/);
-      el.textContent = match?.[1] ?? '—';
-      return;
-    }
-
-    if (key === 'tab') {
-      el.textContent = search.get('tab') ?? 'info';
-      return;
-    }
-
-    if (key === 'section') {
-      el.textContent = location.hash.slice(1) || '—';
-      return;
-    }
-
-    if (key === 'transition-order') {
-      el.textContent = sessionStorage.getItem('demo-animations-transition-order') ?? 'parallel';
-    }
-  });
-}
-
 function refreshDemoUi(): void {
   syncActiveLinks();
   syncSiteUrl();
   renderRouteFacts();
-  syncRouteParams();
-  syncAnimationsOrderUi(root);
+  syncRouteParams(document);
+  syncAnimationsOrderUi(document);
   highlightDemoOutlets();
   highlightDemoCode(document);
 }

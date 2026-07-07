@@ -1,0 +1,155 @@
+import { AuraOutlet } from '../../../../aura-outlet/core/aura-outlet';
+import { FailedNavigation, NavigationError } from '../../../core/failure';
+import { HookRegistry } from '../../../core/hooks/registry';
+import type { LifecycleRuntimeContext } from '../../../core/lifecycle';
+import type { MatchedRouteInfo } from '../../../core/match/url-matcher';
+import {
+  NavigationCoordinator,
+  type NavigationTransactionOptions,
+} from '../../../core/navigation/navigation-coordinator';
+import { NavigationTransaction } from '../../../core/navigation/navigation-transaction';
+import type { TransactionFullResult } from '../../../core/navigation/transaction-result';
+import type { AuraRoutingEngine } from '../../../core/aura-routing-engine';
+import type { RouteTransitionType } from '../../../../aura-route/core/attr/transition-attr-parser';
+import { ViewCommitTracker } from '../../../core/view-mount/view-commit-tracker';
+import { createMockNavigationJob } from '../mock-navigation-job';
+import { createMockEngine } from '../create-mock-transaction';
+import { DEFAULT_PUSH_NAV_OPTIONS } from './constants';
+
+export { DEFAULT_PUSH_NAV_OPTIONS } from './constants';
+
+/** Simple parallel transition used in unit pipeline tests. */
+export const PARALLEL_FADE_TRANSITION = {
+  order: 'parallel' as const,
+  in: ['fade'],
+  out: ['fade'],
+};
+
+/** Parallel transition with distinct in/out hook names for integration tests. */
+export const PARALLEL_CROSS_FADE_TRANSITION: RouteTransitionType = {
+  order: 'parallel',
+  in: ['fade-in'],
+  out: ['fade-out'],
+};
+
+export function registerTestHook(
+  registry: HookRegistry,
+  name: string,
+  fn: () => unknown | Promise<unknown>,
+): void {
+  registry.register({
+    name,
+    version: '1.0.0',
+    fn: async () => fn() as never,
+  });
+}
+
+export function createPushNavOptions(
+  input: Pick<NavigationTransactionOptions, 'from' | 'to' | 'href'>,
+): NavigationTransactionOptions {
+  return {
+    action: 'push',
+    hash: '',
+    options: DEFAULT_PUSH_NAV_OPTIONS,
+    ...input,
+  };
+}
+
+export function createLifecycleRuntimeContext(
+  matchedRoute: MatchedRouteInfo,
+  overrides: Partial<LifecycleRuntimeContext> = {},
+): LifecycleRuntimeContext {
+  const job = createMockNavigationJob(1);
+  return {
+    transaction: {
+      from: null,
+      to: matchedRoute,
+      action: 'push',
+      plan: {
+        exitRoutes: [],
+        enterRoutes: [matchedRoute],
+        lca: null,
+        update: false,
+      },
+    },
+    transactionId: job.transactionId,
+    transactionSignal: job.transactionSignal,
+    router: { navigate: jest.fn() },
+    hookRegistry: new HookRegistry(),
+    viewCommitTracker: new ViewCommitTracker(matchedRoute.href),
+    isJobActive: () => true,
+    ...overrides,
+  };
+}
+
+export function createFailedNavigation(
+  matchedRoute: MatchedRouteInfo,
+  context: LifecycleRuntimeContext,
+  phase: 'guard' | 'load' | 'render' = 'guard',
+): FailedNavigation {
+  const error = new NavigationError({
+    code: phase === 'load' ? 'LOAD_FAILED' : phase === 'render' ? 'RENDER_FAILED' : 'GUARD_THROW',
+    phase,
+    routePattern: matchedRoute.pattern,
+    message: `${phase} failed`,
+  });
+  return FailedNavigation.fromPipeline(
+    error,
+    context.viewCommitTracker.snapshot,
+    context.transaction.from,
+    context.transaction.to,
+    context.transaction.action,
+  );
+}
+
+export async function runNavigationTransaction(
+  from: MatchedRouteInfo,
+  to: MatchedRouteInfo,
+  engine: AuraRoutingEngine = createMockEngine(),
+) {
+  const transaction = new NavigationTransaction(
+    1,
+    0,
+    {
+      from,
+      to,
+      action: 'push',
+      href: to.href,
+      hash: '',
+      options: DEFAULT_PUSH_NAV_OPTIONS,
+    },
+    () => false,
+    engine,
+  );
+
+  return {
+    result: await transaction.run(),
+    engine,
+    transaction,
+  };
+}
+
+export function mockDeferredTransactionRun() {
+  const resolvers: Array<(result: TransactionFullResult) => void> = [];
+
+  const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
+    () =>
+      new Promise<TransactionFullResult>((resolve) => {
+        resolvers.push(resolve);
+      }),
+  );
+
+  return {
+    runSpy,
+    resolveAt(index: number, result: TransactionFullResult) {
+      resolvers[index](result);
+    },
+    pendingCount: () => resolvers.length,
+  };
+}
+
+export function createTestOutlet(): AuraOutlet {
+  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+  document.body.append(outlet);
+  return outlet;
+}

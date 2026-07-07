@@ -1,22 +1,10 @@
-import { HookRegistry } from '../../core/hooks/registry';
 import { PHASES } from '../../core/lifecycle';
 import { NavigationTransactionPipelinePhase } from '../../core/navigation/navigation-transaction-pipeline-phase';
 import {
   createMatchedRoute,
   createMockTransaction,
 } from '../helpers/create-mock-transaction';
-
-function registerHook(
-  registry: HookRegistry,
-  name: string,
-  fn: () => unknown | Promise<unknown>,
-): void {
-  registry.register({
-    name,
-    version: '1.0.0',
-    fn: async () => fn() as never,
-  });
-}
+import { registerTestHook } from '../helpers/jest/navigation-fixtures';
 
 describe('NavigationTransactionPipelinePhase.resolveBlockingHookOutcome', () => {
   it('returns cancelled when hook returns false', () => {
@@ -48,7 +36,7 @@ describe('NavigationTransactionPipelinePhase.run (post-commit)', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const matchedRoute = createMatchedRoute('/to', { ready: ['cleanup'] });
     const transaction = createMockTransaction({ enterRoutes: [matchedRoute] });
-    registerHook(transaction.engine.hooksRegistry, 'cleanup', () => {
+    registerTestHook(transaction.engine.hooksRegistry, 'cleanup', () => {
       throw new Error('cleanup failed');
     });
 
@@ -71,12 +59,12 @@ describe('NavigationTransactionPipelinePhase.run (post-commit)', () => {
 
     const cancelRoute = createMatchedRoute('/to', { ready: ['cancel-after'] });
     const cancelTx = createMockTransaction({ enterRoutes: [cancelRoute] });
-    registerHook(cancelTx.engine.hooksRegistry, 'cancel-after', () => false);
+    registerTestHook(cancelTx.engine.hooksRegistry, 'cancel-after', () => false);
     await NavigationTransactionPipelinePhase.run(cancelRoute, PHASES.ready, cancelTx);
 
     const redirectRoute = createMatchedRoute('/to', { ready: ['redirect-after'] });
     const redirectTx = createMockTransaction({ enterRoutes: [redirectRoute] });
-    registerHook(redirectTx.engine.hooksRegistry, 'redirect-after', () => '/login');
+    registerTestHook(redirectTx.engine.hooksRegistry, 'redirect-after', () => '/login');
     await NavigationTransactionPipelinePhase.run(redirectRoute, PHASES.ready, redirectTx);
 
     expect(warnSpy).toHaveBeenCalledWith('[ready] post-commit hook returned false — ignored');

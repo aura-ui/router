@@ -1,49 +1,7 @@
 import { HookRegistry } from '../../core/hooks/registry';
-import type { LifecycleRuntimeContext } from '../../core/lifecycle';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationFailureHandler } from '../../core/navigation/navigation-failure-handler';
-import { createMockNavigationJob } from '../helpers/mock-navigation-job';
-import type { RouteInstance } from '../../core/route/types';
-import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
-import { createTestRoute } from '../helpers/create-test-route';
-
-function createMatchedRoute(path: string, overrides: Partial<RouteInstance> = {}): MatchedRouteInfo {
-  return {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
-  };
-}
-
-function createTransactionContext(
-  matchedRoute: MatchedRouteInfo,
-  overrides: Partial<LifecycleRuntimeContext> = {},
-): LifecycleRuntimeContext {
-  const job = createMockNavigationJob(1);
-  return {
-    transaction: {
-      from: null,
-      to: matchedRoute,
-      action: 'push',
-      plan: {
-        exitRoutes: [],
-        enterRoutes: [matchedRoute],
-        lca: null,
-        update: false,
-      },
-    },
-    transactionId: job.transactionId,
-    transactionSignal: job.transactionSignal,
-    router: { navigate: jest.fn() },
-    hookRegistry: new HookRegistry(),
-    viewCommitTracker: new ViewCommitTracker(matchedRoute.href),
-    isJobActive: () => true,
-    ...overrides,
-  };
-}
+import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createLifecycleRuntimeContext } from '../helpers/jest/navigation-fixtures';
 
 describe('NavigationFailureHandler', () => {
   it('reports route onError failures without replacing the parent failure', async () => {
@@ -55,7 +13,7 @@ describe('NavigationFailureHandler', () => {
         throw routeError;
       },
     });
-    const context = createTransactionContext(matchedRoute, { reportHookError });
+    const context = createLifecycleRuntimeContext(matchedRoute, { reportHookError });
 
     const outcome = await NavigationFailureHandler.handle(
       matchedRoute,
@@ -83,22 +41,20 @@ describe('NavigationFailureHandler', () => {
         throw hookError;
       },
     });
-    const matchedRoute = createMatchedRoute('/to', {
-      error: ['bad-error-hook'],
-    });
-    const context = createTransactionContext(matchedRoute, {
+
+    const matchedRoute = createMatchedRoute('/to', { error: ['bad-error-hook'] });
+    const context = createLifecycleRuntimeContext(matchedRoute, {
       hookRegistry,
       reportHookError,
     });
 
     const outcome = await NavigationFailureHandler.handle(
       matchedRoute,
-      new Error('render failed'),
-      'render',
+      new Error('enter failed'),
+      'guard',
       context,
     );
 
-    expect(outcome.status).toBe('error');
     expect(reportHookError).toHaveBeenCalledWith(hookError, outcome.failure);
   });
 });

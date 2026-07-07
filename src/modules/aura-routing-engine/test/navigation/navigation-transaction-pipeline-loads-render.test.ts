@@ -1,19 +1,14 @@
-jest.mock('../../core/hooks/registry', () => ({
-  ...jest.requireActual('../../core/hooks/registry'),
-  runPhaseHooks: jest.fn(),
-}));
-
-jest.mock('../../core/view-mount/view-commit-render', () => ({
-  ...jest.requireActual('../../core/view-mount/view-commit-render'),
-  runViewCommit: jest.fn(),
-}));
+jest.mock('../../core/hooks/registry', () =>
+  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/view-mount/view-commit-render', () =>
+  require('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { PHASES } from '../../core/lifecycle';
 import type { DataSnapshot } from '../../core/data-graph';
 import { buildRouteDataKey } from '../../core/data-graph/route-data';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
-import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from './pipeline-test-setup';
+import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
 
 describe('NavigationTransactionPipeline phase hook attrs', () => {
   beforeEach(() => {

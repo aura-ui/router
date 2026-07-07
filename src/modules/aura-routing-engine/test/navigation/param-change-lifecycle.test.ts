@@ -1,8 +1,10 @@
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
-import { runPhaseHooks } from '../../core/hooks/registry';
-import { runViewCommit } from '../../core/view-mount/view-commit-render';
+jest.mock('../../core/hooks/registry', () =>
+  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/view-mount/view-commit-render', () =>
+  require('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
+
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import {
   createNestedUsersIdMatch,
   createNestedUsersIdSetup,
@@ -10,52 +12,20 @@ import {
   createUsersIdNode,
 } from '../helpers/create-dynamic-leaf-match';
 import { createMockEngine } from '../helpers/create-mock-transaction';
-
-jest.mock('../../core/hooks/registry', () => ({
-  ...jest.requireActual('../../core/hooks/registry'),
-  runPhaseHooks: jest.fn(),
-}));
-
-jest.mock('../../core/view-mount/view-commit-render', () => ({
-  ...jest.requireActual('../../core/view-mount/view-commit-render'),
-  runViewCommit: jest.fn(),
-}));
-
-const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
-const mockRunViewCommit = runViewCommit as jest.MockedFunction<typeof runViewCommit>;
+import { runNavigationTransaction } from '../helpers/jest/navigation-fixtures';
+import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
 
 async function runNavigation(
   from: MatchedRouteInfo,
   to: MatchedRouteInfo,
   engine: AuraRoutingEngine = createMockEngine(),
 ) {
-  const transaction = new NavigationTransaction(
-    1,
-    0,
-    {
-      from,
-      to,
-      action: 'push',
-      href: to.href,
-      hash: '',
-      options: { replace: false, syncHistory: true },
-    },
-    () => false,
-    engine,
-  );
-
-  return {
-    result: await transaction.run(),
-    engine,
-    transaction,
-  };
+  return runNavigationTransaction(from, to, engine);
 }
 
 describe('param-change lifecycle (RFC cases A/B/C)', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockRunViewCommit.mockResolvedValue('ok');
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetPipelineMocks();
   });
 
   it('case A: same viewKey → UPDATE without render/unmount/ready', async () => {
@@ -164,9 +134,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
 
 describe('param-change lifecycle by view type', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockRunViewCommit.mockResolvedValue('ok');
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetPipelineMocks();
   });
 
   async function collectPhases(from: MatchedRouteInfo, to: MatchedRouteInfo) {

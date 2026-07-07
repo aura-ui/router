@@ -1,7 +1,9 @@
+jest.mock('../../core/hooks/registry', () =>
+  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import { runPhaseHooks } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
@@ -14,19 +16,8 @@ import {
 } from '../helpers/create-dynamic-leaf-match';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
 import { createMockEngine } from '../helpers/create-mock-transaction';
-
-jest.mock('../../core/hooks/registry', () => ({
-  ...jest.requireActual('../../core/hooks/registry'),
-  runPhaseHooks: jest.fn(),
-}));
-
-const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
+import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
+import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 
 function wireRouteViewController(
   node: RouteNode,
@@ -120,12 +111,12 @@ describe('param-change remount integration (real runViewCommit)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetHookMocks();
     document.body.replaceChildren();
   });
 
   it('keeps enter view on screen through render → commit → unmount', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     let serial = 0;
     const node = createUsersIdNode({
       view: { type: 'html-src', content: 'content/user/{{id}}.html' },
@@ -148,7 +139,7 @@ describe('param-change remount integration (real runViewCommit)', () => {
   });
 
   it('round-trip with preserve.view caches exit DOM under pathname key', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     let serial = 0;
     const node = createUsersIdNode({
       preserve: { view: true, data: false },
@@ -182,7 +173,7 @@ describe('param-change remount integration (real runViewCommit)', () => {
 describe('NavigationTransactionPipeline viewCommitOptions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetHookMocks();
   });
 
   it('passes paramChangeRemount to route.render via real runViewCommit', async () => {

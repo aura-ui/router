@@ -1,6 +1,8 @@
+jest.mock('../../core/hooks/registry', () =>
+  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { runPhaseHooks } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
@@ -13,19 +15,11 @@ import {
   createUsersIdNode,
 } from '../helpers/create-dynamic-leaf-match';
 import { createMockEngine } from '../helpers/create-mock-transaction';
-
-jest.mock('../../core/hooks/registry', () => ({
-  ...jest.requireActual('../../core/hooks/registry'),
-  runPhaseHooks: jest.fn(),
-}));
-
-const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
-
-const PARALLEL_TRANSITION: RouteTransitionType = {
-  order: 'parallel',
-  in: ['fade-in'],
-  out: ['fade-out'],
-};
+import {
+  createTestOutlet,
+  PARALLEL_CROSS_FADE_TRANSITION,
+} from '../helpers/jest/navigation-fixtures';
+import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 
 type WireOptions = {
   preserveView?: boolean;
@@ -33,12 +27,6 @@ type WireOptions = {
   onTransitionOut?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
   onTransitionIn?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
 };
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
 
 function viewMarkup(id: string): string {
   return `<span data-user-id="${id}">view-${id}</span>`;
@@ -165,17 +153,17 @@ describe('param-change in-place + transition integration (real view)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetHookMocks();
     document.body.replaceChildren();
   });
 
   it('parallel crossfade: both view roots visible during transition hooks', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const transitionSnapshots: Array<{ phase: string; childCount: number }> = [];
 
-    const node = createTransitionNode(PARALLEL_TRANSITION);
+    const node = createTransitionNode(PARALLEL_CROSS_FADE_TRANSITION);
     wireRouteViewController(node, outlet, viewMarkup, {
-      transition: PARALLEL_TRANSITION,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
       onTransitionOut: (_ctx, root) => {
         transitionSnapshots.push({ phase: 'transitionOut', childCount: root.children.length });
         expect(queryViewRoot(root, '1')).not.toBeNull();
@@ -213,14 +201,14 @@ describe('param-change in-place + transition integration (real view)', () => {
   });
 
   it('parallel crossfade: incoming survives unmount, outgoing removed once', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     let outgoingConnectedAtUnmount = false;
     let incomingConnectedAtUnmount = false;
     let outletChildCountAtUnmount = -1;
 
-    const node = createTransitionNode(PARALLEL_TRANSITION);
+    const node = createTransitionNode(PARALLEL_CROSS_FADE_TRANSITION);
     const { controller } = wireRouteViewController(node, outlet, viewMarkup, {
-      transition: PARALLEL_TRANSITION,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
     });
 
     const originalOnUnmount = controller.onUnmount.bind(controller);
@@ -252,7 +240,7 @@ describe('param-change in-place + transition integration (real view)', () => {
     ['out-in', 'out-in'],
     ['in-out', 'in-out'],
   ] as const)('%s policy completes in-place remount with staged crossfade', async (_label, order) => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const phases: string[] = [];
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
@@ -287,7 +275,7 @@ describe('param-change in-place + transition integration (real view)', () => {
   });
 
   it('out-in: transitionOut runs before render (only outgoing in outlet)', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     let childCountDuringTransitionOut = -1;
 
     const transition: RouteTransitionType = {
@@ -315,7 +303,7 @@ describe('param-change in-place + transition integration (real view)', () => {
   });
 
   it('in-out: transitionIn runs after render (both layers), before transitionOut', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const transitionSnapshots: Array<{ phase: string; childCount: number }> = [];
 
     const transition: RouteTransitionType = {
@@ -353,21 +341,21 @@ describe('param-change in-place + transition integration (real view)', () => {
   });
 
   it('preserve.view + parallel: crossfade with outgoing stashed on unmount', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const transitionSnapshots: Array<{ phase: string; childCount: number }> = [];
 
     const node = createUsersIdNode({
       preserve: { view: true, data: false },
       view: { type: 'html-src', content: 'content/user/{{id}}.html' },
-      transition: PARALLEL_TRANSITION,
-      transitionIn: PARALLEL_TRANSITION.in,
-      transitionOut: PARALLEL_TRANSITION.out,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
+      transitionIn: PARALLEL_CROSS_FADE_TRANSITION.in,
+      transitionOut: PARALLEL_CROSS_FADE_TRANSITION.out,
       unmount: ['cleanup'],
       ready: ['analytics'],
     });
     const { stash } = wireRouteViewController(node, outlet, viewMarkup, {
       preserveView: true,
-      transition: PARALLEL_TRANSITION,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
       onTransitionOut: (_ctx, root) => {
         transitionSnapshots.push({ phase: 'transitionOut', childCount: root.children.length });
         expect(queryViewRoot(root, '1')).not.toBeNull();
@@ -400,10 +388,10 @@ describe('param-change in-place + transition integration (real view)', () => {
   });
 
   it('ordinary staged transition unmount clears both layers (contrast with param remount path)', async () => {
-    const outlet = createOutlet();
-    const node = createTransitionNode(PARALLEL_TRANSITION);
+    const outlet = createTestOutlet();
+    const node = createTransitionNode(PARALLEL_CROSS_FADE_TRANSITION);
     const { controller } = wireRouteViewController(node, outlet, viewMarkup, {
-      transition: PARALLEL_TRANSITION,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
     });
 
     const from = createUsersIdMatch('1', node);
@@ -421,7 +409,7 @@ describe('param-change in-place + transition integration (real view)', () => {
 describe('param-change in-place + transition pipeline order', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetHookMocks();
   });
 
   it.each([
@@ -434,7 +422,7 @@ describe('param-change in-place + transition pipeline order', () => {
       callOrder.push(ctx.phase);
     });
 
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const transition: RouteTransitionType = {
       order,
       in: ['fade-in'],

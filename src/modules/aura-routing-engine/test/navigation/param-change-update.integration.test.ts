@@ -1,6 +1,8 @@
+jest.mock('../../core/hooks/registry', () =>
+  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { runPhaseHooks } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
@@ -10,19 +12,8 @@ import {
   createUsersIdNode,
 } from '../helpers/create-dynamic-leaf-match';
 import { createMockEngine } from '../helpers/create-mock-transaction';
-
-jest.mock('../../core/hooks/registry', () => ({
-  ...jest.requireActual('../../core/hooks/registry'),
-  runPhaseHooks: jest.fn(),
-}));
-
-const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
+import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
+import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 
 function wireRouteViewController(
   node: RouteNode,
@@ -103,7 +94,7 @@ describe('param-change UPDATE integration (real view)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetHookMocks();
     document.body.replaceChildren();
   });
 
@@ -113,7 +104,7 @@ describe('param-change UPDATE integration (real view)', () => {
       phases.push(ctx.phase);
     });
 
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const node = createUsersIdNode({
       view: { type: 'html-src', content: 'partials/user-shell.html' },
       update: ['apply-user'],

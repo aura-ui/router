@@ -43,8 +43,8 @@ export type BranchResolveResult =
   | { status: 'aborted' }
   | { status: 'error'; error: unknown; route: MatchedRouteInfo };
 
-/** Whether enter routes use branch mount (resolve branch → sync mount root→leaf). */
-export function shouldUseBranchMount(options: {
+/** Whether enter routes use prepare → commit render (parallel resolve, then sync mount root→leaf). */
+export function shouldUsePrepareCommitEnterBranch(options: {
   enterRoutes: readonly MatchedRouteInfo[];
   paramChangeRemount?: boolean;
   mountStrategy?: MountStrategy | null;

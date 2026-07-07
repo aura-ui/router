@@ -1,12 +1,11 @@
 import { NavigationTransaction } from './navigation-transaction';
 import { PHASES, type PipelinePhaseDefinition } from '../lifecycle';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import type { MatchedRouteInfo } from '../match/url-matcher';
 import { resolveRouteData } from '../data-graph';
 import {
   createBranchResolveContext,
   resolveEnterBranch,
-  shouldUseBranchMount,
+  shouldUsePrepareCommitEnterBranch,
 } from '../view-mount/branch-resolver';
 import { getEnterRoute } from '../route-tree/transition-plan';
 import { mountEnterBranch } from '../view-mount/branch-mount';
@@ -18,6 +17,7 @@ import {
 } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { TransactionFullResult } from './transaction-result';
+import type { MatchedRouteInfo } from '../match/url-matcher';
 
 export type { TransactionFullResult } from './transaction-result';
 
@@ -26,7 +26,7 @@ type PipelineStep = () => Promise<TransactionFullResult>;
 /**
  * Navigation pipeline: guards → loads → history → render (+ transitions) → effects.
  *
- * Terminal outcomes are returned immediately; `null` means the step succeeded
+ * Terminal step results are returned immediately; `null` means the step succeeded
  * and the next step should run ({@link TransactionFullResult}).
  */
 export class NavigationTransactionPipeline {
@@ -39,22 +39,22 @@ export class NavigationTransactionPipeline {
 
   /** Full path: blocking guards/loads, staged render, promote → gate → unmount → ready. */
   async runFullPipeline(): Promise<TransactionFullResult> {
-    const outcome = await this.runSequentially([
+    const stepResult = await this.runSequentially([
       () => this.runGuards(),
       () => this.runLoads(),
-      () => this.commitHistoryStep(),
+      () => this.runCommitHistory(),
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
     ]);
-    return outcome ?? { status: 'navigationSucceeded' };
+    return stepResult ?? { status: 'navigationSucceeded' };
   }
 
   /** Tier-0 swap: history → view commit → promote → gate → unmount → ready (no guards/loads). */
   async runFastPipeline(): Promise<TransactionFullResult> {
     this.commitHistory();
 
-    const route = this.transaction.transitionPlan.enterRoutes[0]!;
-    const viewCommit = await runViewCommit(route, {
+    const enterRoute = this.transaction.transitionPlan.enterRoutes[0]!;
+    const viewCommit = await runViewCommit(enterRoute, {
       signal: this.transaction.signal,
       isAborted: () => !this.transaction.isActive(),
     });
@@ -68,7 +68,7 @@ export class NavigationTransactionPipeline {
     }
 
     if (isRenderError(viewCommit)) {
-      return this.failRender(route, viewCommit.error);
+      return this.failRender(enterRoute, viewCommit.error);
     }
 
     return await this.runAfterRender() ?? { status: 'navigationSucceeded' };
@@ -76,12 +76,12 @@ export class NavigationTransactionPipeline {
 
   /** Same leaf route record: load → history → update hooks → view finalize (no guards/render). */
   async runUpdate(): Promise<TransactionFullResult> {
-    const outcome = await this.runSequentially([
+    const stepResult = await this.runSequentially([
       () => this.runLoads(),
-      () => this.commitHistoryStep(),
+      () => this.runCommitHistory(),
       () => this.runLifecyclePhase(PHASES.update),
     ]);
-    if (outcome) return outcome;
+    if (stepResult) return stepResult;
 
     if (!this.transaction.isActive()) {
       return { status: 'cancelled' };
@@ -95,7 +95,7 @@ export class NavigationTransactionPipeline {
     this.transaction.engine.commitHistoryIfNeeded(this.transaction);
   }
 
-  private commitHistoryStep(): Promise<TransactionFullResult> {
+  private runCommitHistory(): Promise<TransactionFullResult> {
     this.commitHistory();
     return Promise.resolve(null);
   }
@@ -125,24 +125,29 @@ export class NavigationTransactionPipeline {
 
   /** Test only — render with no `transition-order`. */
   async runRender(): Promise<TransactionFullResult> {
-    return this.render(null);
+    return this.renderEnterBranch(null);
   }
 
   /** Render interleaved with `transition-order` on the enter route. */
   async runRenderWithTransition(): Promise<TransactionFullResult> {
-    return this.render(this.transaction.transitionOrder);
+    return this.renderEnterBranch(this.transaction.transitionOrder);
   }
 
   /**
-   * Enter-branch render: atomic (prepare → commit to DOM) or per-route, optionally wrapped in transitions.
+   * Enter-branch render: branch mount (prepare → commit to DOM) or per-route, optionally wrapped in transitions.
    *
    * All nine combinations are listed explicitly below — read top-to-bottom for one scenario.
    */
-  private render(transitionOrder: TransitionOrderType | null): Promise<TransactionFullResult> {
+  private renderEnterBranch(transitionOrder: TransitionOrderType | null): Promise<TransactionFullResult> {
     const transitionPlan = this.transaction.transitionPlan;
     const { enterRoutes, paramChangeRemount } = transitionPlan;
     const mountStrategy = getEnterRoute(transitionPlan)?.mountStrategy ?? null;
-    const atomic = shouldUseBranchMount({ enterRoutes, paramChangeRemount, mountStrategy, transitionPlan });
+    const atomic = shouldUsePrepareCommitEnterBranch({
+      enterRoutes,
+      paramChangeRemount,
+      mountStrategy,
+      transitionPlan,
+    });
 
     if (atomic && transitionOrder === null) {
       return this.runSequentially([
@@ -222,11 +227,11 @@ export class NavigationTransactionPipeline {
 
   private async prepareEnterBranch(): Promise<TransactionFullResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const ctx = createBranchResolveContext(this.transaction);
+    const resolveContext = createBranchResolveContext(this.transaction);
     const resolved = await resolveEnterBranch(
       enterRoutes,
       this.transaction.engine.contentLoad!,
-      ctx,
+      resolveContext,
     );
 
     if (resolved.status === 'aborted' || !this.transaction.isActive()) {
@@ -250,15 +255,15 @@ export class NavigationTransactionPipeline {
     }
 
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const ctx = createBranchResolveContext(this.transaction);
-    const mount = mountEnterBranch(enterRoutes, preResolvedContents, ctx);
+    const resolveContext = createBranchResolveContext(this.transaction);
+    const mountResult = mountEnterBranch(enterRoutes, preResolvedContents, resolveContext);
 
-    if (mount.status === 'aborted' || !this.transaction.isActive()) {
+    if (mountResult.status === 'aborted' || !this.transaction.isActive()) {
       return Promise.resolve({ status: 'cancelled' });
     }
 
-    if (mount.status === 'error') {
-      return this.failRender(mount.route, mount.error);
+    if (mountResult.status === 'error') {
+      return this.failRender(mountResult.route, mountResult.error);
     }
 
     this.transaction.viewCommitTracker.markViewStaged();
@@ -267,7 +272,7 @@ export class NavigationTransactionPipeline {
 
   private async renderEnterRoutes(): Promise<TransactionFullResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const cancellation: ViewRenderCancellation = {
+    const viewRenderCancellation: ViewRenderCancellation = {
       signal: this.transaction.signal,
       isAborted: () => !this.transaction.isActive(),
     };
@@ -276,7 +281,7 @@ export class NavigationTransactionPipeline {
       const matchedRoute = enterRoutes[i]!;
       const viewCommit = await runViewCommit(
         matchedRoute,
-        cancellation,
+        viewRenderCancellation,
         this.viewCommitOptions(matchedRoute),
       );
 
@@ -362,8 +367,8 @@ export class NavigationTransactionPipeline {
       if (!this.transaction.isActive()) {
         return { status: 'cancelled' };
       }
-      const outcome = await step();
-      if (outcome) return outcome;
+      const stepResult = await step();
+      if (stepResult) return stepResult;
     }
     return null;
   }

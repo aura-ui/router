@@ -8,7 +8,7 @@ import {
   type DataSnapshot,
   type MatchedRouteInfo,
 } from '../../core';
-import { shouldUseBranchMount } from '../../core/view-mount/branch-resolver';
+import { shouldUsePrepareCommitEnterBranch } from '../../core/view-mount/branch-resolver';
 import { buildRouteDataKey, resolveRouteData } from '../../core/data-graph/route-data';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 import { withResolvedView } from '../helpers/with-resolved-view';
@@ -270,14 +270,14 @@ describe('resolveEnterBranch', () => {
   });
 });
 
-describe('shouldUseBranchMount', () => {
+describe('shouldUsePrepareCommitEnterBranch', () => {
   const base = {
     paramChangeRemount: false,
   };
 
   it('returns true when transition order is set on a multi-route enter branch', () => {
     expect(
-      shouldUseBranchMount({
+      shouldUsePrepareCommitEnterBranch({
         ...base,
         enterRoutes: [matched('/a'), matched('/b')],
       }),
@@ -286,7 +286,7 @@ describe('shouldUseBranchMount', () => {
 
   it('returns false for param-change remount', () => {
     expect(
-      shouldUseBranchMount({
+      shouldUsePrepareCommitEnterBranch({
         ...base,
         paramChangeRemount: true,
         enterRoutes: [matched('/users/1'), matched('/users/2')],
@@ -296,7 +296,7 @@ describe('shouldUseBranchMount', () => {
 
   it('returns true for multiple enter routes', () => {
     expect(
-      shouldUseBranchMount({
+      shouldUsePrepareCommitEnterBranch({
         ...base,
         enterRoutes: [matched('/users'), matched('/users/1')],
       }),
@@ -305,7 +305,7 @@ describe('shouldUseBranchMount', () => {
 
   it('returns true for a single route with async content', () => {
     expect(
-      shouldUseBranchMount({
+      shouldUsePrepareCommitEnterBranch({
         ...base,
         enterRoutes: [createMatchedRoute('/page', { load: ['fetch'] })],
       }),
@@ -314,7 +314,7 @@ describe('shouldUseBranchMount', () => {
 
   it('returns false for a single sync route', () => {
     expect(
-      shouldUseBranchMount({
+      shouldUsePrepareCommitEnterBranch({
         ...base,
         enterRoutes: [createMatchedRoute('/page')],
       }),
@@ -323,7 +323,7 @@ describe('shouldUseBranchMount', () => {
 
   it('returns true for cross-outlet full branch swap', () => {
     expect(
-      shouldUseBranchMount({
+      shouldUsePrepareCommitEnterBranch({
         ...base,
         enterRoutes: [createMatchedRoute('/about')],
         transitionPlan: {
@@ -337,7 +337,7 @@ describe('shouldUseBranchMount', () => {
 
   it('returns false when mount-strategy is per-route', () => {
     expect(
-      shouldUseBranchMount({
+      shouldUsePrepareCommitEnterBranch({
         ...base,
         enterRoutes: [createMatchedRoute('/users'), createMatchedRoute('/users/1')],
         mountStrategy: 'per-route',
@@ -347,7 +347,7 @@ describe('shouldUseBranchMount', () => {
 
   it('returns true when mount-strategy is branch for a single sync route', () => {
     expect(
-      shouldUseBranchMount({
+      shouldUsePrepareCommitEnterBranch({
         ...base,
         enterRoutes: [createMatchedRoute('/page')],
         mountStrategy: 'branch',

@@ -4,23 +4,15 @@ type AttrParser<T> = (attr: string | null) => T | null;
 
 const defaultParser = parseString as AttrParser<any>;
 
-const cachesByProto = new WeakMap<object, WeakMap<HTMLElement, Map<string, unknown>>>();
+const cachesByEl = new WeakMap<HTMLElement, Map<string, unknown>>();
 
-function cacheOf(proto: object, el: HTMLElement, create = false): Map<string, unknown> | undefined {
-  let byEl = cachesByProto.get(proto);
-  if (!byEl) {
-    if (!create) return;
-    byEl = new WeakMap();
-    cachesByProto.set(proto, byEl);
-  }
-
-  let map = byEl.get(el);
+function cacheOf(el: HTMLElement, create = false): Map<string, unknown> | undefined {
+  let map = cachesByEl.get(el);
   if (!map) {
     if (!create) return;
     map = new Map();
-    byEl.set(el, map);
+    cachesByEl.set(el, map);
   }
-
   return map;
 }
 
@@ -78,17 +70,17 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
 
     if (config.cached) {
       function get(this: HTMLElement): T | null {
-        const map = cacheOf(proto, this);
+        const map = cacheOf(this);
         if (map?.has(propName)) return map.get(propName) as T | null;
 
         const val = read(this);
-        cacheOf(proto, this, true)!.set(propName, val);
+        cacheOf(this, true)!.set(propName, val);
         return val;
       }
 
       function set(this: HTMLElement, val: T): void {
         write(this, val);
-        cacheOf(proto, this, true)!.set(propName, read(this));
+        cacheOf(this, true)!.set(propName, read(this));
       }
 
       Object.defineProperty(proto, propName, config.readonly ? { get } : { get, set });
@@ -111,16 +103,15 @@ function clearAttr(target: object, prop?: PropertyKey | PropertyKey[]): void {
   if (typeof target === 'function') return;
 
   const el = target as HTMLElement;
-  const proto = Object.getPrototypeOf(target);
 
   if (prop === undefined) {
-    cachesByProto.get(proto)?.delete(el);
+    cachesByEl.delete(el);
     return;
   }
 
   if (Array.isArray(prop)) return prop.forEach((p) => attr.clear(target, p));
 
-  cacheOf(proto, el)?.delete(String(prop));
+  cacheOf(el)?.delete(String(prop));
 }
 
 /**

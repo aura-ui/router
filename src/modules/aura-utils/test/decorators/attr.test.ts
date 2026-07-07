@@ -18,10 +18,16 @@ class CachedHost extends HTMLElement {
   @attr({ cached: true, inherit: true, parser: parseCachedLabel }) label: string | null;
 }
 
+class DualCachedHost extends HTMLElement {
+  @attr({ cached: true, parser: parseCachedLabel }) first: string | null;
+  @attr({ cached: true, parser: parseCachedLabel }) second: string | null;
+}
+
 describe('@attr inherit', () => {
   const hostTag = 'inherit-host';
   const emptyTag = 'empty-allowed-host';
   const cachedTag = 'cached-attr-host';
+  const dualCachedTag = 'dual-cached-attr-host';
 
   beforeAll(() => {
     if (!customElements.get(hostTag)) {
@@ -32,6 +38,9 @@ describe('@attr inherit', () => {
     }
     if (!customElements.get(cachedTag)) {
       customElements.define(cachedTag, CachedHost);
+    }
+    if (!customElements.get(dualCachedTag)) {
+      customElements.define(dualCachedTag, DualCachedHost);
     }
   });
 
@@ -98,7 +107,7 @@ describe('@attr inherit', () => {
     root.remove();
   });
 
-  it('cached attr reparses when local attribute changes', () => {
+  it('cached attr reads DOM once until cleared', () => {
     const child = document.createElement(cachedTag) as CachedHost;
     child.setAttribute('label', 'first');
     document.body.append(child);
@@ -109,11 +118,16 @@ describe('@attr inherit', () => {
 
     child.setAttribute('label', 'second');
 
+    expect(child.label).toBe('first');
+    expect(cachedParseCalls).toBe(1);
+
+    attr.clear(child, 'label');
+
     expect(child.label).toBe('second');
     expect(cachedParseCalls).toBe(2);
   });
 
-  it('cached attr reparses when inherited attribute changes', () => {
+  it('cached attr keeps inherited value until cleared', () => {
     const root = document.createElement('div');
     root.setAttribute('label', 'parent-first');
 
@@ -127,7 +141,81 @@ describe('@attr inherit', () => {
 
     root.setAttribute('label', 'parent-second');
 
+    expect(child.label).toBe('parent-first');
+    expect(cachedParseCalls).toBe(1);
+
+    attr.clear(child, 'label');
+
     expect(child.label).toBe('parent-second');
     expect(cachedParseCalls).toBe(2);
+  });
+
+  it('cached attr is stored per element instance and per property', () => {
+    const first = document.createElement(dualCachedTag) as DualCachedHost;
+    const second = document.createElement(dualCachedTag) as DualCachedHost;
+    first.setAttribute('first', 'a');
+    first.setAttribute('second', 'b');
+    second.setAttribute('first', 'c');
+    second.setAttribute('second', 'd');
+    document.body.append(first, second);
+
+    expect(first.first).toBe('a');
+    expect(first.second).toBe('b');
+    expect(second.first).toBe('c');
+    expect(second.second).toBe('d');
+    expect(cachedParseCalls).toBe(4);
+
+    first.setAttribute('first', 'changed');
+    second.setAttribute('second', 'changed');
+
+    expect(first.first).toBe('a');
+    expect(second.second).toBe('d');
+    expect(cachedParseCalls).toBe(4);
+
+    attr.clear(first, 'first');
+    attr.clear(second, 'second');
+
+    expect(first.first).toBe('changed');
+    expect(second.second).toBe('changed');
+    expect(cachedParseCalls).toBe(6);
+  });
+
+  it('attr.has reports whether the instance cache is populated', () => {
+    const child = document.createElement(cachedTag) as CachedHost;
+    child.setAttribute('label', 'first');
+    document.body.append(child);
+
+    expect(attr.has(child, 'label')).toBe(false);
+
+    expect(child.label).toBe('first');
+    expect(attr.has(child, 'label')).toBe(true);
+
+    attr.clear(child, 'label');
+    expect(attr.has(child, 'label')).toBe(false);
+  });
+
+  it('attr.clearAll drops every cached property on the instance', () => {
+    const host = document.createElement(dualCachedTag) as DualCachedHost;
+    host.setAttribute('first', 'a');
+    host.setAttribute('second', 'b');
+    document.body.append(host);
+
+    expect(host.first).toBe('a');
+    expect(host.second).toBe('b');
+    expect(attr.has(host, 'first')).toBe(true);
+    expect(attr.has(host, 'second')).toBe(true);
+    expect(cachedParseCalls).toBe(2);
+
+    attr.clearAll(host);
+
+    expect(attr.has(host, 'first')).toBe(false);
+    expect(attr.has(host, 'second')).toBe(false);
+
+    host.setAttribute('first', 'x');
+    host.setAttribute('second', 'y');
+
+    expect(host.first).toBe('x');
+    expect(host.second).toBe('y');
+    expect(cachedParseCalls).toBe(4);
   });
 });

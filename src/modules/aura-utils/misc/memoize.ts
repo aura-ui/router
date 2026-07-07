@@ -1,6 +1,8 @@
 import type { AnyToAnyFnSignature } from './functions';
 
-/** Memoized function: original callable plus cache utilities. */
+/**
+ * Memoized function: original callable plus {@link memoizeFn | memoization} utilities.
+ */
 export type MemoizedFn<T extends AnyToAnyFnSignature> = T & {
   /** Memoization cache keyed by hash result (`string` or `null`). */
   cache: Map<string | null, ReturnType<T>>;
@@ -16,15 +18,18 @@ export type MemoizedFn<T extends AnyToAnyFnSignature> = T & {
  *
  * - `string` — cache key;
  * - `null` — valid key (e.g. zero-argument calls);
- * - `undefined` — hash cannot be built, result is not memoized.
+ * - `undefined` — hash cannot be built; the call is not memoized.
  */
 export type MemoHashFn<F extends AnyToAnyFnSignature = AnyToAnyFnSignature> = (
   ...args: Parameters<F>
 ) => string | null | undefined;
 
 /**
- * Default arguments hash function.
- * Supports only 0–1 arguments with a primitive type (`string`, `number`, `boolean`).
+ * Default cache key builder for {@link memoizeFn}.
+ *
+ * - `0` arguments → `null`;
+ * - `1` primitive (`string`, `number`, `boolean`) → string key (`string` returned as-is);
+ * - more than one argument or non-primitive first argument → `undefined` (no memoization).
  */
 export function defaultArgsToHashFn(...args: unknown[]): string | null | undefined {
   if (args.length === 0) return null;
@@ -38,15 +43,26 @@ export function defaultArgsToHashFn(...args: unknown[]): string | null | undefin
 }
 
 /**
- * Memoizes `fn` by caching its return value per argument hash.
+ * Wraps `fn` and caches its return value per {@link MemoHashFn | hash} of the arguments.
  *
- * When `hashFn` returns `undefined`, the original function is invoked on every call.
- * Preserves `this` binding (safe for methods).
- *
- * For hot single-argument paths prefer `memoizeOne` from `./memoize-one`.
+ * When `hashFn` returns `undefined`, `fn` runs on every call (a console warning is emitted).
+ * Preserves `this` when the memoized function is used as a method.
  *
  * @param fn - Function to memoize.
  * @param hashFn - Optional hash builder; {@link defaultArgsToHashFn} by default.
+ *
+ * @example
+ * ```ts
+ * const parse = memoizeFn((pathname: string) => expensiveParse(pathname));
+ * parse('/users');
+ * parse('/users'); // cache hit
+ *
+ * const join = memoizeFn(
+ *   (a: string, b: string) => a + b,
+ *   (a, b) => `${a}\0${b}`,
+ * );
+ * ```
+ *
  * @see MemoHashFn
  */
 export function memoizeFn<F extends AnyToAnyFnSignature>(

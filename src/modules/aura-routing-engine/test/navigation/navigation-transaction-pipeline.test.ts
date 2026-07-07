@@ -175,7 +175,7 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
 
     const transaction = createMockTransaction({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
     });
     const pipeline = new NavigationTransactionPipeline(transaction);
 
@@ -198,7 +198,7 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
 
     const transaction = createMockTransaction({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
     });
 
     await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
@@ -211,7 +211,7 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
   it('returns navigationSucceeded when render and both transitions succeed', async () => {
     const transaction = createMockTransaction({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
     });
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
@@ -326,7 +326,7 @@ describe('NavigationTransactionPipeline sequential transition policies', () => {
     const transaction = createMockTransaction({
       transitionOrder: policy,
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
     });
 
     await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
@@ -877,16 +877,43 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     );
   });
 
-  it('skips branch atomic when transition order is set', async () => {
+  it('uses branch atomic with transition order on multi-route enter', async () => {
     const transaction = withContentLoad({
       enterRoutes: [createMatchedRoute('/users'), createMatchedRoute('/users/1')],
-      transitionOrder: 'parallel',
+      transitionOrder: 'out-in',
     });
 
-    await new NavigationTransactionPipeline(transaction).runRender();
+    await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 
-    expect(resolveEnterBranchSpy).not.toHaveBeenCalled();
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(2);
+    expect(resolveEnterBranchSpy).toHaveBeenCalledTimes(1);
+    expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
+  });
+
+  it('out-in branch atomic resolves before transitionOut and mounts before transitionIn', async () => {
+    const callOrder: string[] = [];
+
+    resolveEnterBranchSpy.mockImplementation(async () => {
+      callOrder.push('resolve');
+      return { status: 'ok', payloads: ['<layout/>', '<index/>'] };
+    });
+    mountEnterBranchSpy.mockImplementation(() => {
+      callOrder.push('apply');
+      return { status: 'ok' };
+    });
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
+      callOrder.push(ctx.phase);
+    });
+
+    const transaction = withContentLoad({
+      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      transitionOrder: 'out-in',
+    });
+
+    await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
+
+    expect(callOrder).toEqual(['resolve', 'transitionOut', 'apply', 'transitionIn']);
   });
 
   it('returns cancelled when branch resolve aborts', async () => {

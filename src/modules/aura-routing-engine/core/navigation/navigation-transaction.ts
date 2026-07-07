@@ -10,6 +10,7 @@ import { type NavigationErrorPhase } from '../failure';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
 import type { DataSnapshot } from '../data-graph';
+import type { ViewPayload } from '../content/model/types';
 import { canUseFastPath } from '../route-tree/can-use-fast-path';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 import { NavigationFailureHandler } from './navigation-failure-handler';
@@ -34,6 +35,8 @@ export class NavigationTransaction {
   transitionPlan!: TransitionMap;
   transitionOrder: TransitionOrderType | null = null;
   dataSnapshot?: DataSnapshot;
+  /** Pre-resolved enter-branch payloads between resolve and apply (transition + atomic). */
+  resolvedBranchPayloads?: readonly (ViewPayload | null)[];
   viewCommitTracker: ViewCommitTracker;
   /** Set when {@link AuraRoutingEngine.commitHistoryIfNeeded} wrote the URL for this transaction. */
   historyCommitted = false;

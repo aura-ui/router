@@ -132,7 +132,7 @@ async function runRenderStep(
   router: AuraRouter,
   fromPath: string,
   toPath: string,
-  options?: { cancelAfterMs?: number },
+  options?: { cancelAfterMs?: number; transitionOrder?: 'out-in' | 'in-out' | 'parallel' | null },
 ): Promise<{ outcome: Awaited<ReturnType<NavigationTransactionPipeline['runRender']>>; transaction: NavigationTransaction }> {
   const engine = createEngine(router);
   const from = matchAt(router, fromPath);
@@ -153,10 +153,12 @@ async function runRenderStep(
     engine,
   );
   transaction.transitionPlan = buildTransitionPlan(from, to);
-  transaction.transitionOrder = null;
+  transaction.transitionOrder = options?.transitionOrder ?? null;
 
   const pipeline = new NavigationTransactionPipeline(transaction);
-  const renderPromise = pipeline.runRender();
+  const renderPromise = options?.transitionOrder
+    ? pipeline.runRenderWithTransition()
+    : pipeline.runRender();
 
   if (options?.cancelAfterMs != null) {
     await sleep(options.cancelAfterMs);
@@ -165,6 +167,18 @@ async function runRenderStep(
 
   const outcome = await renderPromise;
   return { outcome, transaction };
+}
+
+async function mountBranchFixtureWithTransition(
+  transitionOrder: 'out-in' | 'in-out' | 'parallel' = 'out-in',
+): Promise<Fixture> {
+  const fixture = await mountBranchFixture();
+  const users = fixture.router.querySelector('aura-route[path="/users"]') as AuraRoute;
+  const child = users.querySelector(':scope > aura-route') as AuraRoute;
+  child.setAttribute('transition-order', transitionOrder);
+  child.setAttribute('transition', 'fade');
+  fixture.router.refreshRoutes();
+  return fixture;
 }
 
 function isLayoutOnlyGap(text: string): boolean {
@@ -375,5 +389,55 @@ describe('atomic branch commit integration', () => {
 
     childGate.release();
     await waitForText(router.appOutlet, 'CHILD');
+  });
+
+  it('out-in transition + nested async child never shows layout-only gap', async () => {
+    const { router, childGate } = await mountBranchFixtureWithTransition('out-in');
+    const outlet = router.appOutlet;
+    const violations: string[] = [];
+
+    const poll = setInterval(() => {
+      const text = outlet.textContent ?? '';
+      if (isLayoutOnlyGap(text)) violations.push(text);
+    }, 5);
+
+    router.navigate('/users/list', { replace: false, syncHistory: false });
+    await sleep(40);
+    childGate.release();
+    await waitForText(outlet, 'CHILD');
+
+    clearInterval(poll);
+
+    expect(violations).toEqual([]);
+    expect(outlet.textContent).toContain('LAYOUT');
+    expect(outlet.textContent).toContain('CHILD');
+  });
+
+  it('out-in transition keeps outgoing visible during branch resolve', async () => {
+    const { router, childGate } = await mountBranchFixtureWithTransition('out-in');
+    const outlet = router.appOutlet;
+
+    router.navigate('/users/list', { replace: false, syncHistory: false });
+    await sleep(40);
+
+    expect(outlet.textContent).toContain('INTRO');
+    expect(outlet.textContent).not.toContain('LAYOUT');
+
+    childGate.release();
+    await waitForText(outlet, 'CHILD');
+  });
+
+  it('cancels mid-resolve with out-in transition without touching DOM', async () => {
+    const { router } = await mountBranchFixtureWithTransition('out-in');
+    const outlet = router.appOutlet;
+
+    const { outcome } = await runRenderStep(router, '/', '/users/list', {
+      cancelAfterMs: 30,
+      transitionOrder: 'out-in',
+    });
+
+    expect(outcome).toEqual({ status: 'cancelled' });
+    expect(outlet.textContent).toContain('INTRO');
+    expect(outlet.textContent).not.toContain('LAYOUT');
   });
 });

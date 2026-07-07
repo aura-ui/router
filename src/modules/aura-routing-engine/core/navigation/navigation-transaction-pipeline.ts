@@ -16,6 +16,7 @@ import {
   type ViewCommitRenderOptions,
   type ViewRenderCancellation,
 } from '../view-mount/view-commit-render';
+import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { TransactionFullResult } from './transaction-result';
 
 export type { TransactionFullResult } from './transaction-result';
@@ -124,30 +125,133 @@ export class NavigationTransactionPipeline {
 
   /** Staged view commit for all enter routes (no transition wrappers). */
   async runRender(): Promise<TransactionFullResult> {
-    const plan = this.transaction.transitionPlan;
-    const { enterRoutes, paramChangeRemount } = plan;
-    const mountStrategy = getEnterRoute(plan)?.mountStrategy ?? null;
+    return this.branchMountEnabled()
+      ? this.runBranchAtomicRender()
+      : this.mountEnterRoutes();
+  }
 
-    if (shouldUseBranchMount({
-      enterRoutes,
-      transitionOrder: this.transaction.transitionOrder,
-      paramChangeRemount,
-      mountStrategy,
-      transitionPlan: plan,
-    })) {
-      return this.runBranchAtomicRender(enterRoutes);
+  /**
+   * Render wrapped by `transition-order` on the enter route (see MAIN_PIPELINE §2).
+   * Branch mount: resolve before mount; out-in runs transitionOut between resolve and apply.
+   */
+  async runRenderWithTransition(): Promise<TransactionFullResult> {
+    const { transitionOrder } = this.transaction;
+
+    if (transitionOrder === null) {
+      return this.runRender();
     }
 
-    return this.mountEnterRoutes(enterRoutes, {
-      signal: this.transaction.signal,
-      isAborted: () => !this.transaction.isActive(),
+    if (!this.branchMountEnabled()) {
+      return this.runEagerRenderWithTransition(transitionOrder);
+    }
+
+    return this.runBranchRenderWithTransition(transitionOrder);
+  }
+
+  private branchMountEnabled(): boolean {
+    const plan = this.transaction.transitionPlan;
+    return shouldUseBranchMount({
+      enterRoutes: plan.enterRoutes,
+      paramChangeRemount: plan.paramChangeRemount,
+      mountStrategy: getEnterRoute(plan)?.mountStrategy ?? null,
+      transitionPlan: plan,
     });
   }
 
+  /** Legacy per-route render interleaved with transition lifecycle phases. */
+  private runEagerRenderWithTransition(transitionOrder: TransitionOrderType): Promise<TransactionFullResult> {
+    if (transitionOrder === 'parallel') {
+      return this.runParallelEagerRenderWithTransition();
+    }
+
+    if (transitionOrder === 'out-in') {
+      return this.runSequentially([
+        () => this.runLifecyclePhase(PHASES.transitionOut),
+        () => this.runRender(),
+        () => this.runLifecyclePhase(PHASES.transitionIn),
+      ]);
+    }
+
+    if (transitionOrder === 'in-out') {
+      return this.runSequentially([
+        () => this.runRender(),
+        () => this.runLifecyclePhase(PHASES.transitionIn),
+        () => this.runLifecyclePhase(PHASES.transitionOut),
+      ]);
+    }
+
+    return Promise.resolve(null);
+  }
+
+  private async runParallelEagerRenderWithTransition(): Promise<TransactionFullResult> {
+    const renderOutcome = await this.runRender();
+    if (renderOutcome) return renderOutcome;
+
+    const [transitionOutOutcome, transitionInOutcome] = await Promise.all([
+      this.runLifecyclePhase(PHASES.transitionOut),
+      this.runLifecyclePhase(PHASES.transitionIn),
+    ]);
+
+    if (!this.transaction.isActive()) {
+      return { status: 'cancelled' };
+    }
+
+    return transitionOutOutcome ?? transitionInOutcome ?? null;
+  }
+
+  /** Branch resolve → apply, ordered around transition hooks per `transition-order`. */
+  private runBranchRenderWithTransition(transitionOrder: TransitionOrderType): Promise<TransactionFullResult> {
+    if (transitionOrder === 'out-in') {
+      return this.runSequentially([
+        () => this.resolveEnterBranchStep(),
+        () => this.runLifecyclePhase(PHASES.transitionOut),
+        () => this.applyEnterBranchStep(),
+        () => this.runLifecyclePhase(PHASES.transitionIn),
+      ]);
+    }
+
+    if (transitionOrder === 'parallel') {
+      return this.runSequentially([
+        () => this.resolveEnterBranchStep(),
+        () => this.applyEnterBranchStep(),
+        () => this.runParallelTransitionHooks(),
+      ]);
+    }
+
+    if (transitionOrder === 'in-out') {
+      return this.runSequentially([
+        () => this.resolveEnterBranchStep(),
+        () => this.applyEnterBranchStep(),
+        () => this.runLifecyclePhase(PHASES.transitionIn),
+        () => this.runLifecyclePhase(PHASES.transitionOut),
+      ]);
+    }
+
+    return Promise.resolve(null);
+  }
+
+  private async runParallelTransitionHooks(): Promise<TransactionFullResult> {
+    const [transitionOutOutcome, transitionInOutcome] = await Promise.all([
+      this.runLifecyclePhase(PHASES.transitionOut),
+      this.runLifecyclePhase(PHASES.transitionIn),
+    ]);
+
+    if (!this.transaction.isActive()) {
+      return { status: 'cancelled' };
+    }
+
+    return transitionOutOutcome ?? transitionInOutcome ?? null;
+  }
+
   /** Parallel branch resolve (no DOM) → sync apply root→leaf in one task. */
-  private async runBranchAtomicRender(
-    enterRoutes: readonly MatchedRouteInfo[],
-  ): Promise<TransactionFullResult> {
+  private async runBranchAtomicRender(): Promise<TransactionFullResult> {
+    const resolveOutcome = await this.resolveEnterBranchStep();
+    if (resolveOutcome) return resolveOutcome;
+    return this.applyEnterBranchStep();
+  }
+
+  private async resolveEnterBranchStep(): Promise<TransactionFullResult> {
+    const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const ctx = createBranchResolveContext(this.transaction);
     const branch = await resolveEnterBranch(
       enterRoutes,
@@ -162,24 +266,40 @@ export class NavigationTransactionPipeline {
       return this.failRender(branch.route, branch.error);
     }
 
-    const mount = mountEnterBranch(enterRoutes, branch.payloads, ctx);
+    this.transaction.resolvedBranchPayloads = branch.payloads;
+    return null;
+  }
+
+  private applyEnterBranchStep(): Promise<TransactionFullResult> {
+    const payloads = this.transaction.resolvedBranchPayloads;
+    this.transaction.resolvedBranchPayloads = undefined;
+
+    if (!payloads) {
+      return Promise.resolve({ status: 'cancelled' });
+    }
+
+    const enterRoutes = this.transaction.transitionPlan.enterRoutes;
+    const ctx = createBranchResolveContext(this.transaction);
+    const mount = mountEnterBranch(enterRoutes, payloads, ctx);
 
     if (mount.status === 'aborted' || !this.transaction.isActive()) {
-      return { status: 'cancelled' };
+      return Promise.resolve({ status: 'cancelled' });
     }
     if (mount.status === 'error') {
       return this.failRender(mount.route, mount.error);
     }
 
     this.transaction.viewCommitTracker.markViewStaged();
-
-    return null;
+    return Promise.resolve(null);
   }
 
-  private async mountEnterRoutes(
-    enterRoutes: readonly MatchedRouteInfo[],
-    cancellation: ViewRenderCancellation,
-  ): Promise<TransactionFullResult> {
+  private async mountEnterRoutes(): Promise<TransactionFullResult> {
+    const enterRoutes = this.transaction.transitionPlan.enterRoutes;
+    const cancellation: ViewRenderCancellation = {
+      signal: this.transaction.signal,
+      isAborted: () => !this.transaction.isActive(),
+    };
+
     for (let i = 0; i < enterRoutes.length; i++) {
       const matchedRoute = enterRoutes[i]!;
       const viewCommit = await runViewCommit(
@@ -197,51 +317,6 @@ export class NavigationTransactionPipeline {
       if (isRenderError(viewCommit)) {
         return this.failRender(matchedRoute, viewCommit.error);
       }
-    }
-
-    return null;
-  }
-
-  /**
-   * Render wrapped by `transition-order` on the enter route (see MAIN_PIPELINE §2).
-   */
-  async runRenderWithTransition(): Promise<TransactionFullResult> {
-    const { transitionOrder } = this.transaction;
-
-    if (transitionOrder === null) {
-      return this.runRender();
-    }
-
-    if (transitionOrder === 'parallel') {
-      const renderOutcome = await this.runRender();
-      if (renderOutcome) return renderOutcome;
-
-      const [transitionOutOutcome, transitionInOutcome] = await Promise.all([
-        this.runLifecyclePhase(PHASES.transitionOut),
-        this.runLifecyclePhase(PHASES.transitionIn),
-      ]);
-
-      if (!this.transaction.isActive()) {
-        return { status: 'cancelled' };
-      }
-
-      return transitionOutOutcome ?? transitionInOutcome ?? null;
-    }
-
-    if (transitionOrder === 'out-in') {
-      return this.runSequentially([
-        () => this.runLifecyclePhase(PHASES.transitionOut),
-        () => this.runRender(),
-        () => this.runLifecyclePhase(PHASES.transitionIn),
-      ]);
-    }
-
-    if (transitionOrder === 'in-out') {
-      return this.runSequentially([
-        () => this.runRender(),
-        () => this.runLifecyclePhase(PHASES.transitionIn),
-        () => this.runLifecyclePhase(PHASES.transitionOut),
-      ]);
     }
 
     return null;

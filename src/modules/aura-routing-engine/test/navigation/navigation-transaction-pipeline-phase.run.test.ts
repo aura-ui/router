@@ -1,4 +1,4 @@
-import { PHASES } from '../../core/lifecycle';
+import { PHASES } from '../../core/navigation/navigation-transaction-pipeline-phases-names';
 import { NavigationTransactionPipelinePhase } from '../../core/navigation/navigation-transaction-pipeline-phase';
 import {
   createMatchedRoute,

@@ -1,7 +1,7 @@
 import { AuraOutlet } from '../../../../aura-outlet/core/aura-outlet';
 import { FailedNavigation, NavigationError } from '../../../core/failure';
 import { HookRegistry } from '../../../core/hooks/registry';
-import type { LifecycleRuntimeContext } from '../../../core/lifecycle';
+import type { LifecycleRuntimeContext } from '../../../core/navigation/types';
 import type { MatchedRouteInfo } from '../../../core/match/url-matcher';
 import {
   NavigationCoordinator,

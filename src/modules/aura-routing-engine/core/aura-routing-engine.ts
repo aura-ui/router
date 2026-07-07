@@ -5,7 +5,9 @@ import type { ContentLoadService } from './content/content-load-service';
 import {
   FailedNavigation,
   type CompleteFailureDeps,
-  type NavigationHookErrorDetail, finalizeFailure,
+  type NavigationHookErrorDetail,
+  finalizeFailure,
+  runNotFoundExitCleanup,
 } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
@@ -13,7 +15,6 @@ import type {
   NavigateHistoryOptions,
   NavigationProvider,
 } from './history/provider.types';
-import { runNotFoundExitCleanup } from './lifecycle';
 import { resolveNavigationTarget } from './match/resolve-navigation-target';
 import {
   AuraRoutingUrlMatcher,

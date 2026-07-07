@@ -1,6 +1,10 @@
 import { hashOneArg, memoizeOne } from '../misc/memoize-one';
 
-function toMemoizedMethod<F extends (...args: any[]) => any>(original: F): F {
+const defineOwn = (obj: object, prop: string | symbol, value: unknown): void => {
+  Object.defineProperty(obj, prop, { value, writable: true, configurable: true });
+};
+
+function memoizeMethodFn<F extends (...args: any[]) => any>(original: F): F {
   type First = Parameters<F>[0];
   let invokeArgs: Parameters<F> | undefined;
 
@@ -18,32 +22,45 @@ function toMemoizedMethod<F extends (...args: any[]) => any>(original: F): F {
   } as F;
 }
 
-function memoizeMethod<F extends (...args: any[]) => any>(
-  originalMethod: F,
-  prop: string | symbol,
-): F {
-  return function (this: ThisParameterType<F>, ...args: Parameters<F>): ReturnType<F> {
-    const memo = toMemoizedMethod(originalMethod);
-    Object.defineProperty(this, prop, { value: memo, writable: true, configurable: true });
-    return memo.apply(this, args);
-  } as F;
+function memoizeGetter(getter: (this: any) => any, prop: string | symbol) {
+  return function (this: any) {
+    const value = getter.call(this);
+    defineOwn(this, prop, value);
+    return value;
+  };
 }
 
-/** Декоратор метода: lazy per-instance кеш, ключ — первый аргумент ({@link memoizeOne}). */
-export function memoize() {
-  return function <This, Args extends unknown[], R>(
-    target: This,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<(...args: Args) => R>,
-  ): TypedPropertyDescriptor<(...args: Args) => R> {
-    const original = descriptor.value;
-    if (!original) return descriptor;
+function memoizeMethod(method: (...args: any[]) => any, prop: string | symbol) {
+  return function (this: any, ...args: any[]) {
+    const memo = memoizeMethodFn(method);
+    defineOwn(this, prop, memo);
+    return memo.apply(this, args);
+  };
+}
 
-    descriptor.value = (
-      typeof target === 'function'
-        ? toMemoizedMethod(original)
-        : memoizeMethod(original, propertyKey)
-    ) as (...args: Args) => R;
+function memoizeStaticGetter(getter: (this: any) => any) {
+  const cached = memoizeOne(function (this: any, _: null) {
+    return getter.call(this);
+  }, () => null);
+  return function (this: any) {
+    return cached.call(this, null);
+  };
+}
+
+/** Декоратор метода или геттера: lazy per-instance кеш ({@link memoizeOne} для методов). */
+export function memoize() {
+  return function (target: object, prop: string | symbol, descriptor: PropertyDescriptor) {
+    if (!descriptor || (typeof descriptor.get !== 'function' && typeof descriptor.value !== 'function')) {
+      throw new TypeError('Only get accessors or class methods can be decorated via @memoize');
+    }
+
+    if (typeof target !== 'function') {
+      typeof descriptor.get === 'function' && (descriptor.get = memoizeGetter(descriptor.get, prop));
+      typeof descriptor.value === 'function' && (descriptor.value = memoizeMethod(descriptor.value, prop));
+    } else {
+      typeof descriptor.get === 'function' && (descriptor.get = memoizeStaticGetter(descriptor.get));
+      typeof descriptor.value === 'function' && (descriptor.value = memoizeMethodFn(descriptor.value));
+    }
 
     return descriptor;
   };

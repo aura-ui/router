@@ -111,7 +111,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     await galleryNav;
   });
 
-  it('runs transaction when the committed route declares update hooks', async () => {
+  it('skips transaction when the committed route declares update hooks', async () => {
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(router, { provider });
     const run = jest.spyOn(NavigationTransaction.prototype, 'run');
@@ -130,7 +130,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
-    expect(run).toHaveBeenCalledTimes(1);
+    expect(run).not.toHaveBeenCalled();
   });
 
   it('skips transaction when the committed route has no update hooks', async () => {

@@ -9,17 +9,17 @@ type NavigationPlan =
   | { action: 'cancel-pending' };
 
 export class NavigationCoordinator {
-  engine: AuraRoutingEngine;
+  private readonly engine: AuraRoutingEngine;
 
   /** Transaction the coordinator actively manages (cancel / supersede). */
-  activeTransaction: NavigationTransaction | null;
+  private activeTransaction: NavigationTransaction | null;
   private activeTransactionId: number;
   private routerGenerationId: number;
   /**
    * Href whose navigation has not settled yet.
    * May outlive {@link activeTransaction} (e.g. cancel-pending drops the ref before finally).
    */
-  inFlightHref: string | null;
+  private inFlightHref: string | null;
 
   constructor(engine: AuraRoutingEngine) {
     this.activeTransaction = null;
@@ -106,8 +106,7 @@ export class NavigationCoordinator {
 
     const sameCommittedTarget =
       from != null
-      && isSameNavigationTarget(from, to)
-      && !to.route.hasUpdate;
+      && isSameNavigationTarget(from, to);
 
     if (sameCommittedTarget) {
       if (this.inFlightHref !== null && this.inFlightHref !== href) {

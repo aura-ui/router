@@ -5,6 +5,7 @@ import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
+import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
 import { createTestRoute } from './create-test-route';
 
 export function createMatchedRoute(
@@ -34,6 +35,54 @@ export function createMockEngine(): AuraRoutingEngine {
   } as unknown as AuraRoutingEngine;
 }
 
+export function createCoordinatorMockEngine(): AuraRoutingEngine {
+  const hookRegistry = new HookRegistry();
+  return {
+    isRunning: true,
+    commitNavigation: jest.fn(),
+    finalizeCancelled: jest.fn(),
+    applyRedirect: jest.fn(),
+    finalizeError: jest.fn(),
+    dataGraph: new DataGraph(hookRegistry),
+    hooksRegistry: hookRegistry,
+    router: { navigate: jest.fn() },
+    reportNavigationHookError: jest.fn(),
+  } as unknown as AuraRoutingEngine;
+}
+
+export function createPairTransaction(options: {
+  from: MatchedRouteInfo;
+  to: MatchedRouteInfo;
+  isTransactionStale?: () => boolean;
+  transitionOrder?: TransitionOrderType | null;
+}): NavigationTransaction {
+  const engine = createCoordinatorMockEngine();
+  const transaction = new NavigationTransaction(
+    1,
+    0,
+    {
+      from: options.from,
+      to: options.to,
+      action: 'push',
+      href: options.to.href,
+      hash: '',
+      options: DEFAULT_PUSH_NAV_OPTIONS,
+    },
+    () => options.isTransactionStale?.() ?? false,
+    engine,
+  );
+
+  transaction.transitionPlan = {
+    exitRoutes: [options.from],
+    enterRoutes: [options.to],
+    lca: null,
+    update: false,
+  };
+  transaction.transitionOrder = options.transitionOrder ?? 'parallel';
+
+  return transaction;
+}
+
 export function createMockTransaction(options: {
   from?: MatchedRouteInfo | null;
   exitRoutes?: MatchedRouteInfo[];
@@ -56,7 +105,7 @@ export function createMockTransaction(options: {
       action: 'push',
       href: to.href,
       hash: '',
-      options: { replace: false, syncHistory: true },
+      options: DEFAULT_PUSH_NAV_OPTIONS,
     },
     () => options.isTransactionStale?.() ?? false,
     engine,

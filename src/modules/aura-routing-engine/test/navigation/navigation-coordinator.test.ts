@@ -1,75 +1,23 @@
-import type { RouteInstance } from '../../core';
-import { AuraRoutingEngine } from '../../core/aura-routing-engine';
-import { DataGraph } from '../../core/data-graph';
 import { FailedNavigation } from '../../core/failure';
-import { HookRegistry } from '../../core/hooks/registry';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import {
   NavigationCoordinator,
   type NavigationTransactionOptions,
 } from '../../core/navigation/navigation-coordinator';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { TransactionFullResult } from '../../core/navigation/transaction-result';
-import { createTestRoute } from '../helpers/create-test-route';
+import {
+  createCoordinatorMockEngine,
+  createMatchedRoute,
+} from '../helpers/create-mock-transaction';
+import {
+  createPushNavOptions,
+  mockDeferredTransactionRun,
+} from '../helpers/jest/navigation-fixtures';
 import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
-
-function createMatchedRoute(
-  path: string,
-  overrides: Partial<RouteInstance> = {},
-): MatchedRouteInfo {
-  return {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
-  };
-}
-
-function createMockEngine(): AuraRoutingEngine {
-  const hookRegistry = new HookRegistry();
-  return {
-    isRunning: true,
-    commitNavigation: jest.fn(),
-    finalizeCancelled: jest.fn(),
-    applyRedirect: jest.fn(),
-    finalizeError: jest.fn(),
-    dataGraph: new DataGraph(hookRegistry),
-    hooksRegistry: hookRegistry,
-    router: { navigate: jest.fn() },
-    reportNavigationHookError: jest.fn(),
-  } as unknown as AuraRoutingEngine;
-}
 
 function navOptions(
   input: Pick<NavigationTransactionOptions, 'from' | 'to' | 'href'>,
 ): NavigationTransactionOptions {
-  return {
-    action: 'push',
-    hash: '',
-    options: { replace: false, syncHistory: true },
-    ...input,
-  };
-}
-
-function mockDeferredTransactionRun() {
-  const resolvers: Array<(result: TransactionFullResult) => void> = [];
-
-  const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
-    () =>
-      new Promise<TransactionFullResult>((resolve) => {
-        resolvers.push(resolve);
-      }),
-  );
-
-  return {
-    runSpy,
-    resolveAt(index: number, result: TransactionFullResult) {
-      resolvers[index](result);
-    },
-    pendingCount: () => resolvers.length,
-  };
+  return createPushNavOptions(input);
 }
 
 describe('NavigationCoordinator', () => {
@@ -79,7 +27,7 @@ describe('NavigationCoordinator', () => {
 
   describe('planning — noop', () => {
     it('skips when the committed route is already active', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const about = createMatchedRoute('/about');
       const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run');
@@ -92,7 +40,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('ignores duplicate href while in flight', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -112,7 +60,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('runs the first navigation when from is null', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const about = createMatchedRoute('/about');
       const runSpy = jest
@@ -127,7 +75,7 @@ describe('NavigationCoordinator', () => {
 
   describe('planning — cancel-pending', () => {
     it('aborts in-flight navigation without starting a new transaction', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const about = createMatchedRoute('/about');
       const gallery = createMatchedRoute('/gallery');
@@ -151,7 +99,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('is a no-op when only inFlightHref remains after dropping activeTransaction', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const about = createMatchedRoute('/about');
       const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run');
@@ -173,7 +121,7 @@ describe('NavigationCoordinator', () => {
 
   describe('planning — run', () => {
     it('runs when the committed route declares update hooks', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const about = createMatchedRoute('/about', { update: ['sync'] });
       const runSpy = jest
@@ -186,7 +134,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('runs when dynamic params change on the same route record', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const node = createUsersIdNode();
       const from = createUsersIdMatch('1', node);
@@ -201,7 +149,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('runs navigation to a different href while another target is in flight', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -227,7 +175,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('does not clear a newer activeTransaction when a superseded run settles', async () => {
-      const coordinator = new NavigationCoordinator(createMockEngine());
+      const coordinator = new NavigationCoordinator(createCoordinatorMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
       const gallery = createMatchedRoute('/gallery');
@@ -251,7 +199,7 @@ describe('NavigationCoordinator', () => {
 
   describe('execution outcomes', () => {
     it('clears in-flight state and activeTransaction after navigationSucceeded', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -270,7 +218,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('calls finalizeCancelled on cancelled result', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -290,7 +238,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('calls applyRedirect on redirect result', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -309,7 +257,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('calls finalizeError on error result', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -331,7 +279,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('treats null pipeline result as success', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -349,7 +297,7 @@ describe('NavigationCoordinator', () => {
 
   describe('in-flight lifecycle', () => {
     it('clears in-flight href only for the matching href', () => {
-      const coordinator = new NavigationCoordinator(createMockEngine());
+      const coordinator = new NavigationCoordinator(createCoordinatorMockEngine());
       const state = coordinator as unknown as {
         trackInFlight(href: string): void;
         clearInFlight(href: string): void;
@@ -365,7 +313,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('keeps in-flight href until the run settles', async () => {
-      const coordinator = new NavigationCoordinator(createMockEngine());
+      const coordinator = new NavigationCoordinator(createCoordinatorMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
       const { resolveAt } = mockDeferredTransactionRun();
@@ -383,7 +331,7 @@ describe('NavigationCoordinator', () => {
 
   describe('isTransactionStale', () => {
     it('is false for the active transaction', async () => {
-      const coordinator = new NavigationCoordinator(createMockEngine());
+      const coordinator = new NavigationCoordinator(createCoordinatorMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
       const { resolveAt } = mockDeferredTransactionRun();
@@ -399,7 +347,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('becomes true after a newer navigation supersedes', async () => {
-      const coordinator = new NavigationCoordinator(createMockEngine());
+      const coordinator = new NavigationCoordinator(createCoordinatorMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
       const gallery = createMatchedRoute('/gallery');
@@ -421,7 +369,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('becomes true after invalidate', async () => {
-      const coordinator = new NavigationCoordinator(createMockEngine());
+      const coordinator = new NavigationCoordinator(createCoordinatorMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
       const { resolveAt } = mockDeferredTransactionRun();
@@ -441,7 +389,7 @@ describe('NavigationCoordinator', () => {
 
   describe('invalidate', () => {
     it('cancels the active transaction', async () => {
-      const coordinator = new NavigationCoordinator(createMockEngine());
+      const coordinator = new NavigationCoordinator(createCoordinatorMockEngine());
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
       const { resolveAt } = mockDeferredTransactionRun();
@@ -460,7 +408,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('is safe when no transaction is active', () => {
-      const coordinator = new NavigationCoordinator(createMockEngine());
+      const coordinator = new NavigationCoordinator(createCoordinatorMockEngine());
       const cancelSpy = jest.spyOn(NavigationTransaction.prototype, 'cancel');
 
       coordinator.invalidate();
@@ -472,7 +420,7 @@ describe('NavigationCoordinator', () => {
     });
 
     it('clears inFlightHref so the same href can run again after stop', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
@@ -495,7 +443,7 @@ describe('NavigationCoordinator', () => {
       await second;
     });
     it('does not finalize cancelled navigation after engine stop', async () => {
-      const engine = createMockEngine();
+      const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');

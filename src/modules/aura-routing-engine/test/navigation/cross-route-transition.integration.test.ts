@@ -1,30 +1,24 @@
-import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+jest.mock('../../core/hooks/registry', () =>
+  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { runPhaseHooks } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteInstance } from '../../core/route/types';
-import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import { cacheKey } from '../../../aura-route/core/view/view-cache';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { RouteLifecycleContext } from '../../core/route/types';
 import { createTestRoute } from '../helpers/create-test-route';
+import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
+import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { createMockEngine } from '../helpers/create-mock-transaction';
-
-jest.mock('../../core/hooks/registry', () => ({
-  ...jest.requireActual('../../core/hooks/registry'),
-  runPhaseHooks: jest.fn(),
-}));
-
-const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
+import {
+  createTestOutlet,
+  PARALLEL_CROSS_FADE_TRANSITION,
+} from '../helpers/jest/navigation-fixtures';
+import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 
 const routeMarkup = new WeakMap<RouteInstance, string>();
-
-const PARALLEL_TRANSITION: RouteTransitionType = {
-  order: 'parallel',
-  in: ['fade-in'],
-  out: ['fade-out'],
-};
 
 type WiredRoute = {
   match: MatchedRouteInfo;
@@ -36,12 +30,6 @@ type WireRouteOptions = {
   onTransitionOut?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
   onTransitionIn?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
 };
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
 
 function viewMarkup(label: string): string {
   return `<span data-route="${label}">${label}-view</span>`;
@@ -159,16 +147,16 @@ describe('cross-route transition integration (real view)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetHookMocks();
     document.body.replaceChildren();
   });
 
   it('parallel crossfade: both view roots visible during transition hooks', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const transitionSnapshots: Array<{ phase: string; childCount: number }> = [];
 
     const from = wireRoute(outlet, '/from', viewMarkup('from'), {
-      transition: PARALLEL_TRANSITION,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
       onTransitionOut: (_ctx, root) => {
         transitionSnapshots.push({ phase: 'transitionOut', childCount: root.children.length });
         expect(queryRouteView(root, 'from')).not.toBeNull();
@@ -176,7 +164,7 @@ describe('cross-route transition integration (real view)', () => {
       },
     });
     const to = wireRoute(outlet, '/to', viewMarkup('to'), {
-      transition: PARALLEL_TRANSITION,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
       onTransitionIn: (_ctx, root) => {
         transitionSnapshots.push({ phase: 'transitionIn', childCount: root.children.length });
         expect(queryRouteView(root, 'from')).not.toBeNull();
@@ -207,17 +195,17 @@ describe('cross-route transition integration (real view)', () => {
   });
 
   it('parallel crossfade: exit unmount runs once, enter view survives commit', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     let exitUnmountCalls = 0;
     let exitConnectedAtUnmount = false;
     let enterConnectedAtUnmount = false;
     let outletChildCountAtUnmount = -1;
 
     const from = wireRoute(outlet, '/from', viewMarkup('from'), {
-      transition: PARALLEL_TRANSITION,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
     });
     const to = wireRoute(outlet, '/to', viewMarkup('to'), {
-      transition: PARALLEL_TRANSITION,
+      transition: PARALLEL_CROSS_FADE_TRANSITION,
     });
 
     const originalExitUnmount = from.controller.onUnmount.bind(from.controller);
@@ -245,7 +233,7 @@ describe('cross-route transition integration (real view)', () => {
     ['out-in', 'out-in'],
     ['in-out', 'in-out'],
   ] as const)('%s policy completes cross-route navigation with staged enter view', async (_label, order) => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const phases: string[] = [];
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
@@ -280,7 +268,7 @@ describe('cross-route transition integration (real view)', () => {
   });
 
   it('out-in: transitionOut runs before enter render (only exit view in outlet)', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     let childCountDuringTransitionOut = -1;
 
     const transition: RouteTransitionType = {
@@ -308,7 +296,7 @@ describe('cross-route transition integration (real view)', () => {
   });
 
   it('without transition: enter render replaces exit view immediately', async () => {
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
 
     const from = wireRoute(outlet, '/from', viewMarkup('from'));
     const to = wireRoute(outlet, '/to', viewMarkup('to'));
@@ -325,7 +313,7 @@ describe('cross-route transition integration (real view)', () => {
 describe('cross-route transition pipeline order', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetHookMocks();
     document.body.replaceChildren();
   });
 
@@ -339,7 +327,7 @@ describe('cross-route transition pipeline order', () => {
       callOrder.push(ctx.phase);
     });
 
-    const outlet = createOutlet();
+    const outlet = createTestOutlet();
     const transition: RouteTransitionType = {
       order,
       in: ['fade-in'],

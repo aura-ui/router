@@ -1,15 +1,16 @@
-import { runPhaseHooks } from '../../core/hooks/registry';
-import { runViewCommit } from '../../core/view-mount/view-commit-render';
-import type { ContentLoadService } from '../../core';
-import { createMockTransaction } from '../helpers/create-mock-transaction';
+import type { ContentLoadService } from '../../../core';
+import { runViewCommit } from '../../../core/view-mount/view-commit-render';
+import { createMockTransaction } from '../create-mock-transaction';
+import { mockRunPhaseHooks, resetHookMocks } from './hook-mocks';
 
-export const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
+export { mockRunPhaseHooks } from './hook-mocks';
+export { resetHookMocks } from './hook-mocks';
+
 export const mockRunViewCommit = runViewCommit as jest.MockedFunction<typeof runViewCommit>;
 
 export function resetPipelineMocks(): void {
-  jest.clearAllMocks();
+  resetHookMocks();
   mockRunViewCommit.mockResolvedValue('ok');
-  mockRunPhaseHooks.mockResolvedValue(undefined);
 }
 
 export function withContentLoad(

@@ -1,6 +1,9 @@
 export { resolveHookNames } from './bindings/route-hook-bindings';
-export { PHASES, PIPELINE_PHASES } from './phase-registry';
-export type { PipelinePhaseDefinition, RoutePhaseDefinition } from './phase-registry';
+export { PHASES, PIPELINE_PHASES } from '../navigation/navigation-transaction-pipeline-phases-names';
+export type {
+  PipelinePhaseDefinition,
+  RoutePhaseDefinition,
+} from '../navigation/navigation-transaction-pipeline-phases-names';
 export {
   NavigationTransactionPipelinePhase,
   type PhaseStepOutcome,
@@ -11,8 +14,6 @@ export type { NotFoundExitInput } from './orchestration/not-found-exit-cleanup';
 export type {
   LifecycleRuntimeContext,
   LifecycleTransactionContext,
-} from './orchestration/lifecycle-runtime.types';
-export type {
   GuardResult,
   RedirectTarget,
   LifecycleBranch,
@@ -22,4 +23,4 @@ export type {
   PostCommitHookErrors,
   RouteHookAttrProp,
   RoutePhase,
-} from './types';
+} from '../navigation/types';

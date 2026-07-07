@@ -2,7 +2,7 @@
  * Route hook registration types — definitions, results, and hook context.
  *
  * Route contract: {@link ../route/types}.
- * Phase unions: {@link ../lifecycle/types}.
+ * Phase unions: {@link ../navigation/types}.
  *
  * @module hooks/types
  */
@@ -18,7 +18,7 @@ export type {
   PostCommitHookErrors,
   RouteHookAttrProp,
   RoutePhase,
-} from '../lifecycle/types';
+} from '../navigation/types';
 
 /** Per-registration options from `AuraRouter.use(hook, options)`. */
 export interface RouteHookContext<TOptions = Record<string, unknown>>

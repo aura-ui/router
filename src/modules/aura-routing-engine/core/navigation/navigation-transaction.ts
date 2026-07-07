@@ -8,7 +8,7 @@ import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { type NavigationErrorPhase } from '../failure';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
-import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
+import type { LifecycleRuntimeContext } from './types';
 import type { DataSnapshot } from '../data-graph';
 import type { ViewPayload } from '../content/model/types';
 import { canUseFastPath } from '../route-tree/can-use-fast-path';

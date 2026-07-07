@@ -3,7 +3,7 @@ import type { MatchedRouteInfo } from '../../match/url-matcher';
 import { NavigationTransactionPipelinePhase } from '../../navigation/navigation-transaction-pipeline-phase';
 import type { RouterInstance } from '../../route/types';
 import { getLeafMatch } from '../../route-tree/matched-chain';
-import { PHASES } from '../phase-registry';
+import { PHASES } from '../../navigation/navigation-transaction-pipeline-phases-names';
 
 export interface NotFoundExitInput {
   from: MatchedRouteInfo | null;

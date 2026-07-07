@@ -12,16 +12,16 @@ import type { HistoryAction } from '../history/provider.types';
 import {
   type GuardResult,
   type LifecyclePhase,
+  type LifecycleRuntimeContext,
   type PhaseThrowPolicy,
   type RoutePhase,
-} from '../lifecycle/types';
+} from './types';
 import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
-import { PHASES, type PipelinePhaseDefinition } from '../lifecycle/phase-registry';
+import { PHASES, type PipelinePhaseDefinition } from './navigation-transaction-pipeline-phases-names';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { NavigationError } from '../failure';
 import type { FailedNavigation } from '../failure/navigation-failure';
-import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
 
 /** Terminal outcome of one blocking hook step (cancel / redirect) or continue. */
 export type PhaseStepOutcome =

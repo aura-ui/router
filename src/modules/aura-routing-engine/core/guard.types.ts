@@ -2,7 +2,7 @@
  * Blocking phase hook result — normalized from {@link ../hooks/types!HookResultInput}
  * by {@link ../hooks/registry!normalizeHookResult}.
  *
- * Shared guard contract for {@link ../hooks/registry}, {@link ../lifecycle/types},
+ * Shared guard contract for {@link ../hooks/registry}, {@link ../navigation/types},
  * Guard outcomes consumed by {@link ./navigation/navigation-transaction-pipeline-phase}
  * — not the author-facing {@link ../hooks/types!HookResult}.
  *

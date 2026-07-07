@@ -131,6 +131,7 @@ export type PostCommitHookErrorPolicy = 'propagate' | 'log';
  */
 export type PhaseHookTiming =
   | { kind: 'blocking' }
+  | { kind: 'preCommit'; onError: PostCommitHookErrorPolicy }
   | { kind: 'postCommit'; onError: PostCommitHookErrorPolicy };
 
 /**

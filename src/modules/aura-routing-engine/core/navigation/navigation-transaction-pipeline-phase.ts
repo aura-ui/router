@@ -70,7 +70,7 @@ export class NavigationTransactionPipelinePhase {
     // 3. Post-commit hooks — cancel/redirect ignored; errors per hookPolicy.onError
     const { hookPolicy } = phaseDef;
     const onHookError =
-      hookPolicy.kind === 'postCommit' && hookPolicy.onError === 'log'
+      hookPolicy.kind !== 'blocking' && hookPolicy.onError === 'log'
         ? (error: unknown) => console.error(`[${phase}] post-commit hook threw (logged, continuing):`, error)
         : (error: unknown) => {
           throw error;

@@ -10,7 +10,7 @@ describe('PHASES', () => {
 
     expect(phaseDef.phase).toBe(phase);
     expect(phaseDef.targetRoutes).toMatch(/Routes$/);
-    expect(phaseDef.hookPolicy).toMatchObject({ kind: expect.stringMatching(/blocking|postCommit/) });
+    expect(phaseDef.hookPolicy).toMatchObject({ kind: expect.stringMatching(/blocking|postCommit|preCommit/) });
     expect(phaseDef.errorPolicy).toMatch(/failure|log|propagate/);
   });
 

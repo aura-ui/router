@@ -1,7 +1,13 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { TransitionMap } from './transition-plan';
 
-/** Tier 0: trivial flat navigation without blocking hooks, async content, or transitions. */
+/**
+ * Tier 0: trivial flat navigation with sync inline content (`html::`), no blocking hooks,
+ * async content, or transitions.
+ *
+ * Hook getters (`hasGuard`, `hasLoad`, …) on {@link RouteInstance} reflect inherited attrs
+ * from `<aura-router>` / parent `<aura-route>` — no separate chain scan needed here.
+ */
 export function canUseFastPath(
   plan: TransitionMap,
   _from: MatchedRouteInfo | null,
@@ -14,6 +20,7 @@ export function canUseFastPath(
   const exitRoute = plan.exitRoutes[0]?.route;
   const enterRoute = plan.enterRoutes[0]!.route;
 
+  if (!enterRoute.hasSyncContent) return false;
   if (exitRoute?.hasLeave) return false;
   if (enterRoute.hasGuard) return false;
   if (enterRoute.hasLoad) return false;

@@ -1,5 +1,6 @@
 import type { RouteInstance } from '../../core';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
+import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
 
 const noop = (): void => {};
@@ -7,6 +8,9 @@ const noop = (): void => {};
 const noopRender = async (): Promise<ViewRenderResult> => ({ status: 'ok' });
 
 const INACTIVE_TRANSITION: RouteTransitionType = { order: null, in: null, out: null };
+
+/** Default inline sync view for Tier-0 / fast-path test routes (`html::`). */
+export const SYNC_HTML_VIEW: ViewAttrDescriptor = { type: 'html', content: '<span/>' };
 
 export function createTestRoute(
   path: string,
@@ -29,7 +33,9 @@ export function createTestRoute(
     unmount: null,
     update: null,
     mountStrategy: null,
-    view: null,
+    layout: '',
+    loadingTemplate: '',
+    view: SYNC_HTML_VIEW,
     transition: INACTIVE_TRANSITION,
     onGuard: noop,
     onTransitionIn: noop,
@@ -59,7 +65,9 @@ export function createTestRoute(
     },
     hasAsyncContent: {
       get(): boolean {
-        return route.hasLoad;
+        if (route.hasLoad) return true;
+        const type = route.view?.type;
+        return type === 'html-src' || type === 'component-src';
       },
     },
     hasSyncContent: {

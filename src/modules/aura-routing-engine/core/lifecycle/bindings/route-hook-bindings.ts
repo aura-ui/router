@@ -1,14 +1,14 @@
 /**
  * Route hook name resolution from phase attrs.
  *
- * Phase metadata lives in {@link ../phase-registry!PHASES}.
+ * Phase metadata lives in {@link ../../navigation/navigation-transaction-pipeline-phases-names!PHASES}.
  *
  * @module lifecycle/bindings/route-hook-bindings
  */
 
 import type { RouteHookNamesSource } from '../../route/types';
-import { PHASES } from '../phase-registry';
-import type { RoutePhase } from '../types';
+import { PHASES } from '../../navigation/navigation-transaction-pipeline-phases-names';
+import type { RoutePhase } from '../../navigation/types';
 
 /**
  * Resolves registered hook names for a phase on a route.

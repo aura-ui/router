@@ -4,7 +4,7 @@ import {
   type NavigationErrorPhase,
 } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { LifecycleRuntimeContext } from '../lifecycle/orchestration/lifecycle-runtime.types';
+import type { LifecycleRuntimeContext } from './types';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import type { TransactionFullResult } from './transaction-result';
 

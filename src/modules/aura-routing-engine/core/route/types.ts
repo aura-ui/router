@@ -6,7 +6,7 @@ import type { RouteTransitionType } from '../../../aura-route/core/attr/transiti
 import type { ParamChangePolicy } from '../../../aura-route/core/attr/param-change-attr-parser';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
 import type { RouteRenderOptions, ApplyPreResolvedOptions } from '../../../aura-route/core/types';
-import type { RouteHookAttrProp, RoutePhase } from '../lifecycle/types';
+import type { RouteHookAttrProp, RoutePhase } from '../navigation/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { ViewRenderResult } from '../view-mount/view-commit-render';
 

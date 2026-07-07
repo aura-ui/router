@@ -18,6 +18,8 @@ jest.mock('../../core/hooks/registry', () => ({
 
 const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
 
+const routeMarkup = new WeakMap<RouteInstance, string>();
+
 const PARALLEL_TRANSITION: RouteTransitionType = {
   order: 'parallel',
   in: ['fade-in'],
@@ -107,6 +109,8 @@ function wireRoute(
   );
 
   routeRecord.render = (info, renderOptions) => controller.render(info, renderOptions);
+  routeRecord.applyPreResolved = (info, opts) => controller.applyPreResolved(info, opts);
+  routeRecord.revertInFlightView = () => controller.revertInFlightView();
   routeRecord.onUnmount = (ctx) => {
     passId++;
     controller.onUnmount({ cacheKey: cacheKey(ctx.to, routeRecord.path) });
@@ -114,11 +118,17 @@ function wireRoute(
   routeRecord.onTransitionOut = (ctx) => options.onTransitionOut?.(ctx, outlet);
   routeRecord.onTransitionIn = (ctx) => options.onTransitionIn?.(ctx, outlet);
   routeRecord.commitStagedView = () => controller.commitStagedView();
+  routeMarkup.set(routeRecord, markup);
 
   return { match, controller };
 }
 
 async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteInfo) {
+  const engine = createMockEngine();
+  engine.contentLoad = {
+    resolve: async (routeInfo) => routeMarkup.get(routeInfo.route) ?? null,
+  } as typeof engine.contentLoad;
+
   const transaction = new NavigationTransaction(
     1,
     0,
@@ -131,7 +141,7 @@ async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteI
       options: { replace: false, syncHistory: true },
     },
     () => false,
-    createMockEngine(),
+    engine,
   );
 
   return {

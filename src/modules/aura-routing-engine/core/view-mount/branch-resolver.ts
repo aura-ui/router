@@ -4,7 +4,6 @@
  * @module view-mount/branch-resolver
  */
 import type { MountStrategy } from '../../../aura-route/core/attr/mount-strategy-attr-parser';
-import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { DataSnapshot } from '../data-graph';
 import type { TransitionMap } from '../route-tree/transition-plan';
 import { isCrossOutletReplace } from '../route-tree/transition-plan';
@@ -47,14 +46,12 @@ export type BranchResolveResult =
 /** Whether enter routes use branch mount (resolve branch → sync mount root→leaf). */
 export function shouldUseBranchMount(options: {
   enterRoutes: readonly MatchedRouteInfo[];
-  transitionOrder: TransitionOrderType | null;
   paramChangeRemount?: boolean;
   mountStrategy?: MountStrategy | null;
   transitionPlan?: TransitionMap;
 }): boolean {
-  const { enterRoutes, transitionOrder, paramChangeRemount, mountStrategy, transitionPlan } = options;
+  const { enterRoutes, paramChangeRemount, mountStrategy, transitionPlan } = options;
 
-  if (transitionOrder !== null) return false;
   if (paramChangeRemount) return false;
   if (enterRoutes.length === 0) return false;
 

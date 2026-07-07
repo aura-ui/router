@@ -272,18 +272,16 @@ describe('resolveEnterBranch', () => {
 
 describe('shouldUseBranchMount', () => {
   const base = {
-    transitionOrder: null as const,
     paramChangeRemount: false,
   };
 
-  it('returns false when transition order is set', () => {
+  it('returns true when transition order is set on a multi-route enter branch', () => {
     expect(
       shouldUseBranchMount({
         ...base,
-        transitionOrder: 'parallel',
         enterRoutes: [matched('/a'), matched('/b')],
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('returns false for param-change remount', () => {

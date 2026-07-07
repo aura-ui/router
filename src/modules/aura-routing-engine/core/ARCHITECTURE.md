@@ -8,7 +8,7 @@ specific nested route tree model lives in `route-tree/README.md`.
 | Area | Responsibility |
 | --- | --- |
 | `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and not-found pre-match paths, `invalidateData()`. |
-| `navigation/` | Coordinator, transaction, pipeline, phase metadata (`PHASES`), lifecycle types/context, phase execution, history finalize (`finalize.ts`), scroll policy, terminal result types. |
+| `navigation/` | Coordinator, transaction, pipeline, phase metadata (`PHASES`), lifecycle types/context, phase execution, failure lifecycle (`navigation-failure-handler`, `not-found-exit-cleanup`), history finalize (`navigation-finalize.ts`), scroll policy, terminal result types. |
 | `hooks/` | Global hook registry, hook name resolution (`resolve-hook-names`), and hook result normalization. |
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, and `TransitionMap`. |
 | `match/` | URL matching and `MatchedRouteInfo` creation. |

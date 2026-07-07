@@ -1,4 +1,4 @@
-import { runNotFoundExitCleanup } from '../../core/failure';
+import { runNotFoundExitCleanup } from '../../core/navigation/not-found-exit-cleanup';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { createTestRoute } from '../helpers/create-test-route';
 

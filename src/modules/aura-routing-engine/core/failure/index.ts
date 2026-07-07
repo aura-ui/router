@@ -24,5 +24,3 @@ export type {
   NavigationHookErrorDetail,
   ReportNavigationHookError,
 } from './navigation-failure';
-export { runNotFoundExitCleanup } from './not-found-exit-cleanup';
-export type { NotFoundExitInput } from './not-found-exit-cleanup';

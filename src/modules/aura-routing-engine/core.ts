@@ -8,7 +8,7 @@
  * - `route-tree/` — nested tree, branch diff implementation, `TransitionMap`, `buildTransitionPlan`
  * - `aura-routing-route-registry.ts` — route catalog snapshot
  * - `navigation/` — coordinator, transaction, pipeline, history finalize
- * - `navigation/finalize.ts` — history policy after terminal outcomes
+ * - `navigation/navigation-finalize.ts` — history policy after terminal outcomes
  * - `view-mount/` — tracker/render impl (types partially exported below)
  */
 
@@ -60,7 +60,7 @@ export { mountEnterBranch } from './core/view-mount/branch-mount';
 export type { MountEnterBranchResult } from './core/view-mount/branch-mount';
 
 export type { TransactionResult, TransactionFullResult, NavigationErrorResult } from './core/navigation/transaction-result';
-export type { NavigationCommittedContext } from './core/navigation/finalize';
+export type { NavigationCommittedContext } from './core/navigation/navigation-finalize';
 
 // --- History layer (default provider + DI for tests) ---
 

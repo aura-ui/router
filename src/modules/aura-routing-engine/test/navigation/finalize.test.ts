@@ -2,10 +2,10 @@ import { FailedNavigation } from '../../core/failure';
 import {
   applyTransactionHistory,
   finalizeNotFoundNavigation,
-} from '../../core/navigation/finalize';
+} from '../../core/navigation/navigation-finalize';
 import type { TransactionResult } from '../../core/navigation/transaction-result';
 
-describe('navigation/finalize', () => {
+describe('navigation/navigation-finalize', () => {
   const provider = { commit: jest.fn(), rollback: jest.fn() };
   const failureDeps = {
     onNotFound: jest.fn(),

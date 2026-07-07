@@ -1,6 +1,6 @@
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { NavigationErrorResult } from '../navigation/transaction-result';
+import type { NavigationErrorResult } from '../navigation/types';
 import { isViewCommittedForHistory, type ViewCommitSnapshot } from '../view-mount/view-commit-state';
 import { NavigationError } from './navigation-error';
 

@@ -6,11 +6,37 @@ import type { RouteTransitionType } from '../../../aura-route/core/attr/transiti
 import type { ParamChangePolicy } from '../../../aura-route/core/attr/param-change-attr-parser';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
 import type { RouteRenderOptions, ApplyPreResolvedOptions } from '../../../aura-route/core/types';
-import type { RouteHookAttrProp, RoutePhase } from '../navigation/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { ViewRenderResult } from '../view-mount/view-commit-render';
 
 export type { RouterPrefetchPolicy };
+
+/** `<aura-route>` getter backing a phase attr (`guard`, `load`, `ready`, …). */
+export type RouteHookAttrProp =
+  | 'guard'
+  | 'load'
+  | 'ready'
+  | 'leave'
+  | 'error'
+  | 'transitionIn'
+  | 'transitionOut'
+  | 'unmount'
+  | 'update';
+
+/** All navigation lifecycle phases, including terminal `error`. */
+export type RoutePhase =
+  | 'leave'
+  | 'guard'
+  | 'load'
+  | 'update'
+  | 'transitionOut'
+  | 'transitionIn'
+  | 'unmount'
+  | 'ready'
+  | 'error';
+
+/** Pipeline-driven phases (excludes terminal `error`). */
+export type LifecyclePhase = Exclude<RoutePhase, 'error'>;
 
 /** Target route slice passed to lifecycle callbacks and hooks. */
 export interface RouteInfo {

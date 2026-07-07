@@ -2,7 +2,6 @@
  * Route hook registration types — definitions, results, and hook context.
  *
  * Route contract: {@link ../route/types}.
- * Phase unions: {@link ../navigation/types}.
  *
  * @module hooks/types
  */
@@ -10,15 +9,7 @@
 import type { RedirectTarget } from '../guard.types';
 import type { RouteLifecycleContext } from '../route/types';
 
-export type {
-  LifecycleBranch,
-  LifecycleHookHandling,
-  LifecyclePhase,
-  PhaseThrowPolicy,
-  PostCommitHookErrors,
-  RouteHookAttrProp,
-  RoutePhase,
-} from '../navigation/types';
+export type { LifecyclePhase, RouteHookAttrProp, RoutePhase } from '../route/types';
 
 /** Per-registration options from `AuraRouter.use(hook, options)`. */
 export interface RouteHookContext<TOptions = Record<string, unknown>>

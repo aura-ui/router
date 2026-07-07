@@ -5,34 +5,9 @@
  * @module navigation/navigation-transaction-pipeline-phases-names
  */
 
-import type { RouteErrorContext, RouteInstance, RouteLifecycleContext } from '../route/types';
+import type { RouteErrorContext, RoutePhase, LifecyclePhase } from '../route/types';
 
-import type {
-  LifecycleBranch,
-  LifecycleHookHandling,
-  LifecyclePhase,
-  PhaseThrowPolicy,
-  RouteHookAttrProp,
-  RoutePhase,
-} from './types';
-
-export type { PhaseThrowPolicy } from './types';
-
-export interface RoutePhaseDefinition {
-  phase: RoutePhase;
-  targetRoutes: LifecycleBranch;
-  hookPolicy: LifecycleHookHandling;
-  errorPolicy: PhaseThrowPolicy;
-  htmlAttr?: string;
-  routeHookProp?: RouteHookAttrProp;
-  runRouteLifecycle?: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
-}
-
-/** Pipeline phase — {@link RoutePhaseDefinition} with a route lifecycle callback. */
-export type PipelinePhaseDefinition = RoutePhaseDefinition & {
-  phase: LifecyclePhase;
-  runRouteLifecycle: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
-};
+import type { RoutePhaseDefinition } from './types';
 
 /**
  * Per-phase configuration: policy, attr bindings, and pipeline route callback.

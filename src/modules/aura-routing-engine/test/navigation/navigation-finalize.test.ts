@@ -3,7 +3,7 @@ import {
   applyTransactionHistory,
   finalizeNotFoundNavigation,
 } from '../../core/navigation/navigation-finalize';
-import type { TransactionResult } from '../../core/navigation/transaction-result';
+import type { TransactionResult } from '../../core/navigation/types';
 
 describe('navigation/navigation-finalize', () => {
   const provider = { commit: jest.fn(), rollback: jest.fn() };

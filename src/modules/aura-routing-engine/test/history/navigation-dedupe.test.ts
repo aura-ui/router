@@ -4,7 +4,7 @@ import {
 } from '../../core';
 import type { RouterInstance } from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { TransactionFullResult } from '../../core/navigation/transaction-result';
+import type { TransactionFullResult } from '../../core/navigation/types';
 import { createTestRoute } from '../helpers/create-test-route';
 
 function mockTransactionRunSuccess(run: jest.SpyInstance): void {

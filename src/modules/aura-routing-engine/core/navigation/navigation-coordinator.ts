@@ -1,18 +1,7 @@
 import { NavigationTransaction } from './navigation-transaction';
-import type { MatchedRouteInfo } from '../match/url-matcher';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import { AuraRoutingEngine } from '../aura-routing-engine';
-import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-import type { TransactionFullResult } from './transaction-result';
-
-export interface NavigationTransactionOptions {
-  from: MatchedRouteInfo | null;
-  to: MatchedRouteInfo;
-  action: HistoryAction;
-  href: string;
-  hash: string;
-  options: NavigateHistoryOptions; //todo rename
-}
+import type { NavigationTransactionOptions, TransactionFullResult } from './types';
 
 type NavigationPlan =
   | { action: 'run' }

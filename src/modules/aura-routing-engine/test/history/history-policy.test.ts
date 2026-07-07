@@ -4,7 +4,7 @@ import {
   resolveHistoryPolicy,
 } from '../../core/history/history-policy';
 import type { HistoryAction } from '../../core/history/provider.types';
-import type { TransactionResult } from '../../core/navigation/transaction-result';
+import type { TransactionResult } from '../../core/navigation/types';
 import type { ViewCommitState } from '../../core/view-mount/view-commit-state';
 import { createTestRoute } from '../helpers/create-test-route';
 

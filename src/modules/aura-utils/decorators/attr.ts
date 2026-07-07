@@ -1,11 +1,28 @@
+/**
+ * `@attr` decorator for custom elements: maps a class property to an HTML attribute.
+ *
+ * - **Get** — reads `getAttribute` (or an inherited value), applies {@link AttrParser}, optional `defaultValue`.
+ * - **Set** — `setAttribute` / `removeAttribute` (unless `readonly`). On writable `cached` attrs, assignment
+ *   also refreshes the cache; external `setAttribute` does not.
+ * - **`cached: true`** — first read resolves DOM once per element; later reads return a frozen value
+ *   without touching the DOM. Ancestor / external DOM changes do not invalidate the cache;
+ *   call {@link attr.clear} to re-read.
+ * - **`inherit`** — when the local value is missing or empty (unless `allowEmpty`), falls back to
+ *   `closest('[attr]')` on ancestors. A `string` value keeps the local attribute name but uses a
+ *   different name for the ancestor lookup.
+ */
+
 import { parseString, toKebabCase } from '../misc/format';
 
-type AttrParser<T> = (attr: string | null) => T | null;
+/** `(raw attribute string | null) → typed property value` */
+export type AttrParser<T> = (attr: string | null) => T | null;
 
 const defaultParser = parseString as AttrParser<any>;
 
+/** Element instance → cached property values (`cached: true` only). */
 const cachesByEl = new WeakMap<HTMLElement, Map<string, unknown>>();
 
+/** Returns the per-element property cache; creates it when `create` is true. */
 function cacheOf(el: HTMLElement, create = false): Map<string, unknown> | undefined {
   let map = cachesByEl.get(el);
   if (!map) {
@@ -16,33 +33,62 @@ function cacheOf(el: HTMLElement, create = false): Map<string, unknown> | undefi
   return map;
 }
 
+/** Reads an attribute from the nearest ancestor that defines it (not from `element`). */
 const getInherited = (el: HTMLElement, name: string): string | null =>
   el.parentElement?.closest(`[${name}]`)?.getAttribute(name) ?? null;
 
-/** HTML attribute mapping configuration */
-type AttrConfig<T = string> = {
-  /** HTML attribute name. Uses kebab-cased variable name by default */
+/** `@attr` decorator configuration. */
+export type AttrConfig<T = string> = {
+  /** HTML attribute name. Uses kebab-cased property name by default. */
   name?: string;
-  /** Create getter only */
+  /** Expose getter only (no setter). */
   readonly?: boolean;
-  /** Specifies the attribute inheritance behavior. */
+  /**
+   * Ancestor inheritance. `true` — same attribute name on the nearest matching ancestor;
+   * `string` — local attribute name unchanged, ancestor lookup uses this name instead.
+   * Has no effect when omitted or falsy.
+   */
   inherit?: boolean | string;
-  /** Use data-* attribute */
+  /** Prefix attribute with `data-`. */
   dataAttr?: boolean;
-  /** Default property value. Used if no attribute is present on the element. */
+  /** Value when the attribute is absent on DOM (`null` raw). Does not set an initial DOM attribute. */
   defaultValue?: T;
-  /** Parser from attribute value */
+  /** Converts the raw attribute string to the property type. Default: {@link parseString}. */
   parser?: AttrParser<T>;
-  /** First read resolves DOM; later reads use cache until {@link attr.clear}. */
+  /**
+   * Cache the parsed value per element after the first read (no further DOM access).
+   * Invalidate with {@link attr.clear}.
+   */
   cached?: boolean;
-  /** With inherit: local `attr=""` blocks ancestor lookup when true. */
+  /**
+   * Only with `inherit`: `hasAttribute` on this element wins over ancestor lookup,
+   * including empty string (`attr=""`). Without it, an empty local value still inherits.
+   */
   allowEmpty?: boolean;
 };
 
 /**
- * `@attr` decorator: maps a property to an HTML attribute.
+ * Property decorator: maps a field on a custom element to an HTML attribute.
  *
- * Use {@link attr.clear} to invalidate cached attrs on an element instance.
+ * @param config - Attribute name, parser, inheritance, caching, and related options.
+ *
+ * @example
+ * ```ts
+ * class MyRoute extends HTMLElement {
+ *   @attr({ readonly: true }) path!: string;
+ *
+ *   @attr({ inherit: true, allowEmpty: true, parser: parseCommaSeparated })
+ *   guard!: string[] | null;
+ *
+ *   @attr({ inherit: true, cached: true, parser: parsePrefetchAttr })
+ *   prefetch!: PrefetchType | false | null;
+ * }
+ *
+ * // After external DOM / ancestor attr changes:
+ * attr.clear(route, 'prefetch');
+ * attr.clear(route, ['prefetch', 'scroll']);
+ * attr.clear(route); // every cached property on this element
+ * ```
  */
 export const attr = <T = string>(config: AttrConfig<T> = {}) => {
   return (proto: Element, propName: string): void => {
@@ -70,11 +116,15 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
 
     if (config.cached) {
       function get(this: HTMLElement): T | null {
-        const map = cacheOf(this);
+        let map = cachesByEl.get(this);
         if (map?.has(propName)) return map.get(propName) as T | null;
 
         const val = read(this);
-        cacheOf(this, true)!.set(propName, val);
+        if (!map) {
+          map = new Map();
+          cachesByEl.set(this, map);
+        }
+        map.set(propName, val);
         return val;
       }
 
@@ -100,6 +150,7 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
 };
 
 function clearAttr(target: object, prop?: PropertyKey | PropertyKey[]): void {
+  if (Array.isArray(prop)) return prop.forEach((p) => attr.clear(target, p));
   if (typeof target === 'function') return;
 
   const el = target as HTMLElement;
@@ -109,15 +160,14 @@ function clearAttr(target: object, prop?: PropertyKey | PropertyKey[]): void {
     return;
   }
 
-  if (Array.isArray(prop)) return prop.forEach((p) => attr.clear(target, p));
-
   cacheOf(el)?.delete(String(prop));
 }
 
 /**
- * Clears cached attr values on an element instance; next read re-resolves from DOM.
+ * Invalidates cached `@attr({ cached: true })` values on an element instance.
+ * The next property read re-resolves from the DOM. No-op for a class constructor.
  *
- * @param target - Element instance (not the class constructor).
- * @param prop - Optional property name, or an array of names. Omit to clear all cached attrs.
+ * @param target - Element instance.
+ * @param prop - Property name, array of names, or omit to clear every cached property on `target`.
  */
 attr.clear = clearAttr;

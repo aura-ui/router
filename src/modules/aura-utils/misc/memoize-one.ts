@@ -17,7 +17,7 @@ export type MemoizedOneFn<F extends (arg: any) => any> = F & {
  */
 export type MemoOneHashFn<T> = (arg: T) => string | null | undefined;
 
-function hashOneArg<T>(arg: T): string | null | undefined {
+export function hashOneArg<T>(arg: T): string | null | undefined {
   if (typeof arg === 'string') return arg;
   if (typeof arg === 'number' || typeof arg === 'boolean') {
     return String(arg);

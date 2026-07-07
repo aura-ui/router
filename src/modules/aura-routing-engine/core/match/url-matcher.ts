@@ -1,11 +1,9 @@
+import { memoize } from '../../../aura-utils/decorators/memoize';
+import { parsePath, parseQuery } from '../../../aura-utils/misc/url';
+import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
+import { attachNavigationChain } from '../route-tree/matched-chain';
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import type { ResolvedView } from '../route-tree/resolved-view';
-import { parsePath, parseQuery } from '../../../aura-utils/misc/url';
-import {
-  isGlobalCatchAllPattern,
-  isScopedCatchAllPattern,
-} from '../route-tree/resolve-pattern';
-import { attachNavigationChain } from '../route-tree/matched-chain';
 import type { RouteNode } from '../route-tree/route-node.types';
 
 export interface MatchedRouteInfo {
@@ -58,6 +56,7 @@ function routeScore(pattern: string): number {
 
 export class AuraRoutingUrlMatcher {
   /** Match pathname по matchable nodes registry (nested-ready). */
+  @memoize((pathname: string) => pathname)
   matchPath(pathname: string, nodes: readonly RouteNode[]): NodePathMatch | null {
     let best: NodePathMatch & { score: number } | null = null;
 
@@ -82,6 +81,7 @@ export class AuraRoutingUrlMatcher {
    * @example global `*` — `/foo/bar` → `{ splat: 'foo/bar' }`
    * @example scoped `/users/*` — `/users/unknown` → `{ splat: 'unknown' }`
    */
+  @memoize((pathname, pattern) => `${pathname}\0${pattern}`)
   getPathParams(pathname: string, pattern: string): Record<string, string> | null {
     if (isGlobalCatchAllPattern(pattern)) {
       const splat = pathname.replace(/^\//, '');
@@ -106,6 +106,12 @@ export class AuraRoutingUrlMatcher {
     } catch {
       return pathname === pattern ? {} : null;
     }
+  }
+
+  /** Drops memoized `matchPath` / `getPathParams` caches (e.g. when route tree changes). */
+  destroy() {
+    memoize.clear(this, 'matchPath');
+    memoize.clear(this, 'getPathParams');
   }
 
   /** MatchedRouteInfo leaf + `chain` из node.branch. */

@@ -4,10 +4,6 @@ class InheritHost extends HTMLElement {
   @attr({ inherit: true }) label: string | null;
 }
 
-class EmptyAllowedHost extends HTMLElement {
-  @attr({ inherit: true, allowEmpty: true }) label: string | null;
-}
-
 let cachedParseCalls = 0;
 function parseCachedLabel(value: string | null): string | null {
   cachedParseCalls++;
@@ -27,7 +23,6 @@ class CachedChildHost extends CachedHost {}
 
 describe('@attr inherit', () => {
   const hostTag = 'inherit-host';
-  const emptyTag = 'empty-allowed-host';
   const cachedTag = 'cached-attr-host';
   const dualCachedTag = 'dual-cached-attr-host';
   const cachedChildTag = 'cached-attr-child-host';
@@ -35,9 +30,6 @@ describe('@attr inherit', () => {
   beforeAll(() => {
     if (!customElements.get(hostTag)) {
       customElements.define(hostTag, InheritHost);
-    }
-    if (!customElements.get(emptyTag)) {
-      customElements.define(emptyTag, EmptyAllowedHost);
     }
     if (!customElements.get(cachedTag)) {
       customElements.define(cachedTag, CachedHost);
@@ -71,25 +63,11 @@ describe('@attr inherit', () => {
     root.remove();
   });
 
-  it('empty string without emptyAllowed still inherits from parent', () => {
+  it('empty string on child blocks inheritance', () => {
     const root = document.createElement('div');
     root.setAttribute('label', 'parent');
 
     const child = document.createElement(hostTag) as InheritHost;
-    child.setAttribute('label', '');
-    root.append(child);
-    document.body.append(root);
-
-    expect(child.label).toBe('parent');
-
-    root.remove();
-  });
-
-  it('allowEmpty: empty string on child blocks inheritance', () => {
-    const root = document.createElement('div');
-    root.setAttribute('label', 'parent');
-
-    const child = document.createElement(emptyTag) as EmptyAllowedHost;
     child.setAttribute('label', '');
     root.append(child);
     document.body.append(root);
@@ -99,11 +77,11 @@ describe('@attr inherit', () => {
     root.remove();
   });
 
-  it('allowEmpty: child override with non-empty value', () => {
+  it('child override with non-empty value', () => {
     const root = document.createElement('div');
     root.setAttribute('label', 'parent');
 
-    const child = document.createElement(emptyTag) as EmptyAllowedHost;
+    const child = document.createElement(hostTag) as InheritHost;
     child.setAttribute('label', 'child');
     root.append(child);
     document.body.append(root);

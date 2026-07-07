@@ -1,3 +1,15 @@
+/**
+ * Navigation transaction pipeline — ordered lifecycle, data, history, and view-mount steps.
+ *
+ * Invoked from {@link NavigationTransaction.run} after `buildTransitionPlan`. Three entry
+ * points cover the routing tiers:
+ *
+ * - {@link NavigationTransactionPipeline.runFullPipeline} — standard navigation
+ * - {@link NavigationTransactionPipeline.runFastPipeline} — Tier 0 (no guards/loads)
+ * - {@link NavigationTransactionPipeline.runUpdate} — same route record, param/query change
+ *
+ * @module navigation/navigation-transaction-pipeline
+ */
 import { NavigationTransaction } from './navigation-transaction';
 import { PHASES, type PipelinePhaseDefinition } from '../lifecycle';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
@@ -21,23 +33,44 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 
 export type { TransactionFullResult } from './transaction-result';
 
+/** Single pipeline step. `null` = success and continue; otherwise a terminal {@link TransactionFullResult}. */
 type PipelineStep = () => Promise<TransactionFullResult>;
 
 /**
- * Navigation pipeline: guards → loads → history → render (+ transitions) → effects.
+ * Executes one {@link NavigationTransaction} as a sequence of blocking steps.
  *
- * Terminal step results are returned immediately; `null` means the step succeeded
- * and the next step should run ({@link TransactionFullResult}).
+ * Step contract ({@link TransactionFullResult}):
+ * - `null` — step succeeded; run the next step
+ * - non-`null` — terminal outcome: `cancelled`, `redirect`, `error`, or (top-level only) `navigationSucceeded`
+ *
+ * Render path splits on {@link shouldUsePrepareCommitEnterBranch}:
+ * - **atomic** — parallel resolve ({@link prepareEnterBranch}) then sync DOM mount ({@link commitEnterBranchToDom})
+ * - **per-route** (`!atomic`) — sequential {@link runViewCommit} on each enter route via {@link renderEnterRoutes}
+ *
+ * Both render paths honor `transition-order` on the enter leaf. {@link runFastPipeline} skips transitions
+ * entirely (see {@link canUseFastPath}).
+ *
+ * @see docs/MAIN_PIPELINE.md
  */
 export class NavigationTransactionPipeline {
 
   private readonly transaction: NavigationTransaction;
 
+  /**
+   * @param transaction — active navigation; must have `transitionPlan` set before any `run*` call
+   */
   constructor(transaction: NavigationTransaction) {
     this.transaction = transaction;
   }
 
-  /** Full path: blocking guards/loads, staged render, promote → gate → unmount → ready. */
+  /**
+   * Standard navigation pipeline.
+   *
+   * Order: `leave` → `guard` → {@link runLoads} → history commit → render (with transitions) →
+   * {@link runAfterRender}.
+   *
+   * @returns first terminal step result (`error`, `redirect`, `cancelled`), or `navigationSucceeded` when all steps return `null`
+   */
   async runFullPipeline(): Promise<TransactionFullResult> {
     const stepResult = await this.runSequentially([
       () => this.runGuards(),
@@ -49,7 +82,17 @@ export class NavigationTransactionPipeline {
     return stepResult ?? { status: 'navigationSucceeded' };
   }
 
-  /** Tier-0 swap: history → view commit → promote → gate → unmount → ready (no guards/loads). */
+  /**
+   * Tier-0 fast path — view swap only.
+   *
+   * Skips guards, data loads, and transition phases. Commits history synchronously, runs a single
+   * {@link runViewCommit} on the sole enter route, then {@link runAfterRender}.
+   *
+   * Selected by {@link canUseFastPath}: flat swap (one exit, one enter), no blocking hooks,
+   * no async content, no `transition-order`.
+   *
+   * @returns `cancelled` on abort/supersede; render errors via {@link failRender}; otherwise {@link runAfterRender} result or `navigationSucceeded`
+   */
   async runFastPipeline(): Promise<TransactionFullResult> {
     this.commitHistory();
 
@@ -74,7 +117,14 @@ export class NavigationTransactionPipeline {
     return await this.runAfterRender() ?? { status: 'navigationSucceeded' };
   }
 
-  /** Same leaf route record: load → history → update hooks → view finalize (no guards/render). */
+  /**
+   * In-place update on the same route record (param/query change).
+   *
+   * Order: {@link runLoads} → history commit → `update` lifecycle phase →
+   * {@link NavigationTransaction.commitNavigation} (no guards, render, `unmount`, or `ready`).
+   *
+   * @returns terminal result from loads/update (`error`, `redirect`, `cancelled`), or `navigationSucceeded`
+   */
   async runUpdate(): Promise<TransactionFullResult> {
     const stepResult = await this.runSequentially([
       () => this.runLoads(),
@@ -91,16 +141,23 @@ export class NavigationTransactionPipeline {
     return { status: 'navigationSucceeded' };
   }
 
+  /** Writes browser history when the transaction's history policy requires it. */
   private commitHistory(): void {
     this.transaction.engine.commitHistoryIfNeeded(this.transaction);
   }
 
+  /** Pipeline step wrapper around {@link commitHistory}. */
   private runCommitHistory(): Promise<TransactionFullResult> {
     this.commitHistory();
     return Promise.resolve(null);
   }
 
-  /** Blocking pre-render phases: leave (exit) → guard (enter). */
+  /**
+   * Blocking pre-render lifecycle phases on exit and enter branches.
+   *
+   * Order: `leave` (exit routes) → `guard` (enter routes). Redirect or hook failure
+   * stops the pipeline before loads/render.
+   */
   runGuards(): Promise<TransactionFullResult> {
     return this.runSequentially([
       () => this.runLifecyclePhase(PHASES.leave),
@@ -108,7 +165,14 @@ export class NavigationTransactionPipeline {
     ]);
   }
 
-  /** Blocking data load on enter branch — after guards, before render. */
+  /**
+   * Blocking data load for the enter branch.
+   *
+   * Runs after guards and before render. Delegates to `engine.dataGraph.load`; stores
+   * the resulting snapshot on the transaction for view commit and lifecycle hooks.
+   *
+   * `activeChain` is the full target branch (`to.chain`) when present, otherwise enter routes.
+   */
   async runLoads(): Promise<TransactionFullResult> {
     const { to, transitionPlan } = this.transaction;
     const activeChain = to.chain ?? transitionPlan.enterRoutes;
@@ -123,20 +187,43 @@ export class NavigationTransactionPipeline {
     return outcome ?? null;
   }
 
-  /** Test only — render with no `transition-order`. */
+  /**
+   * Render enter branch without `transition-order` interleaving.
+   *
+   * @internal Test and diagnostic entry — production uses {@link runRenderWithTransition}.
+   */
   async runRender(): Promise<TransactionFullResult> {
     return this.renderEnterBranch(null);
   }
 
-  /** Render interleaved with `transition-order` on the enter route. */
+  /**
+   * Render enter branch with `transition-order` from the enter leaf route.
+   *
+   * Resolves `transitionOrder` from the transaction (set in {@link NavigationTransaction.run}).
+   */
   async runRenderWithTransition(): Promise<TransactionFullResult> {
     return this.renderEnterBranch(this.transaction.transitionOrder);
   }
 
   /**
-   * Enter-branch render: branch mount (prepare → commit to DOM) or per-route, optionally wrapped in transitions.
+   * Dispatches enter-branch render for atomic vs per-route mode and `transition-order`.
    *
-   * All nine combinations are listed explicitly below — read top-to-bottom for one scenario.
+   * **Atomic** (`prepare` → `commit`): parallel content resolve, then sync mount root→leaf.
+   * **Per-route**: sequential {@link runViewCommit} on each enter route.
+   *
+   * | atomic | transition-order | step sequence |
+   * |--------|------------------|---------------|
+   * | yes    | `null`           | prepare → commit |
+   * | yes    | `out-in`         | prepare → transitionOut → commit → transitionIn |
+   * | yes    | `parallel`       | prepare → commit → transitionOut ∥ transitionIn |
+   * | yes    | `in-out`         | prepare → commit → transitionIn → transitionOut |
+   * | no     | `null`           | renderEnterRoutes |
+   * | no     | `out-in`         | transitionOut → renderEnterRoutes → transitionIn |
+   * | no     | `parallel`       | renderEnterRoutes → transitionOut ∥ transitionIn |
+   * | no     | `in-out`         | renderEnterRoutes → transitionIn → transitionOut |
+   * | either | (invalid order) | `null` — defensive fallthrough; all valid {@link TransitionOrderType} values are handled above |
+   *
+   * @param transitionOrder — enter leaf `transition-order`, or `null` when absent
    */
   private renderEnterBranch(transitionOrder: TransitionOrderType | null): Promise<TransactionFullResult> {
     const transitionPlan = this.transaction.transitionPlan;
@@ -212,6 +299,12 @@ export class NavigationTransactionPipeline {
     return Promise.resolve(null);
   }
 
+  /**
+   * Runs `transition-out` and `transition-in` concurrently.
+   *
+   * After both settle: `cancelled` if inactive; otherwise `transitionOut` outcome, else `transitionIn`,
+   * else `null`.
+   */
   private async runTransitionOutInParallel(): Promise<TransactionFullResult> {
     const [transitionOutOutcome, transitionInOutcome] = await Promise.all([
       this.runLifecyclePhase(PHASES.transitionOut),
@@ -225,6 +318,12 @@ export class NavigationTransactionPipeline {
     return transitionOutOutcome ?? transitionInOutcome ?? null;
   }
 
+  /**
+   * Atomic render — phase 1: parallel content resolve (no DOM writes).
+   *
+   * Stores resolved payloads on `transaction.preResolvedBranchContents` for
+   * {@link commitEnterBranchToDom}. Render errors trigger {@link failRender}.
+   */
   private async prepareEnterBranch(): Promise<TransactionFullResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const resolveContext = createBranchResolveContext(this.transaction);
@@ -246,6 +345,12 @@ export class NavigationTransactionPipeline {
     return null;
   }
 
+  /**
+   * Atomic render — phase 2: sync mount pre-resolved branch into the DOM.
+   *
+   * Clears `preResolvedBranchContents` after read. Marks the view staged on success.
+   * Missing pre-resolved contents yields `cancelled`.
+   */
   private commitEnterBranchToDom(): Promise<TransactionFullResult> {
     const preResolvedContents = this.transaction.preResolvedBranchContents;
     this.transaction.preResolvedBranchContents = undefined;
@@ -270,6 +375,12 @@ export class NavigationTransactionPipeline {
     return Promise.resolve(null);
   }
 
+  /**
+   * Per-route render: sequential {@link runViewCommit} on each enter route (root → leaf).
+   *
+   * Passes load-hook data and `paramChangeRemount` via {@link viewCommitOptions}.
+   * Stops on first abort, cancel, or render error.
+   */
   private async renderEnterRoutes(): Promise<TransactionFullResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const viewRenderCancellation: ViewRenderCancellation = {
@@ -300,8 +411,12 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Post-render effects: promote staged views → commit gate → unmount → ready.
-   * Param remount (same leaf): unmount outgoing → promote → commit gate → ready.
+   * Post-render finalization after staged views are in the DOM.
+   *
+   * Order: `unmount` (exit branch) → `commitStagedView` on each enter route →
+   * {@link NavigationTransaction.commitNavigation} → `ready` (enter branch).
+   *
+   * Param-change remount follows the same sequence globally for successful navigations.
    */
   async runAfterRender(): Promise<TransactionFullResult> {
     if (!this.transaction.isActive()) {
@@ -322,7 +437,16 @@ export class NavigationTransactionPipeline {
     return this.runLifecyclePhase(PHASES.ready);
   }
 
-  /** Runs one lifecycle phase for every route on its target branch. */
+  /**
+   * Runs one registered lifecycle phase on every route in its target branch.
+   *
+   * Target routes come from `transitionPlan[phaseDef.targetRoutes]` (e.g. `exitRoutes`,
+   * `enterRoutes`). Blocking phases may return `redirect` / `cancelled`; failures use
+   * {@link NavigationTransaction.fail}.
+   *
+   * @param phaseDef — entry from {@link PHASES} registry
+   * @returns first terminal result, or `null` when all routes complete successfully
+   */
   async runLifecyclePhase(phaseDef: PipelinePhaseDefinition): Promise<TransactionFullResult> {
     const matchedRoutes = this.transaction.transitionPlan[phaseDef.targetRoutes];
     for (const matchedRoute of matchedRoutes) {
@@ -339,6 +463,10 @@ export class NavigationTransactionPipeline {
     return null;
   }
 
+  /**
+   * Render failure recovery: unmount exit branch, mark view committed after error recovery,
+   * then delegate to {@link NavigationTransaction.fail} with phase `'render'`.
+   */
   private async failRender(
     matchedRoute: MatchedRouteInfo,
     error: unknown,
@@ -348,7 +476,13 @@ export class NavigationTransactionPipeline {
     return this.transaction.fail(matchedRoute, error, 'render');
   }
 
-  /** Load payload + remount flag for one enter route (full pipeline render only). */
+  /**
+   * Per-route view-commit options ({@link renderEnterRoutes} only; atomic path uses
+   * {@link createBranchResolveContext} / `dataFor` instead).
+   *
+   * Attaches load-hook payload from `dataSnapshot` when present and sets
+   * `paramChangeRemount` when the transition plan requests in-place remount.
+   */
   private viewCommitOptions(matchedRoute: MatchedRouteInfo): ViewCommitRenderOptions | undefined {
     const options: ViewCommitRenderOptions = {};
     const snapshot = this.transaction.dataSnapshot;
@@ -362,6 +496,12 @@ export class NavigationTransactionPipeline {
     return Object.keys(options).length > 0 ? options : undefined;
   }
 
+  /**
+   * Runs pipeline steps in order until one returns a terminal result or the transaction is inactive.
+   *
+   * @param steps — ordered step functions
+   * @returns first non-`null` step result, `cancelled` if inactive before/during a step, or `null`
+   */
   private async runSequentially(steps: PipelineStep[]): Promise<TransactionFullResult> {
     for (const step of steps) {
       if (!this.transaction.isActive()) {

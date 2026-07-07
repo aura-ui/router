@@ -4,7 +4,7 @@ import {
 } from '../../core';
 import type { RouterInstance } from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { TransactionFullResult } from '../../core/navigation/types';
+import type { TransactionResult } from '../../core/navigation/types';
 import { createTestRoute } from '../helpers/create-test-route';
 
 function mockTransactionRunSuccess(run: jest.SpyInstance): void {
@@ -16,8 +16,8 @@ function mockTransactionRunSuccess(run: jest.SpyInstance): void {
 
 function resolveMockTransactionRun(
   transaction: NavigationTransaction,
-  resolve: (result: TransactionFullResult) => void,
-  result: TransactionFullResult,
+  resolve: (result: TransactionResult) => void,
+  result: TransactionResult,
 ): void {
   if (!result || result.status === 'navigationSucceeded') {
     transaction.engine.commitNavigation(transaction);
@@ -26,13 +26,13 @@ function resolveMockTransactionRun(
 }
 
 function mockDeferredTransactionRun() {
-  const resolvers: Array<(result: TransactionFullResult) => void> = [];
+  const resolvers: Array<(result: TransactionResult) => void> = [];
   const transactions: NavigationTransaction[] = [];
 
   const run = jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
     function (this: NavigationTransaction) {
       transactions.push(this);
-      return new Promise<TransactionFullResult>((resolve) => {
+      return new Promise<TransactionResult>((resolve) => {
         resolvers.push((result) => resolveMockTransactionRun(this, resolve, result));
       });
     },
@@ -40,7 +40,7 @@ function mockDeferredTransactionRun() {
 
   return {
     run,
-    resolveAt(index: number, result: TransactionFullResult) {
+    resolveAt(index: number, result: TransactionResult) {
       resolvers[index](result);
     },
     transactionAt(index: number) {
@@ -167,12 +167,12 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     mockTransactionRunSuccess(run);
     await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
 
-    let resolveAbout!: (result: TransactionFullResult) => void;
+    let resolveAbout!: (result: TransactionResult) => void;
     let call = 0;
     run.mockImplementation(async function (this: NavigationTransaction) {
       call += 1;
       if (call === 1) {
-        return new Promise<TransactionFullResult>((resolve) => {
+        return new Promise<TransactionResult>((resolve) => {
           resolveAbout = (result) => resolveMockTransactionRun(this, resolve, result);
         });
       }

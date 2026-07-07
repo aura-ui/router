@@ -1,7 +1,7 @@
 import { AuraOutlet } from '../../../../aura-outlet/core/aura-outlet';
 import { FailedNavigation, NavigationError } from '../../../core/failure';
 import { HookRegistry } from '../../../core/hooks/registry';
-import type { LifecycleRuntimeContext, NavigationTransactionOptions, TransactionFullResult } from '../../../core/navigation/types';
+import type { NavigationLifecycleContext, NavigationTransactionOptions, TransactionResult } from '../../../core/navigation/types';
 import type { MatchedRouteInfo } from '../../../core/match/url-matcher';
 import { NavigationTransaction } from '../../../core/navigation/navigation-transaction';
 import type { AuraRoutingEngine } from '../../../core/aura-routing-engine';
@@ -50,10 +50,10 @@ export function createPushNavOptions(
   };
 }
 
-export function createLifecycleRuntimeContext(
+export function createNavigationLifecycleContext(
   matchedRoute: MatchedRouteInfo,
-  overrides: Partial<LifecycleRuntimeContext> = {},
-): LifecycleRuntimeContext {
+  overrides: Partial<NavigationLifecycleContext> = {},
+): NavigationLifecycleContext {
   const job = createMockNavigationJob(1);
   return {
     transaction: {
@@ -79,7 +79,7 @@ export function createLifecycleRuntimeContext(
 
 export function createFailedNavigation(
   matchedRoute: MatchedRouteInfo,
-  context: LifecycleRuntimeContext,
+  context: NavigationLifecycleContext,
   phase: 'guard' | 'load' | 'render' = 'guard',
 ): FailedNavigation {
   const error = new NavigationError({
@@ -125,18 +125,18 @@ export async function runNavigationTransaction(
 }
 
 export function mockDeferredTransactionRun() {
-  const resolvers: Array<(result: TransactionFullResult) => void> = [];
+  const resolvers: Array<(result: TransactionResult) => void> = [];
 
   const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
     () =>
-      new Promise<TransactionFullResult>((resolve) => {
+      new Promise<TransactionResult>((resolve) => {
         resolvers.push(resolve);
       }),
   );
 
   return {
     runSpy,
-    resolveAt(index: number, result: TransactionFullResult) {
+    resolveAt(index: number, result: TransactionResult) {
       resolvers[index](result);
     },
     pendingCount: () => resolvers.length,

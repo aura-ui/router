@@ -1,14 +1,14 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route-tree/transition-plan';
 import { NavigationTransactionPipeline } from './navigation-transaction-pipeline';
-import type { TransactionFullResult } from './types';
+import type { PipelineStepResult, TransactionResult } from './types';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { NavigationTransactionOptions } from './types';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { type NavigationErrorPhase } from '../failure';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
-import type { LifecycleRuntimeContext } from './types';
+import type { NavigationLifecycleContext } from './types';
 import type { DataSnapshot } from '../data-graph';
 import type { ViewPayload } from '../content/model/types';
 import { canUseFastPath } from '../route-tree/can-use-fast-path';
@@ -85,7 +85,7 @@ export class NavigationTransaction {
     this.viewCommitTracker.markViewCommitted();
   }
 
-  async run(): Promise<TransactionFullResult> {
+  async run(): Promise<TransactionResult> {
     this.transitionPlan = buildTransitionPlan(this.from, this.to);
     this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
 
@@ -103,7 +103,7 @@ export class NavigationTransaction {
     route: MatchedRouteInfo,
     error: unknown,
     atPhase: NavigationErrorPhase,
-  ): Promise<TransactionFullResult> {
+  ): Promise<PipelineStepResult> {
     return !this.isActive()
       ? { status: 'cancelled' }
       : NavigationFailureHandler.handle(
@@ -115,7 +115,7 @@ export class NavigationTransaction {
   }
 
   /** Builds engine orchestration context for one navigation transaction. */
-  static createTransactionContext(transaction: NavigationTransaction): LifecycleRuntimeContext {
+  static createTransactionContext(transaction: NavigationTransaction): NavigationLifecycleContext {
     const { transactionId, signal, from, to, action, transitionPlan } = transaction;
     return {
       transaction: { from, to, action, plan: transitionPlan },
@@ -133,15 +133,15 @@ export class NavigationTransaction {
   }
 
   private async runWithStagedViewRollback(
-    runPipeline: () => Promise<TransactionFullResult>,
-  ): Promise<TransactionFullResult> {
+    runPipeline: () => Promise<PipelineStepResult>,
+  ): Promise<TransactionResult> {
     const rollbackStagedViews = () => {
       rollbackUncommittedViews(this.transitionPlan, this.viewCommitTracker);
     };
 
     this.signal.addEventListener('abort', rollbackStagedViews, { once: true });
 
-    let result: TransactionFullResult | undefined;
+    let result: PipelineStepResult | undefined;
     try {
       result = await runPipeline();
       return result ?? { status: 'navigationSucceeded' };
@@ -153,7 +153,7 @@ export class NavigationTransaction {
     }
   }
 
-  private shouldRollbackAfterRun(result: TransactionFullResult | undefined): boolean {
+  private shouldRollbackAfterRun(result: PipelineStepResult | undefined): boolean {
     if (this.viewCommitTracker.isViewCommitted()) return false;
     if (this.isAborted) return false;
     return result?.status === 'cancelled';

@@ -55,7 +55,7 @@ sequenceDiagram
       Pipeline->>Engine: commitNavigation() after view promotion
       Engine->>History: commit target or preserve same target
       Engine->>Engine: setPrev(to)
-      Pipeline-->>Tx: TransactionFullResult
+      Pipeline-->>Tx: PipelineStepResult
       Tx-->>Coord: navigationSucceeded / cancelled / redirect / error
       Coord->>Engine: finalizeCancelled / applyRedirect / finalizeError
       Engine->>History: cancellation/error policy when needed
@@ -87,7 +87,7 @@ cancel or redirect before view commit.
 
 The engine keeps three related concepts separate:
 
-- `TransactionFullResult` with `status: 'navigationSucceeded'`: the pipeline
+- `PipelineStepResult` with `status: 'navigationSucceeded'`: the pipeline
   completed successfully.
 - `ViewCommitSnapshot.view === 'committed'`: the target view was promoted and should
   be treated as user-visible.

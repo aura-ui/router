@@ -58,6 +58,7 @@ export function memoizeFn<F extends AnyToAnyFnSignature>(
   function memo(this: ThisParameterType<F>, ...args: Parameters<F>): ReturnType<F> {
     const key = hashFn(...args);
     if (typeof key !== 'string' && key !== null) {
+      console.warn(`[Aura] memoize("${fn.name}"): arguments could not be hashed; result not cached.`);
       return fn.apply(this, args);
     }
     let value = cache.get(key) as ReturnType<F>;

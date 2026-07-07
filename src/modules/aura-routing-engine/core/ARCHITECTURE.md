@@ -10,7 +10,7 @@ failure handling in `failure/README.md`.
 | --- | --- |
 | `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and pre-match `NOT_FOUND`, `commitHistoryIfNeeded`, `commitNavigation`, `invalidateData()`. |
 | `aura-routing-route-registry.ts` | Route catalog snapshot, tree rebuild, `matchableNodes` for matcher. |
-| `navigation/` | Coordinator, transaction, pipeline, phase registry (`livecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), failure lifecycle (`navigation-failure-handler.ts`, `not-found-exit-cleanup.ts`), history finalize (`navigation-finalize.ts`), outcome types. |
+| `navigation/` | Coordinator, transaction, pipeline, phase registry (`lifecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), failure lifecycle (`navigation-failure-handler.ts`, `not-found-exit-cleanup.ts`), history finalize (`navigation-finalize.ts`), outcome types. |
 | `route/` | `RouteInstance`, lifecycle phase vocabulary (`RoutePhase`, `RouteLifecycleContext`, …), hook attr props. |
 | `guard.types.ts` | Shared blocking-hook contract: `GuardResult`, `RedirectTarget` (normalized from hook return values). |
 | `hooks/` | Global hook registry, `resolve-hook-names`, `normalizeHookResult`, hook result normalization. |
@@ -163,7 +163,7 @@ Implications:
   changing `defaultHookRegistry` semantics silently.
 
 Phase metadata (`PHASES`) and route callback bindings live in
-`navigation/livecycle-phases.ts`. Lifecycle context types live in `route/types.ts`.
+`navigation/lifecycle-phases.ts`. Lifecycle context types live in `route/types.ts`.
 
 ## Public Entry Points
 

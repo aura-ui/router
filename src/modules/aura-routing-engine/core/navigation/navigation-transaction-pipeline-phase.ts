@@ -19,7 +19,7 @@ import type {
   RoutePhaseThrowPolicy,
 } from './types';
 import { resolveHookNames } from '../hooks/resolve-hook-names';
-import { PHASES } from './livecycle-phases';
+import { PHASES } from './lifecycle-phases';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { NavigationError } from '../failure';

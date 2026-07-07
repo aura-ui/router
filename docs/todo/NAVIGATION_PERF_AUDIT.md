@@ -126,11 +126,11 @@ Nested default: `resolveEnterBranch` (async parallel) → `mountEnterBranch` (sy
 
 ---
 
-### 10. Legacy `mountEnterRoutes` sequential
+### 10. Legacy `renderEnterRoutes` sequential
 
 **Что:** без branch mount — `runViewCommit` в цикле, не parallel resolve.
 
-**Код:** `navigation-transaction-pipeline.ts` `mountEnterRoutes` (~L301–324)
+**Код:** `navigation-transaction-pipeline.ts` `renderEnterRoutes` (~L301–324)
 
 ---
 

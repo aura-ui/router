@@ -123,7 +123,6 @@ export class NavigationTransactionPipeline {
     return outcome ?? null;
   }
 
-
   /** Test only — render with no `transition-order`. */
   async runRender(): Promise<TransactionFullResult> {
     return this.render(null);
@@ -135,68 +134,71 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Enter-branch render: atomic (resolve → mount) or per-route, optionally wrapped in transitions.
+   * Enter-branch render: atomic (prepare → commit to DOM) or per-route, optionally wrapped in transitions.
    *
    * All nine combinations are listed explicitly below — read top-to-bottom for one scenario.
    */
   private render(transitionOrder: TransitionOrderType | null): Promise<TransactionFullResult> {
-    const atomic = this.useAtomicBranchMount();
+    const transitionPlan = this.transaction.transitionPlan;
+    const { enterRoutes, paramChangeRemount } = transitionPlan;
+    const mountStrategy = getEnterRoute(transitionPlan)?.mountStrategy ?? null;
+    const atomic = shouldUseBranchMount({ enterRoutes, paramChangeRemount, mountStrategy, transitionPlan });
 
     if (atomic && transitionOrder === null) {
       return this.runSequentially([
-        () => this.resolveEnterBranchStep(),
-        () => this.applyEnterBranchStep(),
+        () => this.prepareEnterBranch(),
+        () => this.commitEnterBranchToDom(),
       ]);
     }
 
     if (atomic && transitionOrder === 'out-in') {
       return this.runSequentially([
-        () => this.resolveEnterBranchStep(),
+        () => this.prepareEnterBranch(),
         () => this.runLifecyclePhase(PHASES.transitionOut),
-        () => this.applyEnterBranchStep(),
+        () => this.commitEnterBranchToDom(),
         () => this.runLifecyclePhase(PHASES.transitionIn),
       ]);
     }
 
     if (atomic && transitionOrder === 'parallel') {
       return this.runSequentially([
-        () => this.resolveEnterBranchStep(),
-        () => this.applyEnterBranchStep(),
-        () => this.runParallelTransitionHooks(),
+        () => this.prepareEnterBranch(),
+        () => this.commitEnterBranchToDom(),
+        () => this.runTransitionOutInParallel(),
       ]);
     }
 
     if (atomic && transitionOrder === 'in-out') {
       return this.runSequentially([
-        () => this.resolveEnterBranchStep(),
-        () => this.applyEnterBranchStep(),
+        () => this.prepareEnterBranch(),
+        () => this.commitEnterBranchToDom(),
         () => this.runLifecyclePhase(PHASES.transitionIn),
         () => this.runLifecyclePhase(PHASES.transitionOut),
       ]);
     }
 
     if (!atomic && transitionOrder === null) {
-      return this.runSequentially([() => this.mountEnterRoutes()]);
+      return this.runSequentially([() => this.renderEnterRoutes()]);
     }
 
     if (!atomic && transitionOrder === 'out-in') {
       return this.runSequentially([
         () => this.runLifecyclePhase(PHASES.transitionOut),
-        () => this.mountEnterRoutes(),
+        () => this.renderEnterRoutes(),
         () => this.runLifecyclePhase(PHASES.transitionIn),
       ]);
     }
 
     if (!atomic && transitionOrder === 'parallel') {
       return this.runSequentially([
-        () => this.mountEnterRoutes(),
-        () => this.runParallelTransitionHooks(),
+        () => this.renderEnterRoutes(),
+        () => this.runTransitionOutInParallel(),
       ]);
     }
 
     if (!atomic && transitionOrder === 'in-out') {
       return this.runSequentially([
-        () => this.mountEnterRoutes(),
+        () => this.renderEnterRoutes(),
         () => this.runLifecyclePhase(PHASES.transitionIn),
         () => this.runLifecyclePhase(PHASES.transitionOut),
       ]);
@@ -205,17 +207,7 @@ export class NavigationTransactionPipeline {
     return Promise.resolve(null);
   }
 
-  private useAtomicBranchMount(): boolean {
-    const plan = this.transaction.transitionPlan;
-    return shouldUseBranchMount({
-      enterRoutes: plan.enterRoutes,
-      paramChangeRemount: plan.paramChangeRemount,
-      mountStrategy: getEnterRoute(plan)?.mountStrategy ?? null,
-      transitionPlan: plan,
-    });
-  }
-
-  private async runParallelTransitionHooks(): Promise<TransactionFullResult> {
+  private async runTransitionOutInParallel(): Promise<TransactionFullResult> {
     const [transitionOutOutcome, transitionInOutcome] = await Promise.all([
       this.runLifecyclePhase(PHASES.transitionOut),
       this.runLifecyclePhase(PHASES.transitionIn),
@@ -228,7 +220,7 @@ export class NavigationTransactionPipeline {
     return transitionOutOutcome ?? transitionInOutcome ?? null;
   }
 
-  private async resolveEnterBranchStep(): Promise<TransactionFullResult> {
+  private async prepareEnterBranch(): Promise<TransactionFullResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const ctx = createBranchResolveContext(this.transaction);
     const branch = await resolveEnterBranch(
@@ -248,7 +240,7 @@ export class NavigationTransactionPipeline {
     return null;
   }
 
-  private applyEnterBranchStep(): Promise<TransactionFullResult> {
+  private commitEnterBranchToDom(): Promise<TransactionFullResult> {
     const payloads = this.transaction.resolvedBranchPayloads;
     this.transaction.resolvedBranchPayloads = undefined;
 
@@ -271,7 +263,7 @@ export class NavigationTransactionPipeline {
     return Promise.resolve(null);
   }
 
-  private async mountEnterRoutes(): Promise<TransactionFullResult> {
+  private async renderEnterRoutes(): Promise<TransactionFullResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const cancellation: ViewRenderCancellation = {
       signal: this.transaction.signal,

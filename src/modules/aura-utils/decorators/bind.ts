@@ -1,12 +1,4 @@
-/** Finds the closest property descriptor */
-function getPropertyDescriptor(o: any, prop: PropertyKey): PropertyDescriptor | undefined {
-  let proto = o
-  while (proto) {
-    const desc = Object.getOwnPropertyDescriptor(proto, prop)
-    if (desc) return desc
-    proto = Object.getPrototypeOf(proto)
-  }
-}
+import { getPropertyDescriptor } from '../misc/utils';
 
 /**
  * `@bind` decorator: lazily binds a class prototype method to its instance (`this`).
@@ -18,31 +10,31 @@ export function bind<Fn extends Function>(_target: object,
                                           descriptor: TypedPropertyDescriptor<Fn>): TypedPropertyDescriptor<Fn> {
   // Validation check
   if (!descriptor || (typeof descriptor.value !== 'function')) {
-    throw new TypeError('Only class methods can be decorated via @bind')
+    throw new TypeError('Only class methods can be decorated via @bind');
   }
   // Original function
-  const originalMethod = descriptor.value
+  const originalMethod = descriptor.value;
 
   return descriptor = {
     enumerable: descriptor.enumerable,
     configurable: true,
 
     get: function getBoundMethod(): Fn {
-      const proto = Object.getPrototypeOf(this)
-      const prototypeDescriptor = getPropertyDescriptor(proto, methodName)
-      const isProtoCall = !prototypeDescriptor || prototypeDescriptor.get !== getBoundMethod
-      if (isProtoCall) return originalMethod
+      const proto = Object.getPrototypeOf(this);
+      const prototypeDescriptor = getPropertyDescriptor(proto, methodName);
+      const isProtoCall = !prototypeDescriptor || prototypeDescriptor.get !== getBoundMethod;
+      if (isProtoCall) return originalMethod;
 
-      const boundFn = originalMethod.bind(this) as Fn
+      const boundFn = originalMethod.bind(this) as Fn;
 
       Object.defineProperty(this, methodName, {
         value: boundFn,
         writable: true,
         configurable: true,
         enumerable: descriptor.enumerable,
-      })
+      });
 
-      return boundFn
+      return boundFn;
     },
 
     set(value: Fn): void {
@@ -51,7 +43,7 @@ export function bind<Fn extends Function>(_target: object,
         writable: true,
         configurable: true,
         enumerable: descriptor.enumerable,
-      })
+      });
     },
-  }
+  };
 }

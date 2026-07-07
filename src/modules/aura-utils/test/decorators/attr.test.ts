@@ -180,21 +180,7 @@ describe('@attr inherit', () => {
     expect(cachedParseCalls).toBe(6);
   });
 
-  it('attr.has reports whether the instance cache is populated', () => {
-    const child = document.createElement(cachedTag) as CachedHost;
-    child.setAttribute('label', 'first');
-    document.body.append(child);
-
-    expect(attr.has(child, 'label')).toBe(false);
-
-    expect(child.label).toBe('first');
-    expect(attr.has(child, 'label')).toBe(true);
-
-    attr.clear(child, 'label');
-    expect(attr.has(child, 'label')).toBe(false);
-  });
-
-  it('attr.clearAll drops every cached property on the instance', () => {
+  it('attr.clear without prop drops every cached property on the instance', () => {
     const host = document.createElement(dualCachedTag) as DualCachedHost;
     host.setAttribute('first', 'a');
     host.setAttribute('second', 'b');
@@ -202,14 +188,9 @@ describe('@attr inherit', () => {
 
     expect(host.first).toBe('a');
     expect(host.second).toBe('b');
-    expect(attr.has(host, 'first')).toBe(true);
-    expect(attr.has(host, 'second')).toBe(true);
     expect(cachedParseCalls).toBe(2);
 
-    attr.clearAll(host);
-
-    expect(attr.has(host, 'first')).toBe(false);
-    expect(attr.has(host, 'second')).toBe(false);
+    attr.clear(host);
 
     host.setAttribute('first', 'x');
     host.setAttribute('second', 'y');

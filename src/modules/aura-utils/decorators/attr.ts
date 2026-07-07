@@ -4,31 +4,28 @@ type AttrParser<T> = (attr: string | null) => T | null;
 
 const defaultParser = parseString as AttrParser<any>;
 
-/**
- * Class prototype → element instance → map of cached property values.
- * Only `cached: true` attrs write into this store.
- */
-const instancePropCachesByProto = new WeakMap<object, WeakMap<HTMLElement, Map<string, unknown>>>();
+const cachesByProto = new WeakMap<object, WeakMap<HTMLElement, Map<string, unknown>>>();
 
-function getInstancePropCache(proto: object, element: HTMLElement): Map<string, unknown> | undefined {
-  return instancePropCachesByProto.get(proto)?.get(element);
-}
-
-function ensureInstancePropCache(proto: object, element: HTMLElement): Map<string, unknown> {
-  let elementCaches = instancePropCachesByProto.get(proto);
-  if (!elementCaches) {
-    elementCaches = new WeakMap();
-    instancePropCachesByProto.set(proto, elementCaches);
+function cacheOf(proto: object, el: HTMLElement, create = false): Map<string, unknown> | undefined {
+  let byEl = cachesByProto.get(proto);
+  if (!byEl) {
+    if (!create) return;
+    byEl = new WeakMap();
+    cachesByProto.set(proto, byEl);
   }
 
-  let propCache = elementCaches.get(element);
-  if (!propCache) {
-    propCache = new Map();
-    elementCaches.set(element, propCache);
+  let map = byEl.get(el);
+  if (!map) {
+    if (!create) return;
+    map = new Map();
+    byEl.set(el, map);
   }
 
-  return propCache;
+  return map;
 }
+
+const getInherited = (el: HTMLElement, name: string): string | null =>
+  el.parentElement?.closest(`[${name}]`)?.getAttribute(name) ?? null;
 
 /** HTML attribute mapping configuration */
 type AttrConfig<T = string> = {
@@ -40,102 +37,58 @@ type AttrConfig<T = string> = {
   inherit?: boolean | string;
   /** Use data-* attribute */
   dataAttr?: boolean;
-  /** Default property value. Used if no attribute is present on the element. Empty string by default. */
+  /** Default property value. Used if no attribute is present on the element. */
   defaultValue?: T;
   /** Parser from attribute value */
   parser?: AttrParser<T>;
-  /**
-   * Read and parse the attribute once per element instance; later reads return the cached value
-   * without touching the DOM. Use {@link attr.clear} to drop the cache and re-read from the DOM.
-   */
+  /** First read resolves DOM; later reads use cache until {@link attr.clear}. */
   cached?: boolean;
-  /**
-   * With `inherit`: `hasAttribute` on this element wins over ancestor lookup,
-   * including empty string (`attr=""`). Use for explicit opt-out (e.g. `transition=""`).
-   */
+  /** With inherit: local `attr=""` blocks ancestor lookup when true. */
   allowEmpty?: boolean;
 };
 
-/** Reads an attribute from the nearest ancestor that defines it (not from `element`). */
-function readAncestorAttrValue(element: HTMLElement, attrName: string): string | null {
-  return element.parentElement?.closest(`[${attrName}]`)?.getAttribute(attrName) ?? null;
-}
-
-/** Resolves the raw DOM string for a property, with optional ancestor inheritance. */
-function resolveAttrFromDom(
-  element: HTMLElement,
-  attrName: string,
-  ancestorAttrName: string,
-  inherit: boolean,
-  allowEmpty: boolean,
-): string | null {
-  if (!inherit) {
-    return element.getAttribute(attrName);
-  }
-
-  if (allowEmpty && element.hasAttribute(attrName)) {
-    return element.getAttribute(attrName);
-  }
-
-  return element.getAttribute(attrName) || readAncestorAttrValue(element, ancestorAttrName);
-}
-
-/** Applies default-value fallback and parser to a raw DOM string. */
-function parseAttrValue<T>(
-  rawValue: string | null,
-  hasDefault: boolean,
-  defaultValue: T | undefined,
-  parser: AttrParser<T>,
-): T | null {
-  const input = (rawValue === null && hasDefault) ? defaultValue : rawValue;
-  return parser(input as string | null) as T | null;
-}
-
 /**
- * `@attr` decorator: maps a property to an HTML attribute
+ * `@attr` decorator: maps a property to an HTML attribute.
+ *
+ * Use {@link attr.clear} to invalidate cached attrs on an element instance.
  */
 export const attr = <T = string>(config: AttrConfig<T> = {}) => {
   return (proto: Element, propName: string): void => {
 
-    const attrName = (config.dataAttr ? 'data-' : '') + toKebabCase(config.name || propName);
-    const ancestorAttrName = typeof config.inherit === 'string' ? config.inherit : attrName;
+    const name = (config.dataAttr ? 'data-' : '') + toKebabCase(config.name || propName);
+    const inheritName = typeof config.inherit === 'string' ? config.inherit : name;
     const inherit = !!config.inherit;
     const allowEmpty = !!config.allowEmpty;
     const hasDefault = 'defaultValue' in config;
-    const defaultValue = config.defaultValue;
     const parser = config.parser || defaultParser;
 
-    const readProperty = (element: HTMLElement): T | null =>
-      parseAttrValue(
-        resolveAttrFromDom(element, attrName, ancestorAttrName, inherit, allowEmpty),
-        hasDefault,
-        defaultValue,
-        parser,
-      );
+    const read = (el: HTMLElement): T | null => {
+      let raw: string | null;
+      if (!inherit) raw = el.getAttribute(name);
+      else if (allowEmpty && el.hasAttribute(name)) raw = el.getAttribute(name);
+      else raw = el.getAttribute(name) || getInherited(el, inheritName);
 
-    const writeProperty = (element: HTMLElement, value: T): void => {
-      if (value == null) {
-        element.removeAttribute(attrName);
-      } else {
-        element.setAttribute(attrName, String(value));
-      }
+      const input = (raw === null && hasDefault) ? config.defaultValue : raw;
+      return parser(input as string | null) as T | null;
+    };
+
+    const write = (el: HTMLElement, val: T): void => {
+      val == null ? el.removeAttribute(name) : el.setAttribute(name, String(val));
     };
 
     if (config.cached) {
       function get(this: HTMLElement): T | null {
-        const propCache = getInstancePropCache(proto, this);
-        if (propCache?.has(propName)) {
-          return propCache.get(propName) as T | null;
-        }
+        const map = cacheOf(proto, this);
+        if (map?.has(propName)) return map.get(propName) as T | null;
 
-        const value = readProperty(this);
-        ensureInstancePropCache(proto, this).set(propName, value);
-        return value;
+        const val = read(this);
+        cacheOf(proto, this, true)!.set(propName, val);
+        return val;
       }
 
-      function set(this: HTMLElement, value: T): void {
-        writeProperty(this, value);
-        ensureInstancePropCache(proto, this).set(propName, readProperty(this));
+      function set(this: HTMLElement, val: T): void {
+        write(this, val);
+        cacheOf(proto, this, true)!.set(propName, read(this));
       }
 
       Object.defineProperty(proto, propName, config.readonly ? { get } : { get, set });
@@ -143,56 +96,37 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
     }
 
     function get(this: HTMLElement): T | null {
-      return readProperty(this);
+      return read(this);
     }
 
-    function set(this: HTMLElement, value: T): void {
-      writeProperty(this, value);
+    function set(this: HTMLElement, val: T): void {
+      write(this, val);
     }
 
     Object.defineProperty(proto, propName, config.readonly ? { get } : { get, set });
   };
 };
 
-function clearAttr(target: object, property: PropertyKey | PropertyKey[]): void {
-  if (Array.isArray(property)) {
-    property.forEach((prop) => attr.clear(target, prop));
+function clearAttr(target: object, prop?: PropertyKey | PropertyKey[]): void {
+  if (typeof target === 'function') return;
+
+  const el = target as HTMLElement;
+  const proto = Object.getPrototypeOf(target);
+
+  if (prop === undefined) {
+    cachesByProto.get(proto)?.delete(el);
     return;
   }
 
-  if (typeof target === 'function') return;
+  if (Array.isArray(prop)) return prop.forEach((p) => attr.clear(target, p));
 
-  const proto = Object.getPrototypeOf(target);
-  getInstancePropCache(proto, target as HTMLElement)?.delete(String(property));
+  cacheOf(proto, el)?.delete(String(prop));
 }
 
 /**
- * Drops the cached value for a `cached: true` attribute on one element instance.
- * The next read re-resolves the attribute from the DOM.
+ * Clears cached attr values on an element instance; next read re-resolves from DOM.
  *
  * @param target - Element instance (not the class constructor).
- * @param property - One property name, or an array of names.
+ * @param prop - Optional property name, or an array of names. Omit to clear all cached attrs.
  */
 attr.clear = clearAttr;
-
-function clearAllAttrs(target: object): void {
-  if (typeof target === 'function') return;
-
-  const proto = Object.getPrototypeOf(target);
-  instancePropCachesByProto.get(proto)?.delete(target as HTMLElement);
-}
-
-/**
- * Drops every cached `cached: true` attribute on one element instance.
- */
-attr.clearAll = clearAllAttrs;
-
-function hasCachedAttr(target: object, property: PropertyKey): boolean {
-  const proto = Object.getPrototypeOf(target);
-  return getInstancePropCache(proto, target as HTMLElement)?.has(String(property)) ?? false;
-}
-
-/**
- * Reports whether a `cached: true` attribute has a stored value on this element instance.
- */
-attr.has = hasCachedAttr;

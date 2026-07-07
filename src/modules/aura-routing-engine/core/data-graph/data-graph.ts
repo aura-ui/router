@@ -3,7 +3,7 @@ import { DEFAULT_GC_TIME, type InvalidatePolicy } from '../../../aura-cache-stor
 import { normalizeHookResult, type HookRegistry } from '../hooks/registry';
 import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { TransactionFullResult } from '../navigation/types';
+import type { PipelineStepResult } from '../navigation/types';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import type { RouteLifecycleContext } from '../route/types';
@@ -12,7 +12,7 @@ import { buildRouteDataKey, routeHasLoadHooks, routeLoadHookNames } from './rout
 export type DataSnapshot = ReadonlyMap<string, unknown>;
 
 export type DataGraphLoadResult = {
-  outcome?: TransactionFullResult;
+  outcome?: PipelineStepResult;
   /** Preserved load-hook payloads on the active branch; omitted when empty or on terminal outcome. */
   snapshot?: DataSnapshot;
 };
@@ -45,7 +45,7 @@ type RouteLoadDescriptor = {
   key: string;
 };
 
-type TerminalOutcome = Exclude<TransactionFullResult, null>;
+type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
 class DataGraphTerminalError extends Error {
   readonly outcome: TerminalOutcome;
@@ -143,10 +143,10 @@ export class DataGraph {
   private async runParallelNavigationLoads(
     enterRoutesWithLoadHooks: readonly MatchedRouteInfo[],
     transaction: NavigationTransaction,
-  ): Promise<TransactionFullResult> {
+  ): Promise<PipelineStepResult> {
     const siblingAbort = new AbortController();
     const loadSignal = AbortSignal.any([transaction.signal, siblingAbort.signal]);
-    const outcomes: TransactionFullResult[] = [];
+    const outcomes: PipelineStepResult[] = [];
 
     await Promise.all(
       enterRoutesWithLoadHooks.map(async (route, index) => {
@@ -165,7 +165,7 @@ export class DataGraph {
     transaction: NavigationTransaction,
     loadSignal: AbortSignal,
     siblingAbort: AbortController,
-  ): Promise<TransactionFullResult> {
+  ): Promise<PipelineStepResult> {
     const descriptor = this.buildRouteLoadDescriptor(route);
     if (!descriptor) return null;
 
@@ -289,7 +289,7 @@ export class DataGraph {
     throw new DataGraphTerminalError({ status: 'cancelled' });
   }
 
-  private throwIfTerminal(terminal: TransactionFullResult, mode: LoadHookMode): void {
+  private throwIfTerminal(terminal: PipelineStepResult, mode: LoadHookMode): void {
     if (!terminal) return;
 
     if (mode === 'prefetch') throw new Error('prefetch ignored terminal');

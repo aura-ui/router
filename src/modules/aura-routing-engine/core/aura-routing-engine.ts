@@ -47,7 +47,7 @@ import { DataGraph } from './data-graph';
 import { resolveDataInvalidatePredicate, type RouterDataInvalidateOptions } from './data-graph/invalidate';
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
-import type { TransactionFullResult } from './navigation/types';
+import type { TransactionResult } from './navigation/types';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -406,7 +406,7 @@ export class AuraRoutingEngine {
     this.prev = to;
   }
 
-  applyRedirect(result: Extract<TransactionFullResult, { status: 'redirect' }>, tx: NavigationTransaction): void {
+  applyRedirect(result: Extract<TransactionResult, { status: 'redirect' }>, tx: NavigationTransaction): void {
     // Guard redirect: history ещё не коммитили. Load redirect после commit: replace по умолчанию.
     const replace = result.replace ?? (tx.historyCommitted || tx.action === 'pop');
     void this.navigateTo(result.url, replace ? 'replace' : 'push', {
@@ -415,7 +415,7 @@ export class AuraRoutingEngine {
     });
   }
 
-  finalizeError(result: Extract<TransactionFullResult, { status: 'error' }>, tx: NavigationTransaction) {
+  finalizeError(result: Extract<TransactionResult, { status: 'error' }>, tx: NavigationTransaction) {
     const outcome = finalizeFailure(result.failure, this.failureDeps());
 
     if (this.shouldApplyTerminalHistoryPolicy(tx)) {
@@ -463,7 +463,7 @@ export class AuraRoutingEngine {
   }
 
   /*
-  applyOutcome(result: TransactionFullResult, tx: NavigationTransaction): void {
+  applyOutcome(result: TransactionResult, tx: NavigationTransaction): void {
     switch (result?.status) {
       case undefined:
       case 'navigationSucceeded': return;

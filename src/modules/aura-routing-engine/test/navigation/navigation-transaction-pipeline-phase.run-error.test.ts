@@ -3,7 +3,7 @@ import { NavigationTransactionPipelinePhase } from '../../core/navigation/naviga
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 import {
   createFailedNavigation,
-  createLifecycleRuntimeContext,
+  createNavigationLifecycleContext,
   registerTestHook,
 } from '../helpers/jest/navigation-fixtures';
 
@@ -11,7 +11,7 @@ describe('NavigationTransactionPipelinePhase.runError', () => {
   it('runs onError with normalized error in phase context', async () => {
     const onError = jest.fn();
     const matchedRoute = createMatchedRoute('/to', { onError });
-    const context = createLifecycleRuntimeContext(matchedRoute);
+    const context = createNavigationLifecycleContext(matchedRoute);
     const normalized = createFailedNavigation(matchedRoute, context).error;
 
     await NavigationTransactionPipelinePhase.runError(
@@ -38,7 +38,7 @@ describe('NavigationTransactionPipelinePhase.runError', () => {
     });
 
     const matchedRoute = createMatchedRoute('/to', { error: ['bad-error-hook'] });
-    const context = createLifecycleRuntimeContext(matchedRoute, { hookRegistry, reportHookError });
+    const context = createNavigationLifecycleContext(matchedRoute, { hookRegistry, reportHookError });
     const failed = createFailedNavigation(matchedRoute, context);
 
     await NavigationTransactionPipelinePhase.runError(
@@ -59,7 +59,7 @@ describe('NavigationTransactionPipelinePhase.runError', () => {
         throw routeError;
       },
     });
-    const context = createLifecycleRuntimeContext(matchedRoute, { reportHookError });
+    const context = createNavigationLifecycleContext(matchedRoute, { reportHookError });
     const failed = createFailedNavigation(matchedRoute, context);
 
     await NavigationTransactionPipelinePhase.runError(
@@ -77,7 +77,7 @@ describe('NavigationTransactionPipelinePhase.runError', () => {
     registerTestHook(hookRegistry, 'redirect-error-hook', () => '/login');
 
     const matchedRoute = createMatchedRoute('/to', { error: ['redirect-error-hook'] });
-    const context = createLifecycleRuntimeContext(matchedRoute, { hookRegistry });
+    const context = createNavigationLifecycleContext(matchedRoute, { hookRegistry });
     const failed = createFailedNavigation(matchedRoute, context);
 
     await expect(

@@ -1,7 +1,7 @@
 import { HookRegistry } from '../../core/hooks/registry';
 import { NavigationFailureHandler } from '../../core/navigation/navigation-failure-handler';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
-import { createLifecycleRuntimeContext } from '../helpers/jest/navigation-fixtures';
+import { createNavigationLifecycleContext } from '../helpers/jest/navigation-fixtures';
 
 describe('NavigationFailureHandler', () => {
   it('reports route onError failures without replacing the parent failure', async () => {
@@ -13,7 +13,7 @@ describe('NavigationFailureHandler', () => {
         throw routeError;
       },
     });
-    const context = createLifecycleRuntimeContext(matchedRoute, { reportHookError });
+    const context = createNavigationLifecycleContext(matchedRoute, { reportHookError });
 
     const outcome = await NavigationFailureHandler.handle(
       matchedRoute,
@@ -43,7 +43,7 @@ describe('NavigationFailureHandler', () => {
     });
 
     const matchedRoute = createMatchedRoute('/to', { error: ['bad-error-hook'] });
-    const context = createLifecycleRuntimeContext(matchedRoute, {
+    const context = createNavigationLifecycleContext(matchedRoute, {
       hookRegistry,
       reportHookError,
     });

@@ -10,13 +10,13 @@ import type { GuardResult } from '../guard.types';
 import type { RouteInfo, RouteLifecycleContext, RoutePhase, LifecyclePhase } from '../route/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type {
-  LifecycleRuntimeContext,
-  PhaseContextSource,
-  PhaseError,
-  PhaseRunResult,
-  PhaseStepOutcome,
-  PhaseThrowPolicy,
+  BlockingHookStepResult,
+  NavigationLifecycleContext,
   PipelinePhaseDefinition,
+  RoutePhaseContextInput,
+  RoutePhaseFailure,
+  RoutePhaseRunResult,
+  RoutePhaseThrowPolicy,
 } from './types';
 import { resolveHookNames } from '../hooks/resolve-hook-names';
 import { PHASES } from './navigation-transaction-pipeline-phases-names';
@@ -36,7 +36,7 @@ export class NavigationTransactionPipelinePhase {
     route: MatchedRouteInfo,
     phaseDef: PipelinePhaseDefinition,
     transaction: NavigationTransaction,
-  ): Promise<PhaseRunResult> {
+  ): Promise<RoutePhaseRunResult> {
     const isBlocking = phaseDef.hookPolicy.kind === 'blocking';
     const { engine } = transaction;
     const { errorPolicy, phase, runRouteLifecycle } = phaseDef;
@@ -99,7 +99,7 @@ export class NavigationTransactionPipelinePhase {
     route: MatchedRouteInfo,
     normalized: NavigationError,
     failed: FailedNavigation,
-    context: LifecycleRuntimeContext,
+    context: NavigationLifecycleContext,
   ): Promise<void> {
     const { phase, runRouteLifecycle } = PHASES.error;
 
@@ -158,7 +158,7 @@ export class NavigationTransactionPipelinePhase {
   static buildPhaseContext(
     phase: RoutePhase,
     route: MatchedRouteInfo,
-    source: PhaseContextSource,
+    source: RoutePhaseContextInput,
   ): RouteLifecycleContext {
     const { data, error, from, action, router, transactionId, transactionSignal } = source;
     return {
@@ -175,12 +175,12 @@ export class NavigationTransactionPipelinePhase {
     };
   }
 
-  static isPhaseError(r: PhaseRunResult): r is PhaseError {
-    return r !== null && typeof r === 'object' && 'kind' in r && r.kind === 'error';
+  static isRoutePhaseFailure(r: RoutePhaseRunResult): r is RoutePhaseFailure {
+    return r !== null && typeof r === 'object' && 'status' in r && r.status === 'phaseFailed';
   }
 
-  /** Maps a blocking {@link GuardResult} to a terminal {@link PhaseStepOutcome}. */
-  static resolveBlockingHookOutcome(hookResult: GuardResult): PhaseStepOutcome {
+  /** Maps a blocking {@link GuardResult} to a {@link BlockingHookStepResult}. */
+  static resolveBlockingHookOutcome(hookResult: GuardResult): BlockingHookStepResult {
     if (hookResult === false) return { status: 'cancelled' };
 
     if (typeof hookResult === 'string') {
@@ -243,13 +243,13 @@ export class NavigationTransactionPipelinePhase {
     };
   }
 
-  /** Applies {@link PhaseThrowPolicy} when a lifecycle callback or hook throws. */
+  /** Applies {@link RoutePhaseThrowPolicy} when a lifecycle callback or hook throws. */
   private static applyErrorPolicy(
-    errorPolicy: PhaseThrowPolicy,
+    errorPolicy: RoutePhaseThrowPolicy,
     phase: LifecyclePhase,
     error: unknown,
     route: MatchedRouteInfo,
-  ): PhaseRunResult {
+  ): RoutePhaseRunResult {
     if (errorPolicy === 'log') {
       console.error(`[${phase}] phase threw (logged, continuing pipeline):`, error);
       return null;
@@ -258,6 +258,6 @@ export class NavigationTransactionPipelinePhase {
       throw error;
     }
 
-    return { kind: 'error', error, route, failedPhase: phase };
+    return { status: 'phaseFailed', error, route, phase };
   }
 }

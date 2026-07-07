@@ -276,13 +276,13 @@ describe('NavigationCoordinator', () => {
       expect(coordinator.inFlightHref).toBeNull();
     });
 
-    it('treats null pipeline result as success', async () => {
+    it('treats navigationSucceeded as success', async () => {
       const engine = createCoordinatorMockEngine();
       const coordinator = new NavigationCoordinator(engine);
       const home = createMatchedRoute('/');
       const about = createMatchedRoute('/about');
 
-      jest.spyOn(NavigationTransaction.prototype, 'run').mockResolvedValue(null);
+      jest.spyOn(NavigationTransaction.prototype, 'run').mockResolvedValue({ status: 'navigationSucceeded' });
 
       await coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
 

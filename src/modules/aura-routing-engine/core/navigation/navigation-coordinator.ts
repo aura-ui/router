@@ -1,7 +1,7 @@
 import { NavigationTransaction } from './navigation-transaction';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import { AuraRoutingEngine } from '../aura-routing-engine';
-import type { NavigationTransactionOptions, TransactionFullResult } from './types';
+import type { NavigationTransactionOptions, TransactionResult } from './types';
 
 type NavigationPlan =
   | { action: 'run' }
@@ -79,15 +79,15 @@ export class NavigationCoordinator {
     }
   }
 
-  processResult(result: TransactionFullResult, transaction: NavigationTransaction) {
-    if (!result || result.status === 'navigationSucceeded') return;
+  processResult(result: TransactionResult, transaction: NavigationTransaction) {
+    if (result.status === 'navigationSucceeded') return;
     if (!this.engine.isRunning) return;
 
     if (result.status === 'cancelled') {
       this.engine.finalizeCancelled(transaction);
       return;
     }
-    if (result?.status === 'redirect') {
+    if (result.status === 'redirect') {
       this.engine.applyRedirect(result, transaction);
       return;
     }

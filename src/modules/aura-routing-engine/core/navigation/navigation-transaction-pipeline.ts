@@ -29,15 +29,15 @@ import {
 } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { PipelinePhaseDefinition, TransactionFullResult } from './types';
+import type { PipelinePhaseDefinition, PipelineStepResult } from './types';
 
-/** Single pipeline step. `null` = success and continue; otherwise a terminal {@link TransactionFullResult}. */
-type PipelineStep = () => Promise<TransactionFullResult>;
+/** Single pipeline step. `null` = success and continue; otherwise a terminal {@link PipelineStepResult}. */
+type PipelineStep = () => Promise<PipelineStepResult>;
 
 /**
  * Executes one {@link NavigationTransaction} as a sequence of blocking steps.
  *
- * Step contract ({@link TransactionFullResult}):
+ * Step contract ({@link PipelineStepResult}):
  * - `null` — step succeeded; run the next step
  * - non-`null` — terminal outcome: `cancelled`, `redirect`, `error`, or (top-level only) `navigationSucceeded`
  *
@@ -69,7 +69,7 @@ export class NavigationTransactionPipeline {
    *
    * @returns first terminal step result (`error`, `redirect`, `cancelled`), or `navigationSucceeded` when all steps return `null`
    */
-  async runFullPipeline(): Promise<TransactionFullResult> {
+  async runFullPipeline(): Promise<PipelineStepResult> {
     const stepResult = await this.runSequentially([
       () => this.runGuards(),
       () => this.runLoads(),
@@ -91,7 +91,7 @@ export class NavigationTransactionPipeline {
    *
    * @returns `cancelled` on abort/supersede; render errors via {@link failRender}; otherwise {@link runAfterRender} result or `navigationSucceeded`
    */
-  async runFastPipeline(): Promise<TransactionFullResult> {
+  async runFastPipeline(): Promise<PipelineStepResult> {
     this.commitHistory();
 
     const enterRoute = this.transaction.transitionPlan.enterRoutes[0]!;
@@ -123,7 +123,7 @@ export class NavigationTransactionPipeline {
    *
    * @returns terminal result from loads/update (`error`, `redirect`, `cancelled`), or `navigationSucceeded`
    */
-  async runUpdate(): Promise<TransactionFullResult> {
+  async runUpdate(): Promise<PipelineStepResult> {
     const stepResult = await this.runSequentially([
       () => this.runLoads(),
       () => this.runCommitHistory(),
@@ -145,7 +145,7 @@ export class NavigationTransactionPipeline {
   }
 
   /** Pipeline step wrapper around {@link commitHistory}. */
-  private runCommitHistory(): Promise<TransactionFullResult> {
+  private runCommitHistory(): Promise<PipelineStepResult> {
     this.commitHistory();
     return Promise.resolve(null);
   }
@@ -156,7 +156,7 @@ export class NavigationTransactionPipeline {
    * Order: `leave` (exit routes) → `guard` (enter routes). Redirect or hook failure
    * stops the pipeline before loads/render.
    */
-  runGuards(): Promise<TransactionFullResult> {
+  runGuards(): Promise<PipelineStepResult> {
     return this.runSequentially([
       () => this.runLifecyclePhase(PHASES.leave),
       () => this.runLifecyclePhase(PHASES.guard),
@@ -171,7 +171,7 @@ export class NavigationTransactionPipeline {
    *
    * `activeChain` is the full target branch (`to.chain`) when present, otherwise enter routes.
    */
-  async runLoads(): Promise<TransactionFullResult> {
+  async runLoads(): Promise<PipelineStepResult> {
     const { to, transitionPlan } = this.transaction;
     const activeChain = to.chain ?? transitionPlan.enterRoutes;
     const { outcome, snapshot } = await this.transaction.engine.dataGraph.load(
@@ -190,7 +190,7 @@ export class NavigationTransactionPipeline {
    *
    * @internal Test and diagnostic entry — production uses {@link runRenderWithTransition}.
    */
-  async runRender(): Promise<TransactionFullResult> {
+  async runRender(): Promise<PipelineStepResult> {
     return this.renderEnterBranch(null);
   }
 
@@ -199,7 +199,7 @@ export class NavigationTransactionPipeline {
    *
    * Resolves `transitionOrder` from the transaction (set in {@link NavigationTransaction.run}).
    */
-  async runRenderWithTransition(): Promise<TransactionFullResult> {
+  async runRenderWithTransition(): Promise<PipelineStepResult> {
     return this.renderEnterBranch(this.transaction.transitionOrder);
   }
 
@@ -223,7 +223,7 @@ export class NavigationTransactionPipeline {
    *
    * @param transitionOrder — enter leaf `transition-order`, or `null` when absent
    */
-  private renderEnterBranch(transitionOrder: TransitionOrderType | null): Promise<TransactionFullResult> {
+  private renderEnterBranch(transitionOrder: TransitionOrderType | null): Promise<PipelineStepResult> {
     const transitionPlan = this.transaction.transitionPlan;
     const { enterRoutes, paramChangeRemount } = transitionPlan;
     const mountStrategy = getEnterRoute(transitionPlan)?.mountStrategy ?? null;
@@ -303,7 +303,7 @@ export class NavigationTransactionPipeline {
    * After both settle: `cancelled` if inactive; otherwise `transitionOut` outcome, else `transitionIn`,
    * else `null`.
    */
-  private async runTransitionOutInParallel(): Promise<TransactionFullResult> {
+  private async runTransitionOutInParallel(): Promise<PipelineStepResult> {
     const [transitionOutOutcome, transitionInOutcome] = await Promise.all([
       this.runLifecyclePhase(PHASES.transitionOut),
       this.runLifecyclePhase(PHASES.transitionIn),
@@ -322,7 +322,7 @@ export class NavigationTransactionPipeline {
    * Stores resolved payloads on `transaction.preResolvedBranchContents` for
    * {@link commitEnterBranchToDom}. Render errors trigger {@link failRender}.
    */
-  private async prepareEnterBranch(): Promise<TransactionFullResult> {
+  private async prepareEnterBranch(): Promise<PipelineStepResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const resolveContext = createBranchResolveContext(this.transaction);
     const resolved = await resolveEnterBranch(
@@ -349,7 +349,7 @@ export class NavigationTransactionPipeline {
    * Clears `preResolvedBranchContents` after read. Marks the view staged on success.
    * Missing pre-resolved contents yields `cancelled`.
    */
-  private commitEnterBranchToDom(): Promise<TransactionFullResult> {
+  private commitEnterBranchToDom(): Promise<PipelineStepResult> {
     const preResolvedContents = this.transaction.preResolvedBranchContents;
     this.transaction.preResolvedBranchContents = undefined;
 
@@ -379,7 +379,7 @@ export class NavigationTransactionPipeline {
    * Passes load-hook data and `paramChangeRemount` via {@link viewCommitOptions}.
    * Stops on first abort, cancel, or render error.
    */
-  private async renderEnterRoutes(): Promise<TransactionFullResult> {
+  private async renderEnterRoutes(): Promise<PipelineStepResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const viewRenderCancellation: ViewRenderCancellation = {
       signal: this.transaction.signal,
@@ -416,7 +416,7 @@ export class NavigationTransactionPipeline {
    *
    * Param-change remount follows the same sequence globally for successful navigations.
    */
-  async runAfterRender(): Promise<TransactionFullResult> {
+  async runAfterRender(): Promise<PipelineStepResult> {
     if (!this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
@@ -445,7 +445,7 @@ export class NavigationTransactionPipeline {
    * @param phaseDef — entry from {@link PHASES} registry
    * @returns first terminal result, or `null` when all routes complete successfully
    */
-  async runLifecyclePhase(phaseDef: PipelinePhaseDefinition): Promise<TransactionFullResult> {
+  async runLifecyclePhase(phaseDef: PipelinePhaseDefinition): Promise<PipelineStepResult> {
     const matchedRoutes = this.transaction.transitionPlan[phaseDef.targetRoutes];
     for (const matchedRoute of matchedRoutes) {
       const result = await NavigationTransactionPipelinePhase.run(
@@ -453,8 +453,8 @@ export class NavigationTransactionPipeline {
         phaseDef,
         this.transaction,
       );
-      if (NavigationTransactionPipelinePhase.isPhaseError(result)) {
-        return this.transaction.fail(matchedRoute, result.error, result.failedPhase);
+      if (NavigationTransactionPipelinePhase.isRoutePhaseFailure(result)) {
+        return this.transaction.fail(matchedRoute, result.error, result.phase);
       }
       if (result) return result;
     }
@@ -468,7 +468,7 @@ export class NavigationTransactionPipeline {
   private async failRender(
     matchedRoute: MatchedRouteInfo,
     error: unknown,
-  ): Promise<TransactionFullResult> {
+  ): Promise<PipelineStepResult> {
     await this.runLifecyclePhase(PHASES.unmount);
     this.transaction.viewCommitTracker.markViewCommittedAfterErrorRecovery();
     return this.transaction.fail(matchedRoute, error, 'render');
@@ -500,7 +500,7 @@ export class NavigationTransactionPipeline {
    * @param steps — ordered step functions
    * @returns first non-`null` step result, `cancelled` if inactive before/during a step, or `null`
    */
-  private async runSequentially(steps: PipelineStep[]): Promise<TransactionFullResult> {
+  private async runSequentially(steps: PipelineStep[]): Promise<PipelineStepResult> {
     for (const step of steps) {
       if (!this.transaction.isActive()) {
         return { status: 'cancelled' };

@@ -4,9 +4,8 @@ import {
   type NavigationErrorPhase,
 } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { LifecycleRuntimeContext } from './types';
+import type { NavigationLifecycleContext, PipelineStepResult } from './types';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import type { TransactionFullResult } from './types';
 
 /** Assembles a pipeline failure and runs the terminal `error` phase. */
 export class NavigationFailureHandler {
@@ -14,8 +13,8 @@ export class NavigationFailureHandler {
     route: MatchedRouteInfo,
     error: unknown,
     atPhase: NavigationErrorPhase,
-    context: LifecycleRuntimeContext,
-  ): Promise<Extract<TransactionFullResult, { status: 'error' }>> {
+    context: NavigationLifecycleContext,
+  ): Promise<Extract<PipelineStepResult, { status: 'error' }>> {
     const normalized = normalizeFailure(error, {
       phase: atPhase,
       routePattern: route.pattern,

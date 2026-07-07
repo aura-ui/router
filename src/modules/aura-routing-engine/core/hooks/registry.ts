@@ -135,15 +135,15 @@ export class HookRegistry {
    * Stops on first cancel (`false`) or redirect. Unknown names are skipped with a warning.
    * Each hook gets a fresh {@link RouteHookContext} (no shared mutable ctx between hooks).
    *
-   * @param isJobActive - when it returns `false`, remaining hooks are skipped
+   * @param isTransactionActive - when it returns `false`, remaining hooks are skipped
    */
   async run(
     lifecycleCtx: RouteLifecycleContext,
     names: readonly string[],
-    isJobActive?: () => boolean,
+    isTransactionActive?: () => boolean,
   ): Promise<GuardResult | undefined> {
     for (const name of names) {
-      if (!isJobActive?.()) return undefined;
+      if (!isTransactionActive?.()) return undefined;
 
       const entry = this.entries.get(name);
       if (!entry) {
@@ -155,7 +155,7 @@ export class HookRegistry {
 
       const hookCtx: RouteHookContext = { ...lifecycleCtx, options: entry.options };
       const raw = await entry.fn(hookCtx);
-      if (!isJobActive?.()) return undefined;
+      if (!isTransactionActive?.()) return undefined;
 
       const result = normalizeHookResult(raw as HookResultInput);
       if (isTerminalGuardResult(result)) return result;

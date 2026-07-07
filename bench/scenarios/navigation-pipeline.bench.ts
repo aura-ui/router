@@ -1,6 +1,6 @@
 /**
  * Bench: canUseFastPath gate + buildTransitionPlan selection overhead.
- * Maps to NAVIGATION_PERF_AUDIT §8.
+ * Audit: NAVIGATION_PERF_AUDIT §8 — Tier 0 requires enterRoute.hasSyncContent.
  *
  * Run: npm run bench:navigation-pipeline
  */
@@ -74,7 +74,7 @@ export function runNavigationPipelineBench(): SavedReport {
     { ops: 50_000 },
   );
   session.runScenario(
-    'hasSyncContent getter (not wired to pipeline)',
+    'hasSyncContent getter (sync test route default)',
     [
       {
         name: 'read hasSyncContent',

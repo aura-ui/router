@@ -17,12 +17,51 @@ function createMatchedRoute(path: string, overrides: Partial<RouteInstance> = {}
 }
 
 describe('canUseFastPath', () => {
-  it('allows trivial flat sibling navigation', () => {
+  it('allows trivial flat sibling navigation with sync html view', () => {
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b');
     const plan = buildTransitionPlan(from, to);
 
     expect(canUseFastPath(plan, from, to)).toBe(true);
+  });
+
+  it('blocks when enter route has no view (hasSyncContent false)', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', { view: null });
+    const plan = buildTransitionPlan(from, to);
+
+    expect(canUseFastPath(plan, from, to)).toBe(false);
+  });
+
+  it('blocks html-src fetch loader routes', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { type: 'html-src', content: 'about.html' },
+    });
+    const plan = buildTransitionPlan(from, to);
+
+    expect(canUseFastPath(plan, from, to)).toBe(false);
+  });
+
+  it('blocks layout routes even with inline html view', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      layout: 'shell',
+      view: { type: 'html', content: '<p/>' },
+    });
+    const plan = buildTransitionPlan(from, to);
+
+    expect(canUseFastPath(plan, from, to)).toBe(false);
+  });
+
+  it('blocks routes with loading template', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      loadingTemplate: '<p>loading</p>',
+    } as Partial<RouteInstance>);
+    const plan = buildTransitionPlan(from, to);
+
+    expect(canUseFastPath(plan, from, to)).toBe(false);
   });
 
   it('blocks when enter hooks are declared', () => {

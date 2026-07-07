@@ -39,7 +39,7 @@ export type BranchResolveTransaction = {
 };
 
 export type BranchResolveResult =
-  | { status: 'ok'; payloads: readonly (ViewPayload | null)[] }
+  | { status: 'ok'; preResolvedContents: readonly (ViewPayload | null)[] }
   | { status: 'aborted' }
   | { status: 'error'; error: unknown; route: MatchedRouteInfo };
 
@@ -80,7 +80,7 @@ export function createBranchResolveContext(
 }
 
 /**
- * Resolve all enter-route payloads in parallel. DOM is not touched.
+ * Resolve all enter-route view contents in parallel. DOM is not touched.
  * Any loader failure fails the whole branch.
  */
 export async function resolveEnterBranch(
@@ -89,7 +89,7 @@ export async function resolveEnterBranch(
   ctx: BranchResolveContext,
 ): Promise<BranchResolveResult> {
   if (ctx.aborted()) return { status: 'aborted' };
-  if (enterRoutes.length === 0) return { status: 'ok', payloads: [] };
+  if (enterRoutes.length === 0) return { status: 'ok', preResolvedContents: [] };
 
   const outcomes = await Promise.all(
     enterRoutes.map((route) => resolveRouteOutcome(contentLoader, route, ctx)),
@@ -106,7 +106,7 @@ export async function resolveEnterBranch(
 
   return {
     status: 'ok',
-    payloads: outcomes.map((outcome) => (outcome.kind === 'ok' ? outcome.payload : null)),
+    preResolvedContents: outcomes.map((outcome) => (outcome.kind === 'ok' ? outcome.payload : null)),
   };
 }
 

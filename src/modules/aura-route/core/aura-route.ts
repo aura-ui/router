@@ -32,6 +32,7 @@ import { parseMountStrategyAttr, type MountStrategy } from './attr/mount-strateg
 import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from './attr/scroll-attr-parser';
 import { parseParamChangeAttr, type ParamChangePolicy } from './attr/param-change-attr-parser';
+import { memoize } from '../../aura-utils/decorators/memoize';
 
 export type { RouteRenderOptions, ApplyPreResolvedOptions, AuraRouteInterface };
 
@@ -74,7 +75,19 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.viewController?.nestedOutlet ?? null;
   }
 
-  transition: RouteTransitionType = NO_TRANSITION;
+  protected attributeChangedCallback(attrName: string, oldVal: string, newVal: string): void {
+    this.refresh();
+  }
+
+  refresh() {
+    routeAttr.clear(this);
+    memoize.clear(this, 'transition');
+  }
+
+  @memoize()
+  get transition() {
+    return this.initTransition();
+  }
 
   /** Merges decl attrs with `transition` shortcut; `[]` on decl opts out of inherited shortcut on that side. */
   initTransition(): RouteTransitionType {
@@ -85,6 +98,14 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     if (!this.transitionOrder && !inHooks && !outHooks) return NO_TRANSITION;
     const order = this.transitionOrder ?? DEFAULT_TRANSITION_ORDER;
     return { order: order, in: inHooks, out: outHooks };
+  }
+
+  connectedCallback() {
+    // this.refresh();
+    this.initGeneration++;
+    const generation = this.initGeneration;
+    this.viewReady = false;
+    this.setupDone = this.init(generation);
   }
 
   get transitionIn(): string[] | null {
@@ -134,14 +155,6 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     if (this.hasLayout || this.hasAsyncContent) return false;
     if (this.loadingTemplate.trim()) return false;
     return this.view?.type === 'html';
-  }
-
-  connectedCallback() {
-    this.initGeneration++;
-    const generation = this.initGeneration;
-    this.transition = this.initTransition();
-    this.viewReady = false;
-    this.setupDone = this.init(generation);
   }
 
   private async init(generation: number): Promise<void> {

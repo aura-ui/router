@@ -45,7 +45,7 @@ export const PHASES = {
   update: {
     phase: 'update',
     targetRoutes: 'enterRoutes',
-    hookPolicy: { kind: 'postCommit', onError: 'propagate' },
+    hookPolicy: { kind: 'preCommit', onError: 'propagate' },
     errorPolicy: 'failure',
     htmlAttr: 'update',
     routeHookProp: 'update',

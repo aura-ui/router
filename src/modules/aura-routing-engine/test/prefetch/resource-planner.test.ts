@@ -14,6 +14,10 @@ describe('DefaultPrefetchResourcePlanner', () => {
   const policy = new PrefetchPolicy();
   const planner = new DefaultPrefetchResourcePlanner({}, policy);
 
+  beforeEach(() => {
+    matcher.destroy();
+  });
+
   function createPlan(attrs: { view?: string; load?: string } = { view: 'html::x' }): PrefetchPlan {
     const page = createDomRoute('/page');
     if (attrs.view) page.setAttribute('view', attrs.view);

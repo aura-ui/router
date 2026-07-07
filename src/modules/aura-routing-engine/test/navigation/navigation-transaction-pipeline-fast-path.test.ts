@@ -1,18 +1,20 @@
-import { HookRegistry, runPhaseHooks } from '../../core';
-import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
-
 jest.mock('../../core/hooks/registry', () => ({
   ...jest.requireActual('../../core/hooks/registry'),
   runPhaseHooks: jest.fn(),
 }));
 
-const mockRunPhaseHooks = runPhaseHooks as jest.MockedFunction<typeof runPhaseHooks>;
+jest.mock('../../core/view-mount/view-commit-render', () => ({
+  ...jest.requireActual('../../core/view-mount/view-commit-render'),
+  runViewCommit: jest.fn(),
+}));
+
+import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
+import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
+import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from './pipeline-test-setup';
 
 describe('NavigationTransactionPipeline fast path', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockRunPhaseHooks.mockResolvedValue(undefined);
+    resetPipelineMocks();
   });
 
   it('skips guard hooks for trivial navigation', async () => {
@@ -42,14 +44,95 @@ describe('NavigationTransactionPipeline fast path', () => {
     expect(transaction.engine.commitNavigation).toHaveBeenCalledWith(transaction);
   });
 
-  it('runs enter hooks in full pipeline', async () => {
+  it('passes live isActive check to view commit', async () => {
+    mockRunViewCommit.mockImplementation(async (_route, cancellation) => {
+      expect(cancellation.isAborted()).toBe(false);
+      return 'ok';
+    });
+
     const transaction = createMockTransaction({
-      enterRoutes: [createMatchedRoute('/b', { guard: ['auth'] })],
+      from: createMatchedRoute('/a'),
+      enterRoutes: [createMatchedRoute('/b')],
       transitionOrder: null,
     });
 
-    await new NavigationTransactionPipeline(transaction).runFullPipeline();
+    await new NavigationTransactionPipeline(transaction).runFastPipeline();
 
-    expect(mockRunPhaseHooks).toHaveBeenCalled();
+    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks view staged after successful view commit', async () => {
+    mockRunViewCommit.mockResolvedValue('ok');
+
+    const transaction = createMockTransaction({
+      from: createMatchedRoute('/a'),
+      enterRoutes: [createMatchedRoute('/b')],
+      transitionOrder: null,
+    });
+    const stageSpy = jest.spyOn(transaction.viewCommitTracker, 'markViewStaged');
+
+    await new NavigationTransactionPipeline(transaction).runFastPipeline();
+
+    expect(stageSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns cancelled when view commit aborts', async () => {
+    mockRunViewCommit.mockResolvedValue('aborted');
+
+    const transaction = createMockTransaction({
+      from: createMatchedRoute('/a'),
+      enterRoutes: [createMatchedRoute('/b')],
+      transitionOrder: null,
+    });
+
+    const result = await new NavigationTransactionPipeline(transaction).runFastPipeline();
+
+    expect(result).toEqual({ status: 'cancelled' });
+    expect(transaction.engine.commitNavigation).not.toHaveBeenCalled();
+    expect(mockRunPhaseHooks).not.toHaveBeenCalled();
+  });
+
+  it('returns cancelled when superseded after view commit', async () => {
+    mockRunViewCommit.mockResolvedValue('ok');
+
+    const transaction = createMockTransaction({
+      from: createMatchedRoute('/a'),
+      enterRoutes: [createMatchedRoute('/b')],
+      transitionOrder: null,
+    });
+    jest.spyOn(transaction, 'isActive').mockReturnValue(false);
+
+    const result = await new NavigationTransactionPipeline(transaction).runFastPipeline();
+
+    expect(result).toEqual({ status: 'cancelled' });
+    expect(transaction.engine.commitNavigation).not.toHaveBeenCalled();
+  });
+
+  it('runs unmount recovery and returns error when view commit fails', async () => {
+    const renderError = new Error('fast-path render failed');
+    mockRunViewCommit.mockResolvedValue({ status: 'error', error: renderError });
+
+    const phases: string[] = [];
+    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
+      phases.push(ctx.phase);
+    });
+
+    const transaction = createMockTransaction({
+      from: createMatchedRoute('/a', { unmount: ['cleanup'] }),
+      exitRoutes: [createMatchedRoute('/a', { unmount: ['cleanup'] })],
+      enterRoutes: [createMatchedRoute('/b')],
+      transitionOrder: null,
+    });
+    const recoverySpy = jest.spyOn(
+      transaction.viewCommitTracker,
+      'markViewCommittedAfterErrorRecovery',
+    );
+
+    const result = await new NavigationTransactionPipeline(transaction).runFastPipeline();
+
+    expect(result.status).toBe('error');
+    expect(phases).toContain('unmount');
+    expect(recoverySpy).toHaveBeenCalledTimes(1);
+    expect(transaction.engine.commitNavigation).not.toHaveBeenCalled();
   });
 });

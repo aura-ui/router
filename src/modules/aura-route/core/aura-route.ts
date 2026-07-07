@@ -39,12 +39,12 @@ export type { RouteRenderOptions, ApplyPreResolvedOptions, AuraRouteInterface };
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
   static is = 'aura-route';
 
-  @routeAttr() path: string;
-  @routeAttr() layout: string;
+  @routeAttr({ inherit: false }) path: string;
+  @routeAttr({ inherit: false, cached: false }) layout: string;
   @routeAttr() loadingTemplate: string;
   @routeAttr() errorTemplate: string;
 
-  @routeAttr({ parser: parseViewAttr }) view: ViewAttrDescriptor | null;
+  @routeAttr({ inherit: false, parser: parseViewAttr }) view: ViewAttrDescriptor | null;
 
   @routeAttr({ parser: parseCommaSeparated }) guard: string[] | null;
   @routeAttr({ parser: parseCommaSeparated }) load: string[] | null;
@@ -55,7 +55,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseCommaSeparated }) error: string[] | null;
   @routeAttr({ parser: parseParamChangeAttr }) paramChange: ParamChangePolicy | null;
 
-  @routeAttr({ parser: parseTransitionShortcutAttr, name: 'transition' }) transitionShortcut: TransitionShortcutType | null;
+  @routeAttr({
+    parser: parseTransitionShortcutAttr,
+    name: 'transition',
+  }) transitionShortcut: TransitionShortcutType | null;
   @routeAttr({ parser: parseTransitionOrder }) transitionOrder: TransitionOrderType | null;
   @routeAttr({ parser: parseCommaSeparated, name: 'transition-in' }) transitionInDecl: string[] | null;
   @routeAttr({ parser: parseCommaSeparated, name: 'transition-out' }) transitionOutDecl: string[] | null;

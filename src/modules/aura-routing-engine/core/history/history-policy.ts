@@ -1,5 +1,5 @@
 import type { NavigationFailureCode } from '../failure';
-import type { TransactionResult } from '../navigation/transaction-result';
+import type { TransactionResult } from '../navigation/types';
 import type { ViewCommitSnapshot } from '../view-mount/view-commit-state';
 import { isViewCommittedForHistory } from '../view-mount/view-commit-state';
 

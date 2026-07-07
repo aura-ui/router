@@ -1,8 +1,6 @@
 import { FailedNavigation } from '../../core/failure';
-import {
-  NavigationCoordinator,
-  type NavigationTransactionOptions,
-} from '../../core/navigation/navigation-coordinator';
+import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
+import type { NavigationTransactionOptions } from '../../core/navigation/types';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import {
   createCoordinatorMockEngine,

@@ -6,54 +6,24 @@
  */
 
 import { NavigationTransaction } from './navigation-transaction';
-import type { RouteInfo, RouteLifecycleContext, RouterInstance } from '../route/types';
+import type { GuardResult } from '../guard.types';
+import type { RouteInfo, RouteLifecycleContext, RoutePhase, LifecyclePhase } from '../route/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { HistoryAction } from '../history/provider.types';
-import {
-  type GuardResult,
-  type LifecyclePhase,
-  type LifecycleRuntimeContext,
-  type PhaseThrowPolicy,
-  type RoutePhase,
+import type {
+  LifecycleRuntimeContext,
+  PhaseContextSource,
+  PhaseError,
+  PhaseRunResult,
+  PhaseStepOutcome,
+  PhaseThrowPolicy,
+  PipelinePhaseDefinition,
 } from './types';
 import { resolveHookNames } from '../hooks/resolve-hook-names';
-import { PHASES, type PipelinePhaseDefinition } from './navigation-transaction-pipeline-phases-names';
+import { PHASES } from './navigation-transaction-pipeline-phases-names';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { NavigationError } from '../failure';
 import type { FailedNavigation } from '../failure/navigation-failure';
-
-/** Terminal outcome of one blocking hook step (cancel / redirect) or continue. */
-export type PhaseStepOutcome =
-  | { status: 'cancelled' }
-  | { status: 'redirect'; url: string; replace?: boolean }
-  | null;
-
-/** Structured failure handed back to the pipeline (see {@link PhaseThrowPolicy `'failure'`}). */
-export type PhaseError = {
-  kind: 'error';
-  error: unknown;
-  route: MatchedRouteInfo;
-  failedPhase: LifecyclePhase;
-};
-
-/**
- * Outcome of one route × phase step.
- * - `null` — continue the pipeline
- * - {@link PhaseStepOutcome} — terminal (cancel / redirect) for blocking phases
- * - {@link PhaseError} — route-level failure for the pipeline to handle
- */
-export type PhaseRunResult = PhaseStepOutcome | PhaseError | null;
-
-type PhaseContextSource = {
-  from: MatchedRouteInfo | null;
-  action: HistoryAction;
-  router: RouterInstance;
-  transactionId: number;
-  transactionSignal: AbortSignal;
-  data?: unknown;
-  error?: unknown;
-};
 
 /** Executes one {@link RoutePhaseDefinition} for a matched route within a transaction. */
 export class NavigationTransactionPipelinePhase {

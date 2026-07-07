@@ -59,7 +59,7 @@ export type {
 export { mountEnterBranch } from './core/view-mount/branch-mount';
 export type { MountEnterBranchResult } from './core/view-mount/branch-mount';
 
-export type { TransactionResult, TransactionFullResult, NavigationErrorResult } from './core/navigation/transaction-result';
+export type { TransactionResult, TransactionFullResult, NavigationErrorResult } from './core/navigation/types';
 export type { NavigationCommittedContext } from './core/navigation/navigation-finalize';
 
 // --- History layer (default provider + DI for tests) ---

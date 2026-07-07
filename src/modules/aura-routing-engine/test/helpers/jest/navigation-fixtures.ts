@@ -1,14 +1,9 @@
 import { AuraOutlet } from '../../../../aura-outlet/core/aura-outlet';
 import { FailedNavigation, NavigationError } from '../../../core/failure';
 import { HookRegistry } from '../../../core/hooks/registry';
-import type { LifecycleRuntimeContext } from '../../../core/navigation/types';
+import type { LifecycleRuntimeContext, NavigationTransactionOptions, TransactionFullResult } from '../../../core/navigation/types';
 import type { MatchedRouteInfo } from '../../../core/match/url-matcher';
-import {
-  NavigationCoordinator,
-  type NavigationTransactionOptions,
-} from '../../../core/navigation/navigation-coordinator';
 import { NavigationTransaction } from '../../../core/navigation/navigation-transaction';
-import type { TransactionFullResult } from '../../../core/navigation/transaction-result';
 import type { AuraRoutingEngine } from '../../../core/aura-routing-engine';
 import type { RouteTransitionType } from '../../../../aura-route/core/attr/transition-attr-parser';
 import { ViewCommitTracker } from '../../../core/view-mount/view-commit-tracker';

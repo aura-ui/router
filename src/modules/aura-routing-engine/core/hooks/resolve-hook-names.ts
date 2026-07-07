@@ -7,8 +7,7 @@
  */
 
 import { PHASES } from '../navigation/navigation-transaction-pipeline-phases-names';
-import type { RoutePhase } from '../navigation/types';
-import type { RouteHookNamesSource } from '../route/types';
+import type { RouteHookNamesSource, RoutePhase } from '../route/types';
 
 /**
  * Resolves registered hook names for a phase on a route.

@@ -11,8 +11,7 @@ import {
 } from '../history/history-policy';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-
-import type { TransactionResult } from './transaction-result';
+import type { TransactionResult } from './types';
 
 /** Payload for {@link AuraRoutingEngineConfig.onNavigationCommitted}. */
 export interface NavigationCommittedContext {

@@ -1,25 +1,63 @@
 /**
- * Navigation lifecycle types — phases, branch policy, hook timing, throw policy,
+ * Navigation types — transaction outcomes, pipeline policy, phase definitions,
  * and per-transaction orchestration context.
  *
- * Re-exports {@link GuardResult} and {@link RedirectTarget} from the shared
- * guard contract used by hooks and lifecycle execution.
+ * Route lifecycle phase vocabulary: {@link ../route/types}.
  *
  * @module navigation/types
  */
 
 import type { DataSnapshot } from '../data-graph';
-import type { ReportNavigationHookError } from '../failure';
-import type { HistoryAction } from '../history/provider.types';
+import type { FailedNavigation, ReportNavigationHookError } from '../failure';
+import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { HookRegistry } from '../hooks/registry';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { RouterInstance } from '../route/types';
+import type {
+  LifecyclePhase,
+  RouteHookAttrProp,
+  RouteInstance,
+  RouteLifecycleContext,
+  RoutePhase,
+  RouterInstance,
+} from '../route/types';
 import type { TransitionMap } from '../route-tree/transition-plan';
 import type { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 
-export type { GuardResult, RedirectTarget } from '../guard.types';
+// --- Transaction outcomes ---
 
-/** Branch in transition plan: exiting vs entering routes. @see {@link ../route-tree/transition-plan!TransitionMap} */
+/** Terminal pipeline outcome: navigation failed with a structured failure object. */
+export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation };
+
+/**
+ * Terminal navigation outcome (history policy, engine finalization).
+ *
+ * `status: 'navigationSucceeded'` — full pipeline succeeded (not the same as
+ * view `committed` or {@link FailedNavigation.viewCommitted}).
+ * History URL commit is done by the engine after success.
+ */
+export type TransactionResult =
+  | { status: 'navigationSucceeded' }
+  | { status: 'cancelled' }
+  | { status: 'redirect'; url: string; replace?: boolean }
+  | NavigationErrorResult;
+
+/** Pipeline step outcome: terminal {@link TransactionResult} or `null` to continue. */
+export type TransactionFullResult = TransactionResult | null;
+
+// --- Coordinator ---
+
+export interface NavigationTransactionOptions {
+  from: MatchedRouteInfo | null;
+  to: MatchedRouteInfo;
+  action: HistoryAction;
+  href: string;
+  hash: string;
+  options: NavigateHistoryOptions;
+}
+
+// --- Pipeline policy ---
+
+/** Branch in transition plan: exiting vs entering routes. */
 export type LifecycleBranch = 'exitRoutes' | 'enterRoutes';
 
 /** Post-commit hook error policy (see {@link LifecycleHookHandling}). */
@@ -36,33 +74,6 @@ export type LifecycleHookHandling =
   | { kind: 'blocking' }
   | { kind: 'postCommit'; onError: PostCommitHookErrors };
 
-/** `<aura-route>` getter backing a phase attr (`guard`, `load`, `ready`, …). */
-export type RouteHookAttrProp =
-  | 'guard'
-  | 'load'
-  | 'ready'
-  | 'leave'
-  | 'error'
-  | 'transitionIn'
-  | 'transitionOut'
-  | 'unmount'
-  | 'update';
-
-/** All navigation lifecycle phases, including terminal `error`. */
-export type RoutePhase =
-  | 'leave'
-  | 'guard'
-  | 'load'
-  | 'update'
-  | 'transitionOut'
-  | 'transitionIn'
-  | 'unmount'
-  | 'ready'
-  | 'error';
-
-/** Pipeline-driven phases (excludes terminal `error`). */
-export type LifecyclePhase = Exclude<RoutePhase, 'error'>;
-
 /**
  * Route callback / hook throw policy.
  *
@@ -71,6 +82,60 @@ export type LifecyclePhase = Exclude<RoutePhase, 'error'>;
  * - `propagate` — rethrow (programmer error surface)
  */
 export type PhaseThrowPolicy = 'failure' | 'log' | 'propagate';
+
+// --- Phase registry ---
+
+export interface RoutePhaseDefinition {
+  phase: RoutePhase;
+  targetRoutes: LifecycleBranch;
+  hookPolicy: LifecycleHookHandling;
+  errorPolicy: PhaseThrowPolicy;
+  htmlAttr?: string;
+  routeHookProp?: RouteHookAttrProp;
+  runRouteLifecycle?: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
+}
+
+/** Pipeline phase — {@link RoutePhaseDefinition} with a route lifecycle callback. */
+export type PipelinePhaseDefinition = RoutePhaseDefinition & {
+  phase: LifecyclePhase;
+  runRouteLifecycle: (route: RouteInstance, ctx: RouteLifecycleContext) => void;
+};
+
+// --- Phase step outcomes ---
+
+/** Terminal outcome of one blocking hook step (cancel / redirect) or continue. */
+export type PhaseStepOutcome =
+  | { status: 'cancelled' }
+  | { status: 'redirect'; url: string; replace?: boolean }
+  | null;
+
+/** Structured failure handed back to the pipeline (see {@link PhaseThrowPolicy `'failure'`}). */
+export type PhaseError = {
+  kind: 'error';
+  error: unknown;
+  route: MatchedRouteInfo;
+  failedPhase: LifecyclePhase;
+};
+
+/**
+ * Outcome of one route × phase step.
+ * - `null` — continue the pipeline
+ * - {@link PhaseStepOutcome} — terminal (cancel / redirect) for blocking phases
+ * - {@link PhaseError} — route-level failure for the pipeline to handle
+ */
+export type PhaseRunResult = PhaseStepOutcome | PhaseError | null;
+
+export type PhaseContextSource = {
+  from: MatchedRouteInfo | null;
+  action: HistoryAction;
+  router: RouterInstance;
+  transactionId: number;
+  transactionSignal: AbortSignal;
+  data?: unknown;
+  error?: unknown;
+};
+
+// --- Transaction context ---
 
 export interface LifecycleTransactionContext {
   from: MatchedRouteInfo | null;

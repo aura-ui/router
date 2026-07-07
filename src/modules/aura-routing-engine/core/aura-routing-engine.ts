@@ -47,7 +47,7 @@ import { DataGraph } from './data-graph';
 import { resolveDataInvalidatePredicate, type RouterDataInvalidateOptions } from './data-graph/invalidate';
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
-import type { TransactionFullResult } from './navigation/transaction-result';
+import type { TransactionFullResult } from './navigation/types';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;

@@ -6,7 +6,7 @@ import {
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { LifecycleRuntimeContext } from './types';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import type { TransactionFullResult } from './transaction-result';
+import type { TransactionFullResult } from './types';
 
 /** Assembles a pipeline failure and runs the terminal `error` phase. */
 export class NavigationFailureHandler {

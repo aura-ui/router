@@ -3,7 +3,7 @@ import { DEFAULT_GC_TIME, type InvalidatePolicy } from '../../../aura-cache-stor
 import { normalizeHookResult, type HookRegistry } from '../hooks/registry';
 import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { TransactionFullResult } from '../navigation/transaction-result';
+import type { TransactionFullResult } from '../navigation/types';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import type { RouteLifecycleContext } from '../route/types';

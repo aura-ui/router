@@ -11,7 +11,7 @@
  * @module navigation/navigation-transaction-pipeline
  */
 import { NavigationTransaction } from './navigation-transaction';
-import { PHASES, type PipelinePhaseDefinition } from './navigation-transaction-pipeline-phases-names';
+import { PHASES } from './navigation-transaction-pipeline-phases-names';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import { resolveRouteData } from '../data-graph';
 import {
@@ -28,10 +28,8 @@ import {
   type ViewRenderCancellation,
 } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
-import type { TransactionFullResult } from './transaction-result';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-
-export type { TransactionFullResult } from './transaction-result';
+import type { PipelinePhaseDefinition, TransactionFullResult } from './types';
 
 /** Single pipeline step. `null` = success and continue; otherwise a terminal {@link TransactionFullResult}. */
 type PipelineStep = () => Promise<TransactionFullResult>;

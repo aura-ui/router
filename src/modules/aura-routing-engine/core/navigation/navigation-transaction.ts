@@ -1,9 +1,9 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route-tree/transition-plan';
 import { NavigationTransactionPipeline } from './navigation-transaction-pipeline';
-import type { TransactionFullResult } from './transaction-result';
+import type { TransactionFullResult } from './types';
 import { AuraRoutingEngine } from '../aura-routing-engine';
-import type { NavigationTransactionOptions } from './navigation-coordinator';
+import type { NavigationTransactionOptions } from './types';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { type NavigationErrorPhase } from '../failure';

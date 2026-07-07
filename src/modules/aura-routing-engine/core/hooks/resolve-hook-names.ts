@@ -1,12 +1,12 @@
 /**
  * Route hook name resolution from phase attrs.
  *
- * Phase metadata lives in {@link ../navigation/navigation-transaction-pipeline-phases-names!PHASES}.
+ * Phase metadata lives in {@link ../navigation/livecycle-phases!PHASES}.
  *
  * @module hooks/resolve-hook-names
  */
 
-import { PHASES } from '../navigation/navigation-transaction-pipeline-phases-names';
+import { PHASES } from '../navigation/livecycle-phases';
 import type { RouteHookNamesSource, RoutePhase } from '../route/types';
 
 /**

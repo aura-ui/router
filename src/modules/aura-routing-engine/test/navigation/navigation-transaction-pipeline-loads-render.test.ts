@@ -3,7 +3,7 @@ jest.mock('../../core/hooks/registry', () =>
 jest.mock('../../core/view-mount/view-commit-render', () =>
   require('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
-import { PHASES } from '../../core/navigation/navigation-transaction-pipeline-phases-names';
+import { PHASES } from '../../core/navigation/livecycle-phases';
 import type { DataSnapshot } from '../../core/data-graph';
 import { buildRouteDataKey } from '../../core/data-graph/route-data';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';

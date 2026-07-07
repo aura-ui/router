@@ -19,7 +19,7 @@
  * (`null` from the pipeline is coalesced to `navigationSucceeded`).
  *
  * Route lifecycle phase vocabulary: {@link ../route/types}.
- * Phase registry values: {@link ./navigation-transaction-pipeline-phases-names!PHASES}.
+ * Phase registry values: {@link ./livecycle-phases!PHASES}.
  *
  * @module navigation/types
  */
@@ -123,7 +123,7 @@ export type PostCommitHookErrorPolicy = 'propagate' | 'log';
 /**
  * When registered hooks run relative to view commit.
  *
- * Configured per phase in {@link ./navigation-transaction-pipeline-phases-names!PHASES}.
+ * Configured per phase in {@link ./livecycle-phases!PHASES}.
  *
  * - `blocking` — before view commit; {@link NavigationShortCircuit} stops navigation
  * - `postCommit` — after view commit; cancel/redirect from hooks are ignored (warned);
@@ -136,7 +136,7 @@ export type PhaseHookTiming =
 /**
  * Policy when a route lifecycle callback or registered hook throws.
  *
- * Configured per phase in {@link ./navigation-transaction-pipeline-phases-names!PHASES};
+ * Configured per phase in {@link ./livecycle-phases!PHASES};
  * throws are handled by
  * {@link ./navigation-transaction-pipeline-phase!NavigationTransactionPipelinePhase} (private `applyErrorPolicy`).
  *
@@ -151,7 +151,7 @@ export type RoutePhaseThrowPolicy = 'failure' | 'log' | 'propagate';
 /**
  * Static metadata for one route lifecycle phase.
  *
- * Runtime values live in {@link ./navigation-transaction-pipeline-phases-names!PHASES}.
+ * Runtime values live in {@link ./livecycle-phases!PHASES}.
  * `htmlAttr` / `routeHookProp` bind declarative hooks; `runRouteLifecycle` is optional
  * here and required on {@link PipelinePhaseDefinition}.
  */

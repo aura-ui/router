@@ -15,21 +15,18 @@ files inside this folder.
   history policy.
 - `finalize-failure.ts` runs app failure callbacks and returns the `prev` update
   hint. It does not write history.
-- `not-found-exit-cleanup.ts` runs callback-only `unmount` cleanup before
-  pre-match `NOT_FOUND` finalization.
 
 ## Ownership Boundaries
 
 `failure/` does not execute route lifecycle callbacks or registered hooks.
-Terminal error recovery lives in `navigation/navigation-failure-handler.ts` and
-`NavigationTransactionPipelinePhase.runError()` because they run route `onError`
-and attr `error` hooks after a `FailedNavigation` is assembled.
+Route lifecycle on failure lives in `navigation/`:
 
-Pre-match `NOT_FOUND` exit cleanup lives in `not-found-exit-cleanup.ts` as
-`runNotFoundExitCleanup`. It is a callback-only legacy path, but it still uses the
-same lifecycle context builder as processor-driven phases.
+- `navigation-failure-handler.ts` — terminal `error` phase (`onError` + attr hooks)
+  after a pipeline failure and assembled `FailedNavigation`.
+- `not-found-exit-cleanup.ts` — callback-only `unmount` on the previous leaf
+  before pre-match `NOT_FOUND` finalization.
 
-History writes are resolved in `history/` and applied in `navigation/finalize.ts`.
+History writes are resolved in `history/` and applied in `navigation/navigation-finalize.ts`.
 This keeps failure callbacks, `prev` updates, and browser history policy separate.
 
 ## Recovery Contract

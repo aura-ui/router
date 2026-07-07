@@ -1,15 +1,15 @@
 /**
  * Pre-match NOT_FOUND exit cleanup — unmount callback for the previous leaf route.
  *
- * @module failure/not-found-exit-cleanup
+ * @module navigation/not-found-exit-cleanup
  */
 
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
-import { PHASES } from '../navigation/navigation-transaction-pipeline-phases-names';
 import type { RouterInstance } from '../route/types';
 import { getLeafMatch } from '../route-tree/matched-chain';
+import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
+import { PHASES } from './navigation-transaction-pipeline-phases-names';
 
 export interface NotFoundExitInput {
   from: MatchedRouteInfo | null;

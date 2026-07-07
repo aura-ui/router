@@ -7,7 +7,6 @@ import {
   type CompleteFailureDeps,
   type NavigationHookErrorDetail,
   finalizeFailure,
-  runNotFoundExitCleanup,
 } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
@@ -15,6 +14,7 @@ import type {
   NavigateHistoryOptions,
   NavigationProvider,
 } from './history/provider.types';
+import { runNotFoundExitCleanup } from './navigation/not-found-exit-cleanup';
 import { resolveNavigationTarget } from './match/resolve-navigation-target';
 import {
   AuraRoutingUrlMatcher,
@@ -25,7 +25,7 @@ import {
   applyTransactionHistory,
   finalizeNotFoundNavigation,
   type NavigationCommittedContext,
-} from './navigation/finalize';
+} from './navigation/navigation-finalize';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
 import {

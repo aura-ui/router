@@ -5,7 +5,7 @@
  *   npm run bench
  *   npm run bench:gc        (stabler runs with --expose-gc)
  */
-import { setupMinimalWindow } from './lib/env';
+import './lib/dom-bootstrap';
 import { runUrlMatcherBench } from './scenarios/url-matcher.bench';
 import { runMatchedChainBench } from './scenarios/matched-chain.bench';
 import { runTransitionPlanBench } from './scenarios/transition-plan.bench';
@@ -24,7 +24,6 @@ async function main(): Promise<void> {
   console.log(' Doc: docs/todo/NAVIGATION_PERF_AUDIT.md');
   console.log(' Reports: bench/reports/<scenario>/');
   console.log('═══════════════════════════════════════════════════════\n');
-  setupMinimalWindow();
   const saved: string[] = [];
   saved.push(runUrlMatcherBench().timestampFile);
   saved.push(runMatchedChainBench().timestampFile);
@@ -46,4 +45,4 @@ async function main(): Promise<void> {
 main().catch((err) => {
   console.error(err);
   process.exitCode = 1;
-});
+});

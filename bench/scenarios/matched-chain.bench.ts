@@ -4,6 +4,7 @@
  *
  * Run: npm run bench:matched-chain
  */
+import '../lib/dom-bootstrap';
 import { AuraRoutingUrlMatcher } from '../../src/modules/aura-routing-engine/core/match/url-matcher';
 import { attachNavigationChain } from '../../src/modules/aura-routing-engine/core/route-tree/matched-chain';
 import { linearChainRouteNodes, nestedDashboardMatchableNodes } from '../lib/fixtures';

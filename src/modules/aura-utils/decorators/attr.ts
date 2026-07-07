@@ -7,9 +7,9 @@
  * - **`cached: true`** — first read resolves DOM once per element; later reads return a frozen value
  *   without touching the DOM. Ancestor / external DOM changes do not invalidate the cache;
  *   call {@link attr.clear} to re-read.
- * - **`inherit`** — when the local value is missing or empty (unless `allowEmpty`), falls back to
- *   `closest('[attr]')` on ancestors. A `string` value keeps the local attribute name but uses a
- *   different name for the ancestor lookup.
+ * - **`inherit`** — when the local attribute is absent, falls back to `closest('[attr]')` on ancestors.
+ *   A present local attribute (including `attr=""`) wins over inheritance. A `string` value keeps
+ *   the local attribute name but uses a different name for the ancestor lookup.
  */
 
 import { parseString, toKebabCase } from '../misc/format';
@@ -60,11 +60,6 @@ export type AttrConfig<T = string> = {
    * Invalidate with {@link attr.clear}.
    */
   cached?: boolean;
-  /**
-   * Only with `inherit`: `hasAttribute` on this element wins over ancestor lookup,
-   * including empty string (`attr=""`). Without it, an empty local value still inherits.
-   */
-  allowEmpty?: boolean;
 };
 
 /**
@@ -77,7 +72,7 @@ export type AttrConfig<T = string> = {
  * class MyRoute extends HTMLElement {
  *   @attr({ readonly: true }) path!: string;
  *
- *   @attr({ inherit: true, allowEmpty: true, parser: parseCommaSeparated })
+ *   @attr({ inherit: true, parser: parseCommaSeparated })
  *   guard!: string[] | null;
  *
  *   @attr({ inherit: true, cached: true, parser: parsePrefetchAttr })
@@ -96,15 +91,14 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
     const name = (config.dataAttr ? 'data-' : '') + toKebabCase(config.name || propName);
     const inheritName = typeof config.inherit === 'string' ? config.inherit : name;
     const inherit = !!config.inherit;
-    const allowEmpty = !!config.allowEmpty;
     const hasDefault = 'defaultValue' in config;
     const parser = config.parser || defaultParser;
 
     const read = (el: HTMLElement): T | null => {
       let raw: string | null;
       if (!inherit) raw = el.getAttribute(name);
-      else if (allowEmpty && el.hasAttribute(name)) raw = el.getAttribute(name);
-      else raw = el.getAttribute(name) || getInherited(el, inheritName);
+      else if (el.hasAttribute(name)) raw = el.getAttribute(name);
+      else raw = getInherited(el, inheritName);
 
       const input = (raw === null && hasDefault) ? config.defaultValue : raw;
       return parser(input as string | null) as T | null;

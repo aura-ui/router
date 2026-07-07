@@ -3,8 +3,8 @@ import { memoizeFn, type MemoHashFn, defaultArgsToHashFn } from '../misc/memoize
 /** `@memoize` — instance: per-instance cache (methods) / own property (getters); static: shared on class. */
 export function memoize(hashFn: MemoHashFn = defaultArgsToHashFn) {
   return function(target: object, prop: string | symbol, descriptor: PropertyDescriptor) {
-    if (!descriptor || (typeof descriptor.get !== 'function' && typeof descriptor.value !== 'function')) {
-      throw new TypeError('Only get accessors or class methods can be decorated via @memoize');
+    if (!descriptor || typeof (descriptor.value || descriptor.get) !== 'function') {
+      throw new TypeError('@memoize can only be applied to getters and class methods');
     }
 
     if (typeof target !== 'function') {
@@ -27,7 +27,7 @@ function memoizeInstanceGetter(getter: (this: any) => any, prop: string | symbol
   };
 }
 
-function memoizeInstanceMethod(method: (...args: any[]) => any, prop: string | symbol, hashFn?: MemoHashFn) {
+function memoizeInstanceMethod(method: (...args: any[]) => any, prop: string | symbol, hashFn: MemoHashFn) {
   return function(this: any, ...args: any[]) {
     const memo = memoizeFn(method, hashFn);
     (this as Record<string | symbol, unknown>)[prop] = memo;

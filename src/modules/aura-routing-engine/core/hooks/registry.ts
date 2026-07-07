@@ -1,7 +1,7 @@
 /**
  * Hook registry and runtime — register global hooks, run them during navigation.
  *
- * Flow: route attrs → {@link ../lifecycle/bindings/route-hook-bindings!resolveHookNames} → {@link runPhaseHooks} → {@link HookRegistry.run}.
+ * Flow: route attrs → {@link ./resolve-hook-names!resolveHookNames} → {@link runPhaseHooks} → {@link HookRegistry.run}.
  * Blocking phases stop on first cancel/redirect. Post-commit phases ignore cancel/redirect (warn).
  *
  * @module hooks/registry

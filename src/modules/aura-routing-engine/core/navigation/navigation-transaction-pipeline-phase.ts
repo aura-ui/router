@@ -16,7 +16,7 @@ import {
   type PhaseThrowPolicy,
   type RoutePhase,
 } from './types';
-import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
+import { resolveHookNames } from '../hooks/resolve-hook-names';
 import { PHASES, type PipelinePhaseDefinition } from './navigation-transaction-pipeline-phases-names';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';

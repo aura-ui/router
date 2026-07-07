@@ -7,7 +7,7 @@
  */
 
 export { NO_PRESERVE, parsePreserveAttr } from './core/content';
-export { resolveHookNames } from './core/lifecycle/bindings/route-hook-bindings';
+export { resolveHookNames } from './core/hooks/resolve-hook-names';
 export {
   parseScrollAttr,
   type ScrollAttr,

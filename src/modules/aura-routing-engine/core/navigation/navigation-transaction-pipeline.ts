@@ -11,7 +11,7 @@
  * @module navigation/navigation-transaction-pipeline
  */
 import { NavigationTransaction } from './navigation-transaction';
-import { PHASES, type PipelinePhaseDefinition } from '../lifecycle';
+import { PHASES, type PipelinePhaseDefinition } from './navigation-transaction-pipeline-phases-names';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import { resolveRouteData } from '../data-graph';
 import {

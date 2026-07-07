@@ -1,4 +1,4 @@
-import { resolveHookNames } from '../lifecycle/bindings/route-hook-bindings';
+import { resolveHookNames } from '../hooks/resolve-hook-names';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { routeMatchKey } from '../route-tree/matched-chain';
 

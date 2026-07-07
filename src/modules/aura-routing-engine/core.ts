@@ -140,7 +140,7 @@ export type { RouterDataInvalidateOptions } from './core/data-graph/invalidate';
 
 // --- Route hooks (registered via AuraRouter.use) ---
 
-export { resolveHookNames } from './core/lifecycle';
+export { resolveHookNames } from './core/hooks/resolve-hook-names';
 export { defineRouteHook } from './core/hooks/define-hook';
 export { NO_TRANSITION } from '../aura-route/core/attr/transition-attr-parser';
 export {

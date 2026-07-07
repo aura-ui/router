@@ -37,12 +37,12 @@ function resolveCtx(signal: AbortSignal, aborted = () => signal.aborted): Branch
 }
 
 describe('resolveEnterBranch', () => {
-  it('returns empty payloads for an empty branch', async () => {
+  it('returns empty pre-resolved contents for an empty branch', async () => {
     const signal = new AbortController().signal;
 
     const result = await resolveEnterBranch([], { resolve: async () => null }, resolveCtx(signal));
 
-    expect(result).toEqual({ status: 'ok', payloads: [] });
+    expect(result).toEqual({ status: 'ok', preResolvedContents: [] });
   });
 
   it('resolves all routes in parallel and preserves enter order', async () => {
@@ -64,7 +64,7 @@ describe('resolveEnterBranch', () => {
 
     const result = await resolveEnterBranch([layout, index], { resolve }, resolveCtx(signal));
 
-    expect(result).toEqual({ status: 'ok', payloads: ['<layout/>', '<index/>'] });
+    expect(result).toEqual({ status: 'ok', preResolvedContents: ['<layout/>', '<index/>'] });
     expect(resolve).toHaveBeenCalledTimes(2);
   });
 
@@ -92,7 +92,7 @@ describe('resolveEnterBranch', () => {
       },
     );
 
-    expect(result).toEqual({ status: 'ok', payloads: ['no-data', '{"id":"1"}'] });
+    expect(result).toEqual({ status: 'ok', preResolvedContents: ['no-data', '{"id":"1"}'] });
     expect(resolve).toHaveBeenNthCalledWith(1, layout, signal, undefined);
     expect(resolve).toHaveBeenNthCalledWith(2, index, signal, { data: { id: '1' } });
   });
@@ -239,7 +239,7 @@ describe('resolveEnterBranch', () => {
       }),
     );
 
-    expect(result).toEqual({ status: 'ok', payloads: ['{"userId":"42"}'] });
+    expect(result).toEqual({ status: 'ok', preResolvedContents: ['{"userId":"42"}'] });
     expect(resolveRouteData(snapshot, layout)).toEqual({ userId: '42' });
   });
 
@@ -264,7 +264,7 @@ describe('resolveEnterBranch', () => {
 
     expect(result).toEqual({
       status: 'ok',
-      payloads: ['<header>users-layout</header>', '<p>list</p>'],
+      preResolvedContents: ['<header>users-layout</header>', '<p>list</p>'],
     });
     expect(document.body.children).toHaveLength(0);
   });

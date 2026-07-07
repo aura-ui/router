@@ -75,7 +75,7 @@ describe('NavigationTransactionPipeline history commit', () => {
       order.push('render');
       return 'ok';
     });
-    jest.spyOn(branchResolver, 'resolveEnterBranch').mockResolvedValue({ status: 'ok', payloads: [null] });
+    jest.spyOn(branchResolver, 'resolveEnterBranch').mockResolvedValue({ status: 'ok', preResolvedContents: [null] });
     jest.spyOn(branchMount, 'mountEnterBranch').mockImplementation(() => {
       order.push('render');
       return { status: 'ok' };
@@ -826,7 +826,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     mockRunPhaseHooks.mockResolvedValue(undefined);
     resolveEnterBranchSpy = jest
       .spyOn(branchResolver, 'resolveEnterBranch')
-      .mockResolvedValue({ status: 'ok', payloads: ['<layout/>', '<index/>'] });
+      .mockResolvedValue({ status: 'ok', preResolvedContents: ['<layout/>', '<index/>'] });
     mountEnterBranchSpy = jest
       .spyOn(branchMount, 'mountEnterBranch')
       .mockReturnValue({ status: 'ok' });
@@ -837,7 +837,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     mountEnterBranchSpy.mockRestore();
   });
 
-  it('resolves branch then sync-mounts pre-resolved payloads for multi-route enter', async () => {
+  it('resolves branch then sync-mounts pre-resolved contents for multi-route enter', async () => {
     const layout = createMatchedRoute('/users');
     const index = createMatchedRoute('/users/1');
     const transaction = withContentLoad({
@@ -895,7 +895,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
 
     resolveEnterBranchSpy.mockImplementation(async () => {
       callOrder.push('resolve');
-      return { status: 'ok', payloads: ['<layout/>', '<index/>'] };
+      return { status: 'ok', preResolvedContents: ['<layout/>', '<index/>'] };
     });
     mountEnterBranchSpy.mockImplementation(() => {
       callOrder.push('apply');

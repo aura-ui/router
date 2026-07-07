@@ -223,38 +223,40 @@ export class NavigationTransactionPipeline {
   private async prepareEnterBranch(): Promise<TransactionFullResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const ctx = createBranchResolveContext(this.transaction);
-    const branch = await resolveEnterBranch(
+    const resolved = await resolveEnterBranch(
       enterRoutes,
       this.transaction.engine.contentLoad!,
       ctx,
     );
 
-    if (branch.status === 'aborted' || !this.transaction.isActive()) {
+    if (resolved.status === 'aborted' || !this.transaction.isActive()) {
       return { status: 'cancelled' };
     }
-    if (branch.status === 'error') {
-      return this.failRender(branch.route, branch.error);
+
+    if (resolved.status === 'error') {
+      return this.failRender(resolved.route, resolved.error);
     }
 
-    this.transaction.resolvedBranchPayloads = branch.payloads;
+    this.transaction.preResolvedBranchContents = resolved.preResolvedContents;
     return null;
   }
 
   private commitEnterBranchToDom(): Promise<TransactionFullResult> {
-    const payloads = this.transaction.resolvedBranchPayloads;
-    this.transaction.resolvedBranchPayloads = undefined;
+    const preResolvedContents = this.transaction.preResolvedBranchContents;
+    this.transaction.preResolvedBranchContents = undefined;
 
-    if (!payloads) {
+    if (!preResolvedContents) {
       return Promise.resolve({ status: 'cancelled' });
     }
 
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
     const ctx = createBranchResolveContext(this.transaction);
-    const mount = mountEnterBranch(enterRoutes, payloads, ctx);
+    const mount = mountEnterBranch(enterRoutes, preResolvedContents, ctx);
 
     if (mount.status === 'aborted' || !this.transaction.isActive()) {
       return Promise.resolve({ status: 'cancelled' });
     }
+
     if (mount.status === 'error') {
       return this.failRender(mount.route, mount.error);
     }

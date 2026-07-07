@@ -35,8 +35,8 @@ export class NavigationTransaction {
   transitionPlan!: TransitionMap;
   transitionOrder: TransitionOrderType | null = null;
   dataSnapshot?: DataSnapshot;
-  /** Pre-resolved enter-branch payloads between resolve and apply (transition + atomic). */
-  resolvedBranchPayloads?: readonly (ViewPayload | null)[];
+  /** Pre-resolved enter-branch view contents between resolve and apply (transition + atomic). */
+  preResolvedBranchContents?: readonly (ViewPayload | null)[];
   viewCommitTracker: ViewCommitTracker;
   /** Set when {@link AuraRoutingEngine.commitHistoryIfNeeded} wrote the URL for this transaction. */
   historyCommitted = false;

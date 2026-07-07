@@ -15,21 +15,21 @@ export type MountEnterBranchResult =
   | { status: 'error'; error: unknown; route: MatchedRouteInfo };
 
 /**
- * Mount all enter routes synchronously using pre-resolved payloads.
+ * Mount all enter routes synchronously using pre-resolved view contents.
  * Pair of {@link resolveEnterBranch} — reuses the same {@link BranchResolveContext}.
  */
 export function mountEnterBranch(
   enterRoutes: readonly MatchedRouteInfo[],
-  payloads: readonly (ViewPayload | null)[],
+  preResolvedContents: readonly (ViewPayload | null)[],
   ctx: BranchResolveContext,
 ): MountEnterBranchResult {
   if (ctx.aborted()) return { status: 'aborted' };
 
-  if (payloads.length !== enterRoutes.length) {
+  if (preResolvedContents.length !== enterRoutes.length) {
     return {
       status: 'error',
       error: new Error(
-        `Branch mount: expected ${enterRoutes.length} payloads, got ${payloads.length}`,
+        `Branch mount: expected ${enterRoutes.length} pre-resolved contents, got ${preResolvedContents.length}`,
       ),
       route: enterRoutes[0]!,
     };
@@ -40,7 +40,7 @@ export function mountEnterBranch(
     const data = ctx.dataFor?.(matchedRoute);
     const options: ApplyPreResolvedOptions = {
       parentSignal: ctx.signal,
-      preResolvedContent: payloads[i]!,
+      preResolvedContent: preResolvedContents[i]!,
       ...(data !== undefined && { data }),
     };
 

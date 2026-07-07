@@ -2,7 +2,7 @@ import { mountEnterBranch } from '../../core/view-mount/branch-mount';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 
 describe('mountEnterBranch', () => {
-  it('mounts enter routes in order with pre-resolved payloads', () => {
+  it('mounts enter routes in order with pre-resolved contents', () => {
     const calls: Array<{ path: string; payload: unknown }> = [];
     const layout = createMatchedRoute('/users', {
       applyPreResolved: (_info, options) => {
@@ -106,7 +106,7 @@ describe('mountEnterBranch', () => {
     );
   });
 
-  it('returns error when payloads length does not match enter routes', () => {
+  it('returns error when pre-resolved contents length does not match enter routes', () => {
     const route = createMatchedRoute('/page', {
       applyPreResolved: () => ({ status: 'ok' }),
     });
@@ -120,7 +120,7 @@ describe('mountEnterBranch', () => {
     expect(result.status).toBe('error');
     if (result.status === 'error') {
       expect(result.error).toEqual(expect.objectContaining({
-        message: 'Branch mount: expected 1 payloads, got 0',
+        message: 'Branch mount: expected 1 pre-resolved contents, got 0',
       }));
     }
   });

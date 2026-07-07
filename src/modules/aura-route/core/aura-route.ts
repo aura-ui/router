@@ -172,9 +172,6 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     }
 
     if (!this.path) throw new Error('AuraRoute must have a path attribute');
-    if (!this.view && !this.layout) {
-      console.warn(`AuraRoute with path "${this.path}" has no view or layout specified`);
-    }
 
     const mountTarget: MountTargetPort = {
       appOutlet: () => router.appOutlet,
@@ -207,6 +204,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
     return this.setupDone.then(() => {
+      this.throwIfInvalidAttrs();
       this.passId++;
       return this.viewController.render(routeInfo, options);
     });
@@ -220,6 +218,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     if (!this.viewReady || !this.viewController) {
       return { status: 'error', error: new DOMException('AuraRoute not initialized', 'InvalidStateError') };
     }
+    this.throwIfInvalidAttrs();
     this.passId++;
     return this.viewController.applyPreResolved(routeInfo, options);
   }
@@ -268,5 +267,11 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   onError(ctx: RouteErrorContext): void {
     void ctx;
+  }
+
+  private throwIfInvalidAttrs(): void {
+    if (!this.view && !this.layout.trim()) {
+      throw new Error(`AuraRoute with path "${this.path}" has no view or layout to render`);
+    }
   }
 }

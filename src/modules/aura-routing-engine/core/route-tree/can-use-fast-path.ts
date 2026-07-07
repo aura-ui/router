@@ -2,8 +2,11 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { TransitionMap } from './transition-plan';
 
 /**
- * Tier 0: trivial flat navigation with sync inline content (`html::`), no blocking hooks,
- * async content, or transitions.
+ * Tier 0: trivial flat navigation with sync inline content (`html::`), no blocking hooks
+ * or transitions.
+ *
+ * Enter-route async/load eligibility is folded into {@link RouteInstance.hasSyncContent}.
+ * Misconfigured routes (no view/layout) fail at render time on {@link AuraRoute}, not here.
  *
  * Hook getters (`hasGuard`, `hasLoad`, …) on {@link RouteInstance} reflect inherited attrs
  * from `<aura-router>` / parent `<aura-route>` — no separate chain scan needed here.
@@ -23,11 +26,9 @@ export function canUseFastPath(
   if (!enterRoute.hasSyncContent) return false;
   if (exitRoute?.hasLeave) return false;
   if (enterRoute.hasGuard) return false;
-  if (enterRoute.hasLoad) return false;
   if (enterRoute.hasTransitionIn) return false;
   if (exitRoute?.hasReady) return false;
   if (enterRoute.hasReady) return false;
-  if (enterRoute.hasAsyncContent) return false;
   if (enterRoute.transition.order != null) return false;
   if (exitRoute?.transition.order != null) return false;
 

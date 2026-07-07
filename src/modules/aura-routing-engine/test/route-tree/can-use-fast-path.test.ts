@@ -25,7 +25,7 @@ describe('canUseFastPath', () => {
     expect(canUseFastPath(plan, from, to)).toBe(true);
   });
 
-  it('blocks when enter route has no view (hasSyncContent false)', () => {
+  it('blocks routes without sync inline content (hasSyncContent false)', () => {
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b', { view: null });
     const plan = buildTransitionPlan(from, to);
@@ -67,6 +67,14 @@ describe('canUseFastPath', () => {
   it('blocks when enter hooks are declared', () => {
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b', { guard: ['auth'] });
+    const plan = buildTransitionPlan(from, to);
+
+    expect(canUseFastPath(plan, from, to)).toBe(false);
+  });
+
+  it('blocks when enter route has load hooks (via hasSyncContent)', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', { load: ['data'] });
     const plan = buildTransitionPlan(from, to);
 
     expect(canUseFastPath(plan, from, to)).toBe(false);

@@ -27,6 +27,7 @@ export interface MatchedRouteInfo {
   resolvedView?: ResolvedView | null;
 }
 
+/** Результат `matchPath`: победивший узел и извлечённые path params. */
 export interface NodePathMatch {
   node: RouteNode;
   params: Record<string, string>;
@@ -35,16 +36,23 @@ export interface NodePathMatch {
 /** Declarative 404: `<aura-route path="*">` (global) or nested `path="*"` → `/prefix/*`. */
 export const CATCH_ALL_SEGMENT = '*' as const;
 
-/** Global catch-all — lowest match priority. */
+/** Global catch-all — lowest match priority (`routeScore` → `-1`). */
 const SCORE_GLOBAL_CATCH_ALL = -1;
 
 /** Scoped `*` ranks below a static sibling at the same segment depth. */
 const SCORE_SCOPED_CATCH_ALL_DEPTH_BIAS = 0.5;
 
+/** `true` для global (`*`) и scoped (`/prefix/*`) catch-all patterns. */
 export function isCatchAllRoute(pattern: string): boolean {
   return isGlobalCatchAllPattern(pattern) || isScopedCatchAllPattern(pattern);
 }
 
+/**
+ * Приоритет кандидата при нескольких совпадениях: глубже pathname → выше score;
+ * scoped catch-all ниже static sibling на той же глубине; global `*` — последний.
+ *
+ * @example `/settings/profile` → `2`; `/users/*` → `1.5`; `*` → `-1`
+ */
 function routeScore(pattern: string): number {
   if (isGlobalCatchAllPattern(pattern)) return SCORE_GLOBAL_CATCH_ALL;
   if (isScopedCatchAllPattern(pattern)) {
@@ -54,8 +62,31 @@ function routeScore(pattern: string): number {
   return pattern.split('/').filter(Boolean).length;
 }
 
+/**
+ * Сопоставление browser pathname с зарегистрированными маршрутами.
+ *
+ * Используется из {@link resolveNavigationTarget} и prefetch pipeline.
+ * Кэширует скомпилированные `URLPattern` per pattern (`patterns`); сброс — {@link destroy}.
+ */
 export class AuraRoutingUrlMatcher {
-  /** Match pathname по matchable nodes registry (nested-ready). */
+  /** Compiled `URLPattern` instances keyed by route `pattern` (param routes only). */
+  private readonly patterns = new Map<string, URLPattern>();
+
+  /**
+   * Находит лучший match среди `matchableNodes` registry.
+   *
+   * Линейный O(n) перебор: для каждого узла {@link getPathParams}, затем max {@link routeScore}.
+   * При равной глубине static побеждает scoped catch-all.
+   *
+   * Результат мемоизируется по `pathname` только; `nodes` в ключ не входит —
+   * после смены route tree вызывайте {@link destroy} или создавайте новый matcher.
+   *
+   * @param pathname — browser pathname без `search` / `hash`
+   * @param nodes — `RouteTreeSnapshot.matchableNodes` / `registry.getMatchableNodes()`
+   * @returns победивший узел + params, или `null` (→ not-found)
+   *
+   * @example matcher.matchPath('/settings/profile', matchableNodes)
+   */
   @memoize((pathname: string) => pathname)
   matchPath(pathname: string, nodes: readonly RouteNode[]): NodePathMatch | null {
     let best: NodePathMatch & { score: number } | null = null;
@@ -73,15 +104,26 @@ export class AuraRoutingUrlMatcher {
   }
 
   /**
-   * Path params для pattern: `:id` через URLPattern, catch-all — ключ `splat`.
+   * Извлекает path params для пары `(pathname, pattern)`.
+   *
+   * Ветки (в порядке проверки):
+   * 1. **global catch-all** (`*`, `/*`) — `{ splat }` = pathname без ведущего `/`
+   * 2. **scoped catch-all** (`/users/*`) — {@link matchScopedCatchAll}
+   * 3. **param / static** — `URLPattern.exec` через кэш {@link getUrlPattern}; при ошибке
+   *    парсинга pattern — fallback `pathname === pattern ? {} : null`
    *
    * **splat** — не engine fallback при «маршрут не найден», а param зарегистрированного
-   * `<aura-route path="*">`. Без `*` matchPath → null, splat не будет (см. notFoundHandler).
+   * `<aura-route path="*">`. Без `*` в дереве `matchPath` → `null`, splat не появится.
+   *
+   * @param pathname — browser pathname
+   * @param pattern — resolved `node.pattern` (`/users/:id`, `/about`, `/users/*`, `*`)
+   * @returns params object или `null` если pattern не матчит pathname
    *
    * @example global `*` — `/foo/bar` → `{ splat: 'foo/bar' }`
    * @example scoped `/users/*` — `/users/unknown` → `{ splat: 'unknown' }`
+   * @example param `/users/:id` — `/users/42` → `{ id: '42' }`
+   * @example static `/about` — `/about` → `{}`
    */
-  @memoize((pathname, pattern) => `${pathname}\0${pattern}`)
   getPathParams(pathname: string, pattern: string): Record<string, string> | null {
     if (isGlobalCatchAllPattern(pattern)) {
       const splat = pathname.replace(/^\//, '');
@@ -93,7 +135,7 @@ export class AuraRoutingUrlMatcher {
     }
 
     try {
-      const urlPattern = new URLPattern({ pathname: pattern });
+      const urlPattern = this.getUrlPattern(pattern);
       const result = urlPattern.exec({ pathname });
       if (!result) return null;
 
@@ -108,13 +150,27 @@ export class AuraRoutingUrlMatcher {
     }
   }
 
-  /** Drops memoized `matchPath` / `getPathParams` caches (e.g. when route tree changes). */
+  /**
+   * Сбрасывает runtime-кэши matcher.
+   *
+   * Очищает memoized `matchPath` и `patterns` (`URLPattern` per route pattern).
+   * Вызывается из `AuraRoutingEngine.stop()`; при `registry.replace()` — тоже нужен сброс,
+   * иначе `matchPath` может вернуть stale результат для того же `pathname`.
+   */
   destroy() {
     memoize.clear(this, 'matchPath');
-    memoize.clear(this, 'getPathParams');
+    this.patterns.clear();
   }
 
-  /** MatchedRouteInfo leaf + `chain` из node.branch. */
+  /**
+   * Собирает leaf {@link MatchedRouteInfo} и nested `chain` из `node.branch`.
+   *
+   * Парсит `search` → `query`; для предков в chain повторно вызывает {@link getPathParams}
+   * (ancestor param re-match). `resolvedView` добавляется в {@link attachNavigationChain}.
+   *
+   * @param href — полный relative href (`pathname + search + hash`)
+   * @param params — path params leaf из `matchPath`; опционально
+   */
   toRouteInfo(
     href: string,
     pathname: string,
@@ -139,12 +195,28 @@ export class AuraRoutingUrlMatcher {
     );
   }
 
-  /** Только смена #якоря на том же path — без полного transition. */
+  /**
+   * `true`, если навигация меняет только `hash` при том же `pathname` и `search`.
+   *
+   * Используется в `AuraRoutingEngine.navigateTo` → `finalizeAnchorNavigation` без processor.
+   *
+   * @example `/page#a` → `/page#b` → `true`; `/page` → `/other` → `false`
+   */
   isHashOnly(href: string, currentHref: string): boolean {
     const next = parsePath(href);
     const current = parsePath(currentHref);
     const sameRoute = next.pathname === current.pathname && next.search === current.search;
     return Boolean(sameRoute && next.hash && next.hash !== current.hash);
+  }
+
+  /** Lazy compile + reuse `URLPattern` для param/static patterns (ключ — `pattern`). */
+  private getUrlPattern(pattern: string): URLPattern {
+    let p = this.patterns.get(pattern);
+    if (!p) {
+      p = new URLPattern({ pathname: pattern });
+      this.patterns.set(pattern, p);
+    }
+    return p;
   }
 }
 

@@ -2,7 +2,7 @@
  * Navigation phases — single source of truth for pipeline policy,
  * HTML/route attr bindings, and route lifecycle callbacks.
  *
- * @module navigation/livecycle-phases
+ * @module navigation/lifecycle-phases
  */
 
 import type { RouteErrorContext, RoutePhase, LifecyclePhase } from '../route/types';

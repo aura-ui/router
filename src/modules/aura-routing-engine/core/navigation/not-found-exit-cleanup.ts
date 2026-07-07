@@ -9,7 +9,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouterInstance } from '../route/types';
 import { getLeafMatch } from '../route-tree/matched-chain';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import { PHASES } from './livecycle-phases';
+import { PHASES } from './lifecycle-phases';
 
 export interface NotFoundExitInput {
   from: MatchedRouteInfo | null;

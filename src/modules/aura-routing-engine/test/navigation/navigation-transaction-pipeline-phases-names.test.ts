@@ -1,4 +1,4 @@
-import { PHASES, PIPELINE_PHASES } from '../../core/navigation/livecycle-phases';
+import { PHASES, PIPELINE_PHASES } from '../../core/navigation/lifecycle-phases';
 
 describe('PHASES', () => {
   it.each(PIPELINE_PHASES)('phase %s has pipeline route callback', (phase) => {

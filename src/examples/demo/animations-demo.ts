@@ -15,7 +15,7 @@ function readStoredOrder(): TransitionOrderType {
 function refreshRouteTransitions(router: Element): void {
   router.querySelectorAll(AuraRoute.is).forEach((node) => {
     if (!(node instanceof AuraRoute)) return;
-    node.transition = node.initTransition();
+    node.refresh();
   });
 }
 

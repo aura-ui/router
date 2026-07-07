@@ -18,7 +18,7 @@ npm run bench:data-graph
 # существующий cache store bench
 npm run bench:cache
 ```
-Требования: Node 18+, `tsx` (devDependency). Сценарии `dom-patch` и `route-tree` используют `jsdom` из `jest-environment-jsdom`.
+Требования: Node 18+, `tsx` (devDependency). В Node < 24 нет нативного `URLPattern` — подключается `urlpattern-polyfill` через `bench/lib/dom-bootstrap.ts`. Сценарии `dom-patch` и `route-tree` используют `jsdom` из `jest-environment-jsdom`.
 ## Отчёты
 Каждый прогон **добавляет новый файл** — история не теряется:
 ```text

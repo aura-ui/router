@@ -4,15 +4,14 @@
  *
  * Run: npm run bench:prefetch-plan
  */
+import '../lib/dom-bootstrap';
 import { AuraRoutingUrlMatcher } from '../../src/modules/aura-routing-engine/core/match/url-matcher';
 import { PrefetchPlanResolver } from '../../src/modules/aura-routing-engine/core/prefetch/plan';
 import { flatMatchableNodes } from '../lib/fixtures';
-import { setupMinimalWindow } from '../lib/env';
 import { BenchSession, isBenchMain, type SavedReport } from '../lib/report';
 import { bench, consume } from '../lib/stats';
 const BENCH_ID = 'prefetch-plan';
 export function runPrefetchPlanBench(): SavedReport {
-  setupMinimalWindow();
   const session = new BenchSession({
     id: BENCH_ID,
     title: 'Prefetch plan resolver benchmark',
@@ -69,4 +68,4 @@ export function runPrefetchPlanBench(): SavedReport {
 }
 if (isBenchMain(import.meta.url)) {
   runPrefetchPlanBench();
-}
+}

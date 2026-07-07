@@ -5,6 +5,7 @@
  * Run: npm run bench:url-matcher
  */
 import '../lib/dom-bootstrap';
+import { URLPattern } from 'urlpattern-polyfill';
 import { AuraRoutingUrlMatcher } from '../../src/modules/aura-routing-engine/core/match/url-matcher';
 import { flatMatchableNodes, paramMatchableNodes } from '../lib/fixtures';
 import { BenchSession, isBenchMain, type SavedReport } from '../lib/report';

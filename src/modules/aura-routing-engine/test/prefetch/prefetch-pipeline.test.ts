@@ -68,6 +68,7 @@ describe('PrefetchPipeline', () => {
   }
 
   beforeEach(() => {
+    matcher.destroy();
     jest.useFakeTimers();
   });
 

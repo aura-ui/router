@@ -18,6 +18,31 @@ function registerHook(
   });
 }
 
+describe('NavigationTransactionPipelinePhase.resolveBlockingHookOutcome', () => {
+  it('returns cancelled when hook returns false', () => {
+    expect(NavigationTransactionPipelinePhase.resolveBlockingHookOutcome(false)).toEqual({
+      status: 'cancelled',
+    });
+  });
+
+  it('returns redirect when hook returns a URL string', () => {
+    expect(NavigationTransactionPipelinePhase.resolveBlockingHookOutcome('/login')).toEqual({
+      status: 'redirect',
+      url: '/login',
+    });
+  });
+
+  it('returns redirect with replace when hook returns redirect object', () => {
+    expect(
+      NavigationTransactionPipelinePhase.resolveBlockingHookOutcome({ url: '/login', replace: true }),
+    ).toEqual({ status: 'redirect', url: '/login', replace: true });
+  });
+
+  it('returns null when hook allows navigation to continue', () => {
+    expect(NavigationTransactionPipelinePhase.resolveBlockingHookOutcome(undefined)).toBeNull();
+  });
+});
+
 describe('NavigationTransactionPipelinePhase.run (post-commit)', () => {
   it('logs post-commit hook errors when policy is log', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});

@@ -9,7 +9,7 @@ import {
   type RouteLifecycleContext,
   type ViewRenderResult,
 } from '../../aura-routing-engine/route-api';
-import { attr } from '../../aura-utils/decorators';
+import { routeAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
 import { parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
@@ -38,50 +38,31 @@ export type { RouteRenderOptions, ApplyPreResolvedOptions, AuraRouteInterface };
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
   static is = 'aura-route';
 
-  @attr({ readonly: true }) path: string;
-  @attr({ readonly: true }) layout: string;
-  @attr({ readonly: true, parser: parseViewAttr, cached: true }) view: ViewAttrDescriptor | null;
+  @routeAttr() path: string;
+  @routeAttr() layout: string;
+  @routeAttr() loadingTemplate: string;
+  @routeAttr() errorTemplate: string;
 
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) guard: string[] | null;
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) load: string[] | null;
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) ready: string[] | null;
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) leave: string[] | null;
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) error: string[] | null;
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) unmount: string[] | null;
-  @attr({ parser: parseCommaSeparated, inherit: true, allowEmpty: true }) update: string[] | null;
+  @routeAttr({ parser: parseViewAttr }) view: ViewAttrDescriptor | null;
 
-  @attr({ inherit: true, parser: parseParamChangeAttr }) paramChange: ParamChangePolicy | null;
+  @routeAttr({ parser: parseCommaSeparated }) guard: string[] | null;
+  @routeAttr({ parser: parseCommaSeparated }) load: string[] | null;
+  @routeAttr({ parser: parseCommaSeparated }) unmount: string[] | null;
+  @routeAttr({ parser: parseCommaSeparated }) ready: string[] | null;
+  @routeAttr({ parser: parseCommaSeparated }) update: string[] | null;
+  @routeAttr({ parser: parseCommaSeparated }) leave: string[] | null;
+  @routeAttr({ parser: parseCommaSeparated }) error: string[] | null;
+  @routeAttr({ parser: parseParamChangeAttr }) paramChange: ParamChangePolicy | null;
 
-  @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) loadingTemplate: string;
-  @attr({ readonly: true, inherit: true, cached: true, allowEmpty: true }) errorTemplate: string;
+  @routeAttr({ parser: parseTransitionShortcutAttr, name: 'transition' }) transitionShortcut: TransitionShortcutType | null;
+  @routeAttr({ parser: parseTransitionOrder }) transitionOrder: TransitionOrderType | null;
+  @routeAttr({ parser: parseCommaSeparated, name: 'transition-in' }) transitionInDecl: string[] | null;
+  @routeAttr({ parser: parseCommaSeparated, name: 'transition-out' }) transitionOutDecl: string[] | null;
 
-  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition', parser: parseTransitionShortcutAttr })
-  transitionShortcut: TransitionShortcutType | null;
-  @attr({ inherit: true, allowEmpty: true, parser: parseTransitionOrder })
-  transitionOrder: TransitionOrderType | null;
-  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-in', parser: parseCommaSeparated })
-  transitionInDecl: string[] | null;
-  @attr({ readonly: true, inherit: true, allowEmpty: true, name: 'transition-out', parser: parseCommaSeparated })
-  transitionOutDecl: string[] | null;
-
-  @attr({
-    readonly: true,
-    inherit: true,
-    allowEmpty: true,
-    cached: true,
-    name: 'scroll',
-    parser: parseScrollAttr,
-  })
-  scrollPolicy: ScrollAttr | null;
-
-  @attr({ readonly: true, inherit: true, allowEmpty: true, cached: true, parser: parsePrefetchAttr })
-  prefetch: PrefetchType | false | null;
-
-  @attr({ readonly: true, inherit: true, allowEmpty: true, cached: true, parser: parseMountStrategyAttr })
-  mountStrategy: MountStrategy | null;
-
-  @attr({ readonly: true, parser: parsePreserveAttr, inherit: true, allowEmpty: true })
-  preserve: PreserveFlags;
+  @routeAttr({ parser: parseScrollAttr, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
+  @routeAttr({ parser: parsePrefetchAttr }) prefetch: PrefetchType | false | null;
+  @routeAttr({ parser: parseMountStrategyAttr }) mountStrategy: MountStrategy | null;
+  @routeAttr({ parser: parsePreserveAttr }) preserve: PreserveFlags;
 
   private viewController!: RouteViewController;
   private passId = 0;

@@ -206,6 +206,7 @@ export class AuraRoutingEngine {
     this.prefetchPipeline?.destroy();
     this.linkNavigation.destroy();
     this.provider.destroy();
+    this.matcher.destroy();
   }
 
   destroy(): void {

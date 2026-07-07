@@ -48,11 +48,12 @@ describe('AuraRoutingUrlMatcher + route tree', () => {
     const snapshot = buildRouteTree(collectRoutesFromDom(settings));
     const leaf = snapshot.nodesByPattern.get('/settings/profile')!;
 
-    const info = matcher.toRouteInfo('/settings/profile', '/settings/profile', '', '', leaf);
+    const infoMatcher = new AuraRoutingUrlMatcher();
+    const info = infoMatcher.toRouteInfo('/settings/profile', '/settings/profile', '', '', leaf);
 
     expect(info.pattern).toBe('/settings/profile');
     expect(info.chain?.map((entry) => entry.pattern)).toEqual(['/settings', '/settings/profile']);
     expect(info.chain?.every((entry) => entry.chain === info.chain)).toBe(true);
-    expect(matcher.matchPath('/settings/profile', snapshot.matchableNodes)?.node).toBe(leaf);
+    expect(infoMatcher.matchPath('/settings/profile', snapshot.matchableNodes)?.node).toBe(leaf);
   });
 });

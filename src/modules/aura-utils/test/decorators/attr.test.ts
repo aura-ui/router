@@ -23,11 +23,14 @@ class DualCachedHost extends HTMLElement {
   @attr({ cached: true, parser: parseCachedLabel }) second: string | null;
 }
 
+class CachedChildHost extends CachedHost {}
+
 describe('@attr inherit', () => {
   const hostTag = 'inherit-host';
   const emptyTag = 'empty-allowed-host';
   const cachedTag = 'cached-attr-host';
   const dualCachedTag = 'dual-cached-attr-host';
+  const cachedChildTag = 'cached-attr-child-host';
 
   beforeAll(() => {
     if (!customElements.get(hostTag)) {
@@ -41,6 +44,9 @@ describe('@attr inherit', () => {
     }
     if (!customElements.get(dualCachedTag)) {
       customElements.define(dualCachedTag, DualCachedHost);
+    }
+    if (!customElements.get(cachedChildTag)) {
+      customElements.define(cachedChildTag, CachedChildHost);
     }
   });
 
@@ -198,5 +204,22 @@ describe('@attr inherit', () => {
     expect(host.first).toBe('x');
     expect(host.second).toBe('y');
     expect(cachedParseCalls).toBe(4);
+  });
+
+  it('attr.clear works on a subclass instance', () => {
+    const child = document.createElement(cachedChildTag) as CachedChildHost;
+    child.setAttribute('label', 'first');
+    document.body.append(child);
+
+    expect(child.label).toBe('first');
+    expect(cachedParseCalls).toBe(1);
+
+    child.setAttribute('label', 'second');
+    expect(child.label).toBe('first');
+
+    attr.clear(child, 'label');
+
+    expect(child.label).toBe('second');
+    expect(cachedParseCalls).toBe(2);
   });
 });

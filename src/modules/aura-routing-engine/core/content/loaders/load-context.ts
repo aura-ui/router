@@ -1,14 +1,14 @@
 import type { MatchedRouteInfo } from '../../match/url-matcher';
-import type { LoadContext } from '../model/types';
+import type { ContentDescriptor, LoadContext } from '../model/types';
 
 export function toLoadContext(
   routeInfo: MatchedRouteInfo,
-  ref: string,
+  source: Pick<ContentDescriptor, 'ref' | 'extract'>,
   signal: AbortSignal,
   data?: unknown,
 ): LoadContext {
   return {
-    ref,
+    ref: source.ref,
     signal,
     route: {
       href: routeInfo.href,
@@ -17,6 +17,7 @@ export function toLoadContext(
       ...(routeInfo.query && { query: routeInfo.query }),
     },
     ...(data !== undefined && { data }),
+    ...(source.extract && { extract: source.extract }),
   };
 }
 

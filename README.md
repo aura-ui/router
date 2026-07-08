@@ -40,7 +40,7 @@ npm install @aura-ui-web/router
 | **No framework lock-in** | Plain HTML + Web Components — works with Lit, vanilla CE, or legacy pages |
 | **MPA → SPA** | Server-rendered `.html` partials, then client-side navigation after hydration |
 | **Progressive enhancement** | Routes live in HTML; plain links work without JS — `data-router-link` upgrades them to SPA navigation |
-| **Legacy-friendly** | One `url` loader for partials and full pages — fragment extract via `extract` attr (planned) |
+| **Legacy-friendly** | One `url` loader for partials and full pages — fragment extract via `extract` attr |
 | **Predictable lifecycle** | Composable hooks (`AuraRouter.use()` + HTML attributes) — guards, load, ready; same mental model as Vue Router / TanStack Router |
 
 ---
@@ -131,7 +131,7 @@ Use `import` for `.js` / `.ts`, not bare `url` ref.
 
 **Parsing:** token before the first `::` is a **known loader** (`html`, `template`, `component`, …) → `loader::ref`. Otherwise → **custom loader** (`markdown::doc.md`). Bare ref (no `::`) → default **`url`** loader.
 
-### `extract` — fragment from full HTML pages _(planned)_
+### `extract` — fragment from full HTML pages
 
 For MPA→SPA migration: legacy server pages are often full HTML documents. Set a **CSS selector** to extract the main content instead of injecting the whole response.
 
@@ -178,7 +178,7 @@ Nest `<aura-route>` elements to build a route tree. A parent with `layout` rende
 | --- | --- |
 | `path` | URL pattern (required) |
 | `view` | What to show: `ref` (default `url`) or `loader::ref` for other loaders |
-| `extract` | _(planned)_ CSS selector to extract a fragment from a full HTML page; inherits from router/parent |
+| `extract` | CSS selector to extract a fragment from a full HTML page; inherits from router/parent |
 | `layout` | Nested shell — parent route with `<template id="…">`, children render in its outlet |
 | `preserve` | Keep on leave: `preserve` or `preserve="view"` (DOM), `preserve="data"` (load cache), `preserve="all"` |
 
@@ -266,7 +266,7 @@ Attributes on `<aura-router>` inherit to child routes (override per route or per
 | `error-template` | Template id on render error |
 | `links-selector` | CSS selector for in-app links (default: `[data-router-link]`) |
 | `not-found-template` | Template id for fallback 404 when no `path="*"` route exists |
-| `extract` | _(planned)_ Default CSS selector for `url` fragment extract on legacy full pages |
+| `extract` | Default CSS selector for `url` fragment extract on legacy full pages |
 
 **Prefetch cascade:** `data-prefetch` on the link → `prefetch` on `<aura-route>` → `prefetch` on `<aura-router>`.
 

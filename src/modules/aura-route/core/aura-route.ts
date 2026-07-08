@@ -10,7 +10,7 @@ import {
   type ViewRenderResult,
 } from '../../aura-routing-engine/route-api';
 import { routeAttr } from '../../aura-utils/decorators';
-import { parseCommaSeparated } from '../../aura-utils/misc';
+import { parseCommaSeparated, parseNullableString } from '../../aura-utils/misc';
 import { isAsyncLoader, parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
 import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
@@ -45,6 +45,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr() errorTemplate: string;
 
   @routeAttr({ inherit: false, parser: parseViewAttr }) view: ViewAttrDescriptor | null;
+  @routeAttr({ parser: parseNullableString }) extract: string | null;
 
   @routeAttr({ parser: parseCommaSeparated }) guard: string[] | null;
   @routeAttr({ parser: parseCommaSeparated }) load: string[] | null;

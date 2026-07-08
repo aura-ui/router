@@ -34,6 +34,7 @@ export function createTestRoute(
     unmount: null,
     update: null,
     mountStrategy: null,
+    extract: null,
     layout: '',
     loadingTemplate: '',
     view: SYNC_HTML_VIEW,

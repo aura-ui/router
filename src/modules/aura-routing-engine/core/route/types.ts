@@ -96,6 +96,7 @@ export interface RouteInstance extends RouteHookNamesSource {
   readonly prefetch?: RouterPrefetchPolicy | null;
   /** Inherited from `<aura-route mount-strategy>` / `<aura-router mount-strategy>`. */
   readonly mountStrategy?: MountStrategy | null;
+  readonly extract?: string | null;
   readonly transition: RouteTransitionType;
   readonly hasGuard: boolean;
   readonly hasUpdate: boolean;

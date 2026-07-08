@@ -26,6 +26,7 @@ type ContentRoute = {
   layout: string;
   view: { type: string; content: string } | null;
   preserve: { view: boolean };
+  extract?: string | null;
 };
 
 /** Route attrs → descriptor → cache → loader → view payload. */
@@ -50,7 +51,13 @@ export class ContentLoadService {
     const descriptor: ContentDescriptor | null = route.layout?.trim()
       ? { kind: 'layout', loader: 'template', ref: route.layout, cache: false }
       : resolved?.type
-        ? { kind: 'content', loader: resolved.type, ref: resolved.ref, cache: route.preserve.view }
+        ? {
+            kind: 'content',
+            loader: resolved.type,
+            ref: resolved.ref,
+            cache: route.preserve.view,
+            ...(resolved.type === 'url' && route.extract ? { extract: route.extract } : {}),
+          }
         : null;
 
     if (!descriptor) {
@@ -110,7 +117,7 @@ export class ContentLoadService {
 
     try {
       return await this.registry.get(descriptor.loader)(
-        toLoadContext(routeInfo, descriptor.ref, signal, data),
+        toLoadContext(routeInfo, descriptor, signal, data),
       );
     } catch (error: unknown) {
       if (signal.aborted) return null;

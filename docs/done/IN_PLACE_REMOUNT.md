@@ -1,10 +1,10 @@
-# TODO: In-place param remount
+# In-place param remount
 
-> **Статус:** core закрыт — replace + `preserve.view` round-trip, pipeline order, exit cache key  
-> **Цель:** зафиксировать суть проблемы и что ещё можно упростить без ViewSession / split фаз  
-> **См. также:** [REPLACE_SUPERSEDE_ROLLBACK.md](./REPLACE_SUPERSEDE_ROLLBACK.md), [CONTENT_CACHE.md](./CONTENT_CACHE.md), [OUTLET_AND_RENDER.md](./OUTLET_AND_RENDER.md)
+> **Статус:** реализовано полностью  
+> **Цель:** зафиксировать суть проблемы и принятые решения (reference)  
+> **См. также:** [REPLACE_SUPERSEDE_ROLLBACK.md](./REPLACE_SUPERSEDE_ROLLBACK.md), [CONTENT_CACHE.md](./CONTENT_CACHE.md), [OUTLET_AND_RENDER.md](./OUTLET_AND_RENDER.md), [../PRESERVE.md](../PRESERVE.md)
 
-**Последняя сверка с кодом:** 2026-07-06 — `param-change-remount.integration.test.ts` round-trip pass; pipeline order — `navigation-transaction-pipeline.test.ts`.
+**Последняя сверка с кодом:** 2026-07-08 — `param-change-remount.integration.test.ts`, `param-change-transition.integration.test.ts`, `param-change-update.integration.test.ts`; pipeline order — `navigation-transaction-pipeline-after-render.test.ts`.
 
 ---
 
@@ -32,7 +32,7 @@ render enter → commitStaged → onUnmount exit
 
 **Симптом:** после param-change remount экран пустой или снова старый контент.
 
-**Решение:** teardown **только outgoing** (`stageOutgoingHandle`) через `unmountParamChangeOutgoing`, не трогая active/staged enter.
+**Решение:** teardown **только outgoing** (`stageOutgoingHandle`) через `unmountParamChangeOutgoing`, не трогая active/staged enter. Оркестрация — `ViewTeardownPipeline.onUnmount()`.
 
 ### 2. Порядок unmount vs commit
 
@@ -81,42 +81,47 @@ Outgoing DOM нужно положить в cache под **exit** key (`/users/1
 | Механизм | Роль | Где |
 |----------|------|-----|
 | `TransitionMap.paramChangeRemount` | plan сигналит synthetic remount на том же record | `transition-plan.ts` |
-| Staged mount при remount | `preserve.view` или transition → два DOM без мерцания | `render-pass.ts` |
-| `unmountParamChangeOutgoing` | outlet снимает только `stageOutgoingHandle` | `outlet.ts` |
-| `isViewAlreadyInOutlet` bypass | при remount не skip render из‑за живого mount | `view-controller.ts` |
+| `resolveParamChangeMode` | auto: same `viewKey` → UPDATE, diff → navigate/remount | `transition-plan.ts` |
+| Staged mount при remount | `preserve.view` или transition → два DOM без мерцания | `view-controller.ts` (`beginPass` → `useStagedMount`) |
+| `unmountParamChangeOutgoing` | outlet снимает только `stageOutgoingHandle` | `outlet-adapter.ts` |
+| `ViewTeardownPipeline` | post-render teardown: unmount / commitStaged / revert | `view-teardown-pipeline.ts` |
+| `trySkipAlreadyMounted` bypass | при remount не skip render из‑за живого mount | `view-render-pipeline-phase.ts` |
 | `paramChangeRemount` в render options | pipeline → `runViewCommit` → controller | `navigation-transaction-pipeline.ts` |
 | unmount hooks на exitRoutes | `PHASES.unmount.targetRoutes = 'exitRoutes'` | `phase-registry.ts` |
 | **Pipeline order** | `unmount → commitStaged → commitNavigation → ready` | `runAfterRender()` |
-| **Exit ViewCache key** | `cacheKey(ctx.to, path)` → `onUnmount({ cacheKey })` | `aura-route.ts`, `view-controller.ts` |
-| **`onUnmount(ctx)`** | exit key из lifecycle context, не `lastCacheKey` | `aura-route.ts` |
+| **Exit ViewCache key** | `cacheKey(ctx.to, path)` → `onUnmount({ cacheKey })` | `aura-route.ts`, `view-teardown-pipeline.ts` |
+| Fast-path / branch-atomic block | remount всегда full pipeline | `can-use-fast-path.ts`, `branch-resolver.ts` |
 
 Content cache (`DataCache`) не затронут — loader cache живёт отдельно от DOM ViewCache.
 
-**Тесты:** `param-change-remount.integration.test.ts`, `navigation-transaction-pipeline.test.ts` (`runAfterRender`, full pipeline), `view-controller.test.ts`, `param-change-lifecycle.test.ts`.
+**Тесты:**
+
+| Область | Файл |
+|---------|------|
+| Remount + preserve round-trip | `param-change-remount.integration.test.ts` |
+| Transition in-place (parallel / out-in / in-out) | `param-change-transition.integration.test.ts` |
+| UPDATE same viewKey, real DOM | `param-change-update.integration.test.ts` |
+| Pipeline order after render | `navigation-transaction-pipeline-after-render.test.ts` |
+| Pipeline + transition order (mock) | `navigation-transaction-pipeline.test.ts` |
+| Controller / outlet primitives | `view-controller.test.ts`, `outlet-adapter.test.ts`, `view-teardown-pipeline.test.ts` |
+| Plan + nested LCA | `transition-plan.test.ts`, `param-change-lifecycle.test.ts` |
+
+**User-facing docs:** [PRESERVE.md](../PRESERVE.md) — `preserve.view`, UPDATE vs FULL, param remount teardown.
+
+> **Teardown hooks:** param remount использует **фазу `unmount`** на `exitRoutes` + флаг `paramChangeRemount` на controller. Отдельная lifecycle-фаза `remount` / атрибут `remount="…"` **не планируется** — overload `unmount` остаётся финальной моделью.
 
 ---
 
-## Осталось (не блокер core)
+## Отвергнуто / вне scope
 
-| Задача | Статус | Комментарий |
-|--------|--------|-------------|
-| UPDATE (same viewKey) E2E | <span style="color:#ffb000;font-weight:bold">[~]</span> | lifecycle + `runUpdate` tests есть; E2E с реальным view нет |
-| Transition in-place | <span style="color:#ff4444;font-weight:bold">[ ]</span> | stage + crossfade без double-teardown — тестов нет |
-| User-facing docs `preserve.view` | <span style="color:#ff4444;font-weight:bold">[ ]</span> | loader cache + optional DOM keep-alive |
-| Упростить `paramChangeRemount` в render options | optional | pipeline уже знает режим; flag на controller можно убрать позже |
-| Отдельная фаза `remount` / `onRemount` | optional | вместо overload unmount для публичных hooks |
-| ViewSession keyed by viewKey | отвергнуто | слишком много кода для текущего scope |
+| Идея | Решение |
+|------|---------|
+| Отдельная фаза `remount` / `onRemount` | не будет; `unmount` + `paramChangeRemount` достаточно |
+| ViewSession keyed by viewKey | слишком много кода для текущего scope |
 
----
+Мелкий refactor (не блокер in-place remount): убрать дублирование `paramChangeRemount` в render options — pipeline уже знает режим.
 
-## Что ещё можно упростить (не блокер)
-
-| Сейчас | Возможное упрощение |
-|--------|---------------------|
-| `paramChangeRemount` в render options | pipeline сам знает режим; controller только stage/replace policy |
-| `lastCacheKey` fallback на controller | только fallback; primary key — `cacheKey` из ctx |
-| overload `onUnmount` для remount | отдельная фаза `remount` + `onRemount` (если нужны публичные hooks) |
-| ViewSession keyed by viewKey | отвергнуто — слишком много кода для текущего scope |
+> **Docs drift:** [PRESERVE.md](../PRESERVE.md) ещё упоминает фазу `remount` — при правке docs сверить с этим документом.
 
 ---
 
@@ -138,12 +143,13 @@ In-place remount **не блокирует** content cache. DOM cache требу
 - <span style="color:#39ff14;font-weight:bold">[x]</span> unmount hooks на exitRoutes отрабатывают (`unmount="…"`)
 - <span style="color:#39ff14;font-weight:bold">[x]</span> unmount outgoing **до** commitStaged — глобальный порядок в `runAfterRender`
 - <span style="color:#39ff14;font-weight:bold">[x]</span> exit stash key из lifecycle context (`ctx.to`), не `lastCacheKey` enter
-- <span style="color:#ffb000;font-weight:bold">[~]</span> UPDATE (same viewKey): без render, patch path не сломан — lifecycle tests; E2E нет
-- <span style="color:#ff4444;font-weight:bold">[ ]</span> Transition in-place: stage + crossfade без double-teardown
-- <span style="color:#ff4444;font-weight:bold">[ ]</span> Документировать `preserve.view` = loader cache + optional DOM keep-alive в user-facing docs
+- <span style="color:#39ff14;font-weight:bold">[x]</span> UPDATE (same viewKey): без render, patch path не сломан — `param-change-update.integration.test.ts`
+- <span style="color:#39ff14;font-weight:bold">[x]</span> Transition in-place: stage + crossfade без double-teardown — `param-change-transition.integration.test.ts`
+- <span style="color:#39ff14;font-weight:bold">[x]</span> Документировать `preserve.view` = loader cache + optional DOM keep-alive — [PRESERVE.md](../PRESERVE.md)
+- <span style="color:#39ff14;font-weight:bold">[x]</span> Teardown hooks: `unmount` на exitRoutes (отдельная фаза `remount` не планируется)
 
 ---
 
 ## Одной фразой
 
-**In-place remount на одном route record требует outgoing-only teardown, unmount до commit и exit ViewCache key из unmount context. Core закрыт: `unmountParamChangeOutgoing`, global pipeline order, `cacheKey(ctx.to)`. Осталось: transition in-place, user docs, UPDATE E2E.**
+**In-place remount реализован: outgoing-only teardown (`unmountParamChangeOutgoing`), unmount до commit, exit ViewCache key из ctx, UPDATE / FULL / transition in-place покрыты тестами. Публичные hooks — через `unmount="…"` на exit slice; отдельная фаза `remount` не будет.**

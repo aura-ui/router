@@ -1,14 +1,18 @@
 import { parseViewAttr } from '../../core/attr/view-attr-parser';
 
 describe('parseViewAttr', () => {
-  it('splits type and content on the first ::', () => {
-    expect(parseViewAttr('html-src::profile.html')).toEqual({
-      type: 'html-src',
+  it('splits known loader prefix on the first ::', () => {
+    expect(parseViewAttr('url::profile.html')).toEqual({
+      type: 'url',
       content: 'profile.html',
     });
-    expect(parseViewAttr('component::./pages/profile.ts')).toEqual({
-      type: 'component',
+    expect(parseViewAttr('import::./pages/profile.ts')).toEqual({
+      type: 'import',
       content: './pages/profile.ts',
+    });
+    expect(parseViewAttr('component::user-card')).toEqual({
+      type: 'component',
+      content: 'user-card',
     });
     expect(parseViewAttr('custom::my-loader')).toEqual({
       type: 'custom',
@@ -23,14 +27,21 @@ describe('parseViewAttr', () => {
     });
   });
 
-  it('defaults bare ref to html-src', () => {
+  it('defaults bare ref to url', () => {
     expect(parseViewAttr('profile.html')).toEqual({
-      type: 'html-src',
+      type: 'url',
       content: 'profile.html',
     });
     expect(parseViewAttr('pages/home.html')).toEqual({
-      type: 'html-src',
+      type: 'url',
       content: 'pages/home.html',
+    });
+  });
+
+  it('treats unknown prefix before :: as custom loader', () => {
+    expect(parseViewAttr('markdown::docs/guide.md')).toEqual({
+      type: 'markdown',
+      content: 'docs/guide.md',
     });
   });
 
@@ -39,17 +50,17 @@ describe('parseViewAttr', () => {
     expect(parseViewAttr('   ')).toBeNull();
   });
 
-  it('treats leading :: as bare html-src ref', () => {
+  it('treats leading :: as bare url ref', () => {
     expect(parseViewAttr('::ref-only')).toEqual({
-      type: 'html-src',
+      type: 'url',
       content: '::ref-only',
     });
   });
 
-  it('treats single-colon strings as bare html-src refs', () => {
-    expect(parseViewAttr('html-src:profile.html')).toEqual({
-      type: 'html-src',
-      content: 'html-src:profile.html',
+  it('treats single-colon strings as bare url refs', () => {
+    expect(parseViewAttr('page:profile.html')).toEqual({
+      type: 'url',
+      content: 'page:profile.html',
     });
   });
 });

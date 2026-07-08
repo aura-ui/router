@@ -41,10 +41,11 @@ describe('AuraRoute fast-path getters', () => {
     expect(route({ layout: 'shell', view: 'html::<p/>' }).hasSyncContent).toBe(false);
   });
 
-  it('detects html-src default and explicit async loaders', () => {
+  it('detects url default and explicit async loaders', () => {
     expect(route({ view: 'about.html' }).hasAsyncContent).toBe(true);
-    expect(route({ view: 'html-src::about.html' }).hasAsyncContent).toBe(true);
-    expect(route({ view: 'component-src::./x.js' }).hasAsyncContent).toBe(true);
+    expect(route({ view: 'url::about.html' }).hasAsyncContent).toBe(true);
+    expect(route({ view: 'import::./x.js' }).hasAsyncContent).toBe(true);
+    expect(route({ view: 'iframe::https://example.com' }).hasAsyncContent).toBe(true);
   });
 
   it('detects phase attrs', () => {

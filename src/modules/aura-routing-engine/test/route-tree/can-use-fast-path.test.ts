@@ -33,10 +33,10 @@ describe('canUseFastPath', () => {
     expect(canUseFastPath(plan, from, to)).toBe(false);
   });
 
-  it('blocks html-src fetch loader routes', () => {
+  it('blocks url fetch loader routes', () => {
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b', {
-      view: { type: 'html-src', content: 'about.html' },
+      view: { type: 'url', content: 'about.html' },
     });
     const plan = buildTransitionPlan(from, to);
 
@@ -101,7 +101,7 @@ describe('canUseFastPath', () => {
 
   it('blocks param-change remount plans', () => {
     const node = createUsersIdNode({
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);

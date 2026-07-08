@@ -43,7 +43,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     });
 
     const node = createUsersIdNode({
-      view: { type: 'html-src', content: 'partials/user-shell.html' },
+      view: { type: 'url', content: 'partials/user-shell.html' },
       load: ['fetch-user'],
       update: ['apply-user'],
       ready: ['analytics'],
@@ -69,7 +69,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     });
 
     const node = createUsersIdNode({
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
       unmount: ['teardown'],
       ready: ['analytics'],
       update: ['apply-user'],
@@ -94,7 +94,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
 
     const node = createUsersIdNode({
       paramChange: 'navigate',
-      view: { type: 'html-src', content: 'partials/user-shell.html' },
+      view: { type: 'url', content: 'partials/user-shell.html' },
       unmount: ['teardown'],
       ready: ['track-page'],
       update: ['apply-user'],
@@ -114,7 +114,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
 
   it('nested layout stays as lca on synthetic param remount', async () => {
     const { leaf } = createNestedUsersIdSetup({
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
       unmount: ['teardown'],
       ready: ['analytics'],
     });
@@ -149,7 +149,7 @@ describe('param-change lifecycle by view type', () => {
   it.each([
     ['html', 'partials/user-shell.html'],
     ['component', 'user-profile'],
-    ['component-src', 'user-profile'],
+    ['import', 'user-profile'],
   ] as const)('%s static shell → UPDATE without render', async (type, content) => {
     const node = createUsersIdNode({
       view: { type, content },
@@ -171,7 +171,7 @@ describe('param-change lifecycle by view type', () => {
 
   it.each([
     ['html', 'content/user/{{id}}.html'],
-    ['component-src', 'widgets/user-{{id}}'],
+    ['import', 'widgets/user-{{id}}'],
   ] as const)('%s per-id ref → FULL with render', async (type, content) => {
     const node = createUsersIdNode({
       view: { type, content },
@@ -194,7 +194,7 @@ describe('param-change lifecycle by view type', () => {
   it('layout-only leaf → UPDATE without render', async () => {
     const node = createUsersIdNode({
       layout: 'users-shell',
-      view: { type: 'html-src', content: 'ignored.html' },
+      view: { type: 'url', content: 'ignored.html' },
       update: ['sync-outlet'],
       unmount: ['teardown'],
       ready: ['analytics'],

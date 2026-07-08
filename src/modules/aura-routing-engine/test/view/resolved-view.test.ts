@@ -15,7 +15,7 @@ function matchFixture(
     pattern: '/users/:id',
     params: overrides.params ?? { id: '1' },
     route: {
-      view: 'view' in overrides ? overrides.view : { type: 'html-src', content: 'shell.html' },
+      view: 'view' in overrides ? overrides.view : { type: 'url', content: 'shell.html' },
       layout: overrides.layout ?? '',
     },
   } as never;
@@ -24,21 +24,21 @@ function matchFixture(
 describe('attachResolvedView', () => {
   it('sets resolved view from route attrs and params', () => {
     const info = matchFixture({
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
     });
 
     attachResolvedView(info);
 
     expect(info.resolvedView).toEqual({
-      type: 'html-src',
+      type: 'url',
       ref: 'content/user/1.html',
-      viewKey: 'html-src:content/user/1.html',
+      viewKey: 'url:content/user/1.html',
     });
   });
 
   it('leaves unknown placeholders intact', () => {
     const info = matchFixture({
-      view: { type: 'html-src', content: 'content/{{missing}}.html' },
+      view: { type: 'url', content: 'content/{{missing}}.html' },
     });
 
     attachResolvedView(info);
@@ -49,7 +49,7 @@ describe('attachResolvedView', () => {
   it('sets null for layout routes and routes without view', () => {
     const layoutRoute = matchFixture({
       layout: 'app-shell',
-      view: { type: 'html-src', content: 'x.html' },
+      view: { type: 'url', content: 'x.html' },
     });
     attachResolvedView(layoutRoute);
     expect(layoutRoute.resolvedView).toBeNull();

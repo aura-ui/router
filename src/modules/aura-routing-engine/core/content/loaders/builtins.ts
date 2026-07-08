@@ -1,4 +1,9 @@
-import { getTemplate, loadAndRegisterComponent, escapeHtml } from '../../../../aura-utils/misc';
+import {
+  escapeHtml,
+  extractHtmlFragment,
+  getTemplate,
+  loadAndRegisterComponent,
+} from '../../../../aura-utils/misc';
 import type { LoaderFn, LoaderTransport, LoadContext } from '../model/types';
 import { routeSnapshot } from './load-context';
 
@@ -24,7 +29,11 @@ export function createBuiltinLoaders(transport: LoaderTransport): ReadonlyArray<
     },
     {
       type: 'url',
-      load: async (ctx) => fetchText(resolveUrl(ctx.ref), ctx.signal),
+      load: async (ctx) => {
+        const html = await fetchText(resolveUrl(ctx.ref), ctx.signal);
+        if (!ctx.extract) return html;
+        return extractHtmlFragment(html, ctx.extract);
+      },
     },
     {
       type: 'component',

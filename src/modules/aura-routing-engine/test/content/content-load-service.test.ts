@@ -95,6 +95,32 @@ describe('ContentLoadService', () => {
     expect(loads).toBe(1);
   });
 
+  it('passes extract to url loader from route attr', async () => {
+    const registry = new LoaderRegistry();
+    let receivedExtract: string | undefined;
+    registry.register('url', async (ctx) => {
+      receivedExtract = ctx.extract;
+      return '<span>ok</span>';
+    });
+
+    const service = new ContentLoadService({ registry, cache: new DataCache() });
+
+    await service.resolve(
+      {
+        ...routeInfo,
+        route: {
+          layout: '',
+          preserve: { view: false },
+          extract: '#main',
+        } as never,
+        resolvedView: { type: 'url', ref: 'pages/about.html' },
+      } as never,
+      new AbortController().signal,
+    );
+
+    expect(receivedExtract).toBe('#main');
+  });
+
   it('throws NavigationError when loader fails', async () => {
     const registry = new LoaderRegistry();
     registry.register('html', async () => {

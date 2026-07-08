@@ -47,7 +47,7 @@ function urlView(content: string): ViewAttrDescriptor {
 
 /**
  * Parse `view` attr: bare ref → `url`; known loader → `loader::ref`;
- * else custom loader (`markdown::…`). Fragment extract — separate `extract` attr (planned).
+ * else custom loader (`markdown::…`). Fragment extract — separate `extract` attr.
  */
 export function parseViewAttr(value: string | null): ViewAttrDescriptor | null {
   const trimmed = value?.trim();

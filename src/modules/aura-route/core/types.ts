@@ -15,6 +15,7 @@ export interface AuraRouteInterface {
   errorTemplate: string;
   preserve: PreserveFlags;
   scrollPolicy: ScrollAttr | null;
+  extract: string | null;
   readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;
   readonly hasGuard: boolean;

@@ -54,4 +54,19 @@ describe('dataCacheKey', () => {
       dataCacheKey(descriptor, { pathname: '/user/2', pattern: '/user/:id' } as any),
     );
   });
+
+  it('separates cache slots when extract selector differs', () => {
+    const base = { pathname: '/about', pattern: '/about' } as const;
+    const partial = {
+      kind: 'content' as const,
+      loader: 'url' as const,
+      ref: 'legacy/about.html',
+      cache: true,
+    };
+    const full = { ...partial, extract: '#main' };
+
+    expect(dataCacheKey(partial, base as any)).toBe('/about|url:legacy/about.html');
+    expect(dataCacheKey(full, base as any)).toBe('/about|url:legacy/about.html::#main');
+    expect(dataCacheKey(partial, base as any)).not.toBe(dataCacheKey(full, base as any));
+  });
 });

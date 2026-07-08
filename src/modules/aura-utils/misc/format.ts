@@ -6,6 +6,15 @@ export const toKebabCase = (str: string): string => {
 /** Parses `null` and `undefined` as an empty string */
 export const parseString = (val: string | null): string => String(val ?? '');
 
+/**
+ * Nullable string attr parser for `@attr` / `@routeAttr` with inheritance.
+ * `null` when the attribute is absent; trimmed string otherwise (`""` = explicit empty).
+ */
+export function parseNullableString(raw: string | null): string | null {
+  if (raw === null) return null;
+  return raw.trim();
+}
+
 /** Parses comma-separated hook names. `null` when attr absent; `[]` when empty (explicit opt-out). */
 export function parseCommaSeparated(val: string | null): string[] | null {
   if (val === null) return null;

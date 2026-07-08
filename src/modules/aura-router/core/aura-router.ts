@@ -37,6 +37,7 @@ import {
 import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
 import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
+import { parseNullableString } from '../../aura-utils/misc';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -96,6 +97,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   linksSelector: string;
   /** Default scroll policy for child routes (`restore` | `top`; `scroll=""` opts out). HTML attr: `scroll`. */
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
+  /** Default CSS selector for `url` fragment extract on child routes (`extract=""` opts out). */
+  @attr({ parser: parseNullableString, cached: true }) extract: string | null;
   /**
    * Default prefetch for `[data-router-link]` (`intent` | `tap` | `false`).
    * Per-link override: `data-prefetch` on `<a>`.

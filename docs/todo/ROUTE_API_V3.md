@@ -56,7 +56,7 @@ Preserve+:    detach | destroy | restore   (super advanced, с preserve)
 | **`path`** | URL-паттерн (обязательный) |
 | **`view`** | Контент: bare `ref` (default `url`) или `loader::ref` |
 
-Формат: bare **`ref`** → loader **`url`**. Иначе `loader::ref` (`::` — разделитель). Селектор фрагмента — отдельный attr **`extract`** (planned), не в `view`.
+Формат: bare **`ref`** → loader **`url`**. Иначе `loader::ref` (`::` — разделитель). Селектор фрагмента — отдельный attr **`extract`**, не в `view`.
 
 ### View loaders → README
 
@@ -138,7 +138,7 @@ view="component::div"         <!-- ✗ → html::<div>…</div> -->
 - Префикс `url::` допустим, но **не показываем в примерах** — избыточен для default.
 - Неверное расширение (`.js`, `.ts`) → dev warn: use `import::…`.
 
-**`extract`** — CSS selector для вырезки фрагмента из full page. Наследуется с `<aura-router>` / parent route; opt-out `extract=""`. Пусто → partial as-is. **Статус: planned** (см. README).
+**`extract`** — CSS selector для вырезки фрагмента из full page. Наследуется с `<aura-router>` / parent route; opt-out `extract=""`. Пусто → partial as-is.
 
 Отдельный loader `doc` **не вводим** — extract через attr `extract`, не через грамматику `view`.
 
@@ -445,7 +445,7 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 
 - Внутренний pipeline остаётся сложным — attrs только **маскируют**, не упрощают engine.
 - `ready` + `ctx.phase` — единое имя post-commit (as-is в коде: `after`).
-- bare `view="profile.html"`; fragment extract → **`extract`** attr (planned)
+- bare `view="profile.html"`; fragment extract → **`extract`** attr
 - Router inherit (`guard`, `ready`) — документировать opt-out `guard=""`.
 
 ### Где выигрыш максимальный
@@ -479,7 +479,7 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 - ✅ Парсер `view` → `buildContentDescriptor`
 - ✅ Loaders: `url`, `import`, `iframe`; bare ref default `url`
 - ✅ Парсер: known loader vs bare `url` ref; unknown prefix → custom loader
-- ⬜ Attr **`extract`** (CSS selector, inherit router → route) + url loader fragment extract
+- ✅ Attr **`extract`** (CSS selector, inherit router → route) + url loader fragment extract
 - ⬜ `component` validation (registry / `-`; reject native tags)
 
 - ⬜ Builtin `iframe`

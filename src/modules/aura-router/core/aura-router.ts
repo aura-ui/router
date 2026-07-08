@@ -77,7 +77,7 @@ export {
 export interface AuraRouterConfigureOptions {
   /** LRU cache for keep-alive route views (`detachedRoot` DOM). */
   viewCache?: CacheStoreOptions<ViewRoot>;
-  /** LRU cache for view-loader payloads (html-src strings; prefetch + navigation). Gated by `preserve.view`. */
+  /** LRU cache for view-loader payloads (`url` strings; prefetch + navigation). Gated by `preserve.view`. */
   dataCache?: CacheStoreOptions<string>;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;

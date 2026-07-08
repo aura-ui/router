@@ -1,6 +1,6 @@
 /** What to keep when leaving a route (view DOM / load-hook payload). */
 export type PreserveFlags = {
-  /** Keep-alive mounted view (ViewCache): html-src, template, html, component-src DOM. */
+  /** Keep-alive mounted view (ViewCache): url, template, html, import DOM. */
   view: boolean;
   /** Cache `load` hook payloads (DataGraph), not view loaders. */
   data: boolean;

@@ -63,4 +63,17 @@ describe('parseViewAttr', () => {
       content: 'page:profile.html',
     });
   });
+
+  it('warns when bare url ref looks like a module path', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    parseViewAttr('./pages/app.ts');
+    parseViewAttr('./pages/app.ts');
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      'view ref "./pages/app.ts" looks like a module path — use import::./pages/app.ts instead of url',
+    );
+    warn.mockRestore();
+  });
 });

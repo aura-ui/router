@@ -1,4 +1,4 @@
-import { getTemplate, loadAndRegisterComponent } from '../../../../aura-utils/misc';
+import { getTemplate, loadAndRegisterComponent, escapeHtml } from '../../../../aura-utils/misc';
 import type { LoaderFn, LoaderTransport, LoadContext } from '../model/types';
 import { routeSnapshot } from './load-context';
 
@@ -23,7 +23,7 @@ export function createBuiltinLoaders(transport: LoaderTransport): ReadonlyArray<
       load: async (ctx) => ctx.ref,
     },
     {
-      type: 'html-src',
+      type: 'url',
       load: async (ctx) => fetchText(resolveUrl(ctx.ref), ctx.signal),
     },
     {
@@ -31,8 +31,13 @@ export function createBuiltinLoaders(transport: LoaderTransport): ReadonlyArray<
       load: async (ctx) => loadRegisteredComponent(ctx),
     },
     {
-      type: 'component-src',
+      type: 'import',
       load: async (ctx) => loadComponentFromSrc(ctx),
+    },
+    {
+      type: 'iframe',
+      load: async (ctx) =>
+        `<iframe src="${escapeHtml(ctx.ref)}" loading="lazy"></iframe>`,
     },
   ];
 }

@@ -119,7 +119,7 @@ describe('param-change remount integration (real runViewCommit)', () => {
     const outlet = createTestOutlet();
     let serial = 0;
     const node = createUsersIdNode({
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
     });
     wireRouteViewController(node, outlet, () => `<span>view-${++serial}</span>`);
 
@@ -143,7 +143,7 @@ describe('param-change remount integration (real runViewCommit)', () => {
     let serial = 0;
     const node = createUsersIdNode({
       preserve: { view: true, data: false },
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
     });
 
     const { stash } = wireRouteViewController(
@@ -179,7 +179,7 @@ describe('NavigationTransactionPipeline viewCommitOptions', () => {
   it('passes paramChangeRemount to route.render via real runViewCommit', async () => {
     const render = jest.fn().mockResolvedValue({ status: 'ok' });
     const node = createUsersIdNode({
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
     });
     const exitRoute = createUsersIdMatch('1', node);
     const enterRoute = createUsersIdMatch('2', node);

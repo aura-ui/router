@@ -135,7 +135,7 @@ async function runParamRemountNavigation(from: MatchedRouteInfo, to: MatchedRout
 
 function createTransitionNode(transition: RouteTransitionType) {
   return createUsersIdNode({
-    view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+    view: { type: 'url', content: 'content/user/{{id}}.html' },
     transition,
     transitionIn: transition.in,
     transitionOut: transition.out,
@@ -346,7 +346,7 @@ describe('param-change in-place + transition integration (real view)', () => {
 
     const node = createUsersIdNode({
       preserve: { view: true, data: false },
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
       transition: PARALLEL_CROSS_FADE_TRANSITION,
       transitionIn: PARALLEL_CROSS_FADE_TRANSITION.in,
       transitionOut: PARALLEL_CROSS_FADE_TRANSITION.out,

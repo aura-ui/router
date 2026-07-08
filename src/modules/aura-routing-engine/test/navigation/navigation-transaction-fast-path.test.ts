@@ -63,7 +63,7 @@ describe('NavigationTransaction.run fast path selection', () => {
     const engine = createMockEngine();
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b', {
-      view: { type: 'html-src', content: 'about.html' },
+      view: { type: 'url', content: 'about.html' },
     });
     const transaction = new NavigationTransaction(
       1,

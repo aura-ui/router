@@ -56,7 +56,7 @@ Preserve+:    detach | destroy | restore   (super advanced, с preserve)
 | **`path`** | URL-паттерн (обязательный) |
 | **`view`** | Контент: bare `ref` (default `url`) или `loader::ref` |
 
-Формат: bare **`ref`** → loader **`url`**. Иначе `loader::ref` (`::` — разделитель). Для `url` extract: `page.html::#selector` без префикса `url::`.
+Формат: bare **`ref`** → loader **`url`**. Иначе `loader::ref` (`::` — разделитель). Селектор фрагмента — отдельный attr **`extract`** (planned), не в `view`.
 
 ### View loaders → README
 
@@ -114,29 +114,33 @@ view="component::user-card"   <!-- ✓ -->
 view="component::div"         <!-- ✗ → html::<div>…</div> -->
 ```
 
-#### `url` — ref и селектор (partial vs full page)
+#### `url` — ref и `extract` (partial vs full page)
 
 `url` загружает **HTML с сервера** (не скрипты — для `.js`/`.ts` используйте `import`).
 
-| ref | Поведение |
+| `view` ref | Поведение |
 |-----|-----------|
 | `users.html` | ответ — готовый partial, вставляется as-is |
-| `legacy/about.html::#main` | full HTML page → `path::` + CSS selector → extract |
+| `legacy/about.html` + `extract="#main"` | full HTML page → CSS selector → extract fragment |
 
 ```html
 <aura-route path="/users" view="users.html" />
-<aura-route path="/about" view="legacy/about.html::#main" />
+<aura-router extract="#main">
+  <aura-route path="/about" view="legacy/about.html" />
+</aura-router>
 ```
 
 Правила парсинга `view`:
 
 - Нет `::` → `url` + ref as-is (`users.html`).
 - Перед первым `::` — **известный loader** (`html`, `template`, …) → `loader::ref`.
-- Иначе вся строка — **`url` ref**; внутренний `::` отделяет path от selector (`page.html::#main`).
+- Иначе → **custom loader** (`markdown::doc.md`).
 - Префикс `url::` допустим, но **не показываем в примерах** — избыточен для default.
 - Неверное расширение (`.js`, `.ts`) → dev warn: use `import::…`.
 
-Отдельный loader `doc` **не вводим** — extract живёт в грамматике `url` ref.
+**`extract`** — CSS selector для вырезки фрагмента из full page. Наследуется с `<aura-router>` / parent route; opt-out `extract=""`. Пусто → partial as-is. **Статус: planned** (см. README).
+
+Отдельный loader `doc` **не вводим** — extract через attr `extract`, не через грамматику `view`.
 
 #### `iframe` — внешний URL во frame
 
@@ -441,7 +445,7 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 
 - Внутренний pipeline остаётся сложным — attrs только **маскируют**, не упрощают engine.
 - `ready` + `ctx.phase` — единое имя post-commit (as-is в коде: `after`).
-- bare `view="profile.html"` + optional `path.html::#selector` — парсер known-loader vs default `url`.
+- bare `view="profile.html"`; fragment extract → **`extract`** attr (planned)
 - Router inherit (`guard`, `ready`) — документировать opt-out `guard=""`.
 
 ### Где выигрыш максимальный
@@ -473,8 +477,9 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 ### Фаза 1 — view + preserve
 
 - ✅ Парсер `view` → `buildContentDescriptor`
-- ⬜ Loaders: `html-src`→`url`, `component-src`→`import`; bare ref default `url`
-- ⬜ Парсер: known-loader vs default `url` ref (`page.html::#selector`)
+- ✅ Loaders: `url`, `import`, `iframe`; bare ref default `url`
+- ✅ Парсер: known loader vs bare `url` ref; unknown prefix → custom loader
+- ⬜ Attr **`extract`** (CSS selector, inherit router → route) + url loader fragment extract
 - ⬜ `component` validation (registry / `-`; reject native tags)
 
 - ⬜ Builtin `iframe`
@@ -488,14 +493,7 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 - ✅ `scroll`, `loading-template`, `error-template` inherit
 - ✅ `transition` / `transition-order` / `transition-in` / `out`
 
-### Фаза 3 — deprecation
 
-- ⬜ Dev warnings: старые loader id + lifecycle attrs
-- ⬜ Codemod (опционально)
-
-### Фаза 4 — escape hatch
-
-- ✅ `hooks="phase::hook"`
 - ✅ `transition` shortcut
 
 ### Уже в коде под старыми именами

@@ -12,6 +12,14 @@ export { dataCacheKey } from './cache/data-key';
 export { DataCache } from './cache/data-cache';
 
 export {
+  BUILTIN_LOADER_TYPES,
+  DEFAULT_VIEW_LOADER,
+  ASYNC_LOADER_TYPES,
+  isAsyncLoader,
+  isKnownViewLoader,
+} from '../../../aura-route/core/attr/view-attr-parser';
+
+export {
   LoaderRegistry,
   createLoaderRegistry,
   defaultLoaderRegistry,

@@ -11,7 +11,7 @@ import {
 } from '../../aura-routing-engine/route-api';
 import { routeAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated } from '../../aura-utils/misc';
-import { parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
+import { isAsyncLoader, parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
 import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
 import type { MountTargetPort } from './view';
@@ -149,8 +149,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   get hasAsyncContent(): boolean {
     if (this.hasLoad) return true;
-    const type = this.view?.type;
-    return type === 'html-src' || type === 'component-src';
+    return isAsyncLoader(this.view?.type);
   }
 
   /** Inline `html::` without layout, fetch loaders, or loading UI — future sync render lane (see IMPLEMENTATION_STEPS §5b PR3). */

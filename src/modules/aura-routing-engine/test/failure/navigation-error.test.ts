@@ -22,10 +22,10 @@ describe('NavigationError', () => {
   });
 
   it('createContentLoadError wraps loader failures', () => {
-    const error = createContentLoadError('html-src', '/users', new Error('404'));
+    const error = createContentLoadError('url', '/users', new Error('404'));
     expect(error.code).toBe('CONTENT_LOAD_FAILED');
     expect(error.phase).toBe('render');
-    expect(error.message).toContain('html-src');
+    expect(error.message).toContain('url');
     expect(error.message).toContain('/users');
   });
 

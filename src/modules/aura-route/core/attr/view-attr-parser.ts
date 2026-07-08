@@ -1,30 +1,84 @@
-export type LoaderType =
+export type BuiltinLoaderType =
   | 'template'
   | 'html'
-  | 'html-src'
+  | 'url'
   | 'component'
-  | 'component-src'
-  | (string & {});
+  | 'import'
+  | 'iframe';
+
+export type LoaderType = BuiltinLoaderType | string;
 
 export type ViewAttrDescriptor = {
   type: LoaderType;
   content: string;
 };
 
-const DEFAULT_VIEW_LOADER: LoaderType = 'html-src';
+/** Default loader for bare `view="ref"` (README: `url`). */
+export const DEFAULT_VIEW_LOADER = 'url' as const satisfies LoaderType;
 
+/** Canonical built-in loader ids (README order). */
+export const BUILTIN_LOADER_TYPES = [
+  'template',
+  'html',
+  'url',
+  'component',
+  'import',
+  'iframe',
+] as const satisfies readonly LoaderType[];
+
+/** Subset of {@link BUILTIN_LOADER_TYPES} that require async resolve. */
+export const ASYNC_LOADER_TYPES = ['url', 'import', 'iframe'] as const satisfies readonly LoaderType[];
+
+const knownLoaders = new Set<string>(BUILTIN_LOADER_TYPES);
+
+const asyncLoadersMap: Record<string, true> = {
+  url: true,
+  import: true,
+  iframe: true,
+};
+
+export function isKnownViewLoader(type: string): boolean {
+  return knownLoaders.has(type);
+}
+
+export function isAsyncLoader(type: string | undefined): boolean {
+  return type !== undefined && !!asyncLoadersMap[type];
+}
+
+/**
+ * Parse `view` attr: bare ref → `url`; known loader → `loader::ref`;
+ * else custom loader (`markdown::…`). Fragment extract — separate `extract` attr (planned).
+ */
 export function parseViewAttr(value: string | null): ViewAttrDescriptor | null {
   const trimmed = value?.trim();
   if (!trimmed) return null;
 
   const sep = trimmed.indexOf('::');
   if (sep <= 0) {
+    warnIfRefLooksLikeModule(trimmed);
     return { type: DEFAULT_VIEW_LOADER, content: trimmed };
   }
 
-  // todo add checks with registered types in service
-  return {
-    type: trimmed.slice(0, sep),
-    content: trimmed.slice(sep + 2),
-  };
+  const prefix = trimmed.slice(0, sep);
+  const content = trimmed.slice(sep + 2);
+
+  if (isKnownViewLoader(prefix)) {
+    if (prefix === DEFAULT_VIEW_LOADER) warnIfRefLooksLikeModule(content);
+    return { type: prefix, content };
+  }
+
+  return { type: prefix, content };
+}
+
+const warnedImportExtension = new Set<string>();
+const SCRIPT_PATH_RE = /\.(?:mjs|cjs|jsx|tsx|js|ts)(?:$|[?#])/i;
+
+/** Dev hint when a script path is used with the default `url` loader. */
+export function warnIfRefLooksLikeModule(ref: string): void {
+  if (!SCRIPT_PATH_RE.test(ref)) return;
+  if (warnedImportExtension.has(ref)) return;
+  warnedImportExtension.add(ref);
+  console.warn(
+    `view ref "${ref}" looks like a module path — use import::${ref} instead of url`,
+  );
 }

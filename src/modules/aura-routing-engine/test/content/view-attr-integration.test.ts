@@ -33,12 +33,12 @@ describe('view attr end-to-end', () => {
     mountRouter(`
       <aura-router>
         <aura-outlet></aura-outlet>
-        <aura-route path="/b" view="html-src::index2.html"></aura-route>
+        <aura-route path="/b" view="url::index2.html"></aura-route>
       </aura-router>
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    expect(route.view).toEqual({ type: 'html-src', content: 'index2.html' });
+    expect(route.view).toEqual({ type: 'url', content: 'index2.html' });
   });
 
   it('loads html view via shared router contentLoad registry', async () => {

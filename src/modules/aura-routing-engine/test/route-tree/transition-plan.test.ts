@@ -156,7 +156,7 @@ describe('buildTransitionPlan', () => {
 
   it('update shortcut when dynamic params change on the same leaf node and view key', () => {
     const node = createUsersIdNode({
-      view: { type: 'component-src', content: 'user-profile' },
+      view: { type: 'import', content: 'user-profile' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -173,7 +173,7 @@ describe('buildTransitionPlan', () => {
 
   it('synthetic remount when per-id view ref changes on the same leaf node', () => {
     const node = createUsersIdNode({
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -191,7 +191,7 @@ describe('buildTransitionPlan', () => {
   it('synthetic remount on flat leaf when param-change is navigate', () => {
     const node = createUsersIdNode({
       paramChange: 'navigate',
-      view: { type: 'html-src', content: 'partials/user-shell.html' },
+      view: { type: 'url', content: 'partials/user-shell.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -209,7 +209,7 @@ describe('buildTransitionPlan', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const node = createUsersIdNode({
       paramChange: 'update',
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -223,7 +223,7 @@ describe('buildTransitionPlan', () => {
 
   it('keeps layout parent as lca on synthetic param remount', () => {
     const { leaf } = createNestedUsersIdSetup({
-      view: { type: 'html-src', content: 'content/user/{{id}}.html' },
+      view: { type: 'url', content: 'content/user/{{id}}.html' },
     });
     const from = createNestedUsersIdMatch('1', leaf);
     const to = createNestedUsersIdMatch('2', leaf);
@@ -240,12 +240,12 @@ describe('buildTransitionPlan', () => {
     it.each([
       ['html', 'partials/user-shell.html', true],
       ['html', 'content/user/{{id}}.html', false],
-      ['html-src', 'partials/user-shell.html', true],
-      ['html-src', 'content/user/{{id}}.html', false],
+      ['url', 'partials/user-shell.html', true],
+      ['url', 'content/user/{{id}}.html', false],
       ['component', 'user-profile', true],
       ['component', 'user-{{id}}', false],
-      ['component-src', 'user-profile', true],
-      ['component-src', 'widgets/user-{{id}}', false],
+      ['import', 'user-profile', true],
+      ['import', 'widgets/user-{{id}}', false],
       ['template', 'app-shell', true],
       ['template', 'shells/user-{{id}}', false],
     ] as const)(
@@ -268,7 +268,7 @@ describe('buildTransitionPlan', () => {
     it('layout-only leaf (resolvedView null) → update on param change', () => {
       const node = createUsersIdNode({
         layout: 'users-shell',
-        view: { type: 'html-src', content: 'ignored.html' },
+        view: { type: 'url', content: 'ignored.html' },
       });
       const from = createUsersIdMatch('1', node);
       const to = createUsersIdMatch('2', node);
@@ -284,7 +284,7 @@ describe('buildTransitionPlan', () => {
 
     it('unresolved {{placeholder}} keeps same viewKey → update (misconfiguration)', () => {
       const node = createUsersIdNode({
-        view: { type: 'html-src', content: 'content/{{missing}}.html' },
+        view: { type: 'url', content: 'content/{{missing}}.html' },
       });
       const from = createUsersIdMatch('1', node);
       const to = createUsersIdMatch('2', node);

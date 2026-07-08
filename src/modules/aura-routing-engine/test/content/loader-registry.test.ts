@@ -1,15 +1,8 @@
 import {
   LoaderRegistry,
+  BUILTIN_LOADER_TYPES,
   createBuiltinLoaders,
 } from '../../core/content';
-
-const BUILTIN_LOADER_TYPES = [
-  'template',
-  'html',
-  'html-src',
-  'component',
-  'component-src',
-] as const;
 
 describe('LoaderRegistry', () => {
   it('exposes built-in loader types', () => {
@@ -24,6 +17,7 @@ describe('LoaderRegistry', () => {
     const registry = new LoaderRegistry();
 
     expect(() => registry.get('missing-loader')).toThrow(/Unknown content loader/);
+    expect(() => registry.get('html-src')).toThrow(/Unknown content loader/);
   });
 
   it('register() adds custom loaders', () => {
@@ -47,7 +41,7 @@ describe('LoaderRegistry', () => {
     warn.mockRestore();
   });
 
-  it('createBuiltinLoaders manifest lists all built-in types in order', () => {
+  it('createBuiltinLoaders manifest lists canonical types in order', () => {
     const entries = createBuiltinLoaders({
       fetchText: async () => '',
       resolveUrl: (path) => path,

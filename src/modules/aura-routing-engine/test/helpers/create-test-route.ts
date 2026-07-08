@@ -1,5 +1,6 @@
 import type { RouteInstance } from '../../core';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
+import { isAsyncLoader } from '../../core/content';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
 
@@ -66,8 +67,7 @@ export function createTestRoute(
     hasAsyncContent: {
       get(): boolean {
         if (route.hasLoad) return true;
-        const type = route.view?.type;
-        return type === 'html-src' || type === 'component-src';
+        return isAsyncLoader(route.view?.type);
       },
     },
     hasSyncContent: {

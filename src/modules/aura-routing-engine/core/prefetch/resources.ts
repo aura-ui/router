@@ -136,7 +136,7 @@ export class PrefetchResourceScheduler implements PrefetchResourceSchedulerPort 
   }
 }
 
-/** Prefetch html-src / template partials via shared ContentLoadService cache. */
+/** Prefetch `url` / template partials via shared ContentLoadService cache. */
 export class ContentPrefetchExecutor implements PrefetchResourceExecutor {
   readonly kind = 'content' as const;
 

@@ -30,19 +30,19 @@ export const BUILTIN_LOADER_TYPES = [
 export const ASYNC_LOADER_TYPES = ['url', 'import', 'iframe'] as const satisfies readonly LoaderType[];
 
 const knownLoaders = new Set<string>(BUILTIN_LOADER_TYPES);
-
-const asyncLoadersMap: Record<string, true> = {
-  url: true,
-  import: true,
-  iframe: true,
-};
+const asyncLoaders = new Set<string>(ASYNC_LOADER_TYPES);
 
 export function isKnownViewLoader(type: string): boolean {
   return knownLoaders.has(type);
 }
 
 export function isAsyncLoader(type: string | undefined): boolean {
-  return type !== undefined && !!asyncLoadersMap[type];
+  return type !== undefined && asyncLoaders.has(type);
+}
+
+function urlView(content: string): ViewAttrDescriptor {
+  warnIfRefLooksLikeModule(content);
+  return { type: DEFAULT_VIEW_LOADER, content };
 }
 
 /**
@@ -54,10 +54,7 @@ export function parseViewAttr(value: string | null): ViewAttrDescriptor | null {
   if (!trimmed) return null;
 
   const sep = trimmed.indexOf('::');
-  if (sep <= 0) {
-    warnIfRefLooksLikeModule(trimmed);
-    return { type: DEFAULT_VIEW_LOADER, content: trimmed };
-  }
+  if (sep <= 0) return urlView(trimmed);
 
   const prefix = trimmed.slice(0, sep);
   const content = trimmed.slice(sep + 2);

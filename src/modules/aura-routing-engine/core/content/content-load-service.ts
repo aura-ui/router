@@ -24,7 +24,6 @@ const DEFAULT_PREFETCH: Required<ContentPrefetchOptions> = {
 
 type ContentRoute = {
   layout: string;
-  view: { type: string; content: string } | null;
   preserve: { view: boolean };
   extract?: string | null;
 };
@@ -76,10 +75,7 @@ export class ContentLoadService {
     if (signal.aborted) return Promise.resolve(null);
 
     const load = () => this.runLoader(descriptor, routeInfo, signal, data);
-
-    if (!descriptor.cache) {
-      return load();
-    }
+    if (!descriptor.cache) return load();
 
     return this.cache.resolve(dataCacheKey(descriptor, routeInfo), load);
   }

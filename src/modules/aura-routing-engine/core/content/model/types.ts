@@ -11,10 +11,13 @@ export type ContentDescriptor = {
   readonly loader: LoaderType;
   readonly ref: string;
   readonly cache: boolean;
+  /** `url` loader only — CSS selector for fragment extraction from full HTML. */
+  readonly extract?: string;
 };
 
 export type LoadContext = {
   readonly ref: string;
+  readonly extract?: string;
   readonly signal?: AbortSignal;
   readonly route: {
     readonly href: string;

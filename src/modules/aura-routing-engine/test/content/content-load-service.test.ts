@@ -3,6 +3,7 @@ import {
   ContentLoadService,
   LoaderRegistry,
   dataCacheKey,
+  createBuiltinLoaders,
   type ContentDescriptor,
 } from '../../core';
 import { parseViewAttr } from '../../../aura-route/core/attr/view-attr-parser';
@@ -119,6 +120,128 @@ describe('ContentLoadService', () => {
     );
 
     expect(receivedExtract).toBe('#main');
+  });
+
+  it('does not pass extract when route opts out with extract=""', async () => {
+    const registry = new LoaderRegistry();
+    let receivedExtract: string | undefined = '#unset';
+    registry.register('url', async (ctx) => {
+      receivedExtract = ctx.extract;
+      return '<span>ok</span>';
+    });
+
+    const service = new ContentLoadService({ registry, cache: new DataCache() });
+
+    await service.resolve(
+      {
+        ...routeInfo,
+        route: {
+          layout: '',
+          preserve: { view: false },
+          extract: '',
+        } as never,
+        resolvedView: { type: 'url', ref: 'pages/about.html' },
+      } as never,
+      new AbortController().signal,
+    );
+
+    expect(receivedExtract).toBeUndefined();
+  });
+
+  it('does not pass extract for html loader even when route has extract', async () => {
+    const registry = new LoaderRegistry();
+    let receivedExtract: string | undefined = '#unset';
+    registry.register('html', async (ctx) => {
+      receivedExtract = ctx.extract;
+      return ctx.ref;
+    });
+
+    const service = new ContentLoadService({ registry, cache: new DataCache() });
+
+    await service.resolve(
+      {
+        ...routeInfo,
+        route: {
+          layout: '',
+          preserve: { view: false },
+          extract: '#main',
+        } as never,
+        resolvedView: { type: 'html', ref: '<b>hi</b>' },
+      } as never,
+      new AbortController().signal,
+    );
+
+    expect(receivedExtract).toBeUndefined();
+  });
+
+  it('wraps extract selector miss as CONTENT_LOAD_FAILED', async () => {
+    const registry = new LoaderRegistry();
+    for (const { type, load } of createBuiltinLoaders({
+      fetchText: async () => '<html><body></body></html>',
+      resolveUrl: (path) => path,
+    })) {
+      registry.register(type, load);
+    }
+
+    const service = new ContentLoadService({ registry, cache: new DataCache() });
+
+    await expect(
+      service.resolve(
+        {
+          ...routeInfo,
+          route: {
+            layout: '',
+            preserve: { view: false },
+            extract: '#missing',
+          } as never,
+          resolvedView: { type: 'url', ref: 'legacy/about.html' },
+        } as never,
+        new AbortController().signal,
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        code: 'CONTENT_LOAD_FAILED',
+        phase: 'render',
+        routePattern: '/page',
+        message: expect.stringContaining('No element matches selector "#missing"'),
+      }),
+    );
+  });
+
+  it('keeps separate cache entries for partial vs extract on the same ref', async () => {
+    const registry = new LoaderRegistry();
+    let loads = 0;
+    registry.register('url', async (ctx) => {
+      loads++;
+      return ctx.extract ? '<fragment/>' : '<full/>';
+    });
+
+    const cache = new DataCache();
+    const service = new ContentLoadService({ registry, cache });
+    const signal = new AbortController().signal;
+    const baseRoute = {
+      layout: '',
+      preserve: { view: true },
+    };
+
+    const partial = {
+      ...routeInfo,
+      route: { ...baseRoute, extract: null } as never,
+      resolvedView: { type: 'url', ref: 'legacy/about.html' },
+    } as const;
+
+    const extracted = {
+      ...routeInfo,
+      route: { ...baseRoute, extract: '#main' } as never,
+      resolvedView: { type: 'url', ref: 'legacy/about.html' },
+    } as const;
+
+    const partialPayload = await service.resolve(partial as never, signal);
+    const extractPayload = await service.resolve(extracted as never, signal);
+
+    expect(partialPayload).toBe('<full/>');
+    expect(extractPayload).toBe('<fragment/>');
+    expect(loads).toBe(2);
   });
 
   it('throws NavigationError when loader fails', async () => {

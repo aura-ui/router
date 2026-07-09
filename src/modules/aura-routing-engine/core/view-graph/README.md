@@ -1,8 +1,10 @@
 # view-graph
 
-Загрузка view-payload для маршрутов: layout, HTML, URL, web components. Симметричен [`data-graph/`](../data-graph) по форме API (load → cache → prefetch → invalidate), но работает с **разметкой**, не с load-hook data.
+Модуль загрузки **view-payload** для маршрутов: layout из `<template>`, HTML, HTTP, web components и кастомные источники.
 
-Один экземпляр `ViewGraph` на `AuraRouter` — общий для render, branch-resolve и link prefetch.
+По форме API симметричен [`data-graph/`](../data-graph) — `load` → cache → prefetch → invalidate — но работает с **разметкой** (строки и DOM-узлы), а не с данными load-hook'ов.
+
+На одном `AuraRouter` создаётся один экземпляр `ViewGraph`. Он общий для render pipeline, branch-resolve и link prefetch.
 
 ## Содержание
 
@@ -10,7 +12,8 @@
 - [Концепции](#концепции)
 - [Пайплайн](#пайплайн)
 - [Публичный API](#публичный-api)
-- [Расширение: loaders](#расширение-loaders)
+- [Встроенные loaders](#встроенные-loaders)
+- [Кастомный loader](#кастомный-loader)
 - [Кеш и инвалидация](#кеш-и-инвалидация)
 - [Prefetch](#prefetch)
 - [Контракты](#контракты)
@@ -30,28 +33,17 @@ import {
   PayloadCache,
   defaultLoaderRegistry,
 } from '…/core/view-graph';
-```
 
-```ts
 const viewGraph = new ViewGraph({
   registry: defaultLoaderRegistry,
   cache: new PayloadCache(),
 });
 
 const payload = await viewGraph.loadView(routeInfo, signal, { data: hookSnapshot });
-// → string | Node | null
+// ViewPayload: string | Node | null
 ```
 
-Кастомный loader на роутере:
-
-```ts
-AuraRouter.registerLoader('charts', async (ctx) => {
-  const res = await fetch(`/api/chart?route=${ctx.route.pattern}`, { signal: ctx.signal });
-  return res.text();
-});
-```
-
-`<aura-route view="charts:main">` → `registry.get('charts').load(ctx)`.
+Кастомный loader регистрируется на роутере одной строкой — подробнее в разделе [Кастомный loader](#кастомный-loader).
 
 ---
 
@@ -63,35 +55,46 @@ AuraRouter.registerLoader('charts', async (ctx) => {
 type ViewKind = 'layout' | 'view';
 ```
 
-| Kind | Route attr | Loader | `descriptor.cache` |
-|------|------------|--------|-------------------|
+| Kind | Атрибут маршрута | Loader | `descriptor.cache` |
+|------|------------------|--------|------------------|
 | `layout` | `layout="template-id"` | `template` | всегда `false` |
-| `view` | `view="url:…"` / `html:…` / … | `resolvedView.type` | `preserve.view` |
+| `view` | `view="…"` (см. синтаксис ниже) | `resolvedView.type` | `preserve.view` |
 
-Нет layout и нет view → `loadView` → `null` (не ошибка).
+Если у маршрута нет ни `layout`, ни `view`, `loadView` возвращает `null` — это не ошибка.
 
-Для `view` + `url` + attr `extract` в descriptor попадает CSS-селектор фрагмента HTML.
+Для `view` с loader `url` и атрибутом `extract` в descriptor попадает CSS-селектор фрагмента HTML.
 
-### Два уровня типов результата
+**Синтаксис `view`:**
 
-| Уровень | Тип | Где |
-|---------|-----|-----|
+| Форма | Пример `view` | Loader | `context.ref` |
+|-------|---------------|--------|---------------|
+| bare ref | `view="partials/page.html"` | `url` (по умолчанию) | `partials/page.html` |
+| built-in | `view="html::<p/>"` | `html` | `<p/>` |
+| built-in | `view="import::./widget.js"` | `import` | `./widget.js` |
+| custom | `view="charts::dashboard"` | `charts` | `dashboard` |
+
+Разделитель loader и ref — `::`. Левая часть выбирает loader, правая попадает в **`context.ref`**. Селектор фрагмента — отдельный атрибут `extract`, не в `view`.
+
+### Два уровня типа результата
+
+| Уровень | Тип | Где используется |
+|---------|-----|------------------|
 | Loader | `ViewLoadResult` | `html` \| `markup` \| `fragment` |
 | Graph / route | `ViewPayload` | `string` \| `Node` |
 
-`ViewGraph` схлопывает: `html`/`markup` → string, `fragment` → node.
+`ViewGraph` приводит результат loader'а к `ViewPayload`: `html` и `markup` → строка, `fragment` → узел.
 
-`LoaderFn` возвращает `string | Node | null`. `FnLoader` нормализует `Node` во `DocumentFragment` (`appendChild`, если уже не fragment).
+Для `registry.register(type, fn)` тело loader'а — `LoaderFn`, возвращающий `string | Node | null`. `FnLoader` преобразует строку в `{ kind: 'html' }`, а `Node` — во `DocumentFragment` (через `appendChild`, если узел ещё не fragment).
 
-### Три store (не смешивать)
+### Три хранилища (не смешивать)
 
-| Store | Модуль | Содержимое | Условие |
-|-------|--------|------------|---------|
+| Store | Модуль | Содержимое | Когда участвует |
+|-------|--------|------------|-----------------|
 | `PayloadCache` | `cache/` | строки payload | `preserve.view` |
 | `ViewCache` | aura-route | detached DOM | `preserve.view` + keep-alive |
-| `DataGraph` | data-graph | load-hook data | `preserve.data` |
+| `DataGraph` | data-graph | данные load-hook'ов | `preserve.data` |
 
-Общий контракт invalidate: `RouterInvalidateOptions`. Разные backends.
+Инвалидация для graph-cache'ей — общий контракт `RouterInvalidateOptions`, но backends разные.
 
 ---
 
@@ -107,13 +110,13 @@ buildViewDescriptor(route, resolvedView)   ← private, внутри loadView
 PayloadCache.resolve(key)?                 ← только если descriptor.cache
       │
       ▼
-LoaderRegistry.get(loader).load(ctx)
+LoaderRegistry.get(loader).load(context)
       │
       ▼
 ViewPayload
 ```
 
-**Порты (узкий surface для DI):**
+**Порты** — узкий surface для DI и моков:
 
 | Тип | Методы | Потребитель |
 |-----|--------|-------------|
@@ -125,7 +128,7 @@ ViewPayload
 
 ## Публичный API
 
-Экспорт из `index.ts` — намеренно узкий.
+Экспорт из `index.ts` намеренно узкий.
 
 | Группа | Символы |
 |--------|---------|
@@ -136,100 +139,182 @@ ViewPayload
 
 **Не в barrel** (прямой импорт или `aura-routing-engine/core`): `loaders/*`, `environment.ts`, `markup.ts`.
 
-Built-in loader classes реэкспортируются из `aura-routing-engine/core.ts` для тестов и кастомного registry.
+Классы built-in loader'ов реэкспортируются из `aura-routing-engine/core.ts` — для тестов и сборки кастомного registry.
 
 ---
 
-## Расширение: loaders
+## Встроенные loaders
 
-### Built-in
-
-| `LoaderType` | Источник | Результат |
-|--------------|----------|-----------|
-| `template` | `<template id="…">` | `fragment` |
-| `html` | inline в `ref` | `html` |
-| `url` | HTTP fetch | `html` (+ `extract`) |
-| `component` | `customElements.get(ref)` | `markup` + `aura-data` |
-| `import` | dynamic `import()` | `markup` |
-| `iframe` | `ref` как `src` | `markup` |
+| `LoaderType` | Атрибут | `context.ref` | `ViewLoadResult` |
+|--------------|---------|---------------|------------------|
+| `template` | `layout="id"` (не `view`) | id шаблона | `fragment` |
+| `html` | `html::…` | inline HTML | `html` |
+| `url` | bare ref или `url::…` | путь для fetch | `html` (+ `extract`) |
+| `component` | `component::tag` | имя custom element | `markup` + `aura-data` |
+| `import` | `import::./mod.js` | путь модуля | `markup` |
+| `iframe` | `iframe::https://…` | URL в `src` | `markup` |
 
 ### `LoaderRegistry.register`
 
+Один метод — три формы вызова:
+
 ```ts
-registry.register(loader);              // instance
-registry.register(LoaderClass);         // class → new Loader(env)
-registry.register('type', loaderFn);    // → FnLoader
+registry.register(loader);              // готовый экземпляр
+registry.register(LoaderClass);         // класс → new Loader(env)
+registry.register('type', loaderFn);    // функция → FnLoader
 ```
 
-Перезапись зарегистрированного типа — `console.warn`.
+Повторная регистрация того же типа перезаписывает loader с `console.warn`.
 
-### `ViewLoadContext`
+---
 
-Поля, доступные в loader:
+## Кастомный loader
+
+Два способа расширить registry. Для большинства приложений достаточно **функции**. **Класс** — когда нужны `ViewLoaderEnv`, состояние на экземпляре или явный `ViewLoadResult` (`markup` / `fragment`).
+
+### Функция (рекомендуется)
 
 ```ts
-{
-  ref, kind, extract?, signal,
-  route: { href, pattern, params?, query? },
-  data?,  // из DataGraph snapshot, если передан в loadView
+import { AuraRouter } from '@aura-ui-web/router';
+
+AuraRouter.registerLoader('charts', async (context) => {
+  // view="charts::dashboard" → context.ref === 'dashboard'
+  const response = await fetch(`/api/chart/${context.ref}`, {
+    signal: context.signal,
+  });
+  return response.text();
+});
+```
+
+```html
+<aura-route path="/analytics" view="charts::dashboard" />
+```
+
+Запрос: `GET /api/chart/dashboard`. Часть после `::` — это `context.ref`, не `context.route.pattern`.
+
+| Возврат `LoaderFn` | Что делает `FnLoader` |
+|--------------------|------------------------|
+| `string` | `{ kind: 'html', html }` |
+| `Node` | `{ kind: 'fragment', node }` (обёртка во `DocumentFragment`) |
+| `null` | пустой view, не ошибка |
+
+Тот же контракт на изолированном registry: `registry.register('charts', fn)`.
+
+### Класс (продвинутый)
+
+Наследуйте `Loader` и объявите **только** `static readonly type`. Поле `instance.type` выставляет базовый конструктор — дублировать его в подклассе не нужно.
+
+```ts
+import { Loader, type ViewLoadContext, type ViewLoadResult } from '…/core/view-graph';
+import type { LoaderType } from '…/aura-route/core/attr/view-attr-parser';
+
+export class MarkdownLoader extends Loader {
+  static readonly type = 'markdown' as const satisfies LoaderType;
+
+  async load(context: ViewLoadContext): Promise<ViewLoadResult | null> {
+    // view="markdown::docs/guide.md" → context.ref === 'docs/guide.md'
+    const text = await this.env.fetchText(this.env.resolveUrl(context.ref), context.signal);
+    const html = renderMarkdown(text);
+    return { kind: 'html', html };
+  }
 }
 ```
 
-`ViewLoaderEnv` (`fetchText`, `resolveUrl`, `isSSR`) — DI для class loaders. `isSSR` — задел; built-in не используют.
+Регистрация:
+
+```ts
+defaultLoaderRegistry.register(MarkdownLoader);
+// или с кастомным env:
+defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
+```
+
+```html
+<aura-route view="markdown::docs/guide.md" />
+```
+
+Класс уместен, когда:
+
+- нужен `this.env.fetchText` / `resolveUrl` без замыканий;
+- результат — `markup` или `fragment`, а не сахар `LoaderFn`;
+- на экземпляре есть несколько методов или внутреннее состояние.
+
+### `ViewLoadContext` и `ViewLoaderEnv`
+
+Аргумент loader'а — `ViewLoadContext` (в примерах ниже — `context`):
+
+| Поле | Откуда | Пример |
+|------|--------|--------|
+| `ref` | правая часть `view` после `::` (или bare ref для `url`) | `dashboard` из `charts::dashboard` |
+| `kind` | `layout` или `view` | `view` |
+| `extract` | атрибут `extract` на маршруте (только `url`) | `#main` |
+| `signal` | abort навигации | `AbortSignal` |
+| `route.href` | текущий URL (pathname + search + hash) | `/analytics?q=1` |
+| `route.pattern` | шаблон `path` маршрута в дереве | `/users/:id` |
+| `route.params` | сегменты из pathname | `{ id: '42' }` |
+| `route.query` | query string | `{ q: '1' }` |
+| `data` | snapshot load-hook'ов из `DataGraph` | если передан в `loadView` |
+
+`ref` и `route.*` независимы: `view="charts::dashboard"` на `path="/analytics"` даёт `ref: 'dashboard'`, `pattern: '/analytics'`.
+
+`ViewLoaderEnv` (`fetchText`, `resolveUrl`, `isSSR`) — DI для class loader'ов. `isSSR` зарезервирован; built-in loader'ы его пока не используют.
 
 ---
 
 ## Кеш и инвалидация
 
-**Когда кешируется:** `descriptor.cache === true` → `preserve.view` на view-маршруте.
+**Когда кешируется:** `descriptor.cache === true`, то есть `preserve.view` на view-маршруте.
 
-**Что кешируется:** только **строки**. `DocumentFragment` не пишется в `PayloadCache` — DOM keep-alive в `ViewCache`.
+**Что кешируется:** только **строки**. `DocumentFragment` в `PayloadCache` не пишется — DOM keep-alive обслуживает `ViewCache`.
 
-**In-flight dedup:** `AuraResolvableCache.resolve` — параллельные запросы с одним ключом схлопываются.
+**In-flight dedup:** `AuraResolvableCache.resolve` схлопывает параллельные запросы с одним ключом.
 
-**Ключ** (`payloadCacheKey`):
+**Формат ключа** (`payloadCacheKey`):
 
 ```text
 {pathname | matchKey[+params]} | {query?} | d:{json(data)?} | {kind}:{loader}:{ref} [:: {extract}]
 ```
+
+Части соединяются через `|`. Суффикс `::{extract}` добавляется только для url-loader с атрибутом `extract`.
+
+Примеры:
 
 ```text
 /users/1|view:url:partials/user.html
 /settings|d:%7B%7D|view:html:<p/>
 ```
 
-`kind` в ключе разводит layout/view при совпадении `loader:ref`.
+Поле `kind` в ключе разводит layout и view при совпадении `loader:ref`.
 
-**Инвалидация:** `viewGraph.invalidate(options)` / `AuraRouter.invalidateView()`. Scope: `key`, `path`, `match`. Policy: `stale` (default) | `remove`.
+**Инвалидация:** `viewGraph.invalidate(options)` или `AuraRouter.invalidateView()`. Scope: `key`, `path`, `match`. Policy: `stale` (по умолчанию) | `remove`.
 
 ---
 
 ## Prefetch
 
-| Метод | Описание |
-|-------|----------|
+| Метод | Назначение |
+|-------|------------|
 | `prefetchNode(route, signal)` | один маршрут |
-| `prefetchBranch(chain, signal, opts?)` | enter chain, concurrent |
+| `prefetchBranch(chain, signal, opts?)` | enter chain, с ограничением параллелизма |
 | `prefetchLeaf(leaf, signal, opts?)` | `getActiveChain(leaf)` + branch |
 
-Defaults: `concurrency: 3`, `order: 'root-first'`.
+По умолчанию: `concurrency: 3`, `order: 'root-first'`.
 
-Ошибки prefetch **не пробрасываются** (intent prefetch, как в `DataGraph`).
+Ошибки prefetch **не пробрасываются** — intent prefetch, как в `DataGraph`.
 
-Engine: `ViewPrefetchExecutor` (resource kind `'view'`) при `config.viewGraph`.
+В engine: `ViewPrefetchExecutor` (resource kind `'view'`) при наличии `config.viewGraph`.
 
 ---
 
 ## Контракты
 
-| Ситуация | Результат |
+| Ситуация | Поведение |
 |----------|-----------|
 | `signal.aborted` | `null`, без `NavigationError` |
-| Loader throw | `createViewLoadError` → `CONTENT_LOAD_FAILED`, phase `render` |
-| Prefetch error | swallowed |
-| Unknown loader type | throw из `registry.get` |
+| throw из loader'а | `createViewLoadError` → `CONTENT_LOAD_FAILED`, phase `render` |
+| ошибка prefetch | подавляется |
+| неизвестный loader type | throw из `registry.get` |
 
-`loadViewDescriptor(descriptor, …)` — escape hatch для тестов и прямого resolve без route attrs.
+`loadViewDescriptor(descriptor, …)` — загрузка по готовому descriptor, минуя route attrs. Используется в тестах и при явном resolve.
 
 ---
 
@@ -248,7 +333,7 @@ AuraRoute / RouteViewController
   └─ config.view: router.viewGraph   // ViewResolverPort
 ```
 
-Descriptor building (`buildViewDescriptor`, `buildLoadContext`) — **private**. Снаружи только `loadView` / `loadViewDescriptor`.
+Построение descriptor (`buildViewDescriptor`, `buildLoadContext`) — **private**. Снаружи доступны только `loadView` и `loadViewDescriptor`.
 
 ---
 
@@ -273,7 +358,7 @@ view-graph/
 
 ## См. также
 
-- [`data-graph/`](../data-graph) — load hooks + data cache
+- [`data-graph/`](../data-graph) — load hooks и data cache
 - [`view-mount/`](../view-mount) — branch resolve/mount без loader
 - [`aura-route`](../../../aura-route/core/view/) — `ViewResolverPort`, `ViewCache`, render pipeline
-- [`invalidate-router-cache.ts`](../invalidate-router-cache.ts) — общая invalidate-логика для graph caches
+- [`invalidate-router-cache.ts`](../invalidate-router-cache.ts) — общая логика invalidate для graph cache'ей

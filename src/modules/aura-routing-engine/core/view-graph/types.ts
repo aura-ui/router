@@ -17,14 +17,17 @@ export type ViewDescriptor = {
   readonly extract?: string;
 };
 
-/** Per-load input passed to built-in and custom loaders. */
+/** Per-load input passed to built-in and custom loaders (`LoaderFn` argument). */
 export type ViewLoadContext = {
+  /** Right-hand side of `view="loader::ref"` (or bare ref for default `url` loader). */
   readonly ref: string;
   readonly kind: ViewKind;
   readonly extract?: string;
   readonly signal: AbortSignal;
   readonly route: {
+    /** Current URL: pathname + search + hash. */
     readonly href: string;
+    /** Route `path` template in the tree, e.g. `/users/:id` — not the same as `ref`. */
     readonly pattern: string;
     readonly params?: Record<string, string>;
     readonly query?: Record<string, string>;
@@ -50,6 +53,10 @@ export type ViewLoadResult =
 
 /**
  * Custom loader body for `registry.register(type, fn)` / `AuraRouter.registerLoader`.
- * @example registry.register('badge', async (ctx) => `<span>${ctx.route.params?.id ?? ''}</span>`)
+ * @example
+ * // <aura-route path="/users/:id" view="badge::status" />
+ * registry.register('badge', async (context) =>
+ *   `<span class="${context.ref}">${context.route.params?.id ?? ''}</span>`,
+ * );
  */
-export type LoaderFn = (ctx: ViewLoadContext) => Promise<ViewPayload | null>;
+export type LoaderFn = (context: ViewLoadContext) => Promise<ViewPayload | null>;

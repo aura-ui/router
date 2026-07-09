@@ -5,7 +5,7 @@ import { getActiveChain } from '../route-tree/matched-chain';
 import { payloadCacheKey } from './cache/cache-key';
 import { PayloadCache } from './cache/payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
-import { DEFAULT_PREFETCH, orderPrefetchChain, prefetchConcurrent, type ContentPrefetchOptions } from './prefetch';
+import { DEFAULT_PREFETCH, orderPrefetchChain, runConcurrent, type ContentPrefetchOptions } from './prefetch';
 import type { ContentDescriptor, LoadContext, ViewPayload } from './types';
 import type { LoaderRegistry } from './runtime/registry';
 
@@ -85,7 +85,7 @@ export class ContentGraph {
     const { concurrency, order } = { ...DEFAULT_PREFETCH, ...options };
     const ordered = orderPrefetchChain(chain, order);
 
-    return prefetchConcurrent(ordered, concurrency, (info) => this.prefetchNode(info, signal));
+    return runConcurrent(ordered, concurrency, (info) => this.prefetchNode(info, signal), signal);
   }
 
   prefetchLeaf(

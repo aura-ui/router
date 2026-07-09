@@ -1,3 +1,4 @@
+import { Singleflight } from '../../../../aura-utils/async/singleflight';
 import { loadAndRegisterComponent } from '../../../../aura-utils/misc';
 import type { ViewLoadResult, ViewLoadContext } from '../types';
 import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
@@ -5,32 +6,20 @@ import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
 
 /** Resolved import path → custom element tag (process-wide, mirrors `customElements`). */
-const registeredImportPaths = new Map<string, string>();
-/** In-flight dynamic imports keyed by module path. */
-const inflightImports = new Map<string, Promise<string>>();
+const resolvedImportPaths = new Map<string, string>();
+const importSingleflight = new Singleflight<string, string>();
 
 async function resolveImportedTag(path: string, signal: AbortSignal): Promise<string> {
   if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
-  const cached = registeredImportPaths.get(path);
+  const cached = resolvedImportPaths.get(path);
   if (cached) return cached;
 
-  let inflight = inflightImports.get(path);
-  if (!inflight) {
-    inflight = loadAndRegisterComponent(path, signal)
-      .then((tagName) => {
-        registeredImportPaths.set(path, tagName);
-        inflightImports.delete(path);
-        return tagName;
-      })
-      .catch((error: unknown) => {
-        inflightImports.delete(path);
-        throw error;
-      });
-    inflightImports.set(path, inflight);
-  }
-
-  return inflight;
+  return importSingleflight.do(path, async () => {
+    const tagName = await loadAndRegisterComponent(path, signal);
+    resolvedImportPaths.set(path, tagName);
+    return tagName;
+  });
 }
 
 /** `view="import::./module.js"` — dynamic import, then component markup. */
@@ -40,9 +29,13 @@ export class ImportLoader extends Loader {
   async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     if (ctx.signal.aborted) return null;
 
-    const tagName = await resolveImportedTag(ctx.content, ctx.signal);
-    if (ctx.signal.aborted) return null;
-
-    return { kind: 'markup', markup: componentMarkup(tagName, ctx) };
+    try {
+      const tagName = await resolveImportedTag(ctx.content, ctx.signal);
+      if (ctx.signal.aborted) return null;
+      return { kind: 'markup', markup: componentMarkup(tagName, ctx) };
+    } catch (error) {
+      if (ctx.signal.aborted) return null;
+      throw error;
+    }
   }
 }

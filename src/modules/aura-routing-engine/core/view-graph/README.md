@@ -134,7 +134,7 @@ ViewPayload
 
 | Группа | Символы |
 |--------|---------|
-| Orchestration | `ViewGraph`, `ViewGraphDeps`, `ViewPrefetchOptions`, `RouteViewSource`, `ViewLoadPort` |
+| Orchestration | `ViewGraph`, `ViewGraphDeps`, `ViewPrefetchOptions`, `RouteViewSource`, `ViewLoadPort`, `ViewResolverPort`, `BranchViewResolver` |
 | Cache | `PayloadCache`, `payloadCacheKey` |
 | Registry | `LoaderRegistry`, `createLoaderRegistry`, `defaultLoaderRegistry`, `Loader`, `LoaderClass`, `LoaderFn` |
 | Types | `ViewPayload`, `ViewLoadContext`, `ViewDescriptor`, `ViewKind`, `ViewLoadResult`, `ViewLoaderEnv`, `FetchText` |
@@ -315,6 +315,8 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 | throw из loader'а | `createViewLoadError` → `CONTENT_LOAD_FAILED`, phase `render` |
 | ошибка prefetch | подавляется |
 | неизвестный loader id | throw из `registry.get` |
+
+**Безопасность:** `url`, bare `view` и `iframe::` используют значения из атрибутов маршрута без allowlist — разметка `<aura-route>` считается доверенной. См. [LIMITATIONS.md](../../../../LIMITATIONS.md#view-layer-viewgraph).
 
 `loadViewDescriptor(descriptor, …)` — загрузка по готовому descriptor, минуя route attrs. Используется в тестах и при явном resolve.
 

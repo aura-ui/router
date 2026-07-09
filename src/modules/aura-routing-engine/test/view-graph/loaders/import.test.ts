@@ -35,19 +35,26 @@ describe('ImportLoader', () => {
     }
   });
 
-  it('reuses cached tag for the same import path without reloading', async () => {
+  it('dedupes concurrent imports for the same path', async () => {
     const loader = new ImportLoader(createBrowserEnvironment());
-    const signal = new AbortController().signal;
+    let releaseImport!: () => void;
+    const importGate = new Promise<void>((resolve) => {
+      releaseImport = resolve;
+    });
+
+    mockedLoad.mockImplementation(() => importGate.then(() => 'concurrent-widget'));
+
     const ctx = {
-      content: './widgets/cached.js',
+      content: './widgets/concurrent.js',
       kind: 'view' as const,
-      signal,
-      route: { href: '/cached', pattern: '/cached' },
+      route: { href: '/concurrent', pattern: '/concurrent' },
     };
 
-    await loader.load(ctx);
-    await loader.load(ctx);
+    const first = loader.load({ ...ctx, signal: new AbortController().signal });
+    const second = loader.load({ ...ctx, signal: new AbortController().signal });
+    releaseImport();
 
+    await Promise.all([first, second]);
     expect(mockedLoad).toHaveBeenCalledTimes(1);
   });
 
@@ -80,6 +87,54 @@ describe('ImportLoader', () => {
       markup: expect.stringContaining('<shared-widget'),
     });
     expect(mockedLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns null when signal is already aborted', async () => {
+    const loader = new ImportLoader(createBrowserEnvironment());
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      loader.load({
+        content: './widgets/skip.js',
+        kind: 'view',
+        signal: controller.signal,
+        route: { href: '/skip', pattern: '/skip' },
+      }),
+    ).resolves.toBeNull();
+    expect(mockedLoad).not.toHaveBeenCalled();
+  });
+
+  it('rethrows load failures when signal is not aborted', async () => {
+    const loader = new ImportLoader(createBrowserEnvironment());
+    mockedLoad.mockRejectedValue(new Error('import failed'));
+
+    await expect(
+      loader.load({
+        content: './widgets/broken.js',
+        kind: 'view',
+        signal: new AbortController().signal,
+        route: { href: '/broken', pattern: '/broken' },
+      }),
+    ).rejects.toThrow('import failed');
+  });
+
+  it('returns null when load fails after signal abort', async () => {
+    const loader = new ImportLoader(createBrowserEnvironment());
+    const controller = new AbortController();
+    mockedLoad.mockImplementation(() => {
+      controller.abort();
+      return Promise.reject(new Error('import failed'));
+    });
+
+    await expect(
+      loader.load({
+        content: './widgets/abort-on-fail.js',
+        kind: 'view',
+        signal: controller.signal,
+        route: { href: '/abort-on-fail', pattern: '/abort-on-fail' },
+      }),
+    ).resolves.toBeNull();
   });
 
   it('returns null when aborted before load completes', async () => {

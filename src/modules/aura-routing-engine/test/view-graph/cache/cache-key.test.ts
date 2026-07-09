@@ -66,6 +66,50 @@ describe('payloadCacheKey', () => {
     expect(key).toBe('/settings|tab=profile|view:html:<p/>');
   });
 
+  it('uses matchKey without params when pathname is missing', () => {
+    const key = payloadCacheKey(
+      descriptor({ loader: 'html', content: '<p/>' }),
+      route({
+        pathname: undefined as unknown as string,
+        pattern: '/settings',
+        params: undefined,
+      }),
+    );
+    expect(key).toBe('/settings|view:html:<p/>');
+  });
+
+  it('skips null param values in query encoding', () => {
+    const key = payloadCacheKey(
+      descriptor(),
+      route({ query: { a: '1', b: null as unknown as string } }),
+    );
+    expect(key).toBe('/users/1|a=1|view:url:partials/user.html');
+  });
+
+  it('omits empty params segment when all values are null', () => {
+    const key = payloadCacheKey(
+      descriptor({ loader: 'html', content: '<p/>' }),
+      route({
+        pathname: undefined as unknown as string,
+        pattern: '/settings',
+        params: { tab: null as unknown as string },
+      }),
+    );
+    expect(key).toBe('/settings|view:html:<p/>');
+  });
+
+  it('omits params segment for an empty params object', () => {
+    const key = payloadCacheKey(
+      descriptor({ loader: 'html', content: '<p/>' }),
+      route({
+        pathname: undefined as unknown as string,
+        pattern: '/settings',
+        params: {},
+      }),
+    );
+    expect(key).toBe('/settings|view:html:<p/>');
+  });
+
   it('includes layout kind in the slot', () => {
     const key = payloadCacheKey(
       descriptor({ kind: 'layout', loader: 'template', content: 'shell' }),

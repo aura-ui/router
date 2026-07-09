@@ -5,21 +5,12 @@ import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser
 import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
 
-/** Resolved import path → custom element tag (process-wide, mirrors `customElements`). */
-const resolvedImportPaths = new Map<string, string>();
 const importSingleflight = new Singleflight<string, string>();
 
 async function resolveImportedTag(path: string): Promise<string> {
-  const cached = resolvedImportPaths.get(path);
-  if (cached) return cached;
-
   // Shared in-flight import must not use a caller's signal — abort means "skip result"
   // for that caller, not cancel the load for concurrent waiters (prefetch vs navigation).
-  return importSingleflight.do(path, async () => {
-    const tagName = await loadAndRegisterComponent(path);
-    resolvedImportPaths.set(path, tagName);
-    return tagName;
-  });
+  return importSingleflight.do(path, () => loadAndRegisterComponent(path));
 }
 
 /** `view="import::./module.js"` — dynamic import, then component markup. */

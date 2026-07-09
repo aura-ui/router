@@ -3,11 +3,6 @@ import type { InvalidatePolicy } from '../../aura-cache-store/core';
 /** Separator between path and hook segments in cache keys (`/users|fetch`). */
 const CACHE_KEY_SEP = '|';
 
-/** Returns whether a cache key belongs to the given route path. */
-function matchesPath(entryKey: string, path: string): boolean {
-  return entryKey === path || entryKey.startsWith(`${path}${CACHE_KEY_SEP}`);
-}
-
 /**
  * Tests whether a cache key should be invalidated.
  * Used with {@link RouterCacheInvalidator.invalidateMatch}.
@@ -18,7 +13,7 @@ export type CacheKeyMatcher = (key: string) => boolean;
  * Scope for cache invalidation.
  *
  * Omit all fields to invalidate every entry. When multiple fields are set,
- * {@link buildKeyMatcher} resolves in order: `key` → `path` → `match`.
+ * resolution order is `key` → `path` → `match`.
  */
 export type InvalidateScope = {
   /** Exact cache key ({@link buildRouteDataKey} or {@link payloadCacheKey}). */
@@ -58,6 +53,18 @@ export type RouterCacheInvalidator = {
   invalidateAll(policy?: InvalidatePolicy): number;
 };
 
+function belongsToPath(entryKey: string, path: string): boolean {
+  return entryKey === path || entryKey.startsWith(`${path}${CACHE_KEY_SEP}`);
+}
+
+function exactKeyMatcher(key: string): CacheKeyMatcher {
+  return (entryKey) => entryKey === key;
+}
+
+function pathPrefixMatcher(path: string): CacheKeyMatcher {
+  return (entryKey) => belongsToPath(entryKey, path);
+}
+
 /**
  * Builds a cache-key matcher from scope.
  *
@@ -65,10 +72,24 @@ export type RouterCacheInvalidator = {
  */
 function buildKeyMatcher(scope?: InvalidateScope): CacheKeyMatcher | null {
   const { key, path, match } = scope ?? {};
-  if (key) return (entryKey) => entryKey === key;
-  if (path) return (entryKey) => matchesPath(entryKey, path);
+  if (key) return exactKeyMatcher(key);
+  if (path) return pathPrefixMatcher(path);
   if (match) return match;
   return null;
+}
+
+function invalidateExactKey(
+  cache: RouterCacheInvalidator,
+  key: string,
+  policy: InvalidatePolicy,
+): number {
+  return cache.invalidate(key, policy) ? 1 : 0;
+}
+
+/** Returns `-1` when the cache had no entries to invalidate. */
+function invalidateEveryKey(cache: RouterCacheInvalidator, policy: InvalidatePolicy): number {
+  const count = cache.invalidateAll(policy);
+  return count > 0 ? count : -1;
 }
 
 /**
@@ -88,16 +109,15 @@ export function invalidateRouterCache(
   options: RouterInvalidateOptions = {},
   defaultPolicy: InvalidatePolicy = 'stale',
 ): number {
-  const { policy = defaultPolicy, key, path, match } = options;
+  const policy = options.policy ?? defaultPolicy;
 
-  if (key) {
-    return cache.invalidate(key, policy) ? 1 : 0;
+  if (options.key) {
+    return invalidateExactKey(cache, options.key, policy);
   }
 
-  const matcher = buildKeyMatcher({ path, match });
+  const matcher = buildKeyMatcher(options);
   if (!matcher) {
-    const count = cache.invalidateAll(policy);
-    return count > 0 ? count : -1;
+    return invalidateEveryKey(cache, policy);
   }
 
   return cache.invalidateMatch(matcher, policy);

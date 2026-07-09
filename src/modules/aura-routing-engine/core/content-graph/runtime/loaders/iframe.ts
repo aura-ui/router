@@ -4,7 +4,6 @@ import { Loader } from '../loader';
 
 export class IframeLoader extends Loader {
   static readonly type = 'iframe' as const satisfies LoaderType;
-
   readonly type = IframeLoader.type;
 
   load(ctx: LoadContext): Promise<ContentResult | null> {

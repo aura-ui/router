@@ -14,19 +14,11 @@ const DEFAULT_OPTIONS: CacheStoreOptions<string> = {
   gcSweepInterval: false,
 };
 
-function isCacheable(payload: ViewPayload | null): payload is string {
-  return typeof payload === 'string';
-}
-
-/** View-loader string payload cache with in-flight deduplication. */
 export class PayloadCache {
   private readonly store: AuraResolvableCache<string>;
 
   constructor(options: CacheStoreOptions<string> = {}) {
-    this.store = new AuraResolvableCache({
-      ...DEFAULT_OPTIONS,
-      ...options,
-    });
+    this.store = new AuraResolvableCache({ ...DEFAULT_OPTIONS, ...options });
   }
 
   get(key: string): ViewPayload | undefined {
@@ -46,9 +38,7 @@ export class PayloadCache {
     load: () => Promise<ViewPayload | null>,
   ): Promise<ViewPayload | null> {
     return this.store.resolve(key, load, (entryKey, payload) => {
-      if (isCacheable(payload)) {
-        this.store.set(entryKey, payload);
-      }
+      typeof payload === 'string' && this.store.set(entryKey, payload);
     });
   }
 

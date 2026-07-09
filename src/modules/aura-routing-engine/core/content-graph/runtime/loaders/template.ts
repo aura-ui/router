@@ -4,7 +4,6 @@ import { Loader } from '../loader';
 
 export class TemplateLoader extends Loader {
   static readonly type = 'template' as const satisfies LoaderType;
-
   readonly type = TemplateLoader.type;
 
   load(ctx: LoadContext): Promise<ContentResult | null> {

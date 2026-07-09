@@ -5,7 +5,6 @@ import { Loader } from '../loader';
 
 export class ImportLoader extends Loader {
   static readonly type = 'import' as const satisfies LoaderType;
-
   readonly type = ImportLoader.type;
 
   async load(ctx: LoadContext): Promise<ContentResult | null> {

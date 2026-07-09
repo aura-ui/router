@@ -1,12 +1,3 @@
-/**
- * View content graph — resolve, prefetch, payload cache (parallel to {@link DataGraph}).
- *
- * Retention model:
- * - `PayloadCache` — string payloads (`url`, `html`, component markup) when `preserve.view`
- * - `ViewCache` (aura-route) — detached DOM keep-alive
- * - `DataGraph` — load-hook data when `preserve.data`
- */
-
 export {
   ContentGraph,
   type RouteContentSource,
@@ -15,16 +6,12 @@ export {
 export type { ContentGraphDeps } from './content-graph';
 import type { ContentGraph } from './content-graph';
 
-export {
-  PayloadCache,
-  payloadCacheKey,
-} from './cache';
+export { PayloadCache, payloadCacheKey } from './cache';
 export type { RouterInvalidateOptions as ContentInvalidateOptions } from '../invalidate-router-cache';
 
 export { routeSnapshot, componentMarkup } from './runtime/markup';
 
 export type { LoaderFn } from './types';
-
 export type {
   ContentDescriptor,
   ContentKind,
@@ -35,10 +22,7 @@ export type {
   ViewPayload,
 } from './types';
 
-export {
-  Loader,
-  type LoaderClass,
-} from './runtime/loader';
+export { Loader, type LoaderClass } from './runtime/loader';
 
 export {
   LoaderRegistry,
@@ -70,8 +54,4 @@ export {
 
 export type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 
-/** Port shared by render and prefetch executors. */
-export type ContentLoadPort = Pick<
-  ContentGraph,
-  'loadView' | 'prefetchBranch'
->;
+export type ContentLoadPort = Pick<ContentGraph, 'loadView' | 'prefetchBranch'>;

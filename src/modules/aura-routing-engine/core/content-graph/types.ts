@@ -1,7 +1,5 @@
 import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 
-export type { LoaderType };
-
 export type ViewPayload = Node | string;
 
 export type ContentKind = 'layout' | 'content';

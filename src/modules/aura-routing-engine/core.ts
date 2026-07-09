@@ -95,23 +95,26 @@ export {
   LoaderRegistry,
   createLoaderRegistry,
   defaultLoaderRegistry,
-  TemplateLoader,
-  HtmlLoader,
-  UrlLoader,
-  ComponentLoader,
-  ImportLoader,
-  IframeLoader,
-  routeSnapshot,
-  fetchText,
-  resolveRelativeUrl,
+} from './core/content-graph';
+
+export { TemplateLoader } from './core/content-graph/loaders/template';
+export { HtmlLoader } from './core/content-graph/loaders/html';
+export { UrlLoader } from './core/content-graph/loaders/url';
+export { ComponentLoader } from './core/content-graph/loaders/component';
+export { ImportLoader } from './core/content-graph/loaders/import';
+export { IframeLoader } from './core/content-graph/loaders/iframe';
+
+export { routeSnapshot, componentMarkup } from './core/content-graph/markup';
+export {
   createBrowserEnvironment,
   defaultEnvironment,
-} from './core/content-graph';
+  fetchText,
+  resolveRelativeUrl,
+} from './core/content-graph/environment';
 
 export type {
   ContentGraphDeps,
   ContentPrefetchOptions,
-  ContentInvalidateOptions,
   ContentLoadPort,
   ContentResult,
   RouteContentSource,
@@ -121,10 +124,12 @@ export type {
   ContentKind,
   FetchText,
   LoaderFn,
-  LoaderType,
   LoadContext,
   ViewPayload,
 } from './core/content-graph';
+
+export type { LoaderType } from '../aura-route/core/attr/view-attr-parser';
+export type { RouterInvalidateOptions as ContentInvalidateOptions } from './core/invalidate-router-cache';
 
 export {
   NO_PRESERVE,

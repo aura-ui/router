@@ -4,12 +4,20 @@ import type { ViewLoaderEnv, ViewLoadResult, ViewLoadContext, LoaderFn } from '.
 /** Class-based view loader; register via {@link LoaderRegistry.register}. */
 export abstract class Loader {
   protected readonly env: ViewLoaderEnv;
+  readonly type: LoaderType;
 
-  constructor(env: ViewLoaderEnv) {
+  constructor(env: ViewLoaderEnv, typeOverride?: LoaderType) {
     this.env = env;
+    if (typeOverride !== undefined) {
+      this.type = typeOverride;
+      return;
+    }
+    const ctor = this.constructor as typeof Loader & { type?: LoaderType };
+    if (typeof ctor.type !== 'string') {
+      throw new TypeError(`${ctor.name} requires static readonly type`);
+    }
+    this.type = ctor.type;
   }
-
-  abstract readonly type: LoaderType;
 
   abstract load(ctx: ViewLoadContext): Promise<ViewLoadResult | null>;
 }
@@ -21,12 +29,10 @@ export type LoaderClass = {
 
 /** Wraps {@link LoaderFn} from `register(type, fn)`; string → html, `Node` → fragment. */
 export class FnLoader extends Loader {
-  readonly type: LoaderType;
   private readonly fn: LoaderFn;
 
   constructor(env: ViewLoaderEnv, type: LoaderType, fn: LoaderFn) {
-    super(env);
-    this.type = type;
+    super(env, type);
     this.fn = fn;
   }
 

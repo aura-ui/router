@@ -6,7 +6,6 @@ import { Loader } from '../loader';
 /** `view="partials/page.html"` or `view="url::…"` — fetch; route `extract` attr selects a fragment. */
 export class UrlLoader extends Loader {
   static readonly type = 'url' as const satisfies LoaderType;
-  readonly type = UrlLoader.type;
 
   async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     const html = await this.env.fetchText(this.env.resolveUrl(ctx.ref), ctx.signal);

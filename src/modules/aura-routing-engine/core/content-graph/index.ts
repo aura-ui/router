@@ -17,7 +17,7 @@ export {
   PayloadCache,
   payloadCacheKey,
 } from './cache';
-export type { RouterInvalidateOptions as ContentInvalidateOptions } from '../invalidate';
+export type { RouterInvalidateOptions as ContentInvalidateOptions } from '../invalidate-router-cache';
 
 export { buildContentDescriptor, type RouteContentSource } from './model/descriptor';
 export { toLoadContext, routeSnapshot, componentMarkup } from './model/context';

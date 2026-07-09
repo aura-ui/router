@@ -159,7 +159,7 @@ export type {
 export type {
   RouterInvalidateOptions,
   RouterInvalidateOptions as RouterDataInvalidateOptions,
-} from './core/invalidate';
+} from './core/invalidate-router-cache';
 
 // --- Route hooks (registered via AuraRouter.use) ---
 

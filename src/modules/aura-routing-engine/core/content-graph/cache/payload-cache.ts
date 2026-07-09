@@ -5,7 +5,7 @@ import {
 import {
   invalidateRouterCache,
   type RouterInvalidateOptions,
-} from '../../invalidate';
+} from '../../invalidate-router-cache';
 import type { ViewPayload } from '../model/types';
 
 const DEFAULT_OPTIONS: CacheStoreOptions<string> = {

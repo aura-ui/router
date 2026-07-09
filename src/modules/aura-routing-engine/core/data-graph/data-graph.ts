@@ -3,7 +3,7 @@ import { DEFAULT_GC_TIME } from '../../../aura-cache-store/core';
 import {
   invalidateRouterCache,
   type RouterInvalidateOptions,
-} from '../invalidate';
+} from '../invalidate-router-cache';
 import { normalizeHookResult, type HookRegistry } from '../hooks/registry';
 import type { HookResultInput } from '../hooks/types';
 import type { MatchedRouteInfo } from '../match/url-matcher';

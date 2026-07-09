@@ -50,7 +50,7 @@
 | Suite | Причина |
 |-------|---------|
 | `test/prefetch/intent.test.ts` (4) | `LinkIntentSource` теперь требует `config: LinkIntentSourceConfig`, тесты вызывают `new LinkIntentSource(bus)` |
-| `test/content/loader-registry.test.ts` (3) | API registry изменился (`getRegisteredTypes`, `has`, `BUILTIN_LOADER_TYPES`) |
+| `test/content/loader-registry.test.ts` (3) | API registry изменился (`getRegisteredTypes`, `has`, `BUILTIN_LOADER_IDS`) |
 | `test/prefetch/prefetch-pipeline.test.ts` (1) | Data cache: ожидался 1 load, получено 2 |
 
 Похоже на **незавершённый рефакторинг**, не на флаки.

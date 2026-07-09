@@ -1,4 +1,4 @@
-import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
+import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewLoaderEnv, LoaderFn } from './types';
 import { Loader, FnLoader, type LoaderClass } from './loader';
 import { createBrowserEnvironment, defaultEnvironment } from './environment';
@@ -18,7 +18,7 @@ const BUILTIN = [
   IframeLoader,
 ] as const satisfies readonly LoaderClass[];
 
-/** Built-in and custom loaders keyed by {@link LoaderType}. See {@link defaultLoaderRegistry}. */
+/** Built-in and custom loaders keyed by {@link LoaderId}. See {@link defaultLoaderRegistry}. */
 export class LoaderRegistry {
   private readonly env: ViewLoaderEnv;
   private readonly loaders = new Map<string, Loader>();
@@ -31,32 +31,36 @@ export class LoaderRegistry {
     loaders.forEach((loader) => this.install(loader));
   }
 
-  /** Instance, class (`new C(env)`), or `(type, fn)` → {@link FnLoader}. */
+  /** Instance, class (`new C(env)`), or `(loaderId, fn)` → {@link FnLoader}. */
   register(loader: Loader): void;
   register(loaderClass: LoaderClass): void;
-  register(type: LoaderType, fn: LoaderFn): void;
-  register(typeOrLoader: LoaderType | Loader | LoaderClass, fn?: LoaderFn): void {
-    if (typeof typeOrLoader === 'string') {
-      if (!fn) throw new TypeError(`register("${typeOrLoader}") requires a loader function`);
-      return this.install(new FnLoader(this.env, typeOrLoader, fn));
+  register(loaderId: LoaderId, fn: LoaderFn): void;
+  register(loaderIdOrLoader: LoaderId | Loader | LoaderClass, fn?: LoaderFn): void {
+    if (typeof loaderIdOrLoader === 'string') {
+      if (!fn) throw new TypeError(`register("${loaderIdOrLoader}") requires a loader function`);
+      return this.install(new FnLoader(this.env, loaderIdOrLoader, fn));
     }
     if (fn) throw new TypeError('register(loader) accepts a single argument');
-    if (typeof typeOrLoader === 'function') {
-      if (typeof typeOrLoader.type !== 'string') throw new TypeError('register(fn) is invalid — use register(type, fn)');
-      return this.install(new typeOrLoader(this.env));
+    if (typeof loaderIdOrLoader === 'function') {
+      if (typeof loaderIdOrLoader.type !== 'string') {
+        throw new TypeError('register(fn) is invalid — use register(loaderId, fn)');
+      }
+      return this.install(new loaderIdOrLoader(this.env));
     }
-    this.install(typeOrLoader);
+    this.install(loaderIdOrLoader);
   }
 
-  has(type: LoaderType): boolean {
-    return this.loaders.has(type);
+  has(loaderId: LoaderId): boolean {
+    return this.loaders.has(loaderId);
   }
 
-  /** @throws when `type` is not registered */
-  get(type: LoaderType): Loader {
-    const loader = this.loaders.get(type);
+  /** @throws when `loaderId` is not registered */
+  get(loaderId: LoaderId): Loader {
+    const loader = this.loaders.get(loaderId);
     if (!loader) {
-      throw new Error(`Unknown view loader "${type}". Registered: ${[...this.loaders.keys()].join(', ') || 'none'}`);
+      throw new Error(
+        `Unknown view loader "${loaderId}". Registered: ${[...this.loaders.keys()].join(', ') || 'none'}`,
+      );
     }
     return loader;
   }

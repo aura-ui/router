@@ -13,7 +13,7 @@ import {
   type AuraRoutingEngineConfig,
   type HistoryAction,
   type LoaderFn,
-  type LoaderType,
+  type LoaderId,
   type NavigateHistoryOptions,
   type PrefetchOptions,
   type RouteHookDefinition,
@@ -143,8 +143,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /** Registers a custom content loader on the shared {@link defaultLoaderRegistry}. */
-  static registerLoader(type: LoaderType, loader: LoaderFn): void {
-    defaultLoaderRegistry.register(type, loader);
+  static registerLoader(loaderId: LoaderId, fn: LoaderFn): void {
+    defaultLoaderRegistry.register(loaderId, fn);
   }
 
   /** Per-instance override (перекрывает configure и template). Только fallback. */

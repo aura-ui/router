@@ -24,7 +24,7 @@ export {
 export { NO_TRANSITION } from '../aura-route/core/attr/transition-attr-parser';
 
 export type { ViewDescriptor, ViewKind, LoaderFn } from './core/view-graph';
-export type { LoaderType } from '../aura-route/core/attr/view-attr-parser';
+export type { LoaderId } from '../aura-route/core/attr/view-attr-parser';
 export type { ViewGraph } from './core/view-graph';
 export type { MatchedRouteInfo } from './core/match/url-matcher';
 export type {

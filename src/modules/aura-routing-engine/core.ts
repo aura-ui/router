@@ -128,7 +128,7 @@ export type {
   ViewPayload,
 } from './core/view-graph';
 
-export type { LoaderType } from '../aura-route/core/attr/view-attr-parser';
+export type { LoaderId } from '../aura-route/core/attr/view-attr-parser';
 export type { RouterInvalidateOptions as ViewInvalidateOptions } from './core/invalidate-router-cache';
 
 export {

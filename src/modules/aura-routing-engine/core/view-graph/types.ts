@@ -1,4 +1,4 @@
-import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
+import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
 
 /** Mount-ready payload: HTML string or DOM node. */
 export type ViewPayload = Node | string;
@@ -9,7 +9,7 @@ export type ViewKind = 'layout' | 'view';
 /** Resolved load target built from route attrs and {@link MatchedRouteInfo.resolvedView}. */
 export type ViewDescriptor = {
   readonly kind: ViewKind;
-  readonly loader: LoaderType;
+  readonly loader: LoaderId;
   readonly content: string;
   /** When true, {@link PayloadCache} is used (`preserve.view` on view routes; layout is always false). */
   readonly cache: boolean;

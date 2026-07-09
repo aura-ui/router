@@ -1,4 +1,4 @@
-export type BuiltinLoaderType =
+export type BuiltinLoaderId =
   | 'template'
   | 'html'
   | 'url'
@@ -6,31 +6,31 @@ export type BuiltinLoaderType =
   | 'import'
   | 'iframe';
 
-export type LoaderType = BuiltinLoaderType | string;
+export type LoaderId = BuiltinLoaderId | string;
 
 export type ViewAttrDescriptor = {
-  loader: LoaderType;
+  loader: LoaderId;
   content: string;
 };
 
 /** Default loader for bare `view="content"` (README: `url`). */
-export const DEFAULT_VIEW_LOADER = 'url' as const satisfies LoaderType;
+export const DEFAULT_VIEW_LOADER = 'url' as const satisfies LoaderId;
 
 /** Canonical built-in loader ids (README order). */
-export const BUILTIN_LOADER_TYPES = [
+export const BUILTIN_LOADER_IDS = [
   'template',
   'html',
   'url',
   'component',
   'import',
   'iframe',
-] as const satisfies readonly LoaderType[];
+] as const satisfies readonly LoaderId[];
 
-/** Subset of {@link BUILTIN_LOADER_TYPES} that require async resolve. */
-export const ASYNC_LOADER_TYPES = ['url', 'import', 'iframe'] as const satisfies readonly LoaderType[];
+/** Subset of {@link BUILTIN_LOADER_IDS} that require async resolve. */
+export const ASYNC_LOADER_IDS = ['url', 'import', 'iframe'] as const satisfies readonly LoaderId[];
 
-const knownLoaders = new Set<string>(BUILTIN_LOADER_TYPES);
-const asyncLoaders = new Set<string>(ASYNC_LOADER_TYPES);
+const knownLoaders = new Set<string>(BUILTIN_LOADER_IDS);
+const asyncLoaders = new Set<string>(ASYNC_LOADER_IDS);
 
 export function isKnownViewLoader(loader: string): boolean {
   return knownLoaders.has(loader);

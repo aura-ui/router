@@ -145,7 +145,7 @@ ViewPayload
 
 ## Встроенные loaders
 
-| `LoaderType` | Атрибут | `context.content` | `ViewLoadResult` |
+| `LoaderId` | Атрибут | `context.content` | `ViewLoadResult` |
 |--------------|---------|---------------|------------------|
 | `template` | `layout="id"` (не `view`) | id шаблона | `fragment` |
 | `html` | `html::…` | inline HTML | `html` |
@@ -206,10 +206,10 @@ AuraRouter.registerLoader('charts', async (context) => {
 
 ```ts
 import { Loader, type ViewLoadContext, type ViewLoadResult } from '…/core/view-graph';
-import type { LoaderType } from '…/aura-route/core/attr/view-attr-parser';
+import type { LoaderId } from '…/aura-route/core/attr/view-attr-parser';
 
 export class MarkdownLoader extends Loader {
-  static readonly type = 'markdown' as const satisfies LoaderType;
+  static readonly type = 'markdown' as const satisfies LoaderId;
 
   async load(context: ViewLoadContext): Promise<ViewLoadResult | null> {
     // view="markdown::docs/guide.md" → context.content === 'docs/guide.md'

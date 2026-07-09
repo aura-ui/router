@@ -1,18 +1,18 @@
-import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
+import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewLoaderEnv, ViewLoadResult, ViewLoadContext, LoaderFn } from './types';
 
 /** Class-based view loader; register via {@link LoaderRegistry.register}. */
 export abstract class Loader {
   protected readonly env: ViewLoaderEnv;
-  readonly type: LoaderType;
+  readonly type: LoaderId;
 
-  constructor(env: ViewLoaderEnv, typeOverride?: LoaderType) {
+  constructor(env: ViewLoaderEnv, typeOverride?: LoaderId) {
     this.env = env;
     if (typeOverride !== undefined) {
       this.type = typeOverride;
       return;
     }
-    const ctor = this.constructor as typeof Loader & { type?: LoaderType };
+    const ctor = this.constructor as typeof Loader & { type?: LoaderId };
     if (typeof ctor.type !== 'string') {
       throw new TypeError(`${ctor.name} requires static readonly type`);
     }
@@ -24,15 +24,15 @@ export abstract class Loader {
 
 export type LoaderClass = {
   new (env: ViewLoaderEnv): Loader;
-  readonly type: LoaderType;
+  readonly type: LoaderId;
 };
 
 /** Wraps {@link LoaderFn} from `register(type, fn)`; string → html, `Node` → fragment. */
 export class FnLoader extends Loader {
   private readonly fn: LoaderFn;
 
-  constructor(env: ViewLoaderEnv, type: LoaderType, fn: LoaderFn) {
-    super(env, type);
+  constructor(env: ViewLoaderEnv, loaderId: LoaderId, fn: LoaderFn) {
+    super(env, loaderId);
     this.fn = fn;
   }
 

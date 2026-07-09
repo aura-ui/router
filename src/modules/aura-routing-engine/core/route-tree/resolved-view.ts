@@ -1,8 +1,8 @@
-import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
+import type { ViewAttrDescriptor, LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
 export type ResolvedView = {
-  loader: string;
+  loader: LoaderId;
   content: string;
   viewKey: string;
 };

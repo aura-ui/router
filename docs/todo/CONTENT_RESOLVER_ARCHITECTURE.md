@@ -177,7 +177,7 @@ content: new RouteContentLoader(this),
 ```typescript
 type ContentDescriptor = {
   readonly kind: 'layout' | 'content';
-  readonly loader: LoaderType;   // route.source или 'template'
+  readonly loader: LoaderId;   // route.source или 'template'
   readonly ref: string;          // route.content или route.layout
   readonly cache: boolean;       // preserve.data (layout всегда false)
 };

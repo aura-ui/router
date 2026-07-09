@@ -135,7 +135,7 @@ export class ViewGraph {
     if (!resolvedView?.type) return null;
 
     const descriptor: ViewDescriptor = {
-      kind: 'content',
+      kind: 'view',
       loader: resolvedView.type,
       ref: resolvedView.ref,
       cache: route.preserve.view,

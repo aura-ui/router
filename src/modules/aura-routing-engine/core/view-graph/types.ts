@@ -2,7 +2,7 @@ import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser'
 
 export type ViewPayload = Node | string;
 
-export type ViewKind = 'layout' | 'content';
+export type ViewKind = 'layout' | 'view';
 
 export type ViewDescriptor = {
   readonly kind: ViewKind;

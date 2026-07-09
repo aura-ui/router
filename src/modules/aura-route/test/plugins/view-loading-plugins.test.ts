@@ -13,7 +13,7 @@ function renderPass(): RenderPass {
     } as RenderPass['routeInfo'],
     signal: new AbortController().signal,
     cacheKey: '/',
-    viewKind: 'content',
+    viewKind: 'view',
     useStagedMount: false,
   };
 }

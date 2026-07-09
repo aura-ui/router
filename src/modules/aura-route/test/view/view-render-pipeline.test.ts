@@ -25,7 +25,7 @@ function renderPass(id = 1): RenderPass {
     } as MatchedRouteInfo,
     signal: new AbortController().signal,
     cacheKey: '/page',
-    viewKind: 'content',
+    viewKind: 'view',
     useStagedMount: false,
   };
 }

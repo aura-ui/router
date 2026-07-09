@@ -3,44 +3,44 @@ import { parseViewAttr } from '../../core/attr/view-attr-parser';
 describe('parseViewAttr', () => {
   it('splits known loader prefix on the first ::', () => {
     expect(parseViewAttr('url::profile.html')).toEqual({
-      type: 'url',
+      loader: 'url',
       content: 'profile.html',
     });
     expect(parseViewAttr('import::./pages/profile.ts')).toEqual({
-      type: 'import',
+      loader: 'import',
       content: './pages/profile.ts',
     });
     expect(parseViewAttr('component::user-card')).toEqual({
-      type: 'component',
+      loader: 'component',
       content: 'user-card',
     });
     expect(parseViewAttr('custom::my-loader')).toEqual({
-      type: 'custom',
+      loader: 'custom',
       content: 'my-loader',
     });
   });
 
   it('preserves single colons in content', () => {
     expect(parseViewAttr('html::<div data-x="a:b">x</div>')).toEqual({
-      type: 'html',
+      loader: 'html',
       content: '<div data-x="a:b">x</div>',
     });
   });
 
-  it('defaults bare ref to url', () => {
+  it('defaults bare content to url', () => {
     expect(parseViewAttr('profile.html')).toEqual({
-      type: 'url',
+      loader: 'url',
       content: 'profile.html',
     });
     expect(parseViewAttr('pages/home.html')).toEqual({
-      type: 'url',
+      loader: 'url',
       content: 'pages/home.html',
     });
   });
 
   it('treats unknown prefix before :: as custom loader', () => {
     expect(parseViewAttr('markdown::docs/guide.md')).toEqual({
-      type: 'markdown',
+      loader: 'markdown',
       content: 'docs/guide.md',
     });
   });
@@ -50,21 +50,21 @@ describe('parseViewAttr', () => {
     expect(parseViewAttr('   ')).toBeNull();
   });
 
-  it('treats leading :: as bare url ref', () => {
-    expect(parseViewAttr('::ref-only')).toEqual({
-      type: 'url',
-      content: '::ref-only',
+  it('treats leading :: as bare url content', () => {
+    expect(parseViewAttr('::content-only')).toEqual({
+      loader: 'url',
+      content: '::content-only',
     });
   });
 
-  it('treats single-colon strings as bare url refs', () => {
+  it('treats single-colon strings as bare url content', () => {
     expect(parseViewAttr('page:profile.html')).toEqual({
-      type: 'url',
+      loader: 'url',
       content: 'page:profile.html',
     });
   });
 
-  it('warns when bare url ref looks like a module path', () => {
+  it('warns when bare url content looks like a module path', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     parseViewAttr('./pages/app.ts');
@@ -72,7 +72,7 @@ describe('parseViewAttr', () => {
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
-      'view ref "./pages/app.ts" looks like a module path — use import::./pages/app.ts instead of url',
+      'view content "./pages/app.ts" looks like a module path — use import::./pages/app.ts instead of url',
     );
     warn.mockRestore();
   });

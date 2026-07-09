@@ -40,7 +40,7 @@ describe('ViewGraph', () => {
   });
 
   it('loads layout via template loader', async () => {
-    registry.register('template', async (ctx) => `<layout>${ctx.ref}</layout>`);
+    registry.register('template', async (ctx) => `<layout>${ctx.content}</layout>`);
     const route = matched('/users', {
       route: { layout: 'users-layout', view: null, preserve: { view: false } },
     });
@@ -50,11 +50,11 @@ describe('ViewGraph', () => {
     );
   });
 
-  it('loads view via resolvedView type', async () => {
-    registry.register('html', async (ctx) => ctx.ref);
+  it('loads view via resolvedView loader', async () => {
+    registry.register('html', async (ctx) => ctx.content);
     const route = matched('/about', {
-      route: { layout: '', view: { type: 'html', content: '<p>about</p>' }, preserve: { view: false } },
-      resolvedView: { type: 'html', ref: '<p>about</p>' },
+      route: { layout: '', view: { loader: 'html', content: '<p>about</p>' }, preserve: { view: false } },
+      resolvedView: { loader: 'html', content: '<p>about</p>' },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBe('<p>about</p>');
@@ -67,7 +67,7 @@ describe('ViewGraph', () => {
     const controller = new AbortController();
     controller.abort();
     const route = matched('/x', {
-      resolvedView: { type: 'html', ref: '<p/>' },
+      resolvedView: { loader: 'html', content: '<p/>' },
     });
 
     await expect(viewGraph.loadView(route, controller.signal)).resolves.toBeNull();
@@ -81,8 +81,8 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/cached', {
-      route: { layout: '', view: { type: 'html', content: '<p/>' }, preserve: { view: true } },
-      resolvedView: { type: 'html', ref: '<p/>' },
+      route: { layout: '', view: { loader: 'html', content: '<p/>' }, preserve: { view: true } },
+      resolvedView: { loader: 'html', content: '<p/>' },
     });
     const signal = new AbortController().signal;
 
@@ -100,7 +100,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/fresh', {
-      resolvedView: { type: 'html', ref: 'x' },
+      resolvedView: { loader: 'html', content: 'x' },
     });
     const signal = new AbortController().signal;
 
@@ -118,7 +118,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/users/1', {
-      resolvedView: { type: 'html', ref: 'x' },
+      resolvedView: { loader: 'html', content: 'x' },
     });
 
     await viewGraph.loadView(route, new AbortController().signal, { data: { id: 1 } });
@@ -131,7 +131,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/fail', {
-      resolvedView: { type: 'url', ref: 'missing.html' },
+      resolvedView: { loader: 'url', content: 'missing.html' },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).rejects.toMatchObject({
@@ -151,8 +151,8 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/frag', {
-      route: { layout: '', view: { type: 'html', content: 'x' }, preserve: { view: true } },
-      resolvedView: { type: 'html', ref: 'x' },
+      route: { layout: '', view: { loader: 'html', content: 'x' }, preserve: { view: true } },
+      resolvedView: { loader: 'html', content: 'x' },
     });
     const signal = new AbortController().signal;
 
@@ -171,7 +171,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/prefetch', {
-      resolvedView: { type: 'html', ref: 'x' },
+      resolvedView: { loader: 'html', content: 'x' },
     });
 
     await expect(viewGraph.prefetchNode(route, new AbortController().signal)).resolves.toBeUndefined();
@@ -183,15 +183,15 @@ describe('ViewGraph', () => {
       order.push(`start:${ctx.route.pattern}`);
       await new Promise((r) => setTimeout(r, 10));
       order.push(`end:${ctx.route.pattern}`);
-      return ctx.ref;
+      return ctx.content;
     });
 
     const parent = matched('/users', {
-      resolvedView: { type: 'html', ref: 'parent' },
+      resolvedView: { loader: 'html', content: 'parent' },
     });
     const child = matched('/users/1', {
       pattern: '/users/:id',
-      resolvedView: { type: 'html', ref: 'child' },
+      resolvedView: { loader: 'html', content: 'child' },
     });
 
     await viewGraph.prefetchBranch([parent, child], new AbortController().signal, {
@@ -213,15 +213,15 @@ describe('ViewGraph', () => {
       order.push(`start:${ctx.route.pattern}`);
       await new Promise((r) => setTimeout(r, 10));
       order.push(`end:${ctx.route.pattern}`);
-      return ctx.ref;
+      return ctx.content;
     });
 
     const parent = matched('/users', {
-      resolvedView: { type: 'html', ref: 'parent' },
+      resolvedView: { loader: 'html', content: 'parent' },
     });
     const child = matched('/users/1', {
       pattern: '/users/:id',
-      resolvedView: { type: 'html', ref: 'child' },
+      resolvedView: { loader: 'html', content: 'child' },
     });
 
     await viewGraph.prefetchBranch([parent, child], new AbortController().signal, {
@@ -245,7 +245,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/abort-on-error', {
-      resolvedView: { type: 'html', ref: 'x' },
+      resolvedView: { loader: 'html', content: 'x' },
     });
 
     await expect(viewGraph.loadView(route, controller.signal)).resolves.toBeNull();
@@ -259,10 +259,10 @@ describe('ViewGraph', () => {
     });
 
     const parent = matched('/app', {
-      resolvedView: { type: 'html', ref: 'layout' },
+      resolvedView: { loader: 'html', content: 'layout' },
     });
     const leaf = matched('/app/home', {
-      resolvedView: { type: 'html', ref: 'home' },
+      resolvedView: { loader: 'html', content: 'home' },
       chain: undefined,
     });
     leaf.chain = [parent, leaf];
@@ -281,8 +281,8 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/items', {
-      route: { layout: '', view: { type: 'html', content: 'x' }, preserve: { view: true } },
-      resolvedView: { type: 'html', ref: 'x' },
+      route: { layout: '', view: { loader: 'html', content: 'x' }, preserve: { view: true } },
+      resolvedView: { loader: 'html', content: 'x' },
     });
     const signal = new AbortController().signal;
 
@@ -301,7 +301,7 @@ describe('ViewGraph', () => {
     });
 
     await viewGraph.loadViewDescriptor(
-      { kind: 'view', loader: 'url', ref: 'page.html', cache: false, extract: '#main' },
+      { kind: 'view', loader: 'url', content: 'page.html', cache: false, extract: '#main' },
       matched('/page'),
       new AbortController().signal,
     );
@@ -319,11 +319,11 @@ describe('ViewGraph', () => {
     const route = matched('/page', {
       route: {
         layout: '',
-        view: { type: 'url', content: 'page.html' },
+        view: { loader: 'url', content: 'page.html' },
         extract: '#main',
         preserve: { view: false },
       },
-      resolvedView: { type: 'url', ref: 'page.html' },
+      resolvedView: { loader: 'url', content: 'page.html' },
     });
 
     await viewGraph.loadView(route, new AbortController().signal);
@@ -331,13 +331,13 @@ describe('ViewGraph', () => {
   });
 
   it('prefers layout over view when both are present', async () => {
-    registry.register('template', async (ctx) => `layout:${ctx.ref}`);
+    registry.register('template', async (ctx) => `layout:${ctx.content}`);
     registry.register('html', async () => 'view-should-not-load');
 
     const route = matched('/both', {
       route: {
         layout: 'shell',
-        view: { type: 'html', content: '<p/>' },
+        view: { loader: 'html', content: '<p/>' },
         preserve: { view: false },
       },
       resolvedView: null,
@@ -351,7 +351,7 @@ describe('ViewGraph', () => {
   it('returns null when loader yields null', async () => {
     registry.register('html', async () => null);
     const route = matched('/empty-view', {
-      resolvedView: { type: 'html', ref: 'x' },
+      resolvedView: { loader: 'html', content: 'x' },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBeNull();
@@ -360,7 +360,7 @@ describe('ViewGraph', () => {
   it('collapses markup loader results to string payload', async () => {
     registry.register('iframe', async () => '<iframe src="/x"></iframe>');
     const route = matched('/embed', {
-      resolvedView: { type: 'iframe', ref: 'https://example.com' },
+      resolvedView: { loader: 'iframe', content: 'https://example.com' },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBe(

@@ -21,7 +21,7 @@ describe('ImportLoader', () => {
   it('loads a module and returns component markup', async () => {
     const loader = new ImportLoader(createBrowserEnvironment());
     const result = await loader.load({
-      ref: './widgets/chart.js',
+      content: './widgets/chart.js',
       kind: 'view',
       signal: new AbortController().signal,
       route: { href: '/charts', pattern: '/charts', params: { id: '1' } },

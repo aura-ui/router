@@ -1,4 +1,3 @@
-import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
 import { createViewLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -6,6 +5,7 @@ import { getActiveChain } from '../route-tree/matched-chain';
 import { payloadCacheKey } from './cache/cache-key';
 import { PayloadCache } from './cache/payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
+import type { ResolvedView } from '../route-tree/resolved-view';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 import type { LoaderRegistry } from './registry';
 
@@ -26,11 +26,6 @@ export type RouteViewSource = {
   readonly layout: string;
   readonly preserve: { readonly view: boolean };
   readonly extract?: string | null;
-};
-
-type ResolvedView = {
-  readonly type: LoaderType;
-  readonly ref: string;
 };
 
 export type ViewGraphDeps = {
@@ -147,26 +142,26 @@ export class ViewGraph {
     resolvedView: ResolvedView | null | undefined,
   ): ViewDescriptor | null {
     const layout = route.layout.trim();
-    if (layout) return { kind: 'layout', loader: 'template', ref: layout, cache: false };
-    if (!resolvedView?.type) return null;
+    if (layout) return { kind: 'layout', loader: 'template', content: layout, cache: false };
+    if (!resolvedView?.loader) return null;
 
     const descriptor: ViewDescriptor = {
       kind: 'view',
-      loader: resolvedView.type,
-      ref: resolvedView.ref,
+      loader: resolvedView.loader,
+      content: resolvedView.content,
       cache: route.preserve.view,
     };
-    return resolvedView.type === 'url' && route.extract ? { ...descriptor, extract: route.extract } : descriptor;
+    return resolvedView.loader === 'url' && route.extract ? { ...descriptor, extract: route.extract } : descriptor;
   }
 
   private static buildLoadContext(
     routeInfo: MatchedRouteInfo,
-    descriptor: Pick<ViewDescriptor, 'kind' | 'ref' | 'extract'>,
+    descriptor: Pick<ViewDescriptor, 'kind' | 'content' | 'extract'>,
     signal: AbortSignal,
     data?: unknown,
   ): ViewLoadContext {
     return {
-      ref: descriptor.ref,
+      content: descriptor.content,
       kind: descriptor.kind,
       signal,
       route: {

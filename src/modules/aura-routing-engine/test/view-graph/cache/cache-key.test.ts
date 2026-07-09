@@ -19,7 +19,7 @@ function descriptor(overrides: Partial<ViewDescriptor> = {}): ViewDescriptor {
   return {
     kind: 'view',
     loader: 'url',
-    ref: 'partials/user.html',
+    content: 'partials/user.html',
     cache: true,
     ...overrides,
   };
@@ -56,7 +56,7 @@ describe('payloadCacheKey', () => {
 
   it('uses matchKey and params when pathname is missing', () => {
     const key = payloadCacheKey(
-      descriptor({ loader: 'html', ref: '<p/>' }),
+      descriptor({ loader: 'html', content: '<p/>' }),
       route({
         pathname: undefined as unknown as string,
         pattern: '/settings',
@@ -68,7 +68,7 @@ describe('payloadCacheKey', () => {
 
   it('includes layout kind in the slot', () => {
     const key = payloadCacheKey(
-      descriptor({ kind: 'layout', loader: 'template', ref: 'shell' }),
+      descriptor({ kind: 'layout', loader: 'template', content: 'shell' }),
       route({ pathname: '/app' }),
     );
     expect(key).toBe('/app|layout:template:shell');

@@ -8,7 +8,7 @@ export class UrlLoader extends Loader {
   static readonly type = 'url' as const satisfies LoaderType;
 
   async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
-    const html = await this.env.fetchText(this.env.resolveUrl(ctx.ref), ctx.signal);
+    const html = await this.env.fetchText(this.env.resolveUrl(ctx.content), ctx.signal);
     return {
       kind: 'html',
       html: ctx.extract ? extractHtmlFragment(html, ctx.extract) : html,

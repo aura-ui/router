@@ -8,7 +8,7 @@ export class ComponentLoader extends Loader {
   static readonly type = 'component' as const satisfies LoaderType;
 
   load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
-    if (!customElements.get(ctx.ref)) throw new Error(`Component '${ctx.ref}' is not registered`);
-    return Promise.resolve({ kind: 'markup', markup: componentMarkup(ctx.ref, ctx) });
+    if (!customElements.get(ctx.content)) throw new Error(`Component '${ctx.content}' is not registered`);
+    return Promise.resolve({ kind: 'markup', markup: componentMarkup(ctx.content, ctx) });
   }
 }

@@ -38,7 +38,7 @@ describe('LoaderRegistry', () => {
     }
     registry.register(new InstanceLoader(createBrowserEnv()));
     const result = await registry.get('html').load({
-      ref: 'x',
+      content: 'x',
       kind: 'view',
       signal: new AbortController().signal,
       route: { href: '/x', pattern: '/x' },
@@ -50,7 +50,7 @@ describe('LoaderRegistry', () => {
     const registry = new LoaderRegistry(undefined, []);
     registry.register(ProbeLoader);
     const result = await registry.get('template').load({
-      ref: 'tpl',
+      content: 'tpl',
       kind: 'layout',
       signal: new AbortController().signal,
       route: { href: '/x', pattern: '/x' },
@@ -63,7 +63,7 @@ describe('LoaderRegistry', () => {
     registry.register('html', async () => 'fn');
     await expect(
       registry.get('html').load({
-        ref: 'x',
+        content: 'x',
         kind: 'view',
         signal: new AbortController().signal,
         route: { href: '/x', pattern: '/x' },
@@ -126,7 +126,7 @@ describe('LoaderRegistry', () => {
 function createBrowserEnv(): ViewLoaderEnv {
   return {
     fetchText: async () => '',
-    resolveUrl: (ref) => ref,
+    resolveUrl: (content) => content,
     isSSR: false,
   };
 }

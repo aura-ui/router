@@ -58,7 +58,7 @@ type ViewKind = 'layout' | 'view';
 | Kind | Атрибут маршрута | Loader | `descriptor.cache` |
 |------|------------------|--------|------------------|
 | `layout` | `layout="template-id"` | `template` | всегда `false` |
-| `view` | `view="…"` (см. синтаксис ниже) | `resolvedView.type` | `preserve.view` |
+| `view` | `view="…"` (см. синтаксис ниже) | `resolvedView.loader` | `preserve.view` |
 
 Если у маршрута нет ни `layout`, ни `view`, `loadView` возвращает `null` — это не ошибка.
 
@@ -66,14 +66,14 @@ type ViewKind = 'layout' | 'view';
 
 **Синтаксис `view`:**
 
-| Форма | Пример `view` | Loader | `context.ref` |
+| Форма | Пример `view` | Loader | `context.content` |
 |-------|---------------|--------|---------------|
-| bare ref | `view="partials/page.html"` | `url` (по умолчанию) | `partials/page.html` |
+| bare content | `view="partials/page.html"` | `url` (по умолчанию) | `partials/page.html` |
 | built-in | `view="html::<p/>"` | `html` | `<p/>` |
 | built-in | `view="import::./widget.js"` | `import` | `./widget.js` |
 | custom | `view="charts::dashboard"` | `charts` | `dashboard` |
 
-Разделитель loader и ref — `::`. Левая часть выбирает loader, правая попадает в **`context.ref`**. Селектор фрагмента — отдельный атрибут `extract`, не в `view`.
+Разделитель loader и content — `::`. Левая часть выбирает loader, правая попадает в **`context.content`**. Селектор фрагмента — отдельный атрибут `extract`, не в `view`.
 
 ### Два уровня типа результата
 
@@ -145,11 +145,11 @@ ViewPayload
 
 ## Встроенные loaders
 
-| `LoaderType` | Атрибут | `context.ref` | `ViewLoadResult` |
+| `LoaderType` | Атрибут | `context.content` | `ViewLoadResult` |
 |--------------|---------|---------------|------------------|
 | `template` | `layout="id"` (не `view`) | id шаблона | `fragment` |
 | `html` | `html::…` | inline HTML | `html` |
-| `url` | bare ref или `url::…` | путь для fetch | `html` (+ `extract`) |
+| `url` | bare content или `url::…` | путь для fetch | `html` (+ `extract`) |
 | `component` | `component::tag` | имя custom element | `markup` + `aura-data` |
 | `import` | `import::./mod.js` | путь модуля | `markup` |
 | `iframe` | `iframe::https://…` | URL в `src` | `markup` |
@@ -178,8 +178,8 @@ registry.register('type', loaderFn);    // функция → FnLoader
 import { AuraRouter } from '@aura-ui-web/router';
 
 AuraRouter.registerLoader('charts', async (context) => {
-  // view="charts::dashboard" → context.ref === 'dashboard'
-  const response = await fetch(`/api/chart/${context.ref}`, {
+  // view="charts::dashboard" → context.content === 'dashboard'
+  const response = await fetch(`/api/chart/${context.content}`, {
     signal: context.signal,
   });
   return response.text();
@@ -190,7 +190,7 @@ AuraRouter.registerLoader('charts', async (context) => {
 <aura-route path="/analytics" view="charts::dashboard" />
 ```
 
-Запрос: `GET /api/chart/dashboard`. Часть после `::` — это `context.ref`, не `context.route.pattern`.
+Запрос: `GET /api/chart/dashboard`. Часть после `::` — это `context.content`, не `context.route.pattern`.
 
 | Возврат `LoaderFn` | Что делает `FnLoader` |
 |--------------------|------------------------|
@@ -212,8 +212,8 @@ export class MarkdownLoader extends Loader {
   static readonly type = 'markdown' as const satisfies LoaderType;
 
   async load(context: ViewLoadContext): Promise<ViewLoadResult | null> {
-    // view="markdown::docs/guide.md" → context.ref === 'docs/guide.md'
-    const text = await this.env.fetchText(this.env.resolveUrl(context.ref), context.signal);
+    // view="markdown::docs/guide.md" → context.content === 'docs/guide.md'
+    const text = await this.env.fetchText(this.env.resolveUrl(context.content), context.signal);
     const html = renderMarkdown(text);
     return { kind: 'html', html };
   }
@@ -244,7 +244,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 | Поле | Откуда | Пример |
 |------|--------|--------|
-| `ref` | правая часть `view` после `::` (или bare ref для `url`) | `dashboard` из `charts::dashboard` |
+| `content` | правая часть `view` после `::` (или bare content для `url`) | `dashboard` из `charts::dashboard` |
 | `kind` | `layout` или `view` | `view` |
 | `extract` | атрибут `extract` на маршруте (только `url`) | `#main` |
 | `signal` | abort навигации | `AbortSignal` |
@@ -254,7 +254,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 | `route.query` | query string | `{ q: '1' }` |
 | `data` | snapshot load-hook'ов из `DataGraph` | если передан в `loadView` |
 
-`ref` и `route.*` независимы: `view="charts::dashboard"` на `path="/analytics"` даёт `ref: 'dashboard'`, `pattern: '/analytics'`.
+`content` и `route.*` независимы: `view="charts::dashboard"` на `path="/analytics"` даёт `content: 'dashboard'`, `pattern: '/analytics'`.
 
 `ViewLoaderEnv` (`fetchText`, `resolveUrl`, `isSSR`) — DI для class loader'ов. `isSSR` зарезервирован; built-in loader'ы его пока не используют.
 
@@ -271,7 +271,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 **Формат ключа** (`payloadCacheKey`):
 
 ```text
-{pathname | matchKey[+params]} | {query?} | d:{json(data)?} | {kind}:{loader}:{ref} [:: {extract}]
+{pathname | matchKey[+params]} | {query?} | d:{json(data)?} | {kind}:{loader}:{content} [:: {extract}]
 ```
 
 Части соединяются через `|`. Суффикс `::{extract}` добавляется только для url-loader с атрибутом `extract`.
@@ -283,7 +283,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 /settings|d:%7B%7D|view:html:<p/>
 ```
 
-Поле `kind` в ключе разводит layout и view при совпадении `loader:ref`.
+Поле `kind` в ключе разводит layout и view при совпадении `loader:content`.
 
 **Инвалидация:** `viewGraph.invalidate(options)` или `AuraRouter.invalidateView()`. Scope: `key`, `path`, `match`. Policy: `stale` (по умолчанию) | `remove`.
 
@@ -323,7 +323,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 ```text
 AuraRouter
   ├─ viewGraph: ViewGraph { registry, cache }
-  ├─ registerLoader(type, fn) → defaultLoaderRegistry
+  ├─ registerLoader(loaderId, fn) → defaultLoaderRegistry
   └─ invalidateView() → viewGraph.invalidate()
 
 AuraRoutingEngine

@@ -89,7 +89,7 @@ src/modules/aura-routing-engine/core/content/
 
 - `pathname` — resolved path; fallback на `pattern`, если pathname нет.
 - `query` — sorted `key=value` pairs (search входит в ключ).
-- `loader:ref` — из `ContentDescriptor` (`html-src:pages/home.html`).
+- `loader:content` — из `ContentDescriptor` (`html-src:pages/home.html`).
 
 **Не входит в ключ (TODO):** dynamic **path params** (`:id`, `*`). Сейчас разные params при одном pathname могут коллизировать, если partial зависит от params.
 
@@ -195,7 +195,7 @@ DataGraph.invalidate* уже есть — content side нужно связать
 > **Легенда:** <span style="color: #2ea043; font-weight: bold;">✓</span> готово · <span style="color: #cf222e; font-weight: bold;">✗</span> не сделано
 
 - <span style="color: #2ea043; font-weight: bold;">✓</span> Engine-level cache для view loaders (`DataCache` + `ContentLoadService`)
-- <span style="color: #2ea043; font-weight: bold;">✓</span> Ключ: pathname/pattern + query + loader:ref
+- <span style="color: #2ea043; font-weight: bold;">✓</span> Ключ: pathname/pattern + query + loader:content
 - <span style="color: #cf222e; font-weight: bold;">✗</span> Ключ: **path params** (`:id`, splat)
 - <span style="color: #2ea043; font-weight: bold;">✓</span> In-flight dedupe (`AuraResolvableCache.resolve`)
 - <span style="color: #2ea043; font-weight: bold;">✓</span> LRU (`max`), `gcTime` через `AuraRouter.configure({ dataCache })`)

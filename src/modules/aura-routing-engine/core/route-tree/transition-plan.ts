@@ -52,7 +52,7 @@ export function isCrossOutletReplace(plan: TransitionMap): boolean {
  * @example profile → security: exit [profile], enter [security], lca settings
  * @example profile → profile?tab=2 (same leaf): update true
  * @example /users/1 → /users/2 (same leaf, same view key): update true
- * @example /users/1 → /users/2 (same leaf, per-id view ref): update false, synthetic remount
+ * @example /users/1 → /users/2 (same leaf, per-id view content): update false, synthetic remount
  */
 export function buildTransitionPlan(from: MatchedRouteInfo | null, to: MatchedRouteInfo): TransitionMap {
   if (!from) {

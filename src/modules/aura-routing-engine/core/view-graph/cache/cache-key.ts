@@ -4,9 +4,9 @@ import type { ViewDescriptor } from '../types';
 
 /**
  * Stable cache key for {@link PayloadCache}.
- * Shape: `{pathname | matchKey[+params]}|{query?}|d:{data?}|{kind}:{loader}:{ref}[::{extract}]`
+ * Shape: `{pathname | matchKey[+params]}|{query?}|d:{data?}|{kind}:{loader}:{content}[::{extract}]`
  * @example payloadCacheKey(
- *   { kind: 'view', loader: 'url', ref: 'partials/user.html', cache: true },
+ *   { kind: 'view', loader: 'url', content: 'partials/user.html', cache: true },
  *   { pathname: '/users/1', ... },
  * ) // → "/users/1|view:url:partials/user.html"
  */
@@ -32,8 +32,9 @@ export function payloadCacheKey(
     parts.push(`d:${encodeURIComponent(JSON.stringify(options.data, sortObjectKeys))}`);
   }
 
-  const slot = `${descriptor.kind}:${descriptor.loader}:${descriptor.ref}`;
-  parts.push(descriptor.extract ? `${slot}::${descriptor.extract}` : slot);
+  const { kind, loader, content, extract } = descriptor;
+  const slot = `${kind}:${loader}:${content}`;
+  parts.push(extract ? `${slot}::${extract}` : slot);
   return parts.join('|');
 }
 

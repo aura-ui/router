@@ -2,21 +2,21 @@ import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
 export type ResolvedView = {
-  type: string;
-  ref: string;
+  loader: string;
+  content: string;
   viewKey: string;
 };
 
 const PARAM_PLACEHOLDER = /\{\{(\w+)\}\}/g;
 
-function resolveRef(ref: string, params?: Record<string, string>): string {
-  if (!params || !ref.includes('{{')) return ref;
-  return ref.replace(PARAM_PLACEHOLDER, (_, name: string) => params[name] ?? `{{${name}}}`);
+function resolveContent(content: string, params?: Record<string, string>): string {
+  if (!params || !content.includes('{{')) return content;
+  return content.replace(PARAM_PLACEHOLDER, (_, name: string) => params[name] ?? `{{${name}}}`);
 }
 
 function resolveView(view: ViewAttrDescriptor, params?: Record<string, string>): ResolvedView {
-  const ref = resolveRef(view.content, params);
-  return { type: view.type, ref, viewKey: `${view.type}:${ref}` };
+  const content = resolveContent(view.content, params);
+  return { loader: view.loader, content, viewKey: `${view.loader}:${content}` };
 }
 
 export function attachResolvedView(leaf: MatchedRouteInfo): void {
@@ -29,5 +29,5 @@ export function attachResolvedView(leaf: MatchedRouteInfo): void {
   }
 
   const view = route?.view;
-  leaf.resolvedView = view?.type && view.content ? resolveView(view, leaf.params) : null;
+  leaf.resolvedView = view?.loader && view.content ? resolveView(view, leaf.params) : null;
 }

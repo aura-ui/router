@@ -1,4 +1,4 @@
-import { ViewGraph, PayloadCache, LoaderRegistry } from '../../core/view-graph';
+import { ViewGraph, PayloadCache, LoaderRegistry, payloadCacheKey } from '../../core/view-graph';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { withResolvedView } from '../helpers/with-resolved-view';
 
@@ -366,5 +366,56 @@ describe('ViewGraph', () => {
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBe(
       '<iframe src="/x"></iframe>',
     );
+  });
+
+  it('loadViewDescriptor returns null when signal is already aborted', async () => {
+    registry.register('html', async () => {
+      throw new Error('should not run');
+    });
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      viewGraph.loadViewDescriptor(
+        { kind: 'view', loader: 'html', content: 'x', cache: false },
+        matched('/x'),
+        controller.signal,
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it('omits params and query from loader context when route has none', async () => {
+    let routeCtx: { href?: string; pattern?: string; params?: Record<string, string>; query?: Record<string, string> } = {};
+    registry.register('html', async (ctx) => {
+      routeCtx = ctx.route;
+      return 'ok';
+    });
+
+    await viewGraph.loadView(
+      matched('/plain', { resolvedView: { loader: 'html', content: 'x' } }),
+      new AbortController().signal,
+    );
+    expect(routeCtx).toEqual({ href: '/plain', pattern: '/plain' });
+  });
+
+  it('destroy clears the payload cache', async () => {
+    const cache = new PayloadCache();
+    const graph = new ViewGraph({ registry, cache });
+    registry.register('html', async () => 'cached');
+
+    const route = matched('/items', {
+      route: { layout: '', view: { loader: 'html', content: 'x' }, preserve: { view: true } },
+      resolvedView: { loader: 'html', content: 'x' },
+    });
+    const key = payloadCacheKey(
+      { kind: 'view', loader: 'html', content: 'x', cache: true },
+      route,
+    );
+
+    await graph.loadView(route, new AbortController().signal);
+    expect(cache.get(key)).toBe('cached');
+
+    graph.destroy();
+    expect(cache.get(key)).toBeUndefined();
   });
 });

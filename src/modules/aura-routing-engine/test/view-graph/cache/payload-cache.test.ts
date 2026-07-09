@@ -66,4 +66,21 @@ describe('PayloadCache', () => {
     expect(cache.get('/users|view:html:a')).toBeUndefined();
     expect(cache.get('/profile|view:html:b')).toBe('b');
   });
+
+  it('invalidate with default policy marks entries stale but keeps values', async () => {
+    cache = new PayloadCache();
+    await cache.resolve('/stale', async () => 'cached');
+
+    const count = cache.invalidate();
+
+    expect(count).toBe(1);
+    expect(cache.get('/stale')).toBe('cached');
+  });
+
+  it('destroy clears cached entries', async () => {
+    cache = new PayloadCache();
+    await cache.resolve('/x', async () => 'cached');
+    cache.destroy();
+    expect(cache.get('/x')).toBeUndefined();
+  });
 });

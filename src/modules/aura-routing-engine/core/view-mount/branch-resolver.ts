@@ -8,17 +8,10 @@ import type { DataSnapshot } from '../data-graph';
 import type { TransitionMap } from '../route-tree/transition-plan';
 import { isCrossOutletReplace } from '../route-tree/transition-plan';
 import { resolveRouteData } from '../data-graph/route-data';
-import type { ViewPayload } from '../view-graph';
+import type { BranchViewResolver, ViewPayload } from '../view-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
-/** Loads view content without mounting — same contract as aura-route `ViewResolverPort`. */
-export type BranchViewResolver = {
-  loadView(
-    routeInfo: MatchedRouteInfo,
-    signal: AbortSignal,
-    options?: { data?: unknown },
-  ): Promise<ViewPayload | null>;
-};
+export type { BranchViewResolver } from '../view-graph';
 
 export type BranchResolveContext = {
   signal: AbortSignal;

@@ -51,7 +51,6 @@ export { isViewCommittedForHistory } from './core/view-mount/view-commit-state';
 export type { ViewRenderResult } from './core/view-mount/view-commit-render';
 export { resolveEnterBranch, createBranchResolveContext } from './core/view-mount/branch-resolver';
 export type {
-  BranchViewResolver,
   BranchResolveContext,
   BranchResolveResult,
   BranchResolveTransaction,
@@ -116,6 +115,8 @@ export type {
   ViewGraphDeps,
   ViewPrefetchOptions,
   ViewLoadPort,
+  ViewResolverPort,
+  BranchViewResolver,
   ViewLoadResult,
   RouteViewSource,
   LoaderClass,

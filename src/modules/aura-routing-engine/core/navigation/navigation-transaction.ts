@@ -10,7 +10,7 @@ import { type NavigationErrorPhase } from '../failure';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import type { NavigationLifecycleContext } from './types';
 import type { DataSnapshot } from '../data-graph';
-import type { ViewPayload } from '../content-graph';
+import type { ViewPayload } from '../view-graph';
 import { canUseFastPath } from '../route-tree/can-use-fast-path';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 import { NavigationFailureHandler } from './navigation-failure-handler';

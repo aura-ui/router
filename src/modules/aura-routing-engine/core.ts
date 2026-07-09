@@ -95,22 +95,22 @@ export {
   LoaderRegistry,
   createLoaderRegistry,
   defaultLoaderRegistry,
-} from './core/content-graph';
+} from './core/view-graph';
 
-export { TemplateLoader } from './core/content-graph/loaders/template';
-export { HtmlLoader } from './core/content-graph/loaders/html';
-export { UrlLoader } from './core/content-graph/loaders/url';
-export { ComponentLoader } from './core/content-graph/loaders/component';
-export { ImportLoader } from './core/content-graph/loaders/import';
-export { IframeLoader } from './core/content-graph/loaders/iframe';
+export { TemplateLoader } from './core/view-graph/loaders/template';
+export { HtmlLoader } from './core/view-graph/loaders/html';
+export { UrlLoader } from './core/view-graph/loaders/url';
+export { ComponentLoader } from './core/view-graph/loaders/component';
+export { ImportLoader } from './core/view-graph/loaders/import';
+export { IframeLoader } from './core/view-graph/loaders/iframe';
 
-export { routeSnapshot, componentMarkup } from './core/content-graph/markup';
+export { routeSnapshot, componentMarkup } from './core/view-graph/markup';
 export {
   createBrowserEnvironment,
   defaultEnvironment,
   fetchText,
   resolveRelativeUrl,
-} from './core/content-graph/environment';
+} from './core/view-graph/environment';
 
 export type {
   ContentGraphDeps,
@@ -126,7 +126,7 @@ export type {
   LoaderFn,
   LoadContext,
   ViewPayload,
-} from './core/content-graph';
+} from './core/view-graph';
 
 export type { LoaderType } from '../aura-route/core/attr/view-attr-parser';
 export type { RouterInvalidateOptions as ContentInvalidateOptions } from './core/invalidate-router-cache';

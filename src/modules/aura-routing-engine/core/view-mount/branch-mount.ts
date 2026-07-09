@@ -4,7 +4,7 @@
  * @module view-mount/branch-mount
  */
 import type { ApplyPreResolvedOptions } from '../../../aura-route/core/types';
-import type { ViewPayload } from '../content-graph';
+import type { ViewPayload } from '../view-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { BranchResolveContext } from './branch-resolver';
 import { isRenderError } from './view-commit-render';

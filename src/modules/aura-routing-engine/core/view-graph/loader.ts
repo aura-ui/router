@@ -32,6 +32,13 @@ export class FnLoader extends Loader {
     const payload = await this.fn(ctx);
     if (payload == null) return null;
     if (typeof payload === 'string') return { kind: 'html', html: payload };
-    return { kind: 'fragment', node: payload as DocumentFragment };
+    return { kind: 'fragment', node: toFragment(payload) };
   }
+}
+
+function toFragment(node: Node): DocumentFragment {
+  if (node instanceof DocumentFragment) return node;
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(node);
+  return fragment;
 }

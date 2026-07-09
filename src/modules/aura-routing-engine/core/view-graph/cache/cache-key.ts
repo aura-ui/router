@@ -2,7 +2,7 @@ import type { MatchedRouteInfo } from '../../match/url-matcher';
 import { routeMatchKey } from '../../route-tree/matched-chain';
 import type { ViewDescriptor } from '../types';
 
-/** `{location}|{query?}|{data?}|{loader}:{ref}[::{extract}]` */
+/** `{location}|{query?}|{data?}|{kind}:{loader}:{ref}[::{extract}]` */
 export function payloadCacheKey(
   descriptor: ViewDescriptor,
   routeInfo: MatchedRouteInfo,
@@ -25,7 +25,7 @@ export function payloadCacheKey(
     parts.push(`d:${encodeURIComponent(JSON.stringify(options.data, sortObjectKeys))}`);
   }
 
-  const slot = `${descriptor.loader}:${descriptor.ref}`;
+  const slot = `${descriptor.kind}:${descriptor.loader}:${descriptor.ref}`;
   parts.push(descriptor.extract ? `${slot}::${descriptor.extract}` : slot);
   return parts.join('|');
 }

@@ -14,7 +14,7 @@ export {
 export type { ContentGraphDeps } from './content-graph';
 export type { ContentPrefetchOptions } from './prefetch';
 import type { ContentGraph } from './content-graph';
-import type { LoadContext, ViewPayload } from './model/types';
+import type { LoadContext, ViewPayload } from './types';
 
 export {
   PayloadCache,
@@ -22,7 +22,7 @@ export {
 } from './cache';
 export type { RouterInvalidateOptions as ContentInvalidateOptions } from '../invalidate-router-cache';
 
-export { toLoadContext, routeSnapshot, componentMarkup } from './model/context';
+export { routeSnapshot, componentMarkup } from './runtime/markup';
 
 export type LoaderFn = (ctx: LoadContext) => Promise<ViewPayload | null>;
 
@@ -34,7 +34,7 @@ export type {
   FetchText,
   LoadContext,
   ViewPayload,
-} from './model/types';
+} from './types';
 
 export {
   Loader,

@@ -1,5 +1,5 @@
 import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-parser';
-import type { ContentEnvironment, LoadContext, ViewPayload } from '../model/types';
+import type { ContentEnvironment, LoadContext, ViewPayload } from '../types';
 import { Loader, FnLoader } from './loader';
 import { createDefaultLoaders } from './manifest';
 import { createBrowserEnvironment, defaultEnvironment } from './environment';

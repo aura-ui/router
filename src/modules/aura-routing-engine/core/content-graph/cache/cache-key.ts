@@ -1,6 +1,6 @@
 import type { MatchedRouteInfo } from '../../match/url-matcher';
 import { routeMatchKey } from '../../route-tree/matched-chain';
-import type { ContentDescriptor } from '../model/types';
+import type { ContentDescriptor } from '../types';
 
 export type PayloadCacheKeyOptions = {
   /** Load-hook payload fingerprint — required when markup depends on `data`. */

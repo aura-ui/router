@@ -6,8 +6,7 @@ import { payloadCacheKey } from './cache/cache-key';
 import { PayloadCache } from './cache/payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import { DEFAULT_PREFETCH, orderPrefetchChain, prefetchConcurrent, type ContentPrefetchOptions } from './prefetch';
-import { toLoadContext } from './model/context';
-import type { ContentDescriptor, ViewPayload } from './model/types';
+import type { ContentDescriptor, LoadContext, ViewPayload } from './types';
 import type { LoaderRegistry } from './runtime/registry';
 
 export type RouteContentSource = {
@@ -114,7 +113,7 @@ export class ContentGraph {
     if (signal.aborted) return null;
 
     try {
-      const ctx = toLoadContext(routeInfo, descriptor, signal, data);
+      const ctx = ContentGraph.toLoadContext(routeInfo, descriptor, signal, data);
       const result = await this.registry.get(descriptor.loader).load(ctx);
       if (!result) return null;
 
@@ -164,5 +163,26 @@ export class ContentGraph {
     if (layout) return this.layoutDescriptor(layout);
     if (!resolvedView?.type) return null;
     return this.contentDescriptor(resolvedView, route.preserve.view, route.extract);
+  }
+
+  private static toLoadContext(
+    routeInfo: MatchedRouteInfo,
+    descriptor: Pick<ContentDescriptor, 'kind' | 'ref' | 'extract'>,
+    signal: AbortSignal,
+    data?: unknown,
+  ): LoadContext {
+    return {
+      ref: descriptor.ref,
+      kind: descriptor.kind,
+      signal,
+      route: {
+        href: routeInfo.href,
+        pattern: routeInfo.pattern,
+        ...(routeInfo.params && { params: routeInfo.params }),
+        ...(routeInfo.query && { query: routeInfo.query }),
+      },
+      ...(data !== undefined && { data }),
+      ...(descriptor.extract && { extract: descriptor.extract }),
+    };
   }
 }

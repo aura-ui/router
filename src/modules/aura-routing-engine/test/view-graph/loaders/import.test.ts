@@ -27,7 +27,7 @@ describe('ImportLoader', () => {
       route: { href: '/charts', pattern: '/charts', params: { id: '1' } },
     });
 
-    expect(mockedLoad).toHaveBeenCalledWith('./widgets/chart.js', expect.any(AbortSignal));
+    expect(mockedLoad).toHaveBeenCalledWith('./widgets/chart.js');
     expect(result?.kind).toBe('markup');
     if (result?.kind === 'markup') {
       expect(result.markup).toContain('<imported-widget');
@@ -48,6 +48,37 @@ describe('ImportLoader', () => {
     await loader.load(ctx);
     await loader.load(ctx);
 
+    expect(mockedLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it('completes shared import when an earlier waiter aborts', async () => {
+    const loader = new ImportLoader(createBrowserEnvironment());
+    const prefetch = new AbortController();
+    let releaseImport!: () => void;
+    const importGate = new Promise<void>((resolve) => {
+      releaseImport = resolve;
+    });
+
+    mockedLoad.mockImplementation(() => importGate.then(() => 'shared-widget'));
+
+    const ctx = {
+      content: './widgets/shared.js',
+      kind: 'view' as const,
+      route: { href: '/shared', pattern: '/shared' },
+    };
+
+    const prefetchLoad = loader.load({ ...ctx, signal: prefetch.signal });
+    await Promise.resolve();
+    const navLoad = loader.load({ ...ctx, signal: new AbortController().signal });
+
+    prefetch.abort();
+    releaseImport();
+
+    await expect(prefetchLoad).resolves.toBeNull();
+    await expect(navLoad).resolves.toEqual({
+      kind: 'markup',
+      markup: expect.stringContaining('<shared-widget'),
+    });
     expect(mockedLoad).toHaveBeenCalledTimes(1);
   });
 

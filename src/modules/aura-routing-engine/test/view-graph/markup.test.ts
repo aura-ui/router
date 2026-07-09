@@ -57,4 +57,11 @@ describe('componentMarkup', () => {
     expect(markup).toContain('\\&quot;hi\\&quot;');
     expect(markup).toMatch(/^<x-widget aura-data='/);
   });
+
+  it('throws for unsafe tag names', () => {
+    expect(() => componentMarkup('img src=x onerror=alert(1)', ctx())).toThrow(
+      'Invalid custom element tag name',
+    );
+    expect(() => componentMarkup('SCRIPT', ctx())).toThrow('Invalid custom element tag name');
+  });
 });

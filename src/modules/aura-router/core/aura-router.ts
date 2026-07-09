@@ -187,6 +187,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   disconnectedCallback(): void {
     this.engine?.destroy();
     this.engine = undefined;
+    this.viewGraphInstance?.destroy();
+    this.viewGraphInstance = undefined;
     this.scrollRestoration.clear();
     this.notFound.reset();
   }

@@ -6,9 +6,28 @@
 
 > **Не дублировать README как второй эталон.** Если расхождение — правим код / todo, README не трогаем без явного решения.
 
+> **Сверка с кодом:** 2026-07-10 · **✅ — готово** · **⬜ — осталось** · **🟡 — частично**
+
+### Сводка (2026-07-10)
+
+| Область | Статус |
+|---------|--------|
+| **`view` + парсер** | ✅ `parseViewAttr` → `resolvedView` → `ViewGraph.buildViewDescriptor` |
+| **Loaders v3** | ✅ `url`, `html`, `template`, `component`, `import`, `iframe` в `view-graph` |
+| **`extract`** | ✅ attr + inherit router → route + `UrlLoader` |
+| **`preserve`** | ✅ attr + wiring (view / data / all) |
+| **Lifecycle v3 attrs** | ✅ `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error` на `<aura-route>` |
+| **Transitions** | ✅ `transition`, `transition-order`, `transition-in` / `out` + inherit |
+| **Templates / scroll inherit** | ✅ `loading-template`, `error-template`, `scroll` |
+| **Старые attrs v2** | ✅ `source`, `data-content`, `keep-alive`, `cache`, `enter`, `after`, `left`, `reenter` **удалены** с route |
+| **`component` validation** | ✅ warn если ref без `-`; throw если CE не зарегистрирован |
+| **`detach` / `destroy` / `restore` attrs** | ⬜ отдельные attrs; поведение через `preserve` + `unmount` / `ready` |
+
 ---
 
 ## Зачем
+
+> **Исторический контекст.** Большая часть v3 уже в коде (см. [сводку](#сводка-2026-07-10) выше). Ниже — проблема v2, которую решал redesign.
 
 Сейчас на `<aura-route>` **~18 атрибутов** в трёх разных «языках». Разработчик открывает route и видит мини-справочник по движку, а не ответ на три вопроса: *куда, что, когда*.
 
@@ -60,16 +79,16 @@ Preserve+:    detach | destroy | restore   (super advanced, с preserve)
 
 ### View loaders → README
 
-> **As-is в коде:** loader id `html-src`, `component-src`; attrs `source` + `data-content`. **Цель:** как в README.
+> **As-is в коде (2026-07-10):** ✅ v3 loaders в `view-graph`; attrs `view` + `layout`.
 
-| Loader (README) | ref | As-is в коде |
-|--------|-----|--------------|
-| **`url`** | `profile.html` | loader `html-src`; bare content пока default `html-src` |
-| **`html`** | markup | `html` |
-| **`template`** | template id | `template` |
-| **`component`** | CE tag name | loader `component` (имя в README = имя в API) |
-| **`import`** | module path | loader `component-src` |
-| **`iframe`** | URL | planned |
+| Loader (README) | ref | Код (2026-07-10) |
+|--------|-----|------------------|
+| **`url`** | `profile.html` | ✅ loader `url`; bare content → default `url` |
+| **`html`** | markup | ✅ `html` |
+| **`template`** | template id | ✅ `template` |
+| **`component`** | CE tag name | ✅ `component` (throw если CE не зарегистрирован) |
+| **`import`** | module path | ✅ `import` |
+| **`iframe`** | URL | ✅ builtin (`IframeLoader`, `loading="lazy"`) |
 
 **Default:** bare `ref` → loader **`url`** (префикс `url::` не пишем):
 
@@ -99,15 +118,15 @@ import     →  подгрузить модуль и зарегистриров�
 <aura-route path="/map" view="iframe::https://maps.example.com/embed" />
 ```
 
-#### `component` — валидация ref (planned)
+#### `component` — валидация ref
 
 `component` mount'ит **custom elements**, не произвольный HTML.
 
-| Проверка | Поведение |
-|----------|-----------|
-| `customElements.get(ref)` есть | ✓ mount `<ref aura-data="…">` |
-| ref содержит `-` | ✓ допустимо до `define` |
-| ref — нативный тег (`div`, …) | ✗ warn: use `html` |
+| Проверка | Поведение | Код |
+|----------|-----------|-----|
+| `customElements.get(ref)` есть | ✓ mount `<ref aura-data="…">` | ✅ `ComponentLoader` |
+| ref без `-` | dev warn | ✅ при parse |
+| CE не в registry | throw at load | ✅ `ComponentLoader` |
 
 ```html
 view="component::user-card"   <!-- ✓ -->
@@ -152,23 +171,21 @@ view="component::div"         <!-- ✗ → html::<div>…</div> -->
 |--|--|
 | **content** | абсолютный или относительный URL для `src` iframe |
 | **Реализация** | `<iframe loading="lazy" …>`; sandbox/policy — на router (TBD) |
-| **Статус** | planned builtin (после rename `url` / `import`) |
+| **Статус** | ✅ builtin (`view-graph/loaders/iframe.ts`); sandbox/policy — ⬜ |
 
 Имя **`iframe`**, не `embed` — сразу ясно без docs.
 
 Кастомные loaders: `AuraRouter.registerLoader(loaderId, fn)` — любой `loaderId`, например `markdown::docs/guide.md`.
 
-#### Миграция loader id (as-is → README)
+#### Миграция loader id (as-is → README) — ✅ runtime
 
-| As-is (код) | README / цель | Примечание |
-|-------------|---------------|------------|
-| `html-src` | **`url`** | + bare content default → `url` |
-| `html` | **`html`** | без изменений |
-| `template` | **`template`** | без изменений |
-| `component` | **`component`** | **имя не меняем** |
-| `component-src` | **`import`** | rename loader id |
-
-Deprecated alias на переход: `html-src`, `component-src` + dev warn.
+| As-is (v2) | README / v3 | Статус |
+|-------------|---------------|--------|
+| `html-src` | **`url`** | ✅ `view-graph`; bare default → `url` |
+| `html` | **`html`** | ✅ |
+| `template` | **`template`** | ✅ |
+| `component` | **`component`** | ✅ |
+| `component-src` | **`import`** | ✅ |
 
 Для nested shell — отдельно **`layout`** (только у parent-route без leaf-контента):
 
@@ -235,17 +252,7 @@ leave | guard | load | ready
 #### Super advanced (`preserve`)
 
 С `preserve` на route: **`detach`**, **`destroy`** (leave), **`restore`** (reattach из cache).  
-Фаза 1: `ctx.teardown` / `ctx.restored` на `unmount` / `ready`; отдельные attrs — позже.
-
-#### Escape hatch `hooks`
-
-Редкие фазы одним attr (comma-separated `phase::hook`):
-
-```html
-hooks="transition-in::fade-in, detach::pause-media"
-```
-
-Не заменяет core-4; для фаз вне типичного route.
+Фаза 1: ✅ `ctx.teardown` / `ctx.restored` на `unmount` / `ready` (через pipeline + ViewCache); отдельные attrs — ⬜.
 
 ---
 
@@ -288,7 +295,7 @@ hooks="transition-in::fade-in, detach::pause-media"
 ```
 
 - `transition="fade"` → hook `fade` на in и out.
-- Асимметрия: `transition="fade-out, slide-in"` или `hooks="transition-in::..., transition-out::..."`.
+- Асимметрия: `transition="fade-out, slide-in"` или `transition-in` / `transition-out` attrs.
 
 ---
 
@@ -370,37 +377,37 @@ hooks="transition-in::fade-in, detach::pause-media"
 
 ---
 
-## Миграция (as-is в коде → README)
+## Миграция (v2 → v3) — ✅ на `<aura-route>`
+
+> v2 attrs **удалены** с элемента; таблица — для ручной миграции markup в существующих проектах.
 
 ### View / loaders
 
-| As-is (код) | README |
-|-------------|--------|
-| `source` + `data-content` | `view="ref"` или `loader::content` |
-| loader `html-src` | **`url`** (bare content default) |
-| loader `component-src` | **`import`** |
-| loader `component` | **`component`** (без rename) |
+| v2 (удалено) | v3 (код) | Статус |
+|-------------|----------|--------|
+| `source` + `data-content` | `view="ref"` или `loader::content` | ✅ |
+| loader `html-src` | **`url`** (bare content default) | ✅ runtime |
+| loader `component-src` | **`import`** | ✅ runtime |
+| loader `component` | **`component`** | ✅ |
 
 ### Lifecycle
 
-| As-is (код) | README |
-|-------------|--------|
-| `enter` | **`guard`** |
-| `after` / `entered` | **`ready`** |
-| `left` | **`unmount`** |
-| `reenter` | **`update`** |
-| `leave`, `load`, `error` | без изменений |
+| v2 (удалено) | v3 (код) | Статус |
+|-------------|----------|--------|
+| `enter` | **`guard`** | ✅ |
+| `after` / `entered` | **`ready`** | ✅ |
+| `left` | **`unmount`** | ✅ |
+| `reenter` | **`update`** | ✅ |
+| `leave`, `load`, `error` | без изменений | ✅ |
 
 ### Поведение
 
-| As-is | README |
-|-------|--------|
-| `keep-alive` | `preserve` |
-| `cache` | `preserve="data"` |
-| `restore-scroll` | `scroll` на router/route |
-| `transition-in` / `out` | `transition` или attrs `transition-*` |
-
-Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `after`, `left`, `reenter`, `keep-alive`, `cache` + dev warn.
+| v2 (удалено) | v3 (код) | Статус |
+|-------------|----------|--------|
+| `keep-alive` | `preserve` | ✅ |
+| `cache` | `preserve="data"` | ✅ |
+| `restore-scroll` | `scroll` на router/route | ✅ |
+| `transition-in` / `out` | `transition` или attrs `transition-*` | ✅ |
 
 ---
 
@@ -409,7 +416,8 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 | Идея | Почему нет |
 |------|------------|
 | `preload` на route | link intent + `router.prefetch()` — уже принятая стратегия |
-| `keep-alive` / `cache` как alias для `preserve` | breaking rename проще; два имени на одну ось — лишний шум |
+| `keep-alive` / `cache` как alias для `preserve` | breaking rename; v2 attrs удалены |
+| `hooks` attr (`phase::hook`) | не актуально; per-phase attrs + `AuraRouter.use()` |
 | `hooks="auth,analytics"` без фазы | магия: непонятно, когда сработает |
 | `before` / `on` вместо `guard` / `ready` | целевые имена зафиксированы в [LIFECYCLE_PHASE_NAMING.md](./LIFECYCLE_PHASE_NAMING.md) |
 | таймауты кэша в HTML | `router.configure({ dataCache: { gcTime } })` |
@@ -438,13 +446,13 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 | Первый working route | 6/10 | **8.5/10** | `path` + `view` — сразу понятно |
 | Onboarding / docs | 5/10 | **8/10** | три вопроса вместо девяти фаз |
 | Ежедневная разметка | 6/10 | **8/10** | меньше шума в nested routes |
-| Power-user сценарии | 8/10 | **8/10** | `hooks="phase::name"` сохраняет контроль |
-| Миграция с v2 | — | 7/10 | ручной rename attrs; alias-слой не планируется |
+| Power-user сценарии | 8/10 | **8/10** | per-phase attrs + `AuraRouter.use()` |
+| Миграция с v2 | — | 7/10 | ручной rename attrs |
 
 ### Почему не «10/10»
 
 - Внутренний pipeline остаётся сложным — attrs только **маскируют**, не упрощают engine.
-- `ready` + `ctx.phase` — единое имя post-commit (as-is в коде: `after`).
+- `ready` + `ctx.phase` — единое имя post-commit (✅ attr `ready` в коде).
 - bare `view="profile.html"`; fragment extract → **`extract`** attr
 - Router inherit (`guard`, `ready`) — документировать opt-out `guard=""`.
 
@@ -457,7 +465,7 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 ### Где выигрыш минимальный
 
 1. Команды, которые уже вынесли всё в `AURARouter.use()` и почти не трогают phase attrs.
-2. Сложные transition pipelines (GSAP) — всё равно нужен `hooks` или programmatic API.
+2. Сложные transition pipelines (GSAP) — programmatic API / `AuraRouter.use()`.
 3. Миграция больших codebases — одноразовая стоимость.
 
 ### Сравнение с индустрией (лёгкость разметки)
@@ -472,60 +480,72 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 
 ## Задачи реализации
 
-> **✅ — готово** · **⬜ — осталось**
+> **✅ — готово** · **⬜ — осталось** · **🟡 — частично**  
+> Сверка: **2026-07-10** · код: `src/modules/aura-route/`, `src/modules/aura-routing-engine/core/view-graph/`
 
 ### Фаза 1 — view + preserve
 
-- ✅ Парсер `view` → `buildContentDescriptor`
-- ✅ Loaders: `url`, `import`, `iframe`; bare content default `url`
+- ✅ Парсер `view` → `parseViewAttr` → `resolvedView` → `ViewGraph.buildViewDescriptor`
+- ✅ Loaders: `url`, `html`, `template`, `component`, `import`, `iframe` (`view-graph/registry.ts`)
 - ✅ Парсер: known loader vs bare `url` ref; unknown prefix → custom loader
-- ✅ Attr **`extract`** (CSS selector, inherit router → route) + url loader fragment extract
-- ⬜ `component` validation (registry / `-`; reject native tags)
+- ✅ Attr **`extract`** (CSS selector, inherit router → route) + `UrlLoader` fragment extract
+- ✅ `component` validation — warn без `-` при parse; throw если CE не зарегистрирован
+- ✅ Builtin **`iframe`** (`IframeLoader`)
+- ✅ `preserve` attr + wiring (`preserve-attr-parser.ts`, ViewCache / DataGraph)
+- ✅ Удалены v2 attrs: `source`, `data-content`, `keep-alive`, `cache`
 
-- ⬜ Builtin `iframe`
-- ✅ `preserve` attr + wiring
+### Фаза 2 — lifecycle rename
 
-### Фаза 2 — lifecycle rename (as-is → README)
-
-- ⬜ `enter` → **`guard`**, `after` → **`ready`**
-- ⬜ `left` → **`unmount`**, `reenter` → **`update`**
-- ⬜ Router inherit: `guard`, `ready` (as-is: `enter`, `after`)
+- ✅ `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error` на `<aura-route>` (`aura-route.ts`)
+- ✅ `phase-registry.ts` — v3 имена фаз и `htmlAttr`
+- ✅ Router inherit: `guard`, `ready` — через `@routeAttr({ inherit: true })` + DOM `closest` (`lifecycle-inherit.test.ts`)
 - ✅ `scroll`, `loading-template`, `error-template` inherit
-- ✅ `transition` / `transition-order` / `transition-in` / `out`
+- ✅ `transition` / `transition-order` / `transition-in` / `out` + shortcut
 
+### Фаза 3 — polish
 
-- ✅ `transition` shortcut
+- ⬜ Attrs **`detach`**, **`destroy`**, **`restore`** (super advanced; сейчас — pipeline + `unmount` / `ready`)
+- ⬜ `iframe` sandbox / CSP policy на router
 
-### Уже в коде под старыми именами
+### Миграция v2 → v3 (историческая справка)
 
-| Реализовано | As-is | README |
-|-------------|-------|--------|
-| post-commit enter hook | `after` | `ready` |
-| enter guard | `enter` | `guard` |
-| exit cleanup | `left` | `unmount` |
-| same-route shortcut | `reenter` | `update` |
+| v2 (удалено) | v3 (в коде) |
+|--------------|-------------|
+| `enter` | `guard` |
+| `after` / `entered` | `ready` |
+| `left` | `unmount` |
+| `reenter` | `update` |
+| `keep-alive` | `preserve` |
+| `cache` | `preserve="data"` |
+| `source` + `data-content` | `view` |
 
-### Тесты
+### Тесты (актуальные пути)
 
-- ✅ `view` / descriptor — `descriptor.test.ts`, `view-attr-integration.test.ts`, `content-view-flow.test.ts`
-- ✅ `preserve` parsing — `preserve.test.ts` (engine + route-2)
-- ✅ `hooks` + `routeHookNames` — `phase-hooks.test.ts`
-- ✅ Pipeline phases (as-is names): `after`, `left`, `reenter`
-- ✅ Inherit router → route (`enter` / `after` as-is → migrate to `guard` / `ready`)
+- ✅ `view` parser — `aura-route/test/attr/view-attr-parser.test.ts`
+- ✅ descriptor / extract — `aura-routing-engine/test/view-graph/view-graph.test.ts`, `view-graph/loaders/url.test.ts`
+- ✅ loaders — `view-graph/loaders/{html,component,import,iframe,template,url}.test.ts`
+- ✅ `preserve` — `aura-route/test/preserve.test.ts`, `attr/preserve-attr-parser.test.ts`
+- ✅ inherit — `lifecycle-inherit.test.ts`, `extract-inherit.test.ts`, `template-inherit.test.ts`, `scroll-inherit.test.ts`
+- ✅ transitions — `aura-route/test/aura-route.test.ts`, `attr/transition-*.test.ts`
+- ✅ Pipeline phases v3 — `navigation-transaction-pipeline*.test.ts`, `param-change-lifecycle.test.ts`, `phase-registry.test.ts`
 
 ---
 
 ## Открытые вопросы
 
-1. **`url` vs `page`** — имя default HTML loader (см. обсуждение в todo).
-2. **`ready` vs `entered`** — target: `ready` (as-is attr: `after`).
-3. ~~**`view` bare content**~~ → default **`url`**.
-4. ~~**`allowEmpty`**~~ → `guard=""` / `ready=""` opt-out inherit.
+1. ~~**`url` vs `page`**~~ → ✅ **`url`** (default bare `view`).
+2. ~~**`ready` vs `entered`**~~ → ✅ **`ready`** (attr + `phase-registry`).
+3. ~~**`view` bare content**~~ → ✅ default **`url`**.
+4. ~~**`allowEmpty`**~~ → ✅ `guard=""` / `ready=""` opt-out inherit (`lifecycle-inherit.test.ts`).
+5. **`iframe` sandbox** — политика на router vs per-route.
 
 ---
 
 ## Ссылки
 
-- Текущая реализация attrs: `src/modules/aura-route-2/core/aura-route.ts`
-- Descriptor: `src/modules/aura-routing-engine/core/content/descriptor.ts`
+- Route attrs: `src/modules/aura-route/core/aura-route.ts`
+- `view` parser: `src/modules/aura-route/core/attr/view-attr-parser.ts`
+- Descriptor pipeline: `src/modules/aura-routing-engine/core/view-graph/view-graph.ts` (`buildViewDescriptor`)
+- Loaders: `src/modules/aura-routing-engine/core/view-graph/loaders/`
+- Lifecycle phases: `src/modules/aura-routing-engine/core/lifecycle/phase-registry.ts`
 - Ранние идеи: `docs/scratch/aura-route-design-notes.js`, `aura-route-markup-examples.txt`

@@ -61,6 +61,9 @@ export function parseViewAttr(value: string | null): ViewAttrDescriptor | null {
 
   if (isKnownViewLoader(loader)) {
     if (loader === DEFAULT_VIEW_LOADER) warnIfContentLooksLikeModule(content);
+    if (loader === 'component' && !content.includes('-')) {
+      console.warn(`view="component::${content}" — custom element ref must contain "-"`);
+    }
     return { loader, content };
   }
 

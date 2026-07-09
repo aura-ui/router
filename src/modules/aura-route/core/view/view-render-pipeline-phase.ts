@@ -54,8 +54,8 @@ export class ViewRenderPipelinePhase {
     if (this.isStale(pass)) return;
 
     if (payload == null) {
-      if (pass.viewKind === 'content') {
-        this.mountPayload(pass, emptyContent(), 'content');
+      if (pass.viewKind === 'view') {
+        this.mountPayload(pass, emptyContent(), 'view');
       }
       return;
     }
@@ -88,7 +88,7 @@ export class ViewRenderPipelinePhase {
       }
     }
 
-    this.mountPayload(pass, resolveError(this.ctx.config.route, error), 'content');
+    this.mountPayload(pass, resolveError(this.ctx.config.route, error), 'view');
     return { status: 'error', error };
   }
 

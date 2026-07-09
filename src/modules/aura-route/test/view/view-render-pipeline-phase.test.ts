@@ -24,7 +24,7 @@ function renderPass(id = 1): import('../../core/view/types').RenderPass {
     } as MatchedRouteInfo,
     signal: new AbortController().signal,
     cacheKey: '/err',
-    viewKind: 'content',
+    viewKind: 'view',
     useStagedMount: false,
   };
 }

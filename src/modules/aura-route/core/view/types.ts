@@ -1,7 +1,7 @@
 import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 
-export type ViewKind = 'layout' | 'content';
+export type ViewKind = 'layout' | 'view';
 export type ViewPayload = Node | string;
 
 /** Immutable snapshot for one view render attempt. */

@@ -26,8 +26,7 @@ content-graph/
 ├── cache/
 │   ├── index.ts
 │   ├── payload-cache.ts  # LRU + in-flight dedup
-│   ├── cache-key.ts      # stable payload cache keys
-│   └── invalidate.ts     # payload cache key predicates
+│   └── cache-key.ts      # stable payload cache keys
 ├── model/
 │   ├── types.ts
 │   ├── descriptor.ts

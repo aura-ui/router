@@ -9,14 +9,14 @@ import { Loader } from '../loader';
 const resolvedImportPaths = new Map<string, string>();
 const importSingleflight = new Singleflight<string, string>();
 
-async function resolveImportedTag(path: string, signal: AbortSignal): Promise<string> {
-  if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-
+async function resolveImportedTag(path: string): Promise<string> {
   const cached = resolvedImportPaths.get(path);
   if (cached) return cached;
 
+  // Shared in-flight import must not use a caller's signal — abort means "skip result"
+  // for that caller, not cancel the load for concurrent waiters (prefetch vs navigation).
   return importSingleflight.do(path, async () => {
-    const tagName = await loadAndRegisterComponent(path, signal);
+    const tagName = await loadAndRegisterComponent(path);
     resolvedImportPaths.set(path, tagName);
     return tagName;
   });
@@ -30,7 +30,7 @@ export class ImportLoader extends Loader {
     if (ctx.signal.aborted) return null;
 
     try {
-      const tagName = await resolveImportedTag(ctx.content, ctx.signal);
+      const tagName = await resolveImportedTag(ctx.content);
       if (ctx.signal.aborted) return null;
       return { kind: 'markup', markup: componentMarkup(tagName, ctx) };
     } catch (error) {

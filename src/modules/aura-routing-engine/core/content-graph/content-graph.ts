@@ -26,7 +26,7 @@ export type ContentGraphDeps = {
 };
 
 /**
- * View content coordinator: resolve, prefetch, payload cache invalidation.
+ * View content coordinator: load, prefetch, payload cache invalidation.
  * Load-hook data stays in {@link DataGraph}; detached DOM in route ViewCache.
  */
 export class ContentGraph {
@@ -38,7 +38,7 @@ export class ContentGraph {
     this.cache = deps.cache;
   }
 
-  resolve(
+  loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     options?: { data?: unknown },
@@ -52,10 +52,10 @@ export class ContentGraph {
       return Promise.resolve(null);
     }
 
-    return this.resolveDescriptor(descriptor, routeInfo, signal, options?.data);
+    return this.loadViewDescriptor(descriptor, routeInfo, signal, options?.data);
   }
 
-  resolveDescriptor(
+  loadViewDescriptor(
     descriptor: ContentDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
@@ -63,7 +63,7 @@ export class ContentGraph {
   ): Promise<ViewPayload | null> {
     if (signal.aborted) return Promise.resolve(null);
 
-    const load = () => this.loadPayload(descriptor, routeInfo, signal, data);
+    const load = () => this.loadViewPayload(descriptor, routeInfo, signal, data);
     if (!descriptor.cache) return load();
 
     return this.cache.resolve(payloadCacheKey(descriptor, routeInfo, { data }), load);
@@ -71,7 +71,7 @@ export class ContentGraph {
 
   async prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
     try {
-      await this.resolve(routeInfo, signal);
+      await this.loadView(routeInfo, signal);
     } catch {
       // intent prefetch: silent (mirrors DataGraph.prefetch)
     }
@@ -104,7 +104,7 @@ export class ContentGraph {
     this.cache.destroy();
   }
 
-  private async loadPayload(
+  private async loadViewPayload(
     descriptor: ContentDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
@@ -113,7 +113,7 @@ export class ContentGraph {
     if (signal.aborted) return null;
 
     try {
-      const ctx = ContentGraph.toLoadContext(routeInfo, descriptor, signal, data);
+      const ctx = ContentGraph.buildLoadContext(routeInfo, descriptor, signal, data);
       const result = await this.registry.get(descriptor.loader).load(ctx);
       if (!result) return null;
 
@@ -165,7 +165,7 @@ export class ContentGraph {
     return this.contentDescriptor(resolvedView, route.preserve.view, route.extract);
   }
 
-  private static toLoadContext(
+  private static buildLoadContext(
     routeInfo: MatchedRouteInfo,
     descriptor: Pick<ContentDescriptor, 'kind' | 'ref' | 'extract'>,
     signal: AbortSignal,

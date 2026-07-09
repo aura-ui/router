@@ -11,9 +11,9 @@ import { resolveRouteData } from '../data-graph/route-data';
 import type { ViewPayload } from '../content-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
-/** Resolves view content without mounting — same contract as aura-route `ContentResolverPort`. */
+/** Loads view content without mounting — same contract as aura-route `ContentResolverPort`. */
 export type BranchContentResolver = {
-  resolve(
+  loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     options?: { data?: unknown },
@@ -123,7 +123,7 @@ async function resolveRouteOutcome(
 
   try {
     const data = ctx.dataFor?.(route);
-    const payload = await contentLoader.resolve(
+    const payload = await contentLoader.loadView(
       route,
       ctx.signal,
       data !== undefined ? { data } : undefined,

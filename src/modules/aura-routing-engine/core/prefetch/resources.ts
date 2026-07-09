@@ -1,4 +1,4 @@
-import type { ContentResolvePort } from '../content-graph';
+import type { ContentLoadPort } from '../content-graph';
 import type { DataGraph } from '../data-graph';
 import { routeHasLoadHooks } from '../data-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -135,9 +135,9 @@ export class PrefetchResourceScheduler implements PrefetchResourceSchedulerPort 
 export class ContentPrefetchExecutor implements PrefetchResourceExecutor {
   readonly kind = 'content' as const;
 
-  private readonly content: ContentResolvePort;
+  private readonly content: ContentLoadPort;
 
-  constructor(content: ContentResolvePort) {
+  constructor(content: ContentLoadPort) {
     this.content = content;
   }
 

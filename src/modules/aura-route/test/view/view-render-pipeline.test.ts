@@ -52,7 +52,7 @@ function createPipeline(
         transition: { order: null, in: null, out: null },
         ...overrides.route,
       } as AuraRouteInterface,
-      content: overrides.content ?? { resolve: async () => '<span>ok</span>' },
+      content: overrides.content ?? { loadView: async () => '<span>ok</span>' },
       cache: overrides.cache ?? defaultViewCache,
       mountTarget: {
         appOutlet: () => root,
@@ -107,7 +107,7 @@ describe('ViewRenderPipeline', () => {
     const pipeline = createPipeline(root, {
       route: { errorTemplate: '' },
       content: {
-        resolve: async () => {
+        loadView: async () => {
           throw new Error('load failed');
         },
       },
@@ -119,14 +119,14 @@ describe('ViewRenderPipeline', () => {
     expect(root.textContent).toContain('load failed');
   });
 
-  it('syncBranchMount mounts pre-resolved content without calling resolve', () => {
+  it('syncBranchMount mounts pre-resolved content without calling loadView', () => {
     const root = createOutlet();
-    const resolve = jest.fn(async () => '<span>from-resolve</span>');
+    const loadView = jest.fn(async () => '<span>from-resolve</span>');
     const onLoadingStart = jest.fn();
     const onLoadingEnd = jest.fn();
     const onContentResolved = jest.fn();
     const pipeline = createPipeline(root, {
-      content: { resolve },
+      content: { loadView },
       plugins: [{ onLoadingStart, onLoadingEnd, onContentResolved }],
     });
 
@@ -137,7 +137,7 @@ describe('ViewRenderPipeline', () => {
 
     expect(result).toEqual({ status: 'ok' });
     expect(root.textContent).toBe('pre-resolved');
-    expect(resolve).not.toHaveBeenCalled();
+    expect(loadView).not.toHaveBeenCalled();
     expect(onLoadingStart).not.toHaveBeenCalled();
     expect(onLoadingEnd).not.toHaveBeenCalled();
     expect(onContentResolved).toHaveBeenCalledWith(
@@ -148,15 +148,15 @@ describe('ViewRenderPipeline', () => {
 
   it('syncBranchMount null mounts empty placeholder for content routes', () => {
     const root = createOutlet();
-    const resolve = jest.fn();
-    const pipeline = createPipeline(root, { content: { resolve } });
+    const loadView = jest.fn();
+    const pipeline = createPipeline(root, { content: { loadView } });
 
     pipeline.syncBranchMount({
       ...renderPass(),
       preResolvedContent: null,
     });
 
-    expect(resolve).not.toHaveBeenCalled();
+    expect(loadView).not.toHaveBeenCalled();
     expect(root.textContent).toBe('No content to display');
   });
 

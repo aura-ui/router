@@ -79,7 +79,7 @@ function wireRouteViewController(
     {
       route: routeRecord,
       content: {
-        resolve: async (info) => resolve(info.params?.id ?? '?'),
+        loadView: async (info) => resolve(info.params?.id ?? '?'),
       },
       cache: preserveView
         ? {

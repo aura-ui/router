@@ -17,7 +17,7 @@ export function withContentGraph(
   options: Parameters<typeof createMockTransaction>[0],
 ): ReturnType<typeof createMockTransaction> {
   const transaction = createMockTransaction(options);
-  transaction.engine.contentGraph = { resolve: jest.fn() } as unknown as ContentGraph;
+  transaction.engine.contentGraph = { loadView: jest.fn() } as unknown as ContentGraph;
   return transaction;
 }
 

@@ -31,7 +31,7 @@ export function createMockEngine(): AuraRoutingEngine {
     dataGraph: new DataGraph(hookRegistry),
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
-    contentGraph: { resolve: jest.fn().mockResolvedValue(null) } as unknown as ContentGraph,
+    contentGraph: { loadView: jest.fn().mockResolvedValue(null) } as unknown as ContentGraph,
   } as unknown as AuraRoutingEngine;
 }
 

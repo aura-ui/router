@@ -42,7 +42,7 @@ describe('resolveEnterBranch', () => {
   it('returns empty pre-resolved contents for an empty branch', async () => {
     const signal = new AbortController().signal;
 
-    const result = await resolveEnterBranch([], { resolve: async () => null }, resolveCtx(signal));
+    const result = await resolveEnterBranch([], { loadView: async () => null }, resolveCtx(signal));
 
     expect(result).toEqual({ status: 'ok', preResolvedContents: [] });
   });
@@ -64,7 +64,7 @@ describe('resolveEnterBranch', () => {
       return routeInfo.pattern === '/users' ? '<layout/>' : '<index/>';
     });
 
-    const result = await resolveEnterBranch([layout, index], { resolve }, resolveCtx(signal));
+    const result = await resolveEnterBranch([layout, index], { loadView: resolve }, resolveCtx(signal));
 
     expect(result).toEqual({ status: 'ok', preResolvedContents: ['<layout/>', '<index/>'] });
     expect(resolve).toHaveBeenCalledTimes(2);
@@ -87,7 +87,7 @@ describe('resolveEnterBranch', () => {
 
     const result = await resolveEnterBranch(
       [layout, index],
-      { resolve },
+      { loadView: resolve },
       {
         ...resolveCtx(signal),
         dataFor: (route) => (route === index ? { id: '1' } : undefined),
@@ -105,7 +105,7 @@ describe('resolveEnterBranch', () => {
 
     const result = await resolveEnterBranch(
       [matched('/page')],
-      { resolve: async () => 'never' },
+      { loadView: async () => 'never' },
       resolveCtx(controller.signal),
     );
 
@@ -122,7 +122,7 @@ describe('resolveEnterBranch', () => {
     const pending = resolveEnterBranch(
       [matched('/page')],
       {
-        resolve: async () => {
+        loadView: async () => {
           await gate;
           return '<span>late</span>';
         },
@@ -143,7 +143,7 @@ describe('resolveEnterBranch', () => {
 
     const result = await resolveEnterBranch(
       [route],
-      { resolve: async () => { throw boom; } },
+      { loadView: async () => { throw boom; } },
       resolveCtx(signal),
     );
 
@@ -165,7 +165,7 @@ describe('resolveEnterBranch', () => {
     const result = await resolveEnterBranch(
       [layout, leaf],
       {
-        resolve: async (routeInfo) => {
+        loadView: async (routeInfo) => {
           if (routeInfo.pattern === '/users/:id') throw boom;
           return '<layout/>';
         },
@@ -190,7 +190,7 @@ describe('resolveEnterBranch', () => {
 
     const pending = resolveEnterBranch(
       [matched('/page')],
-      { resolve: async () => { await gate; return '<span>late</span>'; } },
+      { loadView: async () => { await gate; return '<span>late</span>'; } },
       ctx,
     );
 
@@ -233,7 +233,7 @@ describe('resolveEnterBranch', () => {
 
     const result = await resolveEnterBranch(
       [layout],
-      { resolve },
+      { loadView: resolve },
       createBranchResolveContext({
         signal: new AbortController().signal,
         isActive: () => true,

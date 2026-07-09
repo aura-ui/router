@@ -66,7 +66,7 @@ export class ViewRenderPipelinePhase {
 
   /** Load content via port, then mount (or empty placeholder for null content routes). */
   async resolveContent(pass: RenderPass): Promise<void> {
-    const payload = await this.ctx.config.content.resolve(
+    const payload = await this.ctx.config.content.loadView(
       pass.routeInfo,
       pass.signal,
       pass.data !== undefined ? { data: pass.data } : undefined,

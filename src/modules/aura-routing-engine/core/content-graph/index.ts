@@ -72,7 +72,7 @@ export {
 export type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 
 /** Port shared by render and prefetch executors. */
-export type ContentResolvePort = Pick<
+export type ContentLoadPort = Pick<
   ContentGraph,
-  'resolve' | 'prefetchBranch'
+  'loadView' | 'prefetchBranch'
 >;

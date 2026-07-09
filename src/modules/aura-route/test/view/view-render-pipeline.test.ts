@@ -1,10 +1,10 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_PRESERVE } from '../../../aura-routing-engine/core';
+import { NO_CACHE } from '../../../aura-routing-engine/core';
 import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 import type { AuraRouteInterface } from '../../core/types';
 import { ViewContext } from '../../core/view/view-context';
 import { ViewRenderPipeline } from '../../core/view/view-render-pipeline';
-import { defaultViewCache } from '../../core/view/view-cache';
+import { defaultDomCache } from '../../core/view/dom-cache';
 import type { RenderPass } from '../../core/view/types';
 
 function createOutlet(): AuraOutlet {
@@ -24,7 +24,7 @@ function renderPass(id = 1): RenderPass {
       pattern: '/page',
     } as MatchedRouteInfo,
     signal: new AbortController().signal,
-    cacheKey: '/page',
+    domCacheKey: '/page',
     viewKind: 'view',
     useStagedMount: false,
   };
@@ -47,13 +47,13 @@ function createPipeline(
         view: '',
         loadingTemplate: '',
         errorTemplate: '',
-        preserve: NO_PRESERVE,
+        cache: NO_CACHE,
         scrollPolicy: null,
         transition: { order: null, in: null, out: null },
         ...overrides.route,
       } as AuraRouteInterface,
       view: overrides.view ?? { loadView: async () => '<span>ok</span>' },
-      cache: overrides.cache ?? defaultViewCache,
+      cache: overrides.cache ?? defaultDomCache,
       mountTarget: {
         appOutlet: () => root,
         nestedOutlet: () => null,
@@ -164,7 +164,7 @@ describe('ViewRenderPipeline', () => {
     const root = createOutlet();
     const cache = { extract: jest.fn(() => document.createElement('div')), stash: jest.fn() };
     const pipeline = createPipeline(root, {
-      route: { preserve: { view: true, data: true } },
+      route: { cache: { dom: true, view: true, data: true } },
       cache,
     });
 

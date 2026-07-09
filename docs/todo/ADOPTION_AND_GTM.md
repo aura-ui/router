@@ -226,7 +226,7 @@ Core MIT. Деньги:
 <aura-router enter="auth">
   <aura-outlet/>
 
-  <aura-route path="/app" preserve>
+  <aura-route path="/app" cache="screen">
     <template data-route-shell>
       <nav>
         <a href="dashboard" data-router-link>Dashboard</a>

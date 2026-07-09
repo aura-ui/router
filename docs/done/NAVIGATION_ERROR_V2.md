@@ -194,7 +194,7 @@ Bridge-адаптеры `toLegacyTransactionResult` / `fromLegacyTransactionResu
 
 | | Было | v2 |
 |---|------|-----|
-| render OK, transitionOut fail | `viewCommitted: false`, URL не коммитится | `commit.view: 'staged'` → `history: preserve` |
+| render OK, transitionOut fail | `viewCommitted: false`, URL не коммитится | `commit.view: 'staged'` → `history: cache` |
 | render fail + error UI | `viewCommitted: true`, URL коммитится | `commit.view: 'committed'` → `history: commit-target` |
 
 Покрыто тестами: `test/history/history-policy.test.ts` (`error staged transition push`).

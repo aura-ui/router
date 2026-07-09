@@ -4,7 +4,7 @@ export type {
   ViewRenderPlugin,
   RouteViewConfig,
   ViewResolverPort,
-  ViewCachePort,
+  DomCachePort,
   MountTargetPort,
   ViewPayload,
 } from './types';

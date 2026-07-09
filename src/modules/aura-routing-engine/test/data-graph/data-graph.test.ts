@@ -1,5 +1,5 @@
 import { DataGraph } from '../../core/data-graph';
-import { NO_PRESERVE } from '../../../aura-route/core/attr/preserve-attr-parser';
+import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
@@ -153,7 +153,7 @@ describe('DataGraph', () => {
     expect(loads).toBe(2);
   });
 
-  it('omits snapshot when no preserve.data entries on the active branch', async () => {
+  it('omits snapshot when no cache.data entries on the active branch', async () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
@@ -161,7 +161,7 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/users');
-    route.route.preserve = NO_PRESERVE;
+    route.route.cache = NO_CACHE;
 
     const { snapshot } = await dataGraph.load([route], {
       transaction: loadTransaction(hookRegistry, [route]),
@@ -170,7 +170,7 @@ describe('DataGraph', () => {
     expect(snapshot).toBeUndefined();
   });
 
-  it('does not cache load hooks when preserve data is off', async () => {
+  it('does not cache load hooks when cache.data is off', async () => {
     let hookCalls = 0;
 
     hookRegistry.register({
@@ -183,7 +183,7 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/users');
-    route.route.preserve = NO_PRESERVE;
+    route.route.cache = NO_CACHE;
 
     const transaction = loadTransaction(hookRegistry, [route]);
 

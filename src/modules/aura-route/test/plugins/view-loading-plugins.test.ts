@@ -12,7 +12,7 @@ function renderPass(): RenderPass {
       pattern: '/',
     } as RenderPass['routeInfo'],
     signal: new AbortController().signal,
-    cacheKey: '/',
+    domCacheKey: '/',
     viewKind: 'view',
     useStagedMount: false,
   };

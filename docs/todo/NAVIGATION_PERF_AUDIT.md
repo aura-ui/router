@@ -134,7 +134,7 @@ Nested default: `resolveEnterBranch` (async parallel) → `mountEnterBranch` (sy
 
 ---
 
-### 11. Branch mount обходит preserve fast paths
+### 11. Branch mount обходит cache.dom fast paths
 
 **Что:** `syncBranchMount` без `tryCacheRestore` / `trySkipAlreadyMounted`.
 
@@ -186,7 +186,7 @@ Nested default: `resolveEnterBranch` (async parallel) → `mountEnterBranch` (sy
 |---------|----------|
 | `branch` array concat per node | `build-route-tree.ts` ~L149 |
 | New `MatchedRouteInfo` + chain per match | `matched-chain.ts` |
-| Detached DOM / preserve stash | `outlet-adapter.ts`, `view-cache.ts` |
+| Detached DOM / cache.dom stash | `outlet-adapter.ts`, `dom-cache.ts` |
 | Full tree discard on refresh | `aura-routing-route-registry.ts` |
 
 ---
@@ -213,7 +213,7 @@ Nested default: `resolveEnterBranch` (async parallel) → `mountEnterBranch` (sy
 | 2 | Indexed matcher (trie) | `url-matcher` → scale |
 | 3 | Incremental DOM | `dom-patch` |
 | 4 | `hasSyncContent` → fast/sync lane | `navigation-pipeline` |
-| 5 | preserve paths в branch mount | (integration — TODO) |
+| 5 | cache.dom paths в branch mount | (integration — TODO) |
 | 6 | Cache layout templates | (integration — TODO) |
 | 7 | Lightweight prefetch mode lookup | `prefetch-plan` |
 | 8 | Cache ancestor params in chain | `matched-chain` |
@@ -230,7 +230,7 @@ Nested default: `resolveEnterBranch` (async parallel) → `mountEnterBranch` (sy
 | Nested dashboard | #3–4 DOM burst, #11–12 layout/cache |
 | 50+ routes | #1–2 matching |
 | Link-heavy + prefetch | #7 hover match |
-| Data-heavy + preserve | #13 onLoad, #19 DAG, UI on stale ([DATAGRAPH_GAPS.md](./DATAGRAPH_GAPS.md) §7) |
+| Data-heavy + cache | #13 onLoad, #19 DAG, UI on stale ([DATAGRAPH_GAPS.md](./DATAGRAPH_GAPS.md) §7) |
 
 ---
 

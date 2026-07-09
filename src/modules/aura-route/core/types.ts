@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo, PreserveFlags } from '../../aura-routing-engine/route-api';
+import type { MatchedRouteInfo, CacheFlags } from '../../aura-routing-engine/route-api';
 
 import type { ScrollAttr } from './attr/scroll-attr-parser';
 
@@ -13,7 +13,7 @@ export interface AuraRouteInterface {
   view: ViewAttrDescriptor | null;
   loadingTemplate: string;
   errorTemplate: string;
-  preserve: PreserveFlags;
+  cache: CacheFlags;
   scrollPolicy: ScrollAttr | null;
   extract: string | null;
   readonly transition: RouteTransitionType;
@@ -43,8 +43,8 @@ export type ApplyPreResolvedOptions = RouteRenderOptions & {
 };
 
 export type RouteUnmountOptions = {
-  /** ViewCache key for detached outgoing DOM (exit route slice from unmount phase). */
-  cacheKey?: string;
+  /** DomCache key for detached outgoing DOM (exit route slice from unmount phase). */
+  domCacheKey?: string;
 };
 
 export type { MatchedRouteInfo };

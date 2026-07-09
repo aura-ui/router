@@ -117,7 +117,7 @@ Background sweep lifecycle:
 
 ### Read API: `get` vs `lookup` vs `has` vs `peek` vs `isStale` vs `extract`
 
-Use this table to pick the right read path. **`RouteViewCache`** (`has` / `peek` / `extract`) follows the same rules via `AuraCacheStore` for those methods; use `AuraCacheStore.lookup` directly for SWR status.
+Use this table to pick the right read path. **`RouteDomCache`** (`has` / `peek` / `extract`) follows the same rules via `AuraCacheStore` for those methods; use `AuraCacheStore.lookup` directly for SWR status.
 
 | Method | Returns value | Promotes LRU | Always unlinks | Calls `onRemove` | GC-expired entry |
 |--------|:-------------:|:------------:|:--------------:|:----------------:|------------------|

@@ -128,7 +128,7 @@ interface NavigationEventDetailBase {
 | **`route-activate` / `route-deactivate`** | `<aura-route>` | Nested lifecycle снаружи дерева | ✗ |
 | **`transition-in:end` / `transition-out:end`** | `<aura-route>` или router | Интеграция с GSAP / View Transitions | ✗ (hooks) |
 | **`search-change`** | `<aura-router>` | Query/hash без смены leaf | ✗; идея в comparison docs |
-| **`preserve:detach` / `preserve:restore`** | `<aura-route>` | Keep-alive с `preserve` | ✗ (hooks / future attrs) |
+| **`cache:detach` / `cache:restore`** | `<aura-route>` | Keep-alive с `cache` | ✗ (hooks / future attrs) |
 | **EventBus `navigation:*` / `load:*`** | engine internal | DevTools, state machine viz | ✗ — [EVENT_BUS.md](./EVENT_BUS.md) |
 
 ---

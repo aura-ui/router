@@ -17,10 +17,10 @@ export function createTestRoute(
   path: string,
   overrides: Partial<RouteInstance> = {},
 ): RouteInstance {
-  const { preserve = { view: false, data: true }, ...routeOverrides } = overrides;
+  const { cache = { dom: false, view: false, data: true }, ...routeOverrides } = overrides;
   const route = {
     path,
-    preserve,
+    cache,
     getAttribute(name: string): string | null {
       return name === 'path' ? path : null;
     },

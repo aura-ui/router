@@ -14,12 +14,12 @@
 
 | Слой | Что кэширует | Код | SWR при navigation |
 |------|----------------|-----|-------------------|
+| **ViewPayloadCache** | view loaders (`url`, `html`, …) | `core/view-graph/` | hit/miss + dedupe; SWR через `configure({ viewCache: { staleTime } })` |
 | **DataGraph** | `load` hooks (JSON, store) | `core/data-graph/` | ✓ `staleTime` 30s по умолчанию + фоновый refetch |
-| **Content / DataCache** | view (`html-src`, template…) | `core/content/cache/` | ~ тот же `AuraResolvableCache`, но **без `staleTime`** → hit/miss + dedupe, без stale+revalidate |
 
 Оба слоя сидят на **`AuraResolvableCache`** (`aura-cache-store`). SWR включается только когда задан `staleTime` (см. `AuraResolvableCache.resolve()`). DataGraph задаёт его в ctor; `DataCache` — нет (только `max` + `gcTime: Infinity`), поэтому повторный визит = **вечный cache hit**, а не «показать stale + тихий refetch».
 
-Опционально: `AuraRouter.configure({ dataCache: { staleTime: 30_000 } })` — SWR для view **можно** включить, но это не дефолт и не покрыто product-DX (per-route TTL, invalidate).
+Опционально: `AuraRouter.configure({ viewCache: { staleTime: 30_000 } })` — SWR для loader payload **можно** включить, но это не дефолт и не покрыто product-DX (per-route TTL, invalidate).
 
 ---
 
@@ -50,7 +50,7 @@ missing → await fetch → записать в кэш → отдать
 - `prefetch()` intent (без guards; redirect/error — silent)
 - `DataPrefetchExecutor` в `PrefetchPipeline`
 - `invalidate()` / `invalidateMatch()` / `invalidateAll()`
-- `preserve="data"` на route
+- `cache="data"` на route
 - Тесты: `test/data-graph/data-graph.test.ts`
 
 ### Prefetch config — <span style="color:#16a34a">в коде</span>
@@ -111,7 +111,7 @@ html-src partial     → stale HTML + quiet refetch             ✗ TODO content
 
 | # | Задача | Effort |
 |---|--------|--------|
-| 5 | SWR на `DataCache` по умолчанию (`staleTime` + per-route TTL для `preserve.view`) | ~1–2 дн |
+| 5 | SWR на `ViewPayloadCache` по умолчанию (`staleTime` + per-route TTL для `cache.view`) | ~1–2 дн |
 | 6 | Reenter: явная политика load (skip / always / revalidate-if-stale) | ~1 дн |
 | 7 | [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md) — события prefetch/load hit/miss/stale | ~2 дн |
 

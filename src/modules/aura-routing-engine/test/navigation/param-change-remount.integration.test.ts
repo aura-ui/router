@@ -7,8 +7,9 @@ import { NavigationTransactionPipeline } from '../../core/navigation/navigation-
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
-import { cacheKey } from '../../../aura-route/core/view/view-cache';
+import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { RouteLifecycleContext } from '../../core/route/types';
 import {
   createUsersIdMatch,
@@ -23,7 +24,7 @@ function wireRouteViewController(
   node: RouteNode,
   outlet: AuraOutlet,
   resolve: () => string,
-  preserveView = false,
+  cacheDom = false,
 ): { controller: RouteViewController; stash: Map<string, Element> } {
   let passId = 0;
   const stash = new Map<string, Element>();
@@ -34,7 +35,7 @@ function wireRouteViewController(
     loadingTemplate: string;
     errorTemplate: string;
     scrollPolicy: null;
-    preserve: { view: boolean; data: boolean };
+    cache: CacheFlags;
     transition: typeof NO_TRANSITION;
     render: RouteViewController['render'];
     onUnmount: (ctx: RouteLifecycleContext) => void;
@@ -47,7 +48,7 @@ function wireRouteViewController(
   routeRecord.loadingTemplate = routeRecord.loadingTemplate ?? '';
   routeRecord.errorTemplate = routeRecord.errorTemplate ?? '';
   routeRecord.scrollPolicy = null;
-  routeRecord.preserve = { view: preserveView, data: false };
+  routeRecord.cache = { dom: cacheDom, view: false, data: false };
   routeRecord.transition = NO_TRANSITION;
 
   const controller = new RouteViewController(
@@ -73,7 +74,7 @@ function wireRouteViewController(
   routeRecord.render = (info, options) => controller.render(info, options);
   routeRecord.onUnmount = (ctx) => {
     passId++;
-    controller.onUnmount({ cacheKey: cacheKey(ctx.to, routeRecord.path) });
+    controller.onUnmount({ domCacheKey: domCacheKey(ctx.to, routeRecord.path) });
   };
   routeRecord.commitStagedView = () => controller.commitStagedView();
 
@@ -138,11 +139,11 @@ describe('param-change remount integration (real runViewCommit)', () => {
     expect(outlet.children).toHaveLength(1);
   });
 
-  it('round-trip with preserve.view caches exit DOM under pathname key', async () => {
+  it('round-trip with cache.dom caches exit DOM under pathname key', async () => {
     const outlet = createTestOutlet();
     let serial = 0;
     const node = createUsersIdNode({
-      preserve: { view: true, data: false },
+      cache: { dom: true, view: false, data: false },
       view: { loader: 'url', content: 'content/user/{{id}}.html' },
     });
 

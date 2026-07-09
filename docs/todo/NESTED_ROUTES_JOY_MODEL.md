@@ -39,7 +39,7 @@ Engine (LCA, `enterRoutes`, outlet chain) **не ломаем** — меняем
 | Folder shell | `layout` + template | colocated `<template data-route-shell>` **или** external `layout` |
 | Lifecycle | `enter` · `leave` · `load` · `after` | inherit вниз по дереву |
 | Post-commit | `after` + `ctx.phase` | analytics/scroll на folder или router |
-| Кэш DOM | `preserve` / `preserve="data"` | folder shell: `preserve`; leaf: по необходимости |
+| Кэш DOM | `cache` / `cache="data"` | folder shell: `cache`; leaf: по необходимости |
 | Глобальные defaults | `enter`, `after` на `<aura-router>` | auth один раз на router или folder |
 | Анимации | `data-transition` на router, `transition` на route | sibling swap — outlet child, shell не трогаем |
 | Escape hatch | `hooks="phase:hook-name"` | редкие asymmetric transitions |
@@ -187,7 +187,7 @@ Shared layout между разделами — один `<template id="...">`, 
 **Colocated вариант (рекомендуемый inline):** `<template>` **внутри** folder — один файл, но inert, как external `layout`:
 
 ```html
-<aura-route path="/app" preserve>
+<aura-route path="/app" cache="screen">
   <template data-route-shell>
     <aside>
       <a href="dashboard" data-router-link>Dashboard</a>
@@ -239,7 +239,7 @@ Engine: colocated shell → clone `<template data-route-shell>`; `findNestedOutl
 | Файл | shell внутри `<aura-route>` | shell отдельно |
 | Shared shell | extract template наружу | один id, N folders |
 | Inert / SEO-safe | да | да |
-| v3 attrs | `enter`, `preserve` | `layout`, `enter`, `preserve` |
+| v3 attrs | `enter`, `cache` | `layout`, `enter`, `cache` |
 
 UA default: `aura-route { display: none }` — route CE и nested route children не в accessibility tree до mount в outlet.
 
@@ -271,7 +271,7 @@ Canonical: **`path="."`** (не пустой `path=""`).
 Inline folder:
 
 ```html
-<aura-route path="/dashboard" preserve>
+<aura-route path="/dashboard" cache="screen">
   <template data-route-shell>
     <nav>...</nav>
     <main data-route-outlet></main>
@@ -382,17 +382,17 @@ Folder route переопределяет только отличия; leaf — 
 
 ---
 
-## `preserve` в nested
+## `cache` в nested
 
 | Route | Рекомендация |
 |-------|--------------|
-| Folder shell | `preserve` — sidebar не пересоздавать при sibling nav |
-| Leaf с формой | `preserve` или `preserve="all"` |
-| Leaf feed/list | `preserve="data"` |
+| Folder shell | `cache` — sidebar не пересоздавать при sibling nav |
+| Leaf с формой | `cache` или `cache="all"` |
+| Leaf feed/list | `cache="data"` |
 
 ```html
-<aura-route path="/app" layout="app-shell" preserve>
-  <aura-route path="editor" view="component:editor" preserve="all"/>
+<aura-route path="/app" layout="app-shell" cache="screen">
+  <aura-route path="editor" view="component:editor" cache="all"/>
 </aura-route>
 ```
 
@@ -470,7 +470,7 @@ Dev overlay: дерево, active branch, resolved paths.
 
   <aura-route path="/" view="html:<h1>Home</h1>"/>
 
-  <aura-route path="/app" preserve>
+  <aura-route path="/app" cache="screen">
     <template data-route-shell>
       <aside>
         <a href="dashboard" data-router-link>Dashboard</a>
@@ -499,7 +499,7 @@ Dev overlay: дерево, active branch, resolved paths.
 | Leaf `view` | `buildContentDescriptor(view)` → mount в parent outlet |
 | Router/folder inherit | merge attrs при `collectRoutes()` / hook runner |
 | `enter=""` | skip inherited `enter` для node |
-| `preserve` | view cache + skip re-render на sibling nav |
+| `cache` | view cache + skip re-render на sibling nav |
 | Relative paths | `resolvePattern(parent, child)` (как сейчас) |
 | `path="."` | index child → parent URL |
 | `redirect` | match → navigate target без render |
@@ -544,9 +544,9 @@ Dev overlay: дерево, active branch, resolved paths.
 | 9 | **`<template>` в HTML source (CSR)** | Inert для render, но текст/ссылки **в исходнике** страницы. Краулер может видеть дубли nav. Mitigation: SSR active branch; или shell вынести в external chunk; не light DOM. |
 | 10 | **Hydration mismatch (SSR)** | Сервер: outlet = shell + page. Клиент: не re-clone shell если markup совпадает — **hydrate** outlet, не replace. Иначе flash + double mount. |
 | 11 | **`data-router-link` в shell до mount** | Ссылки в template inactive до clone. Делегирование на `aura-router` после mount; до первого enter — обычные `<a href>` с **resolved absolute** href для noscript/SEO. Relative links — после link resolver (planned). |
-| 12 | **Scroll `restore` nested** | Scroll scope: **leaf outlet** по умолчанию; shell scroll отдельно (`preserve` shell). `scroll="restore"` на router + key = `viewCacheKey` per leaf. |
+| 12 | **Scroll `restore` nested** | Scroll scope: **leaf outlet** по умолчанию; shell scroll отдельно (`cache` shell). `scroll="restore"` на router + key = `viewCacheKey` per leaf. |
 | 13 | **Loading / error scope** | Первый enter folder+child: loading в **child outlet**; shell уже виден. Error в child — **не** снимает parent shell. Error при mount shell — fail всей ветки. |
-| 14 | **`preserve` + exit/re-enter ветки** | Exit branch → stash shell handle по folder cache key. Re-enter → restore, не re-clone template. Sibling nav → skip render (LCA), не путать с re-enter. |
+| 14 | **`cache` + exit/re-enter ветки** | Exit branch → stash shell handle по folder cache key. Re-enter → restore, не re-clone template. Sibling nav → skip render (LCA), не путать с re-enter. |
 | 15 | **Transitions** | `data-transition` на router: по умолчанию animate **leaf outlet** only; shell вне transition. Override: `transition` на route или `hooks`. |
 
 ### P2 — edge cases, позже
@@ -554,7 +554,7 @@ Dev overlay: дерево, active branch, resolved paths.
 | # | Дыра | Контракт / mitigation |
 |---|------|------------------------|
 | 16 | **Несколько outlet markers** в shell | Dev error: ровно один `[data-route-outlet]` или `<aura-outlet>`. Named outlets — v0.3+. |
-| 17 | **Вложенные folders + preserve** | Каждый folder level — свой shell handle и nested outlet; preserve per level. |
+| 17 | **Вложенные folders + cache** | Каждый folder level — свой shell handle и nested outlet; cache per level. |
 | 18 | **`aura-route-fragment`** | Children вне DOM folder — paths **absolute** или `for=` задаёт base; folder-relative не работает без anchor. |
 | 19 | **`path="."` vs engine `""`** | Alias при collect: `"."` → index child (как `""` сегодня). Одна canonical форма в docs: `"."`. |
 | 20 | **Catch-all / 404 в folder** | `/settings/*` → parent shell + `error-template` / catch-all Page в outlet. Global `*` — отдельно. |
@@ -603,7 +603,7 @@ Dev overlay: дерево, active branch, resolved paths.
 | Folder shell | `layout` + template | colocated `<template>` или external `layout` |
 | Lifecycle | 9 attrs | 4: `enter` `leave` `load` `after` |
 | Inherit | `inherit-hooks` (planned) | router/folder defaults + `enter=""` opt-out |
-| Кэш | `keep-alive` + `cache` | `preserve` |
+| Кэш | `keep-alive` + `cache` | `cache` |
 | Mental model | parent/child/outlet | **папки и страницы** |
 | Paths | `""` index | `path="."` |
 | Nav links | full href | relative (planned) |

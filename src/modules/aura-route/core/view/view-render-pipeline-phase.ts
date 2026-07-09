@@ -26,9 +26,9 @@ export class ViewRenderPipelinePhase {
 
   /** Keep-alive cache hit — returns `ok` when DOM was reattached, `null` to continue. */
   tryCacheRestore(pass: RenderPass): ViewRenderResult | null {
-    if (!this.ctx.config.route.preserve.view) return null;
+    if (!this.ctx.config.route.cache.dom) return null;
 
-    const cachedRoot = this.ctx.config.cache.extract(pass.cacheKey);
+    const cachedRoot = this.ctx.config.cache.extract(pass.domCacheKey);
     if (!cachedRoot) return null;
 
     return this.mountPayload(pass, cachedRoot, pass.viewKind, cachedRoot)
@@ -40,7 +40,7 @@ export class ViewRenderPipelinePhase {
   trySkipAlreadyMounted(pass: RenderPass): ViewRenderResult | null {
     if (this.ctx.paramChangeRemount) return null;
 
-    const keepAlive = this.ctx.config.route.preserve.view;
+    const keepAlive = this.ctx.config.route.cache.dom;
     const layout = pass.viewKind === 'layout';
     if (keepAlive && hasActiveMount(toMountSlice(this.ctx.mount), layout)) {
       return { status: 'ok' };

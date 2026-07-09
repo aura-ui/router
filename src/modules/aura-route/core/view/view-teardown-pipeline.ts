@@ -42,19 +42,19 @@ export class ViewTeardownPipeline {
   onUnmount(options?: RouteUnmountOptions): void {
     this.ctx.renderSignal.cancel();
 
-    const preserveView = this.ctx.config.route.preserve.view;
+    const keepDom = this.ctx.config.route.cache.dom;
     const paramChange = this.ctx.paramChangeRemount;
     this.ctx.paramChangeRemount = false;
 
     const { snapshot, detachedRoot } = paramChange
-      ? unmountParamChangeOutgoing(this.ctx.mount, preserveView)
-      : unmountOnLeave(this.ctx.mount, preserveView);
+      ? unmountParamChangeOutgoing(this.ctx.mount, keepDom)
+      : unmountOnLeave(this.ctx.mount, keepDom);
 
-    this.ctx.mount = finalizeLeave(snapshot, preserveView, detachedRoot);
+    this.ctx.mount = finalizeLeave(snapshot, keepDom, detachedRoot);
 
-    if (preserveView && detachedRoot) {
+    if (keepDom && detachedRoot) {
       this.ctx.config.cache.put(
-        options?.cacheKey ?? this.ctx.lastCacheKey ?? this.ctx.config.route.path,
+        options?.domCacheKey ?? this.ctx.lastCacheKey ?? this.ctx.config.route.path,
         detachedRoot,
       );
     }

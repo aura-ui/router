@@ -28,9 +28,9 @@ export class PrefetchPlanResolver {
 
     const nodes = this.deps.getMatchableNodes();
     const from = this.resolveCurrentLeaf(nodes);
-    const cacheKey = this.cacheKey(normalized, from);
+    const planKey = this.planCacheKey(normalized, from);
     const generation = this.deps.getRegistryGeneration();
-    const cached = this.cache.get(cacheKey);
+    const cached = this.cache.get(planKey);
     if (cached && cached.generation === generation) {
       return cached.plan;
     }
@@ -52,7 +52,7 @@ export class PrefetchPlanResolver {
       registryGeneration: generation,
     };
 
-    this.cache.set(cacheKey, { generation, plan });
+    this.cache.set(planKey, { generation, plan });
     return plan;
   }
 
@@ -70,7 +70,7 @@ export class PrefetchPlanResolver {
     return resolveNavigationTarget(this.deps.matcher, normalized, nodes)?.leaf ?? null;
   }
 
-  private cacheKey(href: string, from: MatchedRouteInfo | null): string {
+  private planCacheKey(href: string, from: MatchedRouteInfo | null): string {
     return `${href}|from:${from?.href ?? ''}`;
   }
 }

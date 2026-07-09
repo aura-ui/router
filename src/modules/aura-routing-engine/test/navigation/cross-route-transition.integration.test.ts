@@ -5,8 +5,9 @@ import { NavigationTransaction } from '../../core/navigation/navigation-transact
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteInstance } from '../../core/route/types';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
-import { cacheKey } from '../../../aura-route/core/view/view-cache';
+import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { RouteLifecycleContext } from '../../core/route/types';
 import { createTestRoute } from '../helpers/create-test-route';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
@@ -69,7 +70,7 @@ function wireRoute(
     loadingTemplate: string;
     errorTemplate: string;
     scrollPolicy: null;
-    preserve: { view: boolean; data: boolean };
+    cache: CacheFlags;
     render: RouteViewController['render'];
     onUnmount: (ctx: RouteLifecycleContext) => void;
     onTransitionOut: (ctx: RouteLifecycleContext) => void;
@@ -81,7 +82,7 @@ function wireRoute(
   routeRecord.loadingTemplate = '';
   routeRecord.errorTemplate = '';
   routeRecord.scrollPolicy = null;
-  routeRecord.preserve = { view: false, data: false };
+  routeRecord.cache = NO_CACHE;
 
   const controller = new RouteViewController(
     {
@@ -101,7 +102,7 @@ function wireRoute(
   routeRecord.revertInFlightView = () => controller.revertInFlightView();
   routeRecord.onUnmount = (ctx) => {
     passId++;
-    controller.onUnmount({ cacheKey: cacheKey(ctx.to, routeRecord.path) });
+    controller.onUnmount({ domCacheKey: domCacheKey(ctx.to, routeRecord.path) });
   };
   routeRecord.onTransitionOut = (ctx) => options.onTransitionOut?.(ctx, outlet);
   routeRecord.onTransitionIn = (ctx) => options.onTransitionIn?.(ctx, outlet);

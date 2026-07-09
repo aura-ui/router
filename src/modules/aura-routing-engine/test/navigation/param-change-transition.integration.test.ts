@@ -5,10 +5,10 @@ import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
-import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
+import { NO_TRANSITION, type RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
-import { cacheKey } from '../../../aura-route/core/view/view-cache';
-import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { RouteLifecycleContext } from '../../core/route/types';
 import {
   createUsersIdMatch,
@@ -22,7 +22,7 @@ import {
 import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 
 type WireOptions = {
-  preserveView?: boolean;
+  cacheDom?: boolean;
   transition?: RouteTransitionType;
   onTransitionOut?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
   onTransitionIn?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
@@ -44,7 +44,7 @@ function wireRouteViewController(
 ): { controller: RouteViewController; stash: Map<string, Element> } {
   let passId = 0;
   const stash = new Map<string, Element>();
-  const preserveView = options.preserveView ?? false;
+  const cacheDom = options.cacheDom ?? false;
   const transition = options.transition ?? NO_TRANSITION;
   const routeRecord = node.route as {
     path: string;
@@ -53,7 +53,7 @@ function wireRouteViewController(
     loadingTemplate: string;
     errorTemplate: string;
     scrollPolicy: null;
-    preserve: { view: boolean; data: boolean };
+    cache: CacheFlags;
     transition: RouteTransitionType;
     transitionIn: string[] | null;
     transitionOut: string[] | null;
@@ -70,7 +70,7 @@ function wireRouteViewController(
   routeRecord.loadingTemplate = routeRecord.loadingTemplate ?? '';
   routeRecord.errorTemplate = routeRecord.errorTemplate ?? '';
   routeRecord.scrollPolicy = null;
-  routeRecord.preserve = { view: preserveView, data: false };
+  routeRecord.cache = { dom: cacheDom, view: false, data: false };
   routeRecord.transition = transition;
   routeRecord.transitionIn = transition.in;
   routeRecord.transitionOut = transition.out;
@@ -81,7 +81,7 @@ function wireRouteViewController(
       view: {
         loadView: async (info) => resolve(info.params?.id ?? '?'),
       },
-      cache: preserveView
+      cache: cacheDom
         ? {
             extract: (key) => {
               const root = stash.get(key);
@@ -102,7 +102,7 @@ function wireRouteViewController(
   routeRecord.render = (info, renderOptions) => controller.render(info, renderOptions);
   routeRecord.onUnmount = (ctx) => {
     passId++;
-    controller.onUnmount({ cacheKey: cacheKey(ctx.to, routeRecord.path) });
+    controller.onUnmount({ domCacheKey: domCacheKey(ctx.to, routeRecord.path) });
   };
   routeRecord.onTransitionOut = (ctx) => options.onTransitionOut?.(ctx, outlet);
   routeRecord.onTransitionIn = (ctx) => options.onTransitionIn?.(ctx, outlet);
@@ -340,12 +340,12 @@ describe('param-change in-place + transition integration (real view)', () => {
     expect(queryViewRoot(outlet, '2')).not.toBeNull();
   });
 
-  it('preserve.view + parallel: crossfade with outgoing stashed on unmount', async () => {
+  it('cache.dom + parallel: crossfade with outgoing stashed on unmount', async () => {
     const outlet = createTestOutlet();
     const transitionSnapshots: Array<{ phase: string; childCount: number }> = [];
 
     const node = createUsersIdNode({
-      preserve: { view: true, data: false },
+      cache: { dom: true, view: false, data: false },
       view: { loader: 'url', content: 'content/user/{{id}}.html' },
       transition: PARALLEL_CROSS_FADE_TRANSITION,
       transitionIn: PARALLEL_CROSS_FADE_TRANSITION.in,
@@ -354,7 +354,7 @@ describe('param-change in-place + transition integration (real view)', () => {
       ready: ['analytics'],
     });
     const { stash } = wireRouteViewController(node, outlet, viewMarkup, {
-      preserveView: true,
+      cacheDom: true,
       transition: PARALLEL_CROSS_FADE_TRANSITION,
       onTransitionOut: (_ctx, root) => {
         transitionSnapshots.push({ phase: 'transitionOut', childCount: root.children.length });

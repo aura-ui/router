@@ -1,14 +1,14 @@
-import { PayloadCache } from '../../../core/view-graph/cache/payload-cache';
+import { ViewPayloadCache } from '../../../core/view-graph/cache/view-payload-cache';
 
-describe('PayloadCache', () => {
-  let cache: PayloadCache;
+describe('ViewPayloadCache', () => {
+  let cache: ViewPayloadCache;
 
   afterEach(() => {
     cache?.destroy();
   });
 
   it('stores and retrieves string payloads', async () => {
-    cache = new PayloadCache();
+    cache = new ViewPayloadCache();
     expect(cache.get('/a')).toBeUndefined();
 
     const value = await cache.resolve('/a', async () => 'html');
@@ -18,7 +18,7 @@ describe('PayloadCache', () => {
   });
 
   it('deduplicates concurrent resolve calls for the same key', async () => {
-    cache = new PayloadCache();
+    cache = new ViewPayloadCache();
     let loads = 0;
 
     const load = async () => {
@@ -38,7 +38,7 @@ describe('PayloadCache', () => {
   });
 
   it('does not persist DocumentFragment results', async () => {
-    cache = new PayloadCache();
+    cache = new ViewPayloadCache();
     const fragment = document.createDocumentFragment();
     fragment.appendChild(document.createElement('span'));
 
@@ -49,14 +49,14 @@ describe('PayloadCache', () => {
   });
 
   it('clear removes cached entries', async () => {
-    cache = new PayloadCache();
+    cache = new ViewPayloadCache();
     await cache.resolve('/x', async () => 'cached');
     cache.clear();
     expect(cache.get('/x')).toBeUndefined();
   });
 
   it('invalidate removes entries by key', async () => {
-    cache = new PayloadCache();
+    cache = new ViewPayloadCache();
     await cache.resolve('/users|view:html:a', async () => 'a');
     await cache.resolve('/profile|view:html:b', async () => 'b');
 
@@ -68,7 +68,7 @@ describe('PayloadCache', () => {
   });
 
   it('invalidate with default policy marks entries stale but keeps values', async () => {
-    cache = new PayloadCache();
+    cache = new ViewPayloadCache();
     await cache.resolve('/stale', async () => 'cached');
 
     const count = cache.invalidate();
@@ -78,7 +78,7 @@ describe('PayloadCache', () => {
   });
 
   it('destroy clears cached entries', async () => {
-    cache = new PayloadCache();
+    cache = new ViewPayloadCache();
     await cache.resolve('/x', async () => 'cached');
     cache.destroy();
     expect(cache.get('/x')).toBeUndefined();

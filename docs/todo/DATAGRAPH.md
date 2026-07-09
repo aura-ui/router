@@ -1,4 +1,4 @@
-﻿# DataGraph: кэш `load` hooks (SWR)
+# DataGraph: кэш `load` hooks (SWR)
 
 > **Статус:** **v1 реализован** в `src/modules/aura-routing-engine/core/data-graph/` (2026-06-30)  
 > **Gaps по коду** (детально, зачем каждый пункт): [DATAGRAPH_GAPS.md](./DATAGRAPH_GAPS.md)  
@@ -155,7 +155,7 @@ Store: aura-cache-store (AuraResolvableCache)
 
 1. **Единый CacheStore namespace** с content — общая инфра, разные key prefix — см. [CONTENT_CACHE.md](./CONTENT_CACHE.md).
 2. **`onLoad()` на route** — вызывается на каждой navigation, включая cache hit (by design).
-3. Per-route **`preserve="data"`** — только routes с флагом пишут в DataGraph cache.
+3. Per-route **`cache="data"`** — только routes с флагом пишут в DataGraph cache.
 
 ---
 

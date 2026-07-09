@@ -1,12 +1,12 @@
-import { RouteViewCache } from '../../core/view/view-cache';
+import { RouteDomCache } from '../../core/view/dom-cache';
 
-describe('RouteViewCache', () => {
+describe('RouteDomCache', () => {
   beforeEach(() => {
-    RouteViewCache.configure({ max: 5, gcTime: Infinity, gcSweepInterval: false });
+    RouteDomCache.configure({ max: 5, gcTime: Infinity, gcSweepInterval: false });
   });
 
   it('extract removes entry from store', () => {
-    const cache = new RouteViewCache();
+    const cache = new RouteDomCache();
     const root = document.createElement('div');
 
     cache.put('a', root);
@@ -15,7 +15,7 @@ describe('RouteViewCache', () => {
   });
 
   it('extract preserves detached subtree (not onRemove)', () => {
-    const cache = new RouteViewCache();
+    const cache = new RouteDomCache();
     const root = document.createElement('div');
     const child = document.createElement('span');
     child.textContent = 'cached';
@@ -30,9 +30,9 @@ describe('RouteViewCache', () => {
   });
 
   it('put replaces existing entry and destroys previous root', () => {
-    RouteViewCache.configure({ max: 5, gcTime: Infinity, gcSweepInterval: false });
+    RouteDomCache.configure({ max: 5, gcTime: Infinity, gcSweepInterval: false });
 
-    const cache = new RouteViewCache();
+    const cache = new RouteDomCache();
     const first = document.createElement('div');
     const second = document.createElement('div');
     document.body.append(first);
@@ -46,14 +46,14 @@ describe('RouteViewCache', () => {
 
   it('removes oldest when max exceeded', () => {
     const removed: Element[] = [];
-    RouteViewCache.configure({
+    RouteDomCache.configure({
       max: 2,
       gcTime: Infinity,
       gcSweepInterval: false,
       onRemove: (_key, root) => removed.push(root),
     });
 
-    const cache = new RouteViewCache();
+    const cache = new RouteDomCache();
     const a = document.createElement('div');
     const b = document.createElement('div');
     const c = document.createElement('div');

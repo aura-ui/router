@@ -1,5 +1,6 @@
-import { ViewGraph, PayloadCache, LoaderRegistry, payloadCacheKey } from '../../core/view-graph';
+import { ViewGraph, ViewPayloadCache, LoaderRegistry, viewCacheKey } from '../../core/view-graph';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { withResolvedView } from '../helpers/with-resolved-view';
 
 function matched(
@@ -15,7 +16,7 @@ function matched(
     route: {
       layout: '',
       view: null,
-      preserve: { view: false },
+      cache: NO_CACHE,
     },
     ...overrides,
   } as MatchedRouteInfo);
@@ -27,7 +28,7 @@ describe('ViewGraph', () => {
 
   beforeEach(() => {
     registry = new LoaderRegistry(undefined, []);
-    viewGraph = new ViewGraph({ registry, cache: new PayloadCache() });
+    viewGraph = new ViewGraph({ registry, cache: new ViewPayloadCache() });
   });
 
   afterEach(() => {
@@ -42,7 +43,7 @@ describe('ViewGraph', () => {
   it('loads layout via template loader', async () => {
     registry.register('template', async (ctx) => `<layout>${ctx.content}</layout>`);
     const route = matched('/users', {
-      route: { layout: 'users-layout', view: null, preserve: { view: false } },
+      route: { layout: 'users-layout', view: null, cache: NO_CACHE },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBe(
@@ -53,7 +54,7 @@ describe('ViewGraph', () => {
   it('loads view via resolvedView loader', async () => {
     registry.register('html', async (ctx) => ctx.content);
     const route = matched('/about', {
-      route: { layout: '', view: { loader: 'html', content: '<p>about</p>' }, preserve: { view: false } },
+      route: { layout: '', view: { loader: 'html', content: '<p>about</p>' }, cache: NO_CACHE },
       resolvedView: { loader: 'html', content: '<p>about</p>' },
     });
 
@@ -73,7 +74,7 @@ describe('ViewGraph', () => {
     await expect(viewGraph.loadView(route, controller.signal)).resolves.toBeNull();
   });
 
-  it('caches string payloads when preserve.view is enabled', async () => {
+  it('caches string payloads when cache.view is enabled', async () => {
     let loads = 0;
     registry.register('html', async () => {
       loads++;
@@ -81,7 +82,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/cached', {
-      route: { layout: '', view: { loader: 'html', content: '<p/>' }, preserve: { view: true } },
+      route: { layout: '', view: { loader: 'html', content: '<p/>' }, cache: { dom: false, view: true, data: false } },
       resolvedView: { loader: 'html', content: '<p/>' },
     });
     const signal = new AbortController().signal;
@@ -92,7 +93,7 @@ describe('ViewGraph', () => {
     expect(loads).toBe(1);
   });
 
-  it('does not cache when preserve.view is off', async () => {
+  it('does not cache when cache.view is off', async () => {
     let loads = 0;
     registry.register('html', async () => {
       loads++;
@@ -141,7 +142,7 @@ describe('ViewGraph', () => {
     });
   });
 
-  it('does not cache DocumentFragment payloads when preserve.view is enabled', async () => {
+  it('does not cache DocumentFragment payloads when cache.view is enabled', async () => {
     let loads = 0;
     registry.register('html', async () => {
       loads++;
@@ -151,7 +152,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/frag', {
-      route: { layout: '', view: { loader: 'html', content: 'x' }, preserve: { view: true } },
+      route: { layout: '', view: { loader: 'html', content: 'x' }, cache: { dom: false, view: true, data: false } },
       resolvedView: { loader: 'html', content: 'x' },
     });
     const signal = new AbortController().signal;
@@ -281,7 +282,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/items', {
-      route: { layout: '', view: { loader: 'html', content: 'x' }, preserve: { view: true } },
+      route: { layout: '', view: { loader: 'html', content: 'x' }, cache: { dom: false, view: true, data: false } },
       resolvedView: { loader: 'html', content: 'x' },
     });
     const signal = new AbortController().signal;
@@ -321,7 +322,7 @@ describe('ViewGraph', () => {
         layout: '',
         view: { loader: 'url', content: 'page.html' },
         extract: '#main',
-        preserve: { view: false },
+        cache: NO_CACHE,
       },
       resolvedView: { loader: 'url', content: 'page.html' },
     });
@@ -338,7 +339,7 @@ describe('ViewGraph', () => {
       route: {
         layout: 'shell',
         view: { loader: 'html', content: '<p/>' },
-        preserve: { view: false },
+        cache: NO_CACHE,
       },
       resolvedView: null,
     });
@@ -399,15 +400,15 @@ describe('ViewGraph', () => {
   });
 
   it('destroy clears the payload cache', async () => {
-    const cache = new PayloadCache();
+    const cache = new ViewPayloadCache();
     const graph = new ViewGraph({ registry, cache });
     registry.register('html', async () => 'cached');
 
     const route = matched('/items', {
-      route: { layout: '', view: { loader: 'html', content: 'x' }, preserve: { view: true } },
+      route: { layout: '', view: { loader: 'html', content: 'x' }, cache: { dom: false, view: true, data: false } },
       resolvedView: { loader: 'html', content: 'x' },
     });
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       { kind: 'view', loader: 'html', content: 'x', cache: true },
       route,
     );

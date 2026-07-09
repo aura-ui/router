@@ -162,7 +162,7 @@ describe('PrefetchPipeline', () => {
 
     const profile = createDomRoute('profile');
     profile.setAttribute('load', 'profile');
-    profile.setAttribute('preserve', 'data');
+    profile.setAttribute('cache', 'data');
     const settings = createDomRoute('/settings', [profile]);
     const { matchableNodes } = buildTreeFromDom(settings);
     const matcher = new AuraRoutingUrlMatcher();

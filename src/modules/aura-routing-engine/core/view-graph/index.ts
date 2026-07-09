@@ -16,8 +16,8 @@ export type ViewResolverPort = Pick<ViewGraph, 'loadView'>;
 /** Branch-atomic resolve: parallel `loadView` without mounting. */
 export type BranchViewResolver = ViewResolverPort;
 
-export { PayloadCache } from './cache/payload-cache';
-export { payloadCacheKey } from './cache/cache-key';
+export { ViewPayloadCache } from './cache/view-payload-cache';
+export { viewCacheKey } from './cache/cache-key';
 
 export { LoaderRegistry, createLoaderRegistry, defaultLoaderRegistry } from './registry';
 export { Loader, type LoaderClass } from './loader';

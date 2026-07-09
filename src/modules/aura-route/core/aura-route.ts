@@ -7,14 +7,14 @@ import {
   type RouteLifecycleContext,
   type ViewRenderResult,
 } from '../../aura-routing-engine/route-api';
-import { parsePreserveAttr, type PreserveFlags } from './attr/preserve-attr-parser';
+import { parseCacheAttr, type CacheFlags } from './attr/cache-attr-parser';
 import { routeAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated, parseNullableString } from '../../aura-utils/misc';
 import { isAsyncLoader, parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
 import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
 import type { MountTargetPort } from './view';
-import { cacheKey, defaultViewCache } from './view/view-cache';
+import { domCacheKey, defaultDomCache } from './view/dom-cache';
 import { RouteViewController } from './view';
 import {
   NO_TRANSITION,
@@ -66,7 +66,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseScrollAttr, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   @routeAttr({ parser: parsePrefetchAttr }) prefetch: PrefetchType | false | null;
   @routeAttr({ parser: parseMountStrategyAttr }) mountStrategy: MountStrategy | null;
-  @routeAttr({ parser: parsePreserveAttr }) preserve: PreserveFlags;
+  @routeAttr({ parser: parseCacheAttr }) cache: CacheFlags;
 
   private viewController!: RouteViewController;
   private passId = 0;
@@ -189,7 +189,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
       {
         route: this,
         view: router.viewGraph,
-        cache: defaultViewCache,
+        cache: defaultDomCache,
         mountTarget,
         plugins,
       },
@@ -260,7 +260,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   onUnmount(ctx: RouteLifecycleContext): void {
     this.passId++;
-    this.viewController?.onUnmount({ cacheKey: cacheKey(ctx.to, this.path) });
+    this.viewController?.onUnmount({ domCacheKey: domCacheKey(ctx.to, this.path) });
   }
 
   onUpdate(ctx: RouteLifecycleContext): void {

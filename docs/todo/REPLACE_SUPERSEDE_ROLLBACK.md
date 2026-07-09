@@ -119,7 +119,7 @@ processor-pipeline.ts:
 | Слой | Состояние | Ожидание пользователя |
 |------|-----------|------------------------|
 | **DOM / outlet** | виден контент **gallery** | контент **about** (отменил переход) |
-| **Адресная строка** | `/about` (cancelled push → `preserve`) | `/about` ✓ |
+| **Адресная строка** | `/about` (cancelled push → `cache`) | `/about` ✓ |
 | **engine.prev** | matched route **about** | about ✓ |
 | **CommitTracker** | не `committed` (gate не был) | — |
 | **Processor result** | `{ status: 'cancelled' }` | — |
@@ -517,7 +517,7 @@ Snapshot закрывает дыру **между render и gate** для replac
 
 ## Edge cases при реализации
 
-1. **keep-alive / `preserve.view`** — outgoing уже умеет `detach()` для view cache; не путать pending snapshot с cache entry (разные lifecycle, discard на gate vs put в cache на `onLeft`).
+1. **keep-alive / `cache.dom`** — outgoing уже умеет `detach()` для view cache; не путать pending snapshot с cache entry (разные lifecycle, discard на gate vs put в cache на `onLeft`).
 
 2. **Nested routes (layout + content)** — несколько `enterRoutes`, snapshot может понадобиться на каждый replace mount point (свой `RouteViewController` / `MountSnapshot`).
 

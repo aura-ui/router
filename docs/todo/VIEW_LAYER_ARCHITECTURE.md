@@ -1,4 +1,4 @@
-﻿# View-слой — поток, статус, что осталось
+# View-слой — поток, статус, что осталось
 
 > **Статус документа:** актуализирован **2026-07-06** (после merge pipeline-архитектуры в production `view/`)  
 > **Сверка с кодом:** `src/modules/aura-route/core/view/`  
@@ -30,8 +30,8 @@
 | **4 порта + config** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `types.ts` |
 | **Loading без double mount** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `plugins/view-loading-plugins.ts` |
 | **Plugin hooks** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `ViewRenderPlugin` в `types.ts` |
-| **View cache (keep-alive)** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `view-cache.ts` + `cacheKey()` |
-| **Data cache (`preserve="data"`)** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | loader / engine (не view-слой) |
+| **View cache (keep-alive)** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `dom-cache.ts` + `domCacheKey()` |
+| **Data cache (`cache="data"`)** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | loader / engine (не view-слой) |
 | **Stale pass** (`passId` + `AbortSignal`) | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | `isStale` inline в phase |
 | **Тесты view-слоя** | <span style="color: #2ea043; font-weight: bold;">✓ ГОТОВО</span> | 8 файлов + engine integration (~202 теста) |
 | **`data-crossfade` ≠ `transition`** | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> | staging по `transition.order` |
@@ -62,7 +62,7 @@
 | `types.ts` | `RenderPass`, порты, `ViewRenderPlugin`, `RouteViewConfig` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | `outlet-adapter.ts` | mount policy (`replace`/`stage`), snapshot ops | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | `payloads.ts` | empty content, error UI, layout warn | <span style="color: #2ea043; font-weight: bold;">✓</span> |
-| `view-cache.ts` | keep-alive LRU + `cacheKey()` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| `dom-cache.ts` | keep-alive LRU + `domCacheKey()` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | `render-signal.ts` | local + parent `AbortSignal` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | `index.ts` | barrel export | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 
@@ -87,7 +87,7 @@ sequenceDiagram
   participant Phase as ViewRenderPipelinePhase
   participant Content as ContentResolverPort
   participant Outlet as outlet-adapter
-  participant Cache as ViewCachePort
+  participant Cache as DomCachePort
 
   Engine->>Route: render(routeInfo, { parentSignal, data })
   Route->>Route: passId++
@@ -121,7 +121,7 @@ sequenceDiagram
   Route->>Route: passId++
   Route->>VC: onUnmount({ cacheKey })
   VC->>Outlet: unmountOnLeave / unmountParamChangeOutgoing
-  alt preserve.view
+  alt cache.dom
     VC->>Cache: put(key, detachedRoot)
   end
 ```
@@ -165,7 +165,7 @@ sequenceDiagram
 2. <span style="color: #2ea043; font-weight: bold;">✓</span> **Порты для DI** — `types.ts`
 3. <span style="color: #2ea043; font-weight: bold;">✓</span> **`passId` + `RenderPass.id` + abort signal** — supersede in-flight render
 4. <span style="color: #2ea043; font-weight: bold;">✓</span> **Staged lifecycle** — `MountSnapshot`, commit / rollback
-5. <span style="color: #2ea043; font-weight: bold;">✓</span> **View cache API** — `extract` / `put`, `cacheKey()`
+5. <span style="color: #2ea043; font-weight: bold;">✓</span> **View cache API** — `extract` / `put`, `domCacheKey()`
 6. <span style="color: #2ea043; font-weight: bold;">✓</span> **Читаемость** — pipeline как оглавление (аналог `navigation-transaction-pipeline.ts`)
 
 ---
@@ -179,7 +179,7 @@ sequenceDiagram
 | Двойной mount при loading | <span style="color: #2ea043; font-weight: bold;">✓ исправлено</span> (plugins) |
 | `viewKind` / `cacheKey` пересчёт | <span style="color: #2ea043; font-weight: bold;">✓ исправлено</span> (один `RenderPass`) |
 | `findChildOutlet()` на каждый mount | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> (outlet API) |
-| Два кэша: `preserve="data"` vs keep-alive | <span style="color: #bf8700; font-weight: bold;">~ ЧАСТИЧНО</span> (разные слои, слабая связность) |
+| Два кэша: `cache="data"` vs keep-alive | <span style="color: #bf8700; font-weight: bold;">~ ЧАСТИЧНО</span> (разные слои, слабая связность) |
 | Nested batch (layout sync → leaf async) | <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> |
 
 ### Модульность
@@ -213,7 +213,7 @@ sequenceDiagram
 - [x] `ViewRenderPlugin` + loading plugins (`onLoadingStart` / `onLoadingEnd`)
 - [x] Loading **без** промежуточного `outlet.apply`
 - [x] `outlet-adapter.ts` (replace / stage / rollback / unmount)
-- [x] `payloads.ts`, `view-cache.ts`, `render-signal.ts`
+- [x] `payloads.ts`, `dom-cache.ts`, `render-signal.ts`
 - [x] Keep-alive + param remount + staged transition
 - [x] Error recovery UI (`{ status: 'error' }`)
 - [x] Тесты: controller, flow, outlet, cache, payloads, render-pass rules, engine integration
@@ -260,5 +260,5 @@ Greenfield-план (`aura-route-2`, `RouteViewCoordinator`) описывал ц
 ## Связанные TODO
 
 - [RENDERER_ABSTRACTION.md](./RENDERER_ABSTRACTION.md) — engine-level `Renderer.renderNode()`
-- [CONTENT_CACHE.md](./CONTENT_CACHE.md) — `preserve="data"` vs view keep-alive
+- [CONTENT_CACHE.md](./CONTENT_CACHE.md) — `cache="data"` vs view keep-alive
 - [REPLACE_SUPERSEDE_ROLLBACK.md](./REPLACE_SUPERSEDE_ROLLBACK.md) — rollback semantics stage vs replace

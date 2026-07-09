@@ -8,19 +8,19 @@ import {
 } from '../../invalidate-router-cache';
 import type { ViewPayload } from '../types';
 
-/** Default payload TTL — 12 hours. */
-export const PAYLOAD_CACHE_GC_TIME = 12 * 60 * 60 * 1000;
+/** Default view-loader payload TTL — 12 hours. */
+export const VIEW_PAYLOAD_CACHE_GC_TIME = 12 * 60 * 60 * 1000;
 
 const DEFAULT_OPTIONS: CacheStoreOptions<string> = {
   max: 50,
-  gcTime: PAYLOAD_CACHE_GC_TIME,
+  gcTime: VIEW_PAYLOAD_CACHE_GC_TIME,
 };
 
 /**
- * String payload cache for `preserve.view` routes.
- * DOM keep-alive uses aura-route `ViewCache`, not this store.
+ * String payload cache for `cache.view` routes.
+ * Detached DOM uses aura-route {@link RouteDomCache}, not this store.
  */
-export class PayloadCache {
+export class ViewPayloadCache {
   private readonly store: AuraResolvableCache<string>;
 
   constructor(options: CacheStoreOptions<string> = {}) {

@@ -7,6 +7,7 @@ import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import {
   createUsersIdMatch,
   createUsersIdNode,
@@ -29,7 +30,7 @@ function wireRouteViewController(
     loadingTemplate: string;
     errorTemplate: string;
     scrollPolicy: null;
-    preserve: { view: boolean; data: boolean };
+    cache: CacheFlags;
     transition: typeof NO_TRANSITION;
     render: RouteViewController['render'];
     commitStagedView: () => void;
@@ -41,7 +42,7 @@ function wireRouteViewController(
   routeRecord.loadingTemplate = routeRecord.loadingTemplate ?? '';
   routeRecord.errorTemplate = routeRecord.errorTemplate ?? '';
   routeRecord.scrollPolicy = null;
-  routeRecord.preserve = { view: false, data: false };
+  routeRecord.cache = NO_CACHE;
   routeRecord.transition = NO_TRANSITION;
 
   const controller = new RouteViewController(

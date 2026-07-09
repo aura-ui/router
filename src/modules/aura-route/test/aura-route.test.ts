@@ -78,3 +78,31 @@ describe('AuraRoute transition getter', () => {
     expect(route.transition).toEqual(NO_TRANSITION);
   });
 });
+
+describe('AuraRoute hasViewContent', () => {
+  beforeAll(() => {
+    if (!customElements.get(AuraRoute.is)) {
+      customElements.define(AuraRoute.is, AuraRoute);
+    }
+  });
+
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  function mount(attrs: Record<string, string>): AuraRoute {
+    const route = document.createElement(AuraRoute.is) as AuraRoute;
+    route.setAttribute('path', '/');
+    for (const [name, value] of Object.entries(attrs)) {
+      route.setAttribute(name, value);
+    }
+    document.body.append(route);
+    return route;
+  }
+
+  it('is true when layout or view is configured', () => {
+    expect(mount({ layout: 'shell' }).hasViewContent).toBe(true);
+    expect(mount({ view: 'html::x' }).hasViewContent).toBe(true);
+    expect(mount({}).hasViewContent).toBe(false);
+  });
+});

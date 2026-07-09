@@ -1,14 +1,13 @@
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import {
-  parsePreserveAttr,
   type MatchedRouteInfo,
-  type PreserveFlags,
   type RouteErrorContext,
   type RouteInstance,
   type RouteLifecycleContext,
   type ViewRenderResult,
 } from '../../aura-routing-engine/route-api';
+import { parsePreserveAttr, type PreserveFlags } from './attr/preserve-attr-parser';
 import { routeAttr } from '../../aura-utils/decorators';
 import { parseCommaSeparated, parseNullableString } from '../../aura-utils/misc';
 import { isAsyncLoader, parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
@@ -124,6 +123,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return !!this.layout.trim();
   }
 
+  get hasViewContent(): boolean {
+    return this.hasLayout || !!this.view;
+  }
+
   get hasGuard(): boolean {
     return !!this.guard?.length;
   }
@@ -185,7 +188,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.viewController = new RouteViewController(
       {
         route: this,
-        content: router.contentLoad,
+        content: router.contentGraph,
         cache: defaultViewCache,
         mountTarget,
         plugins,

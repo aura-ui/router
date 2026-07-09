@@ -1,8 +1,8 @@
-import { DataCache } from '../../core/content/cache/data-cache';
+import { PayloadCache } from '../../core/content-graph';
 
-describe('DataCache', () => {
+describe('PayloadCache', () => {
   it('dedupes in-flight loads', async () => {
-    const cache = new DataCache({ max: 50, gcTime: Infinity, gcSweepInterval: false });
+    const cache = new PayloadCache({ max: 50, gcTime: Infinity, gcSweepInterval: false });
     let loads = 0;
 
     const load = () => {
@@ -21,7 +21,7 @@ describe('DataCache', () => {
   });
 
   it('returns cached entry without calling load', async () => {
-    const cache = new DataCache();
+    const cache = new PayloadCache();
     let loads = 0;
 
     await cache.resolve('k', async () => {
@@ -39,7 +39,7 @@ describe('DataCache', () => {
   });
 
   it('does not cache DocumentFragment payloads', async () => {
-    const cache = new DataCache();
+    const cache = new PayloadCache();
     const fragment = document.createDocumentFragment();
     fragment.append(document.createElement('span'));
 
@@ -48,7 +48,7 @@ describe('DataCache', () => {
   });
 
   it('evicts least recently used entry when max exceeded', async () => {
-    const cache = new DataCache({ max: 2, gcTime: Infinity, gcSweepInterval: false });
+    const cache = new PayloadCache({ max: 2, gcTime: Infinity, gcSweepInterval: false });
     await cache.resolve('a', async () => 'A');
     await cache.resolve('b', async () => 'B');
     await cache.resolve('c', async () => 'C');

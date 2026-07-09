@@ -2,16 +2,18 @@
 
 import {
   AuraRoutingEngine,
-  dataCacheKey,
-  DataCache,
-  ContentLoadService,
-  LoaderRegistry,
+  payloadCacheKey,
+  PayloadCache,
 } from '../../core';
+import {
+  ContentGraph,
+  LoaderRegistry,
+} from '../../core/content-graph';
 import type { RouterInstance } from '../../core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 import { withResolvedView } from '../helpers/with-resolved-view';
 
-describe('content load flow (view → engine)', () => {
+describe('content graph flow (view → engine)', () => {
   const routerNav: RouterInstance = { navigate: jest.fn() };
 
   afterEach(() => {
@@ -19,18 +21,18 @@ describe('content load flow (view → engine)', () => {
   });
 
   it('resolve reads view from upgraded aura-route', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.register('url', async (ctx) => {
+    registry.registerFn('url', async (ctx) => {
       loads.push(ctx.ref);
       return `<p>${ctx.ref}</p>`;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
+    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'url::feed.html');
 
-    await contentLoad.resolve(
+    await contentGraph.resolve(
       withResolvedView({
         href: '/feed',
         pathname: '/feed',
@@ -45,39 +47,39 @@ describe('content load flow (view → engine)', () => {
   });
 
   it('prefetch loads via live route attrs', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.register('url', async (ctx) => {
+    registry.registerFn('url', async (ctx) => {
       loads.push(ctx.ref);
       return `<p>${ctx.ref}</p>`;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
+    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'url::about.html');
 
-    const engine = new AuraRoutingEngine(routerNav, { contentLoad });
+    const engine = new AuraRoutingEngine(routerNav, { contentGraph });
     engine.replaceRoutes(collectRoutesFromDom(about) as never);
     await engine.prefetch('/about');
 
     expect(loads).toEqual(['about.html']);
   });
 
-  it('navigation render resolves via ContentLoadService.resolve', async () => {
-    const registry = new LoaderRegistry();
+  it('navigation render resolves via ContentGraph.resolve', async () => {
+    const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.register('html', async (ctx) => {
+    registry.registerFn('html', async (ctx) => {
       loads.push(ctx.ref);
       return ctx.ref;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
+    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
 
     const route = createDomRoute('/x');
     route.setAttribute('view', 'html::<b>page</b>');
 
-    await contentLoad.resolve(
+    await contentGraph.resolve(
       withResolvedView({
         href: '/x',
         pathname: '/x',
@@ -92,12 +94,12 @@ describe('content load flow (view → engine)', () => {
     expect(loads).toEqual(['<b>page</b>']);
   });
 
-  it('prefetch and navigation share dataCacheKey when preserve view is enabled', async () => {
-    const registry = new LoaderRegistry();
-    registry.register('url', async () => '<p>feed</p>');
+  it('prefetch and navigation share payloadCacheKey when preserve view is enabled', async () => {
+    const registry = new LoaderRegistry(undefined, []);
+    registry.registerFn('url', async () => '<p>feed</p>');
 
-    const cache = new DataCache();
-    const contentLoad = new ContentLoadService({ registry, cache });
+    const cache = new PayloadCache();
+    const contentGraph = new ContentGraph({ registry, cache });
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'url::feed.html');
     route.setAttribute('preserve', 'view');
@@ -111,8 +113,8 @@ describe('content load flow (view → engine)', () => {
       route,
     });
 
-    await contentLoad.resolve(routeInfo, new AbortController().signal);
-    expect(cache.get(dataCacheKey({
+    await contentGraph.resolve(routeInfo, new AbortController().signal);
+    expect(cache.get(payloadCacheKey({
       kind: 'content',
       loader: 'url',
       ref: 'feed.html',
@@ -121,19 +123,19 @@ describe('content load flow (view → engine)', () => {
   });
 
   it('layout route uses template loader from layout attr, not view', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.register('template', async (ctx) => {
+    registry.registerFn('template', async (ctx) => {
       loads.push(ctx.ref);
       return `<layout>${ctx.ref}</layout>`;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
+    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
     const parent = createDomRoute('/users');
     parent.setAttribute('layout', 'users-shell');
     parent.setAttribute('view', 'url::ignored.html');
 
-    await contentLoad.resolve(
+    await contentGraph.resolve(
       { href: '/users', pathname: '/users', search: '', hash: '', pattern: '/users', route: parent as never },
       new AbortController().signal,
     );
@@ -141,18 +143,18 @@ describe('content load flow (view → engine)', () => {
   });
 
   it('content route loads parsed view', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.register('url', async (ctx) => {
+    registry.registerFn('url', async (ctx) => {
       loads.push(ctx.ref);
       return ctx.ref;
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
+    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
     const route = createDomRoute('/users/:id');
     route.setAttribute('view', 'url::user.html');
 
-    await contentLoad.resolve(
+    await contentGraph.resolve(
       withResolvedView({
         href: '/users/1',
         pathname: '/users/1',
@@ -168,13 +170,13 @@ describe('content load flow (view → engine)', () => {
   });
 
   it('returns null when content route has no view loader', async () => {
-    const registry = new LoaderRegistry();
-    registry.register('html', async () => 'never');
+    const registry = new LoaderRegistry(undefined, []);
+    registry.registerFn('html', async () => 'never');
 
-    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
+    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
     const route = createDomRoute('/empty');
 
-    const payload = await contentLoad.resolve(
+    const payload = await contentGraph.resolve(
       { href: '/empty', pathname: '/empty', search: '', hash: '', pattern: '/empty', route: route as never },
       new AbortController().signal,
     );

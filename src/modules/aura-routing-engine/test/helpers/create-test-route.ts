@@ -1,6 +1,6 @@
 import type { RouteInstance } from '../../core';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
-import { isAsyncLoader } from '../../core/content';
+import { isAsyncLoader } from '../../core/content-graph';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
 
@@ -59,6 +59,12 @@ export function createTestRoute(
     hasUpdate: { get(): boolean { return !!route.update?.length; } },
     hasLeave: { get(): boolean { return !!route.leave?.length; } },
     hasLoad: { get(): boolean { return !!route.load?.length; } },
+    hasViewContent: {
+      get(): boolean {
+        const r = route as RouteInstance & { layout?: string; view?: ViewAttrDescriptor | null };
+        return !!r.layout?.trim() || !!r.view;
+      },
+    },
     hasTransitionIn: { get(): boolean { return !!route.transition.in?.length; } },
     hasReady: {
       get(): boolean {

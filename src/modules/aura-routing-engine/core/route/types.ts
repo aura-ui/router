@@ -1,5 +1,5 @@
 import type { HistoryAction } from '../history/provider.types';
-import type { PreserveFlags } from '../content/model/preserve';
+import type { PreserveFlags } from '../../../aura-route/core/attr/preserve-attr-parser';
 import type { MountStrategy } from '../../../aura-route/core/attr/mount-strategy-attr-parser';
 import type { RouterPrefetchPolicy } from '../prefetch/prefetch-policy';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
@@ -102,6 +102,7 @@ export interface RouteInstance extends RouteHookNamesSource {
   readonly hasUpdate: boolean;
   readonly hasLeave: boolean;
   readonly hasLoad: boolean;
+  readonly hasViewContent: boolean;
   readonly hasTransitionIn: boolean;
   readonly hasReady: boolean;
   readonly hasAsyncContent: boolean;

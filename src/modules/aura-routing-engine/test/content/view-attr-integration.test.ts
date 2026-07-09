@@ -3,7 +3,7 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { defaultLoaderRegistry } from '../../core/content';
+import { defaultLoaderRegistry } from '../../core/content-graph';
 import { withResolvedView } from '../helpers/with-resolved-view';
 
 function defineDemoElements(): void {
@@ -41,7 +41,7 @@ describe('view attr end-to-end', () => {
     expect(route.view).toEqual({ type: 'url', content: 'index2.html' });
   });
 
-  it('loads html view via shared router contentLoad registry', async () => {
+  it('loads html view via shared router contentGraph registry', async () => {
     const router = mountRouter(`
       <aura-router>
         <aura-outlet></aura-outlet>
@@ -50,7 +50,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    const payload = await router.contentLoad.resolve(
+    const payload = await router.contentGraph.resolve(
       withResolvedView({ href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route }),
       new AbortController().signal,
     );
@@ -59,7 +59,7 @@ describe('view attr end-to-end', () => {
   });
 
   it('uses custom loader registered on defaultLoaderRegistry', async () => {
-    defaultLoaderRegistry.register('integration-custom', async () => 'custom payload');
+    defaultLoaderRegistry.registerFn('integration-custom', async () => 'custom payload');
 
     const router = mountRouter(`
       <aura-router>
@@ -69,7 +69,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    const payload = await router.contentLoad.resolve(
+    const payload = await router.contentGraph.resolve(
       withResolvedView({
         href: '/custom',
         pathname: '/custom',

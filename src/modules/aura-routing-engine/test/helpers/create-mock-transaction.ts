@@ -1,4 +1,4 @@
-import type { ContentLoadService, RouteInstance } from '../../core';
+import type { ContentGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
@@ -31,7 +31,7 @@ export function createMockEngine(): AuraRoutingEngine {
     dataGraph: new DataGraph(hookRegistry),
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
-    contentLoad: { resolve: jest.fn().mockResolvedValue(null) } as unknown as ContentLoadService,
+    contentGraph: { resolve: jest.fn().mockResolvedValue(null) } as unknown as ContentGraph,
   } as unknown as AuraRoutingEngine;
 }
 

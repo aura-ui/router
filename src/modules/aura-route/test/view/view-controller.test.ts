@@ -491,6 +491,7 @@ function routeConfig(overrides: Partial<AuraRouteInterface> = {}): AuraRouteInte
     preserve: NO_PRESERVE,
     transition: NO_TRANSITION,
     hasLayout: false,
+    hasViewContent: false,
     hasGuard: false,
     hasLeave: false,
     hasLoad: false,

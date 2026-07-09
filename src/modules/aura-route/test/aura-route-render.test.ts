@@ -4,7 +4,7 @@ jest.mock('../../aura-router/core/aura-router', () => {
     AuraRouter: class {
       static is = 'aura-router';
       appOutlet = document.createElement(AuraOutlet.is);
-      contentLoad = { resolve: jest.fn().mockResolvedValue('<span>ok</span>') };
+      contentGraph = { resolve: jest.fn().mockResolvedValue('<span>ok</span>') };
     },
   };
 });

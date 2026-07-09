@@ -1,62 +1,55 @@
-import { dataCacheKey } from '../../core/content/cache/data-key';
+import { payloadCacheKey } from '../../core/content-graph/cache/cache-key';
 
-describe('dataCacheKey', () => {
-  const desc = { kind: 'content' as const, loader: 'url', ref: 'pages/home.html', cache: true };
+describe('payloadCacheKey', () => {
+  const desc = { kind: 'content' as const, loader: 'html' as const, ref: 'static', cache: true };
 
-  it('includes loader and ref', () => {
+  it('uses pathname when present', () => {
     expect(
-      dataCacheKey(desc, { pathname: '/home', pattern: '/home' } as any),
-    ).toBe('/home|url:pages/home.html');
+      payloadCacheKey(desc, { pathname: '/home', pattern: '/home' } as any),
+    ).toBe('/home|html:static');
   });
 
-  it('serializes query', () => {
+  it('falls back to pattern when pathname is missing', () => {
     expect(
-      dataCacheKey(
-        desc,
-        { pathname: '/search', query: { q: 'a', page: '2' }, pattern: '/search' } as any,
+      payloadCacheKey(
+        { ...desc, loader: 'url', ref: 'pages/about.html' },
+        { pattern: '/about' } as any,
       ),
-    ).toBe('/search|page=2&q=a|url:pages/home.html');
+    ).toBe('/about|url:pages/about.html');
   });
 
-  it('falls back to pattern when pathname is absent', () => {
-    expect(dataCacheKey(desc, { pattern: '/user/:id' } as any)).toBe(
-      '/user/:id|url:pages/home.html',
+  it('uses pattern-only route keys', () => {
+    expect(payloadCacheKey(desc, { pattern: '/user/:id' } as any)).toBe(
+      '/user/:id|html:static',
     );
   });
 
-  it('uses resolved ref in descriptor for per-id cache keys', () => {
+  it('includes loader ref in key', () => {
     expect(
-      dataCacheKey(
-        { kind: 'content', loader: 'url', ref: 'pages/user/1.html', cache: true },
-        { pathname: '/user/1', pattern: '/user/:id', params: { id: '1' } } as any,
+      payloadCacheKey(
+        { kind: 'content', loader: 'template', ref: 'tpl-id', cache: true },
+        { pathname: '/page', pattern: '/page' } as any,
       ),
-    ).toBe('/user/1|url:pages/user/1.html');
-
-    expect(
-      dataCacheKey(
-        { kind: 'content', loader: 'url', ref: 'pages/user/2.html', cache: true },
-        { pathname: '/user/2', pattern: '/user/:id', params: { id: '2' } } as any,
-      ),
-    ).toBe('/user/2|url:pages/user/2.html');
+    ).toBe('/page|template:tpl-id');
   });
 
-  it('separates cache slots for same ref on different pathnames', () => {
+  it('differentiates params via pathname', () => {
     const descriptor = {
       kind: 'content' as const,
-      loader: 'url',
-      ref: 'partials/user-shell.html',
+      loader: 'html' as const,
+      ref: 'static',
       cache: true,
     };
 
     expect(
-      dataCacheKey(descriptor, { pathname: '/user/1', pattern: '/user/:id' } as any),
+      payloadCacheKey(descriptor, { pathname: '/user/1', pattern: '/user/:id' } as any),
     ).not.toBe(
-      dataCacheKey(descriptor, { pathname: '/user/2', pattern: '/user/:id' } as any),
+      payloadCacheKey(descriptor, { pathname: '/user/2', pattern: '/user/:id' } as any),
     );
   });
 
-  it('separates cache slots when extract selector differs', () => {
-    const base = { pathname: '/about', pattern: '/about' } as const;
+  it('appends extract suffix when present', () => {
+    const base = { pathname: '/about', pattern: '/about' };
     const partial = {
       kind: 'content' as const,
       loader: 'url' as const,
@@ -65,8 +58,8 @@ describe('dataCacheKey', () => {
     };
     const full = { ...partial, extract: '#main' };
 
-    expect(dataCacheKey(partial, base as any)).toBe('/about|url:legacy/about.html');
-    expect(dataCacheKey(full, base as any)).toBe('/about|url:legacy/about.html::#main');
-    expect(dataCacheKey(partial, base as any)).not.toBe(dataCacheKey(full, base as any));
+    expect(payloadCacheKey(partial, base as any)).toBe('/about|url:legacy/about.html');
+    expect(payloadCacheKey(full, base as any)).toBe('/about|url:legacy/about.html::#main');
+    expect(payloadCacheKey(partial, base as any)).not.toBe(payloadCacheKey(full, base as any));
   });
 });

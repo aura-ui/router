@@ -1,4 +1,4 @@
-import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-parser';
+import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 
 export type { LoaderType };
 

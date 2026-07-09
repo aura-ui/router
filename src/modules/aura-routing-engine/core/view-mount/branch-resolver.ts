@@ -8,7 +8,7 @@ import type { DataSnapshot } from '../data-graph';
 import type { TransitionMap } from '../route-tree/transition-plan';
 import { isCrossOutletReplace } from '../route-tree/transition-plan';
 import { resolveRouteData } from '../data-graph/route-data';
-import type { ViewPayload } from '../content-graph/model/types';
+import type { ViewPayload } from '../content-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
 /** Resolves view content without mounting — same contract as aura-route `ContentResolverPort`. */

@@ -1,5 +1,5 @@
 import { BUILTIN_LOADER_TYPES } from '../../../../aura-route/core/attr/view-attr-parser';
-import type { ContentEnvironment } from '../model/types';
+import type { ContentEnvironment } from '../types';
 import type { Loader, LoaderClass } from './loader';
 import { ComponentLoader } from './loaders/component';
 import { HtmlLoader } from './loaders/html';

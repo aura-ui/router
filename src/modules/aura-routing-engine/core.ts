@@ -103,7 +103,6 @@ export {
   ComponentLoader,
   ImportLoader,
   IframeLoader,
-  toLoadContext,
   routeSnapshot,
   fetchText,
   resolveRelativeUrl,

@@ -1,4 +1,4 @@
-import type { FetchText, ContentEnvironment } from '../model/types';
+import type { FetchText, ContentEnvironment } from '../types';
 
 export const fetchText: FetchText = async (url, signal) => {
   const response = await fetch(url, { signal });

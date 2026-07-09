@@ -21,16 +21,15 @@ route attrs → descriptor → PayloadCache? → Loader → ContentResult → Vi
 ```
 content-graph/
 ├── index.ts              # public barrel
-├── content-graph.ts      # resolve, prefetch, invalidate, descriptor + payload mapping
+├── content-graph.ts      # resolve, prefetch, invalidate
+├── types.ts              # shared contracts (descriptor, context, payload)
 ├── prefetch.ts           # concurrent prefetch runner + options type
 ├── cache/
 │   ├── index.ts
 │   ├── payload-cache.ts  # LRU + in-flight dedup
 │   └── cache-key.ts      # stable payload cache keys
-├── model/
-│   ├── types.ts
-│   └── context.ts
 └── runtime/
+    ├── markup.ts         # routeSnapshot, componentMarkup
     ├── loader.ts         # abstract Loader, FnLoader
     ├── registry.ts       # LoaderRegistry
     ├── manifest.ts       # built-in loader list

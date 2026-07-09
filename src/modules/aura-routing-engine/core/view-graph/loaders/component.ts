@@ -6,7 +6,6 @@ import { Loader } from '../loader';
 /** `view="component::tag-name"` — registered custom element + `aura-data`. */
 export class ComponentLoader extends Loader {
   static readonly type = 'component' as const satisfies LoaderType;
-  readonly type = ComponentLoader.type;
 
   load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     if (!customElements.get(ctx.ref)) throw new Error(`Component '${ctx.ref}' is not registered`);

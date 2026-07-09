@@ -6,7 +6,6 @@ import { Loader } from '../loader';
 /** `layout="tpl-id"` — clones `<template id="tpl-id">`. */
 export class TemplateLoader extends Loader {
   static readonly type = 'template' as const satisfies LoaderType;
-  readonly type = TemplateLoader.type;
 
   load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     return Promise.resolve({ kind: 'fragment', node: getTemplate(ctx.ref) });

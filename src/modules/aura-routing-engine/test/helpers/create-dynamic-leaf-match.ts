@@ -10,7 +10,7 @@ export const USERS_ID_PATTERN = '/users/:id';
 export function createUsersLayoutNode(): RouteNode {
   const node = {
     route: createTestRoute(USERS_LAYOUT_PATTERN, { layout: 'users-shell' }),
-    content: { kind: 'view' as const, loader: '', ref: '', cache: false },
+    content: { kind: 'view' as const, loader: '', content: '', cache: false },
     segment: USERS_LAYOUT_PATTERN,
     pattern: USERS_LAYOUT_PATTERN,
     parent: null,
@@ -61,7 +61,7 @@ export function createNestedUsersIdMatch(id: string, leaf: RouteNode): MatchedRo
 export function createUsersIdNode(overrides: Partial<RouteInstance> = {}): RouteNode {
   const node = {
     route: createTestRoute(USERS_ID_PATTERN, overrides),
-    content: { kind: 'view' as const, loader: '', ref: '', cache: false },
+    content: { kind: 'view' as const, loader: '', content: '', cache: false },
     segment: USERS_ID_PATTERN,
     pattern: USERS_ID_PATTERN,
     parent: null,

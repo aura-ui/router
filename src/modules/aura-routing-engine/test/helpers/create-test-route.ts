@@ -11,7 +11,7 @@ const noopRender = async (): Promise<ViewRenderResult> => ({ status: 'ok' });
 const INACTIVE_TRANSITION: RouteTransitionType = { order: null, in: null, out: null };
 
 /** Default inline sync view for Tier-0 / fast-path test routes (`html::`). */
-export const SYNC_HTML_VIEW: ViewAttrDescriptor = { type: 'html', content: '<span/>' };
+export const SYNC_HTML_VIEW: ViewAttrDescriptor = { loader: 'html', content: '<span/>' };
 
 export function createTestRoute(
   path: string,
@@ -74,20 +74,20 @@ export function createTestRoute(
     hasAsyncContent: {
       get(): boolean {
         if (route.hasLoad) return true;
-        return isAsyncLoader(route.view?.type);
+        return isAsyncLoader(route.view?.loader);
       },
     },
     hasSyncContent: {
       get(): boolean {
         const r = route as RouteInstance & {
-          view?: { type: string } | null;
+          view?: { loader: string } | null;
           layout?: string;
           loadingTemplate?: string;
         };
         if (r.layout?.trim()) return false;
         if (route.hasAsyncContent) return false;
         if (r.loadingTemplate?.trim()) return false;
-        return r.view?.type === 'html';
+        return r.view?.loader === 'html';
       },
     },
   });

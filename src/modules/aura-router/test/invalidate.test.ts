@@ -128,7 +128,7 @@ describe('AuraRouter.invalidate', () => {
         hash: '',
         pattern: '/page',
         route: router.routes[0] as never,
-        resolvedView: { type: 'html', ref: 'x' },
+        resolvedView: { loader: 'html', content: 'x' },
       } as never,
       new AbortController().signal,
     );
@@ -144,7 +144,7 @@ describe('AuraRouter.invalidate', () => {
         hash: '',
         pattern: '/page',
         route: router.routes[0] as never,
-        resolvedView: { type: 'html', ref: 'x' },
+        resolvedView: { loader: 'html', content: 'x' },
       } as never,
       new AbortController().signal,
     );

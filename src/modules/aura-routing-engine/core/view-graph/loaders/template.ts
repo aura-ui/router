@@ -8,6 +8,6 @@ export class TemplateLoader extends Loader {
   static readonly type = 'template' as const satisfies LoaderType;
 
   load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
-    return Promise.resolve({ kind: 'fragment', node: getTemplate(ctx.ref) });
+    return Promise.resolve({ kind: 'fragment', node: getTemplate(ctx.content) });
   }
 }

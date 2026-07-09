@@ -106,7 +106,7 @@ describe('param-change UPDATE integration (real view)', () => {
 
     const outlet = createTestOutlet();
     const node = createUsersIdNode({
-      view: { type: 'url', content: 'partials/user-shell.html' },
+      view: { loader: 'url', content: 'partials/user-shell.html' },
       update: ['apply-user'],
       unmount: ['teardown'],
       ready: ['analytics'],

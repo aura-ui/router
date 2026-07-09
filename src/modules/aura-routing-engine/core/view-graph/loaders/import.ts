@@ -9,7 +9,7 @@ export class ImportLoader extends Loader {
   static readonly type = 'import' as const satisfies LoaderType;
 
   async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
-    const tagName = await loadAndRegisterComponent(ctx.ref);
+    const tagName = await loadAndRegisterComponent(ctx.content);
     return { kind: 'markup', markup: componentMarkup(tagName, ctx) };
   }
 }

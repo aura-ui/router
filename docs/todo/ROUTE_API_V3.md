@@ -24,7 +24,7 @@
 ## Принципы v3
 
 1. **80/20 в разметке** — 3–5 attrs на типичный route.
-2. **Одна мысль — один attr** — `view="ref"` или `loader::ref`, не `source` + `data-content`.
+2. **Одна мысль — один attr** — `view="ref"` или `loader::content`, не `source` + `data-content`.
 3. **Lifecycle core-4** — `leave`, `guard`, `load`, `ready`; остальное advanced / presentation.
 4. **Кэш и scroll — на router**, не на каждом route.
 5. **Короткие имена** — без дефисов в loader id; без избыточного `url::` для default.
@@ -54,9 +54,9 @@ Preserve+:    detach | destroy | restore   (super advanced, с preserve)
 | Атрибут | Назначение |
 |---------|------------|
 | **`path`** | URL-паттерн (обязательный) |
-| **`view`** | Контент: bare `ref` (default `url`) или `loader::ref` |
+| **`view`** | Контент: bare `ref` (default `url`) или `loader::content` |
 
-Формат: bare **`ref`** → loader **`url`**. Иначе `loader::ref` (`::` — разделитель). Селектор фрагмента — отдельный attr **`extract`**, не в `view`.
+Формат: bare **`ref`** → loader **`url`**. Иначе `loader::content` (`::` — разделитель). Селектор фрагмента — отдельный attr **`extract`**, не в `view`.
 
 ### View loaders → README
 
@@ -64,7 +64,7 @@ Preserve+:    detach | destroy | restore   (super advanced, с preserve)
 
 | Loader (README) | ref | As-is в коде |
 |--------|-----|--------------|
-| **`url`** | `profile.html` | loader `html-src`; bare ref пока default `html-src` |
+| **`url`** | `profile.html` | loader `html-src`; bare content пока default `html-src` |
 | **`html`** | markup | `html` |
 | **`template`** | template id | `template` |
 | **`component`** | CE tag name | loader `component` (имя в README = имя в API) |
@@ -133,7 +133,7 @@ view="component::div"         <!-- ✗ → html::<div>…</div> -->
 Правила парсинга `view`:
 
 - Нет `::` → `url` + ref as-is (`users.html`).
-- Перед первым `::` — **известный loader** (`html`, `template`, …) → `loader::ref`.
+- Перед первым `::` — **известный loader** (`html`, `template`, …) → `loader::content`.
 - Иначе → **custom loader** (`markdown::doc.md`).
 - Префикс `url::` допустим, но **не показываем в примерах** — избыточен для default.
 - Неверное расширение (`.js`, `.ts`) → dev warn: use `import::…`.
@@ -150,19 +150,19 @@ view="component::div"         <!-- ✗ → html::<div>…</div> -->
 
 | | |
 |--|--|
-| **ref** | абсолютный или относительный URL для `src` iframe |
+| **content** | абсолютный или относительный URL для `src` iframe |
 | **Реализация** | `<iframe loading="lazy" …>`; sandbox/policy — на router (TBD) |
 | **Статус** | planned builtin (после rename `url` / `import`) |
 
 Имя **`iframe`**, не `embed` — сразу ясно без docs.
 
-Кастомные loaders: `AuraRouter.registerLoader(type, fn)` — любой `type`, например `markdown::docs/guide.md`.
+Кастомные loaders: `AuraRouter.registerLoader(loaderId, fn)` — любой `loaderId`, например `markdown::docs/guide.md`.
 
 #### Миграция loader id (as-is → README)
 
 | As-is (код) | README / цель | Примечание |
 |-------------|---------------|------------|
-| `html-src` | **`url`** | + bare ref default → `url` |
+| `html-src` | **`url`** | + bare content default → `url` |
 | `html` | **`html`** | без изменений |
 | `template` | **`template`** | без изменений |
 | `component` | **`component`** | **имя не меняем** |
@@ -376,8 +376,8 @@ hooks="transition-in::fade-in, detach::pause-media"
 
 | As-is (код) | README |
 |-------------|--------|
-| `source` + `data-content` | `view="ref"` или `loader::ref` |
-| loader `html-src` | **`url`** (bare ref default) |
+| `source` + `data-content` | `view="ref"` или `loader::content` |
+| loader `html-src` | **`url`** (bare content default) |
 | loader `component-src` | **`import`** |
 | loader `component` | **`component`** (без rename) |
 
@@ -477,7 +477,7 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 ### Фаза 1 — view + preserve
 
 - ✅ Парсер `view` → `buildContentDescriptor`
-- ✅ Loaders: `url`, `import`, `iframe`; bare ref default `url`
+- ✅ Loaders: `url`, `import`, `iframe`; bare content default `url`
 - ✅ Парсер: known loader vs bare `url` ref; unknown prefix → custom loader
 - ✅ Attr **`extract`** (CSS selector, inherit router → route) + url loader fragment extract
 - ⬜ `component` validation (registry / `-`; reject native tags)
@@ -519,7 +519,7 @@ Deprecated aliases на переход: `html-src`, `component-src`, `enter`, `a
 
 1. **`url` vs `page`** — имя default HTML loader (см. обсуждение в todo).
 2. **`ready` vs `entered`** — target: `ready` (as-is attr: `after`).
-3. ~~**`view` bare ref**~~ → default **`url`**.
+3. ~~**`view` bare content**~~ → default **`url`**.
 4. ~~**`allowEmpty`**~~ → `guard=""` / `ready=""` opt-out inherit.
 
 ---

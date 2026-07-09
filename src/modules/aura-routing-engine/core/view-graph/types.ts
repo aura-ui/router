@@ -10,7 +10,7 @@ export type ViewKind = 'layout' | 'view';
 export type ViewDescriptor = {
   readonly kind: ViewKind;
   readonly loader: LoaderType;
-  readonly ref: string;
+  readonly content: string;
   /** When true, {@link PayloadCache} is used (`preserve.view` on view routes; layout is always false). */
   readonly cache: boolean;
   /** CSS selector from route `extract` attr (url loader only). */
@@ -19,15 +19,15 @@ export type ViewDescriptor = {
 
 /** Per-load input passed to built-in and custom loaders (`LoaderFn` argument). */
 export type ViewLoadContext = {
-  /** Right-hand side of `view="loader::ref"` (or bare ref for default `url` loader). */
-  readonly ref: string;
+  /** Right-hand side of `view="loader::content"` (or bare content for default `url` loader). */
+  readonly content: string;
   readonly kind: ViewKind;
   readonly extract?: string;
   readonly signal: AbortSignal;
   readonly route: {
     /** Current URL: pathname + search + hash. */
     readonly href: string;
-    /** Route `path` template in the tree, e.g. `/users/:id` — not the same as `ref`. */
+    /** Route `path` template in the tree, e.g. `/users/:id` — not the same as `content`. */
     readonly pattern: string;
     readonly params?: Record<string, string>;
     readonly query?: Record<string, string>;
@@ -41,7 +41,7 @@ export type FetchText = (url: string, signal: AbortSignal) => Promise<string>;
 /** DI surface for class-based loaders (`fetch`, URL resolution). */
 export type ViewLoaderEnv = {
   readonly fetchText: FetchText;
-  readonly resolveUrl: (ref: string) => string;
+  readonly resolveUrl: (content: string) => string;
   readonly isSSR: boolean;
 };
 
@@ -56,7 +56,7 @@ export type ViewLoadResult =
  * @example
  * // <aura-route path="/users/:id" view="badge::status" />
  * registry.register('badge', async (context) =>
- *   `<span class="${context.ref}">${context.route.params?.id ?? ''}</span>`,
+ *   `<span class="${context.content}">${context.route.params?.id ?? ''}</span>`,
  * );
  */
 export type LoaderFn = (context: ViewLoadContext) => Promise<ViewPayload | null>;

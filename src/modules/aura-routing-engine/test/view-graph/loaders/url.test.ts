@@ -16,7 +16,7 @@ describe('UrlLoader', () => {
 
     await expect(
       loader.load({
-        ref: 'page.html',
+        content: 'page.html',
         kind: 'view',
         signal: new AbortController().signal,
         route: { href: '/page', pattern: '/page' },
@@ -34,7 +34,7 @@ describe('UrlLoader', () => {
 
     await expect(
       loader.load({
-        ref: 'page.html',
+        content: 'page.html',
         kind: 'view',
         extract: '#content',
         signal: new AbortController().signal,

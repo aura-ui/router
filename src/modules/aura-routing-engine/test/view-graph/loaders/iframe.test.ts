@@ -6,7 +6,7 @@ describe('IframeLoader', () => {
     const loader = new IframeLoader(createBrowserEnvironment());
     await expect(
       loader.load({
-        ref: 'https://example.com/app?x="1"',
+        content: 'https://example.com/app?x="1"',
         kind: 'view',
         signal: new AbortController().signal,
         route: { href: '/embed', pattern: '/embed' },

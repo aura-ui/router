@@ -3,7 +3,7 @@ import type { ViewLoadContext } from '../../core/view-graph/types';
 
 function ctx(overrides: Partial<ViewLoadContext> = {}): ViewLoadContext {
   return {
-    ref: 'my-widget',
+    content: 'my-widget',
     kind: 'view',
     signal: new AbortController().signal,
     route: {

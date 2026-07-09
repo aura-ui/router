@@ -14,7 +14,7 @@ describe('TemplateLoader', () => {
 
     const loader = new TemplateLoader(createBrowserEnvironment());
     const result = await loader.load({
-      ref: 'layout-shell',
+      content: 'layout-shell',
       kind: 'layout',
       signal: new AbortController().signal,
       route: { href: '/app', pattern: '/app' },
@@ -30,7 +30,7 @@ describe('TemplateLoader', () => {
     const loader = new TemplateLoader(createBrowserEnvironment());
     expect(() =>
       loader.load({
-        ref: 'missing',
+        content: 'missing',
         kind: 'layout',
         signal: new AbortController().signal,
         route: { href: '/app', pattern: '/app' },

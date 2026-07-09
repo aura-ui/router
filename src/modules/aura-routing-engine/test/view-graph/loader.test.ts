@@ -7,7 +7,7 @@ const env = createBrowserEnvironment();
 
 function ctx(overrides: Partial<ViewLoadContext> = {}): ViewLoadContext {
   return {
-    ref: 'x',
+    content: 'x',
     kind: 'view',
     signal: new AbortController().signal,
     route: { href: '/x', pattern: '/x' },

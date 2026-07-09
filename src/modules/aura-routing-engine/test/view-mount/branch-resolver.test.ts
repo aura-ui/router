@@ -55,8 +55,8 @@ describe('resolveEnterBranch', () => {
     });
     const index = matched('/users/1', {
       pattern: '/users/:id',
-      route: { layout: '', view: { type: 'html', content: '<p>list</p>' }, preserve: { view: false } },
-      resolvedView: { type: 'html', ref: '<p>list</p>' },
+      route: { layout: '', view: { loader: 'html', content: '<p>list</p>' }, preserve: { view: false } },
+      resolvedView: { loader: 'html', content: '<p>list</p>' },
     });
 
     const resolve = jest.fn(async (routeInfo: MatchedRouteInfo) => {
@@ -77,8 +77,8 @@ describe('resolveEnterBranch', () => {
     });
     const index = matched('/users/1', {
       pattern: '/users/:id',
-      route: { layout: '', view: { type: 'html', content: '<p>one</p>' }, preserve: { view: false } },
-      resolvedView: { type: 'html', ref: '<p>one</p>' },
+      route: { layout: '', view: { loader: 'html', content: '<p>one</p>' }, preserve: { view: false } },
+      resolvedView: { loader: 'html', content: '<p>one</p>' },
     });
 
     const resolve = jest.fn(async (_route, _signal, options) => (
@@ -157,8 +157,8 @@ describe('resolveEnterBranch', () => {
     });
     const leaf = matched('/users/1', {
       pattern: '/users/:id',
-      route: { layout: '', view: { type: 'html', content: '<p>x</p>' }, preserve: { view: false } },
-      resolvedView: { type: 'html', ref: '<p>x</p>' },
+      route: { layout: '', view: { loader: 'html', content: '<p>x</p>' }, preserve: { view: false } },
+      resolvedView: { loader: 'html', content: '<p>x</p>' },
     });
     const boom = new Error('leaf failed');
 
@@ -247,8 +247,8 @@ describe('resolveEnterBranch', () => {
 
   it('resolves via ViewGraph without touching the DOM', async () => {
     const registry = new LoaderRegistry(undefined, []);
-    registry.register('template', async (ctx) => `<header>${ctx.ref}</header>`);
-    registry.register('html', async (ctx) => ctx.ref);
+    registry.register('template', async (ctx) => `<header>${ctx.content}</header>`);
+    registry.register('html', async (ctx) => ctx.content);
 
     const content = new ViewGraph({ registry, cache: new PayloadCache() });
     const signal = new AbortController().signal;
@@ -258,8 +258,8 @@ describe('resolveEnterBranch', () => {
     });
     const index = matched('/users', {
       pattern: '/users',
-      route: { layout: '', view: { type: 'html', content: '<p>list</p>' }, preserve: { view: false } },
-      resolvedView: { type: 'html', ref: '<p>list</p>' },
+      route: { layout: '', view: { loader: 'html', content: '<p>list</p>' }, preserve: { view: false } },
+      resolvedView: { loader: 'html', content: '<p>list</p>' },
     });
 
     const result = await resolveEnterBranch([layout, index], content, resolveCtx(signal));

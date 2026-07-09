@@ -26,7 +26,7 @@ function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
 function chainFromPaths(paths: string[]): MatchedRouteInfo[] {
   const nodes = paths.map((pattern) => ({
     route: createTestRoute(pattern),
-    content: { kind: 'view' as const, loader: '', ref: '', cache: false },
+    content: { kind: 'view' as const, loader: '', content: '', cache: false },
     segment: pattern,
     pattern,
     parent: null as RouteNode | null,
@@ -156,7 +156,7 @@ describe('buildTransitionPlan', () => {
 
   it('update shortcut when dynamic params change on the same leaf node and view key', () => {
     const node = createUsersIdNode({
-      view: { type: 'import', content: 'user-profile' },
+      view: { loader: 'import', content: 'user-profile' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -171,9 +171,9 @@ describe('buildTransitionPlan', () => {
     expect(routeMatchKey(plan.enterRoutes[0]!)).toBe('/users/:id');
   });
 
-  it('synthetic remount when per-id view ref changes on the same leaf node', () => {
+  it('synthetic remount when per-id view content changes on the same leaf node', () => {
     const node = createUsersIdNode({
-      view: { type: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/{{id}}.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -191,7 +191,7 @@ describe('buildTransitionPlan', () => {
   it('synthetic remount on flat leaf when param-change is navigate', () => {
     const node = createUsersIdNode({
       paramChange: 'navigate',
-      view: { type: 'url', content: 'partials/user-shell.html' },
+      view: { loader: 'url', content: 'partials/user-shell.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -205,11 +205,11 @@ describe('buildTransitionPlan', () => {
     expect(plan.lca).toBeNull();
   });
 
-  it('update shortcut when param-change is update despite per-id view ref', () => {
+  it('update shortcut when param-change is update despite per-id view content', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const node = createUsersIdNode({
       paramChange: 'update',
-      view: { type: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/{{id}}.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
@@ -223,7 +223,7 @@ describe('buildTransitionPlan', () => {
 
   it('keeps layout parent as lca on synthetic param remount', () => {
     const { leaf } = createNestedUsersIdSetup({
-      view: { type: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/{{id}}.html' },
     });
     const from = createNestedUsersIdMatch('1', leaf);
     const to = createNestedUsersIdMatch('2', leaf);
@@ -236,7 +236,7 @@ describe('buildTransitionPlan', () => {
     expect(routeMatchKey(plan.exitRoutes[0]!)).toBe('/users/:id');
   });
 
-  describe('param-change policy by view type', () => {
+  describe('param-change policy by view loader', () => {
     it.each([
       ['html', 'partials/user-shell.html', true],
       ['html', 'content/user/{{id}}.html', false],
@@ -250,8 +250,8 @@ describe('buildTransitionPlan', () => {
       ['template', 'shells/user-{{id}}', false],
     ] as const)(
       '%s with %s → update=%s',
-      (type, content, expectUpdate) => {
-        const node = createUsersIdNode({ view: { type, content } });
+      (loader, content, expectUpdate) => {
+        const node = createUsersIdNode({ view: { loader, content } });
         const from = createUsersIdMatch('1', node);
         const to = createUsersIdMatch('2', node);
 
@@ -268,7 +268,7 @@ describe('buildTransitionPlan', () => {
     it('layout-only leaf (resolvedView null) → update on param change', () => {
       const node = createUsersIdNode({
         layout: 'users-shell',
-        view: { type: 'url', content: 'ignored.html' },
+        view: { loader: 'url', content: 'ignored.html' },
       });
       const from = createUsersIdMatch('1', node);
       const to = createUsersIdMatch('2', node);
@@ -284,7 +284,7 @@ describe('buildTransitionPlan', () => {
 
     it('unresolved {{placeholder}} keeps same viewKey → update (misconfiguration)', () => {
       const node = createUsersIdNode({
-        view: { type: 'url', content: 'content/{{missing}}.html' },
+        view: { loader: 'url', content: 'content/{{missing}}.html' },
       });
       const from = createUsersIdMatch('1', node);
       const to = createUsersIdMatch('2', node);

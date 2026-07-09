@@ -101,11 +101,11 @@ Clicks on `[data-router-link]` are intercepted; the URL updates and the matching
 
 The `view` attribute tells the router **what to render**.
 
-Format: bare **`ref`** defaults to **`url`** loader. Prefix `loader::` only for non-default loaders (`html`, `template`, `component`, `import`, `iframe`).
+Format: bare **`content`** defaults to **`url`** loader. Prefix `loader::` only for non-default loaders (`html`, `template`, `component`, `import`, `iframe`).
 
 ### Built-in loaders
 
-| Loader | `ref` | Description |
+| Loader | `content` | Description |
 | --- | --- | --- |
 | `url` | `.html` path | Fetch **HTML** from server |
 | `html` | markup | Inline HTML in the attribute |
@@ -116,7 +116,7 @@ Format: bare **`ref`** defaults to **`url`** loader. Prefix `loader::` only for 
 
 ### `url` loader
 
-| `view` ref | Behavior |
+| `view` content | Behavior |
 | --- | --- |
 | `users.html` | Server returns a partial — inject as-is |
 | `legacy/about.html` | Fetches HTML; inject as-is unless `extract` is set (see below) |
@@ -127,9 +127,9 @@ Format: bare **`ref`** defaults to **`url`** loader. Prefix `loader::` only for 
 <aura-route path="/embed" view="iframe::https://example.com/widget" />
 ```
 
-Use `import` for `.js` / `.ts`, not bare `url` ref.
+Use `import` for `.js` / `.ts`, not bare `url` content.
 
-**Parsing:** token before the first `::` is a **known loader** (`html`, `template`, `component`, …) → `loader::ref`. Otherwise → **custom loader** (`markdown::doc.md`). Bare ref (no `::`) → default **`url`** loader.
+**Parsing:** token before the first `::` is a **known loader** (`html`, `template`, `component`, …) → `loader::content`. Otherwise → **custom loader** (`markdown::doc.md`). Bare content (no `::`) → default **`url`** loader.
 
 ### `extract` — fragment from full HTML pages
 
@@ -177,7 +177,7 @@ Nest `<aura-route>` elements to build a route tree. A parent with `layout` rende
 | Attribute | Description |
 | --- | --- |
 | `path` | URL pattern (required) |
-| `view` | What to show: `ref` (default `url`) or `loader::ref` for other loaders |
+| `view` | What to show: bare content (default `url`) or `loader::content` for other loaders |
 | `extract` | CSS selector to extract a fragment from a full HTML page; inherits from router/parent |
 | `layout` | Nested shell — parent route with `<template id="…">`, children render in its outlet |
 | `preserve` | Keep on leave: `preserve` or `preserve="view"` (DOM), `preserve="data"` (load cache), `preserve="all"` |
@@ -331,7 +331,7 @@ router.addEventListener('navigation-hook-error', (e) => {
 import { AuraRouter, type LoaderFn } from '@aura-ui-web/router';
 
 const myLoader: LoaderFn = async (ctx) => {
-  const text = await fetch(ctx.ref, { signal: ctx.signal }).then((r) => r.text());
+  const text = await fetch(ctx.content, { signal: ctx.signal }).then((r) => r.text());
   return text; // HTML string injected into the outlet
 };
 

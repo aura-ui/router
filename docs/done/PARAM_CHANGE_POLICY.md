@@ -32,7 +32,7 @@ resolveParamChangePolicy(from, to, route):
     if viewKey(from) !== viewKey(to)  → NAVIGATE
 ```
 
-**viewKey** = `resolveViewRef(view.content, params)` → `{type}:{resolvedRef}`
+**viewKey** = `resolveContent(view.content, params)` → `{loader}:{resolvedContent}`
 
 Пример: `html-src:content/user/2.html`
 
@@ -66,8 +66,8 @@ Layout-parent при NAVIGATE внутри nested tree **не** входит в 
 ```typescript
 // view-identity-key.ts (концепт)
 function viewIdentityKey(routeInfo: MatchedRouteInfo, view: ViewAttrDescriptor): string {
-  const ref = resolveViewRef(view.content, routeInfo.params); // users/{{id}}.html → users/2.html
-  return `${view.type}:${ref}`;
+  const content = resolveContent(view.content, routeInfo.params); // users/{{id}}.html → users/2.html
+  return `${view.loader}:${content}`;
 }
 ```
 
@@ -307,7 +307,7 @@ aura-route/
 aura-routing-engine/
   route-tree/resolved-view.ts         attachResolvedView, viewKey на match
   route-tree/transition-plan.ts       resolveParamChangeMode + dev-warn
-  content/cache/data-key.ts           pathname + loader:ref
+  content/cache/data-key.ts           pathname + loader:content
 ```
 
 ### Поток в `buildTransitionPlan` (псевдокод)
@@ -360,7 +360,7 @@ flowchart TD
 - [x] `/user/1` → `/user/2` + `{{id}}.html` → FULL, render 1 раз, unmount 1 раз
 - [x] same shell + `param-change="navigate"` → FULL, refetch shell
 - [x] nested layout не unmount при NAVIGATE leaf
-- [x] view cache keys согласованы с viewKey (pathname + loader:ref)
+- [x] view cache keys согласованы с viewKey (pathname + loader:content)
 - [x] dev warn: `param-change="update"` + diff viewKey → stale HTML risk
 
 ---

@@ -175,7 +175,7 @@ defaultPrefetchDelay: 50
 ```typescript
 // data-key.ts
 const base = routeInfo.pathname ?? routeInfo.pattern;
-// + query + loader:ref
+// + query + loader:content
 ```
 
 Для param routes prefetch **всегда** с конкретным `pathname` из `href` ссылки — не с pattern alone.

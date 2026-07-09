@@ -12,9 +12,9 @@ import { withResolvedView } from '../../aura-routing-engine/test/helpers/with-re
 
 describe('AuraRouter.registerLoaderLoader', () => {
   it('registers LoaderFn on defaultLoaderRegistry for ViewGraph', async () => {
-    let ref: string | undefined;
+    let viewContent: string | undefined;
     const customLoader: LoaderFn = async (context) => {
-      ref = context.ref;
+      viewContent = context.content;
       return 'custom-payload';
     };
     AuraRouter.registerLoader('register-loader-test', customLoader);
@@ -25,7 +25,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
     });
 
     const payload = await viewGraph.loadViewDescriptor(
-      { kind: 'view', loader: 'register-loader-test', ref: 'any-ref', cache: false },
+      { kind: 'view', loader: 'register-loader-test', content: 'any-ref', cache: false },
       {
         href: '/bridge',
         pathname: '/bridge',
@@ -42,13 +42,13 @@ describe('AuraRouter.registerLoaderLoader', () => {
     );
 
     expect(payload).toBe('custom-payload');
-    expect(ref).toBe('any-ref');
+    expect(viewContent).toBe('any-ref');
   });
 
-  it('passes view attr ref to LoaderFn as context.ref', async () => {
-    let ref: string | undefined;
-    defaultLoaderRegistry.register('ref-probe', async (context) => {
-      ref = context.ref;
+  it('passes view attr content to LoaderFn as context.content', async () => {
+    let viewContent: string | undefined;
+    defaultLoaderRegistry.register('content-probe', async (context) => {
+      viewContent = context.content;
       return 'ok';
     });
 
@@ -66,15 +66,15 @@ describe('AuraRouter.registerLoaderLoader', () => {
         pattern: '/analytics',
         route: {
           layout: '',
-          view: { type: 'ref-probe', content: 'dashboard' },
+          view: { loader: 'content-probe', content: 'dashboard' },
           preserve: { view: false, data: false },
         },
-        resolvedView: { type: 'ref-probe', ref: 'dashboard' },
+        resolvedView: { loader: 'content-probe', content: 'dashboard' },
       }),
       new AbortController().signal,
     );
 
-    expect(ref).toBe('dashboard');
+    expect(viewContent).toBe('dashboard');
   });
 
   it('LoaderFn receives load-hook data in route snapshot when provided', async () => {
@@ -100,7 +100,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         params: { id: '1' },
         route: {
           layout: '',
-          view: { type: 'route-data-probe', content: 'x' },
+          view: { loader: 'route-data-probe', content: 'x' },
           preserve: { view: false, data: false },
         },
       }),
@@ -130,7 +130,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
     });
 
     await service.loadViewDescriptor(
-      { kind: 'view', loader: 'route-context-probe', ref: 'x', cache: false },
+      { kind: 'view', loader: 'route-context-probe', content: 'x', cache: false },
       {
         href: '/users/1?q=1',
         pathname: '/users/1',

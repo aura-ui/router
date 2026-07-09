@@ -36,7 +36,7 @@ describe('canUseFastPath', () => {
   it('blocks url fetch loader routes', () => {
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b', {
-      view: { type: 'url', content: 'about.html' },
+      view: { loader: 'url', content: 'about.html' },
     });
     const plan = buildTransitionPlan(from, to);
 
@@ -47,7 +47,7 @@ describe('canUseFastPath', () => {
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b', {
       layout: 'shell',
-      view: { type: 'html', content: '<p/>' },
+      view: { loader: 'html', content: '<p/>' },
     });
     const plan = buildTransitionPlan(from, to);
 
@@ -101,7 +101,7 @@ describe('canUseFastPath', () => {
 
   it('blocks param-change remount plans', () => {
     const node = createUsersIdNode({
-      view: { type: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/{{id}}.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);

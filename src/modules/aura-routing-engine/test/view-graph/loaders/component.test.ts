@@ -13,7 +13,7 @@ describe('ComponentLoader', () => {
   it('returns markup with aura-data for a registered element', async () => {
     const loader = new ComponentLoader(createBrowserEnvironment());
     const result = await loader.load({
-      ref: tag,
+      content: tag,
       kind: 'view',
       signal: new AbortController().signal,
       route: { href: '/widgets', pattern: '/widgets' },
@@ -32,7 +32,7 @@ describe('ComponentLoader', () => {
     const loader = new ComponentLoader(createBrowserEnvironment());
     expect(() =>
       loader.load({
-        ref: 'not-registered-widget',
+        content: 'not-registered-widget',
         kind: 'view',
         signal: new AbortController().signal,
         route: { href: '/x', pattern: '/x' },

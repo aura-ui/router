@@ -1,13 +1,15 @@
 import {
-  ContentLoadService,
-  DataCache,
-  LoaderRegistry,
   createBranchResolveContext,
   resolveEnterBranch,
   type BranchResolveContext,
   type DataSnapshot,
   type MatchedRouteInfo,
 } from '../../core';
+import {
+  ContentGraph,
+  PayloadCache,
+  LoaderRegistry,
+} from '../../core/content-graph';
 import { shouldUsePrepareCommitEnterBranch } from '../../core/view-mount/branch-resolver';
 import { buildRouteDataKey, resolveRouteData } from '../../core/data-graph/route-data';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
@@ -243,12 +245,12 @@ describe('resolveEnterBranch', () => {
     expect(resolveRouteData(snapshot, layout)).toEqual({ userId: '42' });
   });
 
-  it('resolves via ContentLoadService without touching the DOM', async () => {
-    const registry = new LoaderRegistry([]);
-    registry.register('template', async (ctx) => `<header>${ctx.ref}</header>`);
-    registry.register('html', async (ctx) => ctx.ref);
+  it('resolves via ContentGraph without touching the DOM', async () => {
+    const registry = new LoaderRegistry(undefined, []);
+    registry.registerFn('template', async (ctx) => `<header>${ctx.ref}</header>`);
+    registry.registerFn('html', async (ctx) => ctx.ref);
 
-    const content = new ContentLoadService({ registry, cache: new DataCache() });
+    const content = new ContentGraph({ registry, cache: new PayloadCache() });
     const signal = new AbortController().signal;
 
     const layout = matched('/users', {

@@ -1,5 +1,5 @@
 import { DataGraph } from '../../core/data-graph';
-import { NO_PRESERVE } from '../../core/content/model/preserve';
+import { NO_PRESERVE } from '../../../aura-route/core/attr/preserve-attr-parser';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
@@ -208,7 +208,7 @@ describe('DataGraph', () => {
     const transaction = loadTransaction(hookRegistry, [route]);
 
     await dataGraph.load([route], { transaction });
-    dataGraph.invalidateAll();
+    dataGraph.invalidate({ policy: 'remove' });
     await dataGraph.load([route], { transaction });
 
     expect(loads).toBe(2);

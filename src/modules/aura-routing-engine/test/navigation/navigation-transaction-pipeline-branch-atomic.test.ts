@@ -12,7 +12,7 @@ import {
   mockRunViewCommit,
   resetPipelineMocks,
   trackLifecyclePhases,
-  withContentLoad,
+  withContentGraph,
 } from '../helpers/jest/pipeline-mocks';
 
 describe('NavigationTransactionPipeline branch-atomic render', () => {
@@ -37,7 +37,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
   it('resolves branch then sync-mounts pre-resolved contents for multi-route enter', async () => {
     const layout = createMatchedRoute('/users');
     const index = createMatchedRoute('/users/1');
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       enterRoutes: [layout, index],
       transitionOrder: null,
     });
@@ -46,7 +46,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
 
     expect(resolveEnterBranchSpy).toHaveBeenCalledWith(
       [layout, index],
-      transaction.engine.contentLoad,
+      transaction.engine.contentGraph,
       expect.objectContaining({ signal: transaction.signal }),
     );
     expect(mountEnterBranchSpy).toHaveBeenCalledWith(
@@ -58,7 +58,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
   });
 
   it('uses eager per-route render for a single sync route', async () => {
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       enterRoutes: [createMatchedRoute('/page')],
       transitionOrder: null,
     });
@@ -77,7 +77,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
   it('renders every enter route when mount-strategy is per-route', async () => {
     const layout = createMatchedRoute('/users', { mountStrategy: 'per-route' });
     const index = createMatchedRoute('/users/1', { mountStrategy: 'per-route' });
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       enterRoutes: [layout, index],
       transitionOrder: null,
     });
@@ -101,7 +101,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
   });
 
   it('uses branch atomic with transition order on multi-route enter', async () => {
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       enterRoutes: [createMatchedRoute('/users'), createMatchedRoute('/users/1')],
       transitionOrder: 'out-in',
     });
@@ -128,7 +128,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
       callOrder.push(ctx.phase);
     });
 
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
       transitionOrder: 'out-in',
@@ -141,7 +141,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
 
   it('returns cancelled when branch resolve aborts', async () => {
     resolveEnterBranchSpy.mockResolvedValue({ status: 'aborted' });
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: null,
     });
@@ -158,7 +158,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
       status: 'ok',
       preResolvedContents: ['<a/>', '<b/>'],
     });
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: null,
     });
@@ -171,7 +171,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
   });
 
   it('returns cancelled when branch mount succeeds but transaction is inactive', async () => {
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: null,
     });
@@ -222,7 +222,7 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
     mockRunViewCommit.mockResolvedValue({ status: 'error', error: renderError });
 
     const { phases } = trackLifecyclePhases();
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       exitRoutes: [createMatchedRoute('/from', { unmount: ['cleanup'] })],
       enterRoutes: [createMatchedRoute('/to', { mountStrategy: 'per-route' })],
       transitionOrder: null,
@@ -248,7 +248,7 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
     });
 
     const { phases } = trackLifecyclePhases();
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       exitRoutes: [createMatchedRoute('/from', { unmount: ['cleanup'] })],
       enterRoutes: [createMatchedRoute('/a'), failingRoute],
       transitionOrder: null,
@@ -274,7 +274,7 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
     });
 
     const { phases } = trackLifecyclePhases();
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       exitRoutes: [createMatchedRoute('/from', { unmount: ['cleanup'] })],
       enterRoutes: [createMatchedRoute('/a'), failingRoute],
       transitionOrder: null,
@@ -292,7 +292,7 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
   it('returns cancelled when branch mount aborts mid-apply', async () => {
     mountEnterBranchSpy.mockReturnValue({ status: 'aborted' });
 
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: null,
     });
@@ -303,7 +303,7 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
   });
 
   it('returns cancelled when branch contents are lost before commit', async () => {
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
       enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: 'out-in',
@@ -361,7 +361,7 @@ describe('NavigationTransactionPipeline branch-atomic transition matrix gaps', (
       callOrder.push(ctx.phase);
     });
 
-    const transaction = withContentLoad({
+    const transaction = withContentGraph({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
       transitionOrder: policy,

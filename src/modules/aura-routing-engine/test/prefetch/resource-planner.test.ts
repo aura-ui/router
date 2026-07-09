@@ -1,5 +1,5 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
-import type { ContentLoadService } from '../../core/content/content-load-service';
+import type { ContentGraph } from '../../core/content-graph';
 import { PrefetchPolicy } from '../../core/prefetch/policy';
 import {
   ContentPrefetchExecutor,
@@ -175,9 +175,9 @@ describe('PrefetchResourceScheduler', () => {
 });
 
 describe('ContentPrefetchExecutor', () => {
-  it('delegates content resources to ContentLoadService.prefetchBranch', async () => {
+  it('delegates content resources to ContentGraph.prefetchBranch', async () => {
     const prefetchBranch = jest.fn().mockResolvedValue(undefined);
-    const content = { prefetchBranch } as unknown as ContentLoadService;
+    const content = { prefetchBranch } as unknown as ContentGraph;
     const executor = new ContentPrefetchExecutor(content);
     const signal = new AbortController().signal;
     const targets = [{ href: '/page' }] as never;
@@ -195,7 +195,7 @@ describe('ContentPrefetchExecutor', () => {
     const prefetchBranch = jest.fn();
     const executor = new ContentPrefetchExecutor({
       prefetchBranch,
-    } as unknown as ContentLoadService);
+    } as unknown as ContentGraph);
 
     await executor.run({ kind: 'data', targets: [], priority: 'high' }, {
       signal: new AbortController().signal,

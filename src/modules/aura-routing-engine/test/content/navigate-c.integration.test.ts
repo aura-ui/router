@@ -3,7 +3,7 @@
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { defaultLoaderRegistry } from '../../core/content';
+import { defaultLoaderRegistry } from '../../core/content-graph';
 
 function defineDemoElements(): void {
   if (!customElements.get(AuraOutlet.is)) {
@@ -32,7 +32,7 @@ function mountIndexFragment(): AuraRouter {
     </aura-router>
   `;
 
-  defaultLoaderRegistry.register('custom-loader', async () => 'custom');
+  defaultLoaderRegistry.registerFn('custom-loader', async () => 'custom');
 
   return document.querySelector(AuraRouter.is) as AuraRouter;
 }

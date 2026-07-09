@@ -1,4 +1,4 @@
-import type { ContentLoadService } from '../content/content-load-service';
+import type { ContentResolvePort } from '../content-graph';
 import type { DataGraph } from '../data-graph';
 import { routeHasLoadHooks } from '../data-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -101,12 +101,7 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
   }
 
   private routeHasView(routeInfo: MatchedRouteInfo): boolean {
-    const route = routeInfo.route as {
-      layout?: string;
-      view?: { type?: string } | null;
-    };
-
-    return Boolean(route.layout || route.view?.type);
+    return routeInfo.route.hasViewContent;
   }
 }
 
@@ -136,13 +131,13 @@ export class PrefetchResourceScheduler implements PrefetchResourceSchedulerPort 
   }
 }
 
-/** Prefetch `url` / template partials via shared ContentLoadService cache. */
+/** Prefetch view payloads via shared {@link ContentGraph} cache. */
 export class ContentPrefetchExecutor implements PrefetchResourceExecutor {
   readonly kind = 'content' as const;
 
-  private readonly content: ContentLoadService;
+  private readonly content: ContentResolvePort;
 
-  constructor(content: ContentLoadService) {
+  constructor(content: ContentResolvePort) {
     this.content = content;
   }
 

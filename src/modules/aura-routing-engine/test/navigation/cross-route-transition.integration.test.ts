@@ -113,9 +113,9 @@ function wireRoute(
 
 async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteInfo) {
   const engine = createMockEngine();
-  engine.contentLoad = {
+  engine.contentGraph = {
     resolve: async (routeInfo) => routeMarkup.get(routeInfo.route) ?? null,
-  } as typeof engine.contentLoad;
+  } as typeof engine.contentGraph;
 
   const transaction = new NavigationTransaction(
     1,

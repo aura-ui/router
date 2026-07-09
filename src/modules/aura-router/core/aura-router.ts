@@ -4,8 +4,8 @@ import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRoute, RouteViewCache } from '../../aura-route/core';
 import {
   AuraRoutingEngine,
-  DataCache,
-  ContentLoadService,
+  ContentGraph,
+  PayloadCache,
   defaultLoaderRegistry,
   defaultHookRegistry,
   isCatchAllRoute,
@@ -18,6 +18,7 @@ import {
   type PrefetchOptions,
   type RouteHookDefinition,
   type RouterDataInvalidateOptions,
+  type ContentInvalidateOptions,
   type RouterInstance,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
@@ -79,7 +80,7 @@ export interface AuraRouterConfigureOptions {
   /** LRU cache for keep-alive route views (`detachedRoot` DOM). */
   viewCache?: CacheStoreOptions<ViewRoot>;
   /** LRU cache for view-loader payloads (`url` strings; prefetch + navigation). Gated by `preserve.view`. */
-  dataCache?: CacheStoreOptions<string>;
+  payloadCache?: CacheStoreOptions<string>;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;
 }
@@ -89,7 +90,7 @@ export type { RouterInstance } from '../../aura-routing-engine/core';
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
-  private static dataCacheOptions: CacheStoreOptions<string> = {};
+  private static payloadCacheOptions: CacheStoreOptions<string> = {};
 
   /** Fallback template id — когда нет `<aura-route path="*">`. */
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
@@ -111,9 +112,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();
   private readonly notFound = new AuraRouterNotFoundController(this);
-  private readonly dataCache = new DataCache(AuraRouter.dataCacheOptions);
+  private readonly payloadCache = new PayloadCache(AuraRouter.payloadCacheOptions);
   private readonly loaderRegistry = defaultLoaderRegistry;
-  private contentLoadService?: ContentLoadService;
+  private contentGraphInstance?: ContentGraph;
 
   static install(): void {
     registerAuraRouterComponents();
@@ -136,14 +137,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (options.viewCache) {
       RouteViewCache.configure(options.viewCache);
     }
-    if (options.dataCache) {
-      AuraRouter.dataCacheOptions = options.dataCache;
+    if (options.payloadCache) {
+      AuraRouter.payloadCacheOptions = options.payloadCache;
     }
   }
 
   /** Registers a custom content loader on the shared {@link defaultLoaderRegistry}. */
   static registerLoader(type: LoaderType, loader: LoaderFn): void {
-    defaultLoaderRegistry.register(type, loader);
+    defaultLoaderRegistry.registerFn(type, loader);
   }
 
   /** Per-instance override (перекрывает configure и template). Только fallback. */
@@ -154,14 +155,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     });
   }
 
-  get contentLoad(): ContentLoadService {
-    if (!this.contentLoadService) {
-      this.contentLoadService = new ContentLoadService({
+  get contentGraph(): ContentGraph {
+    if (!this.contentGraphInstance) {
+      this.contentGraphInstance = new ContentGraph({
         registry: this.loaderRegistry,
-        cache: this.dataCache,
+        cache: this.payloadCache,
       });
     }
-    return this.contentLoadService;
+    return this.contentGraphInstance;
   }
 
   get routes() {
@@ -194,7 +195,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (!this.engine) {
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
-        contentLoad: this.contentLoad,
+        contentGraph: this.contentGraph,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
         onNavigationHistoryCommitted: (ctx) => {
@@ -256,12 +257,20 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /**
-   * Marks load-hook cache entries stale or removes them (see {@link RouterDataInvalidateOptions.policy}).
+   * Invalidates load-hook cache entries ({@link DataGraph}).
    * Dispatches `data-invalidated` with the number of affected entries (`-1` = full invalidate, empty cache).
    */
   invalidate(options?: RouterDataInvalidateOptions): number {
     const count = this.ensureEngine().invalidateData(options);
     dispatchDataInvalidated(this, count);
     return count;
+  }
+
+  /**
+   * Invalidates view-loader payload cache ({@link ContentGraph} / {@link PayloadCache}).
+   * Does not affect load-hook data; use {@link invalidate} for that.
+   */
+  invalidateContent(options?: ContentInvalidateOptions): number {
+    return this.ensureEngine().invalidateContent(options);
   }
 }

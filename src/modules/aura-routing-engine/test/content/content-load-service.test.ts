@@ -1,11 +1,11 @@
 import {
-  DataCache,
-  ContentLoadService,
+  PayloadCache,
+  ContentGraph,
   LoaderRegistry,
-  dataCacheKey,
-  createBuiltinLoaders,
+  createLoaderRegistry,
+  payloadCacheKey,
   type ContentDescriptor,
-} from '../../core';
+} from '../../core/content-graph';
 import { parseViewAttr } from '../../../aura-route/core/attr/view-attr-parser';
 import { withResolvedView } from '../helpers/with-resolved-view';
 import { AuraRoute } from '../../../aura-route/core/aura-route';
@@ -18,20 +18,20 @@ const routeInfo = {
   pattern: '/page',
 } as const;
 
-describe('ContentLoadService', () => {
+describe('ContentGraph (resolve)', () => {
   it('returns null when signal is aborted', async () => {
-    const registry = new LoaderRegistry();
-    registry.register('html', async () => 'never');
+    const registry = new LoaderRegistry(undefined, []);
+    registry.registerFn('html', async () => 'never');
 
-    const service = new ContentLoadService({
+    const graph = new ContentGraph({
       registry,
-      cache: new DataCache(),
+      cache: new PayloadCache(),
     });
 
     const controller = new AbortController();
     controller.abort();
 
-    const result = await service.resolveDescriptor(
+    const result = await graph.resolveDescriptor(
       { kind: 'content', loader: 'html', ref: '<p>x</p>', cache: false },
       routeInfo as never,
       controller.signal,
@@ -41,15 +41,15 @@ describe('ContentLoadService', () => {
   });
 
   it('uses cache when descriptor.cache is true', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.register('html', async () => {
+    registry.registerFn('html', async () => {
       loads++;
       return `<span>${loads}</span>`;
     });
 
-    const cache = new DataCache();
-    const service = new ContentLoadService({ registry, cache });
+    const cache = new PayloadCache();
+    const graph = new ContentGraph({ registry, cache });
     const descriptor: ContentDescriptor = {
       kind: 'content',
       loader: 'html',
@@ -58,22 +58,22 @@ describe('ContentLoadService', () => {
     };
     const signal = new AbortController().signal;
 
-    await service.resolveDescriptor(descriptor, routeInfo as never, signal);
-    await service.resolveDescriptor(descriptor, routeInfo as never, signal);
+    await graph.resolveDescriptor(descriptor, routeInfo as never, signal);
+    await graph.resolveDescriptor(descriptor, routeInfo as never, signal);
 
     expect(loads).toBe(1);
   });
 
   it('prefetch warms cache when descriptor.cache is true', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.register('html', async () => {
+    registry.registerFn('html', async () => {
       loads++;
       return '<span>warm</span>';
     });
 
-    const cache = new DataCache();
-    const service = new ContentLoadService({ registry, cache });
+    const cache = new PayloadCache();
+    const graph = new ContentGraph({ registry, cache });
     const descriptor: ContentDescriptor = {
       kind: 'content',
       loader: 'html',
@@ -89,24 +89,24 @@ describe('ContentLoadService', () => {
       } as AuraRoute,
     });
 
-    await service.prefetchNode(info as never, new AbortController().signal);
-    expect(cache.get(dataCacheKey(descriptor, info as never))).toBeDefined();
+    await graph.prefetchNode(info as never, new AbortController().signal);
+    expect(cache.get(payloadCacheKey(descriptor, info as never))).toBeDefined();
 
-    await service.resolveDescriptor(descriptor, info as never, new AbortController().signal);
+    await graph.resolveDescriptor(descriptor, info as never, new AbortController().signal);
     expect(loads).toBe(1);
   });
 
   it('passes extract to url loader from route attr', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     let receivedExtract: string | undefined;
-    registry.register('url', async (ctx) => {
+    registry.registerFn('url', async (ctx) => {
       receivedExtract = ctx.extract;
       return '<span>ok</span>';
     });
 
-    const service = new ContentLoadService({ registry, cache: new DataCache() });
+    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
-    await service.resolve(
+    await graph.resolve(
       {
         ...routeInfo,
         route: {
@@ -123,16 +123,16 @@ describe('ContentLoadService', () => {
   });
 
   it('does not pass extract when route opts out with extract=""', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     let receivedExtract: string | undefined = '#unset';
-    registry.register('url', async (ctx) => {
+    registry.registerFn('url', async (ctx) => {
       receivedExtract = ctx.extract;
       return '<span>ok</span>';
     });
 
-    const service = new ContentLoadService({ registry, cache: new DataCache() });
+    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
-    await service.resolve(
+    await graph.resolve(
       {
         ...routeInfo,
         route: {
@@ -149,16 +149,16 @@ describe('ContentLoadService', () => {
   });
 
   it('does not pass extract for html loader even when route has extract', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     let receivedExtract: string | undefined = '#unset';
-    registry.register('html', async (ctx) => {
+    registry.registerFn('html', async (ctx) => {
       receivedExtract = ctx.extract;
       return ctx.ref;
     });
 
-    const service = new ContentLoadService({ registry, cache: new DataCache() });
+    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
-    await service.resolve(
+    await graph.resolve(
       {
         ...routeInfo,
         route: {
@@ -175,18 +175,16 @@ describe('ContentLoadService', () => {
   });
 
   it('wraps extract selector miss as CONTENT_LOAD_FAILED', async () => {
-    const registry = new LoaderRegistry();
-    for (const { type, load } of createBuiltinLoaders({
+    const registry = createLoaderRegistry({
       fetchText: async () => '<html><body></body></html>',
       resolveUrl: (path) => path,
-    })) {
-      registry.register(type, load);
-    }
+      isSSR: false,
+    });
 
-    const service = new ContentLoadService({ registry, cache: new DataCache() });
+    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
     await expect(
-      service.resolve(
+      graph.resolve(
         {
           ...routeInfo,
           route: {
@@ -209,15 +207,15 @@ describe('ContentLoadService', () => {
   });
 
   it('keeps separate cache entries for partial vs extract on the same ref', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.register('url', async (ctx) => {
+    registry.registerFn('url', async (ctx) => {
       loads++;
       return ctx.extract ? '<fragment/>' : '<full/>';
     });
 
-    const cache = new DataCache();
-    const service = new ContentLoadService({ registry, cache });
+    const cache = new PayloadCache();
+    const graph = new ContentGraph({ registry, cache });
     const signal = new AbortController().signal;
     const baseRoute = {
       layout: '',
@@ -236,8 +234,8 @@ describe('ContentLoadService', () => {
       resolvedView: { type: 'url', ref: 'legacy/about.html' },
     } as const;
 
-    const partialPayload = await service.resolve(partial as never, signal);
-    const extractPayload = await service.resolve(extracted as never, signal);
+    const partialPayload = await graph.resolve(partial as never, signal);
+    const extractPayload = await graph.resolve(extracted as never, signal);
 
     expect(partialPayload).toBe('<full/>');
     expect(extractPayload).toBe('<fragment/>');
@@ -245,15 +243,15 @@ describe('ContentLoadService', () => {
   });
 
   it('throws NavigationError when loader fails', async () => {
-    const registry = new LoaderRegistry();
-    registry.register('html', async () => {
+    const registry = new LoaderRegistry(undefined, []);
+    registry.registerFn('html', async () => {
       throw new Error('network');
     });
 
-    const service = new ContentLoadService({ registry, cache: new DataCache() });
+    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
     await expect(
-      service.resolveDescriptor(
+      graph.resolveDescriptor(
         { kind: 'content', loader: 'html', ref: 'static', cache: false },
         routeInfo as never,
         new AbortController().signal,

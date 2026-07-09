@@ -6,7 +6,7 @@
  * orchestrator and creating route-tree cycles.
  */
 
-export { NO_PRESERVE, parsePreserveAttr } from './core/content';
+export { NO_PRESERVE, parsePreserveAttr, type PreserveFlags } from '../aura-route/core/attr/preserve-attr-parser';
 export { resolveHookNames } from './core/hooks/resolve-hook-names';
 export {
   parseScrollAttr,
@@ -28,9 +28,8 @@ export type {
   ContentKind,
   LoaderFn,
   LoaderType,
-} from './core/content';
-export type { ContentLoadService } from './core/content/content-load-service';
-export type { PreserveFlags } from './core/content';
+} from './core/content-graph';
+export type { ContentGraph } from './core/content-graph';
 export type { MatchedRouteInfo } from './core/match/url-matcher';
 export type {
   RouteErrorContext,

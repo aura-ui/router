@@ -1,0 +1,16 @@
+import { loadAndRegisterComponent } from '../../../../../aura-utils/misc';
+import type { LoaderType, LoadContext } from '../../model/types';
+import type { ContentResult } from '../../model/result';
+import { componentMarkup } from '../../model/context';
+import { Loader } from '../loader';
+
+export class ImportLoader extends Loader {
+  static readonly type = 'import' as const satisfies LoaderType;
+
+  readonly type = ImportLoader.type;
+
+  async load(ctx: LoadContext): Promise<ContentResult | null> {
+    const tagName = await loadAndRegisterComponent(ctx.ref);
+    return { kind: 'markup', markup: componentMarkup(tagName, ctx) };
+  }
+}

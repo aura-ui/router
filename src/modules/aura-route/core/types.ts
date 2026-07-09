@@ -18,6 +18,7 @@ export interface AuraRouteInterface {
   extract: string | null;
   readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;
+  readonly hasViewContent: boolean;
   readonly hasGuard: boolean;
   readonly hasLeave: boolean;
   readonly hasLoad: boolean;

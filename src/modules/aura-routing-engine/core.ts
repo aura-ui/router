@@ -85,37 +85,57 @@ export { isCatchAllRoute } from './core/match/url-matcher';
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';
 
-// --- Content load (router-owned cache + prefetch) ---
+// --- Content graph (view payloads: resolve, prefetch, payload cache) ---
 
 export {
-  NO_PRESERVE,
-  parsePreserveAttr,
-  dataCacheKey,
-  DataCache,
-  ContentLoadService,
+  ContentGraph,
+  PayloadCache,
+  payloadCacheKey,
+  buildContentDescriptor,
+  Loader,
   LoaderRegistry,
   createLoaderRegistry,
   defaultLoaderRegistry,
-  createBuiltinLoaders,
+  createDefaultLoaders,
+  getBuiltinLoaderTypeIds,
+  TemplateLoader,
+  HtmlLoader,
+  UrlLoader,
+  ComponentLoader,
+  ImportLoader,
+  IframeLoader,
   toLoadContext,
   routeSnapshot,
+  toViewPayload,
   fetchText,
   resolveRelativeUrl,
-} from './core/content';
+  createBrowserEnvironment,
+  defaultEnvironment,
+} from './core/content-graph';
 
 export type {
+  ContentGraphDeps,
+  ContentPrefetchOptions,
+  ContentInvalidateOptions,
+  ContentResolvePort,
+  ContentResult,
+  RouteContentSource,
+  LoaderClass,
+  ContentEnvironment,
   ContentDescriptor,
   ContentKind,
   FetchText,
   LoaderFn,
-  LoaderTransport,
   LoaderType,
   LoadContext,
   ViewPayload,
-  PreserveFlags,
-  ContentLoadServiceDeps,
-  ContentPrefetchOptions,
-} from './core/content';
+} from './core/content-graph';
+
+export {
+  NO_PRESERVE,
+  parsePreserveAttr,
+} from '../aura-route/core/attr/preserve-attr-parser';
+export type { PreserveFlags } from '../aura-route/core/attr/preserve-attr-parser';
 
 export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch/types';
 export {
@@ -136,7 +156,11 @@ export type {
   DataGraphPrefetchOptions,
   DataSnapshot,
 } from './core/data-graph';
-export type { RouterDataInvalidateOptions } from './core/data-graph/invalidate';
+export type {
+  RouterInvalidateOptions,
+  RouterInvalidateOptions as RouterDataInvalidateOptions,
+} from './core/invalidate';
+export { resolveRouterInvalidatePredicate } from './core/invalidate';
 
 // --- Route hooks (registered via AuraRouter.use) ---
 

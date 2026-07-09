@@ -1,9 +1,9 @@
+import { AuraRoutingEngine } from '../../core';
 import {
-  AuraRoutingEngine,
-  DataCache,
-  ContentLoadService,
+  PayloadCache,
+  ContentGraph,
   LoaderRegistry,
-} from '../../core';
+} from '../../core/content-graph';
 import type { RouterInstance } from '../../core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
@@ -11,19 +11,19 @@ describe('AuraRoutingEngine prefetch wiring', () => {
   const router: RouterInstance = { navigate: jest.fn() };
 
   it('prefetch loads content for matched branch via registry descriptors', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.register('html', async () => {
+    registry.registerFn('html', async () => {
       loads++;
       return '<span>about</span>';
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
+    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
 
-    const engine = new AuraRoutingEngine(router, { contentLoad });
+    const engine = new AuraRoutingEngine(router, { contentGraph });
     engine.replaceRoutes(collectRoutesFromDom(createDomRoute('/'), about) as never);
 
     await engine.prefetch('/about');
@@ -32,20 +32,20 @@ describe('AuraRoutingEngine prefetch wiring', () => {
   });
 
   it('disables prefetch when config.prefetch is false', async () => {
-    const registry = new LoaderRegistry();
+    const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.register('html', async () => {
+    registry.registerFn('html', async () => {
       loads++;
       return 'x';
     });
 
-    const contentLoad = new ContentLoadService({ registry, cache: new DataCache() });
+    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');
 
     const engine = new AuraRoutingEngine(router, {
-      contentLoad,
+      contentGraph,
       prefetch: false,
     });
     engine.replaceRoutes(collectRoutesFromDom(about) as never);

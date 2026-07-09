@@ -9,7 +9,7 @@ import type { ContentGraph } from './content-graph';
 export { PayloadCache, payloadCacheKey } from './cache';
 export type { RouterInvalidateOptions as ContentInvalidateOptions } from '../invalidate-router-cache';
 
-export { routeSnapshot, componentMarkup } from './runtime/markup';
+export { routeSnapshot, componentMarkup } from './markup';
 
 export type { LoaderFn } from './types';
 export type {
@@ -22,27 +22,27 @@ export type {
   ViewPayload,
 } from './types';
 
-export { Loader, type LoaderClass } from './runtime/loader';
+export { Loader, type LoaderClass } from './loader';
 
 export {
   LoaderRegistry,
   createLoaderRegistry,
   defaultLoaderRegistry,
-} from './runtime/registry';
+} from './registry';
 
-export { TemplateLoader } from './runtime/loaders/template';
-export { HtmlLoader } from './runtime/loaders/html';
-export { UrlLoader } from './runtime/loaders/url';
-export { ComponentLoader } from './runtime/loaders/component';
-export { ImportLoader } from './runtime/loaders/import';
-export { IframeLoader } from './runtime/loaders/iframe';
+export { TemplateLoader } from './loaders/template';
+export { HtmlLoader } from './loaders/html';
+export { UrlLoader } from './loaders/url';
+export { ComponentLoader } from './loaders/component';
+export { ImportLoader } from './loaders/import';
+export { IframeLoader } from './loaders/iframe';
 
 export {
   createBrowserEnvironment,
   defaultEnvironment,
   fetchText,
   resolveRelativeUrl,
-} from './runtime/environment';
+} from './environment';
 
 export {
   BUILTIN_LOADER_TYPES,

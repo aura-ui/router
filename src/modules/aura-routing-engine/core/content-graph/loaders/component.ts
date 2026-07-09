@@ -1,4 +1,4 @@
-import type { ContentResult, LoaderType, LoadContext } from '../../types';
+import type { ContentResult, LoaderType, LoadContext } from '../types';
 import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
 

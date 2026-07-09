@@ -1,5 +1,5 @@
-import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-parser';
-import type { ContentEnvironment, LoaderFn } from '../types';
+import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
+import type { ContentEnvironment, LoaderFn } from './types';
 import { Loader, FnLoader, type LoaderClass } from './loader';
 import { createBrowserEnvironment, defaultEnvironment } from './environment';
 import { ComponentLoader } from './loaders/component';

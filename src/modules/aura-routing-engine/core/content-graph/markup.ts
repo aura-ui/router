@@ -1,5 +1,5 @@
-import { escapeHtml } from '../../../../aura-utils/misc';
-import type { LoadContext } from '../types';
+import { escapeHtml } from '../../../aura-utils/misc';
+import type { LoadContext } from './types';
 
 export function routeSnapshot(ctx: LoadContext): Record<string, unknown> {
   return {

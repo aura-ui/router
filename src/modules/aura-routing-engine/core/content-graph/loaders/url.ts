@@ -1,5 +1,5 @@
-import { extractHtmlFragment } from '../../../../../aura-utils/misc';
-import type { ContentResult, LoaderType, LoadContext } from '../../types';
+import { extractHtmlFragment } from '../../../../aura-utils/misc';
+import type { ContentResult, LoaderType, LoadContext } from '../types';
 import { Loader } from '../loader';
 
 export class UrlLoader extends Loader {

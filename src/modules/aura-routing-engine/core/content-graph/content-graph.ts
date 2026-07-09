@@ -7,7 +7,7 @@ import { payloadCacheKey } from './cache/cache-key';
 import { PayloadCache } from './cache/payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { ContentDescriptor, LoadContext, ViewPayload } from './types';
-import type { LoaderRegistry } from './runtime/registry';
+import type { LoaderRegistry } from './registry';
 
 export type ContentPrefetchOptions = {
   readonly concurrency?: number;

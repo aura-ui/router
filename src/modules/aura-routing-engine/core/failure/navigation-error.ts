@@ -82,7 +82,7 @@ export function defaultCodeForPhase(phase: NavigationErrorPhase): NavigationFail
   return FAILURE_CODE_BY_PHASE[phase] ?? 'INTERNAL';
 }
 
-export function createContentLoadError(
+export function createViewLoadError(
   loader: string,
   routePattern: string,
   cause: unknown,

@@ -17,8 +17,8 @@ describe('LoaderRegistry', () => {
   it('get() throws for unknown loader types', () => {
     const registry = new LoaderRegistry();
 
-    expect(() => registry.get('missing-loader')).toThrow(/Unknown content loader/);
-    expect(() => registry.get('html-src')).toThrow(/Unknown content loader/);
+    expect(() => registry.get('missing-loader')).toThrow(/Unknown view loader/);
+    expect(() => registry.get('html-src')).toThrow(/Unknown view loader/);
   });
 
   it('register(type, fn) adds custom loaders', async () => {
@@ -44,7 +44,7 @@ describe('LoaderRegistry', () => {
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
-      'Content loader "html" is already registered — overwriting',
+      'View loader "html" is already registered — overwriting',
     );
     warn.mockRestore();
   });

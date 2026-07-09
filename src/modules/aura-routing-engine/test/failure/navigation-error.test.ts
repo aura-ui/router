@@ -1,6 +1,6 @@
 import {
   NavigationError,
-  createContentLoadError,
+  createViewLoadError,
   defaultCodeForPhase,
   isNavigationError,
   normalizeFailure,
@@ -21,8 +21,8 @@ describe('NavigationError', () => {
     expect(isNavigationError(error)).toBe(true);
   });
 
-  it('createContentLoadError wraps loader failures', () => {
-    const error = createContentLoadError('url', '/users', new Error('404'));
+  it('createViewLoadError wraps loader failures', () => {
+    const error = createViewLoadError('url', '/users', new Error('404'));
     expect(error.code).toBe('CONTENT_LOAD_FAILED');
     expect(error.phase).toBe('render');
     expect(error.message).toContain('url');
@@ -30,7 +30,7 @@ describe('NavigationError', () => {
   });
 
   it('normalizeFailure returns existing NavigationError', () => {
-    const original = createContentLoadError('html', '/a', new Error('x'));
+    const original = createViewLoadError('html', '/a', new Error('x'));
     expect(
       normalizeFailure(original, { phase: 'render', routePattern: '/a' }),
     ).toBe(original);

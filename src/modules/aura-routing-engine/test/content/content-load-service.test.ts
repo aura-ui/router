@@ -1,10 +1,10 @@
 import {
   PayloadCache,
-  ContentGraph,
+  ViewGraph,
   LoaderRegistry,
   createLoaderRegistry,
   payloadCacheKey,
-  type ContentDescriptor,
+  type ViewDescriptor,
 } from '../../core/view-graph';
 import { parseViewAttr } from '../../../aura-route/core/attr/view-attr-parser';
 import { withResolvedView } from '../helpers/with-resolved-view';
@@ -18,12 +18,12 @@ const routeInfo = {
   pattern: '/page',
 } as const;
 
-describe('ContentGraph (resolve)', () => {
+describe('ViewGraph (resolve)', () => {
   it('returns null when signal is aborted', async () => {
     const registry = new LoaderRegistry(undefined, []);
     registry.register('html', async () => 'never');
 
-    const graph = new ContentGraph({
+    const graph = new ViewGraph({
       registry,
       cache: new PayloadCache(),
     });
@@ -49,8 +49,8 @@ describe('ContentGraph (resolve)', () => {
     });
 
     const cache = new PayloadCache();
-    const graph = new ContentGraph({ registry, cache });
-    const descriptor: ContentDescriptor = {
+    const graph = new ViewGraph({ registry, cache });
+    const descriptor: ViewDescriptor = {
       kind: 'content',
       loader: 'html',
       ref: 'static',
@@ -73,8 +73,8 @@ describe('ContentGraph (resolve)', () => {
     });
 
     const cache = new PayloadCache();
-    const graph = new ContentGraph({ registry, cache });
-    const descriptor: ContentDescriptor = {
+    const graph = new ViewGraph({ registry, cache });
+    const descriptor: ViewDescriptor = {
       kind: 'content',
       loader: 'html',
       ref: 'static',
@@ -104,7 +104,7 @@ describe('ContentGraph (resolve)', () => {
       return '<span>ok</span>';
     });
 
-    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
+    const graph = new ViewGraph({ registry, cache: new PayloadCache() });
 
     await graph.loadView(
       {
@@ -130,7 +130,7 @@ describe('ContentGraph (resolve)', () => {
       return '<span>ok</span>';
     });
 
-    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
+    const graph = new ViewGraph({ registry, cache: new PayloadCache() });
 
     await graph.loadView(
       {
@@ -156,7 +156,7 @@ describe('ContentGraph (resolve)', () => {
       return ctx.ref;
     });
 
-    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
+    const graph = new ViewGraph({ registry, cache: new PayloadCache() });
 
     await graph.loadView(
       {
@@ -181,7 +181,7 @@ describe('ContentGraph (resolve)', () => {
       isSSR: false,
     });
 
-    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
+    const graph = new ViewGraph({ registry, cache: new PayloadCache() });
 
     await expect(
       graph.loadView(
@@ -215,7 +215,7 @@ describe('ContentGraph (resolve)', () => {
     });
 
     const cache = new PayloadCache();
-    const graph = new ContentGraph({ registry, cache });
+    const graph = new ViewGraph({ registry, cache });
     const signal = new AbortController().signal;
     const baseRoute = {
       layout: '',
@@ -248,7 +248,7 @@ describe('ContentGraph (resolve)', () => {
       throw new Error('network');
     });
 
-    const graph = new ContentGraph({ registry, cache: new PayloadCache() });
+    const graph = new ViewGraph({ registry, cache: new PayloadCache() });
 
     await expect(
       graph.loadViewDescriptor(

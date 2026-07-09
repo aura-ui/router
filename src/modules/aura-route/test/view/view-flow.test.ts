@@ -3,7 +3,7 @@ import { NO_PRESERVE, type MatchedRouteInfo } from '../../../aura-routing-engine
 import { RouteViewController } from '../../core/view/view-controller';
 import { defaultViewCache } from '../../core/view/view-cache';
 import type { AuraRouteInterface } from '../../core/types';
-import type { ContentResolverPort } from '../../core/view/types';
+import type { ViewResolverPort } from '../../core/view/types';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 
 function createOutlet(): AuraOutlet {
@@ -24,7 +24,7 @@ function matched(pathname: string, pattern = pathname): MatchedRouteInfo {
 
 function createController(
   root: AuraOutlet,
-  content: ContentResolverPort,
+  view: ViewResolverPort,
   path = '/',
   staged = false,
 ): { controller: RouteViewController; route: AuraRouteInterface } {
@@ -47,7 +47,7 @@ function createController(
   const controller = new RouteViewController(
     {
       route,
-      content,
+      view,
       cache: defaultViewCache,
       mountTarget: {
         appOutlet: () => root,

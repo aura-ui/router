@@ -40,7 +40,7 @@ export type {
 
 export {
   NavigationError,
-  createContentLoadError,
+  createViewLoadError,
   defaultCodeForPhase,
   isNavigationError,
   normalizeFailure,
@@ -51,7 +51,7 @@ export { isViewCommittedForHistory } from './core/view-mount/view-commit-state';
 export type { ViewRenderResult } from './core/view-mount/view-commit-render';
 export { resolveEnterBranch, createBranchResolveContext } from './core/view-mount/branch-resolver';
 export type {
-  BranchContentResolver,
+  BranchViewResolver,
   BranchResolveContext,
   BranchResolveResult,
   BranchResolveTransaction,
@@ -85,10 +85,10 @@ export { isCatchAllRoute } from './core/match/url-matcher';
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';
 
-// --- Content graph (view payloads: load, prefetch, payload cache) ---
+// --- View graph (view payloads: load, prefetch, payload cache) ---
 
 export {
-  ContentGraph,
+  ViewGraph,
   PayloadCache,
   payloadCacheKey,
   Loader,
@@ -113,23 +113,23 @@ export {
 } from './core/view-graph/environment';
 
 export type {
-  ContentGraphDeps,
-  ContentPrefetchOptions,
-  ContentLoadPort,
-  ContentResult,
-  RouteContentSource,
+  ViewGraphDeps,
+  ViewPrefetchOptions,
+  ViewLoadPort,
+  ViewLoadResult,
+  RouteViewSource,
   LoaderClass,
-  ContentEnvironment,
-  ContentDescriptor,
-  ContentKind,
+  ViewLoaderEnv,
+  ViewDescriptor,
+  ViewKind,
   FetchText,
   LoaderFn,
-  LoadContext,
+  ViewLoadContext,
   ViewPayload,
 } from './core/view-graph';
 
 export type { LoaderType } from '../aura-route/core/attr/view-attr-parser';
-export type { RouterInvalidateOptions as ContentInvalidateOptions } from './core/invalidate-router-cache';
+export type { RouterInvalidateOptions as ViewInvalidateOptions } from './core/invalidate-router-cache';
 
 export {
   NO_PRESERVE,

@@ -1,7 +1,7 @@
 import { parsePath } from '../../aura-utils/misc/url';
 
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import type { ContentGraph } from './view-graph';
+import type { ViewGraph } from './view-graph';
 import {
   FailedNavigation,
   type CompleteFailureDeps,
@@ -29,7 +29,7 @@ import {
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
 import {
-  ContentPrefetchExecutor,
+  ViewPrefetchExecutor,
   DataPrefetchExecutor,
   DefaultPrefetchResourcePlanner,
   PrefetchResourceScheduler,
@@ -72,8 +72,8 @@ export interface AuraRoutingEngineConfig {
   onNotFound?: (failure: FailedNavigation) => void | boolean;
   /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
   provider?: NavigationProvider;
-  /** Router-owned view content graph (shared prefetch + render cache). */
-  contentGraph?: ContentGraph;
+  /** Router-owned view graph (shared prefetch + render cache). */
+  viewGraph?: ViewGraph;
   /** Link-driven prefetch; `false` disables. */
   prefetch?: false | PrefetchConfig;
 }
@@ -89,7 +89,7 @@ export class AuraRoutingEngine {
   readonly router: RouterInstance;
 
   private notFoundHandler: NotFoundFallbackHandler | null = null;
-  readonly contentGraph?: ContentGraph;
+  readonly viewGraph?: ViewGraph;
   private prefetchPipeline?: PrefetchPipeline;
   private readonly linkNavigation: LinkNavigationTracker;
   readonly hooksRegistry: HookRegistry;
@@ -103,7 +103,7 @@ export class AuraRoutingEngine {
   ) {
     this.router = router;
     this.config = config;
-    this.contentGraph = config.contentGraph;
+    this.viewGraph = config.viewGraph;
 
     this.hooksRegistry = defaultHookRegistry;
     this.dataGraph = new DataGraph(this.hooksRegistry);
@@ -153,13 +153,13 @@ export class AuraRoutingEngine {
   }
 
   /**
-   * Invalidates view-loader payload cache in {@link ContentGraph}.
+   * Invalidates view-loader payload cache in {@link ViewGraph}.
    * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
    */
-  invalidateContent(options: RouterInvalidateOptions = {}): number {
-    if (!this.contentGraph) return 0;
+  invalidateView(options: RouterInvalidateOptions = {}): number {
+    if (!this.viewGraph) return 0;
 
-    const count = this.contentGraph.invalidate(options);
+    const count = this.viewGraph.invalidate(options);
     this.resetPrefetchRecords(options);
     return count;
   }
@@ -353,8 +353,8 @@ export class AuraRoutingEngine {
       new DataPrefetchExecutor(this.dataGraph),
     ];
 
-    if (this.contentGraph) {
-      prefetchExecutors.unshift(new ContentPrefetchExecutor(this.contentGraph));
+    if (this.viewGraph) {
+      prefetchExecutors.unshift(new ViewPrefetchExecutor(this.viewGraph));
     }
 
     this.prefetchPipeline = new PrefetchPipeline(
@@ -363,7 +363,7 @@ export class AuraRoutingEngine {
         getMatchableNodes: () => this.registry.getMatchableNodes(),
         getRegistryGeneration: () => this.registry.generationId,
         planner: new DefaultPrefetchResourcePlanner(
-          { content: Boolean(this.contentGraph) },
+          { view: Boolean(this.viewGraph) },
           prefetchPolicy,
         ),
         scheduler: new PrefetchResourceScheduler(prefetchExecutors),

@@ -1,5 +1,5 @@
 import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
-import type { ContentEnvironment, LoaderFn } from './types';
+import type { ViewLoaderEnv, LoaderFn } from './types';
 import { Loader, FnLoader, type LoaderClass } from './loader';
 import { createBrowserEnvironment, defaultEnvironment } from './environment';
 import { ComponentLoader } from './loaders/component';
@@ -19,11 +19,11 @@ const BUILTIN = [
 ] as const satisfies readonly LoaderClass[];
 
 export class LoaderRegistry {
-  private readonly env: ContentEnvironment;
+  private readonly env: ViewLoaderEnv;
   private readonly loaders = new Map<string, Loader>();
 
   constructor(
-    env: ContentEnvironment = defaultEnvironment,
+    env: ViewLoaderEnv = defaultEnvironment,
     loaders: readonly Loader[] = BUILTIN.map((C) => new C(env)),
   ) {
     this.env = env;
@@ -53,22 +53,22 @@ export class LoaderRegistry {
   get(type: LoaderType): Loader {
     const loader = this.loaders.get(type);
     if (!loader) {
-      throw new Error(`Unknown content loader "${type}". Registered: ${[...this.loaders.keys()].join(', ') || 'none'}`);
+      throw new Error(`Unknown view loader "${type}". Registered: ${[...this.loaders.keys()].join(', ') || 'none'}`);
     }
     return loader;
   }
 
-  getEnvironment(): ContentEnvironment {
+  getEnvironment(): ViewLoaderEnv {
     return this.env;
   }
 
   private install(loader: Loader): void {
-    this.loaders.has(loader.type) && console.warn(`Content loader "${loader.type}" is already registered — overwriting`);
+    this.loaders.has(loader.type) && console.warn(`View loader "${loader.type}" is already registered — overwriting`);
     this.loaders.set(loader.type, loader);
   }
 }
 
-export function createLoaderRegistry(env: ContentEnvironment = createBrowserEnvironment()): LoaderRegistry {
+export function createLoaderRegistry(env: ViewLoaderEnv = createBrowserEnvironment()): LoaderRegistry {
   return new LoaderRegistry(env);
 }
 

@@ -78,10 +78,10 @@ describe('prefetch policy', () => {
     expect(configured.skipReason({ href: '/page#new', mode: 'intent' })).toBe('hash-only');
   });
 
-  it('shouldPrefetchContent and shouldPrefetchData follow confidence gates', () => {
-    expect(policy.shouldPrefetchContent({ mode: 'intent', confidence: 0.3 })).toBe(false);
-    expect(policy.shouldPrefetchContent({ mode: 'tap', confidence: 0.85 })).toBe(true);
-    expect(policy.shouldPrefetchContent({ mode: 'manual', confidence: 1 })).toBe(true);
+  it('shouldPrefetchView and shouldPrefetchData follow confidence gates', () => {
+    expect(policy.shouldPrefetchView({ mode: 'intent', confidence: 0.3 })).toBe(false);
+    expect(policy.shouldPrefetchView({ mode: 'tap', confidence: 0.85 })).toBe(true);
+    expect(policy.shouldPrefetchView({ mode: 'manual', confidence: 1 })).toBe(true);
 
     expect(policy.shouldPrefetchData({ mode: 'intent', confidence: 0.3 })).toBe(true);
     expect(policy.shouldPrefetchData({ mode: 'none', confidence: 0 })).toBe(false);

@@ -9,7 +9,7 @@ import type {
 export const DEFAULT_INTENT_DELAY_MS = 50;
 export const DEFAULT_STALE_TIME_MS = 30_000;
 export const DEFAULT_MAX_AGE_MS = 30_000;
-export const CONTENT_PREFETCH_MIN_CONFIDENCE = 0.8;
+export const VIEW_PREFETCH_MIN_CONFIDENCE = 0.8;
 export const DATA_PREFETCH_MIN_CONFIDENCE = 0.3;
 
 /**
@@ -64,9 +64,9 @@ export class PrefetchPolicy {
     }
   }
 
-  shouldPrefetchContent(ctx: PrefetchPlanContext): boolean {
+  shouldPrefetchView(ctx: PrefetchPlanContext): boolean {
     if (ctx.mode === 'manual' || ctx.mode === 'tap') return true;
-    return ctx.confidence >= CONTENT_PREFETCH_MIN_CONFIDENCE;
+    return ctx.confidence >= VIEW_PREFETCH_MIN_CONFIDENCE;
   }
 
   shouldPrefetchData(ctx: PrefetchPlanContext): boolean {

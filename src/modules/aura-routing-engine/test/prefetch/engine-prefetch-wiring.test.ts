@@ -1,7 +1,7 @@
 import { AuraRoutingEngine } from '../../core';
 import {
   PayloadCache,
-  ContentGraph,
+  ViewGraph,
   LoaderRegistry,
 } from '../../core/view-graph';
 import type { RouterInstance } from '../../core';
@@ -18,12 +18,12 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return '<span>about</span>';
     });
 
-    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
+    const viewGraph = new ViewGraph({ registry, cache: new PayloadCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
 
-    const engine = new AuraRoutingEngine(router, { contentGraph });
+    const engine = new AuraRoutingEngine(router, { viewGraph });
     engine.replaceRoutes(collectRoutesFromDom(createDomRoute('/'), about) as never);
 
     await engine.prefetch('/about');
@@ -39,13 +39,13 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return 'x';
     });
 
-    const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
+    const viewGraph = new ViewGraph({ registry, cache: new PayloadCache() });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');
 
     const engine = new AuraRoutingEngine(router, {
-      contentGraph,
+      viewGraph,
       prefetch: false,
     });
     engine.replaceRoutes(collectRoutesFromDom(about) as never);

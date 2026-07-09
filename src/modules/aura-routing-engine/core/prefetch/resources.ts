@@ -1,9 +1,9 @@
-import type { ContentLoadPort } from '../view-graph';
+import type { ViewLoadPort } from '../view-graph';
 import type { DataGraph } from '../data-graph';
 import { routeHasLoadHooks } from '../data-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
-  CONTENT_PREFETCH_MIN_CONFIDENCE,
+  VIEW_PREFETCH_MIN_CONFIDENCE,
   PrefetchPolicy,
 } from './policy';
 import type {
@@ -18,7 +18,7 @@ import type {
 } from './types';
 
 export type DefaultPrefetchResourcePlannerOptions = {
-  readonly content?: boolean;
+  readonly view?: boolean;
   readonly data?: boolean;
 };
 
@@ -29,11 +29,11 @@ const PRIORITY_WEIGHT: Record<PrefetchResourcePriority, number> = {
 };
 
 /**
- * Default ISNR planner: enterRoutes → content and/or data resources by confidence tier.
+ * Default ISNR planner: enterRoutes → view and/or data resources by confidence tier.
  */
 export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
   private readonly policy: PrefetchPolicy;
-  private readonly contentEnabled: boolean;
+  private readonly viewEnabled: boolean;
   private readonly dataEnabled: boolean;
 
   constructor(
@@ -41,15 +41,15 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
     policy: PrefetchPolicy = new PrefetchPolicy(),
   ) {
     this.policy = policy;
-    this.contentEnabled = options.content ?? true;
+    this.viewEnabled = options.view ?? true;
     this.dataEnabled = options.data ?? true;
   }
 
   planResources(plan: PrefetchPlan, ctx: PrefetchPlanContext): readonly PrefetchResource[] {
     const resources: PrefetchResource[] = [];
 
-    const content = this.planContent(plan, ctx);
-    if (content) resources.push(content);
+    const view = this.planView(plan, ctx);
+    if (view) resources.push(view);
 
     const data = this.planData(plan, ctx);
     if (data) resources.push(data);
@@ -61,8 +61,8 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
     plan: PrefetchPlan,
     ctx: PrefetchPlanContext,
   ): 'low-confidence' | 'no-targets' {
-    const hasContentTargets = plan.enterRoutes.some((route) => this.routeHasView(route));
-    if (this.contentEnabled && hasContentTargets && !this.policy.shouldPrefetchContent(ctx)) {
+    const hasViewTargets = plan.enterRoutes.some((route) => this.routeHasView(route));
+    if (this.viewEnabled && hasViewTargets && !this.policy.shouldPrefetchView(ctx)) {
       return 'low-confidence';
     }
 
@@ -74,16 +74,16 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
     return 'no-targets';
   }
 
-  private planContent(plan: PrefetchPlan, ctx: PrefetchPlanContext): PrefetchResource | null {
-    if (!this.contentEnabled || !this.policy.shouldPrefetchContent(ctx)) return null;
+  private planView(plan: PrefetchPlan, ctx: PrefetchPlanContext): PrefetchResource | null {
+    if (!this.viewEnabled || !this.policy.shouldPrefetchView(ctx)) return null;
 
     const targets = plan.enterRoutes.filter((route) => this.routeHasView(route));
     if (!targets.length) return null;
 
     return {
-      kind: 'content',
+      kind: 'view',
       targets,
-      priority: ctx.confidence >= CONTENT_PREFETCH_MIN_CONFIDENCE ? 'high' : 'normal',
+      priority: ctx.confidence >= VIEW_PREFETCH_MIN_CONFIDENCE ? 'high' : 'normal',
     };
   }
 
@@ -131,19 +131,19 @@ export class PrefetchResourceScheduler implements PrefetchResourceSchedulerPort 
   }
 }
 
-/** Prefetch view payloads via shared {@link ContentGraph} cache. */
-export class ContentPrefetchExecutor implements PrefetchResourceExecutor {
-  readonly kind = 'content' as const;
+/** Prefetch view payloads via shared {@link ViewGraph} cache. */
+export class ViewPrefetchExecutor implements PrefetchResourceExecutor {
+  readonly kind = 'view' as const;
 
-  private readonly content: ContentLoadPort;
+  private readonly viewGraph: ViewLoadPort;
 
-  constructor(content: ContentLoadPort) {
-    this.content = content;
+  constructor(viewGraph: ViewLoadPort) {
+    this.viewGraph = viewGraph;
   }
 
   run(resource: PrefetchResource, ctx: PrefetchResourceRunContext): Promise<void> {
-    if (resource.kind !== 'content') return Promise.resolve();
-    return this.content.prefetchBranch(resource.targets, ctx.signal);
+    if (resource.kind !== 'view') return Promise.resolve();
+    return this.viewGraph.prefetchBranch(resource.targets, ctx.signal);
   }
 }
 

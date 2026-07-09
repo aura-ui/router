@@ -4,7 +4,7 @@ import { RouteViewController } from '../../core/view';
 import { RouteViewCache, destroyViewRoot, cacheKey } from '../../core/view/view-cache';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions } from '../../core/types';
-import type { ContentResolverPort, ViewCachePort } from '../../core/view/types';
+import type { ViewResolverPort, ViewCachePort } from '../../core/view/types';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
@@ -37,7 +37,7 @@ function createMockViewCache(stash = new Map<string, Element>()): ViewCachePort 
 function createController(
   path: string,
   outlets: { root: () => AuraOutlet; mount?: (route?: MatchedRouteInfo) => AuraOutlet | null },
-  content: ContentResolverPort,
+  view: ViewResolverPort,
   viewCache: ViewCachePort,
   preserveView = true,
 ): RouteViewController {
@@ -56,7 +56,7 @@ function createController(
   const controller = new RouteViewController(
     {
       route,
-      content,
+      view,
       cache: viewCache,
       mountTarget: {
         appOutlet: outlets.root,
@@ -384,7 +384,7 @@ describe('RouteViewController keep-alive integration', () => {
     const controller = new RouteViewController(
       {
         route,
-        content: {
+        view: {
           loadView: async (info) => `<span data-id="${info.params?.id}">view-${info.params?.id}</span>`,
         },
         cache: createMockViewCache(),
@@ -516,7 +516,7 @@ async function captureUseStagedMount(
   const controller = new RouteViewController(
     {
       route: config,
-      content: { loadView: async () => '<span>view</span>' },
+      view: { loadView: async () => '<span>view</span>' },
       cache: { extract: () => undefined, put: () => {} },
       mountTarget: { appOutlet: () => outlet, nestedOutlet: () => null },
       plugins: [{

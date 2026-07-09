@@ -34,7 +34,7 @@ function createPipeline(
   root: AuraOutlet,
   overrides: {
     route?: Partial<AuraRouteInterface>;
-    content?: ViewContext['config']['content'];
+    view?: ViewContext['config']['view'];
     cache?: ViewContext['config']['cache'];
     plugins?: ViewContext['config']['plugins'];
   } = {},
@@ -52,7 +52,7 @@ function createPipeline(
         transition: { order: null, in: null, out: null },
         ...overrides.route,
       } as AuraRouteInterface,
-      content: overrides.content ?? { loadView: async () => '<span>ok</span>' },
+      view: overrides.view ?? { loadView: async () => '<span>ok</span>' },
       cache: overrides.cache ?? defaultViewCache,
       mountTarget: {
         appOutlet: () => root,
@@ -106,7 +106,7 @@ describe('ViewRenderPipeline', () => {
     const root = createOutlet();
     const pipeline = createPipeline(root, {
       route: { errorTemplate: '' },
-      content: {
+      view: {
         loadView: async () => {
           throw new Error('load failed');
         },
@@ -126,7 +126,7 @@ describe('ViewRenderPipeline', () => {
     const onLoadingEnd = jest.fn();
     const onContentResolved = jest.fn();
     const pipeline = createPipeline(root, {
-      content: { loadView },
+      view: { loadView },
       plugins: [{ onLoadingStart, onLoadingEnd, onContentResolved }],
     });
 
@@ -149,7 +149,7 @@ describe('ViewRenderPipeline', () => {
   it('syncBranchMount null mounts empty placeholder for content routes', () => {
     const root = createOutlet();
     const loadView = jest.fn();
-    const pipeline = createPipeline(root, { content: { loadView } });
+    const pipeline = createPipeline(root, { view: { loadView } });
 
     pipeline.syncBranchMount({
       ...renderPass(),

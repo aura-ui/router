@@ -1,4 +1,4 @@
-import type { FetchText, ContentEnvironment } from './types';
+import type { FetchText, ViewLoaderEnv } from './types';
 
 export const fetchText: FetchText = async (url, signal) => {
   const response = await fetch(url, { signal });
@@ -13,7 +13,7 @@ export function resolveRelativeUrl(path: string): string {
   return `${window.location.origin}/${normalized}`;
 }
 
-export function createBrowserEnvironment(): ContentEnvironment {
+export function createBrowserEnvironment(): ViewLoaderEnv {
   return {
     fetchText,
     resolveUrl: resolveRelativeUrl,

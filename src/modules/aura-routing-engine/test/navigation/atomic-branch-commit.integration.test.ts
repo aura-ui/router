@@ -114,7 +114,7 @@ async function mountBranchFixture(routerAttrs: Record<string, string> = {}): Pro
 
 function createEngine(router: AuraRouter): AuraRoutingEngine {
   const engine = new AuraRoutingEngine(router, {
-    contentGraph: router.contentGraph,
+    viewGraph: router.viewGraph,
   });
   engine.replaceRoutes(Array.from(router.routes));
   return engine;

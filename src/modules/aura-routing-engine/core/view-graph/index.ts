@@ -1,9 +1,9 @@
-import type { ContentGraph } from './content-graph';
+import type { ViewGraph } from './view-graph';
 
-export { ContentGraph, type RouteContentSource, type ContentPrefetchOptions } from './content-graph';
-export type { ContentGraphDeps } from './content-graph';
+export { ViewGraph, type RouteViewSource, type ViewPrefetchOptions } from './view-graph';
+export type { ViewGraphDeps } from './view-graph';
 
-export type ContentLoadPort = Pick<ContentGraph, 'loadView' | 'prefetchBranch'>;
+export type ViewLoadPort = Pick<ViewGraph, 'loadView' | 'prefetchBranch'>;
 
 export { PayloadCache } from './cache/payload-cache';
 export { payloadCacheKey } from './cache/cache-key';
@@ -14,10 +14,10 @@ export { Loader, type LoaderClass } from './loader';
 export type {
   LoaderFn,
   ViewPayload,
-  LoadContext,
-  ContentDescriptor,
-  ContentKind,
-  ContentResult,
-  ContentEnvironment,
+  ViewLoadContext,
+  ViewDescriptor,
+  ViewKind,
+  ViewLoadResult,
+  ViewLoaderEnv,
   FetchText,
 } from './types';

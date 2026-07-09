@@ -1,13 +1,31 @@
 import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
+import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
 import { createContentLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getActiveChain } from '../route-tree/matched-chain';
 import { payloadCacheKey } from './cache/cache-key';
 import { PayloadCache } from './cache/payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
-import { DEFAULT_PREFETCH, orderPrefetchChain, runConcurrent, type ContentPrefetchOptions } from './prefetch';
 import type { ContentDescriptor, LoadContext, ViewPayload } from './types';
 import type { LoaderRegistry } from './runtime/registry';
+
+export type ContentPrefetchOptions = {
+  readonly concurrency?: number;
+  readonly order?: 'leaf-first' | 'root-first';
+};
+
+const DEFAULT_PREFETCH: Required<ContentPrefetchOptions> = {
+  concurrency: 3,
+  order: 'root-first',
+};
+
+/** Reorders a matched chain for prefetch (`root-first` | `leaf-first`). */
+function orderPrefetchChain<T>(
+  chain: readonly T[],
+  order: ContentPrefetchOptions['order'] = DEFAULT_PREFETCH.order,
+): readonly T[] {
+  return order === 'leaf-first' ? [...chain].reverse() : chain;
+}
 
 export type RouteContentSource = {
   readonly layout: string;

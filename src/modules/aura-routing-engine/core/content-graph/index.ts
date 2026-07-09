@@ -10,9 +10,9 @@
 export {
   ContentGraph,
   type RouteContentSource,
+  type ContentPrefetchOptions,
 } from './content-graph';
 export type { ContentGraphDeps } from './content-graph';
-export type { ContentPrefetchOptions } from './prefetch';
 import type { ContentGraph } from './content-graph';
 import type { LoadContext, ViewPayload } from './types';
 

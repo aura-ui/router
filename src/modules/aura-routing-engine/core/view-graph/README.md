@@ -60,9 +60,11 @@ type ViewKind = 'layout' | 'view';
 | `layout` | `layout="template-id"` | `template` | всегда `false` |
 | `view` | `view="…"` (см. синтаксис ниже) | `resolvedView.loader` | `preserve.view` |
 
-Если у маршрута нет ни `layout`, ни `view`, `loadView` возвращает `null` — это не ошибка.
+Если для matched route не строится descriptor — нет непустого `layout` на этом узле и нет `resolvedView` (нет `view` или пустой атрибут) — `loadView` возвращает `null`. Это не ошибка.
 
-Для `view` с loader `url` и атрибутом `extract` в descriptor попадает CSS-селектор фрагмента HTML.
+У узла с `layout` view-атрибут не используется: descriptor всегда строится из `layout` → loader `template`.
+
+Для `view` с loader `url` и атрибутом `extract` селектор попадает в descriptor и в `context.extract` (фрагмент вырезается в `UrlLoader` после fetch).
 
 **Синтаксис `view`:**
 
@@ -84,7 +86,7 @@ type ViewKind = 'layout' | 'view';
 
 `ViewGraph` приводит результат loader'а к `ViewPayload`: `html` и `markup` → строка, `fragment` → узел.
 
-Для `registry.register(type, fn)` тело loader'а — `LoaderFn`, возвращающий `string | Node | null`. `FnLoader` преобразует строку в `{ kind: 'html' }`, а `Node` — во `DocumentFragment` (через `appendChild`, если узел ещё не fragment).
+Для `registry.register(loaderId, fn)` тело loader'а — `LoaderFn`, возвращающий `string | Node | null`. `FnLoader` преобразует строку в `{ kind: 'html' }`, а `Node` — во `DocumentFragment` (через `appendChild`, если узел ещё не fragment).
 
 ### Три хранилища (не смешивать)
 
@@ -146,7 +148,7 @@ ViewPayload
 ## Встроенные loaders
 
 | `LoaderId` | Атрибут | `context.content` | `ViewLoadResult` |
-|--------------|---------|---------------|------------------|
+|------------|---------|-------------------|------------------|
 | `template` | `layout="id"` (не `view`) | id шаблона | `fragment` |
 | `html` | `html::…` | inline HTML | `html` |
 | `url` | bare content или `url::…` | путь для fetch | `html` (+ `extract`) |
@@ -161,10 +163,10 @@ ViewPayload
 ```ts
 registry.register(loader);              // готовый экземпляр
 registry.register(LoaderClass);         // класс → new Loader(env)
-registry.register('type', loaderFn);    // функция → FnLoader
+registry.register('charts', loaderFn);  // функция → FnLoader
 ```
 
-Повторная регистрация того же типа перезаписывает loader с `console.warn`.
+Повторная регистрация того же loader id перезаписывает loader с `console.warn`.
 
 ---
 
@@ -244,7 +246,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 | Поле | Откуда | Пример |
 |------|--------|--------|
-| `content` | правая часть `view` после `::` (или bare content для `url`) | `dashboard` из `charts::dashboard` |
+| `content` | правая часть `view` после `::` (или bare content для `url`); `{{param}}` подставляются в `resolvedView` до load | `dashboard` из `charts::dashboard`; `user/1.html` из `user/{{id}}.html` |
 | `kind` | `layout` или `view` | `view` |
 | `extract` | атрибут `extract` на маршруте (только `url`) | `#main` |
 | `signal` | abort навигации | `AbortSignal` |
@@ -312,7 +314,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 | `signal.aborted` | `null`, без `NavigationError` |
 | throw из loader'а | `createViewLoadError` → `CONTENT_LOAD_FAILED`, phase `render` |
 | ошибка prefetch | подавляется |
-| неизвестный loader type | throw из `registry.get` |
+| неизвестный loader id | throw из `registry.get` |
 
 `loadViewDescriptor(descriptor, …)` — загрузка по готовому descriptor, минуя route attrs. Используется в тестах и при явном resolve.
 

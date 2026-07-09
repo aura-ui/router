@@ -101,7 +101,10 @@ Clicks on `[data-router-link]` are intercepted; the URL updates and the matching
 
 The `view` attribute tells the router **what to render**.
 
-Format: bare **`content`** defaults to **`url`** loader. Prefix `loader::` only for non-default loaders (`html`, `template`, `component`, `import`, `iframe`).
+**Syntax:** `view="content"` or `view="loader::content"`.
+
+- **No `::`** — shorthand for fetching HTML: `view="users.html"` → `url` loader, content `users.html`.
+- **With `::`** — pick a loader explicitly: `html::<p/>`, `template::app-shell`, `import::./app.ts`, or any [custom loader](#custom-loaders).
 
 ### Built-in loaders
 
@@ -129,7 +132,7 @@ Format: bare **`content`** defaults to **`url`** loader. Prefix `loader::` only 
 
 Use `import` for `.js` / `.ts`, not bare `url` content.
 
-**Parsing:** token before the first `::` is a **known loader** (`html`, `template`, `component`, …) → `loader::content`. Otherwise → **custom loader** (`markdown::doc.md`). Bare content (no `::`) → default **`url`** loader.
+**Parsing:** if the value contains `::`, the part before it is the loader id and the rest is `content`. Unknown loader ids (e.g. `markdown::doc.md`) work once registered. No `::` → `url` loader.
 
 ### `extract` — fragment from full HTML pages
 
@@ -177,7 +180,7 @@ Nest `<aura-route>` elements to build a route tree. A parent with `layout` rende
 | Attribute | Description |
 | --- | --- |
 | `path` | URL pattern (required) |
-| `view` | What to show: bare content (default `url`) or `loader::content` for other loaders |
+| `view` | What to render: `page.html` (→ `url`) or `loader::content` (e.g. `html::…`, `import::…`) |
 | `extract` | CSS selector to extract a fragment from a full HTML page; inherits from router/parent |
 | `layout` | Nested shell — parent route with `<template id="…">`, children render in its outlet |
 | `preserve` | Keep on leave: `preserve` or `preserve="view"` (DOM), `preserve="data"` (load cache), `preserve="all"` |

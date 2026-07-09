@@ -1,5 +1,5 @@
-import { loadAndRegisterComponent } from '../../../../../aura-utils/misc';
-import type { ContentResult, LoaderType, LoadContext } from '../../types';
+import { loadAndRegisterComponent } from '../../../../aura-utils/misc';
+import type { ContentResult, LoaderType, LoadContext } from '../types';
 import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
 

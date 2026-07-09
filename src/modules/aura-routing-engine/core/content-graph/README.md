@@ -27,12 +27,11 @@ content-graph/
 │   ├── index.ts
 │   ├── payload-cache.ts  # LRU + in-flight dedup
 │   └── cache-key.ts      # stable payload cache keys
-└── runtime/
-    ├── markup.ts         # routeSnapshot, componentMarkup
-    ├── registry.ts       # LoaderRegistry + default built-in set
-    ├── loader.ts         # Loader, FnLoader
-    ├── environment.ts    # fetchText, createBrowserEnvironment
-    └── loaders/          # template, html, url, component, import, iframe
+├── loader.ts             # Loader, FnLoader
+├── registry.ts           # LoaderRegistry + default built-in set
+├── environment.ts        # fetchText, createBrowserEnvironment
+├── markup.ts             # routeSnapshot, componentMarkup
+├── loaders/              # template, html, url, component, import, iframe
 ```
 
 ## Extension

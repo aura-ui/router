@@ -1,5 +1,5 @@
-import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-parser';
-import type { ContentEnvironment, ContentResult, LoadContext, LoaderFn } from '../types';
+import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
+import type { ContentEnvironment, ContentResult, LoadContext, LoaderFn } from './types';
 
 export abstract class Loader {
   protected readonly env: ContentEnvironment;

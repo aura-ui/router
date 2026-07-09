@@ -62,4 +62,47 @@ describe('payloadCacheKey', () => {
     expect(payloadCacheKey(full, base as any)).toBe('/about|url:legacy/about.html::#main');
     expect(payloadCacheKey(partial, base as any)).not.toBe(payloadCacheKey(full, base as any));
   });
+
+  it('differentiates params when pathname is missing', () => {
+    const descriptor = {
+      kind: 'content' as const,
+      loader: 'html' as const,
+      ref: 'static',
+      cache: true,
+    };
+
+    expect(
+      payloadCacheKey(descriptor, { pattern: '/user/:id', params: { id: '1' } } as any),
+    ).not.toBe(
+      payloadCacheKey(descriptor, { pattern: '/user/:id', params: { id: '2' } } as any),
+    );
+  });
+
+  it('differentiates load-hook data in cache key', () => {
+    const descriptor = {
+      kind: 'content' as const,
+      loader: 'component' as const,
+      ref: 'my-widget',
+      cache: true,
+    };
+    const route = { pathname: '/page', pattern: '/page' } as any;
+
+    expect(payloadCacheKey(descriptor, route, { data: { id: 1 } })).not.toBe(
+      payloadCacheKey(descriptor, route, { data: { id: 2 } }),
+    );
+  });
+
+  it('omits data segment when data is undefined', () => {
+    const descriptor = {
+      kind: 'content' as const,
+      loader: 'html' as const,
+      ref: 'static',
+      cache: true,
+    };
+    const route = { pathname: '/page', pattern: '/page' } as any;
+
+    expect(payloadCacheKey(descriptor, route)).toBe(
+      payloadCacheKey(descriptor, route, {}),
+    );
+  });
 });

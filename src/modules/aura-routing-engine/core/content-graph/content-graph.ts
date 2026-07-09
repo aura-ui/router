@@ -57,11 +57,15 @@ export class ContentGraph {
     const load = () => this.loadPayload(descriptor, routeInfo, signal, data);
     if (!descriptor.cache) return load();
 
-    return this.cache.resolve(payloadCacheKey(descriptor, routeInfo), load);
+    return this.cache.resolve(payloadCacheKey(descriptor, routeInfo, { data }), load);
   }
 
-  prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
-    return this.resolve(routeInfo, signal).then(() => {});
+  async prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
+    try {
+      await this.resolve(routeInfo, signal);
+    } catch {
+      // intent prefetch: silent (mirrors DataGraph.prefetch)
+    }
   }
 
   prefetchBranch(

@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../../../aura-utils/misc';
 import type { MatchedRouteInfo } from '../../match/url-matcher';
 import type { ContentDescriptor, LoadContext } from './types';
 
@@ -33,6 +34,6 @@ export function routeSnapshot(ctx: LoadContext): Record<string, unknown> {
 }
 
 export function componentMarkup(tagName: string, ctx: LoadContext): string {
-  const dataAttr = JSON.stringify(routeSnapshot(ctx));
+  const dataAttr = escapeHtml(JSON.stringify(routeSnapshot(ctx)));
   return `<${tagName} aura-data='${dataAttr}'></${tagName}>`;
 }

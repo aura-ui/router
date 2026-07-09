@@ -1,30 +1,85 @@
 import type { MatchedRouteInfo } from '../../match/url-matcher';
+import { routeMatchKey } from '../../route-tree/matched-chain';
 import type { ContentDescriptor } from '../model/types';
 
-/** Stable payload cache key: `{path}|{query}|{loader}:{ref}` or with `::{extract}`. */
-export function payloadCacheKey(descriptor: ContentDescriptor, routeInfo: MatchedRouteInfo): string {
-  const path = routeInfo.pathname ?? routeInfo.pattern;
-  const slot = descriptor.extract
-    ? `${descriptor.loader}:${descriptor.ref}::${descriptor.extract}`
-    : `${descriptor.loader}:${descriptor.ref}`;
+export type PayloadCacheKeyOptions = {
+  /** Load-hook payload fingerprint — required when markup depends on `data`. */
+  readonly data?: unknown;
+};
 
-  const query = routeInfo.query;
-  if (!query) return `${path}|${slot}`;
+/**
+ * Payload cache key layout:
+ *   {location}|{query?}|{data?}|{loader}:{ref}[::{extract}]
+ *
+ * `location` is pathname, or `pattern|params` when pathname is absent.
+ */
+export function payloadCacheKey(
+  descriptor: ContentDescriptor,
+  routeInfo: MatchedRouteInfo,
+  options: PayloadCacheKeyOptions = {},
+): string {
+  const parts: string[] = [];
 
-  const keys = Object.keys(query);
-  if (keys.length === 0) return `${path}|${slot}`;
+  if (routeInfo.pathname) {
+    parts.push(routeInfo.pathname);
+  } else {
+    parts.push(routeMatchKey(routeInfo));
+    appendEncodedRecord(parts, routeInfo.params);
+  }
+
+  appendEncodedRecord(parts, routeInfo.query);
+
+  if (options.data !== undefined) {
+    parts.push(`d:${dataSegment(options.data)}`);
+  }
+
+  parts.push(loaderSlot(descriptor));
+  return parts.join('|');
+}
+
+function appendEncodedRecord(parts: string[], record?: Record<string, string>): void {
+  const encoded = encodeParams(record);
+  if (encoded) parts.push(encoded);
+}
+
+function loaderSlot(descriptor: ContentDescriptor): string {
+  const base = `${descriptor.loader}:${descriptor.ref}`;
+  return descriptor.extract ? `${base}::${descriptor.extract}` : base;
+}
+
+/** Sorted `key=value&…` segment; skips nullish values. */
+function encodeParams(record: Record<string, string> | undefined): string {
+  if (!record) return '';
+
+  const keys = Object.keys(record);
+  if (!keys.length) return '';
 
   keys.sort();
 
-  const parts: string[] = [];
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]!;
-    const value = query[key];
+  let encoded = '';
+  for (const key of keys) {
+    const value = record[key];
     if (value == null) continue;
-    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+    if (encoded) encoded += '&';
+    encoded += `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
   }
 
-  if (parts.length === 0) return `${path}|${slot}`;
+  return encoded;
+}
 
-  return `${path}|${parts.join('&')}|${slot}`;
+function dataSegment(data: unknown): string {
+  return encodeURIComponent(JSON.stringify(data, sortObjectKeys));
+}
+
+/** JSON replacer — stable object key order at every nesting level. */
+function sortObjectKeys(_key: string, value: unknown): unknown {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return value;
+  }
+
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(value as object).sort()) {
+    sorted[key] = (value as Record<string, unknown>)[key];
+  }
+  return sorted;
 }

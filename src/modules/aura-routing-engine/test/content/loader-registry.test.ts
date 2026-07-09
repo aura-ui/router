@@ -1,9 +1,9 @@
 import {
   LoaderRegistry,
   createLoaderRegistry,
-} from '../../core/content-graph';
+} from '../../core/view-graph';
 import { BUILTIN_LOADER_TYPES } from '../../../aura-route/core/attr/view-attr-parser';
-import { HtmlLoader } from '../../core/content-graph/loaders/html';
+import { HtmlLoader } from '../../core/view-graph/loaders/html';
 
 describe('LoaderRegistry', () => {
   it('exposes built-in loader types', () => {

@@ -9,7 +9,7 @@ import {
   ContentGraph,
   PayloadCache,
   LoaderRegistry,
-} from '../../core/content-graph';
+} from '../../core/view-graph';
 import { shouldUsePrepareCommitEnterBranch } from '../../core/view-mount/branch-resolver';
 import { buildRouteDataKey, resolveRouteData } from '../../core/data-graph/route-data';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';

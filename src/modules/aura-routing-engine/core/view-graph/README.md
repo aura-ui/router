@@ -1,4 +1,4 @@
-# Content graph
+# View graph
 
 View payload coordinator (parallel to `data-graph/`).
 
@@ -19,7 +19,7 @@ route attrs → descriptor → PayloadCache? → Loader → ContentResult → Vi
 ## Layout
 
 ```
-content-graph/
+view-graph/
 ├── index.ts              # public barrel
 ├── content-graph.ts      # loadView, prefetch, invalidate, prefetch options
 ├── types.ts              # shared contracts (descriptor, context, payload)

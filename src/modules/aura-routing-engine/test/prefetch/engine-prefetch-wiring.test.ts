@@ -3,7 +3,7 @@ import {
   PayloadCache,
   ContentGraph,
   LoaderRegistry,
-} from '../../core/content-graph';
+} from '../../core/view-graph';
 import type { RouterInstance } from '../../core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 

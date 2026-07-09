@@ -1,4 +1,4 @@
-import { payloadCacheKey } from '../../core/content-graph';
+import { payloadCacheKey } from '../../core/view-graph';
 
 describe('payloadCacheKey', () => {
   const desc = { kind: 'content' as const, loader: 'html' as const, ref: 'static', cache: true };

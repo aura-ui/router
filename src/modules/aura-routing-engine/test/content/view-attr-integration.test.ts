@@ -3,7 +3,7 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { defaultLoaderRegistry } from '../../core/content-graph';
+import { defaultLoaderRegistry } from '../../core/view-graph';
 import { withResolvedView } from '../helpers/with-resolved-view';
 
 function defineDemoElements(): void {

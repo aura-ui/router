@@ -1,5 +1,5 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
-import type { ContentGraph } from '../../core/content-graph';
+import type { ContentGraph } from '../../core/view-graph';
 import { PrefetchPolicy } from '../../core/prefetch/policy';
 import {
   ContentPrefetchExecutor,

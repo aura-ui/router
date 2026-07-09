@@ -1,4 +1,4 @@
-import { PayloadCache } from '../../core/content-graph';
+import { PayloadCache } from '../../core/view-graph';
 
 describe('PayloadCache', () => {
   it('dedupes in-flight loads', async () => {

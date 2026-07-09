@@ -1,7 +1,7 @@
 import { parsePath } from '../../aura-utils/misc/url';
 
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import type { ContentGraph } from './content-graph';
+import type { ContentGraph } from './view-graph';
 import {
   FailedNavigation,
   type CompleteFailureDeps,

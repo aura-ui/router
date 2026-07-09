@@ -5,7 +5,7 @@ import {
   createLoaderRegistry,
   payloadCacheKey,
   type ContentDescriptor,
-} from '../../core/content-graph';
+} from '../../core/view-graph';
 import { parseViewAttr } from '../../../aura-route/core/attr/view-attr-parser';
 import { withResolvedView } from '../helpers/with-resolved-view';
 import { AuraRoute } from '../../../aura-route/core/aura-route';

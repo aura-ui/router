@@ -1,4 +1,4 @@
-import type { ContentLoadPort } from '../content-graph';
+import type { ContentLoadPort } from '../view-graph';
 import type { DataGraph } from '../data-graph';
 import { routeHasLoadHooks } from '../data-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';

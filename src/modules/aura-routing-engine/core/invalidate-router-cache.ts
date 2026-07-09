@@ -29,7 +29,7 @@ export type InvalidateScope = {
 
 /**
  * Options for {@link invalidateRouterCache}, {@link DataGraph.invalidate},
- * {@link AuraRoutingEngine.invalidateData}, and {@link AuraRoutingEngine.invalidateContent}.
+ * {@link AuraRoutingEngine.invalidateData}, and {@link AuraRoutingEngine.invalidateView}.
  */
 export type RouterInvalidateOptions = InvalidateScope & {
   /**
@@ -42,7 +42,7 @@ export type RouterInvalidateOptions = InvalidateScope & {
 
 /**
  * Minimal cache surface required by {@link invalidateRouterCache}.
- * Implemented by {@link AuraResolvableCache} in DataGraph and ContentGraph.
+ * Implemented by {@link AuraResolvableCache} in DataGraph and ViewGraph.
  */
 export type RouterCacheInvalidator = {
   /** Invalidates a single key. Returns whether the key existed. */
@@ -93,7 +93,7 @@ function invalidateEveryKey(cache: RouterCacheInvalidator, policy: InvalidatePol
 }
 
 /**
- * Invalidates cache entries in {@link DataGraph} or {@link ContentGraph} by scope and policy.
+ * Invalidates cache entries in {@link DataGraph} or {@link ViewGraph} by scope and policy.
  *
  * Resolution order when multiple scope fields are set: `key` → `path` → `match` → all entries.
  * An exact `key` uses a direct lookup; other scopes scan via {@link RouterCacheInvalidator.invalidateMatch}.

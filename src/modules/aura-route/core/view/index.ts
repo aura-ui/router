@@ -3,7 +3,7 @@ export type {
   RenderPass,
   ViewRenderPlugin,
   RouteViewConfig,
-  ContentResolverPort,
+  ViewResolverPort,
   ViewCachePort,
   MountTargetPort,
   ViewPayload,

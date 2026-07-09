@@ -11,8 +11,8 @@ import { resolveRouteData } from '../data-graph/route-data';
 import type { ViewPayload } from '../view-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
-/** Loads view content without mounting — same contract as aura-route `ContentResolverPort`. */
-export type BranchContentResolver = {
+/** Loads view content without mounting — same contract as aura-route `ViewResolverPort`. */
+export type BranchViewResolver = {
   loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
@@ -85,7 +85,7 @@ export function createBranchResolveContext(
  */
 export async function resolveEnterBranch(
   enterRoutes: readonly MatchedRouteInfo[],
-  contentLoader: BranchContentResolver,
+  contentLoader: BranchViewResolver,
   ctx: BranchResolveContext,
 ): Promise<BranchResolveResult> {
   if (ctx.aborted()) return { status: 'aborted' };
@@ -115,7 +115,7 @@ type RouteOutcome =
   | { kind: 'error'; error: unknown };
 
 async function resolveRouteOutcome(
-  contentLoader: BranchContentResolver,
+  contentLoader: BranchViewResolver,
   route: MatchedRouteInfo,
   ctx: BranchResolveContext,
 ): Promise<RouteOutcome> {

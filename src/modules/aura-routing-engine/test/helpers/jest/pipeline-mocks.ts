@@ -1,4 +1,4 @@
-import type { ContentGraph } from '../../../core';
+import type { ViewGraph } from '../../../core';
 import { runViewCommit } from '../../../core/view-mount/view-commit-render';
 import { createMockTransaction } from '../create-mock-transaction';
 import { mockRunPhaseHooks, resetHookMocks } from './hook-mocks';
@@ -13,11 +13,11 @@ export function resetPipelineMocks(): void {
   mockRunViewCommit.mockResolvedValue('ok');
 }
 
-export function withContentGraph(
+export function withViewGraph(
   options: Parameters<typeof createMockTransaction>[0],
 ): ReturnType<typeof createMockTransaction> {
   const transaction = createMockTransaction(options);
-  transaction.engine.contentGraph = { loadView: jest.fn() } as unknown as ContentGraph;
+  transaction.engine.viewGraph = { loadView: jest.fn() } as unknown as ViewGraph;
   return transaction;
 }
 

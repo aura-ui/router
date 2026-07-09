@@ -78,7 +78,7 @@ function wireRouteViewController(
   const controller = new RouteViewController(
     {
       route: routeRecord,
-      content: {
+      view: {
         loadView: async (info) => resolve(info.params?.id ?? '?'),
       },
       cache: preserveView

@@ -4,7 +4,7 @@ import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRoute, RouteViewCache } from '../../aura-route/core';
 import {
   AuraRoutingEngine,
-  ContentGraph,
+  ViewGraph,
   PayloadCache,
   defaultLoaderRegistry,
   defaultHookRegistry,
@@ -18,7 +18,7 @@ import {
   type PrefetchOptions,
   type RouteHookDefinition,
   type RouterDataInvalidateOptions,
-  type ContentInvalidateOptions,
+  type ViewInvalidateOptions,
   type RouterInstance,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
@@ -114,7 +114,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private readonly notFound = new AuraRouterNotFoundController(this);
   private readonly payloadCache = new PayloadCache(AuraRouter.payloadCacheOptions);
   private readonly loaderRegistry = defaultLoaderRegistry;
-  private contentGraphInstance?: ContentGraph;
+  private viewGraphInstance?: ViewGraph;
 
   static install(): void {
     registerAuraRouterComponents();
@@ -155,14 +155,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     });
   }
 
-  get contentGraph(): ContentGraph {
-    if (!this.contentGraphInstance) {
-      this.contentGraphInstance = new ContentGraph({
+  get viewGraph(): ViewGraph {
+    if (!this.viewGraphInstance) {
+      this.viewGraphInstance = new ViewGraph({
         registry: this.loaderRegistry,
         cache: this.payloadCache,
       });
     }
-    return this.contentGraphInstance;
+    return this.viewGraphInstance;
   }
 
   get routes() {
@@ -195,7 +195,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (!this.engine) {
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
-        contentGraph: this.contentGraph,
+        viewGraph: this.viewGraph,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
         onNavigationHistoryCommitted: (ctx) => {
@@ -267,10 +267,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /**
-   * Invalidates view-loader payload cache ({@link ContentGraph} / {@link PayloadCache}).
+   * Invalidates view-loader payload cache ({@link ViewGraph} / {@link PayloadCache}).
    * Does not affect load-hook data; use {@link invalidate} for that.
    */
-  invalidateContent(options?: ContentInvalidateOptions): number {
-    return this.ensureEngine().invalidateContent(options);
+  invalidateView(options?: ViewInvalidateOptions): number {
+    return this.ensureEngine().invalidateView(options);
   }
 }

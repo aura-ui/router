@@ -23,9 +23,9 @@ export {
 } from './core/prefetch/prefetch-policy';
 export { NO_TRANSITION } from '../aura-route/core/attr/transition-attr-parser';
 
-export type { ContentDescriptor, ContentKind, LoaderFn } from './core/view-graph';
+export type { ViewDescriptor, ViewKind, LoaderFn } from './core/view-graph';
 export type { LoaderType } from '../aura-route/core/attr/view-attr-parser';
-export type { ContentGraph } from './core/view-graph';
+export type { ViewGraph } from './core/view-graph';
 export type { MatchedRouteInfo } from './core/match/url-matcher';
 export type {
   RouteErrorContext,

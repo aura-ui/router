@@ -40,7 +40,7 @@ describe('PrefetchPipeline', () => {
 
     const executors = overrides.executors ?? [
       {
-        kind: 'content',
+        kind: 'view',
         run: async () => {},
       },
       {
@@ -81,15 +81,15 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       planner: {
         planResources: (plan) => [
-          { kind: 'content', targets: plan.enterRoutes, priority: 'high' },
+          { kind: 'view', targets: plan.enterRoutes, priority: 'high' },
           { kind: 'data', targets: plan.enterRoutes, priority: 'high' },
         ],
       },
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async (resource) => {
-            order.push(`content:${resource.targets.at(-1)?.pattern}`);
+            order.push(`view:${resource.targets.at(-1)?.pattern}`);
           },
         },
         {
@@ -104,7 +104,7 @@ describe('PrefetchPipeline', () => {
     await pipeline.prefetch('/settings/profile');
 
     expect(order).toHaveLength(2);
-    expect(order).toContain('content:/settings/profile');
+    expect(order).toContain('view:/settings/profile');
     expect(order).toContain('data:/settings/profile');
   });
 
@@ -131,7 +131,7 @@ describe('PrefetchPipeline', () => {
         matcher,
         getMatchableNodes: () => matchableNodes,
         getRegistryGeneration: () => 1,
-        planner: new DefaultPrefetchResourcePlanner({ content: false }),
+        planner: new DefaultPrefetchResourcePlanner({ view: false }),
         scheduler: new PrefetchResourceScheduler([
           {
             kind: 'data',
@@ -202,7 +202,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async (resource) => {
             runs.push(resource);
           },
@@ -228,7 +228,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async (resource) => {
             runs.push({
               href: resource.targets.at(-1)?.href ?? '',
@@ -248,7 +248,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async (_resource, ctx) => {
             await new Promise<void>((resolve, reject) => {
               ctx.signal.addEventListener('abort', () => {
@@ -274,7 +274,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async () => {
             loads++;
             await new Promise((resolve) => setTimeout(resolve, 50));
@@ -297,7 +297,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async () => {
             loads++;
           },
@@ -320,7 +320,7 @@ describe('PrefetchPipeline', () => {
         getMatchableNodes: () => matchableNodes,
         getRegistryGeneration: () => 1,
         planner: new DefaultPrefetchResourcePlanner(),
-        scheduler: new PrefetchResourceScheduler([{ kind: 'content', run: async () => {} }]),
+        scheduler: new PrefetchResourceScheduler([{ kind: 'view', run: async () => {} }]),
       },
       {
         currentHref: () => '/page#tab',
@@ -338,7 +338,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async () => {
             loads++;
           },
@@ -366,7 +366,7 @@ describe('PrefetchPipeline', () => {
       planner: new DefaultPrefetchResourcePlanner(),
       scheduler: new PrefetchResourceScheduler([
         {
-          kind: 'content',
+          kind: 'view',
           run: async () => {
             loads++;
           },
@@ -400,7 +400,7 @@ describe('PrefetchPipeline', () => {
         planner: new DefaultPrefetchResourcePlanner(),
         scheduler: new PrefetchResourceScheduler([
           {
-            kind: 'content',
+            kind: 'view',
             run: async (resource) => {
               runs.push(resource.targets[0]?.href ?? '');
             },
@@ -425,7 +425,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async () => {
             loads++;
             if (hang) await new Promise<void>(() => {});
@@ -475,7 +475,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async (_resource, ctx) => {
             loads++;
             await new Promise<void>((resolve, reject) => {
@@ -504,7 +504,7 @@ describe('PrefetchPipeline', () => {
       },
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async () => {
             throw new Error('load failed');
           },
@@ -521,7 +521,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async () => {
             throw new Error('load failed');
           },
@@ -546,7 +546,7 @@ describe('PrefetchPipeline', () => {
         onComplete: (plan) => completed.push(plan.href),
         onIntent: (intent) => intents.push(intent.type),
       },
-      executors: [{ kind: 'content', run: async () => {} }],
+      executors: [{ kind: 'view', run: async () => {} }],
     });
 
     const withSpeculation = new PrefetchPipeline(
@@ -555,7 +555,7 @@ describe('PrefetchPipeline', () => {
         getMatchableNodes: () => matchableNodes,
         getRegistryGeneration: () => 1,
         planner: new DefaultPrefetchResourcePlanner(),
-        scheduler: new PrefetchResourceScheduler([{ kind: 'content', run: async () => {} }]),
+        scheduler: new PrefetchResourceScheduler([{ kind: 'view', run: async () => {} }]),
         speculation: {
           hint: (plan) => hinted.push(plan.href),
         },
@@ -594,7 +594,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async () => {
             await gate;
           },
@@ -633,7 +633,7 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       executors: [
         {
-          kind: 'content',
+          kind: 'view',
           run: async (_resource, ctx) => {
             await new Promise<void>((resolve, reject) => {
               ctx.signal.addEventListener('abort', () => {

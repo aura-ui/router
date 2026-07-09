@@ -1,20 +1,20 @@
 import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
-import type { ContentEnvironment, ContentResult, LoadContext, LoaderFn } from './types';
+import type { ViewLoaderEnv, ViewLoadResult, ViewLoadContext, LoaderFn } from './types';
 
 export abstract class Loader {
-  protected readonly env: ContentEnvironment;
+  protected readonly env: ViewLoaderEnv;
 
-  constructor(env: ContentEnvironment) {
+  constructor(env: ViewLoaderEnv) {
     this.env = env;
   }
 
   abstract readonly type: LoaderType;
 
-  abstract load(ctx: LoadContext): Promise<ContentResult | null>;
+  abstract load(ctx: ViewLoadContext): Promise<ViewLoadResult | null>;
 }
 
 export type LoaderClass = {
-  new (env: ContentEnvironment): Loader;
+  new (env: ViewLoaderEnv): Loader;
   readonly type: LoaderType;
 };
 
@@ -22,13 +22,13 @@ export class FnLoader extends Loader {
   readonly type: LoaderType;
   private readonly fn: LoaderFn;
 
-  constructor(env: ContentEnvironment, type: LoaderType, fn: LoaderFn) {
+  constructor(env: ViewLoaderEnv, type: LoaderType, fn: LoaderFn) {
     super(env);
     this.type = type;
     this.fn = fn;
   }
 
-  async load(ctx: LoadContext): Promise<ContentResult | null> {
+  async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     const payload = await this.fn(ctx);
     if (payload == null) return null;
     if (typeof payload === 'string') return { kind: 'html', html: payload };

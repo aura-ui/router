@@ -1,7 +1,7 @@
 import { escapeHtml } from '../../../aura-utils/misc';
-import type { LoadContext } from './types';
+import type { ViewLoadContext } from './types';
 
-export function routeSnapshot(ctx: LoadContext): Record<string, unknown> {
+export function routeSnapshot(ctx: ViewLoadContext): Record<string, unknown> {
   return {
     href: ctx.route.href,
     pattern: ctx.route.pattern,
@@ -11,7 +11,7 @@ export function routeSnapshot(ctx: LoadContext): Record<string, unknown> {
   };
 }
 
-export function componentMarkup(tagName: string, context: LoadContext): string {
+export function componentMarkup(tagName: string, context: ViewLoadContext): string {
   const dataAttr = escapeHtml(JSON.stringify(routeSnapshot(context)));
   return `<${tagName} aura-data='${dataAttr}'></${tagName}>`;
 }

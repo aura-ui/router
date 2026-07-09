@@ -7,7 +7,7 @@ export {
   destroyViewRoot,
 } from './core/view/view-cache';
 export type {
-  ContentResolverPort,
+  ViewResolverPort,
   ViewCachePort,
   MountTargetPort,
   ViewRenderPlugin,
@@ -23,8 +23,8 @@ export {
   payloadCacheKey,
 } from '../aura-routing-engine/core';
 export type {
-  ContentDescriptor,
-  ContentKind,
+  ViewDescriptor,
+  ViewKind,
   LoaderType,
   LoaderFn,
 } from '../aura-routing-engine/route-api';

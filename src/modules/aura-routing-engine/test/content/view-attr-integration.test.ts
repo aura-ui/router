@@ -41,7 +41,7 @@ describe('view attr end-to-end', () => {
     expect(route.view).toEqual({ type: 'url', content: 'index2.html' });
   });
 
-  it('loads html view via shared router contentGraph registry', async () => {
+  it('loads html view via shared router viewGraph registry', async () => {
     const router = mountRouter(`
       <aura-router>
         <aura-outlet></aura-outlet>
@@ -50,7 +50,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    const payload = await router.contentGraph.loadView(
+    const payload = await router.viewGraph.loadView(
       withResolvedView({ href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route }),
       new AbortController().signal,
     );
@@ -69,7 +69,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    const payload = await router.contentGraph.loadView(
+    const payload = await router.viewGraph.loadView(
       withResolvedView({
         href: '/custom',
         pathname: '/custom',

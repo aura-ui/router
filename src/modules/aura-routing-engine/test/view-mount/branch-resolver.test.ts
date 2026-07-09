@@ -6,7 +6,7 @@ import {
   type MatchedRouteInfo,
 } from '../../core';
 import {
-  ContentGraph,
+  ViewGraph,
   PayloadCache,
   LoaderRegistry,
 } from '../../core/view-graph';
@@ -245,12 +245,12 @@ describe('resolveEnterBranch', () => {
     expect(resolveRouteData(snapshot, layout)).toEqual({ userId: '42' });
   });
 
-  it('resolves via ContentGraph without touching the DOM', async () => {
+  it('resolves via ViewGraph without touching the DOM', async () => {
     const registry = new LoaderRegistry(undefined, []);
     registry.register('template', async (ctx) => `<header>${ctx.ref}</header>`);
     registry.register('html', async (ctx) => ctx.ref);
 
-    const content = new ContentGraph({ registry, cache: new PayloadCache() });
+    const content = new ViewGraph({ registry, cache: new PayloadCache() });
     const signal = new AbortController().signal;
 
     const layout = matched('/users', {

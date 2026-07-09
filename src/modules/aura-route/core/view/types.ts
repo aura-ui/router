@@ -15,7 +15,7 @@ export type RenderPass = {
   /** Load-hook payload from DataGraph snapshot. */
   readonly data?: unknown;
   /**
-   * When set, skips {@link ContentResolverPort.loadView} and mounts directly.
+   * When set, skips {@link ViewResolverPort.loadView} and mounts directly.
    */
   readonly preResolvedContent?: ViewPayload | null;
 };
@@ -30,7 +30,7 @@ export interface ViewRenderPlugin {
 
 export type RouteViewConfig = {
   route: import('../types').AuraRouteInterface;
-  content: ContentResolverPort;
+  view: ViewResolverPort;
   cache: ViewCachePort;
   mountTarget: MountTargetPort;
   plugins?: readonly ViewRenderPlugin[];
@@ -43,7 +43,7 @@ export interface ViewCachePort {
 }
 
 /** Async layout template / view loader. */
-export interface ContentResolverPort {
+export interface ViewResolverPort {
   loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,

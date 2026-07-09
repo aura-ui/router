@@ -1,5 +1,5 @@
 import { UrlLoader } from '../../core/view-graph/loaders/url';
-import type { LoadContext } from '../../core/view-graph';
+import type { ViewLoadContext } from '../../core/view-graph';
 
 const FULL_PAGE = `<!DOCTYPE html><html><body><main id="main"><p>Fragment</p></main></body></html>`;
 
@@ -11,7 +11,7 @@ function urlLoader() {
   });
 }
 
-function loadCtx(extract?: string): LoadContext {
+function loadCtx(extract?: string): ViewLoadContext {
   return {
     ref: 'legacy/about.html',
     kind: 'content',

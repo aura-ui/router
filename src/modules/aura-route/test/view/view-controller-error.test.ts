@@ -52,7 +52,7 @@ describe('RouteViewController render errors', () => {
           preserve: NO_PRESERVE,
           transition: NO_TRANSITION,
         },
-        content: {
+        view: {
           loadView: async () => {
             throw loadError;
           },

@@ -2,19 +2,19 @@ import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser'
 
 export type ViewPayload = Node | string;
 
-export type ContentKind = 'layout' | 'content';
+export type ViewKind = 'layout' | 'content';
 
-export type ContentDescriptor = {
-  readonly kind: ContentKind;
+export type ViewDescriptor = {
+  readonly kind: ViewKind;
   readonly loader: LoaderType;
   readonly ref: string;
   readonly cache: boolean;
   readonly extract?: string;
 };
 
-export type LoadContext = {
+export type ViewLoadContext = {
   readonly ref: string;
-  readonly kind: ContentKind;
+  readonly kind: ViewKind;
   readonly extract?: string;
   readonly signal: AbortSignal;
   readonly route: {
@@ -28,15 +28,15 @@ export type LoadContext = {
 
 export type FetchText = (url: string, signal: AbortSignal) => Promise<string>;
 
-export type ContentEnvironment = {
+export type ViewLoaderEnv = {
   readonly fetchText: FetchText;
   readonly resolveUrl: (ref: string) => string;
   readonly isSSR: boolean;
 };
 
-export type ContentResult =
+export type ViewLoadResult =
   | { readonly kind: 'html'; readonly html: string }
   | { readonly kind: 'fragment'; readonly node: DocumentFragment }
   | { readonly kind: 'markup'; readonly markup: string };
 
-export type LoaderFn = (ctx: LoadContext) => Promise<ViewPayload | null>;
+export type LoaderFn = (ctx: ViewLoadContext) => Promise<ViewPayload | null>;

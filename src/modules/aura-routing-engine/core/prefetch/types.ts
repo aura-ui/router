@@ -35,7 +35,7 @@ export type PrefetchOptions = {
   readonly force?: boolean;
 };
 
-export type PrefetchResourceKind = 'content' | 'data';
+export type PrefetchResourceKind = 'view' | 'data';
 
 export type PrefetchResourcePriority = 'low' | 'normal' | 'high';
 
@@ -66,7 +66,7 @@ export interface PrefetchResourcePlanner {
   ): 'low-confidence' | 'no-targets';
 }
 
-/** Loads one resource kind (content, data, …). */
+/** Loads one resource kind (view, data, …). */
 export interface PrefetchResourceExecutor {
   readonly kind: PrefetchResourceKind;
   run(resource: PrefetchResource, ctx: PrefetchResourceRunContext): Promise<void>;

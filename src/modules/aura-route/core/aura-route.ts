@@ -188,7 +188,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.viewController = new RouteViewController(
       {
         route: this,
-        content: router.contentGraph,
+        view: router.viewGraph,
         cache: defaultViewCache,
         mountTarget,
         plugins,

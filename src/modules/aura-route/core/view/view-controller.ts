@@ -13,7 +13,7 @@ import { ViewTeardownPipeline } from './view-teardown-pipeline';
  *
  * Render flow: {@link ViewRenderPipeline}.
  * Teardown flow: {@link ViewTeardownPipeline}.
- * Mount primitives: {@link outlet-adapter}; content loading via {@link ContentResolverPort}.
+ * Mount primitives: {@link outlet-adapter}; view loading via {@link ViewResolverPort}.
  */
 export class RouteViewController {
   private readonly ctx: ViewContext;

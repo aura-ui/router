@@ -8,7 +8,7 @@ export type {
 export {
   FAILURE_CODE_BY_PHASE,
   NavigationError,
-  createContentLoadError,
+  createViewLoadError,
   defaultCodeForPhase,
   isNavigationError,
   normalizeFailure,

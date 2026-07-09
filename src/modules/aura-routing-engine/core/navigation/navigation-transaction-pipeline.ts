@@ -327,7 +327,7 @@ export class NavigationTransactionPipeline {
     const resolveContext = createBranchResolveContext(this.transaction);
     const resolved = await resolveEnterBranch(
       enterRoutes,
-      this.transaction.engine.contentGraph!,
+      this.transaction.engine.viewGraph!,
       resolveContext,
     );
 

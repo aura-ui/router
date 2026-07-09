@@ -1,25 +1,25 @@
 import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
-import { createContentLoadError } from '../failure';
+import { createViewLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getActiveChain } from '../route-tree/matched-chain';
 import { payloadCacheKey } from './cache/cache-key';
 import { PayloadCache } from './cache/payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
-import type { ContentDescriptor, LoadContext, ViewPayload } from './types';
+import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 import type { LoaderRegistry } from './registry';
 
-export type ContentPrefetchOptions = {
+export type ViewPrefetchOptions = {
   readonly concurrency?: number;
   readonly order?: 'leaf-first' | 'root-first';
 };
 
-const DEFAULT_PREFETCH: Required<ContentPrefetchOptions> = {
+const DEFAULT_PREFETCH: Required<ViewPrefetchOptions> = {
   concurrency: 3,
   order: 'root-first',
 };
 
-export type RouteContentSource = {
+export type RouteViewSource = {
   readonly layout: string;
   readonly preserve: { readonly view: boolean };
   readonly extract?: string | null;
@@ -30,16 +30,16 @@ type ResolvedView = {
   readonly ref: string;
 };
 
-export type ContentGraphDeps = {
+export type ViewGraphDeps = {
   readonly registry: LoaderRegistry;
   readonly cache: PayloadCache;
 };
 
-export class ContentGraph {
+export class ViewGraph {
   private readonly registry: LoaderRegistry;
   private readonly cache: PayloadCache;
 
-  constructor(deps: ContentGraphDeps) {
+  constructor(deps: ViewGraphDeps) {
     this.registry = deps.registry;
     this.cache = deps.cache;
   }
@@ -49,8 +49,8 @@ export class ContentGraph {
     signal: AbortSignal,
     options?: { data?: unknown },
   ): Promise<ViewPayload | null> {
-    const descriptor = ContentGraph.buildContentDescriptor(
-      routeInfo.route as RouteContentSource,
+    const descriptor = ViewGraph.buildViewDescriptor(
+      routeInfo.route as RouteViewSource,
       routeInfo.resolvedView,
     );
     return descriptor
@@ -59,7 +59,7 @@ export class ContentGraph {
   }
 
   loadViewDescriptor(
-    descriptor: ContentDescriptor,
+    descriptor: ViewDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     data?: unknown,
@@ -83,7 +83,7 @@ export class ContentGraph {
   prefetchBranch(
     chain: readonly MatchedRouteInfo[],
     signal: AbortSignal,
-    options: ContentPrefetchOptions = {},
+    options: ViewPrefetchOptions = {},
   ): Promise<void> {
     const { concurrency, order } = { ...DEFAULT_PREFETCH, ...options };
     const ordered = order === 'leaf-first' ? [...chain].reverse() : chain;
@@ -93,7 +93,7 @@ export class ContentGraph {
   prefetchLeaf(
     leaf: MatchedRouteInfo,
     signal: AbortSignal,
-    options?: ContentPrefetchOptions,
+    options?: ViewPrefetchOptions,
   ): Promise<void> {
     return this.prefetchBranch(getActiveChain(leaf), signal, options);
   }
@@ -107,7 +107,7 @@ export class ContentGraph {
   }
 
   private async loadViewPayload(
-    descriptor: ContentDescriptor,
+    descriptor: ViewDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     data?: unknown,
@@ -116,25 +116,25 @@ export class ContentGraph {
 
     try {
       const result = await this.registry.get(descriptor.loader).load(
-        ContentGraph.buildLoadContext(routeInfo, descriptor, signal, data),
+        ViewGraph.buildLoadContext(routeInfo, descriptor, signal, data),
       );
       if (!result) return null;
       return result.kind === 'html' ? result.html : result.kind === 'markup' ? result.markup : result.node;
     } catch (error: unknown) {
       if (signal.aborted) return null;
-      throw createContentLoadError(descriptor.loader, routeInfo.pattern, error);
+      throw createViewLoadError(descriptor.loader, routeInfo.pattern, error);
     }
   }
 
-  private static buildContentDescriptor(
-    route: RouteContentSource,
+  private static buildViewDescriptor(
+    route: RouteViewSource,
     resolvedView: ResolvedView | null | undefined,
-  ): ContentDescriptor | null {
+  ): ViewDescriptor | null {
     const layout = route.layout.trim();
     if (layout) return { kind: 'layout', loader: 'template', ref: layout, cache: false };
     if (!resolvedView?.type) return null;
 
-    const descriptor: ContentDescriptor = {
+    const descriptor: ViewDescriptor = {
       kind: 'content',
       loader: resolvedView.type,
       ref: resolvedView.ref,
@@ -145,10 +145,10 @@ export class ContentGraph {
 
   private static buildLoadContext(
     routeInfo: MatchedRouteInfo,
-    descriptor: Pick<ContentDescriptor, 'kind' | 'ref' | 'extract'>,
+    descriptor: Pick<ViewDescriptor, 'kind' | 'ref' | 'extract'>,
     signal: AbortSignal,
     data?: unknown,
-  ): LoadContext {
+  ): ViewLoadContext {
     return {
       ref: descriptor.ref,
       kind: descriptor.kind,

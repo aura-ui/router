@@ -1,10 +1,10 @@
 import type { MatchedRouteInfo } from '../../match/url-matcher';
 import { routeMatchKey } from '../../route-tree/matched-chain';
-import type { ContentDescriptor } from '../types';
+import type { ViewDescriptor } from '../types';
 
 /** `{location}|{query?}|{data?}|{loader}:{ref}[::{extract}]` */
 export function payloadCacheKey(
-  descriptor: ContentDescriptor,
+  descriptor: ViewDescriptor,
   routeInfo: MatchedRouteInfo,
   options: { data?: unknown } = {},
 ): string {

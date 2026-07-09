@@ -1,8 +1,8 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
-import type { ContentGraph } from '../../core/view-graph';
+import type { ViewGraph } from '../../core/view-graph';
 import { PrefetchPolicy } from '../../core/prefetch/policy';
 import {
-  ContentPrefetchExecutor,
+  ViewPrefetchExecutor,
   DefaultPrefetchResourcePlanner,
   PrefetchResourceScheduler,
 } from '../../core/prefetch/resources';
@@ -56,7 +56,7 @@ describe('DefaultPrefetchResourcePlanner', () => {
     });
 
     expect(resources).toHaveLength(1);
-    expect(resources[0]?.kind).toBe('content');
+    expect(resources[0]?.kind).toBe('view');
     expect(resources[0]?.targets).toHaveLength(1);
     expect(resources[0]?.priority).toBe('high');
   });
@@ -130,11 +130,11 @@ describe('DefaultPrefetchResourcePlanner', () => {
     });
 
     expect(resources).toHaveLength(1);
-    expect(resources[0]?.kind).toBe('content');
+    expect(resources[0]?.kind).toBe('view');
   });
 
   it('respects disabled content and data options', () => {
-    const disabled = new DefaultPrefetchResourcePlanner({ content: false, data: false }, policy);
+    const disabled = new DefaultPrefetchResourcePlanner({ view: false, data: false }, policy);
     const plan = createPlan({ view: 'html::x', load: 'profile' });
     const planCtx = { mode: 'tap' as const, confidence: policy.confidenceFor('tap') };
 
@@ -148,7 +148,7 @@ describe('PrefetchResourceScheduler', () => {
     const order: string[] = [];
     const scheduler = new PrefetchResourceScheduler([
       {
-        kind: 'content',
+        kind: 'view',
         run: async (resource) => {
           order.push(resource.priority);
         },
@@ -164,8 +164,8 @@ describe('PrefetchResourceScheduler', () => {
     await scheduler.run(
       [
         { kind: 'data', targets: [], priority: 'low' },
-        { kind: 'content', targets: [], priority: 'high' },
-        { kind: 'content', targets: [], priority: 'normal' },
+        { kind: 'view', targets: [], priority: 'high' },
+        { kind: 'view', targets: [], priority: 'normal' },
       ],
       { signal: new AbortController().signal, mode: 'manual', confidence: 1 },
     );
@@ -174,15 +174,15 @@ describe('PrefetchResourceScheduler', () => {
   });
 });
 
-describe('ContentPrefetchExecutor', () => {
-  it('delegates content resources to ContentGraph.prefetchBranch', async () => {
+describe('ViewPrefetchExecutor', () => {
+  it('delegates content resources to ViewGraph.prefetchBranch', async () => {
     const prefetchBranch = jest.fn().mockResolvedValue(undefined);
-    const content = { prefetchBranch } as unknown as ContentGraph;
-    const executor = new ContentPrefetchExecutor(content);
+    const content = { prefetchBranch } as unknown as ViewGraph;
+    const executor = new ViewPrefetchExecutor(content);
     const signal = new AbortController().signal;
     const targets = [{ href: '/page' }] as never;
 
-    await executor.run({ kind: 'content', targets, priority: 'high' }, {
+    await executor.run({ kind: 'view', targets, priority: 'high' }, {
       signal,
       mode: 'manual',
       confidence: 1,
@@ -193,9 +193,9 @@ describe('ContentPrefetchExecutor', () => {
 
   it('ignores non-content resources', async () => {
     const prefetchBranch = jest.fn();
-    const executor = new ContentPrefetchExecutor({
+    const executor = new ViewPrefetchExecutor({
       prefetchBranch,
-    } as unknown as ContentGraph);
+    } as unknown as ViewGraph);
 
     await executor.run({ kind: 'data', targets: [], priority: 'high' }, {
       signal: new AbortController().signal,

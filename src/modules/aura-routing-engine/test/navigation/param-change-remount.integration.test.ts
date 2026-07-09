@@ -53,7 +53,7 @@ function wireRouteViewController(
   const controller = new RouteViewController(
     {
       route: routeRecord,
-      content: { loadView: async () => resolve() },
+      view: { loadView: async () => resolve() },
       cache: {
         extract: (key) => {
           const root = stash.get(key);

@@ -10,7 +10,9 @@ import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 import type { LoaderRegistry } from './registry';
 
 export type ViewPrefetchOptions = {
+  /** Parallel prefetch cap. Default: `3`. */
   readonly concurrency?: number;
+  /** `root-first` matches enter-branch mount order. Default: `root-first`. */
   readonly order?: 'leaf-first' | 'root-first';
 };
 
@@ -19,6 +21,7 @@ const DEFAULT_PREFETCH: Required<ViewPrefetchOptions> = {
   order: 'root-first',
 };
 
+/** Route fields read when building a {@link ViewDescriptor} from {@link MatchedRouteInfo}. */
 export type RouteViewSource = {
   readonly layout: string;
   readonly preserve: { readonly view: boolean };
@@ -35,6 +38,10 @@ export type ViewGraphDeps = {
   readonly cache: PayloadCache;
 };
 
+/**
+ * View payload coordinator: descriptor → loader → cache → {@link ViewPayload}.
+ * One instance per {@link AuraRouter} (render, branch-resolve, prefetch).
+ */
 export class ViewGraph {
   private readonly registry: LoaderRegistry;
   private readonly cache: PayloadCache;
@@ -44,6 +51,10 @@ export class ViewGraph {
     this.cache = deps.cache;
   }
 
+  /**
+   * Load payload for a matched route (`layout` or `view` attr).
+   * Returns `null` when there is no descriptor, the loader yields nothing, or `signal` is aborted.
+   */
   loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
@@ -58,6 +69,7 @@ export class ViewGraph {
       : Promise.resolve(null);
   }
 
+  /** Direct resolve bypassing route attrs — tests and explicit descriptor loads. */
   loadViewDescriptor(
     descriptor: ViewDescriptor,
     routeInfo: MatchedRouteInfo,
@@ -72,14 +84,16 @@ export class ViewGraph {
       : load();
   }
 
+  /** Intent prefetch for one route; errors are swallowed. */
   async prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
     try {
       await this.loadView(routeInfo, signal);
     } catch {
-      // intent prefetch: silent (mirrors DataGraph.prefetch)
+      // mirrors DataGraph.prefetch
     }
   }
 
+  /** Prefetch enter chain with bounded concurrency. */
   prefetchBranch(
     chain: readonly MatchedRouteInfo[],
     signal: AbortSignal,
@@ -90,6 +104,7 @@ export class ViewGraph {
     return runConcurrent(ordered, concurrency, (info) => this.prefetchNode(info, signal), signal);
   }
 
+  /** `getActiveChain(leaf)` + {@link prefetchBranch}. */
   prefetchLeaf(
     leaf: MatchedRouteInfo,
     signal: AbortSignal,
@@ -98,6 +113,7 @@ export class ViewGraph {
     return this.prefetchBranch(getActiveChain(leaf), signal, options);
   }
 
+  /** Invalidate payload cache entries ({@link RouterInvalidateOptions}, default policy `stale`). */
   invalidate(options: RouterInvalidateOptions = {}): number {
     return this.cache.invalidate(options);
   }

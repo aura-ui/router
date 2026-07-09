@@ -18,6 +18,7 @@ const BUILTIN = [
   IframeLoader,
 ] as const satisfies readonly LoaderClass[];
 
+/** Built-in and custom loaders keyed by {@link LoaderType}. See {@link defaultLoaderRegistry}. */
 export class LoaderRegistry {
   private readonly env: ViewLoaderEnv;
   private readonly loaders = new Map<string, Loader>();
@@ -30,6 +31,7 @@ export class LoaderRegistry {
     loaders.forEach((loader) => this.install(loader));
   }
 
+  /** Instance, class (`new C(env)`), or `(type, fn)` → {@link FnLoader}. */
   register(loader: Loader): void;
   register(loaderClass: LoaderClass): void;
   register(type: LoaderType, fn: LoaderFn): void;
@@ -50,6 +52,7 @@ export class LoaderRegistry {
     return this.loaders.has(type);
   }
 
+  /** @throws when `type` is not registered */
   get(type: LoaderType): Loader {
     const loader = this.loaders.get(type);
     if (!loader) {
@@ -68,8 +71,10 @@ export class LoaderRegistry {
   }
 }
 
+/** Fresh registry with browser {@link ViewLoaderEnv} (tests, isolated router). */
 export function createLoaderRegistry(env: ViewLoaderEnv = createBrowserEnvironment()): LoaderRegistry {
   return new LoaderRegistry(env);
 }
 
+/** Process-wide registry; mutated by {@link AuraRouter.registerLoader}. */
 export const defaultLoaderRegistry = new LoaderRegistry();

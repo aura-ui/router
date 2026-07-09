@@ -2,7 +2,14 @@ import type { MatchedRouteInfo } from '../../match/url-matcher';
 import { routeMatchKey } from '../../route-tree/matched-chain';
 import type { ViewDescriptor } from '../types';
 
-/** `{location}|{query?}|{data?}|{kind}:{loader}:{ref}[::{extract}]` */
+/**
+ * Stable cache key for {@link PayloadCache}.
+ * Shape: `{pathname | matchKey[+params]}|{query?}|d:{data?}|{kind}:{loader}:{ref}[::{extract}]`
+ * @example payloadCacheKey(
+ *   { kind: 'view', loader: 'url', ref: 'partials/user.html', cache: true },
+ *   { pathname: '/users/1', ... },
+ * ) // → "/users/1|view:url:partials/user.html"
+ */
 export function payloadCacheKey(
   descriptor: ViewDescriptor,
   routeInfo: MatchedRouteInfo,

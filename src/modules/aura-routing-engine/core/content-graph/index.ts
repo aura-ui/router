@@ -14,7 +14,6 @@ export {
 } from './content-graph';
 export type { ContentGraphDeps } from './content-graph';
 import type { ContentGraph } from './content-graph';
-import type { LoadContext, ViewPayload } from './types';
 
 export {
   PayloadCache,
@@ -24,7 +23,7 @@ export type { RouterInvalidateOptions as ContentInvalidateOptions } from '../inv
 
 export { routeSnapshot, componentMarkup } from './runtime/markup';
 
-export type LoaderFn = (ctx: LoadContext) => Promise<ViewPayload | null>;
+export type { LoaderFn } from './types';
 
 export type {
   ContentDescriptor,

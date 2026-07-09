@@ -32,7 +32,7 @@ function mountIndexFragment(): AuraRouter {
     </aura-router>
   `;
 
-  defaultLoaderRegistry.registerFn('custom-loader', async () => 'custom');
+  defaultLoaderRegistry.register('custom-loader', async () => 'custom');
 
   return document.querySelector(AuraRouter.is) as AuraRouter;
 }

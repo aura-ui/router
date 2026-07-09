@@ -21,10 +21,10 @@ describe('LoaderRegistry', () => {
     expect(() => registry.get('html-src')).toThrow(/Unknown content loader/);
   });
 
-  it('registerFn() adds custom loaders', async () => {
+  it('register(type, fn) adds custom loaders', async () => {
     const registry = new LoaderRegistry();
 
-    registry.registerFn('probe-loader', async () => 'ok');
+    registry.register('probe-loader', async () => 'ok');
     const payload = await registry.get('probe-loader').load({
       ref: 'x',
       kind: 'content',
@@ -39,8 +39,8 @@ describe('LoaderRegistry', () => {
     const registry = new LoaderRegistry(undefined, []);
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    registry.registerFn('html', async () => 'replacement');
-    registry.registerFn('html', async () => 'replacement-again');
+    registry.register('html', async () => 'replacement');
+    registry.register('html', async () => 'replacement-again');
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
@@ -49,7 +49,7 @@ describe('LoaderRegistry', () => {
     warn.mockRestore();
   });
 
-  it('register() adds class-based loaders', async () => {
+  it('register(loader) adds class-based loaders', async () => {
     class ProbeLoader extends HtmlLoader {
       static readonly type = 'class-probe' as const;
       readonly type = ProbeLoader.type;
@@ -70,6 +70,34 @@ describe('LoaderRegistry', () => {
       route: { href: '/', pattern: '/' },
     });
     expect(payload).toEqual({ kind: 'html', html: '<class-probe/>' });
+  });
+
+  it('register(LoaderClass) instantiates with registry environment', async () => {
+    class ClassProbeLoader extends HtmlLoader {
+      static readonly type = 'class-register-probe' as const;
+      readonly type = ClassProbeLoader.type;
+
+      override async load() {
+        return { kind: 'html', html: '<class-register/>' };
+      }
+    }
+
+    const registry = new LoaderRegistry(undefined, []);
+    registry.register(ClassProbeLoader);
+
+    const payload = await registry.get('class-register-probe').load({
+      ref: 'ignored',
+      kind: 'content',
+      signal: new AbortController().signal,
+      route: { href: '/', pattern: '/' },
+    });
+    expect(payload).toEqual({ kind: 'html', html: '<class-register/>' });
+  });
+
+  it('register() rejects a bare function without type', () => {
+    const registry = new LoaderRegistry(undefined, []);
+
+    expect(() => registry.register(async () => 'x')).toThrow(/register\(type, fn\)/);
   });
 
   it('createLoaderRegistry() uses custom transport with built-ins', async () => {

@@ -21,7 +21,7 @@ const routeInfo = {
 describe('ContentGraph (resolve)', () => {
   it('returns null when signal is aborted', async () => {
     const registry = new LoaderRegistry(undefined, []);
-    registry.registerFn('html', async () => 'never');
+    registry.register('html', async () => 'never');
 
     const graph = new ContentGraph({
       registry,
@@ -43,7 +43,7 @@ describe('ContentGraph (resolve)', () => {
   it('uses cache when descriptor.cache is true', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.registerFn('html', async () => {
+    registry.register('html', async () => {
       loads++;
       return `<span>${loads}</span>`;
     });
@@ -67,7 +67,7 @@ describe('ContentGraph (resolve)', () => {
   it('prefetch warms cache when descriptor.cache is true', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.registerFn('html', async () => {
+    registry.register('html', async () => {
       loads++;
       return '<span>warm</span>';
     });
@@ -99,7 +99,7 @@ describe('ContentGraph (resolve)', () => {
   it('passes extract to url loader from route attr', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let receivedExtract: string | undefined;
-    registry.registerFn('url', async (ctx) => {
+    registry.register('url', async (ctx) => {
       receivedExtract = ctx.extract;
       return '<span>ok</span>';
     });
@@ -125,7 +125,7 @@ describe('ContentGraph (resolve)', () => {
   it('does not pass extract when route opts out with extract=""', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let receivedExtract: string | undefined = '#unset';
-    registry.registerFn('url', async (ctx) => {
+    registry.register('url', async (ctx) => {
       receivedExtract = ctx.extract;
       return '<span>ok</span>';
     });
@@ -151,7 +151,7 @@ describe('ContentGraph (resolve)', () => {
   it('does not pass extract for html loader even when route has extract', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let receivedExtract: string | undefined = '#unset';
-    registry.registerFn('html', async (ctx) => {
+    registry.register('html', async (ctx) => {
       receivedExtract = ctx.extract;
       return ctx.ref;
     });
@@ -209,7 +209,7 @@ describe('ContentGraph (resolve)', () => {
   it('keeps separate cache entries for partial vs extract on the same ref', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.registerFn('url', async (ctx) => {
+    registry.register('url', async (ctx) => {
       loads++;
       return ctx.extract ? '<fragment/>' : '<full/>';
     });
@@ -244,7 +244,7 @@ describe('ContentGraph (resolve)', () => {
 
   it('throws NavigationError when loader fails', async () => {
     const registry = new LoaderRegistry(undefined, []);
-    registry.registerFn('html', async () => {
+    registry.register('html', async () => {
       throw new Error('network');
     });
 

@@ -23,7 +23,7 @@ describe('content graph flow (view → engine)', () => {
   it('resolve reads view from upgraded aura-route', async () => {
     const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.registerFn('url', async (ctx) => {
+    registry.register('url', async (ctx) => {
       loads.push(ctx.ref);
       return `<p>${ctx.ref}</p>`;
     });
@@ -49,7 +49,7 @@ describe('content graph flow (view → engine)', () => {
   it('prefetch loads via live route attrs', async () => {
     const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.registerFn('url', async (ctx) => {
+    registry.register('url', async (ctx) => {
       loads.push(ctx.ref);
       return `<p>${ctx.ref}</p>`;
     });
@@ -69,7 +69,7 @@ describe('content graph flow (view → engine)', () => {
   it('navigation render loads view via ContentGraph.loadView', async () => {
     const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.registerFn('html', async (ctx) => {
+    registry.register('html', async (ctx) => {
       loads.push(ctx.ref);
       return ctx.ref;
     });
@@ -96,7 +96,7 @@ describe('content graph flow (view → engine)', () => {
 
   it('prefetch and navigation share payloadCacheKey when preserve view is enabled', async () => {
     const registry = new LoaderRegistry(undefined, []);
-    registry.registerFn('url', async () => '<p>feed</p>');
+    registry.register('url', async () => '<p>feed</p>');
 
     const cache = new PayloadCache();
     const contentGraph = new ContentGraph({ registry, cache });
@@ -125,7 +125,7 @@ describe('content graph flow (view → engine)', () => {
   it('layout route uses template loader from layout attr, not view', async () => {
     const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.registerFn('template', async (ctx) => {
+    registry.register('template', async (ctx) => {
       loads.push(ctx.ref);
       return `<layout>${ctx.ref}</layout>`;
     });
@@ -145,7 +145,7 @@ describe('content graph flow (view → engine)', () => {
   it('content route loads parsed view', async () => {
     const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
-    registry.registerFn('url', async (ctx) => {
+    registry.register('url', async (ctx) => {
       loads.push(ctx.ref);
       return ctx.ref;
     });
@@ -171,7 +171,7 @@ describe('content graph flow (view → engine)', () => {
 
   it('returns null when content route has no view loader', async () => {
     const registry = new LoaderRegistry(undefined, []);
-    registry.registerFn('html', async () => 'never');
+    registry.register('html', async () => 'never');
 
     const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
     const route = createDomRoute('/empty');

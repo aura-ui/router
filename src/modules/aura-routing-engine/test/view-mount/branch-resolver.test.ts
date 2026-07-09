@@ -247,8 +247,8 @@ describe('resolveEnterBranch', () => {
 
   it('resolves via ContentGraph without touching the DOM', async () => {
     const registry = new LoaderRegistry(undefined, []);
-    registry.registerFn('template', async (ctx) => `<header>${ctx.ref}</header>`);
-    registry.registerFn('html', async (ctx) => ctx.ref);
+    registry.register('template', async (ctx) => `<header>${ctx.ref}</header>`);
+    registry.register('html', async (ctx) => ctx.ref);
 
     const content = new ContentGraph({ registry, cache: new PayloadCache() });
     const signal = new AbortController().signal;

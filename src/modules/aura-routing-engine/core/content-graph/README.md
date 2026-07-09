@@ -30,12 +30,12 @@ content-graph/
 └── runtime/
     ├── markup.ts         # routeSnapshot, componentMarkup
     ├── registry.ts       # LoaderRegistry + default built-in set
-    ├── loader.ts         # abstract Loader, FnLoader
+    ├── loader.ts         # Loader, FnLoader
     ├── environment.ts    # fetchText, createBrowserEnvironment
     └── loaders/          # template, html, url, component, import, iframe
 ```
 
 ## Extension
 
-- class: extend `Loader`, `registry.register(instance)`
-- fn: `AuraRouter.registerLoader` → `registerFn`
+- class: extend `Loader`, then `registry.register(MyLoader)` or `registry.register(new MyLoader(env))`
+- fn: `AuraRouter.registerLoader(type, fn)` → `registry.register(type, fn)`

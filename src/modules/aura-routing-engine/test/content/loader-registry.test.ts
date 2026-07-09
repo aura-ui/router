@@ -4,7 +4,6 @@ import {
   createLoaderRegistry,
   getBuiltinLoaderTypeIds,
   HtmlLoader,
-  toViewPayload,
 } from '../../core/content-graph';
 
 describe('LoaderRegistry', () => {
@@ -34,7 +33,7 @@ describe('LoaderRegistry', () => {
       route: { href: '/', pattern: '/' },
     });
 
-    expect(toViewPayload(payload)).toBe('ok');
+    expect(payload).toEqual({ kind: 'html', html: 'ok' });
   });
 
   it('warns when overwriting an existing loader', () => {
@@ -71,7 +70,7 @@ describe('LoaderRegistry', () => {
       signal: new AbortController().signal,
       route: { href: '/', pattern: '/' },
     });
-    expect(toViewPayload(payload)).toBe('<class-probe/>');
+    expect(payload).toEqual({ kind: 'html', html: '<class-probe/>' });
   });
 
   it('built-in loader order matches BUILTIN_LOADER_TYPES', () => {
@@ -92,6 +91,6 @@ describe('LoaderRegistry', () => {
       route: { href: '/page', pattern: '/page' },
     });
 
-    expect(toViewPayload(payload)).toBe('<p>remote</p>');
+    expect(payload).toEqual({ kind: 'html', html: '<p>remote</p>' });
   });
 });

@@ -7,7 +7,10 @@
  * - `DataGraph` — load-hook data when `preserve.data`
  */
 
-export { ContentGraph } from './content-graph';
+export {
+  ContentGraph,
+  type RouteContentSource,
+} from './content-graph';
 export type { ContentGraphDeps } from './content-graph';
 export type { ContentPrefetchOptions } from './prefetch';
 import type { ContentGraph } from './content-graph';
@@ -19,9 +22,7 @@ export {
 } from './cache';
 export type { RouterInvalidateOptions as ContentInvalidateOptions } from '../invalidate-router-cache';
 
-export { buildContentDescriptor, type RouteContentSource } from './model/descriptor';
 export { toLoadContext, routeSnapshot, componentMarkup } from './model/context';
-export { toViewPayload, type ContentResult } from './model/result';
 
 export type LoaderFn = (ctx: LoadContext) => Promise<ViewPayload | null>;
 
@@ -29,6 +30,7 @@ export type {
   ContentDescriptor,
   ContentKind,
   ContentEnvironment,
+  ContentResult,
   FetchText,
   LoadContext,
   ViewPayload,

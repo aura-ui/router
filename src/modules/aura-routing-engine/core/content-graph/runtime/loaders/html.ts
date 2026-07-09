@@ -1,5 +1,4 @@
-import type { LoaderType, LoadContext } from '../../model/types';
-import type { ContentResult } from '../../model/result';
+import type { ContentResult, LoaderType, LoadContext } from '../../model/types';
 import { Loader } from '../loader';
 
 export class HtmlLoader extends Loader {

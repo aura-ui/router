@@ -21,7 +21,7 @@ route attrs → descriptor → PayloadCache? → Loader → ContentResult → Vi
 ```
 content-graph/
 ├── index.ts              # public barrel
-├── content-graph.ts      # resolve, prefetch, invalidate orchestrator
+├── content-graph.ts      # resolve, prefetch, invalidate, descriptor + payload mapping
 ├── prefetch.ts           # concurrent prefetch runner + options type
 ├── cache/
 │   ├── index.ts
@@ -29,9 +29,7 @@ content-graph/
 │   └── cache-key.ts      # stable payload cache keys
 ├── model/
 │   ├── types.ts
-│   ├── descriptor.ts
-│   ├── context.ts
-│   └── result.ts
+│   └── context.ts
 └── runtime/
     ├── loader.ts         # abstract Loader, FnLoader
     ├── registry.ts       # LoaderRegistry

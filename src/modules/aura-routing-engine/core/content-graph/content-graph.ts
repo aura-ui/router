@@ -1,3 +1,4 @@
+import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 import { createContentLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getActiveChain } from '../route-tree/matched-chain';
@@ -5,11 +6,20 @@ import { payloadCacheKey } from './cache/cache-key';
 import { PayloadCache } from './cache/payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import { DEFAULT_PREFETCH, orderPrefetchChain, prefetchConcurrent, type ContentPrefetchOptions } from './prefetch';
-import { buildContentDescriptor, type RouteContentSource } from './model/descriptor';
 import { toLoadContext } from './model/context';
-import { toViewPayload } from './model/result';
 import type { ContentDescriptor, ViewPayload } from './model/types';
 import type { LoaderRegistry } from './runtime/registry';
+
+export type RouteContentSource = {
+  readonly layout: string;
+  readonly preserve: { readonly view: boolean };
+  readonly extract?: string | null;
+};
+
+type ResolvedView = {
+  readonly type: LoaderType;
+  readonly ref: string;
+};
 
 export type ContentGraphDeps = {
   readonly registry: LoaderRegistry;
@@ -34,7 +44,7 @@ export class ContentGraph {
     signal: AbortSignal,
     options?: { data?: unknown },
   ): Promise<ViewPayload | null> {
-    const descriptor = buildContentDescriptor(
+    const descriptor = ContentGraph.buildContentDescriptor(
       routeInfo.route as RouteContentSource,
       routeInfo.resolvedView,
     );
@@ -91,6 +101,10 @@ export class ContentGraph {
     return this.cache.invalidate(options);
   }
 
+  destroy(): void {
+    this.cache.destroy();
+  }
+
   private async loadPayload(
     descriptor: ContentDescriptor,
     routeInfo: MatchedRouteInfo,
@@ -102,10 +116,53 @@ export class ContentGraph {
     try {
       const ctx = toLoadContext(routeInfo, descriptor, signal, data);
       const result = await this.registry.get(descriptor.loader).load(ctx);
-      return toViewPayload(result);
+      if (!result) return null;
+
+      switch (result.kind) {
+        case 'html':
+          return result.html;
+        case 'markup':
+          return result.markup;
+        case 'fragment':
+          return result.node;
+      }
     } catch (error: unknown) {
       if (signal.aborted) return null;
       throw createContentLoadError(descriptor.loader, routeInfo.pattern, error);
     }
+  }
+
+  private static layoutDescriptor(ref: string): ContentDescriptor {
+    return { kind: 'layout', loader: 'template', ref, cache: false };
+  }
+
+  private static contentDescriptor(
+    view: ResolvedView,
+    preserveView: boolean,
+    extract?: string | null,
+  ): ContentDescriptor {
+    const base: ContentDescriptor = {
+      kind: 'content',
+      loader: view.type,
+      ref: view.ref,
+      cache: preserveView,
+    };
+
+    if (view.type === 'url' && extract) {
+      return { ...base, extract };
+    }
+
+    return base;
+  }
+
+  /** Maps route attrs + parsed view to a cacheable content descriptor. */
+  private static buildContentDescriptor(
+    route: RouteContentSource,
+    resolvedView: ResolvedView | null | undefined,
+  ): ContentDescriptor | null {
+    const layout = route.layout.trim();
+    if (layout) return this.layoutDescriptor(layout);
+    if (!resolvedView?.type) return null;
+    return this.contentDescriptor(resolvedView, route.preserve.view, route.extract);
   }
 }

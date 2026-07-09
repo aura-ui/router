@@ -47,7 +47,7 @@ function wireRouteViewController(
   const controller = new RouteViewController(
     {
       route: routeRecord,
-      content: { resolve: async () => { resolveCount++; return resolve(); } },
+      content: { loadView: async () => { resolveCount++; return resolve(); } },
       cache: { extract: () => undefined, put: () => {} },
       mountTarget: {
         appOutlet: () => outlet,

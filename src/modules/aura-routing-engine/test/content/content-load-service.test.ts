@@ -31,7 +31,7 @@ describe('ContentGraph (resolve)', () => {
     const controller = new AbortController();
     controller.abort();
 
-    const result = await graph.resolveDescriptor(
+    const result = await graph.loadViewDescriptor(
       { kind: 'content', loader: 'html', ref: '<p>x</p>', cache: false },
       routeInfo as never,
       controller.signal,
@@ -58,8 +58,8 @@ describe('ContentGraph (resolve)', () => {
     };
     const signal = new AbortController().signal;
 
-    await graph.resolveDescriptor(descriptor, routeInfo as never, signal);
-    await graph.resolveDescriptor(descriptor, routeInfo as never, signal);
+    await graph.loadViewDescriptor(descriptor, routeInfo as never, signal);
+    await graph.loadViewDescriptor(descriptor, routeInfo as never, signal);
 
     expect(loads).toBe(1);
   });
@@ -92,7 +92,7 @@ describe('ContentGraph (resolve)', () => {
     await graph.prefetchNode(info as never, new AbortController().signal);
     expect(cache.get(payloadCacheKey(descriptor, info as never))).toBeDefined();
 
-    await graph.resolveDescriptor(descriptor, info as never, new AbortController().signal);
+    await graph.loadViewDescriptor(descriptor, info as never, new AbortController().signal);
     expect(loads).toBe(1);
   });
 
@@ -106,7 +106,7 @@ describe('ContentGraph (resolve)', () => {
 
     const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
-    await graph.resolve(
+    await graph.loadView(
       {
         ...routeInfo,
         route: {
@@ -132,7 +132,7 @@ describe('ContentGraph (resolve)', () => {
 
     const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
-    await graph.resolve(
+    await graph.loadView(
       {
         ...routeInfo,
         route: {
@@ -158,7 +158,7 @@ describe('ContentGraph (resolve)', () => {
 
     const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
-    await graph.resolve(
+    await graph.loadView(
       {
         ...routeInfo,
         route: {
@@ -184,7 +184,7 @@ describe('ContentGraph (resolve)', () => {
     const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
     await expect(
-      graph.resolve(
+      graph.loadView(
         {
           ...routeInfo,
           route: {
@@ -234,8 +234,8 @@ describe('ContentGraph (resolve)', () => {
       resolvedView: { type: 'url', ref: 'legacy/about.html' },
     } as const;
 
-    const partialPayload = await graph.resolve(partial as never, signal);
-    const extractPayload = await graph.resolve(extracted as never, signal);
+    const partialPayload = await graph.loadView(partial as never, signal);
+    const extractPayload = await graph.loadView(extracted as never, signal);
 
     expect(partialPayload).toBe('<full/>');
     expect(extractPayload).toBe('<fragment/>');
@@ -251,7 +251,7 @@ describe('ContentGraph (resolve)', () => {
     const graph = new ContentGraph({ registry, cache: new PayloadCache() });
 
     await expect(
-      graph.resolveDescriptor(
+      graph.loadViewDescriptor(
         { kind: 'content', loader: 'html', ref: 'static', cache: false },
         routeInfo as never,
         new AbortController().signal,

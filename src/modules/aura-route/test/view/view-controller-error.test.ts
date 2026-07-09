@@ -53,7 +53,7 @@ describe('RouteViewController render errors', () => {
           transition: NO_TRANSITION,
         },
         content: {
-          resolve: async () => {
+          loadView: async () => {
             throw loadError;
           },
         },

@@ -50,7 +50,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    const payload = await router.contentGraph.resolve(
+    const payload = await router.contentGraph.loadView(
       withResolvedView({ href: '/x', pathname: '/x', search: '', hash: '', pattern: '/x', route }),
       new AbortController().signal,
     );
@@ -69,7 +69,7 @@ describe('view attr end-to-end', () => {
     `);
 
     const route = document.querySelector(AuraRoute.is) as AuraRoute;
-    const payload = await router.contentGraph.resolve(
+    const payload = await router.contentGraph.loadView(
       withResolvedView({
         href: '/custom',
         pathname: '/custom',

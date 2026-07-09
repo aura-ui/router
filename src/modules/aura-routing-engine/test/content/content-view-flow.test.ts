@@ -32,7 +32,7 @@ describe('content graph flow (view → engine)', () => {
     const route = createDomRoute('/feed');
     route.setAttribute('view', 'url::feed.html');
 
-    await contentGraph.resolve(
+    await contentGraph.loadView(
       withResolvedView({
         href: '/feed',
         pathname: '/feed',
@@ -66,7 +66,7 @@ describe('content graph flow (view → engine)', () => {
     expect(loads).toEqual(['about.html']);
   });
 
-  it('navigation render resolves via ContentGraph.resolve', async () => {
+  it('navigation render loads view via ContentGraph.loadView', async () => {
     const registry = new LoaderRegistry(undefined, []);
     const loads: string[] = [];
     registry.registerFn('html', async (ctx) => {
@@ -79,7 +79,7 @@ describe('content graph flow (view → engine)', () => {
     const route = createDomRoute('/x');
     route.setAttribute('view', 'html::<b>page</b>');
 
-    await contentGraph.resolve(
+    await contentGraph.loadView(
       withResolvedView({
         href: '/x',
         pathname: '/x',
@@ -113,7 +113,7 @@ describe('content graph flow (view → engine)', () => {
       route,
     });
 
-    await contentGraph.resolve(routeInfo, new AbortController().signal);
+    await contentGraph.loadView(routeInfo, new AbortController().signal);
     expect(cache.get(payloadCacheKey({
       kind: 'content',
       loader: 'url',
@@ -135,7 +135,7 @@ describe('content graph flow (view → engine)', () => {
     parent.setAttribute('layout', 'users-shell');
     parent.setAttribute('view', 'url::ignored.html');
 
-    await contentGraph.resolve(
+    await contentGraph.loadView(
       { href: '/users', pathname: '/users', search: '', hash: '', pattern: '/users', route: parent as never },
       new AbortController().signal,
     );
@@ -154,7 +154,7 @@ describe('content graph flow (view → engine)', () => {
     const route = createDomRoute('/users/:id');
     route.setAttribute('view', 'url::user.html');
 
-    await contentGraph.resolve(
+    await contentGraph.loadView(
       withResolvedView({
         href: '/users/1',
         pathname: '/users/1',
@@ -176,7 +176,7 @@ describe('content graph flow (view → engine)', () => {
     const contentGraph = new ContentGraph({ registry, cache: new PayloadCache() });
     const route = createDomRoute('/empty');
 
-    const payload = await contentGraph.resolve(
+    const payload = await contentGraph.loadView(
       { href: '/empty', pathname: '/empty', search: '', hash: '', pattern: '/empty', route: route as never },
       new AbortController().signal,
     );

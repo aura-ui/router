@@ -21,7 +21,7 @@ route attrs → descriptor → PayloadCache? → Loader → ContentResult → Vi
 ```
 content-graph/
 ├── index.ts              # public barrel
-├── content-graph.ts      # resolve, prefetch, invalidate
+├── content-graph.ts      # loadView, prefetch, invalidate
 ├── types.ts              # shared contracts (descriptor, context, payload)
 ├── prefetch.ts           # concurrent prefetch runner + options type
 ├── cache/

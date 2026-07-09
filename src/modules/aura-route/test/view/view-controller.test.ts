@@ -106,7 +106,7 @@ describe('RouteViewController keep-alive integration', () => {
     const controller = createController(
       'user/:id',
       { root: createOutlet },
-      { resolve: async () => '<span>view</span>' },
+      { loadView: async () => '<span>view</span>' },
       viewCache,
     );
 
@@ -130,7 +130,7 @@ describe('RouteViewController keep-alive integration', () => {
       'search',
       { root: () => root },
       {
-        resolve: async () => {
+        loadView: async () => {
           resolveCount++;
           return `<span>result-${resolveCount}</span>`;
         },
@@ -170,7 +170,7 @@ describe('RouteViewController keep-alive integration', () => {
     const parent = createController(
       'users',
       { root: () => root },
-      { resolve: async () => layoutShell() },
+      { loadView: async () => layoutShell() },
       viewCache,
     );
 
@@ -180,7 +180,7 @@ describe('RouteViewController keep-alive integration', () => {
         root: () => root,
         mount: () => parent.nestedOutlet,
       },
-      { resolve: async () => '<span id="child-view">child</span>' },
+      { loadView: async () => '<span id="child-view">child</span>' },
       viewCache,
     );
 
@@ -201,7 +201,7 @@ describe('RouteViewController keep-alive integration', () => {
         mount: () => parent.nestedOutlet,
       },
       {
-        resolve: async () => {
+        loadView: async () => {
           resolveAfterStash++;
           return '<span id="child-view">fresh</span>';
         },
@@ -233,7 +233,7 @@ describe('RouteViewController keep-alive integration', () => {
       const controller = createController(
         attrPath,
         { root: () => root },
-        { resolve: async () => `<span>${pathname}</span>` },
+        { loadView: async () => `<span>${pathname}</span>` },
         viewCache,
       );
       await controller.render(matched(pathname, { pattern: attrPath }));
@@ -257,7 +257,7 @@ describe('RouteViewController keep-alive integration', () => {
     const controller = createController(
       'user/:id',
       { root: () => root },
-      { resolve: async () => `<span>view-${++resolveCount}</span>` },
+      { loadView: async () => `<span>view-${++resolveCount}</span>` },
       createMockViewCache(),
       false,
     );
@@ -282,7 +282,7 @@ describe('RouteViewController keep-alive integration', () => {
     const controller = createController(
       'user/:id',
       { root: () => root },
-      { resolve: async () => `<span>view-${++resolveCount}</span>` },
+      { loadView: async () => `<span>view-${++resolveCount}</span>` },
       createMockViewCache(),
       true,
     );
@@ -302,7 +302,7 @@ describe('RouteViewController keep-alive integration', () => {
     const controller = createController(
       'user/:id',
       { root: () => root },
-      { resolve: async () => `<span>view-${++resolveCount}</span>` },
+      { loadView: async () => `<span>view-${++resolveCount}</span>` },
       createMockViewCache(),
       true,
     );
@@ -323,7 +323,7 @@ describe('RouteViewController keep-alive integration', () => {
     const controller = createController(
       'user/:id',
       { root: () => root },
-      { resolve: async (info) => `<span>view-${info.params?.id}</span>` },
+      { loadView: async (info) => `<span>view-${info.params?.id}</span>` },
       createMockViewCache(),
       false,
     );
@@ -347,7 +347,7 @@ describe('RouteViewController keep-alive integration', () => {
     const controller = createController(
       'user/:id',
       { root: () => root },
-      { resolve: async () => `<span>view-${++resolveCount}</span>` },
+      { loadView: async () => `<span>view-${++resolveCount}</span>` },
       viewCache,
       true,
     );
@@ -385,7 +385,7 @@ describe('RouteViewController keep-alive integration', () => {
       {
         route,
         content: {
-          resolve: async (info) => `<span data-id="${info.params?.id}">view-${info.params?.id}</span>`,
+          loadView: async (info) => `<span data-id="${info.params?.id}">view-${info.params?.id}</span>`,
         },
         cache: createMockViewCache(),
         mountTarget: { appOutlet: () => root, nestedOutlet: () => null },
@@ -414,7 +414,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.textContent).toBe('view-2');
   });
 
-  it('applyPreResolved mounts content without calling content.resolve', () => {
+  it('applyPreResolved mounts content without calling content.loadView', () => {
     const root = createOutlet();
     const resolve = jest.fn(async () => '<span>from-resolve</span>');
     const controller = createController(
@@ -516,7 +516,7 @@ async function captureUseStagedMount(
   const controller = new RouteViewController(
     {
       route: config,
-      content: { resolve: async () => '<span>view</span>' },
+      content: { loadView: async () => '<span>view</span>' },
       cache: { extract: () => undefined, put: () => {} },
       mountTarget: { appOutlet: () => outlet, nestedOutlet: () => null },
       plugins: [{

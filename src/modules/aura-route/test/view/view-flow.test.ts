@@ -81,7 +81,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     let resolveCount = 0;
     const { controller } = createController(root, {
-      resolve: async (routeInfo) => {
+      loadView: async (routeInfo) => {
         resolveCount++;
         if (routeInfo?.pathname === '/old') return '<span>old</span>';
         return '<span>new</span>';
@@ -105,7 +105,7 @@ describe('view flow (controller → outlet)', () => {
   it('without active transition render replaces instead of stage', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      resolve: async (routeInfo) =>
+      loadView: async (routeInfo) =>
         routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
     });
 
@@ -118,7 +118,7 @@ describe('view flow (controller → outlet)', () => {
   it('revertInFlightView restores replace mount from detached snapshot', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      resolve: async (routeInfo) =>
+      loadView: async (routeInfo) =>
         routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
     });
 
@@ -133,7 +133,7 @@ describe('view flow (controller → outlet)', () => {
   it('commitStagedView discards pending outgoing so replace cannot roll back', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      resolve: async (routeInfo) =>
+      loadView: async (routeInfo) =>
         routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
     });
 
@@ -149,7 +149,7 @@ describe('view flow (controller → outlet)', () => {
   it('revertInFlightView rolls back staged mount and clears presentation', async () => {
     const root = createOutlet();
     const { controller, route } = createController(root, {
-      resolve: async (routeInfo) =>
+      loadView: async (routeInfo) =>
         routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
     }, '/', true);
 
@@ -173,7 +173,7 @@ describe('view flow (controller → outlet)', () => {
   it('revertInFlightView clears transition inline styles on active view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      resolve: async () => '<span>page</span>',
+      loadView: async () => '<span>page</span>',
     });
 
     await controller.render(matched('/page'));
@@ -190,7 +190,7 @@ describe('view flow (controller → outlet)', () => {
   it('onUnmount during stage removes staged view and unmounts the leaving route view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      resolve: async (routeInfo) =>
+      loadView: async (routeInfo) =>
         routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
     }, '/', true);
 
@@ -205,7 +205,7 @@ describe('view flow (controller → outlet)', () => {
   it('onUnmount clears a committed single view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      resolve: async () => '<span>page</span>',
+      loadView: async () => '<span>page</span>',
     });
 
     await controller.render(matched('/page'));

@@ -85,7 +85,7 @@ export { isCatchAllRoute } from './core/match/url-matcher';
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';
 
-// --- Content graph (view payloads: resolve, prefetch, payload cache) ---
+// --- Content graph (view payloads: load, prefetch, payload cache) ---
 
 export {
   ContentGraph,
@@ -112,7 +112,7 @@ export type {
   ContentGraphDeps,
   ContentPrefetchOptions,
   ContentInvalidateOptions,
-  ContentResolvePort,
+  ContentLoadPort,
   ContentResult,
   RouteContentSource,
   LoaderClass,

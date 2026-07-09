@@ -15,8 +15,7 @@ export type RenderPass = {
   /** Load-hook payload from DataGraph snapshot. */
   readonly data?: unknown;
   /**
-   * Pre-fetched view payload from branch resolve.
-   * When set, skips {@link ContentResolverPort.resolve} and mounts directly.
+   * When set, skips {@link ContentResolverPort.loadView} and mounts directly.
    */
   readonly preResolvedContent?: ViewPayload | null;
 };
@@ -43,9 +42,9 @@ export interface ViewCachePort {
   put(key: string, root: ViewRoot): void;
 }
 
-/** Async layout template / loader. */
+/** Async layout template / view loader. */
 export interface ContentResolverPort {
-  resolve(
+  loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     options?: { data?: unknown },

@@ -1,4 +1,4 @@
-import { UrlLoader, toViewPayload } from '../../core/content-graph';
+import { UrlLoader } from '../../core/content-graph';
 import type { LoadContext } from '../../core/content-graph';
 
 const FULL_PAGE = `<!DOCTYPE html><html><body><main id="main"><p>Fragment</p></main></body></html>`;
@@ -24,16 +24,17 @@ function loadCtx(extract?: string): LoadContext {
 describe('UrlLoader extract', () => {
   it('returns full response when extract is omitted', async () => {
     const result = await urlLoader().load(loadCtx());
-    const html = toViewPayload(result);
 
-    expect(html).toContain('<main id="main">');
-    expect(html).toContain('<html>');
+    expect(result).toEqual({
+      kind: 'html',
+      html: expect.stringContaining('<main id="main">'),
+    });
+    expect(result?.kind === 'html' ? result.html : '').toContain('<html>');
   });
 
   it('returns fragment when extract selector is set', async () => {
     const result = await urlLoader().load(loadCtx('#main'));
-    const fragment = toViewPayload(result);
 
-    expect(fragment).toBe('<p>Fragment</p>');
+    expect(result).toEqual({ kind: 'html', html: '<p>Fragment</p>' });
   });
 });

@@ -35,3 +35,9 @@ export type ContentEnvironment = {
   readonly resolveUrl: (ref: string) => string;
   readonly isSSR: boolean;
 };
+
+/** Loader output before adaptation to {@link ViewPayload}. */
+export type ContentResult =
+  | { readonly kind: 'html'; readonly html: string }
+  | { readonly kind: 'fragment'; readonly node: DocumentFragment }
+  | { readonly kind: 'markup'; readonly markup: string };

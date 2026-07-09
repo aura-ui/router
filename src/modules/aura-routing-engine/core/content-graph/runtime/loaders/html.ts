@@ -3,7 +3,6 @@ import { Loader } from '../loader';
 
 export class HtmlLoader extends Loader {
   static readonly type = 'html' as const satisfies LoaderType;
-
   readonly type = HtmlLoader.type;
 
   load(ctx: LoadContext): Promise<ContentResult | null> {

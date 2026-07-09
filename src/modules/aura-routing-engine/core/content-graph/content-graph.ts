@@ -19,14 +19,6 @@ const DEFAULT_PREFETCH: Required<ContentPrefetchOptions> = {
   order: 'root-first',
 };
 
-/** Reorders a matched chain for prefetch (`root-first` | `leaf-first`). */
-function orderPrefetchChain<T>(
-  chain: readonly T[],
-  order: ContentPrefetchOptions['order'] = DEFAULT_PREFETCH.order,
-): readonly T[] {
-  return order === 'leaf-first' ? [...chain].reverse() : chain;
-}
-
 export type RouteContentSource = {
   readonly layout: string;
   readonly preserve: { readonly view: boolean };
@@ -43,10 +35,6 @@ export type ContentGraphDeps = {
   readonly cache: PayloadCache;
 };
 
-/**
- * View content coordinator: load, prefetch, payload cache invalidation.
- * Load-hook data stays in {@link DataGraph}; detached DOM in route ViewCache.
- */
 export class ContentGraph {
   private readonly registry: LoaderRegistry;
   private readonly cache: PayloadCache;
@@ -65,12 +53,9 @@ export class ContentGraph {
       routeInfo.route as RouteContentSource,
       routeInfo.resolvedView,
     );
-
-    if (!descriptor) {
-      return Promise.resolve(null);
-    }
-
-    return this.loadViewDescriptor(descriptor, routeInfo, signal, options?.data);
+    return descriptor
+      ? this.loadViewDescriptor(descriptor, routeInfo, signal, options?.data)
+      : Promise.resolve(null);
   }
 
   loadViewDescriptor(
@@ -82,9 +67,9 @@ export class ContentGraph {
     if (signal.aborted) return Promise.resolve(null);
 
     const load = () => this.loadViewPayload(descriptor, routeInfo, signal, data);
-    if (!descriptor.cache) return load();
-
-    return this.cache.resolve(payloadCacheKey(descriptor, routeInfo, { data }), load);
+    return descriptor.cache
+      ? this.cache.resolve(payloadCacheKey(descriptor, routeInfo, { data }), load)
+      : load();
   }
 
   async prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
@@ -101,8 +86,7 @@ export class ContentGraph {
     options: ContentPrefetchOptions = {},
   ): Promise<void> {
     const { concurrency, order } = { ...DEFAULT_PREFETCH, ...options };
-    const ordered = orderPrefetchChain(chain, order);
-
+    const ordered = order === 'leaf-first' ? [...chain].reverse() : chain;
     return runConcurrent(ordered, concurrency, (info) => this.prefetchNode(info, signal), signal);
   }
 
@@ -131,56 +115,32 @@ export class ContentGraph {
     if (signal.aborted) return null;
 
     try {
-      const ctx = ContentGraph.buildLoadContext(routeInfo, descriptor, signal, data);
-      const result = await this.registry.get(descriptor.loader).load(ctx);
+      const result = await this.registry.get(descriptor.loader).load(
+        ContentGraph.buildLoadContext(routeInfo, descriptor, signal, data),
+      );
       if (!result) return null;
-
-      switch (result.kind) {
-        case 'html':
-          return result.html;
-        case 'markup':
-          return result.markup;
-        case 'fragment':
-          return result.node;
-      }
+      return result.kind === 'html' ? result.html : result.kind === 'markup' ? result.markup : result.node;
     } catch (error: unknown) {
       if (signal.aborted) return null;
       throw createContentLoadError(descriptor.loader, routeInfo.pattern, error);
     }
   }
 
-  private static layoutDescriptor(ref: string): ContentDescriptor {
-    return { kind: 'layout', loader: 'template', ref, cache: false };
-  }
-
-  private static contentDescriptor(
-    view: ResolvedView,
-    preserveView: boolean,
-    extract?: string | null,
-  ): ContentDescriptor {
-    const base: ContentDescriptor = {
-      kind: 'content',
-      loader: view.type,
-      ref: view.ref,
-      cache: preserveView,
-    };
-
-    if (view.type === 'url' && extract) {
-      return { ...base, extract };
-    }
-
-    return base;
-  }
-
-  /** Maps route attrs + parsed view to a cacheable content descriptor. */
   private static buildContentDescriptor(
     route: RouteContentSource,
     resolvedView: ResolvedView | null | undefined,
   ): ContentDescriptor | null {
     const layout = route.layout.trim();
-    if (layout) return this.layoutDescriptor(layout);
+    if (layout) return { kind: 'layout', loader: 'template', ref: layout, cache: false };
     if (!resolvedView?.type) return null;
-    return this.contentDescriptor(resolvedView, route.preserve.view, route.extract);
+
+    const descriptor: ContentDescriptor = {
+      kind: 'content',
+      loader: resolvedView.type,
+      ref: resolvedView.ref,
+      cache: route.preserve.view,
+    };
+    return resolvedView.type === 'url' && route.extract ? { ...descriptor, extract: route.extract } : descriptor;
   }
 
   private static buildLoadContext(

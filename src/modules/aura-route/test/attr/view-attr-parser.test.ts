@@ -76,4 +76,22 @@ describe('parseViewAttr', () => {
     );
     warn.mockRestore();
   });
+
+  it('warns when component ref has no hyphen', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    parseViewAttr('component::div');
+
+    expect(warn).toHaveBeenCalledWith('view="component::div" — custom element ref must contain "-"');
+    warn.mockRestore();
+  });
+
+  it('does not warn for hyphenated component refs', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    parseViewAttr('component::user-card');
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
 });

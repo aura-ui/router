@@ -30,9 +30,8 @@ content-graph/
 │   └── cache-key.ts      # stable payload cache keys
 └── runtime/
     ├── markup.ts         # routeSnapshot, componentMarkup
+    ├── registry.ts       # LoaderRegistry + default built-in set
     ├── loader.ts         # abstract Loader, FnLoader
-    ├── registry.ts       # LoaderRegistry
-    ├── manifest.ts       # built-in loader list
     ├── environment.ts    # fetchText, createBrowserEnvironment
     └── loaders/          # template, html, url, component, import, iframe
 ```

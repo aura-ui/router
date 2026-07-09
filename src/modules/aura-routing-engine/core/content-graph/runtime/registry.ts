@@ -1,8 +1,26 @@
 import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-parser';
 import type { ContentEnvironment, LoadContext, ViewPayload } from '../types';
-import { Loader, FnLoader } from './loader';
-import { createDefaultLoaders } from './manifest';
+import { Loader, FnLoader, type LoaderClass } from './loader';
 import { createBrowserEnvironment, defaultEnvironment } from './environment';
+import { ComponentLoader } from './loaders/component';
+import { HtmlLoader } from './loaders/html';
+import { IframeLoader } from './loaders/iframe';
+import { ImportLoader } from './loaders/import';
+import { TemplateLoader } from './loaders/template';
+import { UrlLoader } from './loaders/url';
+
+const BUILTIN_LOADER_CLASSES = [
+  TemplateLoader,
+  HtmlLoader,
+  UrlLoader,
+  ComponentLoader,
+  ImportLoader,
+  IframeLoader,
+] as const satisfies readonly LoaderClass[];
+
+function createDefaultLoaders(env: ContentEnvironment): Loader[] {
+  return BUILTIN_LOADER_CLASSES.map((LoaderClass) => new LoaderClass(env));
+}
 
 export class LoaderRegistry {
   private readonly env: ContentEnvironment;

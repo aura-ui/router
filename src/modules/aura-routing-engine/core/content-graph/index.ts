@@ -47,17 +47,12 @@ export {
   defaultLoaderRegistry,
 } from './runtime/registry';
 
-export {
-  BUILTIN_LOADER_CLASSES,
-  createDefaultLoaders,
-  getBuiltinLoaderTypeIds,
-  TemplateLoader,
-  HtmlLoader,
-  UrlLoader,
-  ComponentLoader,
-  ImportLoader,
-  IframeLoader,
-} from './runtime/manifest';
+export { TemplateLoader } from './runtime/loaders/template';
+export { HtmlLoader } from './runtime/loaders/html';
+export { UrlLoader } from './runtime/loaders/url';
+export { ComponentLoader } from './runtime/loaders/component';
+export { ImportLoader } from './runtime/loaders/import';
+export { IframeLoader } from './runtime/loaders/iframe';
 
 export {
   createBrowserEnvironment,

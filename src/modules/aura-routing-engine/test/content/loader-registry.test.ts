@@ -2,7 +2,6 @@ import {
   LoaderRegistry,
   BUILTIN_LOADER_TYPES,
   createLoaderRegistry,
-  getBuiltinLoaderTypeIds,
   HtmlLoader,
 } from '../../core/content-graph';
 
@@ -71,10 +70,6 @@ describe('LoaderRegistry', () => {
       route: { href: '/', pattern: '/' },
     });
     expect(payload).toEqual({ kind: 'html', html: '<class-probe/>' });
-  });
-
-  it('built-in loader order matches BUILTIN_LOADER_TYPES', () => {
-    expect(getBuiltinLoaderTypeIds()).toEqual([...BUILTIN_LOADER_TYPES]);
   });
 
   it('createLoaderRegistry() uses custom transport with built-ins', async () => {

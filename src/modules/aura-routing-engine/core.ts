@@ -95,8 +95,6 @@ export {
   LoaderRegistry,
   createLoaderRegistry,
   defaultLoaderRegistry,
-  createDefaultLoaders,
-  getBuiltinLoaderTypeIds,
   TemplateLoader,
   HtmlLoader,
   UrlLoader,

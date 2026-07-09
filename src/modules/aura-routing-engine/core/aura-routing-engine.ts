@@ -44,7 +44,7 @@ import { syncChainHref } from './route-tree/matched-chain';
 import { LinkNavigationTracker } from './user-actions/link-navigation';
 import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
 import { DataGraph } from './data-graph';
-import type { RouterInvalidateOptions } from './invalidate';
+import type { InvalidateScope, RouterInvalidateOptions } from './invalidate';
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
 import type { TransactionResult } from './navigation/types';
@@ -164,9 +164,7 @@ export class AuraRoutingEngine {
     return count;
   }
 
-  private resetPrefetchRecords(
-    options: Pick<RouterInvalidateOptions, 'key' | 'path' | 'match'>,
-  ): void {
+  private resetPrefetchRecords(options: InvalidateScope): void {
     if (!this.prefetchPipeline) return;
 
     if (options.path) {

@@ -1,5 +1,5 @@
 import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-parser';
-import type { ContentEnvironment, LoadContext, ViewPayload } from '../types';
+import type { ContentEnvironment, LoaderFn } from '../types';
 import { Loader, FnLoader, type LoaderClass } from './loader';
 import { createBrowserEnvironment, defaultEnvironment } from './environment';
 import { ComponentLoader } from './loaders/component';
@@ -9,7 +9,7 @@ import { ImportLoader } from './loaders/import';
 import { TemplateLoader } from './loaders/template';
 import { UrlLoader } from './loaders/url';
 
-const BUILTIN_LOADER_CLASSES = [
+const BUILTIN = [
   TemplateLoader,
   HtmlLoader,
   UrlLoader,
@@ -18,48 +18,32 @@ const BUILTIN_LOADER_CLASSES = [
   IframeLoader,
 ] as const satisfies readonly LoaderClass[];
 
-function createDefaultLoaders(env: ContentEnvironment): Loader[] {
-  return BUILTIN_LOADER_CLASSES.map((LoaderClass) => new LoaderClass(env));
-}
-
 export class LoaderRegistry {
   private readonly env: ContentEnvironment;
   private readonly loaders = new Map<string, Loader>();
 
   constructor(
     env: ContentEnvironment = defaultEnvironment,
-    loaders: readonly Loader[] = createDefaultLoaders(env),
+    loaders: readonly Loader[] = BUILTIN.map((C) => new C(env)),
   ) {
     this.env = env;
-    for (const loader of loaders) {
-      this.set(loader);
+    loaders.forEach((loader) => this.install(loader));
+  }
+
+  register(loader: Loader): void;
+  register(loaderClass: LoaderClass): void;
+  register(type: LoaderType, fn: LoaderFn): void;
+  register(typeOrLoader: LoaderType | Loader | LoaderClass, fn?: LoaderFn): void {
+    if (typeof typeOrLoader === 'string') {
+      if (!fn) throw new TypeError(`register("${typeOrLoader}") requires a loader function`);
+      return this.install(new FnLoader(this.env, typeOrLoader, fn));
     }
-  }
-
-  register(loader: Loader): void {
-    this.set(loader);
-  }
-
-  registerFn(
-    type: LoaderType,
-    run: (ctx: LoadContext) => Promise<ViewPayload | null>,
-  ): void {
-    this.set(
-      new FnLoader(this.env, type, async (ctx) => {
-        const payload = await run(ctx);
-        if (payload == null) return null;
-        if (typeof payload === 'string') return { kind: 'html', html: payload };
-        return { kind: 'fragment', node: payload as DocumentFragment };
-      }),
-    );
-  }
-
-  /** @deprecated Use {@link registerFn}. */
-  registerViewFn(
-    type: LoaderType,
-    run: (ctx: LoadContext) => Promise<ViewPayload | null>,
-  ): void {
-    this.registerFn(type, run);
+    if (fn) throw new TypeError('register(loader) accepts a single argument');
+    if (typeof typeOrLoader === 'function') {
+      if (typeof typeOrLoader.type !== 'string') throw new TypeError('register(fn) is invalid — use register(type, fn)');
+      return this.install(new typeOrLoader(this.env));
+    }
+    this.install(typeOrLoader);
   }
 
   has(type: LoaderType): boolean {
@@ -69,8 +53,7 @@ export class LoaderRegistry {
   get(type: LoaderType): Loader {
     const loader = this.loaders.get(type);
     if (!loader) {
-      const known = [...this.loaders.keys()].join(', ') || 'none';
-      throw new Error(`Unknown content loader "${type}". Registered: ${known}`);
+      throw new Error(`Unknown content loader "${type}". Registered: ${[...this.loaders.keys()].join(', ') || 'none'}`);
     }
     return loader;
   }
@@ -79,10 +62,8 @@ export class LoaderRegistry {
     return this.env;
   }
 
-  private set(loader: Loader): void {
-    if (this.loaders.has(loader.type)) {
-      console.warn(`Content loader "${loader.type}" is already registered — overwriting`);
-    }
+  private install(loader: Loader): void {
+    this.loaders.has(loader.type) && console.warn(`Content loader "${loader.type}" is already registered — overwriting`);
     this.loaders.set(loader.type, loader);
   }
 }

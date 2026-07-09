@@ -144,7 +144,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   /** Registers a custom content loader on the shared {@link defaultLoaderRegistry}. */
   static registerLoader(type: LoaderType, loader: LoaderFn): void {
-    defaultLoaderRegistry.registerFn(type, loader);
+    defaultLoaderRegistry.register(type, loader);
   }
 
   /** Per-instance override (перекрывает configure и template). Только fallback. */

@@ -59,7 +59,7 @@ describe('view attr end-to-end', () => {
   });
 
   it('uses custom loader registered on defaultLoaderRegistry', async () => {
-    defaultLoaderRegistry.registerFn('integration-custom', async () => 'custom payload');
+    defaultLoaderRegistry.register('integration-custom', async () => 'custom payload');
 
     const router = mountRouter(`
       <aura-router>

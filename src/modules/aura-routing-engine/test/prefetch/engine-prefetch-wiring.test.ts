@@ -13,7 +13,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
   it('prefetch loads content for matched branch via registry descriptors', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.registerFn('html', async () => {
+    registry.register('html', async () => {
       loads++;
       return '<span>about</span>';
     });
@@ -34,7 +34,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
   it('disables prefetch when config.prefetch is false', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.registerFn('html', async () => {
+    registry.register('html', async () => {
       loads++;
       return 'x';
     });

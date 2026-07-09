@@ -207,6 +207,50 @@ describe('ViewGraph', () => {
     ]);
   });
 
+  it('prefetchBranch respects leaf-first order', async () => {
+    const order: string[] = [];
+    registry.register('html', async (ctx) => {
+      order.push(`start:${ctx.route.pattern}`);
+      await new Promise((r) => setTimeout(r, 10));
+      order.push(`end:${ctx.route.pattern}`);
+      return ctx.ref;
+    });
+
+    const parent = matched('/users', {
+      resolvedView: { type: 'html', ref: 'parent' },
+    });
+    const child = matched('/users/1', {
+      pattern: '/users/:id',
+      resolvedView: { type: 'html', ref: 'child' },
+    });
+
+    await viewGraph.prefetchBranch([parent, child], new AbortController().signal, {
+      concurrency: 1,
+      order: 'leaf-first',
+    });
+
+    expect(order).toEqual([
+      'start:/users/:id',
+      'end:/users/:id',
+      'start:/users',
+      'end:/users',
+    ]);
+  });
+
+  it('returns null when loader throws after signal abort', async () => {
+    const controller = new AbortController();
+    registry.register('html', async () => {
+      controller.abort();
+      throw new Error('late fail');
+    });
+
+    const route = matched('/abort-on-error', {
+      resolvedView: { type: 'html', ref: 'x' },
+    });
+
+    await expect(viewGraph.loadView(route, controller.signal)).resolves.toBeNull();
+  });
+
   it('prefetchLeaf prefetches the active chain', async () => {
     let loads = 0;
     registry.register('html', async () => {

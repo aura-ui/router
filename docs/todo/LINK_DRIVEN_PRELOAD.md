@@ -1,4 +1,4 @@
-﻿# TODO: Link-driven preload + router-owned data cache
+# TODO: Link-driven preload + router-owned data cache
 
 > **Статус:** стратегия принята; **core реализован** — см. [../PREFETCH_ARCHITECTURE.md](../PREFETCH_ARCHITECTURE.md)  
 > **Связь:** [CONTENT_CACHE.md](./CONTENT_CACHE.md) · [CONTENT_RESOLVER_ARCHITECTURE.md](./CONTENT_RESOLVER_ARCHITECTURE.md) · [DATAGRAPH.md](./DATAGRAPH.md)  
@@ -56,8 +56,8 @@ Per-route объявляет **что** грузить (`source`, `content`, loa
 | **Prefetch / preload** | загрузка content (и опционально data) **до** commit navigation |
 | **Intent** | сигнал «скорее всего перейдём»: hover, focus, touchstart, viewport |
 | **Match chain** | ветка route tree для href: `[settings, profile]` |
-| **Data cache** | HTML string / payload loaders; ключ `dataCacheKey` |
-| **View cache** | keep-alive DOM (`ViewCache`) — **отдельно**, не этот документ |
+| **View cache** | HTML string / payload loaders; ключ `viewCacheKey` |
+| **View cache** | keep-alive DOM (`RouteDomCache`) — **отдельно**, не этот документ |
 | **DataGraph** | кэш `load` hooks (JSON) — **отдельно**, координация в [DATAGRAPH.md](./DATAGRAPH.md) |
 
 ---
@@ -112,7 +112,7 @@ sequenceDiagram
                            │
          ┌─────────────────┼─────────────────┐
          ▼                 ▼                 ▼
-   RouteContentLoader   DataGraph        ViewCache
+   RouteContentLoader   DataGraph        RouteDomCache
    (per-route WHAT)     (load hooks)     (keep-alive DOM)
 ```
 
@@ -163,7 +163,7 @@ defaultPrefetchDelay: 50
 ### Принципы
 
 1. **Один `DataCache` на router instance** — не `defaultDataCache` singleton ([CONTENT_RESOLVER_ARCHITECTURE.md](./CONTENT_RESOLVER_ARCHITECTURE.md) аудит #1).
-2. **Один ключ для prefetch и navigation** — `dataCacheKey(descriptor, routeInfo)`:
+2. **Один ключ для prefetch и navigation** — `viewCacheKey(descriptor, routeInfo)`:
    - base: `routeInfo.pathname` (конкретный URL с params)
    - fallback: `routeInfo.pattern` (только если pathname нет)
 3. **In-flight dedupe** — два hover на `/users/42` → один fetch (`DataCache.resolve`).
@@ -353,7 +353,9 @@ interface AuraRouter {
   preload(href: string, options?: PreloadOptions): Promise<void>;
 
   configure(options: {
-    dataCache?: CacheStoreOptions;
+    viewCache?: CacheStoreOptions;
+    dataCache?: DataGraphOptions;
+    domCache?: CacheStoreOptions;
     defaultPrefetch?: PrefetchMode;
     defaultPrefetchDelay?: number;
     preloadStaleTime?: number;
@@ -389,7 +391,7 @@ content.preload(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void>
 |------|--------|
 | `<aura-route preload>` | `data-prefetch` на ссылках или router default |
 | `route.preload` в `connectedCallback` | убрать / no-op + dev warning |
-| `defaultDataCache` global | `router.dataCache` DI в `RouteContentLoader` |
+| `ViewPayloadCache` on router | `ViewGraph` + `configure({ viewCache })` |
 
 ---
 

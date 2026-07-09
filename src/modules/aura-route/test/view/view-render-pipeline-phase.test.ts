@@ -1,10 +1,10 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_PRESERVE } from '../../../aura-routing-engine/core';
+import { NO_CACHE } from '../../../aura-routing-engine/core';
 import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 import type { AuraRouteInterface } from '../../core/types';
 import { ViewContext } from '../../core/view/view-context';
 import { ViewRenderPipelinePhase } from '../../core/view/view-render-pipeline-phase';
-import { defaultViewCache } from '../../core/view/view-cache';
+import { defaultDomCache } from '../../core/view/dom-cache';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
@@ -23,7 +23,7 @@ function renderPass(id = 1): import('../../core/view/types').RenderPass {
       pattern: '/err',
     } as MatchedRouteInfo,
     signal: new AbortController().signal,
-    cacheKey: '/err',
+    domCacheKey: '/err',
     viewKind: 'view',
     useStagedMount: false,
   };
@@ -42,13 +42,13 @@ function createPhase(
         view: '',
         loadingTemplate: '',
         errorTemplate: '',
-        preserve: NO_PRESERVE,
+        cache: NO_CACHE,
         scrollPolicy: null,
         transition: { order: null, in: null, out: null },
         ...route,
       } as AuraRouteInterface,
       view: { loadView: async () => null },
-      cache: defaultViewCache,
+      cache: defaultDomCache,
       mountTarget: {
         appOutlet: () => root,
         nestedOutlet: () => null,

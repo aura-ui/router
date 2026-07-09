@@ -34,7 +34,7 @@ See [LIMITATIONS.md](../../LIMITATIONS.md) · [CHANGELOG.md](../../CHANGELOG.md)
 Demo already covers (see `index.html`):
 
 - [x] Nested layout (`/routing/users` + `users-layout`)
-- [x] `enter="auth"` + `load="user-stats"` + `preserve="data"`
+- [x] `enter="auth"` + `load="user-stats"` + `cache="data"`
 - [x] Prefetch `prefetch="intent"`
 - [x] Catch-all 404
 - [ ] Document invalidate flow in demo or story (optional polish)

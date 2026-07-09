@@ -1,4 +1,4 @@
-﻿# Route API v3 — путь к public API из README
+# Route API v3 — путь к public API из README
 
 > **Эталон:** [README.md](../../README.md) — единственный источник целевых имён и примеров.  
 > **Этот документ:** зачем менять, as-is в коде → README, задачи реализации.  
@@ -15,13 +15,13 @@
 | **`view` + парсер** | ✅ `parseViewAttr` → `resolvedView` → `ViewGraph.buildViewDescriptor` |
 | **Loaders v3** | ✅ `url`, `html`, `template`, `component`, `import`, `iframe` в `view-graph` |
 | **`extract`** | ✅ attr + inherit router → route + `UrlLoader` |
-| **`preserve`** | ✅ attr + wiring (view / data / all) |
+| **`cache`** | ✅ attr + wiring (`dom` / `view` / `data` / `screen` / `all` / `off`) |
 | **Lifecycle v3 attrs** | ✅ `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error` на `<aura-route>` |
 | **Transitions** | ✅ `transition`, `transition-order`, `transition-in` / `out` + inherit |
 | **Templates / scroll inherit** | ✅ `loading-template`, `error-template`, `scroll` |
 | **Старые attrs v2** | ✅ `source`, `data-content`, `keep-alive`, `cache`, `enter`, `after`, `left`, `reenter` **удалены** с route |
 | **`component` validation** | ✅ warn если ref без `-`; throw если CE не зарегистрирован |
-| **`detach` / `destroy` / `restore` attrs** | ⬜ отдельные attrs; поведение через `preserve` + `unmount` / `ready` |
+| **`detach` / `destroy` / `restore` attrs** | ⬜ отдельные attrs; поведение через `cache.dom` + `unmount` / `ready` |
 
 ---
 
@@ -35,7 +35,7 @@
 |--------|---------------|----------|
 | Контент | `path`, `layout`, `source`, `content` | Два атрибута на одну мысль; `layout` и `content` взаимоисключающи, но выглядят равноправно |
 | Lifecycle | `enter`, `load`, `entered`, `leave`, `left`, `reenter`, `transition-in`, `transition-out`, `error` | 9 фаз — нужно помнить порядок pipeline |
-| Поведение | `keep-alive`, `cache` | Два вида кэша с неочевидными именами (`preserve` в v3) |
+| Поведение | `keep-alive`, `cache` (v2) | Три вида кэша в одном attr `cache` (v3) |
 | Шаблоны | `loading-template`, `error-template` | Дублируют router; на route почти не нужны |
 
 ---
@@ -55,12 +55,12 @@
 Сводка — без дублирования таблиц; полный справочник в [README § `<aura-route>` attributes](../../README.md#aura-route-attributes).
 
 ```text
-Route:        path | layout | view | preserve
+Route:        path | layout | view | cache
 View loaders: html | url | template | component | import | iframe
 Lifecycle:    leave | guard | load | ready
 Advanced:     unmount | update | error
 Presentation: transition | transition-in | transition-out | transition-order
-Preserve+:    detach | destroy | restore   (super advanced, с preserve)
+Preserve+:    detach | destroy | restore   (super advanced, с cache.dom)
 ```
 
 ---
@@ -249,27 +249,39 @@ leave | guard | load | ready
 | **`transition-order`** | `out-in` \| `in-out` \| `parallel` |
 | **`transition`** | Shortcut: `transition="fade"` → in + out |
 
-#### Super advanced (`preserve`)
+#### Super advanced (`cache.dom`)
 
-С `preserve` на route: **`detach`**, **`destroy`** (leave), **`restore`** (reattach из cache).  
-Фаза 1: ✅ `ctx.teardown` / `ctx.restored` на `unmount` / `ready` (через pipeline + ViewCache); отдельные attrs — ⬜.
+С `cache="dom"` или `cache="screen"` на route: **`detach`**, **`destroy`** (leave), **`restore`** (reattach из cache).  
+Фаза 1: ✅ `ctx.teardown` / `ctx.restored` на `unmount` / `ready` (через pipeline + RouteDomCache); отдельные attrs — ⬜.
 
 ---
 
-### Поведение: один атрибут вместо трёх
+### Поведение: один атрибут вместо трёх (v2)
 
-| Было | Стало |
+| Было (v2) | Стало (v3) |
 |------|-------|
-| `keep-alive` | **`preserve`** |
-| `cache` | **`preserve="data"`** |
-| оба | **`preserve="all"`** |
+| `keep-alive` | **`cache="dom"`** или **`cache="screen"`** |
+| `cache` (v2 data) | **`cache="data"`** |
+| оба | **`cache="all"`** |
 
 ```html
-<aura-route path="/editor" view="component::editor" preserve />
-<aura-route path="/feed" view="feed.html" preserve="data" />
+<aura-route path="/editor" view="component::editor" cache="screen" />
+<aura-route path="/feed" view="feed.html" cache="data" />
+<aura-route path="/tabs/a" view="a.html" cache="dom" />
 ```
 
-Одна ось: *что сохраняем при уходе* — DOM, payload или всё.
+| `cache` | DOM (`RouteDomCache`) | Loader payload | Load hooks | Notes |
+|---------|-----------------|----------------|------------|-------|
+| `dom` | ✓ | | | |
+| `view` | | ✓ | | |
+| `data` | | | ✓ | |
+| `screen` | ✓ | ✓ | | |
+| `all` | ✓ | ✓ | ✓ | |
+| `off` | | | | opt-out (overrides inherit) |
+| *(absent)* | | | | inherits ancestor |
+| `cache` / `cache=""` | ✓ | ✓ | | (= `screen`) |
+
+Одна ось: *что сохраняем при уходе* — DOM, loader payload, load data или комбинация.
 
 **Убрать с route:**
 
@@ -358,7 +370,7 @@ leave | guard | load | ready
   load="fetch-user"
   ready="analytics"
   leave="confirm"
-  preserve="all"
+  cache="all"
 />
 ```
 
@@ -372,7 +384,7 @@ leave | guard | load | ready
 1. Куда?  → path
 2. Что?   → layout | view (html | url | template | component | import | iframe)
 3. Когда? → leave | guard | load | ready
-4. Долго? → preserve (+ detach/restore при keep-alive)
+4. Долго? → cache (+ detach/restore при dom keep-alive)
 ```
 
 ---
@@ -404,8 +416,8 @@ leave | guard | load | ready
 
 | v2 (удалено) | v3 (код) | Статус |
 |-------------|----------|--------|
-| `keep-alive` | `preserve` | ✅ |
-| `cache` | `preserve="data"` | ✅ |
+| `keep-alive` | `cache="dom"` / `cache="screen"` | ✅ |
+| `cache` (v2) | `cache="data"` | ✅ |
 | `restore-scroll` | `scroll` на router/route | ✅ |
 | `transition-in` / `out` | `transition` или attrs `transition-*` | ✅ |
 
@@ -416,7 +428,7 @@ leave | guard | load | ready
 | Идея | Почему нет |
 |------|------------|
 | `preload` на route | link intent + `router.prefetch()` — уже принятая стратегия |
-| `keep-alive` / `cache` как alias для `preserve` | breaking rename; v2 attrs удалены |
+| `keep-alive` / v2 `cache` как alias | breaking rename; v2 attrs удалены; v3 `cache` с режимами |
 | `hooks` attr (`phase::hook`) | не актуально; per-phase attrs + `AuraRouter.use()` |
 | `hooks="auth,analytics"` без фазы | магия: непонятно, когда сработает |
 | `before` / `on` вместо `guard` / `ready` | целевые имена зафиксированы в [LIFECYCLE_PHASE_NAMING.md](./LIFECYCLE_PHASE_NAMING.md) |
@@ -433,7 +445,7 @@ leave | guard | load | ready
 | Attrs в шпаргалке «запомни» | ~18 | ~7–8 | **−55%** |
 | Attrs на типичном route (80%) | 5–7 | 3–4 | **−40%** |
 | Attrs на «тяжёлом» route | 10–12 | 5–7 | **−45%** |
-| Концепций кэша в голове | 2 (`keep-alive` + `cache`) | 1 (`preserve`) | **−50%** |
+| Концепций кэша в голове | 2 (`keep-alive` + `cache`) | 1 attr `cache`, 3 слоя | **−50%** |
 | Lifecycle attrs для 95% кейсов | 9 | 4 (`leave`, `guard`, `load`, `ready`) | **−55%** |
 | Пар attrs «всегда вместе» | `source` + `content` | 0 | **−100%** |
 
@@ -483,7 +495,7 @@ leave | guard | load | ready
 > **✅ — готово** · **⬜ — осталось** · **🟡 — частично**  
 > Сверка: **2026-07-10** · код: `src/modules/aura-route/`, `src/modules/aura-routing-engine/core/view-graph/`
 
-### Фаза 1 — view + preserve
+### Фаза 1 — view + cache
 
 - ✅ Парсер `view` → `parseViewAttr` → `resolvedView` → `ViewGraph.buildViewDescriptor`
 - ✅ Loaders: `url`, `html`, `template`, `component`, `import`, `iframe` (`view-graph/registry.ts`)
@@ -491,8 +503,8 @@ leave | guard | load | ready
 - ✅ Attr **`extract`** (CSS selector, inherit router → route) + `UrlLoader` fragment extract
 - ✅ `component` validation — warn без `-` при parse; throw если CE не зарегистрирован
 - ✅ Builtin **`iframe`** (`IframeLoader`)
-- ✅ `preserve` attr + wiring (`preserve-attr-parser.ts`, ViewCache / DataGraph)
-- ✅ Удалены v2 attrs: `source`, `data-content`, `keep-alive`, `cache`
+- ✅ `cache` attr + wiring (`cache-attr-parser.ts`, `RouteDomCache` / `ViewPayloadCache` / `DataGraph`)
+- ✅ Удалены v2 attrs: `source`, `data-content`, `keep-alive`, v2 `cache`
 
 ### Фаза 2 — lifecycle rename
 
@@ -515,8 +527,8 @@ leave | guard | load | ready
 | `after` / `entered` | `ready` |
 | `left` | `unmount` |
 | `reenter` | `update` |
-| `keep-alive` | `preserve` |
-| `cache` | `preserve="data"` |
+| `keep-alive` | `cache="dom"` / `cache="screen"` |
+| `cache` (v2) | `cache="data"` |
 | `source` + `data-content` | `view` |
 
 ### Тесты (актуальные пути)
@@ -524,7 +536,7 @@ leave | guard | load | ready
 - ✅ `view` parser — `aura-route/test/attr/view-attr-parser.test.ts`
 - ✅ descriptor / extract — `aura-routing-engine/test/view-graph/view-graph.test.ts`, `view-graph/loaders/url.test.ts`
 - ✅ loaders — `view-graph/loaders/{html,component,import,iframe,template,url}.test.ts`
-- ✅ `preserve` — `aura-route/test/preserve.test.ts`, `attr/preserve-attr-parser.test.ts`
+- ✅ `cache` — `aura-route/test/cache.test.ts`, `attr/cache-attr-parser.test.ts`
 - ✅ inherit — `lifecycle-inherit.test.ts`, `extract-inherit.test.ts`, `template-inherit.test.ts`, `scroll-inherit.test.ts`
 - ✅ transitions — `aura-route/test/aura-route.test.ts`, `attr/transition-*.test.ts`
 - ✅ Pipeline phases v3 — `navigation-transaction-pipeline*.test.ts`, `param-change-lifecycle.test.ts`, `phase-registry.test.ts`

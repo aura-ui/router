@@ -183,7 +183,7 @@ Nest `<aura-route>` elements to build a route tree. A parent with `layout` rende
 | `view` | What to render: `page.html` (→ `url`) or `loader::content` (e.g. `html::…`, `import::…`) |
 | `extract` | CSS selector to extract a fragment from a full HTML page; inherits from router/parent |
 | `layout` | Nested shell — parent route with `<template id="…">`, children render in its outlet |
-| `preserve` | Keep on leave: `preserve` or `preserve="view"` (DOM), `preserve="data"` (load cache), `preserve="all"` |
+| `cache` | Keep on leave: `dom`, `view`, `data`, `screen` (dom + view), `all`; bare `cache` / `cache=""` → `screen`; `cache="off"` opts out of inherited cache |
 
 Hooks on a parent run for every child navigation inside that branch (with inheritance — see [Router defaults](#router-defaults)).
 
@@ -221,7 +221,7 @@ AuraRouter.use(authHook);
 | `update` | Same route leaf; query, hash or params may change (shortcut) | no |
 | `error` | Navigation or render failure | terminal |
 
-With `preserve` on the route, optional teardown hooks: `detach`, `destroy` (on leave) and `restore` (reattach from view cache on enter).
+With `cache="dom"` or `cache="screen"` on the route, optional teardown hooks: `detach`, `destroy` (on leave) and `restore` (reattach from view cache on enter).
 
 ### Presentation
 
@@ -248,7 +248,7 @@ With `preserve` on the route, optional teardown hooks: `detach`, `destroy` (on l
     path="/settings"
     view="component::settings-page"
     leave="confirm-unsaved"
-    preserve
+    cache="screen"
   />
 </aura-router>
 ```
@@ -291,12 +291,16 @@ import { AuraRouter } from '@aura-ui-web/router';
 // Register global hooks
 AuraRouter.use(myHook, { /* hook options */ });
 
-// Global config
+// Global config — aligns with route `cache` attr: dom / view / data
 AuraRouter.configure({
   notFoundHandler: (url) => { /* … */ },
-  dataCache: { max: 50 },
-  viewCache: { max: 10 },
+  domCache: { max: 10 },
+  viewCache: { max: 50 },
+  dataCache: { max: 50, staleTime: 30_000 },
 });
+
+// Configure keys match route `cache` attr layers:
+// domCache → cache.dom, viewCache → cache.view, dataCache → cache.data
 
 // Register a custom view loader
 AuraRouter.registerLoader('custom', myLoaderFn);

@@ -1,4 +1,4 @@
-import { payloadCacheKey } from '../../../core/view-graph/cache/cache-key';
+import { viewCacheKey } from '../../../core/view-graph/cache/cache-key';
 import type { MatchedRouteInfo } from '../../../core/match/url-matcher';
 import type { ViewDescriptor } from '../../../core/view-graph/types';
 
@@ -10,7 +10,7 @@ function route(overrides: Partial<MatchedRouteInfo> = {}): MatchedRouteInfo {
     hash: '',
     pattern: '/users/:id',
     params: { id: '1' },
-    route: { layout: '', view: null, preserve: { view: true } },
+    route: { layout: '', view: null, cache: { dom: false, view: true, data: false } },
     ...overrides,
   } as MatchedRouteInfo;
 }
@@ -25,14 +25,14 @@ function descriptor(overrides: Partial<ViewDescriptor> = {}): ViewDescriptor {
   };
 }
 
-describe('payloadCacheKey', () => {
+describe('viewCacheKey', () => {
   it('uses pathname and view slot', () => {
-    const key = payloadCacheKey(descriptor(), route());
+    const key = viewCacheKey(descriptor(), route());
     expect(key).toBe('/users/1|view:url:partials/user.html');
   });
 
   it('includes sorted query params', () => {
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       descriptor(),
       route({ query: { b: '2', a: '1' } }),
     );
@@ -40,14 +40,14 @@ describe('payloadCacheKey', () => {
   });
 
   it('includes serialized load-hook data with stable key ordering', () => {
-    const key = payloadCacheKey(descriptor(), route(), { data: { z: 1, a: 2 } });
+    const key = viewCacheKey(descriptor(), route(), { data: { z: 1, a: 2 } });
     expect(key).toBe(
       '/users/1|d:%7B%22a%22%3A2%2C%22z%22%3A1%7D|view:url:partials/user.html',
     );
   });
 
   it('appends extract selector for url views', () => {
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       descriptor({ extract: '#content' }),
       route(),
     );
@@ -55,7 +55,7 @@ describe('payloadCacheKey', () => {
   });
 
   it('uses matchKey and params when pathname is missing', () => {
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       descriptor({ loader: 'html', content: '<p/>' }),
       route({
         pathname: undefined as unknown as string,
@@ -67,7 +67,7 @@ describe('payloadCacheKey', () => {
   });
 
   it('uses matchKey without params when pathname is missing', () => {
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       descriptor({ loader: 'html', content: '<p/>' }),
       route({
         pathname: undefined as unknown as string,
@@ -79,7 +79,7 @@ describe('payloadCacheKey', () => {
   });
 
   it('skips null param values in query encoding', () => {
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       descriptor(),
       route({ query: { a: '1', b: null as unknown as string } }),
     );
@@ -87,7 +87,7 @@ describe('payloadCacheKey', () => {
   });
 
   it('omits empty params segment when all values are null', () => {
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       descriptor({ loader: 'html', content: '<p/>' }),
       route({
         pathname: undefined as unknown as string,
@@ -99,7 +99,7 @@ describe('payloadCacheKey', () => {
   });
 
   it('omits params segment for an empty params object', () => {
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       descriptor({ loader: 'html', content: '<p/>' }),
       route({
         pathname: undefined as unknown as string,
@@ -111,7 +111,7 @@ describe('payloadCacheKey', () => {
   });
 
   it('includes layout kind in the slot', () => {
-    const key = payloadCacheKey(
+    const key = viewCacheKey(
       descriptor({ kind: 'layout', loader: 'template', content: 'shell' }),
       route({ pathname: '/app' }),
     );

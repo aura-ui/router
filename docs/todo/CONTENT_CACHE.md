@@ -1,4 +1,4 @@
-﻿# Content cache + prefetch (view loaders)
+# Content cache + prefetch (view loaders)
 
 > **Статус:** **реализовано (v1)** — `DataCache` на router, prefetch через общий pipeline. **Осталось:** params в ключе, `router.invalidate()` для content, SWR при navigation для view.  
 > **Связь:** [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) · [P1-2](../comparison/FEATURE_PARITY_ROADMAP.md) · [FUTURE_PROOF_ENGINE.md §3](../FUTURE_PROOF_ENGINE.md) · [CACHE_STORE_COMPARISON.md](../comparison/CACHE_STORE_COMPARISON.md)  
@@ -12,7 +12,7 @@ Content loaders (`view`: `html`, `html-src`, `component-src`; layout: `template`
 
 Router-level **`DataCache`** даёт:
 
-- повторный визит без повторного fetch partial (при `preserve="view"`);
+- повторный визит без повторного fetch partial (при `cache="screen"`);
 - prefetch разметки параллельно с DataGraph prefetch;
 - быстрый commit в outlet при cache hit.
 
@@ -22,7 +22,7 @@ Router-level **`DataCache`** даёт:
 
 ## Граница: данные vs контент
 
-| | **DataGraph** (`preserve="data"`) | **View loader cache** (`preserve="view"`, router `DataCache`) |
+| | **DataGraph** (`cache="data"`) | **View loader cache** (`cache="screen"`, router `DataCache`) |
 |--|---------------|-------------------|
 | Источник | `load="…"` hooks | `view` / `html-src` / `template` / … |
 | Payload | JSON, объекты | HTML **string** (view loaders) |
@@ -50,16 +50,20 @@ click /users:
 src/modules/aura-routing-engine/core/content/
   cache/
     data-cache.ts       # DataCache — обёртка над AuraResolvableCache
-    data-key.ts         # dataCacheKey(descriptor, routeInfo)
+    data-key.ts         # viewCacheKey(descriptor, routeInfo)
   content-load-service.ts   # render + prefetch orchestrator
   loaders/              # LoaderRegistry, builtins
 ```
 
-Интеграция:
+> **Сверка с кодом (2026-07-10):** view-loader cache — `ViewGraph` + `ViewPayloadCache` (`cache.view`, `AuraRouter.configure({ viewCache })`). Load hooks — `DataGraph` (`cache.data`, `dataCache`). DOM — `RouteDomCache` (`cache.dom`, `domCache`). Ниже — исторический черновик модуля `core/content/`.
 
-- `AuraRouter` создаёт `DataCache` и `ContentLoadService`, передаёт в `AuraRoutingEngine`.
-- `AuraRouter.configure({ dataCache: { max, gcTime, staleTime? } })` — LRU / TTL / опциональный SWR на store.
-- Кэш включается **только** при `preserve="view"` (или bare `preserve`) на route → `descriptor.cache === true`.
+Интеграция (актуально):
+
+- `AuraRouter` создаёт `ViewGraph` с `ViewPayloadCache`.
+- `AuraRouter.configure({ viewCache: { max, gcTime } })` — LRU / TTL view-loader store.
+- `AuraRouter.configure({ dataCache: { max, staleTime, gcTime } })` — load-hook store (`DataGraph`).
+- `AuraRouter.configure({ domCache: { max, gcTime } })` — detached DOM (`RouteDomCache`).
+- Кэш loader payload включается при `cache="view"` / `screen` / `all` → `descriptor.cache === true`.
 
 См. также `src/modules/aura-routing-engine/core/content/README.md`.
 
@@ -79,7 +83,7 @@ src/modules/aura-routing-engine/core/content/
 
 По умолчанию `DataCache`: `max: 50`, `gcTime: Infinity`, без `staleTime`.
 
-### Ключ кэша (`dataCacheKey`)
+### Ключ кэша (`viewCacheKey`)
 
 **Фактический формат:**
 
@@ -120,12 +124,12 @@ class ContentLoadService {
 }
 ```
 
-Поток при `preserve="view"`:
+Поток при `cache="screen"`:
 
 ```text
 ContentLoadService.resolveDescriptor(...):
   if (!descriptor.cache) → runLoader()
-  key = dataCacheKey(descriptor, routeInfo)
+  key = viewCacheKey(descriptor, routeInfo)
   return cache.resolve(key, runLoader)
 ```
 
@@ -158,7 +162,7 @@ render(route):
 
 - **Patch (P0-5)** — на уровне outlet/renderer, не в DataCache.
 - Cache отдаёт **payload**; outlet решает replace vs patch vs stage (анимация).
-- Отдельный **`RouteViewCache`** (`viewCache` в configure) — keep-alive **DOM** (`detachedRoot`), не путать с `DataCache` (string payloads).
+- Отдельный **`RouteDomCache`** (`domCache` в configure) — keep-alive **DOM** (`detachedRoot`), не путать с `ViewPayloadCache` (loader strings).
 
 ---
 
@@ -171,7 +175,7 @@ render(route):
 | LCA reuse | layout DOM стабилен; кэш только для меняющегося leaf |
 
 Layout (`layout="..."`) → descriptor `{ kind: 'layout', loader: 'template', cache: false }`.  
-`DataCache` — для **динамических** `html-src` / `html` при `preserve="view"`.
+`DataCache` — для **динамических** `html-src` / `html` при `cache="screen"`.
 
 ---
 
@@ -200,7 +204,7 @@ DataGraph.invalidate* уже есть — content side нужно связать
 - <span style="color: #2ea043; font-weight: bold;">✓</span> In-flight dedupe (`AuraResolvableCache.resolve`)
 - <span style="color: #2ea043; font-weight: bold;">✓</span> LRU (`max`), `gcTime` через `AuraRouter.configure({ dataCache })`)
 - <span style="color: #2ea043; font-weight: bold;">✓</span> Prefetch intent (общий pipeline, `ContentPrefetchExecutor`)
-- <span style="color: #2ea043; font-weight: bold;">✓</span> Cache hit на navigation render (`preserve="view"`)
+- <span style="color: #2ea043; font-weight: bold;">✓</span> Cache hit на navigation render (`cache="screen"`)
 - <span style="color: #2ea043; font-weight: bold;">✓</span> Общий prefetch триггер с DataGraph (href → match → data + content resources)
 - <span style="color: #cf222e; font-weight: bold;">✗</span> `router.invalidate()` чистит content keys
 - <span style="color: #cf222e; font-weight: bold;">✗</span> Navigation SWR для view (`staleTime` на DataCache + revalidate on navigate)
@@ -216,7 +220,7 @@ DataGraph.invalidate* уже есть — content side нужно связать
 1. ~~**Один CacheStore с DataGraph**~~ — **решено v1:** общий `aura-cache-store`, отдельные инстансы.
 2. ~~**DocumentFragment vs string**~~ — **решено:** кэшируем только `string`; fragment всегда fresh load.
 3. **component-src** — кэш module namespace / custom element registry отдельно от HTML?
-4. **`preserve` / per-route TTL** — связать attr route с `staleTime`/`gcTime` DataCache или только global configure?
+4. **`cache` / per-route TTL** — связать attr route с `staleTime`/`gcTime` DataCache или только global configure?
 5. **Params в ключе** — сериализация как в DataGraph или отдельный формат?
 
 ---

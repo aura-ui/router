@@ -1,13 +1,14 @@
 /** @jest-environment jsdom */
 
 import {
-  PayloadCache,
+  ViewPayloadCache,
   ViewGraph,
   defaultLoaderRegistry,
   routeSnapshot,
   type LoaderFn,
 } from '../../aura-routing-engine/core';
 import { AuraRouter } from '../core/aura-router';
+import { NO_CACHE } from '../../aura-route/core/attr/cache-attr-parser';
 import { withResolvedView } from '../../aura-routing-engine/test/helpers/with-resolved-view';
 
 describe('AuraRouter.registerLoaderLoader', () => {
@@ -21,7 +22,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     const viewGraph = new ViewGraph({
       registry: defaultLoaderRegistry,
-      cache: new PayloadCache(),
+      cache: new ViewPayloadCache(),
     });
 
     const payload = await viewGraph.loadViewDescriptor(
@@ -35,7 +36,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         route: {
           layout: '',
           view: 'register-loader-test::any-ref',
-          preserve: { view: false, data: false },
+          cache: NO_CACHE,
         },
       },
       new AbortController().signal,
@@ -54,7 +55,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     const service = new ViewGraph({
       registry: defaultLoaderRegistry,
-      cache: new PayloadCache(),
+      cache: new ViewPayloadCache(),
     });
 
     await service.loadView(
@@ -67,7 +68,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         route: {
           layout: '',
           view: { loader: 'content-probe', content: 'dashboard' },
-          preserve: { view: false, data: false },
+          cache: NO_CACHE,
         },
         resolvedView: { loader: 'content-probe', content: 'dashboard' },
       }),
@@ -87,7 +88,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     const service = new ViewGraph({
       registry: defaultLoaderRegistry,
-      cache: new PayloadCache(),
+      cache: new ViewPayloadCache(),
     });
 
     await service.loadView(
@@ -101,7 +102,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         route: {
           layout: '',
           view: { loader: 'route-data-probe', content: 'x' },
-          preserve: { view: false, data: false },
+          cache: NO_CACHE,
         },
       }),
       new AbortController().signal,
@@ -126,7 +127,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     const service = new ViewGraph({
       registry: defaultLoaderRegistry,
-      cache: new PayloadCache(),
+      cache: new ViewPayloadCache(),
     });
 
     await service.loadViewDescriptor(
@@ -139,7 +140,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         pattern: '/users/:id',
         params: { id: '1' },
         query: { q: '1' },
-        route: { layout: '', view: '', preserve: { view: false, data: false } },
+        route: { layout: '', view: '', cache: NO_CACHE },
       },
       new AbortController().signal,
     );

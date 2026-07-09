@@ -3,14 +3,14 @@ import { routeMatchKey } from '../../route-tree/matched-chain';
 import type { ViewDescriptor } from '../types';
 
 /**
- * Stable cache key for {@link PayloadCache}.
+ * Stable cache key for {@link ViewPayloadCache} (`cache.view`).
  * Shape: `{pathname | matchKey[+params]}|{query?}|d:{data?}|{kind}:{loader}:{content}[::{extract}]`
- * @example payloadCacheKey(
+ * @example viewCacheKey(
  *   { kind: 'view', loader: 'url', content: 'partials/user.html', cache: true },
  *   { pathname: '/users/1', ... },
  * ) // → "/users/1|view:url:partials/user.html"
  */
-export function payloadCacheKey(
+export function viewCacheKey(
   descriptor: ViewDescriptor,
   routeInfo: MatchedRouteInfo,
   options: { data?: unknown } = {},

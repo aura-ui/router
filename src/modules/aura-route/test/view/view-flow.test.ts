@@ -1,7 +1,7 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_PRESERVE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
+import { NO_CACHE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
 import { RouteViewController } from '../../core/view/view-controller';
-import { defaultViewCache } from '../../core/view/view-cache';
+import { defaultDomCache } from '../../core/view/dom-cache';
 import type { AuraRouteInterface } from '../../core/types';
 import type { ViewResolverPort } from '../../core/view/types';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
@@ -35,7 +35,7 @@ function createController(
     view: '',
     loadingTemplate: '',
     errorTemplate: '',
-    preserve: NO_PRESERVE,
+    cache: NO_CACHE,
     scrollPolicy: null,
     get transition() {
       return staged
@@ -48,7 +48,7 @@ function createController(
     {
       route,
       view,
-      cache: defaultViewCache,
+      cache: defaultDomCache,
       mountTarget: {
         appOutlet: () => root,
         nestedOutlet: () => null,

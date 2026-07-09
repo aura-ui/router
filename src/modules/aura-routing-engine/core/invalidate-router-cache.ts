@@ -16,7 +16,7 @@ export type CacheKeyMatcher = (key: string) => boolean;
  * resolution order is `key` → `path` → `match`.
  */
 export type InvalidateScope = {
-  /** Exact cache key ({@link buildRouteDataKey} or {@link payloadCacheKey}). */
+  /** Exact cache key ({@link buildRouteDataKey} or {@link viewCacheKey}). */
   key?: string;
   /**
    * Route pathname — matches the bare path and keys prefixed with `path|`

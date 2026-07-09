@@ -49,9 +49,9 @@ Core **не содержит** built-in реализаций `fade-in` / `fade-o
 
 | Файл | Что проверяет |
 |------|----------------|
-| `param-change-transition.integration.test.ts` | In-place param remount + transition: parallel crossfade (2 слоя в хуках), out-in / in-out порядок, unmount snapshot, `preserve.view` + parallel + stash |
+| `param-change-transition.integration.test.ts` | In-place param remount + transition: parallel crossfade (2 слоя в хуках), out-in / in-out порядок, unmount snapshot, `cache.dom` + parallel + stash |
 | `cross-route-transition.integration.test.ts` | `/from` → `/to`: crossfade, exit unmount snapshot, out-in, без transition |
-| `param-change-remount.integration.test.ts` | Remount без transition, `preserve.view` round-trip |
+| `param-change-remount.integration.test.ts` | Remount без transition, `cache.dom` round-trip |
 | `param-change-update.integration.test.ts` | UPDATE: тот же DOM-узел, без re-render |
 
 ### Unit / pipeline

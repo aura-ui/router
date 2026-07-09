@@ -15,7 +15,7 @@
 | **Core** | `leave` · `guard` · `load` · `ready` | ✅ `lifecycle-phases.ts`, `aura-route.ts`, `ctx.phase` |
 | **Advanced** | `unmount` · `update` · `error` | ✅ attrs + pipeline + `onUnmount` / `onUpdate` / `onError` |
 | **Presentation** | `transition-in` · `transition-out` · `transition-order` · `transition` | ✅ attrs + pipeline |
-| **Super advanced** | `detach` · `destroy` · `restore` | ⬜ attrs; 🔶 `preserve` + detach/destroy во view layer |
+| **Super advanced** | `detach` · `destroy` · `restore` | ⬜ attrs; 🔶 `cache` + detach/destroy во view layer |
 | **Ctx фаза 1** | `ctx.teardown` · `ctx.preserved` · `ctx.restored` | ⬜ не в `RouteLifecycleContext` |
 | **Router inherit** | `guard` · `ready` на `<aura-router>` | ✅ `lifecycle-inherit.test.ts` |
 | **Deprecated aliases** | `enter` → `guard`, `after` → `ready`, … | ⬜ не планируются (breaking rename, см. ROUTE_API_V3) |
@@ -41,11 +41,11 @@
 | **Core** ✅ | `leave`, `guard`, `load`, `ready` | ~95% | quick start, примеры по умолчанию | ✅ |
 | **Advanced** ✅ | `unmount`, `update`, `error` | редко / prod | «Advanced lifecycle» | ✅ |
 | **Presentation** ✅ | `transition-in`, `transition-out`, `transition-order` | опционально | отдельная ось, не lifecycle | ✅ (+ `transition` shortcut) |
-| **Super advanced** ⬜ | `detach`, `destroy`, `restore` | только `preserve` / keep-alive | отдельная секция, не в quick start | 🔶 preserve; ⬜ attrs |
+| **Super advanced** ⬜ | `detach`, `destroy`, `restore` | только `cache` / keep-alive | отдельная секция, не в quick start | 🔶 cache; ⬜ attrs |
 
-Решение о super advanced **не откладывать до «массовой статистики»**: `preserve` — заявленная фича (`parsePreserveAttr`, ViewCache, `handle.detach()` / `handle.destroy()`). Контракт teardown нужен в дизайне API заранее; долю маршрутов с `preserve` до GA измерить нельзя.
+Решение о super advanced **не откладывать до «массовой статистики»**: `cache` — заявленная фича (`parseCacheAttr`, `RouteDomCache`, `handle.detach()` / `handle.destroy()`). Контракт teardown нужен в дизайне API заранее; долю маршрутов с `cache` до GA измерить нельзя.
 
-**Цикл для route attrs разложен полностью** — новые lifecycle-фазы в advanced не планируются. Расширения — только presentation, super advanced (preserve) и future data/revalidate (см. §Future).
+**Цикл для route attrs разложен полностью** — новые lifecycle-фазы в advanced не планируются. Расширения — только presentation, super advanced (`cache`) и future data/revalidate (см. §Future).
 
 ---
 
@@ -124,27 +124,27 @@ transition-in | transition-out | transition-order
 
 `ctx.phase`: `transitionIn`, `transitionOut` (camelCase) — без переименования.
 
-### Super advanced ⬜ (`preserve` / keep-alive)
+### Super advanced ⬜ (`cache` / keep-alive)
 
 ```text
 detach | destroy | restore
 ```
 
-Только для маршрутов с **`preserve`** (view keep-alive).  
-🔶 **`preserve`** attr + ViewCache detach/destroy — в коде; ⬜ отдельные lifecycle attrs и `ctx.*` — нет.
+Только для маршрутов с **`cache`** (view keep-alive).  
+🔶 **`cache`** attr + RouteDomCache detach/destroy — в коде; ⬜ отдельные lifecycle attrs и `ctx.*` — нет.
 
 #### Exit (teardown)
 
-| `preserve.view` | Поведение view | Будущий attr | Код |
+| `cache.dom` | Поведение view | Будущий attr | Код |
 |-----------------|----------------|--------------|-----|
-| `true` | `handle.detach()` — DOM снят с outlet, subtree в ViewCache | **`detach`** ⬜ | 🔶 engine |
+| `true` | `handle.detach()` — DOM снят с outlet, subtree в RouteDomCache | **`detach`** ⬜ | 🔶 engine |
 | `false` | `handle.destroy()` — полная очистка | **`destroy`** ⬜ | 🔶 engine |
 
 #### Enter (reattach)
 
 | Условие | Поведение view | Будущий attr | Код |
 |---------|----------------|--------------|-----|
-| ViewCache hit, `reattachContent` | DOM возвращён в outlet без полного render | **`restore`** ⬜ | 🔶 engine |
+| RouteDomCache hit, `reattachContent` | DOM возвращён в outlet без полного render | **`restore`** ⬜ | 🔶 engine |
 | Обычный enter / cache miss | свежий render | **`ready`** ✅ (core) | ✅ |
 
 Симметрия keep-alive:
@@ -161,10 +161,10 @@ destroy ↔  (нет пары)   (следующий вход — обычный
 ```ts
 // unmount
 ctx.teardown: 'detach' | 'destroy'   // ⬜
-ctx.preserved: { view: boolean; data: boolean }   // ⬜ (preserve есть на route, не в ctx)
+ctx.preserved: { dom: boolean; view: boolean; data: boolean }   // ⬜ (`cache` есть на route, не в ctx)
 
 // ready
-ctx.restored: boolean   // ⬜ true = reattach из ViewCache, не fresh render
+ctx.restored: boolean   // ⬜ true = reattach из RouteDomCache, не fresh render
 ```
 
 **Фаза 2** ⬜: опциональные attrs **`detach`**, **`destroy`**, **`restore`** — super advanced. `ready` по-прежнему вызывается на каждом enter; **`restore`** — только при cache reattach (до или вместо части `ready`-логики — TBD порядок).
@@ -172,7 +172,7 @@ ctx.restored: boolean   // ⬜ true = reattach из ViewCache, не fresh render
 ```html
 <aura-route
   path="/editor"
-  preserve
+  cache="dom"
   unmount="abort-fetch"
   detach="pause-autosave"
   destroy="wipe-secrets"
@@ -184,9 +184,9 @@ ctx.restored: boolean   // ⬜ true = reattach из ViewCache, не fresh render
 | Attr | Когда вызывается | Код |
 |------|------------------|-----|
 | **`unmount`** ✅ | всегда при уходе (exit, post-commit) | ✅ |
-| **`detach`** ⬜ | только `preserve.view` + detach в ViewCache | ⬜ |
+| **`detach`** ⬜ | только `cache.dom` + detach в RouteDomCache | ⬜ |
 | **`destroy`** ⬜ | только полный destroy (без keep-alive view) | ⬜ |
-| **`restore`** ⬜ | только enter + reattach из ViewCache (`ctx.restored`) | ⬜ |
+| **`restore`** ⬜ | только enter + reattach из RouteDomCache (`ctx.restored`) | ⬜ |
 | **`ready`** ✅ | каждый enter после commit (в т.ч. после restore) | ✅ |
 
 > **Именование:** `restore` предпочтительнее `attach` — понятнее без docs («вернули из кэша»); `attach` технически парное к `detach`, но звучит как инфраструктура outlet.
@@ -209,7 +209,7 @@ Advanced (редко / prod):        ✅ в коде
 Presentation (опционально):     ✅ в коде
   transition-in | transition-out | transition-order  (+ transition shortcut)
 
-Super advanced (preserve only): 🔶 preserve · ⬜ detach | destroy | restore
+Super advanced (`cache` only): 🔶 cache · ⬜ detach | destroy | restore
 ```
 
 ### Полный цикл навигации
@@ -222,7 +222,7 @@ Super advanced (preserve only): 🔶 preserve · ⬜ detach | destroy | restore
                          │                         unmount ─────────────┤
                          │                         ready  ──────────────┘
                          │
-                         └── preserve: detach | destroy  →  …  →  restore | ready
+                         └── cache: detach | destroy  →  …  →  restore | ready
 
 error — terminal-ветка при сбое на любом шаге (не в основной цепочке)
 ```
@@ -291,7 +291,7 @@ error — terminal-ветка при сбое на любом шаге (не в 
 | Same URL / params | `beforeRouteUpdate` | `cause: 'stay'` + revalidate | reuse strategy | **`update`** | ✅ |
 | Ошибка | `onError` | `errorComponent` | resolver error | **`error`** | ✅ |
 | Анимация | `<transition>` | CSS / lib | — | **`transition-*`** | ✅ |
-| Keep-alive off/on | `onDeactivated` / `onActivated` | — | — | **`detach` / `restore`** | ⬜ attrs · 🔶 preserve |
+| Keep-alive off/on | `onDeactivated` / `onActivated` | — | — | **`detach` / `restore`** | ⬜ attrs · 🔶 cache |
 
 **Итог:** отдельной фазы «у всех есть X, а у Aura нет attr» — **почти нет**.
 
@@ -325,7 +325,7 @@ error — terminal-ветка при сбое на любом шаге (не в 
 | **`transition-order`** (`out-in`, `parallel`) | Редко как first-class в route API |
 | **`leave` + `guard`** — два blocking слота | У многих один «before» на вход |
 | **`error`** как route hook + DOM events | Error UI есть везде; hook-фаза — не всегда |
-| **`preserve` + detach/restore** (planned) | Ближе Vue KeepAlive, чем TanStack route API |
+| **`cache` + detach/restore** (planned) | Ближе Vue KeepAlive, чем TanStack route API |
 
 **Сохранять** при parity-работе — не жертвовать HTML-first и явным lifecycle ради копирования React API.
 
@@ -358,7 +358,7 @@ error — terminal-ветка при сбое на любом шаге (не в 
      → router-level API / inherit на <aura-router>
   4. Это presentation?
      → transition-* ось
-  5. Это preserve keep-alive?
+  5. Это cache keep-alive?
      → super advanced detach | destroy | restore (+ ctx)
   6. Иначе — новый attr только с RFC и примером HTML-first DX
 ```
@@ -434,7 +434,7 @@ ready       — route готов
 
 `unmount` / `update` / `error` — «Advanced lifecycle».  
 `transition-*` — «Presentation».  
-`detach` / `destroy` / `restore` — «Super advanced (preserve)»; в quick start не показывать.
+`detach` / `destroy` / `restore` — «Super advanced (`cache`)»; в quick start не показывать.
 
 ---
 

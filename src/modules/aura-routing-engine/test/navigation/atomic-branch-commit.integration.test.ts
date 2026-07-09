@@ -351,7 +351,7 @@ describe('atomic branch commit integration', () => {
     expect(router.appOutlet.textContent).not.toContain('LAYOUT');
   });
 
-  it('preserve.view keeps outgoing visible during branch resolve', async () => {
+  it('cache.dom keeps outgoing visible during branch resolve', async () => {
     document.body.innerHTML = `
       <template id="users-layout">
         <header data-layout-marker>LAYOUT</header>
@@ -369,7 +369,7 @@ describe('atomic branch commit integration', () => {
     users.setAttribute('layout', 'users-layout');
     const home = createDomRoute('/');
     home.setAttribute('view', 'template::intro-view');
-    home.setAttribute('preserve', 'view');
+    home.setAttribute('cache', 'dom');
 
     registerAuraRouterComponents();
     const router = document.createElement(AuraRouter.is) as AuraRouter;

@@ -88,8 +88,8 @@ export type { GuardResult, RedirectTarget } from './core/guard.types';
 
 export {
   ViewGraph,
-  PayloadCache,
-  payloadCacheKey,
+  ViewPayloadCache,
+  viewCacheKey,
   Loader,
   LoaderRegistry,
   createLoaderRegistry,
@@ -133,10 +133,10 @@ export type { LoaderId } from '../aura-route/core/attr/view-attr-parser';
 export type { RouterInvalidateOptions as ViewInvalidateOptions } from './core/invalidate-router-cache';
 
 export {
-  NO_PRESERVE,
-  parsePreserveAttr,
-} from '../aura-route/core/attr/preserve-attr-parser';
-export type { PreserveFlags } from '../aura-route/core/attr/preserve-attr-parser';
+  NO_CACHE,
+  parseCacheAttr,
+} from '../aura-route/core/attr/cache-attr-parser';
+export type { CacheFlags } from '../aura-route/core/attr/cache-attr-parser';
 
 export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch/types';
 export {

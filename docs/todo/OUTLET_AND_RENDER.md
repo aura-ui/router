@@ -1,4 +1,4 @@
-﻿# TODO: nested outlet + render-слой (без aura-route-view)
+# TODO: nested outlet + render-слой (без aura-route-view)
 
 > **Статус:** <span style="color: #2ea043; font-weight: bold;">✓</span> **основной view-слой shipped** (2026-07) · <span style="color: #bf8700; font-weight: bold;">~</span> patch на navigation + полная анимация — в работе  
 > **Связь:** [P0-1](../comparison/FEATURE_PARITY_ROADMAP.md) · [NESTED_ROUTES.md](../NESTED_ROUTES.md) · [INCREMENTAL_RENDER.md](../INCREMENTAL_RENDER.md)  
@@ -30,7 +30,7 @@ Flat v0.1 (`setContent(this)`) работал для анимаций и про�
 
 - child `<aura-route>` в DOM — **metadata**, контент должен жить в **outlet родителя**; <span style="color: #2ea043; font-weight: bold;">✓</span>
 - `onLeft` чистит `route.textContent`, а view в outlet — **рассинхрон**; <span style="color: #2ea043; font-weight: bold;">✓</span> исправлено — teardown через `ViewHandle`
-- patch и `keep-alive` нужен явный **handle на subtree**, не CE маршрута; <span style="color: #2ea043; font-weight: bold;">✓</span> `ViewHandle` + `preserve.view`
+- patch и `keep-alive` нужен явный **handle на subtree**, не CE маршрута; <span style="color: #2ea043; font-weight: bold;">✓</span> `ViewHandle` + `cache.dom`
 
 **Логика остаётся в `AURARoute.render()`** — меняется только target: не `this`, а `getMountOutlet()`. <span style="color: #2ea043; font-weight: bold;">✓</span>
 

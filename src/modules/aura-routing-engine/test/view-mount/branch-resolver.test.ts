@@ -7,10 +7,11 @@ import {
 } from '../../core';
 import {
   ViewGraph,
-  PayloadCache,
+  ViewPayloadCache,
   LoaderRegistry,
 } from '../../core/view-graph';
 import { shouldUsePrepareCommitEnterBranch } from '../../core/view-mount/branch-resolver';
+import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { buildRouteDataKey, resolveRouteData } from '../../core/data-graph/route-data';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 import { withResolvedView } from '../helpers/with-resolved-view';
@@ -28,7 +29,7 @@ function matched(
     route: {
       layout: '',
       view: null,
-      preserve: { view: false },
+      cache: NO_CACHE,
     },
     ...overrides,
   } as MatchedRouteInfo);
@@ -51,11 +52,11 @@ describe('resolveEnterBranch', () => {
     const signal = new AbortController().signal;
 
     const layout = matched('/users', {
-      route: { layout: 'users-layout', view: null, preserve: { view: false } },
+      route: { layout: 'users-layout', view: null, cache: NO_CACHE },
     });
     const index = matched('/users/1', {
       pattern: '/users/:id',
-      route: { layout: '', view: { loader: 'html', content: '<p>list</p>' }, preserve: { view: false } },
+      route: { layout: '', view: { loader: 'html', content: '<p>list</p>' }, cache: NO_CACHE },
       resolvedView: { loader: 'html', content: '<p>list</p>' },
     });
 
@@ -73,11 +74,11 @@ describe('resolveEnterBranch', () => {
   it('passes load-hook data per route', async () => {
     const signal = new AbortController().signal;
     const layout = matched('/users', {
-      route: { layout: 'users-layout', view: null, preserve: { view: false } },
+      route: { layout: 'users-layout', view: null, cache: NO_CACHE },
     });
     const index = matched('/users/1', {
       pattern: '/users/:id',
-      route: { layout: '', view: { loader: 'html', content: '<p>one</p>' }, preserve: { view: false } },
+      route: { layout: '', view: { loader: 'html', content: '<p>one</p>' }, cache: NO_CACHE },
       resolvedView: { loader: 'html', content: '<p>one</p>' },
     });
 
@@ -153,11 +154,11 @@ describe('resolveEnterBranch', () => {
   it('returns error with the failing route in a multi-route branch', async () => {
     const signal = new AbortController().signal;
     const layout = matched('/users', {
-      route: { layout: 'users-layout', view: null, preserve: { view: false } },
+      route: { layout: 'users-layout', view: null, cache: NO_CACHE },
     });
     const leaf = matched('/users/1', {
       pattern: '/users/:id',
-      route: { layout: '', view: { loader: 'html', content: '<p>x</p>' }, preserve: { view: false } },
+      route: { layout: '', view: { loader: 'html', content: '<p>x</p>' }, cache: NO_CACHE },
       resolvedView: { loader: 'html', content: '<p>x</p>' },
     });
     const boom = new Error('leaf failed');
@@ -218,7 +219,7 @@ describe('resolveEnterBranch', () => {
       route: {
         layout: 'users-layout',
         view: null,
-        preserve: { view: false },
+        cache: NO_CACHE,
         load: ['user'],
         hasLoad: true,
       },
@@ -250,15 +251,15 @@ describe('resolveEnterBranch', () => {
     registry.register('template', async (ctx) => `<header>${ctx.content}</header>`);
     registry.register('html', async (ctx) => ctx.content);
 
-    const content = new ViewGraph({ registry, cache: new PayloadCache() });
+    const content = new ViewGraph({ registry, cache: new ViewPayloadCache() });
     const signal = new AbortController().signal;
 
     const layout = matched('/users', {
-      route: { layout: 'users-layout', view: null, preserve: { view: false } },
+      route: { layout: 'users-layout', view: null, cache: NO_CACHE },
     });
     const index = matched('/users', {
       pattern: '/users',
-      route: { layout: '', view: { loader: 'html', content: '<p>list</p>' }, preserve: { view: false } },
+      route: { layout: '', view: { loader: 'html', content: '<p>list</p>' }, cache: NO_CACHE },
       resolvedView: { loader: 'html', content: '<p>list</p>' },
     });
 

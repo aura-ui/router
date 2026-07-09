@@ -1,5 +1,5 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_PRESERVE } from '../../../aura-routing-engine/core';
+import { NO_CACHE } from '../../../aura-routing-engine/core';
 import type { AuraRouteInterface } from '../../core/types';
 import {
   applyMountToSnapshot,
@@ -11,7 +11,7 @@ import {
 } from '../../core/view/outlet-adapter';
 import { ViewContext } from '../../core/view';
 import { ViewTeardownPipeline } from '../../core/view';
-import { defaultViewCache } from '../../core/view/view-cache';
+import { defaultDomCache } from '../../core/view/dom-cache';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
@@ -47,13 +47,13 @@ function createTeardown(
         view: '',
         loadingTemplate: '',
         errorTemplate: '',
-        preserve: NO_PRESERVE,
+        cache: NO_CACHE,
         scrollPolicy: null,
         transition: { order: null, in: null, out: null },
         ...overrides.route,
       } as AuraRouteInterface,
       view: { loadView: async () => null },
-      cache: overrides.cache ?? defaultViewCache,
+      cache: overrides.cache ?? defaultDomCache,
       mountTarget: {
         appOutlet: () => root,
         nestedOutlet: () => null,
@@ -102,7 +102,7 @@ describe('ViewTeardownPipeline', () => {
     expect(root.textContent).toBe('old');
   });
 
-  it('onUnmount caches detached root when preserve.view is enabled', () => {
+  it('onUnmount caches detached root when cache.dom is enabled', () => {
     const root = createOutlet();
     const stash = new Map<string, Element>();
     const mounted = mergeMount(
@@ -110,7 +110,7 @@ describe('ViewTeardownPipeline', () => {
       mountContent(mountCtx(root), '<span>cached</span>')!,
     );
     const { teardown, ctx } = createTeardown(root, {
-      route: { preserve: { view: true, data: false } },
+      route: { cache: { dom: true, view: false, data: false } },
       cache: {
         extract: (key) => {
           const node = stash.get(key);
@@ -123,7 +123,7 @@ describe('ViewTeardownPipeline', () => {
     });
     ctx.lastCacheKey = '/page';
 
-    teardown.onUnmount({ cacheKey: '/page' });
+    teardown.onUnmount({ domCacheKey: '/page' });
 
     expect(root.children).toHaveLength(0);
     expect(stash.get('/page')?.textContent).toBe('cached');
@@ -133,7 +133,7 @@ describe('ViewTeardownPipeline', () => {
     const root = createOutlet();
     const staged = stageTwoViews(root);
     const { teardown, ctx } = createTeardown(root, {
-      route: { preserve: { view: true, data: false } },
+      route: { cache: { dom: true, view: false, data: false } },
       mount: staged,
     });
     ctx.paramChangeRemount = true;

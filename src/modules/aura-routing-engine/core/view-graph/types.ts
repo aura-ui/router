@@ -11,7 +11,7 @@ export type ViewDescriptor = {
   readonly kind: ViewKind;
   readonly loader: LoaderId;
   readonly content: string;
-  /** When true, {@link PayloadCache} is used (`preserve.view` on view routes; layout is always false). */
+  /** When true, {@link ViewPayloadCache} is used (`cache.view` on view routes; layout is always false). */
   readonly cache: boolean;
   /** CSS selector from route `extract` attr (url loader only). */
   readonly extract?: string;

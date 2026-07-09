@@ -1,11 +1,12 @@
 import type { CacheStoreOptions } from '../../aura-cache-store/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import { AuraRoute, RouteViewCache } from '../../aura-route/core';
+import { AuraRoute, RouteDomCache } from '../../aura-route/core';
 import {
   AuraRoutingEngine,
   ViewGraph,
-  PayloadCache,
+  ViewPayloadCache,
+  DataGraph,
   defaultLoaderRegistry,
   defaultHookRegistry,
   isCatchAllRoute,
@@ -20,6 +21,7 @@ import {
   type RouterDataInvalidateOptions,
   type ViewInvalidateOptions,
   type RouterInstance,
+  type DataGraphOptions,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
 
@@ -77,10 +79,12 @@ export {
 } from './navigation-events';
 
 export interface AuraRouterConfigureOptions {
-  /** LRU cache for keep-alive route views (`detachedRoot` DOM). */
-  viewCache?: CacheStoreOptions<ViewRoot>;
-  /** LRU cache for view-loader payloads (`url` strings; prefetch + navigation). Gated by `preserve.view`. */
-  payloadCache?: CacheStoreOptions<string>;
+  /** Detached DOM keep-alive (`cache.dom`). */
+  domCache?: CacheStoreOptions<ViewRoot>;
+  /** View-loader payload strings (`cache.view`). */
+  viewCache?: CacheStoreOptions<string>;
+  /** Load-hook payloads (`cache.data`). */
+  dataCache?: DataGraphOptions;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;
 }
@@ -90,7 +94,7 @@ export type { RouterInstance } from '../../aura-routing-engine/core';
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
-  private static payloadCacheOptions: CacheStoreOptions<string> = {};
+  private static viewCacheOptions: CacheStoreOptions<string> = {};
 
   /** Fallback template id — когда нет `<aura-route path="*">`. */
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
@@ -112,7 +116,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();
   private readonly notFound = new AuraRouterNotFoundController(this);
-  private readonly payloadCache = new PayloadCache(AuraRouter.payloadCacheOptions);
+  private readonly viewLoaderCache = new ViewPayloadCache(AuraRouter.viewCacheOptions);
   private readonly loaderRegistry = defaultLoaderRegistry;
   private viewGraphInstance?: ViewGraph;
 
@@ -134,11 +138,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);
     }
-    if (options.viewCache) {
-      RouteViewCache.configure(options.viewCache);
+    if (options.domCache) {
+      RouteDomCache.configure(options.domCache);
     }
-    if (options.payloadCache) {
-      AuraRouter.payloadCacheOptions = options.payloadCache;
+    if (options.viewCache) {
+      AuraRouter.viewCacheOptions = options.viewCache;
+    }
+    if (options.dataCache) {
+      DataGraph.configure(options.dataCache);
     }
   }
 
@@ -159,7 +166,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (!this.viewGraphInstance) {
       this.viewGraphInstance = new ViewGraph({
         registry: this.loaderRegistry,
-        cache: this.payloadCache,
+        cache: this.viewLoaderCache,
       });
     }
     return this.viewGraphInstance;
@@ -269,7 +276,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /**
-   * Invalidates view-loader payload cache ({@link ViewGraph} / {@link PayloadCache}).
+   * Invalidates view-loader payload cache ({@link ViewGraph} / {@link ViewPayloadCache}).
    * Does not affect load-hook data; use {@link invalidate} for that.
    */
   invalidateView(options?: ViewInvalidateOptions): number {

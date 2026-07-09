@@ -6,7 +6,7 @@
  * orchestrator and creating route-tree cycles.
  */
 
-export { NO_PRESERVE, parsePreserveAttr, type PreserveFlags } from '../aura-route/core/attr/preserve-attr-parser';
+export { NO_CACHE, parseCacheAttr, type CacheFlags } from '../aura-route/core/attr/cache-attr-parser';
 export { resolveHookNames } from './core/hooks/resolve-hook-names';
 export {
   parseScrollAttr,

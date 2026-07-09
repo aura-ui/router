@@ -10,7 +10,7 @@ export class ViewContext {
   readonly renderSignal = new AbortScope();
 
   mount: MountSnapshot = { ...EMPTY_MOUNT };
-  /** Fallback when {@link RouteUnmountOptions.cacheKey} is omitted. */
+  /** Fallback when {@link RouteUnmountOptions.domCacheKey} is omitted. */
   lastCacheKey: string | null = null;
   /** Set at the start of {@link RouteViewController.render} for param remount. */
   paramChangeRemount = false;

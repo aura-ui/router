@@ -1,4 +1,4 @@
-﻿# TODO: Prefetch следующего поколения (ISNR)
+# TODO: Prefetch следующего поколения (ISNR)
 
 > **Статус:** дизайн / стратегия (не реализовано)  
 > **Дата:** 2026-06-27 00:31  
@@ -305,7 +305,7 @@ Graph — не «одна корзина для всего», а **общий р
 ```text
 prefetch:   DataCache + ContentPrefetchExecutor
             DataGraph?    + DataPrefetchExecutor (stub)
-navigation: RouteContentLoader + load hooks + ViewCache
+navigation: RouteContentLoader + load hooks + RouteDomCache
 ```
 
 | Симптом | Причина |
@@ -526,7 +526,7 @@ devtools «N/M resources ready»
 ## 3.2. Что покрывает AuraResolvableCache
 
 > **Модуль:** [`aura-cache-store/core/aura-resolvable-cache.ts`](../../src/modules/aura-cache-store/core/aura-resolvable-cache.ts)  
-> **Уже используется:** `DataCache` → `AuraResolvableCache`; `ViewCache` → `AuraCacheStore`.  
+> **Уже используется:** `DataCache` → `AuraResolvableCache`; `RouteDomCache` → `AuraCacheStore`.  
 > **Планируется:** DataGraph store — тот же infra ([CONTENT_CACHE.md](./CONTENT_CACHE.md), [DATAGRAPH.md](./DATAGRAPH.md)).
 
 В ISNR-документе «Cache Graph» легко спутать с **ещё одним кешом**. На практике graph в Phase C — в основном **оркестратор поверх N экземпляров** `AuraResolvableCache`, а не замена `aura-cache-store`.
@@ -665,14 +665,14 @@ from = currentRoute.chain
 to   = target.chain
 lca  = lowestCommonAncestor(from, to)
 delta = to.slice(lcaIndex + 1)   // только enterRoutes
-reuse = shared prefix из ViewCache / DataCache
+reuse = shared prefix из RouteDomCache / DataCache
 ```
 
 Симметрия с `buildTransitionPlan` (engine уже считает LCA). Prefetch = **тот же diff**, что navigation.
 
 ### 4.4. Единый Cache Graph + tags
 
-Поверх `dataCacheKey`:
+Поверх `viewCacheKey`:
 
 ```typescript
 {

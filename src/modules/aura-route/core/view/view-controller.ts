@@ -2,7 +2,7 @@ import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo, ViewRenderResult } from '../../../aura-routing-engine/route-api';
 import type { RouteRenderOptions, ApplyPreResolvedOptions, RouteUnmountOptions } from '../types';
 import type { RenderPass, RouteViewConfig, ViewPayload } from './types';
-import { cacheKey } from './view-cache';
+import { domCacheKey } from './dom-cache';
 
 import { ViewContext } from './view-context';
 import { ViewRenderPipeline } from './view-render-pipeline';
@@ -40,7 +40,7 @@ export class RouteViewController {
    */
   async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
     const pass = this.beginPass(routeInfo, options);
-    this.ctx.lastCacheKey = pass.cacheKey;
+    this.ctx.lastCacheKey = pass.domCacheKey;
     return this.renderPipeline.resolveAndMount(pass);
   }
 
@@ -54,7 +54,7 @@ export class RouteViewController {
   ): ViewRenderResult | 'aborted' {
     if (options.parentSignal?.aborted) return 'aborted';
     const pass = this.beginPass(routeInfo, options, options.preResolvedContent);
-    this.ctx.lastCacheKey = pass.cacheKey;
+    this.ctx.lastCacheKey = pass.domCacheKey;
     return this.renderPipeline.syncBranchMount(pass);
   }
 
@@ -70,11 +70,11 @@ export class RouteViewController {
       id: this.ctx.getPassId(),
       routeInfo,
       signal: this.ctx.renderSignal.begin(options?.parentSignal),
-      cacheKey: cacheKey(routeInfo, route.path),
+      domCacheKey: domCacheKey(routeInfo, route.path),
       viewKind: route.layout.trim() ? 'layout' : 'view',
       useStagedMount:
         route.transition.order !== null
-        || (this.ctx.paramChangeRemount && route.preserve.view),
+        || (this.ctx.paramChangeRemount && route.cache.dom),
       ...(options?.data !== undefined && { data: options.data }),
       ...(preResolvedContent !== undefined && { preResolvedContent }),
     };

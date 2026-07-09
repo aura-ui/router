@@ -37,7 +37,7 @@ describe('AuraRouter.invalidate', () => {
 
     const router = await mountRouter(`
       <aura-outlet></aura-outlet>
-      <aura-route path="/items" load="fetch-items" preserve="data" view="html::x"></aura-route>
+      <aura-route path="/items" load="fetch-items" cache="data" view="html::x"></aura-route>
     `);
 
     await router.prefetch('/items');
@@ -55,7 +55,7 @@ describe('AuraRouter.invalidate', () => {
   it('dispatches data-invalidated', async () => {
     const router = await mountRouter(`
       <aura-outlet></aura-outlet>
-      <aura-route path="/items" load="fetch-items" preserve="data" view="html::x"></aura-route>
+      <aura-route path="/items" load="fetch-items" cache="data" view="html::x"></aura-route>
     `);
 
     const handler = jest.fn();
@@ -91,8 +91,8 @@ describe('AuraRouter.invalidate', () => {
 
     const router = await mountRouter(`
       <aura-outlet></aura-outlet>
-      <aura-route path="/items" load="fetch-items" preserve="data" view="html::a"></aura-route>
-      <aura-route path="/profile" load="fetch-user" preserve="data" view="html::b"></aura-route>
+      <aura-route path="/items" load="fetch-items" cache="data" view="html::a"></aura-route>
+      <aura-route path="/profile" load="fetch-user" cache="data" view="html::b"></aura-route>
     `);
 
     await router.prefetch('/items');
@@ -117,7 +117,7 @@ describe('AuraRouter.invalidate', () => {
 
     const router = await mountRouter(`
       <aura-outlet></aura-outlet>
-      <aura-route path="/page" view="html::x" preserve="view"></aura-route>
+      <aura-route path="/page" view="html::x" cache="view"></aura-route>
     `);
 
     await router.viewGraph.loadView(
@@ -189,7 +189,7 @@ describe('AuraRouter.invalidateView', () => {
 
     const router = await mountRouter(`
       <aura-outlet></aura-outlet>
-      <aura-route path="/page" load="fetch-items" preserve="all" view="html::x"></aura-route>
+      <aura-route path="/page" load="fetch-items" cache="all" view="html::x"></aura-route>
     `);
 
     await router.prefetch('/page');

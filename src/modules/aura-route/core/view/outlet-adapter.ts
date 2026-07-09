@@ -6,7 +6,7 @@ import type {
 } from '../../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface } from '../types';
 import type { ViewKind } from './types';
-import { destroyViewRoot } from './view-cache';
+import { destroyViewRoot } from './dom-cache';
 
 type StageStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 
@@ -140,10 +140,10 @@ export function reattachContent(ctx: MountContext, cachedRoot: ViewRoot): MountS
 
 export function unmountHandle(
   handle: ViewHandle | null | undefined,
-  preserveView: boolean,
+  keepDom: boolean,
 ): ViewRoot | null {
   if (!handle) return null;
-  if (preserveView) return handle.detach();
+  if (keepDom) return handle.detach();
   handle.destroy();
   return null;
 }
@@ -230,20 +230,20 @@ export function rollbackReplace(snapshot: MountSnapshot): MountSnapshot {
 
 export function unmountOnLeave(
   snapshot: MountSnapshot,
-  preserveView: boolean,
+  keepDom: boolean,
 ): { snapshot: MountSnapshot; detachedRoot: ViewRoot | null } {
   const cleared = discardPendingOutgoing(snapshot);
 
   if (cleared.strategy === 'stage') {
     const afterCancel = cancelStagedIncoming(cleared);
     return {
-      detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, preserveView),
+      detachedRoot: unmountHandle(afterCancel.stageOutgoingHandle, keepDom),
       snapshot: { ...afterCancel, activeHandle: null, stageOutgoingHandle: null },
     };
   }
 
   return {
-    detachedRoot: unmountHandle(cleared.activeHandle, preserveView),
+    detachedRoot: unmountHandle(cleared.activeHandle, keepDom),
     snapshot: { ...cleared, activeHandle: null },
   };
 }
@@ -254,7 +254,7 @@ export function unmountOnLeave(
  */
 export function unmountParamChangeOutgoing(
   snapshot: MountSnapshot,
-  preserveView: boolean,
+  keepDom: boolean,
 ): { snapshot: MountSnapshot; detachedRoot: ViewRoot | null } {
   const cleared = discardPendingOutgoing(snapshot);
   const outgoing = cleared.stageOutgoingHandle;
@@ -264,17 +264,17 @@ export function unmountParamChangeOutgoing(
   }
 
   return {
-    detachedRoot: unmountHandle(outgoing, preserveView),
+    detachedRoot: unmountHandle(outgoing, keepDom),
     snapshot: { ...cleared, stageOutgoingHandle: null },
   };
 }
 
 export function finalizeLeave(
   snapshot: MountSnapshot,
-  preserveView: boolean,
+  keepDom: boolean,
   detachedRoot: ViewRoot | null,
 ): MountSnapshot {
-  return preserveView && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
+  return keepDom && detachedRoot ? snapshot : { ...snapshot, nestedOutlet: null };
 }
 
 function resolveStageStrategy(

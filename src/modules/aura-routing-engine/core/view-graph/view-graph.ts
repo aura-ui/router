@@ -2,11 +2,12 @@ import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
 import { createViewLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getActiveChain } from '../route-tree/matched-chain';
-import { payloadCacheKey } from './cache/cache-key';
-import { PayloadCache } from './cache/payload-cache';
+import { viewCacheKey } from './cache/cache-key';
+import { ViewPayloadCache } from './cache/view-payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { LoaderRegistry } from './registry';
 
 export type ViewPrefetchOptions = {
@@ -24,13 +25,13 @@ const DEFAULT_PREFETCH: Required<ViewPrefetchOptions> = {
 /** Route fields read when building a {@link ViewDescriptor} from {@link MatchedRouteInfo}. */
 export type RouteViewSource = {
   readonly layout: string;
-  readonly preserve: { readonly view: boolean };
+  readonly cache: CacheFlags;
   readonly extract?: string | null;
 };
 
 export type ViewGraphDeps = {
   readonly registry: LoaderRegistry;
-  readonly cache: PayloadCache;
+  readonly cache: ViewPayloadCache;
 };
 
 /**
@@ -39,7 +40,7 @@ export type ViewGraphDeps = {
  */
 export class ViewGraph {
   private readonly registry: LoaderRegistry;
-  private readonly cache: PayloadCache;
+  private readonly cache: ViewPayloadCache;
 
   constructor(deps: ViewGraphDeps) {
     this.registry = deps.registry;
@@ -75,7 +76,7 @@ export class ViewGraph {
 
     const load = () => this.loadViewPayload(descriptor, routeInfo, signal, data);
     return descriptor.cache
-      ? this.cache.resolve(payloadCacheKey(descriptor, routeInfo, { data }), load)
+      ? this.cache.resolve(viewCacheKey(descriptor, routeInfo, { data }), load)
       : load();
   }
 
@@ -149,7 +150,7 @@ export class ViewGraph {
       kind: 'view',
       loader: resolvedView.loader,
       content: resolvedView.content,
-      cache: route.preserve.view,
+      cache: route.cache.view,
     };
     return resolvedView.loader === 'url' && route.extract ? { ...descriptor, extract: route.extract } : descriptor;
   }

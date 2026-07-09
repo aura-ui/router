@@ -9,7 +9,7 @@ export type RenderPass = {
   readonly id: number;
   readonly routeInfo: MatchedRouteInfo;
   readonly signal: AbortSignal;
-  readonly cacheKey: string;
+  readonly domCacheKey: string;
   readonly viewKind: ViewKind;
   readonly useStagedMount: boolean;
   /** Load-hook payload from DataGraph snapshot. */
@@ -31,13 +31,13 @@ export interface ViewRenderPlugin {
 export type RouteViewConfig = {
   route: import('../types').AuraRouteInterface;
   view: ViewResolverPort;
-  cache: ViewCachePort;
+  cache: DomCachePort;
   mountTarget: MountTargetPort;
   plugins?: readonly ViewRenderPlugin[];
 };
 
 /** Keep-alive detached DOM (`extract` checkout, `put` cache). */
-export interface ViewCachePort {
+export interface DomCachePort {
   extract(key: string): ViewRoot | undefined;
   put(key: string, root: ViewRoot): void;
 }

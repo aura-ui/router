@@ -133,7 +133,7 @@ for (const matchedRoute of matchedRoutes) {
 
 - один `load` на parent, который тянет всё для ветки;
 - внешний store / `await` внутри хука;
-- `preserve="data"` на parent — при повторном входе snapshot с LCA без refetch.
+- `cache="data"` на parent — при повторном входе snapshot с LCA без refetch.
 
 ### 2. Cold enter: layout + leaf (частично ок)
 

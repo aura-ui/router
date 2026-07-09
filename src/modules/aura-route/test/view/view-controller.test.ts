@@ -1,10 +1,10 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_PRESERVE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
+import { NO_CACHE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
 import { RouteViewController } from '../../core/view';
-import { RouteViewCache, destroyViewRoot, cacheKey } from '../../core/view/view-cache';
+import { RouteDomCache, destroyViewRoot, domCacheKey } from '../../core/view/dom-cache';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions } from '../../core/types';
-import type { ViewResolverPort, ViewCachePort } from '../../core/view/types';
+import type { ViewResolverPort, DomCachePort } from '../../core/view/types';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
@@ -23,7 +23,7 @@ function matched(pathname: string, overrides: Partial<MatchedRouteInfo> = {}): M
   } as MatchedRouteInfo;
 }
 
-function createMockViewCache(stash = new Map<string, Element>()): ViewCachePort {
+function createMockViewCache(stash = new Map<string, Element>()): DomCachePort {
   return {
     extract: (key) => {
       const root = stash.get(key);
@@ -38,8 +38,8 @@ function createController(
   path: string,
   outlets: { root: () => AuraOutlet; mount?: (route?: MatchedRouteInfo) => AuraOutlet | null },
   view: ViewResolverPort,
-  viewCache: ViewCachePort,
-  preserveView = true,
+  viewCache: DomCachePort,
+  cacheDom = true,
 ): RouteViewController {
   let passId = 0;
   const route = {
@@ -49,7 +49,7 @@ function createController(
     loadingTemplate: '',
     errorTemplate: '',
     scrollPolicy: null,
-    preserve: preserveView ? { view: true, data: false } : NO_PRESERVE,
+    cache: cacheDom ? { dom: true, view: false, data: false } : NO_CACHE,
     transition: NO_TRANSITION,
   } as AuraRouteInterface;
 
@@ -97,7 +97,7 @@ describe('RouteViewController keep-alive integration', () => {
 
   afterEach(() => {
     document.body.replaceChildren();
-    RouteViewCache.configure({ max: 10, gcTime: Infinity, gcSweepInterval: false });
+    RouteDomCache.configure({ max: 10, gcTime: Infinity, gcSweepInterval: false });
   });
 
   it('stashes under pathname when render is skipped', async () => {
@@ -116,7 +116,7 @@ describe('RouteViewController keep-alive integration', () => {
     await controller.render(route);
     controller.onUnmount();
 
-    expect(stash.has(cacheKey(route, 'user/:id'))).toBe(true);
+    expect(stash.has(domCacheKey(route, 'user/:id'))).toBe(true);
     expect(stash.has('user/:id')).toBe(false);
   });
 
@@ -140,8 +140,8 @@ describe('RouteViewController keep-alive integration', () => {
 
     const routeA = matched('/search', { query: { q: 'a' }, pattern: '/search' });
     const routeB = matched('/search', { query: { q: 'b' }, pattern: '/search' });
-    const keyA = cacheKey(routeA, 'search');
-    const keyB = cacheKey(routeB, 'search');
+    const keyA = domCacheKey(routeA, 'search');
+    const keyB = domCacheKey(routeB, 'search');
 
     await controller.render(routeA);
     controller.onUnmount();
@@ -191,7 +191,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(parent.nestedOutlet?.querySelector('#child-view')).not.toBeNull();
 
     child.onUnmount();
-    expect(stash.has(cacheKey(childRoute, ':id'))).toBe(true);
+    expect(stash.has(domCacheKey(childRoute, ':id'))).toBe(true);
 
     let resolveAfterStash = 0;
     const childAgain = createController(
@@ -216,7 +216,7 @@ describe('RouteViewController keep-alive integration', () => {
 
   it('LRU eviction destroys detached DOM via onRemove', async () => {
     const evicted: Element[] = [];
-    RouteViewCache.configure({
+    RouteDomCache.configure({
       max: 2,
       gcTime: Infinity,
       gcSweepInterval: false,
@@ -226,7 +226,7 @@ describe('RouteViewController keep-alive integration', () => {
       },
     });
 
-    const viewCache = new RouteViewCache();
+    const viewCache = new RouteDomCache();
     const root = createOutlet();
 
     async function visit(pathname: string, attrPath: string): Promise<void> {
@@ -245,9 +245,9 @@ describe('RouteViewController keep-alive integration', () => {
     await visit('/c', 'c');
 
     expect(evicted).toHaveLength(1);
-    expect(viewCache.extract(cacheKey(matched('/a', { pattern: 'a' }), 'a'))).toBeUndefined();
-    expect(viewCache.extract(cacheKey(matched('/b', { pattern: 'b' }), 'b'))).toBeDefined();
-    expect(viewCache.extract(cacheKey(matched('/c', { pattern: 'c' }), 'c'))).toBeDefined();
+    expect(viewCache.extract(domCacheKey(matched('/a', { pattern: 'a' }), 'a'))).toBeUndefined();
+    expect(viewCache.extract(domCacheKey(matched('/b', { pattern: 'b' }), 'b'))).toBeDefined();
+    expect(viewCache.extract(domCacheKey(matched('/c', { pattern: 'c' }), 'c'))).toBeDefined();
     expect(evicted[0]?.isConnected).toBe(false);
   });
 
@@ -276,7 +276,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.children).toHaveLength(1);
   });
 
-  it('isViewAlreadyInOutlet skips re-render for same target with preserve.view', async () => {
+  it('isViewAlreadyInOutlet skips re-render for same target with cache.dom', async () => {
     const root = createOutlet();
     let resolveCount = 0;
     const controller = createController(
@@ -296,7 +296,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.textContent).toBe('view-1');
   });
 
-  it('param-change remount re-renders despite preserve.view and active mount', async () => {
+  it('param-change remount re-renders despite cache.dom and active mount', async () => {
     const root = createOutlet();
     let resolveCount = 0;
     const controller = createController(
@@ -339,7 +339,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.children).toHaveLength(0);
   });
 
-  it('staged param-change remount stashes outgoing DOM before commit when preserve.view', async () => {
+  it('staged param-change remount stashes outgoing DOM before commit when cache.dom', async () => {
     const root = createOutlet();
     const stash = new Map<string, Element>();
     const viewCache = createMockViewCache(stash);
@@ -360,7 +360,7 @@ describe('RouteViewController keep-alive integration', () => {
 
     expect(root.children).toHaveLength(2);
 
-    controller.onUnmount({ cacheKey: cacheKey(route1, 'user/:id') });
+    controller.onUnmount({ domCacheKey: domCacheKey(route1, 'user/:id') });
 
     expect(root.textContent).toBe('view-2');
     expect(root.children).toHaveLength(1);
@@ -377,7 +377,7 @@ describe('RouteViewController keep-alive integration', () => {
       loadingTemplate: '',
       errorTemplate: '',
       scrollPolicy: null,
-      preserve: NO_PRESERVE,
+      cache: NO_CACHE,
       transition: { order: 'parallel' as const, in: null, out: null },
     } as AuraRouteInterface;
 
@@ -403,7 +403,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.querySelector('[data-id="1"]')).not.toBeNull();
     expect(root.querySelector('[data-id="2"]')).not.toBeNull();
 
-    controller.onUnmount({ cacheKey: cacheKey(route1, 'user/:id') });
+    controller.onUnmount({ domCacheKey: domCacheKey(route1, 'user/:id') });
 
     expect(root.children).toHaveLength(1);
     expect(root.querySelector('[data-id="2"]')).not.toBeNull();
@@ -488,7 +488,7 @@ function routeConfig(overrides: Partial<AuraRouteInterface> = {}): AuraRouteInte
     loadingTemplate: '',
     errorTemplate: '',
     scrollPolicy: null,
-    preserve: NO_PRESERVE,
+    cache: NO_CACHE,
     transition: NO_TRANSITION,
     hasLayout: false,
     hasViewContent: false,
@@ -542,9 +542,9 @@ describe('RouteViewController useStagedMount', () => {
     expect(value).toBe(true);
   });
 
-  it('stages on param-change remount with preserve.view', async () => {
+  it('stages on param-change remount with cache.dom', async () => {
     const value = await captureUseStagedMount(
-      routeConfig({ preserve: { view: true, data: false } }),
+      routeConfig({ cache: { dom: true, view: false, data: false } }),
       matchedUser('/users/2'),
       { paramChangeRemount: true },
     );
@@ -552,9 +552,9 @@ describe('RouteViewController useStagedMount', () => {
     expect(value).toBe(true);
   });
 
-  it('replaces on param-change remount without preserve.view', async () => {
+  it('replaces on param-change remount without cache.dom', async () => {
     const value = await captureUseStagedMount(
-      routeConfig({ preserve: NO_PRESERVE }),
+      routeConfig({ cache: NO_CACHE }),
       matchedUser('/users/2'),
       { paramChangeRemount: true },
     );
@@ -564,7 +564,7 @@ describe('RouteViewController useStagedMount', () => {
 
   it('replaces on ordinary navigation without transition', async () => {
     const value = await captureUseStagedMount(
-      routeConfig({ preserve: { view: true, data: false } }),
+      routeConfig({ cache: { dom: true, view: false, data: false } }),
       matchedUser('/users/2'),
     );
 

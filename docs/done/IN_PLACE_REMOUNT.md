@@ -47,7 +47,7 @@ render enter → commitStaged → onUnmount exit
 
 **Сейчас в коде:** `NavigationTransactionPipeline.runAfterRender` — **unmount → commitStaged → commitNavigation → ready** (глобально для всех success-навигаций).
 
-### 3. ViewCache key: exit vs enter
+### 3. RouteDomCache key: exit vs enter
 
 После render enter `lastCacheKey` на controller указывает на **новый** pathname (`/users/2`).  
 Outgoing DOM нужно положить в cache под **exit** key (`/users/1`).
@@ -82,23 +82,23 @@ Outgoing DOM нужно положить в cache под **exit** key (`/users/1
 |----------|------|-----|
 | `TransitionMap.paramChangeRemount` | plan сигналит synthetic remount на том же record | `transition-plan.ts` |
 | `resolveParamChangeMode` | auto: same `viewKey` → UPDATE, diff → navigate/remount | `transition-plan.ts` |
-| Staged mount при remount | `preserve.view` или transition → два DOM без мерцания | `view-controller.ts` (`beginPass` → `useStagedMount`) |
+| Staged mount при remount | `cache.dom` или transition → два DOM без мерцания | `view-controller.ts` (`beginPass` → `useStagedMount`) |
 | `unmountParamChangeOutgoing` | outlet снимает только `stageOutgoingHandle` | `outlet-adapter.ts` |
 | `ViewTeardownPipeline` | post-render teardown: unmount / commitStaged / revert | `view-teardown-pipeline.ts` |
 | `trySkipAlreadyMounted` bypass | при remount не skip render из‑за живого mount | `view-render-pipeline-phase.ts` |
 | `paramChangeRemount` в render options | pipeline → `runViewCommit` → controller | `navigation-transaction-pipeline.ts` |
 | unmount hooks на exitRoutes | `PHASES.unmount.targetRoutes = 'exitRoutes'` | `phase-registry.ts` |
 | **Pipeline order** | `unmount → commitStaged → commitNavigation → ready` | `runAfterRender()` |
-| **Exit ViewCache key** | `cacheKey(ctx.to, path)` → `onUnmount({ cacheKey })` | `aura-route.ts`, `view-teardown-pipeline.ts` |
+| **Exit domCacheKey** | `domCacheKey(ctx.to, path)` → `onUnmount({ domCacheKey })` | `aura-route.ts`, `view-teardown-pipeline.ts` |
 | Fast-path / branch-atomic block | remount всегда full pipeline | `can-use-fast-path.ts`, `branch-resolver.ts` |
 
-Content cache (`DataCache`) не затронут — loader cache живёт отдельно от DOM ViewCache.
+Content cache (`DataCache`) не затронут — loader cache живёт отдельно от RouteDomCache.
 
 **Тесты:**
 
 | Область | Файл |
 |---------|------|
-| Remount + preserve round-trip | `param-change-remount.integration.test.ts` |
+| Remount + cache round-trip | `param-change-remount.integration.test.ts` |
 | Transition in-place (parallel / out-in / in-out) | `param-change-transition.integration.test.ts` |
 | UPDATE same viewKey, real DOM | `param-change-update.integration.test.ts` |
 | Pipeline order after render | `navigation-transaction-pipeline-after-render.test.ts` |
@@ -106,7 +106,7 @@ Content cache (`DataCache`) не затронут — loader cache живёт о
 | Controller / outlet primitives | `view-controller.test.ts`, `outlet-adapter.test.ts`, `view-teardown-pipeline.test.ts` |
 | Plan + nested LCA | `transition-plan.test.ts`, `param-change-lifecycle.test.ts` |
 
-**User-facing docs:** [PRESERVE.md](../PRESERVE.md) — `preserve.view`, UPDATE vs FULL, param remount teardown.
+**User-facing docs:** [PRESERVE.md](../PRESERVE.md) — `cache.dom`, UPDATE vs FULL, param remount teardown.
 
 > **Teardown hooks:** param remount использует **фазу `unmount`** на `exitRoutes` + флаг `paramChangeRemount` на controller. Отдельная lifecycle-фаза `remount` / атрибут `remount="…"` **не планируется** — overload `unmount` остаётся финальной моделью.
 
@@ -130,7 +130,7 @@ Content cache (`DataCache`) не затронут — loader cache живёт о
 | Cache | Где | Когда invalidation / stash |
 |-------|-----|----------------------------|
 | **Content** | `DataCache` / loader | prefetch + render; **не** onUnmount |
-| **DOM** | `RouteViewCache` | detach outgoing при leave / remount; key = pathname (+ query) |
+| **DOM** | `RouteDomCache` | detach outgoing при leave / remount; key = pathname (+ query) |
 
 In-place remount **не блокирует** content cache. DOM cache требует **outgoing detach**, не save-before-render на replace.
 
@@ -139,17 +139,17 @@ In-place remount **не блокирует** content cache. DOM cache требу
 ## Критерии готовности
 
 - <span style="color:#39ff14;font-weight:bold">[x]</span> `/users/1` → `/users/2` (per-id viewKey): новый view на экране после navigation
-- <span style="color:#39ff14;font-weight:bold">[x]</span> `preserve.view` + in-place: outgoing DOM в ViewCache под exit pathname — integration round-trip pass
+- <span style="color:#39ff14;font-weight:bold">[x]</span> `cache.dom` + in-place: outgoing DOM в RouteDomCache под exit pathname — integration round-trip pass
 - <span style="color:#39ff14;font-weight:bold">[x]</span> unmount hooks на exitRoutes отрабатывают (`unmount="…"`)
 - <span style="color:#39ff14;font-weight:bold">[x]</span> unmount outgoing **до** commitStaged — глобальный порядок в `runAfterRender`
 - <span style="color:#39ff14;font-weight:bold">[x]</span> exit stash key из lifecycle context (`ctx.to`), не `lastCacheKey` enter
 - <span style="color:#39ff14;font-weight:bold">[x]</span> UPDATE (same viewKey): без render, patch path не сломан — `param-change-update.integration.test.ts`
 - <span style="color:#39ff14;font-weight:bold">[x]</span> Transition in-place: stage + crossfade без double-teardown — `param-change-transition.integration.test.ts`
-- <span style="color:#39ff14;font-weight:bold">[x]</span> Документировать `preserve.view` = loader cache + optional DOM keep-alive — [PRESERVE.md](../PRESERVE.md)
+- <span style="color:#39ff14;font-weight:bold">[x]</span> Документировать `cache.dom` = loader cache + optional DOM keep-alive — [PRESERVE.md](../PRESERVE.md)
 - <span style="color:#39ff14;font-weight:bold">[x]</span> Teardown hooks: `unmount` на exitRoutes (отдельная фаза `remount` не планируется)
 
 ---
 
 ## Одной фразой
 
-**In-place remount реализован: outgoing-only teardown (`unmountParamChangeOutgoing`), unmount до commit, exit ViewCache key из ctx, UPDATE / FULL / transition in-place покрыты тестами. Публичные hooks — через `unmount="…"` на exit slice; отдельная фаза `remount` не будет.**
+**In-place remount реализован: outgoing-only teardown (`unmountParamChangeOutgoing`), unmount до commit, exit `domCacheKey` из ctx, UPDATE / FULL / transition in-place покрыты тестами. Публичные hooks — через `unmount="…"` на exit slice; отдельная фаза `remount` не будет.**

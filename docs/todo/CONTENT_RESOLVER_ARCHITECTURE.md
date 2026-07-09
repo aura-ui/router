@@ -1,4 +1,4 @@
-﻿# Content resolver — поток route → loaders, реализация и статус
+# Content resolver — поток route → loaders, реализация и статус
 
 > **Статус:** реализовано в `aura-route-2/core/loader/` (2026-06)  
 > **Связь:** [CONTENT_CACHE.md](./CONTENT_CACHE.md) · [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) · [DATAGRAPH.md](./DATAGRAPH.md) · [VIEW_LAYER_ARCHITECTURE.md](./VIEW_LAYER_ARCHITECTURE.md)  
@@ -23,14 +23,15 @@
 | Единый путь layout + content через resolver | ✅ |
 | `RouteContentLoader` — thin adapter | ✅ |
 | In-flight dedupe | ✅ |
-| View loader cache (`preserve="view"`) | ✅ per-router `DataCache`, LRU, string-only |
-| Load hook cache (`preserve="data"`) | ✅ DataGraph SWR |
+| View loader cache (`cache.view`) | ✅ per-router `ViewPayloadCache`, LRU, string-only |
+| Load hook cache (`cache.data`) | ✅ DataGraph SWR |
 | `preload` | ✅ ⚠️ network warm-up, без записи в cache |
 | Abort → `null` | ✅ |
 | Зависимость от `aura-content-loaders` | ❌ убрана (v2 only) |
 | Content loader plugins | ❌ |
 | Router `registerLoader` / DI | ❌ |
-| TTL / LRU data cache | ✅ `AuraRouter.configure({ dataCache: { max, gcTime } })` |
+| TTL / LRU view-loader cache | ✅ `AuraRouter.configure({ viewCache: { max, gcTime } })` |
+| TTL / LRU load-hook cache | ✅ `AuraRouter.configure({ dataCache: { max, gcTime, staleTime } })` |
 | Renaming attrs (`data-loader`) | ❌ |
 
 **Тесты:** `aura-route-2/test/loader/` + интеграционные view-тесты — **57** тестов в модуле.
@@ -52,7 +53,7 @@
 | `core/loader/http.ts` | `fetchText`, `resolveRelativeUrl` |
 | `core/loader/types.ts` | `ContentDescriptor`, `ResolveContext`, `LoaderFn` |
 | `core/view/view-controller.ts` | `content.resolve()` → `applyMount` |
-| `core/view/view-cache.ts` | ViewCache (keep-alive DOM) — **отдельно** |
+| `core/view/dom-cache.ts` | RouteDomCache (keep-alive DOM) — **отдельно** |
 
 **v1 (без изменений):** `aura-content-loaders` + `configureRouteContentLoader` на `AuraRouter`.
 
@@ -74,7 +75,7 @@ sequenceDiagram
   Engine->>Route: render(routeInfo, { parentSignal })
   Route->>VC: render() → renderPass
 
-  alt ViewCache hit (keepAlive)
+  alt RouteDomCache hit (keepAlive)
     VC->>VC: tryCacheRestore → applyMount
   else resolve
   VC->>RCL: resolve(routeInfo, signal)
@@ -105,11 +106,11 @@ content: new RouteContentLoader(this),
 
 | Кэш | Где | Что хранит | Attr |
 |-----|-----|------------|------|
-| **ViewCache** | `view/view-cache.ts` | detached DOM | `preserve` / `preserve="view"` |
-| **DataCache** | `content/cache/data-cache.ts` | string HTML from view loaders | `preserve` / `preserve="view"` |
-| **DataGraph** | `data-graph/` | JSON из `load` hooks | `preserve="data"` |
+| **RouteDomCache** | `view/dom-cache.ts` | detached DOM | `cache.dom` |
+| **ViewPayloadCache** | `view-graph/cache/` | string HTML from view loaders | `cache.view` |
+| **DataGraph** | `data-graph/` | JSON из `load` hooks | `cache.data` |
 
-Ключи разные: `cacheKey()` (view) vs `dataCacheKey()` (content).
+Ключи разные: `domCacheKey()` (DOM) vs `viewCacheKey()` (loader) vs `buildRouteDataKey()` (load hooks).
 
 ---
 
@@ -121,8 +122,8 @@ content: new RouteContentLoader(this),
 - [x] **Abort → `null`**
 - [x] **`preload`** через resolver (см. ограничения ниже)
 - [x] **In-flight dedupe**
-- [x] **`preserve="view"`** → view-loader cache → `DataCache`
-- [x] **`preserve="data"`** → `load` hooks → DataGraph
+- [x] **`cache.view`** → view-loader cache → `ViewPayloadCache`
+- [x] **`cache.data`** → `load` hooks → DataGraph
 - [x] **Registry** без `new` на каждый resolve (функции в `loaders.ts`)
 - [ ] Router: `configureContentResolver` / `registerLoader` на `AuraRoute2`
 - [ ] Content loader plugins (`beforeLoad` / `afterLoad`)
@@ -179,7 +180,7 @@ type ContentDescriptor = {
   readonly kind: 'layout' | 'content';
   readonly loader: LoaderId;   // route.source или 'template'
   readonly ref: string;          // route.content или route.layout
-  readonly cache: boolean;       // preserve.data (layout всегда false)
+  readonly cache: boolean;       // cache.data (layout всегда false)
 };
 ```
 
@@ -193,7 +194,7 @@ type ContentDescriptor = {
 2. **Link-driven preload** — см. [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md).
 3. **`AuraRoute2.registerLoader`** — thin wrapper над `defaultLoaderRegistry`.
 4. **Content plugins** — метрики / analytics без правки resolver.
-5. **Документировать** в route README границу ViewCache / DataCache / DataGraph.
+5. **Документировать** в route README границу RouteDomCache / DataCache / DataGraph.
 
 ---
 

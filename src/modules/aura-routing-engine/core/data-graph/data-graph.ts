@@ -1,3 +1,4 @@
+import type { CacheStoreOptions } from '../../../aura-cache-store/core';
 import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
 import { DEFAULT_GC_TIME } from '../../../aura-cache-store/core';
 import {
@@ -21,12 +22,7 @@ export type DataGraphLoadResult = {
   snapshot?: DataSnapshot;
 };
 
-export type DataGraphOptions = {
-  /** SWR fresh window (ms). Default: 30_000. */
-  staleTime?: number;
-  /** Max age before eviction (ms). Default: {@link DEFAULT_GC_TIME}. */
-  gcTime?: number;
-};
+export type DataGraphOptions = Pick<CacheStoreOptions<unknown>, 'max' | 'staleTime' | 'gcTime'>;
 
 export type DataGraphLoadOptions = {
   /**
@@ -66,15 +62,23 @@ class DataGraphTerminalError extends Error {
  * View/HTML caching stays in `core/content/`.
  */
 export class DataGraph {
+  private static defaultOptions: DataGraphOptions = {};
+
   private readonly cache: AuraResolvableCache<unknown>;
   /** Engine hook registry; prefetch uses this (no navigation runtime). */
   private readonly hooks: HookRegistry;
 
+  static configure(options: DataGraphOptions = {}): void {
+    DataGraph.defaultOptions = { ...DataGraph.defaultOptions, ...options };
+  }
+
   constructor(hooks: HookRegistry, options: DataGraphOptions = {}) {
     this.hooks = hooks;
+    const merged = { ...DataGraph.defaultOptions, ...options };
     this.cache = new AuraResolvableCache({
-      staleTime: options.staleTime ?? 30_000,
-      gcTime: options.gcTime ?? DEFAULT_GC_TIME,
+      max: merged.max,
+      staleTime: merged.staleTime ?? 30_000,
+      gcTime: merged.gcTime ?? DEFAULT_GC_TIME,
       gcSweepInterval: false,
     });
   }
@@ -110,7 +114,7 @@ export class DataGraph {
   }
 
   /**
-   * Reads cached load-hook payloads for preserve.data routes on the active branch.
+   * Reads cached load-hook payloads for `cache.data` routes on the active branch.
    * @returns `null` when no preserved entries — keeps truthy checks meaningful downstream.
    */
   snapshot(activeChain: readonly MatchedRouteInfo[]): DataSnapshot | undefined {
@@ -296,7 +300,7 @@ export class DataGraph {
 const SKIP_PAYLOAD = Symbol('skip-payload');
 
 function routePreservesLoadData(route: MatchedRouteInfo): boolean {
-  return route.route.preserve?.data ?? false;
+  return route.route.cache?.data ?? false;
 }
 
 /** Non-terminal hook return stored in the data graph cache. */

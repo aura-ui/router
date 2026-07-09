@@ -30,13 +30,13 @@
 ```ts
 import {
   ViewGraph,
-  PayloadCache,
+  ViewPayloadCache,
   defaultLoaderRegistry,
 } from '…/core/view-graph';
 
 const viewGraph = new ViewGraph({
   registry: defaultLoaderRegistry,
-  cache: new PayloadCache(),
+  cache: new ViewPayloadCache(),
 });
 
 const payload = await viewGraph.loadView(routeInfo, signal, { data: hookSnapshot });
@@ -58,7 +58,7 @@ type ViewKind = 'layout' | 'view';
 | Kind | Атрибут маршрута | Loader | `descriptor.cache` |
 |------|------------------|--------|------------------|
 | `layout` | `layout="template-id"` | `template` | всегда `false` |
-| `view` | `view="…"` (см. синтаксис ниже) | `resolvedView.loader` | `preserve.view` |
+| `view` | `view="…"` (см. синтаксис ниже) | `resolvedView.loader` | `cache.view` |
 
 Если для matched route не строится descriptor — нет непустого `layout` на этом узле и нет `resolvedView` (нет `view` или пустой атрибут) — `loadView` возвращает `null`. Это не ошибка.
 
@@ -92,9 +92,9 @@ type ViewKind = 'layout' | 'view';
 
 | Store | Модуль | Содержимое | Когда участвует |
 |-------|--------|------------|-----------------|
-| `PayloadCache` | `cache/` | строки payload | `preserve.view` |
-| `ViewCache` | aura-route | detached DOM | `preserve.view` + keep-alive |
-| `DataGraph` | data-graph | данные load-hook'ов | `preserve.data` |
+| `ViewPayloadCache` | `cache/` | строки payload | `cache.view` |
+| `RouteDomCache` | aura-route | detached DOM | `cache.dom` |
+| `DataGraph` | data-graph | данные load-hook'ов | `cache.data` |
 
 Инвалидация для graph-cache'ей — общий контракт `RouterInvalidateOptions`, но backends разные.
 
@@ -109,7 +109,7 @@ MatchedRouteInfo
 buildViewDescriptor(route, resolvedView)   ← private, внутри loadView
       │
       ▼
-PayloadCache.resolve(key)?                 ← только если descriptor.cache
+ViewPayloadCache.resolve(key)?                 ← только если descriptor.cache
       │
       ▼
 LoaderRegistry.get(loader).load(context)
@@ -135,7 +135,7 @@ ViewPayload
 | Группа | Символы |
 |--------|---------|
 | Orchestration | `ViewGraph`, `ViewGraphDeps`, `ViewPrefetchOptions`, `RouteViewSource`, `ViewLoadPort`, `ViewResolverPort`, `BranchViewResolver` |
-| Cache | `PayloadCache`, `payloadCacheKey` |
+| Cache | `ViewPayloadCache`, `viewCacheKey` |
 | Registry | `LoaderRegistry`, `createLoaderRegistry`, `defaultLoaderRegistry`, `Loader`, `LoaderClass`, `LoaderFn` |
 | Types | `ViewPayload`, `ViewLoadContext`, `ViewDescriptor`, `ViewKind`, `ViewLoadResult`, `ViewLoaderEnv`, `FetchText` |
 
@@ -264,13 +264,13 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 ## Кеш и инвалидация
 
-**Когда кешируется:** `descriptor.cache === true`, то есть `preserve.view` на view-маршруте.
+**Когда кешируется:** `descriptor.cache === true`, то есть `cache.view` на view-маршруте.
 
-**Что кешируется:** только **строки**. `DocumentFragment` в `PayloadCache` не пишется — DOM keep-alive обслуживает `ViewCache`.
+**Что кешируется:** только **строки**. `DocumentFragment` в `ViewPayloadCache` не пишется — DOM keep-alive обслуживает `RouteDomCache`.
 
 **In-flight dedup:** `AuraResolvableCache.resolve` схлопывает параллельные запросы с одним ключом.
 
-**Формат ключа** (`payloadCacheKey`):
+**Формат ключа** (`viewCacheKey`):
 
 ```text
 {pathname | matchKey[+params]} | {query?} | d:{json(data)?} | {kind}:{loader}:{content} [:: {extract}]
@@ -353,7 +353,7 @@ view-graph/
 ├── environment.ts
 ├── markup.ts
 ├── cache/
-│   ├── payload-cache.ts
+│   ├── view-payload-cache.ts
 │   └── cache-key.ts
 └── loaders/           built-in Loader classes
 ```

@@ -65,7 +65,7 @@
     search="products-filters"
     search-deps="page,sort,category"
     load="fetch-products"
-    preserve="data"
+    cache="data"
   ></aura-route>
 </aura-router>
 ```

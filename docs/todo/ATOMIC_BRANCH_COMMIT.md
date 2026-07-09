@@ -303,7 +303,7 @@ success gate:  destroy pendingOutgoing
 cancel:        destroy incoming, reattach pendingOutgoing
 ```
 
-Не путать с `preserve.view` cache: разный lifecycle (discard на gate vs put в cache на unmount).
+Не путать с `cache.dom` cache: разный lifecycle (discard на gate vs put в cache на unmount).
 
 #### Что сознательно не используем
 
@@ -506,7 +506,7 @@ Atomic commit **не зависит** от prefetch.
 | supersede A→B mid-resolve | B wins, A payloads discarded |
 | layout preserved, sibling swap | only nested outlet changes |
 | transition fade + atomic | old visible during resolve |
-| preserve.view + atomic | pendingOutgoing ≠ cache entry |
+| cache.dom + atomic | pendingOutgoing ≠ cache entry |
 | render error | error UI or restore per policy |
 
 ---

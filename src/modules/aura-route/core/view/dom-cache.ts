@@ -2,11 +2,12 @@ import { AuraCacheStore, type CacheStoreOptions } from '../../../aura-cache-stor
 import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo, RouteInfo } from '../../../aura-routing-engine/route-api';
 
-import type { ViewCachePort } from './types';
+import type { DomCachePort } from './types';
 
 type CacheKeySource = MatchedRouteInfo | RouteInfo | undefined;
 
-export function cacheKey(source: CacheKeySource, fallbackPath: string): string {
+/** Cache key for detached DOM (`cache.dom`). */
+export function domCacheKey(source: CacheKeySource, fallbackPath: string): string {
   const base = source?.pathname ?? fallbackPath;
   const query = source?.query;
 
@@ -29,13 +30,13 @@ const DEFAULT_CACHE_OPTIONS: CacheStoreOptions<ViewRoot> = {
   onRemove: (_key, root) => destroyViewRoot(root),
 };
 
-/** Shared LRU keep-alive view cache. */
-export class RouteViewCache implements ViewCachePort {
+/** Shared LRU detached-DOM cache (`cache.dom`). */
+export class RouteDomCache implements DomCachePort {
   private static store: AuraCacheStore<ViewRoot> | undefined;
 
   static configure(options: CacheStoreOptions<ViewRoot> = {}): void {
-    RouteViewCache.store?.destroy();
-    RouteViewCache.store = new AuraCacheStore({
+    RouteDomCache.store?.destroy();
+    RouteDomCache.store = new AuraCacheStore({
       ...DEFAULT_CACHE_OPTIONS,
       ...options,
       onRemove: options.onRemove ?? DEFAULT_CACHE_OPTIONS.onRemove,
@@ -43,18 +44,18 @@ export class RouteViewCache implements ViewCachePort {
   }
 
   extract(key: string): ViewRoot | undefined {
-    return RouteViewCache.storeOf().extract(key);
+    return RouteDomCache.storeOf().extract(key);
   }
 
   put(key: string, root: ViewRoot): void {
-    RouteViewCache.storeOf().set(key, root);
+    RouteDomCache.storeOf().set(key, root);
   }
 
   private static storeOf(): AuraCacheStore<ViewRoot> {
-    if (!RouteViewCache.store) {
-      RouteViewCache.configure();
+    if (!RouteDomCache.store) {
+      RouteDomCache.configure();
     }
-    return RouteViewCache.store!;
+    return RouteDomCache.store!;
   }
 }
 
@@ -63,4 +64,4 @@ export function destroyViewRoot(root: ViewRoot): void {
   root.remove();
 }
 
-export const defaultViewCache = new RouteViewCache();
+export const defaultDomCache = new RouteDomCache();

@@ -1,14 +1,12 @@
-export { AuraRoute, type AuraRouteInterface } from './core/aura-route';
-export type { RouteRenderOptions, ApplyPreResolvedOptions, MatchedRouteInfo } from './core/types';
 export {
-  RouteViewCache,
-  defaultViewCache,
-  cacheKey,
+  RouteDomCache,
+  defaultDomCache,
+  domCacheKey,
   destroyViewRoot,
-} from './core/view/view-cache';
+} from './core/view/dom-cache';
 export type {
   ViewResolverPort,
-  ViewCachePort,
+  DomCachePort,
   MountTargetPort,
   ViewRenderPlugin,
   RouteViewConfig,
@@ -20,7 +18,7 @@ export { loadingBodyClass, loadingEvent } from './core/plugins/view-loading-plug
 export {
   LoaderRegistry,
   defaultLoaderRegistry,
-  payloadCacheKey,
+  viewCacheKey,
 } from '../aura-routing-engine/core';
 export type {
   ViewDescriptor,
@@ -28,3 +26,5 @@ export type {
   LoaderId,
   LoaderFn,
 } from '../aura-routing-engine/route-api';
+export { AuraRoute, type AuraRouteInterface } from './core/aura-route';
+export type { RouteRenderOptions, ApplyPreResolvedOptions, MatchedRouteInfo } from './core/types';

@@ -160,7 +160,6 @@ export type {
   RouterInvalidateOptions,
   RouterInvalidateOptions as RouterDataInvalidateOptions,
 } from './core/invalidate';
-export { resolveRouterInvalidatePredicate } from './core/invalidate';
 
 // --- Route hooks (registered via AuraRouter.use) ---
 

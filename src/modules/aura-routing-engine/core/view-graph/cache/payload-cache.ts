@@ -8,10 +8,12 @@ import {
 } from '../../invalidate-router-cache';
 import type { ViewPayload } from '../types';
 
+/** Default payload TTL — 12 hours. */
+export const PAYLOAD_CACHE_GC_TIME = 12 * 60 * 60 * 1000;
+
 const DEFAULT_OPTIONS: CacheStoreOptions<string> = {
   max: 50,
-  gcTime: Infinity,
-  gcSweepInterval: false,
+  gcTime: PAYLOAD_CACHE_GC_TIME,
 };
 
 /**

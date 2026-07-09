@@ -78,7 +78,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.viewController?.nestedOutlet ?? null;
   }
 
-  protected attributeChangedCallback(attrName: string, oldVal: string, newVal: string): void {
+  protected attributeChangedCallback(_attrName: string, _oldVal: string, _newVal: string): void {
     this.refresh();
   }
 

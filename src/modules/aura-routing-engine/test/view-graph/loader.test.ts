@@ -1,7 +1,7 @@
 import { FnLoader, Loader } from '../../core/view-graph/loader';
 import { createBrowserEnvironment } from '../../core/view-graph/environment';
 import type { ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
-import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
+import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
 
 const env = createBrowserEnvironment();
 
@@ -17,7 +17,7 @@ function ctx(overrides: Partial<ViewLoadContext> = {}): ViewLoadContext {
 
 describe('Loader', () => {
   class StaticTypeLoader extends Loader {
-    static readonly type = 'probe' as const satisfies LoaderType;
+    static readonly type = 'probe' as const satisfies LoaderId;
 
     load(): Promise<ViewLoadResult | null> {
       return Promise.resolve({ kind: 'html', html: 'ok' });

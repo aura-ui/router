@@ -25,6 +25,6 @@ export {
 export type {
   ViewDescriptor,
   ViewKind,
-  LoaderType,
+  LoaderId,
   LoaderFn,
 } from '../aura-routing-engine/route-api';

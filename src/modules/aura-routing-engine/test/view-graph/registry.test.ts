@@ -6,10 +6,10 @@ import {
 import { HtmlLoader } from '../../core/view-graph/loaders/html';
 import { Loader } from '../../core/view-graph/loader';
 import type { ViewLoaderEnv, ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
-import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
+import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
 
 class ProbeLoader extends Loader {
-  static readonly type = 'template' as const satisfies LoaderType;
+  static readonly type = 'template' as const satisfies LoaderId;
 
   load(_ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     return Promise.resolve({ kind: 'html', html: 'probe' });
@@ -30,7 +30,7 @@ describe('LoaderRegistry', () => {
   it('registers a loader instance', async () => {
     const registry = new LoaderRegistry(undefined, []);
     class InstanceLoader extends Loader {
-      static readonly type = 'html' as const satisfies LoaderType;
+      static readonly type = 'html' as const satisfies LoaderId;
 
       load(): Promise<ViewLoadResult | null> {
         return Promise.resolve({ kind: 'html', html: 'inst' });
@@ -112,7 +112,7 @@ describe('LoaderRegistry', () => {
     }
     const registry = new LoaderRegistry(undefined, []);
     expect(() => registry.register(NoStaticTypeLoader as never)).toThrow(
-      'register(fn) is invalid — use register(type, fn)',
+      'register(fn) is invalid — use register(loaderId, fn)',
     );
   });
 

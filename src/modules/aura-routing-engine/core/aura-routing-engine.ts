@@ -44,7 +44,7 @@ import { syncChainHref } from './route-tree/matched-chain';
 import { LinkNavigationTracker } from './user-actions/link-navigation';
 import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
 import { DataGraph } from './data-graph';
-import type { InvalidateScope, RouterInvalidateOptions } from './invalidate';
+import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
 import type { TransactionResult } from './navigation/types';

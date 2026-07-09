@@ -3,7 +3,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import { getActiveChain } from '../route-tree/matched-chain';
 import { payloadCacheKey } from './cache/cache-key';
 import { PayloadCache } from './cache/payload-cache';
-import type { RouterInvalidateOptions } from '../invalidate';
+import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import { DEFAULT_PREFETCH, orderPrefetchChain, prefetchConcurrent, type ContentPrefetchOptions } from './prefetch';
 import { buildContentDescriptor, type RouteContentSource } from './model/descriptor';
 import { toLoadContext } from './model/context';

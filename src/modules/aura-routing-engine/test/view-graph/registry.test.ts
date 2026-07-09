@@ -10,7 +10,6 @@ import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser'
 
 class ProbeLoader extends Loader {
   static readonly type = 'template' as const satisfies LoaderType;
-  readonly type = ProbeLoader.type;
 
   load(_ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     return Promise.resolve({ kind: 'html', html: 'probe' });
@@ -32,7 +31,6 @@ describe('LoaderRegistry', () => {
     const registry = new LoaderRegistry(undefined, []);
     class InstanceLoader extends Loader {
       static readonly type = 'html' as const satisfies LoaderType;
-      readonly type = InstanceLoader.type;
 
       load(): Promise<ViewLoadResult | null> {
         return Promise.resolve({ kind: 'html', html: 'inst' });
@@ -90,6 +88,38 @@ describe('LoaderRegistry', () => {
     const registry = createLoaderRegistry();
     expect(registry.has('html')).toBe(true);
     expect(registry).not.toBe(defaultLoaderRegistry);
+  });
+
+  it('throws when register(type) is called without a function', () => {
+    const registry = new LoaderRegistry(undefined, []);
+    expect(() => registry.register('html' as never)).toThrow(
+      'register("html") requires a loader function',
+    );
+  });
+
+  it('throws when register(loader, fn) receives an extra argument', () => {
+    const registry = new LoaderRegistry(undefined, []);
+    expect(() => registry.register(ProbeLoader, async () => 'x' as never)).toThrow(
+      'register(loader) accepts a single argument',
+    );
+  });
+
+  it('throws when register(class) has no static type', () => {
+    class NoStaticTypeLoader extends Loader {
+      load(): Promise<ViewLoadResult | null> {
+        return Promise.resolve(null);
+      }
+    }
+    const registry = new LoaderRegistry(undefined, []);
+    expect(() => registry.register(NoStaticTypeLoader as never)).toThrow(
+      'register(fn) is invalid — use register(type, fn)',
+    );
+  });
+
+  it('exposes registry environment via getEnvironment', () => {
+    const env = createBrowserEnv();
+    const registry = new LoaderRegistry(env, []);
+    expect(registry.getEnvironment()).toBe(env);
   });
 });
 

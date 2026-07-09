@@ -1,6 +1,7 @@
-import { FnLoader } from '../../core/view-graph/loader';
+import { FnLoader, Loader } from '../../core/view-graph/loader';
 import { createBrowserEnvironment } from '../../core/view-graph/environment';
-import type { ViewLoadContext } from '../../core/view-graph/types';
+import type { ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
+import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 
 const env = createBrowserEnvironment();
 
@@ -14,7 +15,37 @@ function ctx(overrides: Partial<ViewLoadContext> = {}): ViewLoadContext {
   };
 }
 
+describe('Loader', () => {
+  class StaticTypeLoader extends Loader {
+    static readonly type = 'probe' as const satisfies LoaderType;
+
+    load(): Promise<ViewLoadResult | null> {
+      return Promise.resolve({ kind: 'html', html: 'ok' });
+    }
+  }
+
+  class MissingStaticLoader extends Loader {
+    load(): Promise<ViewLoadResult | null> {
+      return Promise.resolve(null);
+    }
+  }
+
+  it('assigns type from static readonly type', () => {
+    const loader = new StaticTypeLoader(env);
+    expect(loader.type).toBe('probe');
+  });
+
+  it('throws when subclass omits static type', () => {
+    expect(() => new MissingStaticLoader(env)).toThrow(/requires static readonly type/);
+  });
+});
+
 describe('FnLoader', () => {
+  it('assigns type from constructor override', () => {
+    const loader = new FnLoader(env, 'custom', async () => 'x');
+    expect(loader.type).toBe('custom');
+  });
+
   it('maps string results to html kind', async () => {
     const loader = new FnLoader(env, 'html', async () => '<p>hi</p>');
     await expect(loader.load(ctx())).resolves.toEqual({ kind: 'html', html: '<p>hi</p>' });

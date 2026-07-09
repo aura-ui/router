@@ -3,6 +3,7 @@ import type { ViewLoadResult, ViewLoadContext } from '../types';
 import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-parser';
 import { Loader } from '../loader';
 
+/** `layout="tpl-id"` — clones `<template id="tpl-id">`. */
 export class TemplateLoader extends Loader {
   static readonly type = 'template' as const satisfies LoaderType;
   readonly type = TemplateLoader.type;

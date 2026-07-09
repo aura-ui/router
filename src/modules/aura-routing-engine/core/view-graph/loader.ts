@@ -1,6 +1,7 @@
 import type { LoaderType } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewLoaderEnv, ViewLoadResult, ViewLoadContext, LoaderFn } from './types';
 
+/** Class-based view loader; register via {@link LoaderRegistry.register}. */
 export abstract class Loader {
   protected readonly env: ViewLoaderEnv;
 
@@ -18,6 +19,7 @@ export type LoaderClass = {
   readonly type: LoaderType;
 };
 
+/** Wraps {@link LoaderFn} from `register(type, fn)`; string → html, `Node` → fragment. */
 export class FnLoader extends Loader {
   readonly type: LoaderType;
   private readonly fn: LoaderFn;

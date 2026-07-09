@@ -14,6 +14,10 @@ const DEFAULT_OPTIONS: CacheStoreOptions<string> = {
   gcSweepInterval: false,
 };
 
+/**
+ * String payload cache for `preserve.view` routes.
+ * DOM keep-alive uses aura-route `ViewCache`, not this store.
+ */
 export class PayloadCache {
   private readonly store: AuraResolvableCache<string>;
 
@@ -33,6 +37,10 @@ export class PayloadCache {
     this.store.destroy();
   }
 
+  /**
+   * Dedup in-flight loads; persist only **string** payloads (`html` / `markup`).
+   * `DocumentFragment` results are not written to the store.
+   */
   resolve(
     key: string,
     load: () => Promise<ViewPayload | null>,

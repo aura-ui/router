@@ -3,6 +3,7 @@ import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-pars
 import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
 
+/** `view="component::tag-name"` — registered custom element + `aura-data`. */
 export class ComponentLoader extends Loader {
   static readonly type = 'component' as const satisfies LoaderType;
   readonly type = ComponentLoader.type;

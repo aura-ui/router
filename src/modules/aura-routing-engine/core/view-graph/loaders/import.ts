@@ -4,6 +4,7 @@ import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-pars
 import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
 
+/** `view="import::./module.js"` — dynamic import, then component markup. */
 export class ImportLoader extends Loader {
   static readonly type = 'import' as const satisfies LoaderType;
   readonly type = ImportLoader.type;

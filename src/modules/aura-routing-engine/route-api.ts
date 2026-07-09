@@ -23,12 +23,8 @@ export {
 } from './core/prefetch/prefetch-policy';
 export { NO_TRANSITION } from '../aura-route/core/attr/transition-attr-parser';
 
-export type {
-  ContentDescriptor,
-  ContentKind,
-  LoaderFn,
-  LoaderType,
-} from './core/content-graph';
+export type { ContentDescriptor, ContentKind, LoaderFn } from './core/content-graph';
+export type { LoaderType } from '../aura-route/core/attr/view-attr-parser';
 export type { ContentGraph } from './core/content-graph';
 export type { MatchedRouteInfo } from './core/match/url-matcher';
 export type {

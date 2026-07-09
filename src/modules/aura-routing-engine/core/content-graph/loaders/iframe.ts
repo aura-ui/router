@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../../../aura-utils/misc';
-import type { ContentResult, LoaderType, LoadContext } from '../types';
+import type { ContentResult, LoadContext } from '../types';
+import type { LoaderType } from '../../../../aura-route/core/attr/view-attr-parser';
 import { Loader } from '../loader';
 
 export class IframeLoader extends Loader {

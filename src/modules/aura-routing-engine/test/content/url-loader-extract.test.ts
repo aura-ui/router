@@ -1,4 +1,4 @@
-import { UrlLoader } from '../../core/content-graph';
+import { UrlLoader } from '../../core/content-graph/loaders/url';
 import type { LoadContext } from '../../core/content-graph';
 
 const FULL_PAGE = `<!DOCTYPE html><html><body><main id="main"><p>Fragment</p></main></body></html>`;

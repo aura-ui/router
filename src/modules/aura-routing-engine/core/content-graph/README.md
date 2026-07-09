@@ -24,7 +24,6 @@ content-graph/
 ├── content-graph.ts      # loadView, prefetch, invalidate, prefetch options
 ├── types.ts              # shared contracts (descriptor, context, payload)
 ├── cache/
-│   ├── index.ts
 │   ├── payload-cache.ts  # LRU + in-flight dedup
 │   └── cache-key.ts      # stable payload cache keys
 ├── loader.ts             # Loader, FnLoader
@@ -33,6 +32,15 @@ content-graph/
 ├── markup.ts             # routeSnapshot, componentMarkup
 ├── loaders/              # template, html, url, component, import, iframe
 ```
+
+## Public API (`index.ts`)
+
+- `ContentGraph`, `ContentGraphDeps`, `ContentPrefetchOptions`, `RouteContentSource`, `ContentLoadPort`
+- `PayloadCache`, `payloadCacheKey`
+- `LoaderRegistry`, `createLoaderRegistry`, `defaultLoaderRegistry`, `Loader`, `LoaderClass`, `LoaderFn`
+- types: `ViewPayload`, `LoadContext`, `ContentDescriptor`, `ContentKind`, `ContentResult`, `ContentEnvironment`, `FetchText`
+
+Built-in loaders, `markup`, and `environment` are internal — import by path or via `aura-routing-engine/core`.
 
 ## Extension
 

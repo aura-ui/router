@@ -39,7 +39,7 @@ describe('AuraRoute template inherit', () => {
     router.setAttribute('loading-template', 'loading');
     const child = route({ path: '/fast', 'loading-template': 'none' }, router);
 
-    expect(child.loadingTemplate).toBe('');
+    expect(child.loadingTemplate).toBeNull();
   });
 
   it('error-template="off" opts out of router default', () => {
@@ -47,7 +47,7 @@ describe('AuraRoute template inherit', () => {
     router.setAttribute('error-template', 'error');
     const child = route({ path: '/quiet', 'error-template': 'off' }, router);
 
-    expect(child.errorTemplate).toBe('');
+    expect(child.errorTemplate).toBeNull();
   });
 
   it('child overrides inherited templates', () => {

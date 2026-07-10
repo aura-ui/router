@@ -12,7 +12,6 @@ import { routeAttr } from '../../aura-utils/decorators';
 import {
   parseHookList,
   parseInheritableNullableString,
-  parseInheritableString,
 } from './attr/inherit-attr-parser';
 import { isAsyncLoader, parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
@@ -44,8 +43,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @routeAttr({ inherit: false }) path: string;
   @routeAttr({ inherit: false, cached: false }) layout: string;
-  @routeAttr({ parser: parseInheritableString }) loadingTemplate: string;
-  @routeAttr({ parser: parseInheritableString }) errorTemplate: string;
+  @routeAttr({ parser: parseInheritableNullableString }) loadingTemplate: string | null;
+  @routeAttr({ parser: parseInheritableNullableString }) errorTemplate: string | null;
 
   @routeAttr({ inherit: false, parser: parseViewAttr }) view: ViewAttrDescriptor | null;
   @routeAttr({ parser: parseInheritableNullableString }) extract: string | null;
@@ -160,7 +159,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   /** Inline `html::` without layout, fetch loaders, or loading UI — future sync render lane (see IMPLEMENTATION_STEPS §5b PR3). */
   get hasSyncContent(): boolean {
     if (this.hasLayout || this.hasAsyncContent) return false;
-    if (this.loadingTemplate.trim()) return false;
+    if (this.loadingTemplate?.trim()) return false;
     return this.view?.loader === 'html';
   }
 

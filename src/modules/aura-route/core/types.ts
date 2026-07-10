@@ -11,8 +11,8 @@ export interface AuraRouteInterface {
   path: string;
   layout: string;
   view: ViewAttrDescriptor | null;
-  loadingTemplate: string;
-  errorTemplate: string;
+  loadingTemplate: string | null;
+  errorTemplate: string | null;
   cache: CacheFlags;
   scrollPolicy: ScrollAttr | null;
   extract: string | null;

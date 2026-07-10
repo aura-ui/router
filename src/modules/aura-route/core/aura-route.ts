@@ -9,7 +9,11 @@ import {
 } from '../../aura-routing-engine/route-api';
 import { parseCacheAttr, type CacheFlags } from './attr/cache-attr-parser';
 import { routeAttr } from '../../aura-utils/decorators';
-import { parseCommaSeparated, parseNullableString } from '../../aura-utils/misc';
+import {
+  parseHookList,
+  parseInheritableNullableString,
+  parseInheritableString,
+} from './attr/inherit-attr-parser';
 import { isAsyncLoader, parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
 import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
@@ -40,28 +44,25 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @routeAttr({ inherit: false }) path: string;
   @routeAttr({ inherit: false, cached: false }) layout: string;
-  @routeAttr() loadingTemplate: string;
-  @routeAttr() errorTemplate: string;
+  @routeAttr({ parser: parseInheritableString }) loadingTemplate: string;
+  @routeAttr({ parser: parseInheritableString }) errorTemplate: string;
 
   @routeAttr({ inherit: false, parser: parseViewAttr }) view: ViewAttrDescriptor | null;
-  @routeAttr({ parser: parseNullableString }) extract: string | null;
+  @routeAttr({ parser: parseInheritableNullableString }) extract: string | null;
 
-  @routeAttr({ parser: parseCommaSeparated }) guard: string[] | null;
-  @routeAttr({ parser: parseCommaSeparated }) load: string[] | null;
-  @routeAttr({ parser: parseCommaSeparated }) unmount: string[] | null;
-  @routeAttr({ parser: parseCommaSeparated }) ready: string[] | null;
-  @routeAttr({ parser: parseCommaSeparated }) update: string[] | null;
-  @routeAttr({ parser: parseCommaSeparated }) leave: string[] | null;
-  @routeAttr({ parser: parseCommaSeparated }) error: string[] | null;
+  @routeAttr({ parser: parseHookList }) guard: string[] | null;
+  @routeAttr({ parser: parseHookList }) load: string[] | null;
+  @routeAttr({ parser: parseHookList }) unmount: string[] | null;
+  @routeAttr({ parser: parseHookList }) ready: string[] | null;
+  @routeAttr({ parser: parseHookList }) update: string[] | null;
+  @routeAttr({ parser: parseHookList }) leave: string[] | null;
+  @routeAttr({ parser: parseHookList }) error: string[] | null;
   @routeAttr({ parser: parseParamChangeAttr }) paramChange: ParamChangePolicy | null;
 
-  @routeAttr({
-    parser: parseTransitionShortcutAttr,
-    name: 'transition',
-  }) transitionShortcut: TransitionShortcutType | null;
+  @routeAttr({ parser: parseTransitionShortcutAttr, name: 'transition' }) transitionShortcut: TransitionShortcutType | null;
   @routeAttr({ parser: parseTransitionOrder }) transitionOrder: TransitionOrderType | null;
-  @routeAttr({ parser: parseCommaSeparated, name: 'transition-in' }) transitionInDecl: string[] | null;
-  @routeAttr({ parser: parseCommaSeparated, name: 'transition-out' }) transitionOutDecl: string[] | null;
+  @routeAttr({ parser: parseHookList, name: 'transition-in' }) transitionInDecl: string[] | null;
+  @routeAttr({ parser: parseHookList, name: 'transition-out' }) transitionOutDecl: string[] | null;
 
   @routeAttr({ parser: parseScrollAttr, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   @routeAttr({ parser: parsePrefetchAttr }) prefetch: PrefetchType | false | null;
@@ -92,7 +93,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.initTransition();
   }
 
-  /** Merges decl attrs with `transition` shortcut; `[]` on decl opts out of inherited shortcut on that side. */
+  /** Merges decl attrs with `transition` shortcut; `none`/`off`/`false` on decl opts out of inherited shortcut on that side. */
   initTransition(): RouteTransitionType {
     const inMerged = this.transitionInDecl ?? this.transitionShortcut?.in;
     const outMerged = this.transitionOutDecl ?? this.transitionShortcut?.out;

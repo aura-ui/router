@@ -11,12 +11,15 @@ describe('parseScrollAttr', () => {
     expect(parseScrollAttr(' Top')).toBe('top');
   });
 
-  it('treats empty string as manual opt-out', () => {
-    expect(parseScrollAttr('')).toBe('manual');
-    expect(parseScrollAttr('   ')).toBe('manual');
+  it('treats inherit opt-out keywords as manual', () => {
+    expect(parseScrollAttr('none')).toBe('manual');
+    expect(parseScrollAttr('off')).toBe('manual');
+    expect(parseScrollAttr('false')).toBe('manual');
   });
 
-  it('returns null when attr is absent or invalid', () => {
+  it('returns null for empty or invalid values', () => {
+    expect(parseScrollAttr('')).toBeNull();
+    expect(parseScrollAttr('   ')).toBeNull();
     expect(parseScrollAttr(null)).toBeNull();
     expect(parseScrollAttr('manual')).toBeNull();
     expect(parseScrollAttr('unknown')).toBeNull();

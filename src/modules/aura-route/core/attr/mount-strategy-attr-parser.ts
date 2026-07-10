@@ -8,10 +8,12 @@ export const DEFAULT_ROUTER_MOUNT_STRATEGY: MountStrategy = 'branch';
 
 const MODES = new Set<string>(MOUNT_STRATEGIES);
 
+import { isOffKeyword } from './off-keyword';
+
 export function parseMountStrategyAttr(value: string | null): MountStrategy | null {
   if (value === null) return null;
   const trimmed = value.trim().toLowerCase();
-  if (!trimmed) return null;
+  if (!trimmed || isOffKeyword(trimmed)) return null;
   if (MODES.has(trimmed)) return trimmed as MountStrategy;
   return null;
 }

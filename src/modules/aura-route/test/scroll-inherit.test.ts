@@ -36,10 +36,10 @@ describe('AuraRoute scroll inherit', () => {
     expect(child.scrollPolicy).toBe('restore');
   });
 
-  it('scroll="" opts out of router default', () => {
+  it('scroll="none" opts out of router default', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('scroll', 'restore');
-    const child = route({ path: '/checkout', scroll: '' }, router);
+    const child = route({ path: '/checkout', scroll: 'none' }, router);
 
     expect(child.scrollPolicy).toBe('manual');
   });

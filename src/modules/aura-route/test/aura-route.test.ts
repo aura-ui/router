@@ -37,8 +37,8 @@ describe('AuraRoute transition getter', () => {
     });
   });
 
-  it('transition="" opts out', () => {
-    expect(mount({ transition: '' }, { transition: 'fade' }).transition).toEqual(NO_TRANSITION);
+  it('transition="none" opts out', () => {
+    expect(mount({ transition: 'none' }, { transition: 'fade' }).transition).toEqual(NO_TRANSITION);
   });
 
   it('child overrides shortcut', () => {
@@ -55,8 +55,8 @@ describe('AuraRoute transition getter', () => {
     });
   });
 
-  it('transition-out="" clears out side from inherited shortcut', () => {
-    const route = mount({ 'transition-out': '' }, { transition: 'fade' });
+  it('transition-out="none" clears out side from inherited shortcut', () => {
+    const route = mount({ 'transition-out': 'none' }, { transition: 'fade' });
 
     expect(route.transition).toEqual({
       order: 'parallel',

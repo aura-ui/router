@@ -8,12 +8,16 @@ describe('parsePrefetchAttr', () => {
     expect(parsePrefetchAttr(null)).toBeNull();
   });
 
-  it('returns false for empty or disabled values', () => {
-    expect(parsePrefetchAttr('')).toBe(false);
-    expect(parsePrefetchAttr('   ')).toBe(false);
+  it('returns false for disabled values', () => {
     expect(parsePrefetchAttr('false')).toBe(false);
     expect(parsePrefetchAttr('none')).toBe(false);
     expect(parsePrefetchAttr('off')).toBe(false);
+  });
+
+  it('returns null for empty or unknown values', () => {
+    expect(parsePrefetchAttr('')).toBeNull();
+    expect(parsePrefetchAttr('   ')).toBeNull();
+    expect(parsePrefetchAttr('hover')).toBeNull();
   });
 
   it('maps true to default router mode', () => {
@@ -26,9 +30,5 @@ describe('parsePrefetchAttr', () => {
     expect(parsePrefetchAttr(' tap ')).toBe('tap');
     expect(parsePrefetchAttr('render')).toBe('render');
     expect(parsePrefetchAttr('manual')).toBe('manual');
-  });
-
-  it('returns null for unknown values', () => {
-    expect(parsePrefetchAttr('hover')).toBeNull();
   });
 });

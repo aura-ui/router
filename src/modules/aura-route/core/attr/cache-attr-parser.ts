@@ -1,4 +1,6 @@
 /** What to keep when leaving a route. */
+import { isOffKeyword } from './off-keyword';
+
 export type CacheFlags = {
   /** Detached DOM in ViewCache (keep-alive). */
   dom: boolean;
@@ -18,14 +20,13 @@ export const NO_CACHE: CacheFlags = { dom: false, view: false, data: false };
  * - `data` — load-hook cache
  * - `screen` — dom + view (typical tab)
  * - `all` — dom + view + data
- * - `off` — opt out (overrides inherited cache)
- * - `cache` / `cache=""` — same as `screen`
+ * - `none` / `off` / `false` — opt out (overrides inherited cache)
  */
 export function parseCacheAttr(raw: string | null): CacheFlags {
   if (raw === null) return NO_CACHE;
 
   const value = raw.trim().toLowerCase();
-  if (!value) return { dom: true, view: true, data: false };
+  if (!value || isOffKeyword(value)) return NO_CACHE;
 
   switch (value) {
     case 'dom':
@@ -38,8 +39,6 @@ export function parseCacheAttr(raw: string | null): CacheFlags {
       return { dom: true, view: true, data: false };
     case 'all':
       return { dom: true, view: true, data: true };
-    case 'off':
-      return NO_CACHE;
     default:
       return NO_CACHE;
   }

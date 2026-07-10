@@ -44,10 +44,10 @@ describe('AuraRoute prefetch inherit', () => {
     expect(child.prefetch).toBe(false);
   });
 
-  it('prefetch="" disables inherited prefetch', () => {
+  it('prefetch="none" disables inherited prefetch', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('prefetch', 'tap');
-    const child = route({ path: '/quiet', prefetch: '' }, router);
+    const child = route({ path: '/quiet', prefetch: 'none' }, router);
 
     expect(child.prefetch).toBe(false);
   });

@@ -8,8 +8,8 @@
  *   without touching the DOM. Ancestor / external DOM changes do not invalidate the cache;
  *   call {@link attr.clear} to re-read.
  * - **`inherit`** — when the local attribute is absent, falls back to `closest('[attr]')` on ancestors.
- *   A present local attribute (including `attr=""`) wins over inheritance. A `string` value keeps
- *   the local attribute name but uses a different name for the ancestor lookup.
+ *   A present local attribute wins over inheritance. Inheritable attrs handle `none`/`off`/`false` in their
+ *   {@link AttrParser}. Inheritable route attrs use `none`/`off`/`false` in their parsers.
  */
 
 import { parseString, toKebabCase } from '../misc/format';
@@ -64,26 +64,6 @@ export type AttrConfig<T = string> = {
 
 /**
  * Property decorator: maps a field on a custom element to an HTML attribute.
- *
- * @param config - Attribute name, parser, inheritance, caching, and related options.
- *
- * @example
- * ```ts
- * class MyRoute extends HTMLElement {
- *   @attr({ readonly: true }) path!: string;
- *
- *   @attr({ inherit: true, parser: parseCommaSeparated })
- *   guard!: string[] | null;
- *
- *   @attr({ inherit: true, cached: true, parser: parsePrefetchAttr })
- *   prefetch!: PrefetchType | false | null;
- * }
- *
- * // After external DOM / ancestor attr changes:
- * attr.clear(route, 'prefetch');
- * attr.clear(route, ['prefetch', 'scroll']);
- * attr.clear(route); // every cached property on this element
- * ```
  */
 export const attr = <T = string>(config: AttrConfig<T> = {}) => {
   return (proto: Element, propName: string): void => {
@@ -157,11 +137,5 @@ function clearAttr(target: object, prop?: PropertyKey | PropertyKey[]): void {
   cacheOf(el)?.delete(String(prop));
 }
 
-/**
- * Invalidates cached `@attr({ cached: true })` values on an element instance.
- * The next property read re-resolves from the DOM. No-op for a class constructor.
- *
- * @param target - Element instance.
- * @param prop - Property name, array of names, or omit to clear every cached property on `target`.
- */
+/** Invalidates cached `@attr({ cached: true })` values on an element instance. */
 attr.clear = clearAttr;

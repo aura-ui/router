@@ -8,7 +8,7 @@ export type ResolvedDocumentHref = AppHrefParts & { href: string };
  * Does not resolve document-relative segments — use {@link resolveDocumentHrefParts} first.
  */
 export function splitAppHref(href: string): AppHrefParts {
-  if (href.startsWith('/')) {
+  if (href.startsWith('/') && !href.startsWith('//')) {
     let pathname = href;
     let search = '';
     let hash = '';
@@ -64,23 +64,6 @@ export function pathnamesEqual(a: string, b: string): boolean {
 /** Same `pathname` (trailing `/` ignored) and `search`; `hash` is not compared. */
 export function isSamePathAndSearch(a: AppHrefParts, b: AppHrefParts): boolean {
   return a.search === b.search && pathnamesEqual(a.pathname, b.pathname);
-}
-
-/**
- * `true` when navigation changes only `hash` on the same path + search.
- *
- * @param requireExistingHash — prefetch mode: both URLs must already have a hash
- *   (`/page` → `/page#tab` is not hash-only).
- */
-export function isHashOnlyChange(
-  next: AppHrefParts,
-  current: AppHrefParts,
-  options?: { requireExistingHash?: boolean },
-): boolean {
-  if (!isSamePathAndSearch(next, current)) return false;
-  if (!next.hash || next.hash === current.hash) return false;
-  if (options?.requireExistingHash && !current.hash) return false;
-  return true;
 }
 
 /** Parse a URL `search` string (`?a=1`) into a query record; `undefined` when empty. */

@@ -289,6 +289,11 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     void ctx;
   }
 
+  /** Validate route attrs for the detected {@link type}; throws on invalid combinations. */
+  validateAttrs(): void {
+    this.throwIfInvalidAttrs();
+  }
+
   private throwIfInvalidAttrs(): void {
     const path = this.path;
     if (this.type === 'redirect') {

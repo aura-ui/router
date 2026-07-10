@@ -26,5 +26,5 @@ export type {
   LoaderId,
   LoaderFn,
 } from '../aura-routing-engine/route-api';
-export { AuraRoute, type AuraRouteInterface } from './core/aura-route';
+export { AuraRoute, type AuraRouteInterface, type RouteType } from './core/aura-route';
 export type { RouteRenderOptions, ApplyPreResolvedOptions, MatchedRouteInfo } from './core/types';

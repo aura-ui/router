@@ -29,7 +29,10 @@ describe('AuraRoute render validation', () => {
     document.body.replaceChildren();
   });
 
-  function mountRoute(attrs: Record<string, string>): AuraRoute {
+  function mountRoute(
+    attrs: Record<string, string>,
+    innerHTML = '',
+  ): AuraRoute {
     const router = document.createElement('aura-router');
     const route = document.createElement(AuraRoute.is) as AuraRoute;
     route.setAttribute('path', attrs.path ?? '/page');
@@ -37,22 +40,52 @@ describe('AuraRoute render validation', () => {
       if (name === 'path') continue;
       route.setAttribute(name, value);
     }
+    route.innerHTML = innerHTML;
     router.append(route);
     document.body.append(router);
     return route;
   }
 
-  it('throws on render when neither view nor layout is configured', async () => {
+  const routeInfo = {
+    href: '/page',
+    pathname: '/page',
+    search: '',
+    hash: '',
+    pattern: '/page',
+  };
+
+  it('throws on render when page has no view', async () => {
     const route = mountRoute({ path: '/empty' });
 
-    await expect(
-      route.render({
-        href: '/empty',
-        pathname: '/empty',
-        search: '',
-        hash: '',
-        pattern: '/empty',
-      }),
-    ).rejects.toThrow('AuraRoute with path "/empty" has no view or layout to render');
+    await expect(route.render({ ...routeInfo, href: '/empty', pathname: '/empty', pattern: '/empty' }))
+      .rejects.toThrow('AuraRoute page "/empty" has no view');
+  });
+
+  it('throws on render when folder has no shell', async () => {
+    const route = mountRoute(
+      { path: '/settings' },
+      '<aura-route path="profile" view="html::<p/>"></aura-route>',
+    );
+
+    await expect(route.render({
+      ...routeInfo,
+      href: '/settings',
+      pathname: '/settings',
+      pattern: '/settings',
+    })).rejects.toThrow('AuraRoute folder "/settings" has no layout');
+  });
+
+  it('throws when folder declares view and children', async () => {
+    const route = mountRoute(
+      { path: '/settings', layout: 'shell', view: 'html::<p/>' },
+      '<aura-route path="profile" view="html::<p/>"></aura-route>',
+    );
+
+    await expect(route.render({
+      ...routeInfo,
+      href: '/settings',
+      pathname: '/settings',
+      pattern: '/settings',
+    })).rejects.toThrow('cannot declare view');
   });
 });

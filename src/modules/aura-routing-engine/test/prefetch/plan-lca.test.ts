@@ -11,7 +11,6 @@ describe('PrefetchPlanResolver LCA delta', () => {
     const security = createDomRoute('security');
     security.setAttribute('view', 'html::security');
     const settings = createDomRoute('/settings', [profile, security]);
-    settings.setAttribute('view', 'html::settings');
     const { matchableNodes } = buildTreeFromDom(settings);
 
     return {

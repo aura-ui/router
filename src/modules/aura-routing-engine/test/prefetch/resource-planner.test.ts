@@ -18,10 +18,15 @@ describe('DefaultPrefetchResourcePlanner', () => {
     matcher.destroy();
   });
 
-  function createPlan(attrs: { view?: string; load?: string } = { view: 'html::x' }): PrefetchPlan {
+  function createPlan(attrs: { view?: string; load?: string; redirect?: string } = {}): PrefetchPlan {
     const page = createDomRoute('/page');
-    if (attrs.view) page.setAttribute('view', attrs.view);
-    if (attrs.load) page.setAttribute('load', attrs.load);
+    if (attrs.redirect) {
+      page.removeAttribute('view');
+      page.setAttribute('redirect', attrs.redirect);
+    } else {
+      page.setAttribute('view', attrs.view ?? 'html::x');
+      if (attrs.load) page.setAttribute('load', attrs.load);
+    }
     const { matchableNodes } = buildTreeFromDom(page);
     const found = matcher.matchPath('/page', matchableNodes);
     if (!found) throw new Error('route not found');
@@ -83,22 +88,22 @@ describe('DefaultPrefetchResourcePlanner', () => {
 
   it('explainEmptyPlan reports no-targets when route has no view or load hooks', () => {
     const planCtx = { mode: 'tap' as const, confidence: policy.confidenceFor('tap') };
-    const emptyPlan = createPlan({ view: undefined, load: undefined });
+    const emptyPlan = createPlan({ redirect: '/home' });
 
     expect(planner.planResources(emptyPlan, planCtx)).toHaveLength(0);
     expect(planner.explainEmptyPlan(emptyPlan, planCtx)).toBe('no-targets');
   });
 
   it('explainEmptyPlan reports low-confidence for data below threshold', () => {
-    const plan = createPlan({ view: undefined, load: 'profile' });
+    const plan = createPlan({ load: 'profile' });
     const planCtx = { mode: 'none' as const, confidence: policy.confidenceFor('none') };
 
     expect(planner.explainEmptyPlan(plan, planCtx)).toBe('low-confidence');
   });
 
-  it('plans content for layout-only routes', () => {
-    const page = createDomRoute('/layout-page');
-    page.setAttribute('layout', 'main');
+  it('plans content for layout folder routes', () => {
+    const child = createDomRoute('detail');
+    const page = createDomRoute('/layout-page', [child]);
     const { matchableNodes } = buildTreeFromDom(page);
     const found = matcher.matchPath('/layout-page', matchableNodes);
     if (!found) throw new Error('route not found');

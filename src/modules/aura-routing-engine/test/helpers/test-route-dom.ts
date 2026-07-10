@@ -13,8 +13,13 @@ export function createDomRoute(path: string, children: AuraRoute[] = []): AuraRo
   ensureTestRouteElement();
   const route = document.createElement(ROUTE_TAG) as AuraRoute;
   route.setAttribute('path', path);
-  for (const child of children) {
-    route.appendChild(child);
+  if (children.length) {
+    route.setAttribute('layout', 'test-shell');
+    for (const child of children) {
+      route.appendChild(child);
+    }
+  } else {
+    route.setAttribute('view', 'html::<span/>');
   }
   return route;
 }

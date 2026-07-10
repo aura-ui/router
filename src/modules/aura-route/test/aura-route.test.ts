@@ -101,8 +101,8 @@ describe('AuraRoute hasViewContent', () => {
   }
 
   it('is true when layout or view is configured', () => {
-    expect(mount({ layout: 'shell' }).hasViewContent).toBe(true);
     expect(mount({ view: 'html::x' }).hasViewContent).toBe(true);
+    expect(mount({ layout: 'shell' }).hasViewContent).toBe(false);
     expect(mount({}).hasViewContent).toBe(false);
   });
 });

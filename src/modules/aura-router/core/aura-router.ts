@@ -41,6 +41,7 @@ import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/cor
 import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import { parseNullableString } from '../../aura-utils/misc';
+import { syncRouterActiveLinks } from '../../aura-routing-engine/core/user-actions/active-link-sync';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -100,6 +101,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
+  /** CSS class toggled on `[data-router-link]` when its resolved href matches the current URL. */
+  /** CSS class toggled on `[data-router-link]` when its resolved href matches the current URL. */
+  @attr({ dataAttr: true, parser: parseNullableString, cached: true })
+  routerActiveClass: string | null;
   /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   /** Default CSS selector for `url` fragment extract on child routes (`extract="none"` opts out). */
@@ -225,6 +230,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
             to: ctx.to.href,
             pathname: ctx.to.pathname,
           });
+          this.syncActiveLinks(ctx.to.href);
+        },
+        onAnchorNavigation: (href) => {
+          this.syncActiveLinks(href);
         },
         onNavigationError: (failure) => {
           if (failure.viewCommitted) {
@@ -246,6 +255,19 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   refreshRoutes(): void {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
+  }
+
+  /** Updates `[data-router-link]` active classes after full navigation or hash-only URL change. */
+  private syncActiveLinks(currentHref: string): void {
+    const activeClass = this.routerActiveClass;
+    if (!activeClass?.trim()) return;
+
+    syncRouterActiveLinks({
+      root: this,
+      linksSelector: this.linksSelector,
+      activeClass,
+      currentHref,
+    });
   }
 
   navigate(path: string, options: Partial<NavigateHistoryOptions> = {}): void {

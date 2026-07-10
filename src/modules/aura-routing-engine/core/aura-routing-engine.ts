@@ -65,6 +65,8 @@ export interface AuraRoutingEngineConfig {
   onNavigationHistoryCommitted?: (ctx: NavigationCommittedContext) => void;
   /** После view commit и обновления `prev` (в т.ч. catch-all). */
   onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
+  /** Hash-only navigation on the same path (`/page` → `/page#tab`); history committed, no render. */
+  onAnchorNavigation?: (href: string) => void;
   /** Matched-route navigation failure (after processor). */
   onNavigationError?: (failure: FailedNavigation) => void;
   /** Error hook (`error="…"`) threw while handling a navigation failure. */
@@ -335,6 +337,7 @@ export class AuraRoutingEngine {
   ): void {
     this.provider.commit(href, options);
     if (this.prev) syncChainHref(this.prev, href, hash);
+    this.config.onAnchorNavigation?.(href);
     if (hash) this.scrollToHash(hash);
   }
 

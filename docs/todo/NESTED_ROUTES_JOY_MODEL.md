@@ -1,6 +1,6 @@
 # Nested routes: модель «радости» (Route Folders)
 
-> **Статус:** <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ В РАБОТЕ</span> · сверка с кодом **2026-07-10**  
+> **Статус:** <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ В РАБОТЕ</span> · сверка с кодом **2026-07-11**  
 > **Согласован с** [ROUTE_API_V3.md](./ROUTE_API_V3.md)  
 > **Контекст:** как nested должны ощущаться через 5 лет — легко и интуитивно  
 > **Область:** nested-специфика поверх v3 attrs; attrs и lifecycle — **из v3, не дублируем**  
@@ -33,8 +33,8 @@
 | 4 | Relative child `path`, index `path="."` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 5 | Nested engine: LCA, `enterRoutes`, branch mount, sibling nav без remount frame | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 6 | `<aura-outlet>` в frame, `findNestedOutlet()` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| 7 | Relative `href` (HTML-native + slash policy) | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
-| 8 | `data-router-active-class`, `data-branch-active`, breadcrumbs | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| 7 | Relative `href` (HTML-native + slash policy) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| 8 | `data-router-active-class`, `data-branch-active`, breadcrumbs | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (`data-router-active-class` ✓) |
 | 9 | Dev UX: light DOM frame error, relative path warn, dev overlay | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | 10 | Nested 404 / catch-all в outlet folder | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | 11 | Attr `redirect` + engine navigation (без render) | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
@@ -51,7 +51,7 @@
 | Page + nested `view` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | `view` attr, view-graph loaders |
 | Lifecycle inherit | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | в коде `guard`/`ready` (не `enter`/`after`); inherit через `closest`, без concat lists |
 | `cache` nested | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | dom / data / screen, sibling skip render |
-| Links + active state | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | absolute `href` ✓; HTML-native relative — контракт в docs, engine TODO |
+| Links + active state | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | `resolveDocumentHref` + trailing slash ✓; `data-router-active-class` ✓; `data-branch-active` ✗ |
 | Redirect declarative | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> | attr на route ✓; engine match → navigate ✗ |
 | SSR / hydration | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> | RFC / adoption checklist |
 
@@ -99,7 +99,7 @@ Engine (LCA, `enterRoutes`, outlet chain) **не ломаем** — меняем
 
 | Фича | Статус |
 |------|--------|
-| Relative `data-router-link` | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> (HTML-native контракт — [§Ссылки](#ссылки-html-native-без-link-resolver)) |
+| Relative `data-router-link` | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (href resolution + slash policy ✓; active classes — [§Ссылки](#ссылки-html-native-без-link-resolver)) |
 | `data-branch-active`, breadcrumbs CE | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | `aura-route-fragment` / CMS partials | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 
@@ -568,7 +568,7 @@ Nested slot для child-страниц — **только `<aura-outlet>`** в�
 Для base `/app/settings/` (trailing slash) сегмент считается directory → `users` → `/app/settings/users` ✓.
 
 **Что должен делать engine:** при входе на index child (`path="."`) коммитить в history **canonical** URL **`/app/settings/`** (replace/redirect), даже если `path` parent в разметке без slash.  
-**Пока в коде:** trailing-slash canonicalize <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> — риск расхождения, если history оставил `/app/settings`.
+**В коде:** trailing-slash canonicalize <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`applyCanonicalIndexFolderHref` в `resolve-navigation-target.ts`; commit на start/navigate).
 
 ### `../` и `../../` — выход из folder и вложенность
 
@@ -654,8 +654,8 @@ Path-relative с `..` следуют **URL страницы**, не «route tree
 | Перехват клика `[data-router-link]` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Navigate по `href` as-is (absolute) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Relative `href` → `new URL(href, location.href)` на клике | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`resolveDocumentHref` в `router-link.ts`) |
-| Canonical trailing slash на folder index | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
-| `data-router-active-class` | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| Canonical trailing slash на folder index | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| `data-router-active-class` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`syncRouterActiveLinks` после `navigation`) |
 | `data-branch-active` на folder | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | `<aura-breadcrumbs/>` / `router.trail` | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 
@@ -732,7 +732,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | Relative paths | `resolvePattern(parent, child)` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `path="."` | `normalizeRouteSegment('.')` → index child | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `redirect` | match → navigate target без render | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
-| Relative links / branch-active | HTML-native `href` + slash policy; active chain — позже | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| Relative links / branch-active | HTML-native `href` + slash policy ✓; active chain — позже | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
 | Route `type` + attr validation | `AuraRoute.type`, `throwIfInvalidAttrs()` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 
 ---
@@ -835,7 +835,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | Кэш | `keep-alive` + `cache` | `cache` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Mental model | parent/child/outlet | **папки и страницы** | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (`type` ✓) |
 | Paths | `""` index | `path="."` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| Nav links | full href | relative | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| Nav links | full href | relative | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (href + slash ✓; active ✗) |
 | Redirect attr | — | `redirect="…"` | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
 | Ошибки | warn partial | actionable + dev overlay | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
 

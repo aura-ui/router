@@ -77,6 +77,22 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(provider.entries).toEqual(['/', '/about']);
   });
 
+  it('calls onAnchorNavigation for hash-only navigateTo', async () => {
+    const onAnchorNavigation = jest.fn();
+    const provider = new FakeHistoryProvider('/docs');
+    const engine = new AuraRoutingEngine(router, { provider, onAnchorNavigation });
+
+    engine.registerRoutes([createTestRoute('/docs')]);
+    provider.start();
+
+    await engine.navigateTo('/docs', 'system', { replace: true, syncHistory: false });
+    await engine.navigateTo('/docs#intro', 'push', { replace: false, syncHistory: true });
+
+    expect(onAnchorNavigation).toHaveBeenCalledTimes(1);
+    expect(onAnchorNavigation).toHaveBeenCalledWith('/docs#intro');
+    expect(provider.currentHref).toBe('/docs#intro');
+  });
+
   it('canonicalizes index folder URL without trailing slash on start', async () => {
     const index = createDomRoute('.');
     const settings = createDomRoute('/app/settings', [index]);

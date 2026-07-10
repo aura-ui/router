@@ -1,4 +1,5 @@
-import { parsePath } from '../../../aura-utils/misc/url';
+import { resolveDocumentHrefParts, stripTrailingSlash, type ResolvedDocumentHref } from '../../../aura-utils/misc/url';
+import { applyCanonicalIndexFolderHref } from './canonical-index-href';
 import { getActiveChain } from '../route-tree/matched-chain';
 import type { RouteNode } from '../route-tree/route-node.types';
 import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from './url-matcher';
@@ -16,18 +17,27 @@ export type NavigationTarget = {
 /** Match href against route nodes → leaf `MatchedRouteInfo` + `getActiveChain`. */
 export function resolveNavigationTarget(
   matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
-  href: string,
+  href: string | ResolvedDocumentHref,
   nodes: readonly RouteNode[],
 ): NavigationTarget | null {
-  const { pathname, search, hash } = parsePath(href);
-  const found = matcher.matchPath(pathname, nodes);
+  const resolved = typeof href === 'string' ? resolveDocumentHrefParts(href) : href;
+  const { pathname, search, hash } = resolved;
+  const found = matcher.matchPath(stripTrailingSlash(pathname), nodes);
   if (!found) return null;
 
-  const leaf = matcher.toRouteInfo(href, pathname, search, hash, found.node, found.params);
+  const canonical = applyCanonicalIndexFolderHref(pathname, search, hash, found.node);
+  const leaf = matcher.toRouteInfo(
+    canonical.href,
+    canonical.pathname,
+    search,
+    hash,
+    found.node,
+    found.params,
+  );
 
   return {
-    href,
-    pathname,
+    href: canonical.href,
+    pathname: canonical.pathname,
     search,
     hash,
     leaf,

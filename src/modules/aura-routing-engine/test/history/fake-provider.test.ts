@@ -6,6 +6,7 @@ import type { RouterInstance } from '../../core';
 import { defineRouteHook } from '../../core/hooks/define-hook';
 import { defaultHookRegistry } from '../../core/hooks/registry';
 import { createTestRoute } from '../helpers/create-test-route';
+import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('FakeHistoryProvider', () => {
   it('push + commit обновляет стек URL', () => {
@@ -74,6 +75,20 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
     expect(provider.currentHref).toBe('/about');
     expect(provider.entries).toEqual(['/', '/about']);
+  });
+
+  it('canonicalizes index folder URL without trailing slash on start', async () => {
+    const index = createDomRoute('.');
+    const settings = createDomRoute('/app/settings', [index]);
+    const provider = new FakeHistoryProvider('/app/settings');
+    const engine = new AuraRoutingEngine(router, { provider });
+
+    engine.registerRoutes(collectRoutesFromDom(settings));
+    engine.start();
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(provider.currentHref).toBe('/app/settings/');
   });
 
   it('clickLink проходит через engine и commit-ит URL', async () => {

@@ -1,4 +1,8 @@
-import { parsePath } from '../../aura-utils/misc/url';
+import {
+  isHashOnlyChange,
+  resolveDocumentHrefParts,
+  splitAppHref,
+} from '../../aura-utils/misc/url';
 
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import type { ViewGraph } from './view-graph';
@@ -252,20 +256,17 @@ export class AuraRoutingEngine {
     action: HistoryAction,
     options: NavigateHistoryOptions,
   ): Promise<void> {
-    const { pathname, search, hash } = parsePath(href);
-    const relativeHref = pathname + search + hash;
-
-    const current = this.provider.currentHref;
+    const resolved = resolveDocumentHrefParts(href);
 
     // Только якорь на том же route — без полного transition
-    if (this.matcher.isHashOnly(relativeHref, current)) {
-      this.finalizeAnchorNavigation(relativeHref, options, hash);
+    if (resolved.hash && isHashOnlyChange(resolved, splitAppHref(this.provider.currentHref))) {
+      this.finalizeAnchorNavigation(resolved.href, options, resolved.hash);
       return;
     }
 
     const found = resolveNavigationTarget(
       this.matcher,
-      relativeHref,
+      resolved,
       this.registry.getMatchableNodes(),
     );
     if (!found) {
@@ -274,12 +275,12 @@ export class AuraRoutingEngine {
         action,
         router: this.router,
       });
-      const failure = FailedNavigation.notFound(relativeHref, this.prev, action);
+      const failure = FailedNavigation.notFound(resolved.href, this.prev, action);
       this.applyFinalizeEffects(
         finalizeNotFoundNavigation(
           failure,
           action,
-          relativeHref,
+          resolved.href,
           this.prev?.href ?? null,
           options,
           this.provider,
@@ -289,6 +290,16 @@ export class AuraRoutingEngine {
       return;
     }
 
+    const slashFix = found.href !== resolved.href;
+    const historyOptions: NavigateHistoryOptions = {
+      ...options,
+      replace: slashFix || options.replace,
+    };
+
+    if (slashFix && !historyOptions.syncHistory && (action === 'system' || action === 'pop')) {
+      this.provider.commit(found.href, { replace: true, syncHistory: true });
+    }
+
     const to = found.leaf;
 
     const from = this.prev;
@@ -296,9 +307,9 @@ export class AuraRoutingEngine {
       from,
       to,
       action,
-      href: relativeHref,
-      hash,
-      options,
+      href: found.href,
+      hash: found.hash,
+      options: historyOptions,
     });
   }
 

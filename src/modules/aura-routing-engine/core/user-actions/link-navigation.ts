@@ -1,7 +1,7 @@
 import { bind } from '../../../aura-utils/decorators/bind';
 
 import type { NavigationHandler } from '../history/provider.types';
-import { findRouterLink, readLinkHref } from './router-link';
+import { findRouterLink, resolveLinkHref } from './router-link';
 
 export interface LinkNavigationTrackerConfig {
   linksSelector?: string;
@@ -39,7 +39,7 @@ export class LinkNavigationTracker {
     const anchor = findRouterLink(event.target, this.linksSelector);
     if (!anchor) return;
 
-    const href = readLinkHref(anchor);
+    const href = resolveLinkHref(anchor);
     if (!href) return;
 
     event.preventDefault();

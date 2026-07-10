@@ -195,7 +195,7 @@ const base = routeInfo.pathname ?? routeInfo.pattern;
 ```text
 hover href="/settings/profile?q=1"
 
-1. parsePath → pathname, search, query
+1. resolveDocumentHrefParts → pathname, search, hash; parseSearch(search) → query
 2. matchPath(pathname) → leaf + chain
 3. toRouteInfo для каждого узла branch (или только matchable leaves с content)
 4. Promise.all(branch.map(node => prefetchContent(node, routeInfo)))

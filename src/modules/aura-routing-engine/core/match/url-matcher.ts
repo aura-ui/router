@@ -1,5 +1,5 @@
 import { memoize } from '../../../aura-utils/decorators/memoize';
-import { parsePath, parseQuery } from '../../../aura-utils/misc/url';
+import { parseSearch } from '../../../aura-utils/misc/url';
 import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
 import { attachNavigationChain } from '../route-tree/matched-chain';
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
@@ -179,7 +179,7 @@ export class AuraRoutingUrlMatcher {
     node: RouteNode,
     params?: Record<string, string>,
   ): MatchedRouteInfo {
-    const query = parseQuery(search);
+    const query = parseSearch(search);
 
     return attachNavigationChain(
       node,
@@ -193,20 +193,6 @@ export class AuraRoutingUrlMatcher {
       },
       (targetPathname, targetPattern) => this.getPathParams(targetPathname, targetPattern),
     );
-  }
-
-  /**
-   * `true`, если навигация меняет только `hash` при том же `pathname` и `search`.
-   *
-   * Используется в `AuraRoutingEngine.navigateTo` → `finalizeAnchorNavigation` без processor.
-   *
-   * @example `/page#a` → `/page#b` → `true`; `/page` → `/other` → `false`
-   */
-  isHashOnly(href: string, currentHref: string): boolean {
-    const next = parsePath(href);
-    const current = parsePath(currentHref);
-    const sameRoute = next.pathname === current.pathname && next.search === current.search;
-    return Boolean(sameRoute && next.hash && next.hash !== current.hash);
   }
 
   /** Lazy compile + reuse `URLPattern` для param/static patterns (ключ — `pattern`). */

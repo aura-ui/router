@@ -1,3 +1,4 @@
+import { isSamePathAndSearch } from '../../../aura-utils/misc/url';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouteInstance } from '../route/types';
 import {
@@ -141,6 +142,6 @@ function buildSameRecordPlan(fromLeaf: MatchedRouteInfo, toLeaf: MatchedRouteInf
  * @example `/users?q=1` → `/users?q=2` → false
  */
 export function isSameNavigationTarget(from: MatchedRouteInfo, to: MatchedRouteInfo): boolean {
-  if (from.pathname !== to.pathname || from.search !== to.search) return false;
+  if (!isSamePathAndSearch(from, to)) return false;
   return isSameRouteMatch(getLeafMatch(from), getLeafMatch(to));
 }

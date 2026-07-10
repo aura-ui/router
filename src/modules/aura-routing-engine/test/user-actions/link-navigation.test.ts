@@ -38,4 +38,23 @@ describe('LinkNavigationTracker', () => {
 
     expect(onNavigation).not.toHaveBeenCalled();
   });
+
+  it('resolves path-relative href against current location', () => {
+    window.history.replaceState({}, '', '/app/settings/');
+    const onNavigation = jest.fn();
+    const tracker = new LinkNavigationTracker();
+
+    tracker.onNavigation(onNavigation);
+    tracker.start();
+
+    document.body.innerHTML = '<a href="profile" data-router-link>Profile</a>';
+    document.querySelector('a')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(onNavigation).toHaveBeenCalledWith({
+      href: '/app/settings/profile',
+      action: 'push',
+      replace: false,
+      syncHistory: true,
+    });
+  });
 });

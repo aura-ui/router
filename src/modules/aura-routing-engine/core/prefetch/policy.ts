@@ -1,4 +1,8 @@
-import { parsePath } from '../../../aura-utils/misc/url';
+import {
+  isHashOnlyChange,
+  resolveDocumentHref,
+  splitAppHref,
+} from '../../../aura-utils/misc/url';
 import type {
   PrefetchConfig,
   PrefetchMode,
@@ -27,9 +31,7 @@ export class PrefetchPolicy {
     if (!trimmed || trimmed.startsWith('http') || trimmed.startsWith('//')) return null;
     if (trimmed.startsWith('#')) return null;
 
-    const { pathname, search, hash } = parsePath(trimmed);
-    if (!pathname) return null;
-    return pathname + search + hash;
+    return resolveDocumentHref(trimmed);
   }
 
   delayFor(mode: PrefetchMode): number {
@@ -84,10 +86,19 @@ export class PrefetchPolicy {
     if (mode === 'none') return 'disabled';
     if (force) return null;
     if (this.isSaveDataPreferred()) return 'save-data';
-    if (!this.normalizeHref(href)) return 'invalid-href';
+
+    const normalized = this.normalizeHref(href);
+    if (!normalized) return 'invalid-href';
 
     const currentHref = this.config.currentHref?.() ?? '';
-    if (currentHref && this.isHashOnlyNavigation(href, currentHref)) return 'hash-only';
+    if (
+      currentHref &&
+      isHashOnlyChange(splitAppHref(normalized), splitAppHref(currentHref), {
+        requireExistingHash: true,
+      })
+    ) {
+      return 'hash-only';
+    }
 
     const staleTime = this.config.staleTimeMs ?? DEFAULT_STALE_TIME_MS;
     if (lastPrefetchAt !== undefined && Date.now() - lastPrefetchAt < staleTime) {
@@ -95,17 +106,6 @@ export class PrefetchPolicy {
     }
 
     return null;
-  }
-
-  /**
-   * Stricter than engine navigation hash-only checks: `/page` -> `/page#section`
-   * can still prefetch content, but `/page#old` -> `/page#new` should not.
-   */
-  isHashOnlyNavigation(href: string, currentHref: string): boolean {
-    const next = parsePath(href);
-    const current = parsePath(currentHref);
-    const sameRoute = next.pathname === current.pathname && next.search === current.search;
-    return Boolean(sameRoute && current.hash && next.hash && next.hash !== current.hash);
   }
 
   private isSaveDataPreferred(): boolean {

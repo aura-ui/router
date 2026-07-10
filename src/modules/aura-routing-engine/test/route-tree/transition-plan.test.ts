@@ -309,6 +309,16 @@ describe('isSameNavigationTarget', () => {
     expect(isSameNavigationTarget(from, toQuery)).toBe(false);
     expect(isSameNavigationTarget(from, toSame)).toBe(true);
   });
+
+  it('treats trailing slash as same navigation target', () => {
+    const from = createMatchedRoute('/app/settings');
+    const to = createMatchedRoute('/app/settings/');
+    to.node = from.node;
+    to.pattern = from.pattern;
+    to.route = from.route;
+
+    expect(isSameNavigationTarget(from, to)).toBe(true);
+  });
 });
 
 describe('getEnterRoute', () => {

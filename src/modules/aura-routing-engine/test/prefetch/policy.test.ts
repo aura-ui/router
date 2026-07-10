@@ -9,12 +9,18 @@ describe('prefetch policy', () => {
     expect(policy.normalizeHref('#section')).toBeNull();
   });
 
-  it('isHashOnlyNavigation matches prefetch semantics', () => {
-    expect(policy.isHashOnlyNavigation('/page#b', '/page#a')).toBe(true);
-    expect(policy.isHashOnlyNavigation('/page#tab', '/page')).toBe(false);
-    expect(policy.isHashOnlyNavigation('/page', '/page#tab')).toBe(false);
-    expect(policy.isHashOnlyNavigation('/page#section', '/page')).toBe(false);
-    expect(policy.isHashOnlyNavigation('/page?q=1#tab', '/page?q=1#old')).toBe(true);
+  it('skipReason treats hash-only prefetch as skip', () => {
+    const configured = new PrefetchPolicy({ currentHref: () => '/page#old' });
+
+    expect(configured.skipReason({ href: '/page#new', mode: 'intent' })).toBe('hash-only');
+    expect(configured.skipReason({ href: '/page#tab', mode: 'intent' })).toBe('hash-only');
+    expect(configured.skipReason({ href: '/page', mode: 'intent' })).toBeNull();
+    expect(
+      new PrefetchPolicy({ currentHref: () => '/page' }).skipReason({
+        href: '/page#tab',
+        mode: 'intent',
+      }),
+    ).toBeNull();
   });
 
   it('shouldSkipPrefetch respects staleTime', () => {

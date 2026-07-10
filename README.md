@@ -95,6 +95,48 @@ Clicks on `[data-router-link]` are intercepted; the URL updates and the matching
 | **404 catch-all** | `<aura-route path="*" view="template::404-template">` |
 | **Fallback 404** | `not-found-template` on `<aura-router>` — see [Router defaults](#router-defaults) |
 
+### How `href` resolves
+
+The **`href` attribute is the source of truth** — for crawlers, noscript, and the router. On click, Aura resolves links the same way the browser does: `new URL(href, location.href)`.
+
+| Link in markup | Current URL | Resolves to |
+| --- | --- | --- |
+| `href="/users"` | any | `/users` |
+| `href="profile"` | `/app/settings/` | `/app/settings/profile` |
+| `href="."` | `/app/settings/profile` | `/app/settings/` |
+
+Use **path-relative** `href` inside layout templates; use **absolute** `/…` paths when leaving a branch. Legacy absolute links keep working — only navigation is intercepted.
+
+### Route `path` vs address bar
+
+These are separate:
+
+| | Route `path` attr | Browser URL (canonical) |
+| --- | --- | --- |
+| **Folder** | `/app/settings` — trailing `/` optional, normalized away | index → `/app/settings/` |
+| **Index child** | `path="."` | same as folder URL |
+| **Leaf** | `profile` → `/app/settings/profile` | `/app/settings/profile` — no trailing slash |
+
+`path="/app/settings"` and `path="/app/settings/"` build the **same route tree**. Folder = `layout` + children, not a slash in `path`.
+
+On index navigation, the engine **canonicalizes** the address bar (`/app/settings` → `/app/settings/` via `replaceState`) so path-relative links in the layout resolve correctly. Leaf routes are never given a trailing slash.
+
+```html
+<aura-route path="/app/settings" layout="settings-frame">
+  <template id="settings-frame">
+    <nav>
+      <a href="profile" data-router-link>Profile</a>
+      <a href="." data-router-link>Overview</a>
+    </nav>
+    <aura-outlet></aura-outlet>
+  </template>
+  <aura-route path="." view="overview.html" />
+  <aura-route path="profile" view="profile.html" />
+</aura-route>
+```
+
+> Deep dive: [docs/NAVIGATION_MODEL.md](./docs/NAVIGATION_MODEL.md) · [docs/NESTED_ROUTES.md](./docs/NESTED_ROUTES.md)
+
 ---
 
 ## Views
@@ -159,7 +201,7 @@ See [Custom loaders](#custom-loaders) to register your own loader types.
 
 ## Nested routes & layouts
 
-Nest `<aura-route>` elements to build a route tree. A parent with `layout` renders a shell; children render into its `<aura-outlet>`.
+Nest `<aura-route>` elements to build a route tree. A parent with `layout` renders a shell; children render into its `<aura-outlet>`. Path-relative links in the shell (`href="profile"`) — see [Navigation](#navigation).
 
 ```html
 <template id="users-shell">

@@ -3,7 +3,7 @@ import type { PrefetchMode } from '../prefetch/types';
 
 import {
   findRouterLink,
-  readLinkHref,
+  resolveLinkHref,
   readRouterLinkFromEvent,
 } from './router-link';
 
@@ -68,7 +68,7 @@ export class LinkPrefetchIntentTracker {
     const anchor = findRouterLink(event.target, this.linksSelector);
     if (!anchor) return;
 
-    const href = readLinkHref(anchor);
+    const href = resolveLinkHref(anchor);
     if (!href) return;
 
     const related = 'relatedTarget' in event ? event.relatedTarget : null;

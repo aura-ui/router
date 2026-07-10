@@ -38,7 +38,7 @@
 | [EVENT_BUS.md](./EVENT_BUS.md) | **Фаза 7:** внутренний EventBus (`navigation:*`, `load:*`, `node:*`) — as-is, точки emit, план EB0–EB4 |
 | [SSR_MPA_STRATEGY.md](./SSR_MPA_STRATEGY.md) | MPA→SPA (roadmap Phase 8) + SSR runtime как исследование (не в roadmap) |
 | [ROUTE_API_V3.md](./ROUTE_API_V3.md) | Путь as-is → [README](../README.md): `view`, loaders, lifecycle `guard\|ready`, `cache` |
-| [NESTED_ROUTES_JOY_MODEL.md](./NESTED_ROUTES_JOY_MODEL.md) | Route Folders: nested DX поверх [ROUTE_API_V3](./ROUTE_API_V3.md) — layout+view, inherit, paths, links |
+| [NESTED_ROUTES_JOY_MODEL.md](./NESTED_ROUTES_JOY_MODEL.md) | Route Folders: nested DX поверх v3 — **статус реализации** (✓/~✗/⏸); redirect — последний этап |
 | [PRE_RELEASE_0.0.1.md](./PRE_RELEASE_0.0.1.md) | **Чеклист:** merge в `main` + npm `@aura-ui-web/router@0.0.1` — аудит, блокеры, must-have |
 | [ADOPTION_AND_GTM.md](./ADOPTION_AND_GTM.md) | Перспективы, GTM, hero README/landing, outline Vaadin→Aura migration |
 | [NAVIGATION_ERROR_V2.md](./NAVIGATION_ERROR_V2.md) | **Реализовано:** обработка ошибок v2 — detection / recovery / reporting (5 фаз) |

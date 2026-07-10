@@ -24,7 +24,7 @@
 
 ```text
 navigateTo (AuraRoutingEngine)
-  → parsePath + resolveNavigationTarget (match all nodes)
+  → resolveDocumentHrefParts + resolveNavigationTarget (match all nodes)
   → NavigationCoordinator.run (dedupe / supersede)
   → NavigationTransaction.run
       → buildTransitionPlan
@@ -190,7 +190,7 @@ Nested default: `resolveEnterBranch` (async parallel) → `mountEnterBranch` (sy
 | 17 | <span style="color: #cf222e; font-weight: bold;">✗</span> | Staged transitions — 2 view roots в DOM | `aura-outlet.ts` `applyStage` |
 | 18 | <span style="color: #cf222e; font-weight: bold;">✗</span> | Load hooks на route — sequential | `data-graph.ts` `runLoadPhaseHooks` |
 | 19 | <span style="color: #cf222e; font-weight: bold;">✗</span> | Нет DAG parent→child для loads | `data-graph.ts` `runParallelNavigationLoads` |
-| 20 | <span style="color: #cf222e; font-weight: bold;">✗</span> | `parsePath` → `new URL` per navigate | `aura-utils/misc/url.ts` |
+| 20 | <span style="color: #cf222e; font-weight: bold;">✗</span> | `resolveDocumentHrefParts` / `splitAppHref` → `new URL` per navigate | `aura-utils/misc/url.ts` |
 
 ---
 

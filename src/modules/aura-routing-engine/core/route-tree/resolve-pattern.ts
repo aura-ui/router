@@ -1,3 +1,5 @@
+import { stripTrailingSlash } from '../../../aura-utils/misc/url';
+
 const CATCH_ALL_SEGMENT = new Set(['*', '/*']);
 const SCOPED_CATCH_ALL_SUFFIX = '/*';
 
@@ -20,7 +22,7 @@ export function resolvePattern(parentPattern: string | null, segment: string): s
 
   if (CATCH_ALL_SEGMENT.has(segment)) {
     if (!parentPattern || parentPattern === '/') return '*';
-    return normalizePath(`${trimTrailingSlash(parentPattern)}${SCOPED_CATCH_ALL_SUFFIX}`);
+    return normalizePath(`${stripTrailingSlash(parentPattern)}${SCOPED_CATCH_ALL_SUFFIX}`);
   }
 
   // index path
@@ -39,7 +41,7 @@ export function resolvePattern(parentPattern: string | null, segment: string): s
     return normalizePath(`/${segment}`);
   }
 
-  return normalizePath(`${trimTrailingSlash(base)}/${segment}`);
+  return normalizePath(`${stripTrailingSlash(base)}/${segment}`);
 }
 
 /** Глобальный catch-all: `<aura-route path="*">` на корне. */
@@ -55,13 +57,5 @@ export function isScopedCatchAllPattern(pattern: string): boolean {
 /** Убирает лишние слэши и trailing `/` (кроме корня `/`). @example '//a//b/' → '/a/b' */
 function normalizePath(path: string): string {
   const collapsed = path.replace(/\/{2,}/g, '/');
-  if (collapsed.length > 1 && collapsed.endsWith('/')) {
-    return collapsed.slice(0, -1);
-  }
-  return collapsed || '/';
-}
-
-/** @example '/settings/' → '/settings', '/' → '/' */
-function trimTrailingSlash(path: string): string {
-  return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+  return stripTrailingSlash(collapsed) || '/';
 }

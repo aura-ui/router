@@ -29,7 +29,7 @@
 
 ```text
 AuraRoutingEngine.navigateTo()
-  ├─ parsePath, hash-only, finalizeAnchorNavigation
+  ├─ resolveDocumentHrefParts, isHashOnlyChange, finalizeAnchorNavigation
   ├─ resolveNavigationTarget + registry
   ├─ NOT_FOUND: not-found-exit-cleanup → finalizeNotFound → finalizeFailure
   └─ matched: NavigationCoordinator

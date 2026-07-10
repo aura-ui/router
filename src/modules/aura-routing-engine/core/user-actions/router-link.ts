@@ -1,3 +1,5 @@
+import { resolveDocumentHref } from '../../../aura-utils/misc/url';
+
 export function findRouterLink(
   target: EventTarget | null,
   linksSelector: string,
@@ -17,6 +19,13 @@ export function readLinkHref(anchor: HTMLAnchorElement): string | null {
   return href;
 }
 
+/** Document-relative href for navigation (`pathname + search + hash`). */
+export function resolveLinkHref(anchor: HTMLAnchorElement): string | null {
+  const raw = readLinkHref(anchor);
+  if (!raw) return null;
+  return resolveDocumentHref(raw);
+}
+
 /** href + anchor from a DOM event targeting an in-app router link. */
 export function readRouterLinkFromEvent(
   event: Event,
@@ -25,7 +34,7 @@ export function readRouterLinkFromEvent(
   const anchor = findRouterLink(event.target, linksSelector);
   if (!anchor) return null;
 
-  const href = readLinkHref(anchor);
+  const href = resolveLinkHref(anchor);
   if (!href) return null;
 
   return { anchor, href };

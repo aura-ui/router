@@ -23,4 +23,29 @@ describe('resolveNavigationTarget', () => {
 
     expect(resolveNavigationTarget(matcher, '/missing', matchableNodes)).toBeNull();
   });
+
+  it('matches index folder with trailing slash in URL', () => {
+    const index = createDomRoute('.');
+    const settings = createDomRoute('/app/settings', [index]);
+    const { matchableNodes } = buildTreeFromDom(settings);
+
+    const target = resolveNavigationTarget(matcher, '/app/settings/', matchableNodes);
+
+    expect(target).not.toBeNull();
+    expect(target!.leaf.node?.isIndex).toBe(true);
+    expect(target!.leaf.pattern).toBe('/app/settings');
+    expect(target!.pathname).toBe('/app/settings/');
+    expect(target!.href).toBe('/app/settings/');
+  });
+
+  it('canonicalizes index folder URL without trailing slash', () => {
+    const index = createDomRoute('.');
+    const settings = createDomRoute('/app/settings', [index]);
+    const { matchableNodes } = buildTreeFromDom(settings);
+
+    const target = resolveNavigationTarget(matcher, '/app/settings', matchableNodes);
+
+    expect(target!.href).toBe('/app/settings/');
+    expect(target!.pathname).toBe('/app/settings/');
+  });
 });

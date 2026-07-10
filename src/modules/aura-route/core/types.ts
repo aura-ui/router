@@ -6,16 +6,20 @@ import type { RouteTransitionType } from './attr/transition-attr-parser';
 import type { ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { ViewPayload } from './view/types';
 
+export type RouteType = 'page' | 'folder' | 'redirect';
+
 /** Public surface of `<aura-route>` attributes. */
 export interface AuraRouteInterface {
   path: string;
   layout: string;
+  redirect: string;
   view: ViewAttrDescriptor | null;
   loadingTemplate: string | null;
   errorTemplate: string | null;
   cache: CacheFlags;
   scrollPolicy: ScrollAttr | null;
   extract: string | null;
+  readonly type: RouteType;
   readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;
   readonly hasViewContent: boolean;

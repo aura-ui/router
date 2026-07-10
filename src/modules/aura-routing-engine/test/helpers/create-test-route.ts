@@ -36,6 +36,7 @@ export function createTestRoute(
     mountStrategy: null,
     extract: null,
     layout: '',
+    redirect: '',
     loadingTemplate: '',
     view: SYNC_HTML_VIEW,
     transition: INACTIVE_TRANSITION,

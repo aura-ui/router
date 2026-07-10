@@ -71,7 +71,7 @@ export class RouteViewController {
       routeInfo,
       signal: this.ctx.renderSignal.begin(options?.parentSignal),
       domCacheKey: domCacheKey(routeInfo, route.path),
-      viewKind: route.layout.trim() ? 'layout' : 'view',
+      viewKind: route.hasLayout ? 'layout' : 'view',
       useStagedMount:
         route.transition.order !== null
         || (this.ctx.paramChangeRemount && route.cache.dom),

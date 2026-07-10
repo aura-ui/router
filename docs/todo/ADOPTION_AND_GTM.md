@@ -226,8 +226,8 @@ Core MIT. Деньги:
 <aura-router enter="auth">
   <aura-outlet/>
 
-  <aura-route path="/app" cache="screen">
-    <template data-route-shell>
+  <aura-route path="/app" layout="app-frame" cache="screen">
+    <template id="app-frame">
       <nav>
         <a href="dashboard" data-router-link>Dashboard</a>
         <a href="users" data-router-link>Users</a>
@@ -312,7 +312,7 @@ Step 2 — Guards
 
 Step 3 — Nested layout
   Vaadin: parent component with slot/outlet
-  Aura:   folder + layout template или colocated <template data-route-shell>
+  Aura:   folder + `layout="template-id"` (external или colocated `<template id>`)
 
 Step 4 — html-src (optional upgrade)
   Server partials вместо dynamic import component

@@ -35,8 +35,9 @@ import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parse
 import { parseScrollAttr, type ScrollAttr } from './attr/scroll-attr-parser';
 import { parseParamChangeAttr, type ParamChangePolicy } from './attr/param-change-attr-parser';
 import { memoize } from '../../aura-utils/decorators/memoize';
+import type { RouteType } from './types';
 
-export type { RouteRenderOptions, ApplyPreResolvedOptions, AuraRouteInterface };
+export type { RouteRenderOptions, ApplyPreResolvedOptions, AuraRouteInterface, RouteType };
 
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
   static is = 'aura-route';
@@ -58,7 +59,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseHookList }) error: string[] | null;
   @routeAttr({ parser: parseParamChangeAttr }) paramChange: ParamChangePolicy | null;
 
-  @routeAttr({ parser: parseTransitionShortcutAttr, name: 'transition' }) transitionShortcut: TransitionShortcutType | null;
+  @routeAttr({
+    parser: parseTransitionShortcutAttr,
+    name: 'transition',
+  }) transitionShortcut: TransitionShortcutType | null;
   @routeAttr({ parser: parseTransitionOrder }) transitionOrder: TransitionOrderType | null;
   @routeAttr({ parser: parseHookList, name: 'transition-in' }) transitionInDecl: string[] | null;
   @routeAttr({ parser: parseHookList, name: 'transition-out' }) transitionOutDecl: string[] | null;
@@ -67,6 +71,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parsePrefetchAttr }) prefetch: PrefetchType | false | null;
   @routeAttr({ parser: parseMountStrategyAttr }) mountStrategy: MountStrategy | null;
   @routeAttr({ parser: parseCacheAttr }) cache: CacheFlags;
+  @routeAttr({ inherit: false }) redirect: string;
 
   private viewController!: RouteViewController;
   private passId = 0;
@@ -124,7 +129,9 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   }
 
   get hasViewContent(): boolean {
-    return this.hasLayout || !!this.view;
+    if (this.type === 'redirect') return false;
+    if (this.type === 'folder') return this.hasLayout;
+    return !!this.view;
   }
 
   get hasGuard(): boolean {
@@ -156,9 +163,19 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return isAsyncLoader(this.view?.loader);
   }
 
+  get hasChildrenRoutes() {
+    return this.querySelector(`:scope > ${AuraRoute.is}`);
+  }
+
+  get type(): RouteType {
+    if (this.redirect.trim()) return 'redirect';
+    if (this.hasChildrenRoutes) return 'folder';
+    return 'page';
+  }
+
   /** Inline `html::` without layout, fetch loaders, or loading UI — future sync render lane (see IMPLEMENTATION_STEPS §5b PR3). */
   get hasSyncContent(): boolean {
-    if (this.hasLayout || this.hasAsyncContent) return false;
+    if (this.type !== 'page' || this.hasLayout || this.hasAsyncContent) return false;
     if (this.loadingTemplate?.trim()) return false;
     return this.view?.loader === 'html';
   }
@@ -273,8 +290,25 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   }
 
   private throwIfInvalidAttrs(): void {
-    if (!this.view && !this.layout.trim()) {
-      throw new Error(`AuraRoute with path "${this.path}" has no view or layout to render`);
+    const path = this.path;
+    if (this.type === 'redirect') {
+      if (this.hasChildrenRoutes) {
+        throw new Error(`AuraRoute redirect "${path}" cannot have nested child routes`);
+      }
+      if (this.view) throw new Error(`AuraRoute redirect "${path}" cannot declare view`);
+      if (this.hasLayout) throw new Error(`AuraRoute redirect "${path}" cannot declare layout`);
+      return;
     }
+    if (this.type === 'folder') {
+      if (this.view) {
+        throw new Error(`AuraRoute folder "${path}" cannot declare view — use nested child routes`);
+      }
+      if (!this.hasLayout) {
+        throw new Error(`AuraRoute folder "${path}" has no layout`);
+      }
+      return;
+    }
+    if (!this.view) throw new Error(`AuraRoute page "${path}" has no view`);
+
   }
 }

@@ -32,11 +32,23 @@ function createController(
   const route: AuraRouteInterface = {
     path,
     layout: '',
-    view: '',
+    redirect: '',
+    view: { loader: 'html', content: '' },
     loadingTemplate: '',
     errorTemplate: '',
     cache: NO_CACHE,
     scrollPolicy: null,
+    extract: null,
+    type: 'page',
+    hasLayout: false,
+    hasViewContent: true,
+    hasGuard: false,
+    hasLeave: false,
+    hasLoad: false,
+    hasTransitionIn: false,
+    hasReady: false,
+    hasAsyncContent: false,
+    hasSyncContent: false,
     get transition() {
       return staged
         ? { order: 'parallel' as const, in: null, out: null }

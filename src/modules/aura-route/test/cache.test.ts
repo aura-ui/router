@@ -18,24 +18,28 @@ describe('AuraRoute cache', () => {
 
   it('parses cache attr', () => {
     expect(route({ path: '/a' }).cache).toEqual(NO_CACHE);
-    expect(route({ path: '/a', cache: '' }).cache).toEqual({ dom: true, view: true, data: false });
+    expect(route({ path: '/a', cache: '' }).cache).toEqual(NO_CACHE);
     expect(route({ path: '/a', cache: 'dom' }).cache).toEqual({ dom: true, view: false, data: false });
     expect(route({ path: '/a', cache: 'view' }).cache).toEqual({ dom: false, view: true, data: false });
     expect(route({ path: '/a', cache: 'data' }).cache).toEqual({ dom: false, view: false, data: true });
     expect(route({ path: '/a', cache: 'screen' }).cache).toEqual({ dom: true, view: true, data: false });
     expect(route({ path: '/a', cache: 'all' }).cache).toEqual({ dom: true, view: true, data: true });
     expect(route({ path: '/a', cache: 'off' }).cache).toEqual(NO_CACHE);
+    expect(route({ path: '/a', cache: 'none' }).cache).toEqual(NO_CACHE);
+    expect(route({ path: '/a', cache: 'false' }).cache).toEqual(NO_CACHE);
   });
 
-  it('cache="off" opts out of inherited cache', () => {
-    document.body.innerHTML = `
-      <aura-router cache="screen">
-        <aura-route path="/child" cache="off"></aura-route>
-      </aura-router>
-    `;
-    const child = document.querySelector(AuraRoute.is) as AuraRoute;
-    expect(child.cache).toEqual(NO_CACHE);
-    document.body.replaceChildren();
+  it('cache opt-out keywords break inherited cache', () => {
+    for (const value of ['off', 'none', 'false']) {
+      document.body.innerHTML = `
+        <aura-router cache="screen">
+          <aura-route path="/child" cache="${value}"></aura-route>
+        </aura-router>
+      `;
+      const child = document.querySelector(AuraRoute.is) as AuraRoute;
+      expect(child.cache).toEqual(NO_CACHE);
+      document.body.replaceChildren();
+    }
   });
 
   it('inherits cache from ancestor aura-router', () => {

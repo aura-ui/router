@@ -277,9 +277,7 @@ leave | guard | load | ready
 | `data` | | | ✓ | |
 | `screen` | ✓ | ✓ | | |
 | `all` | ✓ | ✓ | ✓ | |
-| `off` | | | | opt-out (overrides inherit) |
-| *(absent)* | | | | inherits ancestor |
-| `cache` / `cache=""` | ✓ | ✓ | | (= `screen`) |
+| `none` / `off` / `false` | | | | opt-out (overrides inherit) |
 
 Одна ось: *что сохраняем при уходе* — DOM, loader payload, load data или комбинация.
 
@@ -332,7 +330,7 @@ leave | guard | load | ready
 | `error` | default для всего app |
 
 ```html
-<aura-route path="/login" guard="" />  <!-- opt-out inherit -->
+<aura-route path="/login" guard="none" />  <!-- opt-out inherit -->
 ```
 
 ---

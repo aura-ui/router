@@ -34,18 +34,18 @@ describe('AuraRoute template inherit', () => {
     expect(child.errorTemplate).toBe('error');
   });
 
-  it('loading-template="" opts out of router default', () => {
+  it('loading-template="none" opts out of router default', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('loading-template', 'loading');
-    const child = route({ path: '/fast', 'loading-template': '' }, router);
+    const child = route({ path: '/fast', 'loading-template': 'none' }, router);
 
     expect(child.loadingTemplate).toBe('');
   });
 
-  it('error-template="" opts out of router default', () => {
+  it('error-template="off" opts out of router default', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('error-template', 'error');
-    const child = route({ path: '/quiet', 'error-template': '' }, router);
+    const child = route({ path: '/quiet', 'error-template': 'off' }, router);
 
     expect(child.errorTemplate).toBe('');
   });

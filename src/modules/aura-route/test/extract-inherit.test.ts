@@ -36,12 +36,12 @@ describe('AuraRoute extract inherit', () => {
     expect(child.extract).toBe('#main');
   });
 
-  it('extract="" opts out of router default', () => {
+  it('extract="none" opts out of router default', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('extract', '#main');
-    const child = route({ path: '/partial', extract: '' }, router);
+    const child = route({ path: '/partial', extract: 'none' }, router);
 
-    expect(child.extract).toBe('');
+    expect(child.extract).toBeNull();
   });
 
   it('child overrides inherited extract', () => {

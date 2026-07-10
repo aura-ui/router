@@ -63,16 +63,16 @@ describe('@attr inherit', () => {
     root.remove();
   });
 
-  it('empty string on child blocks inheritance', () => {
+  it('off keywords are passed to parser when present locally', () => {
     const root = document.createElement('div');
     root.setAttribute('label', 'parent');
 
     const child = document.createElement(hostTag) as InheritHost;
-    child.setAttribute('label', '');
+    child.setAttribute('label', 'none');
     root.append(child);
     document.body.append(root);
 
-    expect(child.label).toBe('');
+    expect(child.label).toBe('none');
 
     root.remove();
   });

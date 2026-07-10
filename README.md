@@ -140,7 +140,7 @@ For MPA→SPA migration: legacy server pages are often full HTML documents. Set 
 
 | Attribute | Description |
 | --- | --- |
-| `extract` | CSS selector (e.g. `#main`, `.content`). Empty / omitted → partial as-is. **Inherits** from `<aura-router>` and parent `<aura-route>` (opt-out with `extract=""`). |
+| `extract` | CSS selector (e.g. `#main`, `.content`). Omitted → partial as-is. **Inherits** from `<aura-router>` / parent `<aura-route>`; opt out with `extract="none"` (or `off` / `false`). |
 
 ```html
 <!-- One selector for a whole legacy branch -->
@@ -152,8 +152,6 @@ For MPA→SPA migration: legacy server pages are often full HTML documents. Set 
 <!-- Override on a single route -->
 <aura-route path="/special" view="pages/special.html" extract="#article" />
 ```
-
-> **Status:** documented target API — loader wiring not implemented yet.
 
 See [Custom loaders](#custom-loaders) to register your own loader types.
 
@@ -183,7 +181,7 @@ Nest `<aura-route>` elements to build a route tree. A parent with `layout` rende
 | `view` | What to render: `page.html` (→ `url`) or `loader::content` (e.g. `html::…`, `import::…`) |
 | `extract` | CSS selector to extract a fragment from a full HTML page; inherits from router/parent |
 | `layout` | Nested shell — parent route with `<template id="…">`, children render in its outlet |
-| `cache` | Keep on leave: `dom`, `view`, `data`, `screen` (dom + view), `all`; bare `cache` / `cache=""` → `screen`; `cache="off"` opts out of inherited cache |
+| `cache` | Keep on leave: `dom`, `view`, `data`, `screen` (dom + view), `all`; `none` / `off` / `false` opts out of inherited cache. See [docs/PRESERVE.md](./docs/PRESERVE.md). |
 
 Hooks on a parent run for every child navigation inside that branch (with inheritance — see [Router defaults](#router-defaults)).
 
@@ -207,7 +205,9 @@ const authHook = defineRouteHook({
 AuraRouter.use(authHook);
 ```
 
-`guard="auth"` runs the hook named `auth` during the guard phase. Attributes inherit from `<aura-router>` down the tree. Empty value (`guard=""`) opts out of an inherited default.
+`guard="auth"` runs the hook named `auth` during the guard phase. Many attributes **inherit** from `<aura-router>` and parent `<aura-route>` down the tree.
+
+**Override** with your own value (`guard="admin-only"`). **Opt out** of inheritance with `none`, `off`, or `false` — e.g. `guard="none"`, `scroll="none"`, `cache="off"`, `loading-template="none"`. Same rule for all inheritable attrs; empty `attr=""` is not supported.
 
 ### Lifecycle
 
@@ -236,6 +236,7 @@ With `cache="dom"` or `cache="screen"` on the route, optional teardown hooks: `d
 
 ```html
 <aura-router guard="auth" ready="analytics" scroll="restore">
+  <aura-route path="/login" view="login.html" guard="none" />
   <aura-route path="/users" layout="users-shell">
     <aura-route
       path=":id"
@@ -259,17 +260,19 @@ With `cache="dom"` or `cache="screen"` on the route, optional teardown hooks: `d
 
 ## Router defaults
 
-Attributes on `<aura-router>` inherit to child routes (override per route or per link):
+Attributes on `<aura-router>` inherit to child `<aura-route>` elements. Per-route override: set a value. Opt out on a child: `none`, `off`, or `false` on that attribute.
 
 | Attribute | Description |
 | --- | --- |
-| `scroll` | `restore`, `top`, or `manual` |
-| `prefetch` | `intent`, `viewport`, `tap`, `render`, `manual`, or `false` / `none` (off) |
-| `loading-template` | Template id while view loads |
+| `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error` | Global hook lists (comma-separated names) |
+| `scroll` | `restore`, `top`, or `manual` (`scroll="none"` on child → `manual`) |
+| `prefetch` | `intent`, `viewport`, `tap`, `render`, `manual`, or `false` / `none` / `off` |
+| `cache` | `dom`, `view`, `data`, `screen`, `all` — child `cache="off"` opts out |
+| `loading-template` | Template id while view loads (`loading-template="none"` opts out) |
 | `error-template` | Template id on render error |
+| `extract` | Default CSS selector for `url` fragment extract |
 | `links-selector` | CSS selector for in-app links (default: `[data-router-link]`) |
 | `not-found-template` | Template id for fallback 404 when no `path="*"` route exists |
-| `extract` | Default CSS selector for `url` fragment extract on legacy full pages |
 
 **Prefetch cascade:** `data-prefetch` on the link → `prefetch` on `<aura-route>` → `prefetch` on `<aura-router>`.
 

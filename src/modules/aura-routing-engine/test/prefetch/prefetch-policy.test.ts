@@ -11,8 +11,8 @@ describe('parsePrefetchAttr', () => {
     expect(parsePrefetchAttr(null)).toBeNull();
   });
 
-  it('treats empty attr as disabled', () => {
-    expect(parsePrefetchAttr('')).toBe(false);
+  it('returns null for empty attr value', () => {
+    expect(parsePrefetchAttr('')).toBeNull();
   });
 
   it('treats boolean true attr as intent', () => {

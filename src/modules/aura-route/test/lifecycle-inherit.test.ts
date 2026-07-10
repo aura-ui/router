@@ -38,18 +38,18 @@ describe('AuraRoute lifecycle inherit', () => {
     expect(child.ready).toEqual(['analytics']);
   });
 
-  it('guard="" opts out of router default', () => {
+  it('guard="none" opts out of router default', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('guard', 'auth');
-    const child = route({ path: '/login', guard: '' }, router);
+    const child = route({ path: '/login', guard: 'none' }, router);
 
     expect(child.guard).toEqual([]);
   });
 
-  it('ready="" opts out of router default', () => {
+  it('ready="off" opts out of router default', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('ready', 'analytics');
-    const child = route({ path: '/quiet', ready: '' }, router);
+    const child = route({ path: '/quiet', ready: 'off' }, router);
 
     expect(child.ready).toEqual([]);
   });
@@ -73,7 +73,7 @@ describe('AuraRoute lifecycle inherit', () => {
   it('nested child overrides parent guard', () => {
     const router = document.createElement('aura-router');
     const parent = route({ path: '/users', guard: 'admin' }, router);
-    const child = route({ path: 'public', guard: '' }, parent);
+    const child = route({ path: 'public', guard: 'false' }, parent);
 
     expect(child.guard).toEqual([]);
   });

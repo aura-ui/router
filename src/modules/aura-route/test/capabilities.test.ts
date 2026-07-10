@@ -56,11 +56,11 @@ describe('AuraRoute fast-path getters', () => {
     expect(route({ ready: 'analytics', view: 'html::<p/>' }).hasReady).toBe(true);
   });
 
-  it('guard="" opts out of inherited guard', () => {
+  it('guard="none" opts out of inherited guard', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('guard', 'auth');
     document.body.append(router);
-    expect(route({ guard: '', view: 'html::<p/>' }, router).hasGuard).toBe(false);
+    expect(route({ guard: 'none', view: 'html::<p/>' }, router).hasGuard).toBe(false);
   });
 
   it('layout is sync; transition shortcut sets in/out effects', () => {

@@ -41,7 +41,7 @@ import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/cor
 import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import { parseNullableString } from '../../aura-utils/misc';
-import { syncRouterActiveLinks } from '../../aura-routing-engine/core/user-actions/active-link-sync';
+import { syncRouterActiveLinks } from '../../aura-routing-engine/core/user-actions/router-link';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -102,9 +102,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
   /** CSS class toggled on `[data-router-link]` when its resolved href matches the current URL. */
-  /** CSS class toggled on `[data-router-link]` when its resolved href matches the current URL. */
   @attr({ dataAttr: true, parser: parseNullableString, cached: true })
   routerActiveClass: string | null;
+  /** Ancestor selector for active-link scan when nav is outside router (demo: `.demo-site`). */
+  @attr({ dataAttr: true, parser: parseNullableString, cached: true, name: 'router-link-root' })
+  linkActiveRootSelector: string | null;
   /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   /** Default CSS selector for `url` fragment extract on child routes (`extract="none"` opts out). */
@@ -218,6 +220,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
             to: ctx.to.href,
             pathname: ctx.to.pathname,
           });
+          // URL is canonical here; sync nav before transitionOut/transitionIn finish.
+          this.syncActiveLinks(ctx.to.href);
         },
         onNavigationCommitted: (ctx) => {
           this.notFound.hide();
@@ -257,16 +261,15 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
-  /** Updates `[data-router-link]` active classes after full navigation or hash-only URL change. */
-  private syncActiveLinks(currentHref: string): void {
-    const activeClass = this.routerActiveClass;
-    if (!activeClass?.trim()) return;
+  private syncActiveLinks(href: string): void {
+    if (!this.routerActiveClass?.trim()) return;
 
+    const scope = this.linkActiveRootSelector?.trim();
     syncRouterActiveLinks({
-      root: this,
+      root: scope ? (this.closest(scope) ?? this) : this,
       linksSelector: this.linksSelector,
-      activeClass,
-      currentHref,
+      activeClass: this.routerActiveClass,
+      currentHref: href,
     });
   }
 

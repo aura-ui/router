@@ -7,7 +7,7 @@ export interface LinkNavigationTrackerConfig {
   linksSelector?: string;
 }
 
-/** Перехват click на in-app ссылках → NavigationRequest. */
+/** Click on `[data-router-link]` → navigation request. */
 export class LinkNavigationTracker {
   private handler?: NavigationHandler;
   private listening = false;
@@ -43,11 +43,6 @@ export class LinkNavigationTracker {
     if (!href) return;
 
     event.preventDefault();
-    this.handler?.({
-      href,
-      action: 'push',
-      replace: false,
-      syncHistory: true,
-    });
+    this.handler?.({ href, action: 'push', replace: false, syncHistory: true });
   }
 }

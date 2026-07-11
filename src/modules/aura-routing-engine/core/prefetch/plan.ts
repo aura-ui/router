@@ -36,7 +36,7 @@ export class PrefetchPlanResolver {
     }
 
     const target = resolveNavigationTarget(this.deps.matcher, normalized, nodes);
-    if (!target) return null;
+    if (target.kind !== 'matched') return null;
 
     const transition = buildTransitionPlan(from, target.leaf);
 
@@ -67,7 +67,8 @@ export class PrefetchPlanResolver {
     const normalized = this.policy.normalizeHref(currentHref);
     if (!normalized) return null;
 
-    return resolveNavigationTarget(this.deps.matcher, normalized, nodes)?.leaf ?? null;
+    const target = resolveNavigationTarget(this.deps.matcher, normalized, nodes);
+    return target.kind === 'matched' ? target.leaf : null;
   }
 
   private planCacheKey(href: string, from: MatchedRouteInfo | null): string {

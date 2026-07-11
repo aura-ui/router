@@ -24,6 +24,14 @@ export function createDomRoute(path: string, children: AuraRoute[] = []): AuraRo
   return route;
 }
 
+export function createDomRedirectRoute(path: string, redirect: string): AuraRoute {
+  ensureTestRouteElement();
+  const route = document.createElement(ROUTE_TAG) as AuraRoute;
+  route.setAttribute('path', path);
+  route.setAttribute('redirect', redirect);
+  return route;
+}
+
 export function collectRoutesFromDom(...roots: AuraRoute[]): AuraRoute[] {
   const routes: AuraRoute[] = [];
 

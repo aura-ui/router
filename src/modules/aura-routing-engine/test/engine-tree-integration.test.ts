@@ -5,7 +5,11 @@ import {
 import type { RouterInstance } from '../core';
 import { NavigationTransaction } from '../core/navigation/navigation-transaction';
 
-import { createDomRoute, collectRoutesFromDom } from './helpers/test-route-dom';
+import {
+  collectRoutesFromDom,
+  createDomRedirectRoute,
+  createDomRoute,
+} from './helpers/test-route-dom';
 
 describe('AuraRoutingEngine + route tree', () => {
   const router: RouterInstance = { navigate: jest.fn() };
@@ -67,5 +71,29 @@ describe('AuraRoutingEngine + route tree', () => {
       '/settings',
       '/settings/security',
     ]);
+  });
+
+  it('navigateTo follows declarative redirect before running pipeline', async () => {
+    const transactions: NavigationTransaction[] = [];
+    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
+      transactions.push(this);
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
+    });
+
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine(router, { provider });
+
+    const profile = createDomRoute('/settings/profile');
+    const alias = createDomRedirectRoute('/settings', '/settings/profile');
+    engine.replaceRoutes(collectRoutesFromDom(alias, profile));
+    provider.start();
+
+    await engine.navigateTo('/settings', 'push', { replace: false, syncHistory: true });
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]!.href).toBe('/settings/profile');
+    expect(transactions[0]!.to.pattern).toBe('/settings/profile');
+    expect(transactions[0]!.historyOptions.replace).toBe(true);
   });
 });

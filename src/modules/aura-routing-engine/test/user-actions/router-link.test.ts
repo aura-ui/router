@@ -1,11 +1,12 @@
 /** @jest-environment jsdom */
 
-import { resolveLinkState, syncRouterActiveLinks, toActiveChain } from '../../core/user-actions/router-link';
+import {
+  isRouterLinkActive,
+  isRouterLinkBranchActive,
+  syncRouterActiveLinks,
+  toRouteTrail,
+} from '../../core/user-actions/router-link';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
-
-function presentation(currentHref: string) {
-  return { currentHref };
-}
 
 describe('router-link active state', () => {
   beforeEach(() => {
@@ -13,57 +14,77 @@ describe('router-link active state', () => {
     window.history.replaceState({}, '', '/app/settings/');
   });
 
-  describe('resolveLinkState', () => {
-    it('returns exact for matching pathname and search', () => {
-      expect(resolveLinkState('/about', presentation('/about'))).toBe('exact');
-      expect(resolveLinkState('/about?q=1', presentation('/about?q=1'))).toBe('exact');
+  describe('isRouterLinkActive', () => {
+    it('returns true for matching pathname and search', () => {
+      expect(isRouterLinkActive('/about', '/about')).toBe(true);
+      expect(isRouterLinkActive('/about?q=1', '/about?q=1')).toBe(true);
     });
 
     it('ignores trailing slash differences', () => {
-      expect(resolveLinkState('/app/settings/', presentation('/app/settings'))).toBe('exact');
+      expect(isRouterLinkActive('/app/settings/', '/app/settings')).toBe(true);
     });
 
     it('requires hash when link declares hash', () => {
-      expect(resolveLinkState('/docs#intro', presentation('/docs'))).toBe('inactive');
-      expect(resolveLinkState('/docs#intro', presentation('/docs#intro'))).toBe('exact');
+      expect(isRouterLinkActive('/docs#intro', '/docs')).toBe(false);
+      expect(isRouterLinkActive('/docs#intro', '/docs#intro')).toBe(true);
     });
 
     it('treats links without hash as inactive when current URL has hash', () => {
-      expect(resolveLinkState('/docs', presentation('/docs#intro'))).toBe('inactive');
+      expect(isRouterLinkActive('/docs', '/docs#intro')).toBe(false);
     });
 
-    it('returns ancestor when current URL is under the link path', () => {
-      expect(resolveLinkState('/app/settings', presentation('/app/settings/profile'))).toBe('ancestor');
-      expect(resolveLinkState('/app/settings/', presentation('/app/settings/profile'))).toBe('ancestor');
+    it('returns false for prefix-only matches', () => {
+      expect(isRouterLinkActive('/app/settings', '/app/settings/profile')).toBe(false);
+      expect(isRouterLinkActive('/app/settings/', '/app/settings/profile')).toBe(false);
     });
 
-    it('returns exact for the leaf path in an ancestor match', () => {
-      expect(resolveLinkState('/app/settings/profile', presentation('/app/settings/profile'))).toBe('exact');
+    it('returns true for the leaf path', () => {
+      expect(isRouterLinkActive('/app/settings/profile', '/app/settings/profile')).toBe(true);
     });
 
-    it('returns inactive for sibling paths under the same parent', () => {
-      expect(resolveLinkState('/app/settings/users', presentation('/app/settings/profile'))).toBe('inactive');
+    it('returns false for sibling paths under the same parent', () => {
+      expect(isRouterLinkActive('/app/settings/users', '/app/settings/profile')).toBe(false);
     });
 
-    it('does not treat root as a prefix of every URL', () => {
-      expect(resolveLinkState('/', presentation('/app/settings/profile'))).toBe('inactive');
-      expect(resolveLinkState('/', presentation('/'))).toBe('exact');
-    });
-
-    it('ignores hash URLs for ancestor matching', () => {
-      expect(resolveLinkState('/docs#intro', presentation('/docs/profile'))).toBe('inactive');
-      expect(resolveLinkState('/docs', presentation('/docs#intro'))).toBe('inactive');
+    it('does not treat root as active for every URL', () => {
+      expect(isRouterLinkActive('/', '/app/settings/profile')).toBe(false);
+      expect(isRouterLinkActive('/', '/')).toBe(true);
     });
   });
 
-  describe('toActiveChain', () => {
+  describe('isRouterLinkBranchActive', () => {
+    it('returns true when current URL is under the link path', () => {
+      expect(isRouterLinkBranchActive('/app/settings', '/app/settings/profile')).toBe(true);
+      expect(isRouterLinkBranchActive('/app/settings/', '/app/settings/profile')).toBe(true);
+    });
+
+    it('returns true for the leaf path', () => {
+      expect(isRouterLinkBranchActive('/app/settings/profile', '/app/settings/profile')).toBe(true);
+    });
+
+    it('returns false for sibling paths under the same parent', () => {
+      expect(isRouterLinkBranchActive('/app/settings/users', '/app/settings/profile')).toBe(false);
+    });
+
+    it('does not treat root as a prefix of every URL', () => {
+      expect(isRouterLinkBranchActive('/', '/app/settings/profile')).toBe(false);
+      expect(isRouterLinkBranchActive('/', '/')).toBe(true);
+    });
+
+    it('ignores hash URLs for branch matching', () => {
+      expect(isRouterLinkBranchActive('/docs#intro', '/docs/profile')).toBe(false);
+      expect(isRouterLinkBranchActive('/docs', '/docs#intro')).toBe(false);
+    });
+  });
+
+  describe('toRouteTrail', () => {
     it('maps active chain from a leaf match', () => {
       const parent = createMatchedRoute('/app/settings');
       const leaf = createMatchedRoute('/app/settings/profile');
       leaf.chain = [parent, leaf];
       parent.chain = leaf.chain;
 
-      expect(toActiveChain(leaf)).toEqual([
+      expect(toRouteTrail(leaf.chain)).toEqual([
         { pattern: '/app/settings', href: '/app/settings' },
         { pattern: '/app/settings/profile', href: '/app/settings/profile' },
       ]);
@@ -75,7 +96,7 @@ describe('router-link active state', () => {
       leaf.chain = [parent, leaf];
       parent.chain = leaf.chain;
 
-      expect(toActiveChain([parent, leaf])).toEqual([
+      expect(toRouteTrail([parent, leaf])).toEqual([
         { pattern: '/app/settings', href: '/app/settings' },
         { pattern: '/app/settings/profile', href: '/app/settings/profile' },
       ]);
@@ -95,7 +116,7 @@ describe('router-link active state', () => {
         root: document.getElementById('root')!,
         linksSelector: '[data-router-link]',
         activeClass: 'is-active',
-        presentation: presentation('/app/settings/'),
+        currentHref: '/app/settings/',
       });
 
       const [overview, profile] = document.querySelectorAll<HTMLAnchorElement>('a');
@@ -116,14 +137,14 @@ describe('router-link active state', () => {
         root: document.getElementById('root')!,
         linksSelector: '[data-router-link]',
         activeClass: 'is-active',
-        presentation: presentation('/app/settings/profile'),
+        currentHref: '/app/settings/profile',
       });
 
       const link = document.querySelector('a')!;
       expect(link.classList.contains('is-active')).toBe(true);
     });
 
-    it('resolves path-relative href against presentation currentHref', () => {
+    it('resolves path-relative href against currentHref instead of window location', () => {
       window.history.replaceState({}, '', '/stale/path');
       document.body.innerHTML = `
         <div id="root">
@@ -135,7 +156,7 @@ describe('router-link active state', () => {
         root: document.getElementById('root')!,
         linksSelector: '[data-router-link]',
         activeClass: 'is-active',
-        presentation: presentation('/app/settings/profile'),
+        currentHref: '/app/settings/profile',
       });
 
       expect(document.querySelector('a')!.classList.contains('is-active')).toBe(true);
@@ -153,7 +174,7 @@ describe('router-link active state', () => {
         root: document.getElementById('root')!,
         linksSelector: '[data-router-link]',
         activeClass: 'is-active',
-        presentation: presentation('/two'),
+        currentHref: '/two',
       });
 
       const [one, two] = document.querySelectorAll<HTMLAnchorElement>('a');
@@ -174,7 +195,7 @@ describe('router-link active state', () => {
         root: document.getElementById('root')!,
         linksSelector: '[data-router-link]',
         activeClass: 'is-active',
-        presentation: presentation('/app/settings/'),
+        currentHref: '/app/settings/',
       });
 
       document.querySelectorAll('a').forEach((anchor) => {
@@ -194,7 +215,7 @@ describe('router-link active state', () => {
         root: document.getElementById('root')!,
         linksSelector: '[data-router-link]',
         activeClass: 'is-active nav__link--current',
-        presentation: presentation('/about'),
+        currentHref: '/about',
       });
 
       const link = document.querySelector('a')!;
@@ -213,7 +234,7 @@ describe('router-link active state', () => {
         root: document.getElementById('root')!,
         linksSelector: '[data-router-link]',
         activeClass: 'is-active',
-        presentation: presentation('/app/settings/profile#panel'),
+        currentHref: '/app/settings/profile#panel',
       });
 
       expect(document.querySelector('a')!.classList.contains('is-active')).toBe(false);
@@ -231,12 +252,12 @@ describe('router-link active state', () => {
           root: document.getElementById('root')!,
           linksSelector: '[data-router-link]',
           activeClass: 'is-active',
-          presentation: presentation('/'),
+          currentHref: '/',
         }),
       ).not.toThrow();
     });
 
-    it('applies ancestor-active class for prefix matches', () => {
+    it('applies branch-active class for prefix matches', () => {
       document.body.innerHTML = `
         <div id="root">
           <a href="/app/settings" data-router-link>Settings</a>
@@ -248,15 +269,15 @@ describe('router-link active state', () => {
         root: document.getElementById('root')!,
         linksSelector: '[data-router-link]',
         activeClass: 'is-active',
-        ancestorActiveClass: 'is-ancestor-active',
-        presentation: presentation('/app/settings/profile'),
+        branchActiveClass: 'is-branch-active',
+        currentHref: '/app/settings/profile',
       });
 
       const [settings, profile] = document.querySelectorAll<HTMLAnchorElement>('a');
       expect(settings.classList.contains('is-active')).toBe(false);
-      expect(settings.classList.contains('is-ancestor-active')).toBe(true);
+      expect(settings.classList.contains('is-branch-active')).toBe(true);
       expect(profile.classList.contains('is-active')).toBe(true);
-      expect(profile.classList.contains('is-ancestor-active')).toBe(true);
+      expect(profile.classList.contains('is-branch-active')).toBe(true);
     });
   });
 });

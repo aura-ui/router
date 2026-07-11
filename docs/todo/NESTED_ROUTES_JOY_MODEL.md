@@ -34,7 +34,7 @@
 | 5 | Nested engine: LCA, `enterRoutes`, branch mount, sibling nav без remount frame | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 6 | `<aura-outlet>` в frame, `findNestedOutlet()` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 7 | Relative `href` (HTML-native + slash policy) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| 8 | `data-router-active-class`, `data-branch-active`, breadcrumbs | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (`data-router-active-class` ✓) |
+| 8 | `data-router-active-class`, `data-branch-active`, breadcrumbs | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 9 | Dev UX: light DOM frame error, relative path warn, dev overlay | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | 10 | Nested 404 / catch-all в outlet folder | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | 11 | Attr `redirect` + engine navigation (без render) | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |

@@ -53,6 +53,7 @@ export const DEMO_SCENARIOS: Record<string, DemoScenario> = {
         { path: '/users/1', label: 'User 1' },
         { path: '/users/2', label: 'User 2' },
         { path: '/users/3', label: 'User 3' },
+        { path: '/users/unknown', label: '404 demo' },
       ],
       slotLabelL1: 'Слот view — сюда монтирует дочерний маршрут',
     },

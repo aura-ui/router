@@ -28,6 +28,7 @@
           <a href="/features/routing-nested/users/1" data-router-link>User 1</a>
           <a href="/features/routing-nested/users/2" data-router-link>User 2</a>
           <a href="/features/routing-nested/users/3" data-router-link>User 3</a>
+          <a href="/features/routing-nested/users/unknown" data-router-link>404 demo</a>
         </nav>
       </div>
 
@@ -41,6 +42,7 @@
           <aura-route path="/features/routing-nested/users" layout="users-layout">
             <aura-route path="." view="features/routing-nested/users-list.html"></aura-route>
             <aura-route path=":id" view="features/routing-nested/user.html"></aura-route>
+            <aura-route path="*" view="features/routing-nested/not-found.html"></aura-route>
           </aura-route>
         </aura-router>
       </div>

@@ -34,7 +34,7 @@
 | 5 | Nested engine: LCA, `enterRoutes`, branch mount, sibling nav без remount frame | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 6 | `<aura-outlet>` в frame, `findNestedOutlet()` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 7 | Relative `href` (HTML-native + slash policy) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| 8 | `data-router-active-class`, `data-branch-active`, breadcrumbs | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| 8 | `data-router-active-class`, `data-branch-active`, `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `<aura-breadcrumbs/>` <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | 9 | Dev UX: light DOM frame error, relative path warn, dev overlay | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | 10 | Nested 404 / catch-all в outlet folder | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | 11 | Attr `redirect` + engine navigation (без render) | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
@@ -51,7 +51,7 @@
 | Page + nested `view` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | `view` attr, view-graph loaders |
 | Lifecycle inherit | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | в коде `guard`/`ready` (не `enter`/`after`); inherit через `closest`, без concat lists |
 | `cache` nested | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | dom / data / screen, sibling skip render |
-| Links + active state | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | `resolveDocumentHref` + trailing slash ✓; `data-router-active-class` ✓; `data-branch-active` ✗ |
+| Links + active state | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | `resolveDocumentHref` + trailing slash ✓; `data-router-active-class` ✓; `data-branch-active` ✓; `router.trail` ✓; `<aura-breadcrumbs/>` ✗ |
 | Redirect declarative | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> | attr на route ✓; engine match → navigate ✗ |
 | SSR / hydration | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> | RFC / adoption checklist |
 
@@ -99,8 +99,9 @@ Engine (LCA, `enterRoutes`, outlet chain) **не ломаем** — меняем
 
 | Фича | Статус |
 |------|--------|
-| Relative `data-router-link` | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (href resolution + slash policy ✓; active classes — [§Ссылки](#ссылки-html-native-без-link-resolver)) |
-| `data-branch-active`, breadcrumbs CE | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| Relative `data-router-link` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (href resolution + slash policy + active classes — [§Ссылки](#ссылки-html-native-без-link-resolver)) |
+| `data-branch-active`, `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| `<aura-breadcrumbs/>` CE | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | `aura-route-fragment` / CMS partials | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 
 **Осознанно не делаем** (не backlog):
@@ -656,8 +657,9 @@ Path-relative с `..` следуют **URL страницы**, не «route tree
 | Relative `href` → `new URL(href, location.href)` на клике | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`resolveDocumentHref` в `router-link.ts`) |
 | Canonical trailing slash на folder index | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `data-router-active-class` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`syncRouterActiveLinks` после `navigation`) |
-| `data-branch-active` на folder | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
-| `<aura-breadcrumbs/>` / `router.trail` | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| `data-branch-active` на folder | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`branchActiveClass` + prefix match в `router-link.ts`) |
+| `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`toRouteTrail` на `<aura-router>`) |
+| `<aura-breadcrumbs/>` CE | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> (данные есть через `router.trail`; UI-компонент не shipped) |
 
 ---
 
@@ -732,7 +734,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | Relative paths | `resolvePattern(parent, child)` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `path="."` | `normalizeRouteSegment('.')` → index child | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `redirect` | match → navigate target без render | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
-| Relative links / branch-active | HTML-native `href` + slash policy ✓; active chain — позже | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
+| Relative links / branch-active | HTML-native `href` + slash policy ✓; `data-router-active-class` + `data-branch-active` ✓; `router.trail` ✓; `<aura-breadcrumbs/>` ✗ | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
 | Route `type` + attr validation | `AuraRoute.type`, `throwIfInvalidAttrs()` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 
 ---
@@ -835,7 +837,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | Кэш | `keep-alive` + `cache` | `cache` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Mental model | parent/child/outlet | **папки и страницы** | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (`type` ✓) |
 | Paths | `""` index | `path="."` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| Nav links | full href | relative | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (href + slash ✓; active ✗) |
+| Nav links | full href | relative | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (href + slash + active classes ✓; `<aura-breadcrumbs/>` ✗) |
 | Redirect attr | — | `redirect="…"` | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
 | Ошибки | warn partial | actionable + dev overlay | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
 

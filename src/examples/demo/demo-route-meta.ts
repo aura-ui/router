@@ -57,6 +57,16 @@ export const DEMO_VIEW_META: Record<string, DemoRouteFact[]> = {
       value: 'Update во вложенном outlet; users-layout остаётся смонтированным.',
     },
   ],
+  'features/routing-nested/not-found.html': [
+    { term: 'Path', kind: 'code', value: '/features/routing-nested/users/*' },
+    { term: 'View', kind: 'code', value: 'features/routing-nested/not-found.html' },
+    { term: 'Layout', kind: 'code', value: 'users-layout' },
+    {
+      term: 'Действие роутера',
+      kind: 'text',
+      value: 'Scoped catch-all: sidebar layout сохраняется, 404 только во вложенном outlet.',
+    },
+  ],
   'features/routing-advanced/users-list.html': [
     {
       term: 'Path',

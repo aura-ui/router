@@ -1,11 +1,7 @@
 import { bind } from '../../../aura-utils/decorators/bind';
 import type { PrefetchMode } from '../prefetch/types';
 
-import {
-  findRouterLink,
-  resolveLinkHref,
-  readRouterLinkFromEvent,
-} from './router-link';
+import { findRouterLink, readRouterLinkFromEvent, resolveLinkHref } from './router-link';
 
 export type LinkPrefetchHandlers = {
   scheduleIntent(href: string, mode?: PrefetchMode): void;
@@ -24,7 +20,7 @@ export interface LinkPrefetchIntentTrackerConfig {
   resolveMode: LinkPrefetchModeResolver;
 }
 
-/** Hover / focus / touch на in-app ссылках → prefetch intent. */
+/** Hover / focus / touch on `[data-router-link]` → prefetch intent. */
 export class LinkPrefetchIntentTracker {
   private readonly handlers: LinkPrefetchHandlers;
   private listening = false;

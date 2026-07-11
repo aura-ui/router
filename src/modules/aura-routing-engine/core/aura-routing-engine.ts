@@ -266,12 +266,20 @@ export class AuraRoutingEngine {
       return;
     }
 
-    const found = resolveNavigationTarget(
+    const target = resolveNavigationTarget(
       this.matcher,
       resolved,
       this.registry.getMatchableNodes(),
     );
-    if (!found) {
+
+    if (target.kind === 'redirect-error') {
+      console.error(
+        `[aura-router] Navigation redirect failed (${target.code}): ${target.href}`,
+      );
+      return;
+    }
+
+    if (target.kind === 'unmatched') {
       runNotFoundExitCleanup({
         from: this.prev,
         action,
@@ -292,10 +300,11 @@ export class AuraRoutingEngine {
       return;
     }
 
+    const found = target;
     const slashFix = found.href !== resolved.href;
     const historyOptions: NavigateHistoryOptions = {
       ...options,
-      replace: slashFix || options.replace,
+      replace: found.viaRedirect || slashFix || options.replace,
     };
 
     if (slashFix && !historyOptions.syncHistory && (action === 'system' || action === 'pop')) {

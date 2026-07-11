@@ -1,6 +1,6 @@
 # Nested routes: модель «радости» (Route Folders)
 
-> **Статус:** <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ В РАБОТЕ</span> · сверка с кодом **2026-07-11**  
+> **Статус:** <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ В РАБОТЕ</span> · сверка с кодом **2026-07-11** (catch-all verify, folder-without-index)  
 > **Согласован с** [ROUTE_API_V3.md](./ROUTE_API_V3.md)  
 > **Контекст:** как nested должны ощущаться через 5 лет — легко и интуитивно  
 > **Область:** nested-специфика поверх v3 attrs; attrs и lifecycle — **из v3, не дублируем**  
@@ -36,7 +36,7 @@
 | 7 | Relative `href` (HTML-native + slash policy) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 8 | `data-router-active-class`, `data-branch-active`, `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `<aura-breadcrumbs/>` <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | 9 | Dev UX: light DOM frame error, relative path warn, dev overlay | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
-| 10 | Nested 404 / catch-all в outlet folder | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| 10 | Nested 404 / catch-all в outlet folder | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> · scoped `path="*"` ✓ ([§Nested 404](#nested-404-scoped-catch-all)); miss без nested `*` / error scope ✗ |
 | 11 | Attr `redirect` + engine navigation (без render) | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
 | 12 | Redirect chain collapse ([REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md)) | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
 
@@ -54,6 +54,16 @@
 | Links + active state | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | `resolveDocumentHref` + trailing slash ✓; `data-router-active-class` ✓; `data-branch-active` ✓; `router.trail` ✓; `<aura-breadcrumbs/>` ✗ |
 | Redirect declarative | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> | attr на route ✓; engine match → navigate ✗ |
 | SSR / hydration | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> | RFC / adoption checklist |
+| Nested scoped catch-all (`path="*"` in folder) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | matcher + branch mount; `nested-catch-all.integration.test.ts`; demo `routing-nested` |
+
+### Принятые решения (2026-07-11)
+
+| Тема | Решение |
+|------|---------|
+| **Scoped catch-all** | Декларативный `<aura-route path="*">` **внутри** folder — frame стабилен, 404 Page в nested outlet. Matcher (`/prefix/*`), `splat`, sibling nav без remount frame — **verified** (integration + demo). |
+| **Folder URL без index** | **Не ошибка.** `/settings` без `path="."` → layout + **пустой outlet** — валидно (sidebar-only, placeholder в layout template). Dev warn **не делаем**. Альтернативы: index overview или `redirect` (⏸). |
+| **Miss под folder без nested `*`** | Пока **не закрыто**: URL вне children → global `*` или root `not-found-template`; frame folder **теряется**. Backlog минишага 10 (не warn). |
+| **Catch-all vs `error-template`** | Match miss → declarative `path="*"` + `view`. Load/render error → inherited `error-template` в child outlet — контракт P1 §13, отдельная проверка. |
 
 ---
 
@@ -109,6 +119,7 @@ Engine (LCA, `enterRoutes`, outlet chain) **не ломаем** — меняем
 | Фича | Почему |
 |------|--------|
 | `[data-route-outlet]` marker (`<main data-route-outlet>` без CE) | Nested slot — **только** `<aura-outlet>` в layout template. Не апгрейдим plain HTML в `AuraOutlet`. См. [Nested outlet](#outlet-и-nested-прозрачность). |
+| Dev warn «folder без index child» | Пустой outlet на URL folder — **осознанный** паттерн; не все разделы нуждаются в overview. Index или `redirect` (⏸) — выбор разработчика, не runtime warn. |
 
 ---
 
@@ -189,8 +200,9 @@ Inline HTML без `view` (raw children) — RFC; v3 canonical: `view="html::…
   └─ shared template / CMS               → `layout="template-id"` (template отдельно)
 
 URL folder без суффикса (/settings)?
-  ├─ overview на месте      → index Page (path=".")
-  └─ всегда default tab     → Redirect
+  ├─ overview на месте           → index Page (path=".")
+  ├─ всегда default tab          → Redirect (⏸)
+  └─ sidebar-only / «выберите»   → layout + empty outlet (index не нужен)
 ```
 
 ---
@@ -276,7 +288,7 @@ Shared layout между разделами — один `<template id="...">`, 
 </aura-route>
 ```
 
-Нет outlet при children → dev warn. Нет index/redirect на folder URL → nested 404 в outlet (<span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span>) или явный Redirect (<span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span>).
+Нет outlet при children → dev warn. URL folder без index → **layout + пустой outlet** (by design, см. [решения](#принятые-решения-2026-07-11)). Unknown child под folder → scoped catch-all `path="*"` в outlet ([§Nested 404](#nested-404-scoped-catch-all) ✓) или global `*` / Redirect ([⏸](#redirect-кратко--последний-этап)).
 
 Engine: `layout` → clone `<template id="…">`; `findNestedOutlet()` ищет **только** `<aura-outlet>` внутри смонтированного frame.
 
@@ -327,6 +339,35 @@ Inline folder:
   <aura-route path="users" view="users.html"/>
 </aura-route>
 ```
+
+### Nested 404 (scoped catch-all)
+
+Неизвестный сегмент **под** folder prefix — frame остаётся, 404 только в nested outlet:
+
+```html
+<aura-route path="/settings" layout="settings-frame">
+  <aura-route path="." view="overview.html"/>
+  <aura-route path="profile" view="profile.html"/>
+  <aura-route path="*" view="settings-not-found.html"/>
+</aura-route>
+```
+
+| URL | Match | UI |
+|-----|-------|-----|
+| `/settings/` | index `.` | frame + overview |
+| `/settings/profile` | profile | frame + profile |
+| `/settings/unknown` | scoped `*` → `/settings/*` | frame + not-found view |
+| `/settings` (без index) | folder parent | frame + **empty outlet** — OK |
+
+| | Статус |
+|--|--------|
+| Matcher scoped `*` (`/prefix/*`), param `splat` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| Branch mount: layout stable, catch-all в nested outlet | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `nested-catch-all.integration.test.ts` |
+| Demo | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `public/features/routing-nested` |
+| Miss без nested `*` (frame теряется → global/root 404) | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| Load error → `error-template` в child outlet, frame жив | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> · контракт P1 §13, без e2e |
+
+Global `path="*"` на router — отдельно; не смешивать со scoped catch-all внутри folder.
 
 ---
 
@@ -734,7 +775,8 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | Relative paths | `resolvePattern(parent, child)` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `path="."` | `normalizeRouteSegment('.')` → index child | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `redirect` | match → navigate target без render | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
-| Relative links / branch-active | HTML-native `href` + slash policy ✓; `data-router-active-class` + `data-branch-active` ✓; `router.trail` ✓; `<aura-breadcrumbs/>` ✗ | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
+| Scoped catch-all `path="*"` in folder | match → leaf `view` в nested outlet; frame в `enterRoutes` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| Relative links / branch-active | HTML-native `href` + slash policy ✓; active classes + `router.trail` ✓; `<aura-breadcrumbs/>` ✗ | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
 | Route `type` + attr validation | `AuraRoute.type`, `throwIfInvalidAttrs()` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 
 ---
@@ -788,7 +830,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | 17 | **Вложенные folders + cache** | Каждый folder level — свой frame handle и nested outlet; cache per level. |
 | 18 | **`aura-route-fragment`** | Children вне DOM folder — paths **absolute** или `for=` задаёт base; folder-relative не работает без anchor. |
 | 19 | **`path="."` vs engine `""`** | Alias при collect: `"."` → index child. Canonical в docs: `"."`. | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| 20 | **Catch-all / 404 в folder** | `/settings/*` → parent frame + `error-template` / catch-all Page в outlet. Global `*` — отдельно. |
+| 20 | **Catch-all / 404 в folder** | `/settings/*` → parent frame + catch-all Page в outlet. Global `*` — отдельно. | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (declarative scoped `*` ✓; miss без `*` ✗) |
 | 21 | **Deep link auth** | Cold enter: folder `enter` → child `enter` (serial). Sibling: только child hooks. Inherit не должен re-run parent `enter`. |
 | 22 | **noscript** | Без JS: `<a href>` с absolute URLs в frame (resolved at build/SSR). Router-enhanced nav — progressive enhancement. |
 
@@ -800,6 +842,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | Folder без `layout` в colocated примере | folder требует attr `layout` (id template в subtree или document) |
 | `enter=""` только для auth opt-out | opt-out для любого inherited slot; документировать `leave=""` и т.д. |
 | Relative links в примерах | HTML-native `href` + trailing slash policy ([§Ссылки](#ссылки-html-native-без-link-resolver)) |
+| «folder must have index» dev warn | folder без index → **empty outlet OK**; warn убран ([§Принятые решения](#принятые-решения-2026-07-11)) |
 
 ### Decision tree (valid route node)
 
@@ -815,9 +858,10 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 ## Open questions
 
 1. **Hydration** — атрибуты/markers на server-rendered outlet vs client clone (см. аудит §10) — <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span>
-2. **Nested 404** — catch-all Page vs `error-template` в child outlet — <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span>
+2. ~~**Nested 404 declarative**~~ — scoped `path="*"` в folder ✓ ([§Nested 404](#nested-404-scoped-catch-all)). Открыто: miss без nested `*`; catch-all Page vs `error-template` при load error.
 3. ~~**`path="."` engine alias**~~ — <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`normalizeRouteSegment`)
 4. **Template в HTML source vs SEO** — build-time strip для CSR-only (см. аудит §9) — <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span>
+5. ~~**Folder без index — dev warn?**~~ — **нет warn**; empty outlet by design ([§Принятые решения](#принятые-решения-2026-07-11))
 
 Вопросы v3:
 
@@ -839,6 +883,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | Paths | `""` index | `path="."` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Nav links | full href | relative | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (href + slash + active classes ✓; `<aura-breadcrumbs/>` ✗) |
 | Redirect attr | — | `redirect="…"` | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
+| Scoped catch-all in folder | — | nested `path="*"` + `view` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Ошибки | warn partial | actionable + dev overlay | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
 
 ---

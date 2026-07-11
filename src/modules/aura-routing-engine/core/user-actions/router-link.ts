@@ -4,8 +4,15 @@ import {
   joinAppHref,
   resolveDocumentHref,
   splitAppHref,
+  stripTrailingSlash,
   toLinkResolutionBase,
 } from '../../../aura-utils/misc/url';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+
+export interface RouteTrailEntry {
+  pattern: string;
+  href: string;
+}
 
 export function findRouterLink(
   target: EventTarget | null,
@@ -49,24 +56,48 @@ export function isRouterLinkActive(linkHref: string, currentHref: string): boole
   return isSamePathAndSearch(link, current) && current.hash === '';
 }
 
+/** Prefix match for folder/section links. Root `/` — only exact. */
+export function isRouterLinkBranchActive(linkHref: string, currentHref: string): boolean {
+  const link = splitAppHref(linkHref);
+  const current = splitAppHref(currentHref);
+
+  if (link.hash || current.hash) return false;
+  if (link.search && link.search !== current.search) return false;
+
+  const linkPath = stripTrailingSlash(link.pathname);
+  const currentPath = stripTrailingSlash(current.pathname);
+
+  if (linkPath === '/') return currentPath === '/';
+  if (currentPath === linkPath) return true;
+  return currentPath.startsWith(`${linkPath}/`);
+}
+
+export function toRouteTrail(chain: readonly MatchedRouteInfo[]): RouteTrailEntry[] {
+  return chain.map((e) => ({ pattern: e.pattern, href: e.href }));
+}
+
 export function syncRouterActiveLinks(options: {
   root: ParentNode;
   linksSelector: string;
-  activeClass: string;
+  activeClass?: string;
+  branchActiveClass?: string;
   currentHref: string;
 }): void {
-  const { root, linksSelector, activeClass, currentHref } = options;
-  const classNames = activeClass.trim().split(/\s+/).filter(Boolean);
-  if (!classNames.length) return;
+  const active = options.activeClass?.trim().split(/\s+/).filter(Boolean) ?? [];
+  const branch = options.branchActiveClass?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (!active.length && !branch.length) return;
 
+  const { root, linksSelector, currentHref } = options;
   root.querySelectorAll(linksSelector).forEach((node) => {
     if (!(node instanceof HTMLAnchorElement)) return;
 
     const linkHref = resolveLinkHref(node, currentHref);
-    const active = linkHref !== null && isRouterLinkActive(linkHref, currentHref);
+    const exact = linkHref !== null && isRouterLinkActive(linkHref, currentHref);
+    const inBranch = linkHref !== null && isRouterLinkBranchActive(linkHref, currentHref);
 
-    for (const name of classNames) node.classList.toggle(name, active);
-    if (active) node.setAttribute('aria-current', 'page');
+    for (const c of active) node.classList.toggle(c, exact);
+    for (const c of branch) node.classList.toggle(c, inBranch);
+    if (exact) node.setAttribute('aria-current', 'page');
     else node.removeAttribute('aria-current');
   });
 }

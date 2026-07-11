@@ -41,7 +41,8 @@ import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/cor
 import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import { parseNullableString } from '../../aura-utils/misc';
-import { syncRouterActiveLinks } from '../../aura-routing-engine/core/user-actions/router-link';
+import { syncRouterActiveLinks, toRouteTrail, type RouteTrailEntry } from '../../aura-routing-engine/core/user-actions/router-link';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -91,6 +92,7 @@ export interface AuraRouterConfigureOptions {
 }
 
 export type { RouterInstance } from '../../aura-routing-engine/core';
+export type { RouteTrailEntry } from '../../aura-routing-engine/core/user-actions/router-link';
 
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
@@ -104,6 +106,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /** CSS class toggled on `[data-router-link]` when its resolved href matches the current URL. */
   @attr({ dataAttr: true, parser: parseNullableString, cached: true })
   routerActiveClass: string | null;
+  /** CSS class for section/folder links when the current URL is under the link path (prefix match). */
+  @attr({ dataAttr: true, parser: parseNullableString, cached: true })
+  branchActiveClass: string | null;
   /** Ancestor selector for active-link scan when nav is outside router (demo: `.demo-site`). */
   @attr({ dataAttr: true, parser: parseNullableString, cached: true, name: 'router-link-root' })
   linkActiveRootSelector: string | null;
@@ -126,6 +131,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private readonly viewLoaderCache = new ViewPayloadCache(AuraRouter.viewCacheOptions);
   private readonly loaderRegistry = defaultLoaderRegistry;
   private viewGraphInstance?: ViewGraph;
+  private _trail: RouteTrailEntry[] = [];
+
+  /** Active branch root → leaf after the last settled navigation. */
+  get trail(): readonly RouteTrailEntry[] {
+    return this._trail;
+  }
 
   static install(): void {
     registerAuraRouterComponents();
@@ -220,8 +231,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
             to: ctx.to.href,
             pathname: ctx.to.pathname,
           });
-          // URL is canonical here; sync nav before transitionOut/transitionIn finish.
-          this.syncActiveLinks(ctx.to.href);
+          this.syncNavState(ctx.to);
         },
         onNavigationCommitted: (ctx) => {
           this.notFound.hide();
@@ -234,9 +244,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
             to: ctx.to.href,
             pathname: ctx.to.pathname,
           });
-          this.syncActiveLinks(ctx.to.href);
+          this.syncNavState(ctx.to);
         },
         onAnchorNavigation: (href) => {
+          if (this._trail.length) {
+            this._trail = this._trail.map((e) => ({ pattern: e.pattern, href }));
+          }
           this.syncActiveLinks(href);
         },
         onNavigationError: (failure) => {
@@ -261,14 +274,20 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
+  private syncNavState(to: MatchedRouteInfo): void {
+    this._trail = toRouteTrail(to.chain ?? [to]);
+    this.syncActiveLinks(to.href);
+  }
+
   private syncActiveLinks(href: string): void {
-    if (!this.routerActiveClass?.trim()) return;
+    if (!this.routerActiveClass?.trim() && !this.branchActiveClass?.trim()) return;
 
     const scope = this.linkActiveRootSelector?.trim();
     syncRouterActiveLinks({
       root: scope ? (this.closest(scope) ?? this) : this,
       linksSelector: this.linksSelector,
-      activeClass: this.routerActiveClass,
+      activeClass: this.routerActiveClass ?? undefined,
+      branchActiveClass: this.branchActiveClass ?? undefined,
       currentHref: href,
     });
   }

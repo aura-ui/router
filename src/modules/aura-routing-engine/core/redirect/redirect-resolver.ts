@@ -1,7 +1,7 @@
 import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import type { ResolvedDocumentHref } from '../../../aura-utils/misc/url';
 import type { RouteNode } from '../route-tree/route-node.types';
-import { enterChainHasGuard } from '../route-tree/enter-chain-has-guard';
+import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route-tree/transition-plan';
 import { NavigationTransaction } from '../navigation/navigation-transaction';
 import { lookupNavigationStep } from './match-step';
 import type {
@@ -152,9 +152,10 @@ export async function followRedirectsWithBlockingPhases(
     }
 
     const target = applyRedirectArrivalFlag(redirection, matchStep);
+    const transitionPlan = buildTransitionPlan(input.from, target);
 
-    const blockingOutcome = enterChainHasGuard(input.from, target)
-      ? await runGuardWalkProbe(resolverCtx, input, target, redirection)
+    const blockingOutcome = enterChainHasGuard(transitionPlan)
+      ? await runGuardWalkProbe(resolverCtx, input, target, redirection, transitionPlan)
       : resolveWithoutGuardWalkProbe(target, redirection);
 
     if (!blockingOutcome.done) {
@@ -167,6 +168,11 @@ export async function followRedirectsWithBlockingPhases(
   }
 
   return depthExceeded(redirection);
+}
+
+/** Whether enter routes in a pre-built plan declare guard hooks (inherited attrs included). */
+function enterChainHasGuard(plan: TransitionMap): boolean {
+  return plan.enterRoutes.some((matched) => matched.route.hasGuard);
 }
 
 /** Guard walk not needed — no enter-route guards can redirect. */
@@ -186,12 +192,14 @@ function resolveWithoutGuardWalkProbe(
 
 /**
  * Guard-only probe on one candidate leaf during redirect walk (no leave/load/render).
+ * Caller supplies a pre-built {@link TransitionMap} when {@link enterChainHasGuard} is true.
  */
 async function runGuardWalkProbe(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
   target: MatchedNavigationTarget,
   redirection: RedirectionContext,
+  transitionPlan: TransitionMap,
 ): Promise<BlockingPhasesProbeOutcome> {
   const probe = new NavigationTransaction(
     0,
@@ -207,6 +215,9 @@ async function runGuardWalkProbe(
     () => !resolverCtx.isActive(),
     resolverCtx.engine,
   );
+
+  probe.transitionPlan = transitionPlan;
+  probe.transitionOrder = getEnterRoute(transitionPlan)?.transition?.order ?? null;
 
   const walkResult = await probe.runGuardPhase();
 

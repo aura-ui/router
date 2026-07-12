@@ -72,7 +72,6 @@ export class NavigationCoordinator {
           href: resolved,
           from: this.host.getCommittedRoute(),
           action,
-          hash: resolved.hash,
           options,
         },
       );

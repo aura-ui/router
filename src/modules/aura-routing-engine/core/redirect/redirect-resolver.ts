@@ -45,7 +45,6 @@ type RedirectChainInput = {
   readonly href: string | ResolvedDocumentHref;
   readonly from: MatchedRouteInfo | null;
   readonly action: HistoryAction;
-  readonly hash: string;
   readonly options: NavigateHistoryOptions;
 };
 

@@ -81,9 +81,7 @@ export class NavigationCoordinator {
       }
 
       if (chain.status === 'redirect-error') {
-        console.error(
-          `[aura-router] Navigation redirect failed (${chain.code}): ${chain.href}`,
-        );
+        this.host.handleRedirectError(chain.code, chain.href, action, options);
         return;
       }
 

@@ -33,6 +33,13 @@ export interface NavigationHost {
     options: NavigateHistoryOptions,
   ): void;
 
+  handleRedirectError(
+    code: 'redirect-cycle' | 'redirect-depth-exceeded',
+    href: string,
+    action: HistoryAction,
+    options: NavigateHistoryOptions,
+  ): void;
+
   finalizeCancelled(transaction: NavigationTransaction): void;
 
   applyRedirect(

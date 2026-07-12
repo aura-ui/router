@@ -1,6 +1,8 @@
 /** Stable codes for recovery, telemetry, and i18n. */
 export type NavigationFailureCode =
   | 'NOT_FOUND'
+  | 'REDIRECT_CYCLE'
+  | 'REDIRECT_DEPTH_EXCEEDED'
   | 'GUARD_THROW'
   | 'HOOK_THROW'
   | 'LOAD_FAILED'

@@ -60,6 +60,25 @@ describe('FailedNavigation', () => {
     expect(outcome).toEqual({ setPrev: null });
   });
 
+  it('finalizeFailure routes redirect cycle to onNavigationError and keeps prev', () => {
+    const onNavigationError = jest.fn();
+    const onNotFound = jest.fn();
+
+    const outcome = finalizeFailure(
+      FailedNavigation.redirectError('redirect-cycle', '/a', null, 'push'),
+      { onNavigationError, onNotFound },
+    );
+
+    expect(onNavigationError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: '/a',
+        error: expect.objectContaining({ code: 'REDIRECT_CYCLE', phase: 'match' }),
+      }),
+    );
+    expect(onNotFound).not.toHaveBeenCalled();
+    expect(outcome).toEqual({});
+  });
+
   it('finalizeFailure routes pipeline error to onNavigationError', () => {
     const error = new NavigationError({
       code: 'RENDER_FAILED',

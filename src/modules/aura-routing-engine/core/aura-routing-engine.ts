@@ -27,7 +27,7 @@ import { NavigationCoordinator } from './navigation/navigation-coordinator';
 import type { NavigationHost } from './navigation/navigation-host';
 import {
   applyTransactionHistory,
-  finalizeNotFoundNavigation,
+  finalizePreMatchFailureNavigation,
   type NavigationCommittedContext,
 } from './navigation/navigation-finalize';
 import { PrefetchPipeline } from './prefetch/pipeline';
@@ -298,10 +298,30 @@ export class AuraRoutingEngine implements NavigationHost {
     });
     const failure = FailedNavigation.notFound(requestedHref, this.prev, action);
     this.applyFinalizeEffects(
-      finalizeNotFoundNavigation(
+      finalizePreMatchFailureNavigation(
         failure,
         action,
         requestedHref,
+        this.prev?.href ?? null,
+        options,
+        this.provider,
+        this.failureDeps(),
+      ),
+    );
+  }
+
+  handleRedirectError(
+    code: 'redirect-cycle' | 'redirect-depth-exceeded',
+    href: string,
+    action: HistoryAction,
+    options: NavigateHistoryOptions,
+  ): void {
+    const failure = FailedNavigation.redirectError(code, href, this.prev, action);
+    this.applyFinalizeEffects(
+      finalizePreMatchFailureNavigation(
+        failure,
+        action,
+        href,
         this.prev?.href ?? null,
         options,
         this.provider,

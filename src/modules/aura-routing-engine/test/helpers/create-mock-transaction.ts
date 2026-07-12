@@ -50,6 +50,7 @@ export function createCoordinatorMockHost(): NavigationHost & {
     commitPopSlashFix: jest.fn(),
     finalizeResolveTerminal: jest.fn(),
     handleUnmatchedNavigation: jest.fn(),
+    handleRedirectError: jest.fn(),
     commitNavigation: jest.fn(),
     finalizeCancelled: jest.fn(),
     applyRedirect: jest.fn(),

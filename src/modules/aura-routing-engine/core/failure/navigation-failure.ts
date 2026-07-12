@@ -1,5 +1,6 @@
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { RedirectErrorOutcome } from '../redirect/types';
 import type { NavigationErrorResult } from '../navigation/types';
 import { isViewCommittedForHistory, type ViewCommitSnapshot } from '../view-mount/view-commit-state';
 import { NavigationError } from './navigation-error';
@@ -55,6 +56,33 @@ export class FailedNavigation {
         phase: 'match',
         routePattern: '*',
         message: `No route matched ${href}`,
+      }),
+      { view: 'none', href },
+      from,
+      null,
+      action,
+    );
+  }
+
+  /** Pre-commit redirect chain failure (cycle or max depth). Routes to {@link onNavigationError}. */
+  static redirectError(
+    code: RedirectErrorOutcome['code'],
+    href: string,
+    from: MatchedRouteInfo | null,
+    action: HistoryAction,
+  ): FailedNavigation {
+    const failureCode = code === 'redirect-cycle' ? 'REDIRECT_CYCLE' : 'REDIRECT_DEPTH_EXCEEDED';
+    const message =
+      code === 'redirect-cycle'
+        ? `Redirect cycle detected at ${href}`
+        : `Redirect depth exceeded at ${href}`;
+
+    return new FailedNavigation(
+      new NavigationError({
+        code: failureCode,
+        phase: 'match',
+        routePattern: '*',
+        message,
       }),
       { view: 'none', href },
       from,

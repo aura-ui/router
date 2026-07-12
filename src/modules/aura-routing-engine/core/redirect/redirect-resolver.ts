@@ -6,7 +6,7 @@ import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-match
 import { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { CompletedBlockingPhases, PipelineStepResult } from '../navigation/types';
 import type { RouteNode } from '../route-tree/route-node.types';
-import { matchNavigationStep } from './match-step';
+import { lookupNavigationStep } from './match-step';
 import type { DeclarativeTargetResolve, MatchedNavigationTarget, RedirectStepError } from './types';
 
 export const MAX_REDIRECTION_STEPS = 5;
@@ -21,18 +21,22 @@ export type RedirectionContext = {
 
 export type RedirectResolveResult =
   | {
-      readonly status: 'resolved';
-      readonly target: MatchedNavigationTarget;
-      readonly replace: boolean;
-      readonly completedBlockingPhases: CompletedBlockingPhases;
-    }
+  readonly status: 'resolved';
+  readonly target: MatchedNavigationTarget;
+  readonly replace: boolean;
+  readonly completedBlockingPhases: CompletedBlockingPhases;
+}
   | { readonly status: 'unmatched' }
   | {
-      readonly status: 'redirect-error';
-      readonly code: 'redirect-cycle' | 'redirect-depth-exceeded';
-      readonly href: string;
-    }
-  | { readonly status: 'terminal'; readonly result: Exclude<PipelineStepResult, null>; readonly probe: NavigationTransaction };
+  readonly status: 'redirect-error';
+  readonly code: 'redirect-cycle' | 'redirect-depth-exceeded';
+  readonly href: string;
+}
+  | {
+  readonly status: 'terminal';
+  readonly result: Exclude<PipelineStepResult, null>;
+  readonly probe: NavigationTransaction
+};
 
 export type RedirectResolverContext = {
   readonly engine: AuraRoutingEngine;
@@ -60,36 +64,15 @@ export function navigationVisitKey(href: string): string {
   return stripTrailingSlash(resolveDocumentHrefParts(href).pathname);
 }
 
-export function createRedirectionContext(
-  href: string | ResolvedDocumentHref,
-  replace = false,
-): RedirectionContext {
+export function createRedirectionContext(href: string | ResolvedDocumentHref, replace = false): RedirectionContext {
   const originalUrlParts = typeof href === 'string' ? resolveDocumentHrefParts(href) : href;
   return {
     originalUrlParts,
     stepHref: originalUrlParts.href,
-    visitedPathnames: new Set([navigationVisitKey(originalUrlParts.href)]),
+    visitedPathnames: new Set([stripTrailingSlash(originalUrlParts.pathname)]),
     viaRedirect: false,
     historyReplace: replace,
   };
-}
-
-/** Validates depth/cycle guards and records one redirect visit (does not mutate redirection state). */
-export function validateRedirectStep(
-  visitedPathnames: Set<string>,
-  nextHref: string,
-  step: number,
-  stepHref: string,
-): { href: string } | RedirectStepError {
-  if (step >= MAX_REDIRECTION_STEPS) {
-    return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: stepHref };
-  }
-  const nextKey = navigationVisitKey(nextHref);
-  if (visitedPathnames.has(nextKey)) {
-    return { kind: 'redirect-error', code: 'redirect-cycle', href: nextHref };
-  }
-  visitedPathnames.add(nextKey);
-  return { href: nextHref };
 }
 
 function applyRedirectStep(
@@ -97,9 +80,15 @@ function applyRedirectStep(
   nextHref: string,
   step: number,
 ): RedirectStepError | null {
-  const next = validateRedirectStep(redirection.visitedPathnames, nextHref, step, redirection.stepHref);
-  if ('code' in next) return next;
-  redirection.stepHref = next.href;
+  if (step >= MAX_REDIRECTION_STEPS) {
+    return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: redirection.stepHref };
+  }
+  const nextKey = navigationVisitKey(nextHref);
+  if (redirection.visitedPathnames.has(nextKey)) {
+    return { kind: 'redirect-error', code: 'redirect-cycle', href: nextHref };
+  }
+  redirection.visitedPathnames.add(nextKey);
+  redirection.stepHref = nextHref;
   redirection.viaRedirect = true;
   return null;
 }
@@ -109,20 +98,6 @@ function withViaRedirect(
   step: MatchedNavigationTarget,
 ): MatchedNavigationTarget {
   return redirection.viaRedirect || step.viaRedirect ? { ...step, viaRedirect: true } : step;
-}
-
-function matchCurrentStep(
-  redirection: RedirectionContext,
-  matcher: Matcher,
-  nodes: readonly RouteNode[],
-) {
-  return matchNavigationStep(
-    matcher,
-    redirection.stepHref,
-    nodes,
-    redirection.originalUrlParts.search,
-    redirection.originalUrlParts.hash,
-  );
 }
 
 function depthExceeded(redirection: RedirectionContext): RedirectStepError {
@@ -147,7 +122,13 @@ export function resolveDeclarativeTarget(
   const redirection = createRedirectionContext(href);
 
   for (let step = 0; step <= MAX_REDIRECTION_STEPS; step++) {
-    const matchStep = matchCurrentStep(redirection, matcher, nodes);
+    const matchStep = lookupNavigationStep(
+      matcher,
+      redirection.stepHref,
+      nodes,
+      redirection.originalUrlParts.search,
+      redirection.originalUrlParts.hash,
+    );
     if (!matchStep) return { kind: 'unmatched' };
 
     if (matchStep.kind === 'redirect') {
@@ -173,7 +154,13 @@ export async function resolveRedirectChain(
   const redirection = createRedirectionContext(input.href, input.options.replace ?? false);
 
   for (let step = 0; step <= MAX_REDIRECTION_STEPS; step++) {
-    const matchStep = matchCurrentStep(redirection, resolverCtx.matcher, resolverCtx.getMatchableNodes());
+    const matchStep = lookupNavigationStep(
+      resolverCtx.matcher,
+      redirection.stepHref,
+      resolverCtx.getMatchableNodes(),
+      redirection.originalUrlParts.search,
+      redirection.originalUrlParts.hash,
+    );
     if (!matchStep) return { status: 'unmatched' };
 
     if (matchStep.kind === 'redirect') {

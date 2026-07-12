@@ -11,7 +11,7 @@ export function resolveRedirectHref(node: RouteNode, rawTarget: string): string 
   return resolveDocumentHrefParts(pathname).href;
 }
 
-/** One match hop: leaf page/folder index, declarative redirect, or no match. */
+/** One redirection step: leaf page/folder index, declarative redirect, or no match. */
 export function matchNavigationStep(
   matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
   href: string,

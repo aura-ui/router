@@ -1,4 +1,4 @@
-export { resolveRedirectHref, matchNavigationStep } from './match-hop';
+export { resolveRedirectHref, matchNavigationStep } from './match-step';
 export {
   MAX_REDIRECTION_STEPS,
   createRedirectionContext,
@@ -12,5 +12,5 @@ export type {
   DeclarativeTargetResolve,
   MatchedNavigationTarget,
   NavigationMatchStep,
-  RedirectHopError,
+  RedirectStepError,
 } from './types';

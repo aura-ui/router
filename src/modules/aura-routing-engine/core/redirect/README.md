@@ -1,6 +1,6 @@
 # redirect
 
-Pre-commit redirect resolution: declarative `redirect` attr hops and blocking hook redirects
+Pre-commit redirect resolution: declarative `redirect` attr steps and blocking hook redirects
 (leave / guard / load) before history commit and render.
 
 ## Entry points
@@ -20,16 +20,16 @@ targets are path-only.
 href
   │
   ▼
-matchNavigationStep          ← match-hop.ts
+matchNavigationStep          ← match-step.ts
   │
-  ├─ redirect attr ──► applyRedirectStep (cycle / depth) ──► next hop
+  ├─ redirect attr ──► applyRedirectStep (cycle / depth) ──► next step
   │
   └─ leaf match ──► onMatched callback
                       │
                       ├─ sync: return MatchedNavigationTarget
                       └─ async: blocking probe (NavigationTransaction.runBlockingProbe)
                               │
-                              ├─ redirect ──► next hop
+                              ├─ redirect ──► next step
                               ├─ terminal (cancel / error) ──► stop
                               └─ ok ──► resolved target + completedBlockingPhases
 ```
@@ -40,7 +40,7 @@ matchNavigationStep          ← match-hop.ts
 
 | `kind` | Meaning |
 |--------|---------|
-| `matched` | Final leaf + active chain |
+| `matched` | Final leaf + `viaRedirect` when any declarative redirect step ran |
 | `unmatched` | No route for current href |
 | `redirect-error` | Cycle or depth exceeded |
 
@@ -48,7 +48,7 @@ matchNavigationStep          ← match-hop.ts
 
 | `status` | Meaning |
 |----------|------|
-| `resolved` | Final target; may set `replace` when any hop was declarative or hook redirect |
+| `resolved` | Final target; may set `replace` when any step was declarative or hook redirect |
 | `unmatched` | No route |
 | `redirect-error` | Cycle or depth exceeded |
 | `terminal` | Blocking hook short-circuit (cancel / error) with probe transaction |
@@ -59,8 +59,8 @@ matchNavigationStep          ← match-hop.ts
 redirect/
 ├── index.ts              barrel (public API)
 ├── types.ts              shared union types
-├── match-hop.ts          one URL match hop + resolveRedirectHref
-└── redirect-resolver.ts  hop guards, resolveDeclarativeTarget, resolveRedirectChain
+├── match-step.ts         one URL match step + resolveRedirectHref
+└── redirect-resolver.ts  step guards, resolveDeclarativeTarget, resolveRedirectChain
 ```
 
 ## See also

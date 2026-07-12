@@ -1,13 +1,13 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
-/** Successful match after following declarative redirect hops. */
+/** Leaf match at one redirect-resolution step (internal match-step union tag). */
 export type MatchedNavigationTarget = MatchedRouteInfo & {
   readonly kind: 'matched';
   readonly viaRedirect: boolean;
 };
 
-/** Terminal redirect hop failure (cycle or depth). */
-export type RedirectHopError = {
+/** Terminal redirect step failure (cycle or depth). */
+export type RedirectStepError = {
   readonly kind: 'redirect-error';
   readonly code: 'redirect-cycle' | 'redirect-depth-exceeded';
   readonly href: string;
@@ -17,9 +17,9 @@ export type RedirectHopError = {
 export type DeclarativeTargetResolve =
   | MatchedNavigationTarget
   | { readonly kind: 'unmatched' }
-  | RedirectHopError;
+  | RedirectStepError;
 
-/** One match hop: leaf page/folder index or declarative redirect. */
+/** One redirection step: leaf match or declarative redirect. */
 export type NavigationMatchStep =
   | MatchedNavigationTarget
   | { readonly kind: 'redirect'; readonly href: string };

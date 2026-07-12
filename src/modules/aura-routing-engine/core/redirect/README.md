@@ -36,15 +36,17 @@ lookupNavigationStep          ← match-step.ts
 
 ## Outcome types
 
-**Sync** (`DeclarativeTargetResolve` — `kind` field):
+Both entry points use a `status` discriminant. Shared error shape: `RedirectErrorOutcome`.
 
-| `kind` | Meaning |
+**Sync** (`DeclarativeRedirectOutcome`):
+
+| `status` | Meaning |
 |--------|---------|
-| `matched` | Final leaf + `viaRedirect` when any declarative redirect step ran |
+| `resolved` | Final leaf in `target` + `viaRedirect` when any declarative redirect step ran |
 | `unmatched` | No route for current href |
 | `redirect-error` | Cycle or depth exceeded |
 
-**Navigation** (`RedirectResolveResult` — `status` field):
+**Navigation** (`RedirectResolveResult`):
 
 | `status` | Meaning |
 |----------|------|

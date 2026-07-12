@@ -20,21 +20,21 @@ describe('followDeclarativeRedirects', () => {
     const settings = createDomRoute('/settings', [profile]);
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    const target = followDeclarativeRedirects(matcher, '/settings/profile', matchableNodes);
+    const outcome = followDeclarativeRedirects(matcher, '/settings/profile', matchableNodes);
 
-    expect(target.kind).toBe('matched');
-    if (target.kind !== 'matched') return;
+    expect(outcome.status).toBe('resolved');
+    if (outcome.status !== 'resolved') return;
 
-    expect(target.pattern).toBe('/settings/profile');
-    expect(target.chain!.map((info) => info.pattern)).toEqual(['/settings', '/settings/profile']);
-    expect(target.viaRedirect).toBe(false);
+    expect(outcome.target.pattern).toBe('/settings/profile');
+    expect(outcome.target.chain!.map((info) => info.pattern)).toEqual(['/settings', '/settings/profile']);
+    expect(outcome.target.viaRedirect).toBe(false);
   });
 
   it('returns unmatched when no route matches', () => {
     const settings = createDomRoute('/settings');
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    expect(followDeclarativeRedirects(matcher, '/missing', matchableNodes)).toEqual({ kind: 'unmatched' });
+    expect(followDeclarativeRedirects(matcher, '/missing', matchableNodes)).toEqual({ status: 'unmatched' });
   });
 
   it('matches index folder with trailing slash in URL', () => {
@@ -42,15 +42,15 @@ describe('followDeclarativeRedirects', () => {
     const settings = createDomRoute('/app/settings', [index]);
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    const target = followDeclarativeRedirects(matcher, '/app/settings/', matchableNodes);
+    const outcome = followDeclarativeRedirects(matcher, '/app/settings/', matchableNodes);
 
-    expect(target.kind).toBe('matched');
-    if (target.kind !== 'matched') return;
+    expect(outcome.status).toBe('resolved');
+    if (outcome.status !== 'resolved') return;
 
-    expect(target.node?.isIndex).toBe(true);
-    expect(target.pattern).toBe('/app/settings');
-    expect(target.pathname).toBe('/app/settings/');
-    expect(target.href).toBe('/app/settings/');
+    expect(outcome.target.node?.isIndex).toBe(true);
+    expect(outcome.target.pattern).toBe('/app/settings');
+    expect(outcome.target.pathname).toBe('/app/settings/');
+    expect(outcome.target.href).toBe('/app/settings/');
   });
 
   it('canonicalizes index folder URL without trailing slash', () => {
@@ -58,13 +58,13 @@ describe('followDeclarativeRedirects', () => {
     const settings = createDomRoute('/app/settings', [index]);
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    const target = followDeclarativeRedirects(matcher, '/app/settings', matchableNodes);
+    const outcome = followDeclarativeRedirects(matcher, '/app/settings', matchableNodes);
 
-    expect(target.kind).toBe('matched');
-    if (target.kind !== 'matched') return;
+    expect(outcome.status).toBe('resolved');
+    if (outcome.status !== 'resolved') return;
 
-    expect(target.href).toBe('/app/settings/');
-    expect(target.pathname).toBe('/app/settings/');
+    expect(outcome.target.href).toBe('/app/settings/');
+    expect(outcome.target.pathname).toBe('/app/settings/');
   });
 
   it('follows top-level absolute redirect to final leaf', () => {
@@ -72,14 +72,17 @@ describe('followDeclarativeRedirects', () => {
     const alias = createDomRedirectRoute('/settings', '/settings/profile');
     const { matchableNodes } = buildTreeFromDom(alias, profile);
 
-    const target = followDeclarativeRedirects(matcher, '/settings', matchableNodes);
+    const outcome = followDeclarativeRedirects(matcher, '/settings', matchableNodes);
 
-    expect(target).toEqual(
+    expect(outcome).toEqual(
       expect.objectContaining({
-        kind: 'matched',
-        href: '/settings/profile',
-        viaRedirect: true,
-        pattern: '/settings/profile',
+        status: 'resolved',
+        target: expect.objectContaining({
+          kind: 'matched',
+          href: '/settings/profile',
+          viaRedirect: true,
+          pattern: '/settings/profile',
+        }),
       }),
     );
   });
@@ -90,15 +93,15 @@ describe('followDeclarativeRedirects', () => {
     const app = createDomRoute('/app', [indexRedirect, dashboard]);
     const { matchableNodes } = buildTreeFromDom(app);
 
-    const target = followDeclarativeRedirects(matcher, '/app', matchableNodes);
+    const outcome = followDeclarativeRedirects(matcher, '/app', matchableNodes);
 
-    expect(target.kind).toBe('matched');
-    if (target.kind !== 'matched') return;
+    expect(outcome.status).toBe('resolved');
+    if (outcome.status !== 'resolved') return;
 
-    expect(target.href).toBe('/app/dashboard');
-    expect(target.pattern).toBe('/app/dashboard');
-    expect(target.chain!.map((info) => info.pattern)).toEqual(['/app', '/app/dashboard']);
-    expect(target.viaRedirect).toBe(true);
+    expect(outcome.target.href).toBe('/app/dashboard');
+    expect(outcome.target.pattern).toBe('/app/dashboard');
+    expect(outcome.target.chain!.map((info) => info.pattern)).toEqual(['/app', '/app/dashboard']);
+    expect(outcome.target.viaRedirect).toBe(true);
   });
 
   it('follows multi-step redirect chains', () => {
@@ -107,13 +110,13 @@ describe('followDeclarativeRedirects', () => {
     const hopA = createDomRedirectRoute('/a', '/b');
     const { matchableNodes } = buildTreeFromDom(hopA, hopB, final);
 
-    const target = followDeclarativeRedirects(matcher, '/a', matchableNodes);
+    const outcome = followDeclarativeRedirects(matcher, '/a', matchableNodes);
 
-    expect(target.kind).toBe('matched');
-    if (target.kind !== 'matched') return;
+    expect(outcome.status).toBe('resolved');
+    if (outcome.status !== 'resolved') return;
 
-    expect(target.pattern).toBe('/target');
-    expect(target.viaRedirect).toBe(true);
+    expect(outcome.target.pattern).toBe('/target');
+    expect(outcome.target.viaRedirect).toBe(true);
   });
 
   it('detects redirect cycles', () => {
@@ -122,7 +125,7 @@ describe('followDeclarativeRedirects', () => {
     const { matchableNodes } = buildTreeFromDom(routeA, routeB);
 
     expect(followDeclarativeRedirects(matcher, '/a', matchableNodes)).toEqual({
-      kind: 'redirect-error',
+      status: 'redirect-error',
       code: 'redirect-cycle',
       href: '/a',
     });
@@ -137,7 +140,7 @@ describe('followDeclarativeRedirects', () => {
     const { matchableNodes } = buildTreeFromDom(...routes);
 
     expect(followDeclarativeRedirects(matcher, '/hop-0', matchableNodes)).toEqual({
-      kind: 'redirect-error',
+      status: 'redirect-error',
       code: 'redirect-depth-exceeded',
       href: `/hop-${MAX_REDIRECTION_STEPS}`,
     });
@@ -149,7 +152,7 @@ describe('followDeclarativeRedirects', () => {
     const { matchableNodes } = buildTreeFromDom(routeA, routeB);
 
     expect(followDeclarativeRedirects(matcher, '/a', matchableNodes)).toEqual({
-      kind: 'redirect-error',
+      status: 'redirect-error',
       code: 'redirect-cycle',
       href: '/a',
     });
@@ -159,7 +162,7 @@ describe('followDeclarativeRedirects', () => {
     const alias = createDomRedirectRoute('/entry', '/missing');
     const { matchableNodes } = buildTreeFromDom(alias);
 
-    expect(followDeclarativeRedirects(matcher, '/entry', matchableNodes)).toEqual({ kind: 'unmatched' });
+    expect(followDeclarativeRedirects(matcher, '/entry', matchableNodes)).toEqual({ status: 'unmatched' });
   });
 
   it('preserves search and hash from the original href on the final leaf', () => {
@@ -167,14 +170,14 @@ describe('followDeclarativeRedirects', () => {
     const alias = createDomRedirectRoute('/settings', '/settings/profile');
     const { matchableNodes } = buildTreeFromDom(alias, profile);
 
-    const target = followDeclarativeRedirects(matcher, '/settings?tab=1#panel', matchableNodes);
+    const outcome = followDeclarativeRedirects(matcher, '/settings?tab=1#panel', matchableNodes);
 
-    expect(target.kind).toBe('matched');
-    if (target.kind !== 'matched') return;
+    expect(outcome.status).toBe('resolved');
+    if (outcome.status !== 'resolved') return;
 
-    expect(target.href).toBe('/settings/profile?tab=1#panel');
-    expect(target.search).toBe('?tab=1');
-    expect(target.hash).toBe('#panel');
+    expect(outcome.target.href).toBe('/settings/profile?tab=1#panel');
+    expect(outcome.target.search).toBe('?tab=1');
+    expect(outcome.target.hash).toBe('#panel');
   });
 });
 

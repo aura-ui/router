@@ -36,9 +36,10 @@ export class PrefetchPlanResolver {
       return cached.plan;
     }
 
-    const target = followDeclarativeRedirects(this.deps.matcher, normalized, nodes);
-    if (target.kind !== 'matched') return null;
+    const outcome = followDeclarativeRedirects(this.deps.matcher, normalized, nodes);
+    if (outcome.status !== 'resolved') return null;
 
+    const target = outcome.target;
     const transition = buildTransitionPlan(from, target);
 
     const plan: PrefetchPlan = {
@@ -68,8 +69,8 @@ export class PrefetchPlanResolver {
     const normalized = this.policy.normalizeHref(currentHref);
     if (!normalized) return null;
 
-    const target = followDeclarativeRedirects(this.deps.matcher, normalized, nodes);
-    return target.kind === 'matched' ? target : null;
+    const outcome = followDeclarativeRedirects(this.deps.matcher, normalized, nodes);
+    return outcome.status === 'resolved' ? outcome.target : null;
   }
 
   private planCacheKey(href: string, from: MatchedRouteInfo | null): string {

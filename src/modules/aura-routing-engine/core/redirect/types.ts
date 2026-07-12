@@ -6,18 +6,18 @@ export type MatchedNavigationTarget = MatchedRouteInfo & {
   readonly viaRedirect: boolean;
 };
 
-/** Terminal redirect step failure (cycle or depth). */
-export type RedirectStepError = {
-  readonly kind: 'redirect-error';
+/** Redirect chain failure (cycle or depth). */
+export type RedirectErrorOutcome = {
+  readonly status: 'redirect-error';
   readonly code: 'redirect-cycle' | 'redirect-depth-exceeded';
   readonly href: string;
 };
 
 /** Result of sync declarative redirect resolution (prefetch, diagnostics). */
-export type DeclarativeTargetResolve =
-  | MatchedNavigationTarget
-  | { readonly kind: 'unmatched' }
-  | RedirectStepError;
+export type DeclarativeRedirectOutcome =
+  | { readonly status: 'resolved'; readonly target: MatchedNavigationTarget }
+  | { readonly status: 'unmatched' }
+  | RedirectErrorOutcome;
 
 /** One redirection step: leaf match or declarative redirect. */
 export type NavigationMatchStep =

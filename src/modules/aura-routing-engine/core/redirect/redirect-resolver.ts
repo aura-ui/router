@@ -9,14 +9,14 @@ import type { RouteNode } from '../route-tree/route-node.types';
 import { matchNavigationStep } from './match-hop';
 import type { DeclarativeTargetResolve, MatchedNavigationTarget, RedirectHopError } from './types';
 
-export const MAX_REDIRECT_HOPS = 5;
+export const MAX_REDIRECTION_STEPS = 5;
 
-export type HopContext = {
-  readonly initial: ResolvedDocumentHref;
-  currentHref: string;
-  readonly visited: Set<string>;
+export type RedirectionContext = {
+  readonly originalUrlParts: ResolvedDocumentHref;
+  stepHref: string;
+  readonly visitedPathnames: Set<string>;
   viaRedirect: boolean;
-  replace: boolean;
+  historyReplace: boolean;
 };
 
 export type RedirectResolveResult =
@@ -65,73 +65,73 @@ export function navigationVisitKey(href: string): string {
   return stripTrailingSlash(resolveDocumentHrefParts(href).pathname);
 }
 
-export function createHopContext(
+export function createRedirectionContext(
   href: string | ResolvedDocumentHref,
   replace = false,
-): HopContext {
-  const initial = typeof href === 'string' ? resolveDocumentHrefParts(href) : href;
+): RedirectionContext {
+  const originalUrlParts = typeof href === 'string' ? resolveDocumentHrefParts(href) : href;
   return {
-    initial,
-    currentHref: initial.href,
-    visited: new Set([navigationVisitKey(initial.href)]),
+    originalUrlParts,
+    stepHref: originalUrlParts.href,
+    visitedPathnames: new Set([navigationVisitKey(originalUrlParts.href)]),
     viaRedirect: false,
-    replace,
+    historyReplace: replace,
   };
 }
 
-/** Validates depth/cycle guards and records one redirect visit (does not mutate hop state). */
-export function validateRedirectHop(
-  visited: Set<string>,
+/** Validates depth/cycle guards and records one redirect visit (does not mutate redirection state). */
+export function validateRedirectStep(
+  visitedPathnames: Set<string>,
   nextHref: string,
-  hop: number,
-  currentHref: string,
+  step: number,
+  stepHref: string,
 ): { href: string } | RedirectHopError {
-  if (hop >= MAX_REDIRECT_HOPS) {
-    return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: currentHref };
+  if (step >= MAX_REDIRECTION_STEPS) {
+    return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: stepHref };
   }
   const nextKey = navigationVisitKey(nextHref);
-  if (visited.has(nextKey)) {
+  if (visitedPathnames.has(nextKey)) {
     return { kind: 'redirect-error', code: 'redirect-cycle', href: nextHref };
   }
-  visited.add(nextKey);
+  visitedPathnames.add(nextKey);
   return { href: nextHref };
 }
 
-function applyRedirectHop(
-  hopState: HopContext,
+function applyRedirectStep(
+  redirection: RedirectionContext,
   nextHref: string,
-  hop: number,
+  step: number,
 ): RedirectHopError | null {
-  const next = validateRedirectHop(hopState.visited, nextHref, hop, hopState.currentHref);
+  const next = validateRedirectStep(redirection.visitedPathnames, nextHref, step, redirection.stepHref);
   if ('kind' in next) return next;
-  hopState.currentHref = next.href;
-  hopState.viaRedirect = true;
+  redirection.stepHref = next.href;
+  redirection.viaRedirect = true;
   return null;
 }
 
 function withViaRedirect(
-  hopState: HopContext,
+  redirection: RedirectionContext,
   step: MatchedNavigationTarget,
 ): MatchedNavigationTarget {
-  return hopState.viaRedirect || step.viaRedirect ? { ...step, viaRedirect: true } : step;
+  return redirection.viaRedirect || step.viaRedirect ? { ...step, viaRedirect: true } : step;
 }
 
 function matchAt(
-  hopState: HopContext,
+  redirection: RedirectionContext,
   matcher: Matcher,
   nodes: readonly RouteNode[],
 ) {
   return matchNavigationStep(
     matcher,
-    hopState.currentHref,
+    redirection.stepHref,
     nodes,
-    hopState.initial.search,
-    hopState.initial.hash,
+    redirection.originalUrlParts.search,
+    redirection.originalUrlParts.hash,
   );
 }
 
-function depthExceeded(hopState: HopContext): RedirectHopError {
-  return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: hopState.currentHref };
+function depthExceeded(redirection: RedirectionContext): RedirectHopError {
+  return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: redirection.stepHref };
 }
 
 function toRedirectError(error: RedirectHopError): Extract<RedirectResolveResult, { status: 'redirect-error' }> {
@@ -149,22 +149,22 @@ export function resolveDeclarativeTarget(
   href: string | ResolvedDocumentHref,
   nodes: readonly RouteNode[],
 ): DeclarativeTargetResolve {
-  const hopState = createHopContext(href);
+  const redirection = createRedirectionContext(href);
 
-  for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
-    const step = matchAt(hopState, matcher, nodes);
-    if (!step) return { kind: 'unmatched' };
+  for (let step = 0; step <= MAX_REDIRECTION_STEPS; step++) {
+    const matchStep = matchAt(redirection, matcher, nodes);
+    if (!matchStep) return { kind: 'unmatched' };
 
-    if (step.kind === 'redirect') {
-      const error = applyRedirectHop(hopState, step.href, hop);
+    if (matchStep.kind === 'redirect') {
+      const error = applyRedirectStep(redirection, matchStep.href, step);
       if (error) return error;
       continue;
     }
 
-    return withViaRedirect(hopState, step);
+    return withViaRedirect(redirection, matchStep);
   }
 
-  return depthExceeded(hopState);
+  return depthExceeded(redirection);
 }
 
 /**
@@ -175,14 +175,14 @@ export async function resolveRedirectChain(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
 ): Promise<RedirectResolveResult> {
-  const hopState = createHopContext(input.href, input.options.replace ?? false);
+  const redirection = createRedirectionContext(input.href, input.options.replace ?? false);
 
-  for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
-    const step = matchAt(hopState, resolverCtx.matcher, resolverCtx.getMatchableNodes());
-    if (!step) return { status: 'unmatched' };
+  for (let step = 0; step <= MAX_REDIRECTION_STEPS; step++) {
+    const matchStep = matchAt(redirection, resolverCtx.matcher, resolverCtx.getMatchableNodes());
+    if (!matchStep) return { status: 'unmatched' };
 
-    if (step.kind === 'redirect') {
-      const error = applyRedirectHop(hopState, step.href, hop);
+    if (matchStep.kind === 'redirect') {
+      const error = applyRedirectStep(redirection, matchStep.href, step);
       if (error) return toRedirectError(error);
       continue;
     }
@@ -190,12 +190,12 @@ export async function resolveRedirectChain(
     const outcome = await resolveMatchedHop(
       resolverCtx,
       input,
-      withViaRedirect(hopState, step),
-      hopState,
+      withViaRedirect(redirection, matchStep),
+      redirection,
     );
 
     if (isHookRedirect(outcome)) {
-      const error = applyRedirectHop(hopState, outcome.href, hop);
+      const error = applyRedirectStep(redirection, outcome.href, step);
       if (error) return toRedirectError(error);
       continue;
     }
@@ -203,21 +203,21 @@ export async function resolveRedirectChain(
     return outcome;
   }
 
-  return toRedirectError(depthExceeded(hopState));
+  return toRedirectError(depthExceeded(redirection));
 }
 
 async function resolveMatchedHop(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
   target: MatchedNavigationTarget,
-  hopState: HopContext,
+  redirection: RedirectionContext,
 ): Promise<RedirectResolveResult | HookRedirect> {
   const probe = new NavigationTransaction(
     0,
     0,
     {
       from: input.from,
-      to: target.leaf,
+      to: target,
       href: target.href,
       hash: target.hash,
       action: input.action,
@@ -230,7 +230,7 @@ async function resolveMatchedHop(
   const probeResult = await probe.runBlockingProbe();
 
   if (probeResult?.status === 'redirect') {
-    hopState.replace = hopState.replace || (probeResult.replace ?? input.action === 'pop');
+    redirection.historyReplace = redirection.historyReplace || (probeResult.replace ?? input.action === 'pop');
     return { kind: 'redirect', href: probeResult.url };
   }
 
@@ -241,7 +241,7 @@ async function resolveMatchedHop(
   return {
     status: 'resolved',
     target,
-    replace: hopState.replace || target.viaRedirect,
+    replace: redirection.historyReplace || target.viaRedirect,
     completedBlockingPhases: {
       ...(probe.dataSnapshot && { dataSnapshot: probe.dataSnapshot }),
     },

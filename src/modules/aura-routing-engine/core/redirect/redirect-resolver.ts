@@ -70,7 +70,7 @@ export function createRedirectionContext(href: string | ResolvedDocumentHref, re
   };
 }
 
-function applyRedirectStep(
+function tryApplyRedirectStep(
   redirection: RedirectionContext,
   nextHref: string,
   step: number,
@@ -90,9 +90,9 @@ function applyRedirectStep(
 
 function applyRedirectArrivalFlag(
   redirection: RedirectionContext,
-  step: MatchedNavigationTarget,
+  target: MatchedNavigationTarget,
 ): MatchedNavigationTarget {
-  return redirection.viaRedirect || step.viaRedirect ? { ...step, viaRedirect: true } : step;
+  return redirection.viaRedirect || target.viaRedirect ? { ...target, viaRedirect: true } : target;
 }
 
 function depthExceeded(redirection: RedirectionContext): RedirectErrorOutcome {
@@ -123,7 +123,7 @@ export function followDeclarativeRedirects(
     if (!matchStep) return { status: 'unmatched' };
 
     if (matchStep.kind === 'redirect') {
-      const error = applyRedirectStep(redirection, matchStep.href, step);
+      const error = tryApplyRedirectStep(redirection, matchStep.href, step);
       if (error) return error;
       continue;
     }
@@ -158,25 +158,25 @@ export async function followRedirectsWithBlockingPhases(
     if (!matchStep) return { status: 'unmatched' };
 
     if (matchStep.kind === 'redirect') {
-      const error = applyRedirectStep(redirection, matchStep.href, step);
+      const error = tryApplyRedirectStep(redirection, matchStep.href, step);
       if (error) return error;
       continue;
     }
 
-    const matched = await runTransactionBlockingPhases(
+    const blockingOutcome = await runTransactionBlockingPhases(
       resolverCtx,
       input,
       applyRedirectArrivalFlag(redirection, matchStep),
       redirection,
     );
 
-    if (!matched.done) {
-      const error = applyRedirectStep(redirection, matched.href, step);
+    if (!blockingOutcome.done) {
+      const error = tryApplyRedirectStep(redirection, blockingOutcome.href, step);
       if (error) return error;
       continue;
     }
 
-    return matched.result;
+    return blockingOutcome.result;
   }
 
   return depthExceeded(redirection);

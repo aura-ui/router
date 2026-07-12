@@ -63,36 +63,13 @@ export function createHopContext(
   };
 }
 
-export function withViaRedirect(
-  hopState: HopContext,
-  step: MatchedNavigationTarget,
-): MatchedNavigationTarget {
-  return hopState.viaRedirect || step.viaRedirect ? { ...step, viaRedirect: true } : step;
-}
+type HopIterationResult<T> =
+  | { readonly action: 'retry' }
+  | { readonly action: 'return'; readonly value: T | RedirectHopTerminal };
 
-export function shouldReplaceHistory(
-  hopState: HopContext,
-  target: MatchedNavigationTarget,
-): boolean {
-  return hopState.replace || target.viaRedirect;
-}
+type Matcher = Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
 
-function redirectDepthExceeded(hopState: HopContext): RedirectHopError {
-  return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: hopState.currentHref };
-}
-
-function isRedirectContinue(value: unknown): value is RedirectHopContinue {
-  return typeof value === 'object'
-    && value !== null
-    && 'kind' in value
-    && (value as RedirectHopContinue).kind === 'redirect';
-}
-
-function matchAtCurrentHref(
-  hopState: HopContext,
-  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
-  nodes: readonly RouteNode[],
-): ReturnType<typeof matchNavigationStep> {
+function matchAt(hopState: HopContext, matcher: Matcher, nodes: readonly RouteNode[]) {
   return matchNavigationStep(
     matcher,
     hopState.currentHref,
@@ -102,45 +79,110 @@ function matchAtCurrentHref(
   );
 }
 
-function applyRedirectHop(
+function withRedirectFlag(
+  hopState: HopContext,
+  step: MatchedNavigationTarget,
+): MatchedNavigationTarget {
+  return hopState.viaRedirect || step.viaRedirect ? { ...step, viaRedirect: true } : step;
+}
+
+function advanceRedirect(
   hopState: HopContext,
   nextHref: string,
   hop: number,
-): 'continue' | RedirectHopError {
+): RedirectHopError | null {
   const next = validateRedirectHop(hopState.visited, nextHref, hop, hopState.currentHref);
   if ('kind' in next) return next;
   hopState.currentHref = next.href;
   hopState.viaRedirect = true;
-  return 'continue';
+  return null;
 }
 
-function runSyncRedirectHopLoop<T>(
+function isRedirectContinue(value: unknown): value is RedirectHopContinue {
+  return typeof value === 'object'
+    && value !== null
+    && 'kind' in value
+    && (value as RedirectHopContinue).kind === 'redirect';
+}
+
+function runHopIteration<T>(
   hopState: HopContext,
-  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
+  matcher: Matcher,
+  nodes: readonly RouteNode[],
+  hop: number,
+  onMatched: (target: MatchedNavigationTarget) => T | RedirectHopContinue,
+): HopIterationResult<T> {
+  const matchStep = matchAt(hopState, matcher, nodes);
+  if (!matchStep) return { action: 'return', value: { kind: 'unmatched' } };
+
+  if (matchStep.kind === 'redirect') {
+    const error = advanceRedirect(hopState, matchStep.href, hop);
+    return error ? { action: 'return', value: error } : { action: 'retry' };
+  }
+
+  const outcome = onMatched(withRedirectFlag(hopState, matchStep));
+  if (isRedirectContinue(outcome)) {
+    const error = advanceRedirect(hopState, outcome.href, hop);
+    return error ? { action: 'return', value: error } : { action: 'retry' };
+  }
+
+  return { action: 'return', value: outcome };
+}
+
+async function runHopIterationAsync<T>(
+  hopState: HopContext,
+  matcher: Matcher,
+  nodes: readonly RouteNode[],
+  hop: number,
+  onMatched: (target: MatchedNavigationTarget) => Promise<T | RedirectHopContinue>,
+): Promise<HopIterationResult<T>> {
+  const matchStep = matchAt(hopState, matcher, nodes);
+  if (!matchStep) return { action: 'return', value: { kind: 'unmatched' } };
+
+  if (matchStep.kind === 'redirect') {
+    const error = advanceRedirect(hopState, matchStep.href, hop);
+    return error ? { action: 'return', value: error } : { action: 'retry' };
+  }
+
+  const outcome = await onMatched(withRedirectFlag(hopState, matchStep));
+  if (isRedirectContinue(outcome)) {
+    const error = advanceRedirect(hopState, outcome.href, hop);
+    return error ? { action: 'return', value: error } : { action: 'retry' };
+  }
+
+  return { action: 'return', value: outcome };
+}
+
+function depthExceeded(hopState: HopContext): RedirectHopError {
+  return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: hopState.currentHref };
+}
+
+function runRedirectHopLoop<T>(
+  hopState: HopContext,
+  matcher: Matcher,
   nodes: readonly RouteNode[],
   onMatched: (target: MatchedNavigationTarget) => T | RedirectHopContinue,
 ): T | DeclarativeTargetResolve {
   for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
-    const matchStep = matchAtCurrentHref(hopState, matcher, nodes);
-    if (!matchStep) return { kind: 'unmatched' };
-
-    if (matchStep.kind === 'redirect') {
-      const redirectResult = applyRedirectHop(hopState, matchStep.href, hop);
-      if (redirectResult !== 'continue') return redirectResult;
-      continue;
-    }
-
-    const outcome = onMatched(withViaRedirect(hopState, matchStep));
-    if (isRedirectContinue(outcome)) {
-      const redirectResult = applyRedirectHop(hopState, outcome.href, hop);
-      if (redirectResult !== 'continue') return redirectResult;
-      continue;
-    }
-
-    return outcome;
+    const iteration = runHopIteration(hopState, matcher, nodes, hop, onMatched);
+    if (iteration.action === 'retry') continue;
+    return iteration.value;
   }
+  return depthExceeded(hopState);
+}
 
-  return redirectDepthExceeded(hopState);
+async function runRedirectHopLoopAsync<T>(
+  hopState: HopContext,
+  matcher: Matcher,
+  nodes: readonly RouteNode[],
+  onMatched: (target: MatchedNavigationTarget) => Promise<T | RedirectHopContinue>,
+): Promise<T | RedirectHopTerminal> {
+  for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+    const iteration = await runHopIterationAsync(hopState, matcher, nodes, hop, onMatched);
+    if (iteration.action === 'retry') continue;
+    return iteration.value;
+  }
+  return depthExceeded(hopState);
 }
 
 /**
@@ -148,45 +190,25 @@ function runSyncRedirectHopLoop<T>(
  * @see resolveDeclarativeTarget
  */
 export function followDeclarativeRedirectHops<T>(
-  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
+  matcher: Matcher,
   href: string | ResolvedDocumentHref,
   nodes: readonly RouteNode[],
   onMatched: (target: MatchedNavigationTarget) => T,
 ): T | DeclarativeTargetResolve {
-  return runSyncRedirectHopLoop(createHopContext(href), matcher, nodes, onMatched);
+  return runRedirectHopLoop(createHopContext(href), matcher, nodes, onMatched);
 }
 
 /**
  * Async redirect hop loop — declarative hops plus hook redirects from `onMatched`.
  * @see resolveRedirectChain
  */
-export async function followRedirectHopsWithHooks<T>(
+export function followRedirectHopsWithHooks<T>(
   hopState: HopContext,
-  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
+  matcher: Matcher,
   nodes: readonly RouteNode[],
   onMatched: (target: MatchedNavigationTarget) => Promise<T | RedirectHopContinue>,
 ): Promise<T | RedirectHopTerminal> {
-  for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
-    const matchStep = matchAtCurrentHref(hopState, matcher, nodes);
-    if (!matchStep) return { kind: 'unmatched' };
-
-    if (matchStep.kind === 'redirect') {
-      const redirectResult = applyRedirectHop(hopState, matchStep.href, hop);
-      if (redirectResult !== 'continue') return redirectResult;
-      continue;
-    }
-
-    const outcome = await onMatched(withViaRedirect(hopState, matchStep));
-    if (isRedirectContinue(outcome)) {
-      const redirectResult = applyRedirectHop(hopState, outcome.href, hop);
-      if (redirectResult !== 'continue') return redirectResult;
-      continue;
-    }
-
-    return outcome;
-  }
-
-  return redirectDepthExceeded(hopState);
+  return runRedirectHopLoopAsync(hopState, matcher, nodes, onMatched);
 }
 
 export function isHopLoopTerminal(outcome: unknown): outcome is RedirectHopTerminal {

@@ -106,7 +106,7 @@ export function followDeclarativeRedirects(
       redirection.originalUrlParts.search,
       redirection.originalUrlParts.hash,
     );
-    if (!matchStep) return { status: 'unmatched' };
+    if (!matchStep) return { status: 'unmatched', href: redirection.stepHref };
 
     if (matchStep.kind === 'redirect') {
       const error = tryApplyRedirectStep(redirection, matchStep.href, step);
@@ -124,7 +124,7 @@ export function followDeclarativeRedirects(
 }
 
 /**
- * Pre-commit redirect resolution: declarative attr steps + blocking hooks (leave/guard/load),
+ * Pre-commit redirect resolution: declarative attr steps + guard walk (hook redirect),
  * without history commit or render. Returns the target and probe metadata for
  * {@link ../navigation/navigation-coordinator!NavigationCoordinator.run} — does not run the full pipeline itself.
  */
@@ -142,7 +142,7 @@ export async function followRedirectsWithBlockingPhases(
       redirection.originalUrlParts.search,
       redirection.originalUrlParts.hash,
     );
-    if (!matchStep) return { status: 'unmatched' };
+    if (!matchStep) return { status: 'unmatched', href: redirection.stepHref };
 
     if (matchStep.kind === 'redirect') {
       const error = tryApplyRedirectStep(redirection, matchStep.href, step);

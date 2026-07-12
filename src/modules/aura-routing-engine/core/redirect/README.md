@@ -20,7 +20,7 @@ targets are path-only.
 href
   │
   ▼
-matchNavigationStep          ← match-step.ts
+lookupNavigationStep          ← match-step.ts
   │
   ├─ redirect attr ──► applyRedirectStep (cycle / depth) ──► next step
   │

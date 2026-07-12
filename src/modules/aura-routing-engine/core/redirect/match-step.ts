@@ -12,7 +12,7 @@ export function resolveRedirectHref(node: RouteNode, rawTarget: string): string 
 }
 
 /** One redirection step: leaf page/folder index, declarative redirect, or no match. */
-export function matchNavigationStep(
+export function lookupNavigationStep(
   matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
   href: string,
   nodes: readonly RouteNode[],

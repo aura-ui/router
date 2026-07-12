@@ -147,4 +147,159 @@ describe('RedirectResolver integration', () => {
     expect(settingsLeaveCalls).toBe(2);
     expect(appLeaveCalls).toBe(1);
   });
+
+  it('collapses leave redirect into one coordinator run', async () => {
+    const transactions: NavigationTransaction[] = [];
+    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
+      transactions.push(this);
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
+    });
+
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+
+    let redirected = false;
+    engine.hooksRegistry.register({
+      name: 'gate',
+      version: '1.0.0',
+      fn: async () => {
+        if (!redirected) {
+          redirected = true;
+          return '/login';
+        }
+        return true;
+      },
+    });
+
+    const home = createDomRoute('/');
+    home.setAttribute('leave', 'gate');
+    const login = createDomRoute('/login');
+    const dashboard = createDomRoute('/dashboard');
+
+    engine.replaceRoutes(collectRoutesFromDom(home, dashboard, login));
+    provider.start();
+
+    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    transactions.length = 0;
+
+    await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]!.to.pattern).toBe('/login');
+    expect(transactions[0]!.skipBlockingPhases).toBe(true);
+  });
+
+  it('collapses two-hop guard redirect chain into one coordinator run', async () => {
+    const transactions: NavigationTransaction[] = [];
+    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
+      transactions.push(this);
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
+    });
+
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+
+    registerTestHook(engine.hooksRegistry, 'to-settings', () => '/settings');
+    registerTestHook(engine.hooksRegistry, 'to-login', () => '/login');
+
+    const login = createDomRoute('/login');
+    const settings = createDomRoute('/settings');
+    settings.setAttribute('guard', 'to-login');
+    const dashboard = createDomRoute('/dashboard');
+    dashboard.setAttribute('guard', 'to-settings');
+
+    engine.replaceRoutes(collectRoutesFromDom(dashboard, settings, login));
+    provider.start();
+
+    await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]!.to.pattern).toBe('/login');
+    expect(transactions[0]!.skipBlockingPhases).toBe(true);
+  });
+
+  it('cancels navigation during blocking walk without running pipeline', async () => {
+    const transactions: NavigationTransaction[] = [];
+    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
+      transactions.push(this);
+      return { status: 'navigationSucceeded' };
+    });
+
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+
+    registerTestHook(engine.hooksRegistry, 'auth', () => false);
+
+    const login = createDomRoute('/login');
+    const dashboard = createDomRoute('/dashboard');
+    dashboard.setAttribute('guard', 'auth');
+
+    engine.replaceRoutes(collectRoutesFromDom(dashboard, login));
+    provider.start();
+
+    await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
+
+    expect(transactions).toHaveLength(0);
+    expect(provider.currentHref).toBe('/');
+  });
+
+  it('reports hook redirect cycle via onNavigationError', async () => {
+    const onNavigationError = jest.fn();
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine(
+      { navigate: jest.fn() },
+      { provider, onNavigationError },
+    );
+
+    registerTestHook(engine.hooksRegistry, 'to-b', () => '/b');
+    registerTestHook(engine.hooksRegistry, 'to-a', () => '/a');
+
+    const routeA = createDomRoute('/a');
+    routeA.setAttribute('guard', 'to-b');
+    const routeB = createDomRoute('/b');
+    routeB.setAttribute('guard', 'to-a');
+
+    engine.replaceRoutes(collectRoutesFromDom(routeA, routeB));
+    provider.start();
+
+    await engine.navigateTo('/a', 'push', { replace: false, syncHistory: true });
+
+    expect(onNavigationError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: '/a',
+        error: expect.objectContaining({ code: 'REDIRECT_CYCLE' }),
+      }),
+    );
+    expect(provider.currentHref).toBe('/');
+  });
+
+  it('preserves search and hash through guard redirect walk', async () => {
+    const transactions: NavigationTransaction[] = [];
+    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
+      transactions.push(this);
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
+    });
+
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+
+    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
+
+    const login = createDomRoute('/login');
+    const dashboard = createDomRoute('/dashboard');
+    dashboard.setAttribute('guard', 'auth');
+
+    engine.replaceRoutes(collectRoutesFromDom(dashboard, login));
+    provider.start();
+
+    await engine.navigateTo('/dashboard?tab=1#panel', 'push', { replace: false, syncHistory: true });
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]!.href).toBe('/login?tab=1#panel');
+    expect(transactions[0]!.to.search).toBe('?tab=1');
+    expect(transactions[0]!.to.hash).toBe('#panel');
+  });
 });

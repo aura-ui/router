@@ -19,5 +19,6 @@ export type {
   RedirectMatcher,
   RedirectResolveResult,
   RedirectResolverContext,
+  RedirectUnmatchedOutcome,
   RedirectionContext,
 } from './types';

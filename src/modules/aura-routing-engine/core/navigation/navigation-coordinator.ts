@@ -93,7 +93,7 @@ export class NavigationCoordinator {
       }
 
       if (chain.status === 'unmatched') {
-        this.host.handleUnmatchedNavigation(resolved.href, action, options);
+        this.host.handleUnmatchedNavigation(chain.href, action, options);
         return;
       }
 

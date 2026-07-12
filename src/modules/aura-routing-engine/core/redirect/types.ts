@@ -27,12 +27,21 @@ export type RedirectErrorOutcome = {
 };
 
 /**
+ * No route matched at the current redirect-chain step.
+ * `href` is {@link RedirectionContext.stepHref} — the URL that failed to match, not the original request.
+ */
+export type RedirectUnmatchedOutcome = {
+  readonly status: 'unmatched';
+  readonly href: string;
+};
+
+/**
  * Outcome of {@link ./redirect-resolver!followDeclarativeRedirects}.
  * Sync resolution over declarative `redirect` attrs only (no hooks).
  */
 export type DeclarativeRedirectOutcome =
   | { readonly status: 'resolved'; readonly target: MatchedNavigationTarget }
-  | { readonly status: 'unmatched' }
+  | RedirectUnmatchedOutcome
   | RedirectErrorOutcome;
 
 /**
@@ -46,7 +55,7 @@ export type RedirectResolveResult =
       /** When `true`, coordinator should commit via `history.replaceState`. */
       readonly replace: boolean;
     }
-  | { readonly status: 'unmatched' }
+  | RedirectUnmatchedOutcome
   | RedirectErrorOutcome
   | {
       readonly status: 'terminal';

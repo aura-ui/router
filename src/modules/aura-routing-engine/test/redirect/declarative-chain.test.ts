@@ -34,7 +34,10 @@ describe('followDeclarativeRedirects', () => {
     const settings = createDomRoute('/settings');
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    expect(followDeclarativeRedirects(matcher, '/missing', matchableNodes)).toEqual({ status: 'unmatched' });
+    expect(followDeclarativeRedirects(matcher, '/missing', matchableNodes)).toEqual({
+      status: 'unmatched',
+      href: '/missing',
+    });
   });
 
   it('matches index folder with trailing slash in URL', () => {
@@ -162,7 +165,10 @@ describe('followDeclarativeRedirects', () => {
     const alias = createDomRedirectRoute('/entry', '/missing');
     const { matchableNodes } = buildTreeFromDom(alias);
 
-    expect(followDeclarativeRedirects(matcher, '/entry', matchableNodes)).toEqual({ status: 'unmatched' });
+    expect(followDeclarativeRedirects(matcher, '/entry', matchableNodes)).toEqual({
+      status: 'unmatched',
+      href: '/missing',
+    });
   });
 
   it('preserves search and hash from the original href on the final leaf', () => {

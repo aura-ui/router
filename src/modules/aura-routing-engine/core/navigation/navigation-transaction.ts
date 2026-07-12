@@ -25,6 +25,8 @@ export class NavigationTransaction {
   readonly hash: string;
   readonly action: HistoryAction;
   readonly historyOptions: NavigateHistoryOptions;
+  /** When `true`, redirect walk already ran `leave` + `guard`; full pipeline skips {@link NavigationTransactionPipeline.runGuards}. */
+  readonly skipBlockingPhases: boolean;
 
   readonly transactionId: number;
   readonly signal: AbortSignal;
@@ -55,6 +57,7 @@ export class NavigationTransaction {
     this.hash = options.hash;
     this.action = options.action;
     this.historyOptions = options.options;
+    this.skipBlockingPhases = options.skipBlockingPhases ?? false;
 
     this.abortController = new AbortController();
     this.signal = this.abortController.signal;
@@ -99,13 +102,13 @@ export class NavigationTransaction {
     });
   }
 
-  /** Pre-commit guard probe for {@link ../redirect/redirect-resolver!followRedirectsWithGuardWalk} — no render. */
+  /** Pre-commit blocking walk for {@link ../redirect/redirect-resolver!followRedirectsWithGuardWalk}: `leave` → `guard` via {@link NavigationTransactionPipeline.runGuards}. */
   async runGuardPhase(): Promise<PipelineStepResult> {
     if (!this.transitionPlan) {
       this.transitionPlan = buildTransitionPlan(this.from, this.to);
       this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
     }
-    return new NavigationTransactionPipeline(this).runGuardPhase();
+    return new NavigationTransactionPipeline(this).runGuards();
   }
 
   async fail(

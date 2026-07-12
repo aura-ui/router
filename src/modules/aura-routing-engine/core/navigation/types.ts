@@ -105,6 +105,8 @@ export interface NavigationTransactionOptions {
   hash: string;
   /** Provider-specific history options (scroll, state, etc.). */
   options: NavigateHistoryOptions;
+  /** Skip {@link NavigationTransactionPipeline.runGuards} when redirect walk already ran `leave` → `guard`. */
+  skipBlockingPhases?: boolean;
 }
 
 // --- Pipeline policy ---

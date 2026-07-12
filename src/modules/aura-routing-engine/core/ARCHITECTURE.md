@@ -16,7 +16,7 @@ failure handling in `failure/README.md`.
 | `hooks/` | Global hook registry, `resolve-hook-names`, `normalizeHookResult`, hook result normalization. |
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, `TransitionMap`, `canUseFastPath`. |
 | `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`. |
-| `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit guard walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
+| `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit blocking walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
 | `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
 | `view-mount/` | View staging/commit tracking, per-route render (`view-commit-render`), atomic branch resolve/mount (`branch-resolver`, `branch-mount`), staged-view rollback. |
 | `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |
@@ -49,7 +49,7 @@ sequenceDiagram
     alt noop / cancel pending
       Coord-->>Engine: return
     else run transaction
-      Coord->>Tx: new NavigationTransaction(...)
+      Coord->>Tx: new NavigationTransaction(..., skipBlockingPhases)
       Tx->>Tx: buildTransitionPlan(from, to)
       alt update (same route record)
         Tx->>Pipeline: runUpdate()
@@ -78,7 +78,9 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | **Update** | `runUpdate()` | guards, render, unmount, ready | loads → history → `update` → `commitNavigation` |
 | **Fast (Tier 0)** | `runFastPipeline()` | guards, loads, transitions | history → single `runViewCommit` → after-render |
-| **Full** | `runFullPipeline()` | — | leave → guard → loads → history → render (atomic or per-route) → after-render |
+| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → loads → history → render → after-render |
+
+`skipBlockingPhases`: redirect walk already ran `leave` → `guard` — see `redirect/README.md`.
 
 Fast path eligibility: `canUseFastPath()` — flat swap (one exit, one enter), sync inline
 content, no blocking hooks or `transition-order`.

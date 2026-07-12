@@ -1,12 +1,15 @@
 # TODO: схлопывание синхронных цепочек redirect
 
-> **Статус:** план / архитектура (не реализовано)  
+> **Статус:** частично реализовано · этот документ — **целевая** полная модель (resolve loop с `load` и т.д.)  
+> **As-is (2026-07-13):** [`followRedirectsWithGuardWalk`](../../src/modules/aura-routing-engine/core/redirect/README.md) — declarative hops + **blocking walk** (`leave` → `guard` per hop), один `coordinator.run(committedFrom → finalTo)` с `skipBlockingPhases`. Collapse **guard/leave** redirect в одном `navigateTo` ✓. **Load** redirect по-прежнему → `applyRedirect` / новый `navigateTo`.  
 > **Связь:** дополнение к [P1-7](../comparison/FEATURE_PARITY_ROADMAP.md) — политика redirect уже зафиксирована; этот документ про **оптимизацию blocking-redirect**, не про post-commit redirect.  
 > **См. также:** [NAVIGATION_TRANSACTION_MODEL.md §7](../NAVIGATION_TRANSACTION_MODEL.md#7-redirect-и-cancel--политика-aura-p1-7)
 
 ---
 
-## Проблема (as-is)
+## Проблема (legacy / до blocking walk)
+
+> **Сейчас:** guard/leave redirect и declarative `redirect` схлопываются в resolve (`followRedirectsWithGuardWalk`). Ниже — как было **до** этого слоя и что ещё остаётся (load redirect, полный resolve с `runLoads`).
 
 ```text
 navigateTo(/dashboard)

@@ -6,10 +6,11 @@
  * and {@link ./navigation/navigation-transaction-pipeline-phase}.
  *
  * **Redirect placement (client navigation):**
- * - **`guard` during redirect resolve** — {@link ./redirect/redirect-resolver!followRedirectsWithGuardWalk}
- *   collapses hook redirect into the same `navigateTo` (guard-only walk, no render).
- * - **`guard` / `leave` / `load` in full pipeline** — {@link ./navigation/navigation-transaction-pipeline!NavigationTransactionPipeline.runFullPipeline};
- *   load redirect runs after `leave`, triggers a new `navigateTo` via {@link ./aura-routing-engine!AuraRoutingEngine.applyRedirect}.
+ * - **`leave` / `guard` during redirect resolve** — {@link ./redirect/redirect-resolver!followRedirectsWithGuardWalk}
+ *   runs full `runGuards()` per blocking hop (`leave` before `guard`); hook redirect collapses into one `navigateTo`.
+ * - **`guard` / `leave` / `load` in full pipeline** — {@link ./navigation/navigation-transaction-pipeline!NavigationTransactionPipeline.runFullPipeline}
+ *   when `skipBlockingPhases` is false; load redirect triggers a new `navigateTo` via
+ *   {@link ./aura-routing-engine!AuraRoutingEngine.applyRedirect}.
  * Prefer auth/role redirects in **`guard`**, not **`load`**, for client-first apps.
  *
  * @module guard.types

@@ -71,17 +71,12 @@ export class NavigationTransactionPipeline {
    */
   async runFullPipeline(): Promise<PipelineStepResult> {
     return await this.runSequentially([
-      () => this.runGuards(),
+      ...(this.transaction.skipBlockingPhases ? [] : [() => this.runGuards()]),
       () => this.runLoads(),
       () => this.runCommitHistory(),
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
     ]) ?? { status: 'navigationSucceeded' };
-  }
-
-  /** Enter guard only — redirect walk probe in {@link ../redirect/redirect-resolver!followRedirectsWithGuardWalk}. */
-  async runGuardPhase(): Promise<PipelineStepResult> {
-    return this.runLifecyclePhase(PHASES.guard);
   }
 
   /**

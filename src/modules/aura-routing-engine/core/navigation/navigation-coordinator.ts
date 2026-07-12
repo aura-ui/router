@@ -113,6 +113,7 @@ export class NavigationCoordinator {
         href: found.href,
         hash: found.hash,
         options: historyOptions,
+        skipBlockingPhases: chain.skipBlockingPhases,
       });
     } finally {
       this.settleNavigation(attempt);

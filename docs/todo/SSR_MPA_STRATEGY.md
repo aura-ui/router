@@ -99,7 +99,8 @@ AuraRouter.install();
 
 ## SSR runtime (исследование — не в roadmap)
 
-> Заметки на будущее. Не коммитим как публичное обещание.
+> Заметки на будущее. Не коммитим как публичное обещание.  
+> **Отдельный server navigation path** (redirect, load, HTTP 302 vs client walk) — ⚠️ под вопросом: [SSR_SERVER_NAVIGATION_PATH.md](./SSR_SERVER_NAVIGATION_PATH.md).
 
 ### Поток
 

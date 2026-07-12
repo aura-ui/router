@@ -37,6 +37,7 @@
 | [RENDERER_ABSTRACTION.md](./RENDERER_ABSTRACTION.md) | **Фаза 6:** engine-level `Renderer.renderNode()` + централизованный `dispose`; ViewHandle ✓, engine Renderer ✗ |
 | [EVENT_BUS.md](./EVENT_BUS.md) | **Фаза 7:** внутренний EventBus (`navigation:*`, `load:*`, `node:*`) — as-is, точки emit, план EB0–EB4 |
 | [SSR_MPA_STRATEGY.md](./SSR_MPA_STRATEGY.md) | MPA→SPA (roadmap Phase 8) + SSR runtime как исследование (не в roadmap) |
+| [SSR_SERVER_NAVIGATION_PATH.md](./SSR_SERVER_NAVIGATION_PATH.md) | ⚠️ **Под вопросом:** отдельный server navigation path (HTTP redirect, load redirect, не client pipeline) |
 | [ROUTE_API_V3.md](./ROUTE_API_V3.md) | Путь as-is → [README](../README.md): `view`, loaders, lifecycle `guard\|ready`, `cache` |
 | [NESTED_ROUTES_JOY_MODEL.md](./NESTED_ROUTES_JOY_MODEL.md) | Route Folders: nested DX поверх v3 — **статус реализации** (✓/~✗/⏸); redirect — последний этап |
 | [PRE_RELEASE_0.0.1.md](./PRE_RELEASE_0.0.1.md) | **Чеклист:** merge в `main` + npm `@aura-ui-web/router@0.0.1` — аудит, блокеры, must-have |

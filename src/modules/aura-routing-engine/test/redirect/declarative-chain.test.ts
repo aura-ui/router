@@ -1,6 +1,6 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { MAX_REDIRECTION_STEPS } from '../../core/redirect/redirect-resolver';
-import { resolveRedirectHref } from '../../core/redirect/match-hop';
+import { resolveRedirectHref } from '../../core/redirect/match-step';
 import { resolveDeclarativeTarget } from '../../core/redirect/redirect-resolver';
 import {
   buildTreeFromDom,
@@ -101,7 +101,7 @@ describe('resolveDeclarativeTarget', () => {
     expect(target.viaRedirect).toBe(true);
   });
 
-  it('follows multi-hop redirect chains', () => {
+  it('follows multi-step redirect chains', () => {
     const final = createDomRoute('/target');
     const hopB = createDomRedirectRoute('/b', '/target');
     const hopA = createDomRedirectRoute('/a', '/b');

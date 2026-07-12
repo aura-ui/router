@@ -15,7 +15,8 @@ failure handling in `failure/README.md`.
 | `guard.types.ts` | Shared blocking-hook contract: `GuardResult`, `RedirectTarget` (normalized from hook return values). |
 | `hooks/` | Global hook registry, `resolve-hook-names`, `normalizeHookResult`, hook result normalization. |
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, `TransitionMap`, `canUseFastPath`. |
-| `match/` | URL matching (`url-matcher.ts`), `resolveNavigationTarget`, `MatchedRouteInfo`. |
+| `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`. |
+| `redirect/` | Declarative redirect hops (`resolveDeclarativeTarget`), pre-commit hook redirects (`resolveRedirectChain`). |
 | `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
 | `view-mount/` | View staging/commit tracking, per-route render (`view-commit-render`), atomic branch resolve/mount (`branch-resolver`, `branch-mount`), staged-view rollback. |
 | `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |
@@ -30,7 +31,7 @@ failure handling in `failure/README.md`.
 sequenceDiagram
   participant Source as Link / provider / router.navigate
   participant Engine as AuraRoutingEngine
-  participant Match as resolveNavigationTarget
+  participant Redirect as resolveRedirectChain
   participant Coord as NavigationCoordinator
   participant Tx as NavigationTransaction
   participant Pipeline as NavigationTransactionPipeline
@@ -38,12 +39,11 @@ sequenceDiagram
 
   Source->>Engine: navigateTo(href, action, options)
   Engine->>Engine: normalize href, hash-only shortcut
-  Engine->>Match: resolveNavigationTarget(href, matchableNodes)
-  alt no match
-    Engine->>Engine: runNotFoundExitCleanup + finalizeNotFoundNavigation
-    Engine->>History: apply history policy
-  else matched
-    Engine->>Coord: run({ from, to, href, action, options })
+  Engine->>Coord: navigate(href, action, options)
+  Coord->>Redirect: resolveRedirectChain(href, matchableNodes)
+  alt no match / redirect error
+    Coord-->>Engine: return
+  else resolved target
     Coord->>Coord: plan() — noop / cancel-pending / run
     alt noop / cancel pending
       Coord-->>Engine: return

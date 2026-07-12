@@ -105,7 +105,7 @@ export interface NavigationTransactionOptions {
   hash: string;
   /** Provider-specific history options (scroll, state, etc.). */
   options: NavigateHistoryOptions;
-  /** Blocking phases already completed during {@link ../redirect/redirect-resolver!resolveRedirectChain}. */
+  /** Blocking phases already completed during {@link ../redirect/navigation-chain!resolveRedirectChain}. */
   completedBlockingPhases?: CompletedBlockingPhases;
 }
 

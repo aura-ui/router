@@ -3,8 +3,8 @@ export {
   MAX_REDIRECTION_STEPS,
   createRedirectionContext,
   navigationVisitKey,
-  resolveDeclarativeTarget,
-  resolveRedirectChain,
+  followDeclarativeRedirects,
+  followRedirectsWithBlockingPhases,
 } from './redirect-resolver';
 export type { RedirectionContext, RedirectResolverContext, RedirectResolveResult } from './redirect-resolver';
 export type {

@@ -89,7 +89,7 @@ export class NavigationTransactionPipeline {
 
   /**
    * Blocking pre-commit probe — leave, guard, load only.
-   * Used by {@link ../redirect/redirect-resolver!resolveRedirectChain} to detect hook redirects
+   * Used by {@link ../redirect/redirect-resolver!followRedirectsWithBlockingPhases} to detect hook redirects
    * before view commit.
    */
   async runBlockingPhases(): Promise<PipelineStepResult> {

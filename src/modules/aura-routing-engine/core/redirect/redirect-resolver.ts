@@ -114,7 +114,7 @@ function toRedirectError(error: RedirectStepError): Extract<RedirectResolveResul
  * Used by prefetch and any caller that needs a final leaf without running the navigation pipeline.
  * Redirect targets are path-only; `search` / `hash` from the original request are kept on the leaf.
  */
-export function resolveDeclarativeTarget(
+export function followDeclarativeRedirects(
   matcher: Matcher,
   href: string | ResolvedDocumentHref,
   nodes: readonly RouteNode[],
@@ -147,7 +147,7 @@ export function resolveDeclarativeTarget(
  * Pre-commit redirect resolution: declarative attr steps + blocking hooks (leave/guard/load)
  * without render. Returns the final navigation target for one full pipeline run.
  */
-export async function resolveRedirectChain(
+export async function followRedirectsWithBlockingPhases(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
 ): Promise<RedirectResolveResult> {

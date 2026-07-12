@@ -105,14 +105,7 @@ export interface NavigationTransactionOptions {
   hash: string;
   /** Provider-specific history options (scroll, state, etc.). */
   options: NavigateHistoryOptions;
-  /** Blocking phases already completed during {@link ../redirect/redirect-resolver!followRedirectsWithBlockingPhases}. */
-  completedBlockingPhases?: CompletedBlockingPhases;
 }
-
-/** Leave/guard/load already ran during redirect probe — skip duplicate blocking in full pipeline. */
-export type CompletedBlockingPhases = {
-  dataSnapshot?: DataSnapshot;
-};
 
 // --- Pipeline policy ---
 

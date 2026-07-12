@@ -1,8 +1,8 @@
 # redirect
 
-Модуль **pre-commit** разрешения редиректов: обход цепочки declarative `redirect` на маршрутах и (опционально) redirect из blocking-хуков (`leave` / `guard` / `load`) **до** commit history и render.
+Модуль **pre-commit** разрешения редиректов: обход цепочки declarative `redirect` на маршрутах и guard-only walk для hook-redirect **до** commit history и render.
 
-Redirect resolution не меняет DOM и не пишет в history — только вычисляет финальный leaf (`MatchedNavigationTarget`) и политику `replace` / `completedBlockingPhases` для последующего `NavigationCoordinator.navigate`.
+Redirect resolution не меняет DOM и не пишет в history — только вычисляет финальный leaf (`MatchedNavigationTarget`) и политику `replace` для последующего `NavigationCoordinator.run` (полный `leave → guard → load` в pipeline).
 
 Синхронный путь (`followDeclarativeRedirects`) используется в prefetch и диагностике. Полный путь (`followRedirectsWithBlockingPhases`) — в [`navigation/navigation-coordinator.ts`](../navigation/navigation-coordinator.ts).
 
@@ -77,7 +77,6 @@ if (result.status === 'resolved') {
     hash: result.target.hash,
     action: 'push',
     options: { ...navigateOptions, replace: result.replace },
-    completedBlockingPhases: result.completedBlockingPhases,
   });
 }
 ```
@@ -91,7 +90,7 @@ if (result.status === 'resolved') {
 | Функция | Режим | Hooks | Потребитель |
 |---------|-------|-------|-------------|
 | `followDeclarativeRedirects` | sync | нет | `PrefetchPlanResolver`, тесты, диагностика |
-| `followRedirectsWithBlockingPhases` | async | leave / guard / load | `NavigationCoordinator.navigate` |
+| `followRedirectsWithBlockingPhases` | async | guard walk (hook redirect) | `NavigationCoordinator.navigate` |
 
 Обе функции:
 
@@ -100,14 +99,14 @@ if (result.status === 'resolved') {
 - на каждом шаге вызывают `lookupNavigationStep`;
 - сохраняют `search` / `hash` исходного запроса на финальном leaf.
 
-Разница: async-путь после leaf-match запускает **probe** `NavigationTransaction.runBlockingPhases` и может получить **hook-redirect** на следующий href.
+Разница: async-путь после leaf-match запускает **guard-only probe** для hook-redirect; `leave → guard → load` выполняет **full pipeline** в `coordinator.run`.
 
 ### Два источника redirect-hop
 
 | Источник | Когда | Откуда `nextHref` |
 |----------|-------|-------------------|
 | Declarative | `lookupNavigationStep` → `kind: 'redirect'` | атрибут `redirect` на узле дерева |
-| Hook | `runTransactionBlockingPhases` → `done: false` | `leave` / `guard` / `load` вернули redirect |
+| Hook | `runGuardWalkProbe` → `done: false` | `guard` вернул redirect |
 
 Оба источника сходятся в `tryApplyRedirectStep` (depth + cycle + обновление `RedirectionContext`).
 
@@ -117,7 +116,7 @@ if (result.status === 'resolved') {
 |---------|-----|-------|
 | Один href | `NavigationMatchStep \| null` | leaf, declarative hop или нет маршрута |
 | Вся цепочка (sync) | `DeclarativeRedirectOutcome` | `status: resolved \| unmatched \| redirect-error` |
-| Вся цепочка (async) | `RedirectResolveResult` | + `terminal`, `replace`, `completedBlockingPhases` |
+| Вся цепочка (async) | `RedirectResolveResult` | + `terminal`, `replace` |
 
 `MatchedNavigationTarget` — leaf с тегом `kind: 'matched'` и флагом `viaRedirect` (см. ниже).
 
@@ -142,7 +141,7 @@ createRedirectionContext
 │       ├─ kind: redirect ────► tryApplyRedirectStep ──► continue     │
 │       │                                                             │
 │       └─ kind: matched ─────► [sync: return resolved]               │
-│                               [async: runTransactionBlockingPhases]   │
+│                               [async: runGuardWalkProbe]              │
 │                                     │                               │
 │                                     ├─ hook redirect ─► tryApply…     │
 │                                     ├─ terminal ─────► stop           │
@@ -166,14 +165,15 @@ Hooks **не** запускаются. Подходит, когда нужен �
 ```text
 lookupNavigationStep
   ├─ redirect attr ──► tryApplyRedirectStep ──► next iteration
-  └─ leaf ─────────► runTransactionBlockingPhases (probe transaction)
+  └─ leaf ─────────► runGuardWalkProbe (guard only)
                         │
-                        ├─ hook redirect ──► tryApplyRedirectStep ──► next iteration
+                        ├─ hook redirect ──► tryApplyRedirectStep ──► next
                         ├─ cancel / error ─► { status: 'terminal', probe }
-                        └─ ok ─────────────► { status: 'resolved', completedBlockingPhases }
+                        └─ ok ─────────────► { status: 'resolved' }
+                                             └─► coordinator.run → leave → guard → load
 ```
 
-Probe — `NavigationTransaction` с id `0` / `0`, вызывает [`runBlockingPhases`](../navigation/navigation-transaction-pipeline.ts) (leave → guard → load), **без** commit history и render.
+Probe — `NavigationTransaction` с id `0` / `0`, **только guard** на candidate leaf (без leave/load/render). Полный blocking — в [`runFullPipeline`](../navigation/navigation-transaction-pipeline.ts).
 
 ---
 
@@ -188,7 +188,7 @@ Probe — `NavigationTransaction` с id `0` / `0`, вызывает [`runBlockin
 | Match step | `lookupNavigationStep`, `resolveRedirectHref` |
 | Types | `DeclarativeRedirectOutcome`, `RedirectResolveResult`, `RedirectErrorOutcome`, `RedirectionContext`, `RedirectResolverContext`, `RedirectMatcher`, `MatchedNavigationTarget`, `NavigationMatchStep` |
 
-**Не в barrel** (внутренние): `tryApplyRedirectStep`, `applyRedirectArrivalFlag`, `runTransactionBlockingPhases`, `RedirectChainInput`, `BlockingPhasesProbeOutcome`.
+**Не в barrel** (внутренние): `tryApplyRedirectStep`, `applyRedirectArrivalFlag`, `runGuardWalkProbe`, `RedirectChainInput`, `BlockingPhasesProbeOutcome`.
 
 ---
 
@@ -208,7 +208,7 @@ Probe — `NavigationTransaction` с id `0` / `0`, вызывает [`runBlockin
 
 | `status` | Значение |
 |----------|----------|
-| `resolved` | Финальный `target`; `replace` — нужен ли `history.replace`; `completedBlockingPhases` — маркер «blocking probe уже был» (даже `{}` без `dataSnapshot`); при наличии `dataSnapshot` full pipeline подставляет snapshot и **пропускает** leave/guard/load |
+| `resolved` | Финальный `target`; `replace` — нужен ли `history.replace`; blocking phases — в full pipeline |
 | `unmatched` | Как в sync |
 | `redirect-error` | Как в sync |
 | `terminal` | Hook short-circuit: `cancelled`, `error`, и т.д.; `probe` — probe-транзакция для finalize |
@@ -224,7 +224,7 @@ if (chain.status === 'resolved') {
     ...options,
     replace: chain.replace || chain.target.viaRedirect || slashFix || options.replace,
   };
-  await run({ to: chain.target, completedBlockingPhases: chain.completedBlockingPhases, ... });
+  await run({ to: chain.target, ... });
 }
 ```
 
@@ -320,22 +320,21 @@ stripTrailingSlash(resolveDocumentHrefParts(href).pathname)
 
 ## Blocking probe
 
-`runTransactionBlockingPhases` (private) — один probe на candidate leaf:
+`runGuardWalkProbe` (private) — guard-only probe на candidate leaf:
 
 ```text
 new NavigationTransaction(0, 0, { from, to: target, ... })
   │
   ▼
-probe.runBlockingPhases()   // leave → guard → load
+probe.runGuardProbe()
   │
   ├─ { status: 'redirect', url } ──► done: false, href: url
-  │                                    (+ historyReplace из hook / pop)
   ├─ другой terminal ────────────────► done: true, status: 'terminal'
-  └─ null (успех) ───────────────────► done: true, status: 'resolved'
-                                         + completedBlockingPhases
+  └─ null ───────────────────────────► done: true, status: 'resolved'
+                                       └─► coordinator.run → runFullPipeline
 ```
 
-`completedBlockingPhases` всегда передаётся при успешном probe (минимум `{}`). В [`runFullPipeline`](../navigation/navigation-transaction-pipeline.ts) любое значение ≠ `undefined` через `applyCompletedBlockingPhases()` **пропускает** повторный `runGuards` + `runLoads`; `dataSnapshot` при этом копируется на транзакцию, если был собран на probe.
+`leave → guard → load` выполняется **только** в full pipeline после resolve, не в probe.
 
 ---
 
@@ -389,9 +388,9 @@ AuraRoutingEngine.navigateTo
   └─ NavigationCoordinator.navigate
         ├─ followRedirectsWithBlockingPhases
         │     ├─ lookupNavigationStep (match-step)
-        │     └─ NavigationTransaction.runBlockingPhases (probe)
+        │     └─ NavigationTransaction.runGuardProbe (guard walk)
         ├─ plan() — noop / cancel-pending / run
-        └─ coordinator.run (full pipeline, с completedBlockingPhases)
+        └─ coordinator.run → runFullPipeline (leave → guard → load)
 
 PrefetchPlanResolver.resolve
   └─ followDeclarativeRedirects
@@ -430,7 +429,7 @@ redirect/
 ## См. также
 
 - [`navigation/`](../navigation) — coordinator, full pipeline после redirect resolve
-- [`navigation/navigation-transaction-pipeline.ts`](../navigation/navigation-transaction-pipeline.ts) — `runBlockingPhases`, `runFullPipeline`
+- [`navigation/navigation-transaction-pipeline.ts`](../navigation/navigation-transaction-pipeline.ts) — `runGuardProbe`, `runFullPipeline`
 - [`prefetch/`](../prefetch) — `PrefetchPlanResolver` и sync redirect lookup
 - [`match/url-matcher.ts`](../match/url-matcher.ts) — `MatchedRouteInfo`, matcher
 - [`guard.types.ts`](../guard.types.ts) — контракт redirect из blocking hooks

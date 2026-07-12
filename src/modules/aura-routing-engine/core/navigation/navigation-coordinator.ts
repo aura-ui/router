@@ -115,7 +115,6 @@ export class NavigationCoordinator {
         href: found.href,
         hash: found.hash,
         options: historyOptions,
-        completedBlockingPhases: chain.completedBlockingPhases,
       });
     } finally {
       this.settleNavigation(attempt);

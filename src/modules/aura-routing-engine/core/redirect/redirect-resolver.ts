@@ -150,7 +150,7 @@ export async function followRedirectsWithBlockingPhases(
       continue;
     }
 
-    const blockingOutcome = await runTransactionBlockingPhases(
+    const blockingOutcome = await runGuardWalkProbe(
       resolverCtx,
       input,
       applyRedirectArrivalFlag(redirection, matchStep),
@@ -170,10 +170,9 @@ export async function followRedirectsWithBlockingPhases(
 }
 
 /**
- * Runs leave → guard → load on a probe {@link NavigationTransaction} for one candidate leaf.
- * Does not commit history or render views.
+ * Guard-only probe on one candidate leaf during redirect walk (no leave/load/render).
  */
-async function runTransactionBlockingPhases(
+async function runGuardWalkProbe(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
   target: MatchedNavigationTarget,
@@ -194,15 +193,15 @@ async function runTransactionBlockingPhases(
     resolverCtx.engine,
   );
 
-  const probeResult = await probe.runBlockingPhases();
+  const walkResult = await probe.runGuardPhase();
 
-  if (probeResult?.status === 'redirect') {
-    redirection.historyReplace = redirection.historyReplace || (probeResult.replace ?? input.action === 'pop');
-    return { done: false, href: probeResult.url };
+  if (walkResult?.status === 'redirect') {
+    redirection.historyReplace = redirection.historyReplace || (walkResult.replace ?? input.action === 'pop');
+    return { done: false, href: walkResult.url };
   }
 
-  if (probeResult) {
-    return { done: true, result: { status: 'terminal', result: probeResult, probe } };
+  if (walkResult) {
+    return { done: true, result: { status: 'terminal', result: walkResult, probe } };
   }
 
   return {
@@ -211,9 +210,6 @@ async function runTransactionBlockingPhases(
       status: 'resolved',
       target,
       replace: redirection.historyReplace || target.viaRedirect,
-      completedBlockingPhases: {
-        ...(probe.dataSnapshot && { dataSnapshot: probe.dataSnapshot }),
-      },
     },
   };
 }

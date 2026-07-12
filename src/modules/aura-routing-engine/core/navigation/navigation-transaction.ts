@@ -102,7 +102,7 @@ export class NavigationTransaction {
     });
   }
 
-  /** Pre-commit probe for {@link ../redirect/navigation-chain!resolveRedirectChain} — no render. */
+  /** Pre-commit probe for {@link ../redirect/redirect-resolver!resolveRedirectChain} — no render. */
   async runBlockingProbe(): Promise<PipelineStepResult> {
     this.transitionPlan = buildTransitionPlan(this.from, this.to);
     this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;

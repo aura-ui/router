@@ -16,7 +16,7 @@ failure handling in `failure/README.md`.
 | `hooks/` | Global hook registry, `resolve-hook-names`, `normalizeHookResult`, hook result normalization. |
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, `TransitionMap`, `canUseFastPath`. |
 | `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`. |
-| `redirect/` | Declarative redirect hops (`resolveDeclarativeTarget`), pre-commit hook redirects (`resolveRedirectChain`). |
+| `redirect/` | Declarative redirect hops (`resolveDeclarativeTarget`), pre-commit hook redirects (`resolveRedirectChain`). See `redirect/README.md`. |
 | `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
 | `view-mount/` | View staging/commit tracking, per-route render (`view-commit-render`), atomic branch resolve/mount (`branch-resolver`, `branch-mount`), staged-view rollback. |
 | `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |

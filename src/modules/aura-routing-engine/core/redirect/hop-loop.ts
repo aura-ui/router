@@ -1,13 +1,15 @@
-import { resolveDocumentHrefParts, type ResolvedDocumentHref } from '../../../aura-utils/misc/url';
+import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
+import type { ResolvedDocumentHref } from '../../../aura-utils/misc/url';
 import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
 import type { RouteNode } from '../route-tree/route-node.types';
-import { advanceRedirectHop, MAX_REDIRECT_HOPS, navigationVisitKey } from './hop';
-import { matchNavigationStep } from './match-step';
+import { matchNavigationStep } from './match-hop';
 import type {
   DeclarativeTargetResolve,
   MatchedNavigationTarget,
   RedirectHopError,
 } from './types';
+
+export const MAX_REDIRECT_HOPS = 5;
 
 /** Terminal hop-loop outcomes other than a successful leaf match. */
 export type RedirectHopTerminal = Exclude<DeclarativeTargetResolve, MatchedNavigationTarget>;
@@ -21,6 +23,29 @@ type RedirectHopState = {
   viaRedirect: boolean;
   readonly visited: Set<string>;
 };
+
+/** Normalized pathname key for redirect cycle detection (`/a` and `/a/` → same key). */
+export function navigationVisitKey(href: string): string {
+  return stripTrailingSlash(resolveDocumentHrefParts(href).pathname);
+}
+
+/** Validates and records one redirect hop (declarative or hook). */
+export function advanceRedirectHop(
+  visited: Set<string>,
+  nextHref: string,
+  hop: number,
+  currentHref: string,
+): { href: string } | RedirectHopError {
+  if (hop >= MAX_REDIRECT_HOPS) {
+    return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: currentHref };
+  }
+  const nextKey = navigationVisitKey(nextHref);
+  if (visited.has(nextKey)) {
+    return { kind: 'redirect-error', code: 'redirect-cycle', href: nextHref };
+  }
+  visited.add(nextKey);
+  return { href: nextHref };
+}
 
 function createRedirectHopState(href: string | ResolvedDocumentHref): RedirectHopState {
   const initial = typeof href === 'string' ? resolveDocumentHrefParts(href) : href;
@@ -147,12 +172,10 @@ export async function followNavigationRedirectHops<T>(
   return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: state.currentHref };
 }
 
-function isDeclarativeTerminal(outcome: unknown): outcome is RedirectHopTerminal {
+export function isDeclarativeTerminal(outcome: unknown): outcome is RedirectHopTerminal {
   return typeof outcome === 'object'
     && outcome !== null
     && 'kind' in outcome
     && ((outcome as DeclarativeTargetResolve).kind === 'unmatched'
       || (outcome as DeclarativeTargetResolve).kind === 'redirect-error');
 }
-
-export { isDeclarativeTerminal };

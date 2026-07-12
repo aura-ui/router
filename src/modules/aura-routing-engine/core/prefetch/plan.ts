@@ -1,4 +1,4 @@
-import { resolveDeclarativeTarget } from '../redirect/declarative-chain';
+import { resolveDeclarativeTarget } from '../redirect/redirect-resolver';
 import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-matcher';
 import { buildTransitionPlan } from '../route-tree/transition-plan';
 import type { RouteNode } from '../route-tree/route-node.types';

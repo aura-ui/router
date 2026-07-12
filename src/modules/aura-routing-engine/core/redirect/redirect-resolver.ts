@@ -1,3 +1,4 @@
+import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import type { ResolvedDocumentHref } from '../../../aura-utils/misc/url';
 import type { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
@@ -5,14 +6,18 @@ import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-match
 import { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { CompletedBlockingPhases, PipelineStepResult } from '../navigation/types';
 import type { RouteNode } from '../route-tree/route-node.types';
-import {
-  createHopContext,
-  followDeclarativeRedirectHops,
-  followRedirectHopsWithHooks,
-  isHopLoopTerminal,
-  type HopContext,
-} from './hop-loop';
-import type { DeclarativeTargetResolve, MatchedNavigationTarget } from './types';
+import { matchNavigationStep } from './match-hop';
+import type { DeclarativeTargetResolve, MatchedNavigationTarget, RedirectHopError } from './types';
+
+export const MAX_REDIRECT_HOPS = 5;
+
+export type HopContext = {
+  readonly initial: ResolvedDocumentHref;
+  currentHref: string;
+  readonly visited: Set<string>;
+  viaRedirect: boolean;
+  replace: boolean;
+};
 
 export type RedirectResolveResult =
   | {
@@ -44,6 +49,95 @@ type RedirectChainInput = {
   readonly options: NavigateHistoryOptions;
 };
 
+type Matcher = Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
+
+type HookRedirect = { readonly kind: 'redirect'; readonly href: string };
+
+function isHookRedirect(
+  outcome: RedirectResolveResult | HookRedirect,
+): outcome is HookRedirect {
+  return 'kind' in outcome && outcome.kind === 'redirect';
+}
+
+
+/** Normalized pathname key for redirect cycle detection (`/a` and `/a/` → same key). */
+export function navigationVisitKey(href: string): string {
+  return stripTrailingSlash(resolveDocumentHrefParts(href).pathname);
+}
+
+export function createHopContext(
+  href: string | ResolvedDocumentHref,
+  replace = false,
+): HopContext {
+  const initial = typeof href === 'string' ? resolveDocumentHrefParts(href) : href;
+  return {
+    initial,
+    currentHref: initial.href,
+    visited: new Set([navigationVisitKey(initial.href)]),
+    viaRedirect: false,
+    replace,
+  };
+}
+
+/** Validates depth/cycle guards and records one redirect visit (does not mutate hop state). */
+export function validateRedirectHop(
+  visited: Set<string>,
+  nextHref: string,
+  hop: number,
+  currentHref: string,
+): { href: string } | RedirectHopError {
+  if (hop >= MAX_REDIRECT_HOPS) {
+    return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: currentHref };
+  }
+  const nextKey = navigationVisitKey(nextHref);
+  if (visited.has(nextKey)) {
+    return { kind: 'redirect-error', code: 'redirect-cycle', href: nextHref };
+  }
+  visited.add(nextKey);
+  return { href: nextHref };
+}
+
+function applyRedirectHop(
+  hopState: HopContext,
+  nextHref: string,
+  hop: number,
+): RedirectHopError | null {
+  const next = validateRedirectHop(hopState.visited, nextHref, hop, hopState.currentHref);
+  if ('kind' in next) return next;
+  hopState.currentHref = next.href;
+  hopState.viaRedirect = true;
+  return null;
+}
+
+function withViaRedirect(
+  hopState: HopContext,
+  step: MatchedNavigationTarget,
+): MatchedNavigationTarget {
+  return hopState.viaRedirect || step.viaRedirect ? { ...step, viaRedirect: true } : step;
+}
+
+function matchAt(
+  hopState: HopContext,
+  matcher: Matcher,
+  nodes: readonly RouteNode[],
+) {
+  return matchNavigationStep(
+    matcher,
+    hopState.currentHref,
+    nodes,
+    hopState.initial.search,
+    hopState.initial.hash,
+  );
+}
+
+function depthExceeded(hopState: HopContext): RedirectHopError {
+  return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: hopState.currentHref };
+}
+
+function toRedirectError(error: RedirectHopError): Extract<RedirectResolveResult, { status: 'redirect-error' }> {
+  return { status: 'redirect-error', code: error.code, href: error.href };
+}
+
 /**
  * Sync target resolution — declarative `redirect` attr hops only (no hooks).
  *
@@ -51,16 +145,26 @@ type RedirectChainInput = {
  * Redirect targets are path-only; `search` / `hash` from the original request are kept on the leaf.
  */
 export function resolveDeclarativeTarget(
-  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
+  matcher: Matcher,
   href: string | ResolvedDocumentHref,
   nodes: readonly RouteNode[],
 ): DeclarativeTargetResolve {
-  return followDeclarativeRedirectHops(
-    matcher,
-    href,
-    nodes,
-    (target: MatchedNavigationTarget) => target,
-  );
+  const hopState = createHopContext(href);
+
+  for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+    const step = matchAt(hopState, matcher, nodes);
+    if (!step) return { kind: 'unmatched' };
+
+    if (step.kind === 'redirect') {
+      const error = applyRedirectHop(hopState, step.href, hop);
+      if (error) return error;
+      continue;
+    }
+
+    return withViaRedirect(hopState, step);
+  }
+
+  return depthExceeded(hopState);
 }
 
 /**
@@ -73,19 +177,33 @@ export async function resolveRedirectChain(
 ): Promise<RedirectResolveResult> {
   const hopState = createHopContext(input.href, input.options.replace ?? false);
 
-  const outcome = await followRedirectHopsWithHooks<RedirectResolveResult>(
-    hopState,
-    resolverCtx.matcher,
-    resolverCtx.getMatchableNodes(),
-    (target) => resolveMatchedHop(resolverCtx, input, target, hopState),
-  );
+  for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+    const step = matchAt(hopState, resolverCtx.matcher, resolverCtx.getMatchableNodes());
+    if (!step) return { status: 'unmatched' };
 
-  if (isHopLoopTerminal(outcome)) {
-    if (outcome.kind === 'unmatched') return { status: 'unmatched' };
-    return { status: 'redirect-error', code: outcome.code, href: outcome.href };
+    if (step.kind === 'redirect') {
+      const error = applyRedirectHop(hopState, step.href, hop);
+      if (error) return toRedirectError(error);
+      continue;
+    }
+
+    const outcome = await resolveMatchedHop(
+      resolverCtx,
+      input,
+      withViaRedirect(hopState, step),
+      hopState,
+    );
+
+    if (isHookRedirect(outcome)) {
+      const error = applyRedirectHop(hopState, outcome.href, hop);
+      if (error) return toRedirectError(error);
+      continue;
+    }
+
+    return outcome;
   }
 
-  return outcome;
+  return toRedirectError(depthExceeded(hopState));
 }
 
 async function resolveMatchedHop(
@@ -93,7 +211,7 @@ async function resolveMatchedHop(
   input: RedirectChainInput,
   target: MatchedNavigationTarget,
   hopState: HopContext,
-): Promise<RedirectResolveResult | { kind: 'redirect'; href: string }> {
+): Promise<RedirectResolveResult | HookRedirect> {
   const probe = new NavigationTransaction(
     0,
     0,

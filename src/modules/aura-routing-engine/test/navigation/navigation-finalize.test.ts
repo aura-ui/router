@@ -1,7 +1,7 @@
 import { FailedNavigation } from '../../core/failure';
 import {
   applyTransactionHistory,
-  finalizeNotFoundNavigation,
+  finalizePreMatchFailureNavigation,
 } from '../../core/navigation/navigation-finalize';
 import type { TransactionResult } from '../../core/navigation/types';
 
@@ -23,10 +23,10 @@ describe('navigation/navigation-finalize', () => {
     expect(provider.commit).toHaveBeenCalledWith('/to', { replace: false, syncHistory: true });
   });
 
-  it('finalizeNotFoundNavigation runs callbacks and commits on push', () => {
+  it('finalizePreMatchFailureNavigation runs NOT_FOUND callbacks and commits on push', () => {
     const failure = FailedNavigation.notFound('/missing', null, 'push');
 
-    const effects = finalizeNotFoundNavigation(
+    const effects = finalizePreMatchFailureNavigation(
       failure,
       'push',
       '/missing',
@@ -40,5 +40,24 @@ describe('navigation/navigation-finalize', () => {
     expect(failureDeps.notFoundHandler).toHaveBeenCalledWith('/missing');
     expect(provider.commit).toHaveBeenCalled();
     expect(effects).toEqual({ setPrev: null });
+  });
+
+  it('finalizePreMatchFailureNavigation routes redirect errors to onNavigationError', () => {
+    const failure = FailedNavigation.redirectError('redirect-cycle', '/a', null, 'push');
+
+    const effects = finalizePreMatchFailureNavigation(
+      failure,
+      'push',
+      '/a',
+      null,
+      { replace: false, syncHistory: true },
+      provider,
+      failureDeps,
+    );
+
+    expect(failureDeps.onNavigationError).toHaveBeenCalledWith(failure);
+    expect(failureDeps.onNotFound).not.toHaveBeenCalled();
+    expect(provider.commit).not.toHaveBeenCalled();
+    expect(effects).toEqual({});
   });
 });

@@ -62,6 +62,12 @@ describe('resolveHistoryPolicy', () => {
       'preserve',
     ],
     [
+      'error REDIRECT_CYCLE push',
+      { status: 'error', failure: FailedNavigation.redirectError('redirect-cycle', '/a', null, 'push') },
+      'push',
+      'preserve',
+    ],
+    [
       'redirect',
       { status: 'redirect', url: '/login' } satisfies TransactionResult,
       'push',

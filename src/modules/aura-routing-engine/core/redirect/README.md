@@ -22,7 +22,7 @@ href
   ▼
 matchNavigationStep          ← match-hop.ts
   │
-  ├─ redirect attr ──► continueRedirectHop (cycle / depth) ──► next hop
+  ├─ redirect attr ──► applyRedirectHop (cycle / depth) ──► next hop
   │
   └─ leaf match ──► onMatched callback
                       │

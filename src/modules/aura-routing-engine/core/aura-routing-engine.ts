@@ -19,12 +19,12 @@ import type {
   NavigationProvider,
 } from './history/provider.types';
 import { runNotFoundExitCleanup } from './navigation/not-found-exit-cleanup';
-import { resolveNavigationTarget } from './match/resolve-navigation-target';
 import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './match/url-matcher';
 import { NavigationCoordinator } from './navigation/navigation-coordinator';
+import type { NavigationHost } from './navigation/navigation-host';
 import {
   applyTransactionHistory,
   finalizeNotFoundNavigation,
@@ -51,7 +51,7 @@ import { DataGraph } from './data-graph';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
-import type { TransactionResult } from './navigation/types';
+import type { PipelineStepResult, TransactionResult } from './navigation/types';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -84,9 +84,9 @@ export interface AuraRoutingEngineConfig {
   prefetch?: false | PrefetchConfig;
 }
 
-export class AuraRoutingEngine {
+export class AuraRoutingEngine implements NavigationHost {
   private readonly registry = new AuraRoutingRouteRegistry();
-  private readonly matcher = new AuraRoutingUrlMatcher();
+  readonly matcher = new AuraRoutingUrlMatcher();
   private readonly provider: NavigationProvider;
   private readonly config: AuraRoutingEngineConfig;
 
@@ -102,6 +102,11 @@ export class AuraRoutingEngine {
   readonly dataGraph: DataGraph;
 
   private readonly navigationCoordinator: NavigationCoordinator;
+
+  /** {@link NavigationHost.engine} — probe transactions and pipeline need `this`. */
+  get engine(): AuraRoutingEngine {
+    return this;
+  }
 
   constructor(
     router: RouterInstance,
@@ -266,62 +271,63 @@ export class AuraRoutingEngine {
       return;
     }
 
-    const target = resolveNavigationTarget(
-      this.matcher,
-      resolved,
-      this.registry.getMatchableNodes(),
-    );
+    await this.navigationCoordinator.navigate(href, action, options);
+  }
 
-    if (target.kind === 'redirect-error') {
-      console.error(
-        `[aura-router] Navigation redirect failed (${target.code}): ${target.href}`,
-      );
-      return;
-    }
+  getCommittedRoute(): MatchedRouteInfo | null {
+    return this.prev;
+  }
 
-    if (target.kind === 'unmatched') {
-      runNotFoundExitCleanup({
-        from: this.prev,
-        action,
-        router: this.router,
-      });
-      const failure = FailedNavigation.notFound(resolved.href, this.prev, action);
-      this.applyFinalizeEffects(
-        finalizeNotFoundNavigation(
-          failure,
-          action,
-          resolved.href,
-          this.prev?.href ?? null,
-          options,
-          this.provider,
-          this.failureDeps(),
-        ),
-      );
-      return;
-    }
+  getMatchableNodes() {
+    return this.registry.getMatchableNodes();
+  }
 
-    const found = target;
-    const slashFix = found.href !== resolved.href;
-    const historyOptions: NavigateHistoryOptions = {
-      ...options,
-      replace: found.viaRedirect || slashFix || options.replace,
-    };
+  commitPopSlashFix(href: string): void {
+    this.provider.commit(href, { replace: true, syncHistory: true });
+  }
 
-    if (slashFix && !historyOptions.syncHistory && (action === 'system' || action === 'pop')) {
-      this.provider.commit(found.href, { replace: true, syncHistory: true });
-    }
-
-    const to = found.leaf;
-
-    const from = this.prev;
-    await this.navigationCoordinator.run({
-      from,
-      to,
+  handleUnmatchedNavigation(
+    requestedHref: string,
+    action: HistoryAction,
+    options: NavigateHistoryOptions,
+  ): void {
+    runNotFoundExitCleanup({
+      from: this.prev,
       action,
-      href: found.href,
-      hash: found.hash,
-      options: historyOptions,
+      router: this.router,
     });
+    const failure = FailedNavigation.notFound(requestedHref, this.prev, action);
+    this.applyFinalizeEffects(
+      finalizeNotFoundNavigation(
+        failure,
+        action,
+        requestedHref,
+        this.prev?.href ?? null,
+        options,
+        this.provider,
+        this.failureDeps(),
+      ),
+    );
+  }
+
+  /** Terminal outcome from pre-commit redirect resolution (before pipeline run). */
+  finalizeResolveTerminal(
+    result: Exclude<PipelineStepResult, null>,
+    probe: NavigationTransaction,
+  ): void {
+    if (!this.isRunning) return;
+
+    if (result.status === 'cancelled') {
+      this.finalizeCancelled(probe);
+      return;
+    }
+    if (result.status === 'redirect') {
+      this.applyRedirect(result, probe);
+      return;
+    }
+    if (result.status === 'error') {
+      this.finalizeError(result, probe);
+    }
   }
 
   private failureDeps(): CompleteFailureDeps {

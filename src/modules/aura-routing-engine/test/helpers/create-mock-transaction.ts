@@ -3,6 +3,7 @@ import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { NavigationHost } from '../../core/navigation/navigation-host';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
@@ -35,10 +36,20 @@ export function createMockEngine(): AuraRoutingEngine {
   } as unknown as AuraRoutingEngine;
 }
 
-export function createCoordinatorMockEngine(): AuraRoutingEngine {
+export function createCoordinatorMockHost(): NavigationHost & {
+  finalizeCancelled: jest.Mock;
+  applyRedirect: jest.Mock;
+  finalizeError: jest.Mock;
+} {
   const hookRegistry = new HookRegistry();
-  return {
+  const host = {
     isRunning: true,
+    matcher: { matchPath: jest.fn(), toRouteInfo: jest.fn() },
+    getCommittedRoute: jest.fn().mockReturnValue(null),
+    getMatchableNodes: jest.fn().mockReturnValue([]),
+    commitPopSlashFix: jest.fn(),
+    finalizeResolveTerminal: jest.fn(),
+    handleUnmatchedNavigation: jest.fn(),
     commitNavigation: jest.fn(),
     finalizeCancelled: jest.fn(),
     applyRedirect: jest.fn(),
@@ -47,7 +58,14 @@ export function createCoordinatorMockEngine(): AuraRoutingEngine {
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
     reportNavigationHookError: jest.fn(),
-  } as unknown as AuraRoutingEngine;
+    engine: null as unknown as AuraRoutingEngine,
+  };
+  host.engine = host as unknown as AuraRoutingEngine;
+  return host as NavigationHost & {
+    finalizeCancelled: jest.Mock;
+    applyRedirect: jest.Mock;
+    finalizeError: jest.Mock;
+  };
 }
 
 export function createPairTransaction(options: {
@@ -56,7 +74,7 @@ export function createPairTransaction(options: {
   isTransactionStale?: () => boolean;
   transitionOrder?: TransitionOrderType | null;
 }): NavigationTransaction {
-  const engine = createCoordinatorMockEngine();
+  const engine = createCoordinatorMockHost() as unknown as AuraRoutingEngine;
   const transaction = new NavigationTransaction(
     1,
     0,

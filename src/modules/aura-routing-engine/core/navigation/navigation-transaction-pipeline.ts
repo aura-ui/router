@@ -70,14 +70,33 @@ export class NavigationTransactionPipeline {
    * @returns first terminal step result (`error`, `redirect`, `cancelled`), or `navigationSucceeded` when all steps return `null`
    */
   async runFullPipeline(): Promise<PipelineStepResult> {
-    const stepResult = await this.runSequentially([
-      () => this.runGuards(),
-      () => this.runLoads(),
+    const blockingPhasesCompleted = this.applyCompletedBlockingPhases();
+    const steps: PipelineStep[] = [];
+
+    if (!blockingPhasesCompleted) {
+      steps.push(() => this.runGuards(), () => this.runLoads());
+    }
+
+    steps.push(
       () => this.runCommitHistory(),
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
-    ]);
+    );
+
+    const stepResult = await this.runSequentially(steps);
     return stepResult ?? { status: 'navigationSucceeded' };
+  }
+
+  /**
+   * Blocking pre-commit probe — leave, guard, load only.
+   * Used by {@link ../redirect/redirect-resolver!resolveRedirectChain} to detect hook redirects
+   * before view commit.
+   */
+  async runBlockingOnly(): Promise<PipelineStepResult> {
+    return await this.runSequentially([
+      () => this.runGuards(),
+      () => this.runLoads(),
+    ]);
   }
 
   /**
@@ -124,11 +143,18 @@ export class NavigationTransactionPipeline {
    * @returns terminal result from loads/update (`error`, `redirect`, `cancelled`), or `navigationSucceeded`
    */
   async runUpdate(): Promise<PipelineStepResult> {
-    const stepResult = await this.runSequentially([
-      () => this.runLoads(),
+    const steps: PipelineStep[] = [];
+
+    if (!this.applyCompletedBlockingPhases()) {
+      steps.push(() => this.runLoads());
+    }
+
+    steps.push(
       () => this.runCommitHistory(),
       () => this.runLifecyclePhase(PHASES.update),
-    ]);
+    );
+
+    const stepResult = await this.runSequentially(steps);
     if (stepResult) return stepResult;
 
     if (!this.transaction.isActive()) {
@@ -137,6 +163,16 @@ export class NavigationTransactionPipeline {
 
     this.transaction.commitNavigation();
     return { status: 'navigationSucceeded' };
+  }
+
+  /** Applies {@link CompletedBlockingPhases} snapshot; returns true when blocking was already done. */
+  private applyCompletedBlockingPhases(): boolean {
+    const completed = this.transaction.completedBlockingPhases;
+    if (completed === undefined) return false;
+    if (completed.dataSnapshot) {
+      this.transaction.dataSnapshot = completed.dataSnapshot;
+    }
+    return true;
   }
 
   /** Writes browser history when the transaction's history policy requires it. */

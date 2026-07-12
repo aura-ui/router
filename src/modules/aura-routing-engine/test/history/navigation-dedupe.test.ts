@@ -49,8 +49,20 @@ function mockDeferredTransactionRun() {
   };
 }
 
+async function waitForRunCalls(run: jest.SpyInstance, expected: number): Promise<void> {
+  for (let i = 0; i < 100; i++) {
+    if (run.mock.calls.length >= expected) return;
+    await Promise.resolve();
+  }
+  expect(run).toHaveBeenCalledTimes(expected);
+}
+
 describe('AuraRoutingEngine navigation dedupe', () => {
   const router: RouterInstance = { navigate: jest.fn() };
+
+  beforeEach(() => {
+    jest.spyOn(NavigationTransaction.prototype, 'runBlockingProbe').mockResolvedValue(null);
+  });
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -73,7 +85,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     const first = engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
     const second = engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
-    expect(run).toHaveBeenCalledTimes(1);
+    await waitForRunCalls(run, 1);
 
     resolveAt(0, { status: 'navigationSucceeded' });
     await first;
@@ -102,9 +114,10 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     cancel.mockClear();
 
     const galleryNav = engine.navigateTo('/gallery', 'push', { replace: false, syncHistory: true });
+    await waitForRunCalls(run, 1);
+
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
-    expect(run).toHaveBeenCalledTimes(1);
     expect(cancel).toHaveBeenCalledTimes(1);
 
     resolveAt(0, { status: 'cancelled' });
@@ -166,29 +179,53 @@ describe('AuraRoutingEngine navigation dedupe', () => {
 
     mockTransactionRunSuccess(run);
     await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
-
-    let resolveAbout!: (result: TransactionResult) => void;
-    let call = 0;
-    run.mockImplementation(async function (this: NavigationTransaction) {
-      call += 1;
-      if (call === 1) {
-        return new Promise<TransactionResult>((resolve) => {
-          resolveAbout = (result) => resolveMockTransactionRun(this, resolve, result);
-        });
-      }
-      this.engine.commitNavigation(this);
-      return { status: 'navigationSucceeded' };
-    });
     run.mockClear();
-    call = 0;
 
     const aboutNav = engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
     const galleryNav = engine.navigateTo('/gallery', 'push', { replace: false, syncHistory: true });
 
-    expect(run).toHaveBeenCalledTimes(2);
+    await waitForRunCalls(run, 1);
+    expect(run.mock.contexts[0]?.href).toBe('/gallery');
 
-    resolveAbout({ status: 'cancelled' });
     await aboutNav;
+    await galleryNav;
+  });
+
+  it('skips coordinator when superseded resolve completes after abort', async () => {
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine(router, { provider });
+    const run = jest.spyOn(NavigationTransaction.prototype, 'run');
+
+    engine.registerRoutes([
+      createTestRoute('/'),
+      createTestRoute('/about'),
+      createTestRoute('/gallery'),
+    ]);
+    provider.start();
+
+    mockTransactionRunSuccess(run);
+    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    run.mockClear();
+
+    jest.spyOn(NavigationTransaction.prototype, 'runBlockingProbe').mockImplementationOnce(
+      async function (this: NavigationTransaction) {
+        await Promise.resolve();
+        await Promise.resolve();
+        if (!this.isActive()) {
+          return { status: 'cancelled' };
+        }
+        return null;
+      },
+    );
+
+    const aboutNav = engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
+    const galleryNav = engine.navigateTo('/gallery', 'push', { replace: false, syncHistory: true });
+
+    await waitForRunCalls(run, 1);
+    expect(run.mock.contexts[0]?.href).toBe('/gallery');
+
+    await aboutNav;
+    expect(run).toHaveBeenCalledTimes(1);
     await galleryNav;
   });
 });

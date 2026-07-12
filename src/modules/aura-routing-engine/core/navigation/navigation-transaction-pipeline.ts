@@ -79,7 +79,7 @@ export class NavigationTransactionPipeline {
     ]) ?? { status: 'navigationSucceeded' };
   }
 
-  /** Enter guard only — redirect walk probe in {@link ../redirect/redirect-resolver!followRedirectsWithBlockingPhases}. */
+  /** Enter guard only — redirect walk probe in {@link ../redirect/redirect-resolver!followRedirectsWithGuardWalk}. */
   async runGuardPhase(): Promise<PipelineStepResult> {
     return this.runLifecyclePhase(PHASES.guard);
   }

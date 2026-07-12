@@ -125,11 +125,12 @@ export function followDeclarativeRedirects(
 }
 
 /**
- * Pre-commit redirect resolution: declarative attr steps + guard walk (hook redirect),
- * without history commit or render. Returns the target and probe metadata for
- * {@link ../navigation/navigation-coordinator!NavigationCoordinator.run} — does not run the full pipeline itself.
+ * Pre-commit redirect resolution: declarative attr steps + guard walk (hook redirect only),
+ * without history commit or render. Returns the target for
+ * {@link ../navigation/navigation-coordinator!NavigationCoordinator.run} — full
+ * {@code leave → guard → load} runs in the pipeline, not here.
  */
-export async function followRedirectsWithBlockingPhases(
+export async function followRedirectsWithGuardWalk(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
 ): Promise<RedirectResolveResult> {

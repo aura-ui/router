@@ -45,7 +45,7 @@ export type DeclarativeRedirectOutcome =
   | RedirectErrorOutcome;
 
 /**
- * Outcome of {@link ./redirect-resolver!followRedirectsWithBlockingPhases}.
+ * Outcome of {@link ./redirect-resolver!followRedirectsWithGuardWalk}.
  * Pre-commit resolution: declarative redirects + blocking hooks, no render.
  */
 export type RedirectResolveResult =
@@ -80,7 +80,7 @@ export type RedirectionContext = {
 };
 
 /**
- * Dependencies injected into {@link ./redirect-resolver!followRedirectsWithBlockingPhases}.
+ * Dependencies injected into {@link ./redirect-resolver!followRedirectsWithGuardWalk}.
  */
 export type RedirectResolverContext = {
   readonly engine: AuraRoutingEngine;
@@ -93,7 +93,7 @@ export type RedirectResolverContext = {
 /** Matcher surface required for redirect resolution and prefetch lookup. */
 export type RedirectMatcher = Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
 
-/** Input for {@link ./redirect-resolver!followRedirectsWithBlockingPhases}. */
+/** Input for {@link ./redirect-resolver!followRedirectsWithGuardWalk}. */
 export type RedirectChainInput = {
   readonly href: string | ResolvedDocumentHref;
   readonly from: MatchedRouteInfo | null;
@@ -102,7 +102,7 @@ export type RedirectChainInput = {
 };
 
 /**
- * Internal outcome of a blocking-phases probe on one candidate leaf.
+ * Internal outcome of a guard-walk probe on one candidate leaf.
  * `done: false` — hook returned redirect; `done: true` + `terminal` — cancel/error; else `resolved`.
  */
 export type BlockingPhasesProbeOutcome =

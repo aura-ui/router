@@ -16,7 +16,7 @@ failure handling in `failure/README.md`.
 | `hooks/` | Global hook registry, `resolve-hook-names`, `normalizeHookResult`, hook result normalization. |
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, `TransitionMap`, `canUseFastPath`. |
 | `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`. |
-| `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit hook redirects (`followRedirectsWithBlockingPhases`). See `redirect/README.md`. |
+| `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit guard walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
 | `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
 | `view-mount/` | View staging/commit tracking, per-route render (`view-commit-render`), atomic branch resolve/mount (`branch-resolver`, `branch-mount`), staged-view rollback. |
 | `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |
@@ -31,7 +31,7 @@ failure handling in `failure/README.md`.
 sequenceDiagram
   participant Source as Link / provider / router.navigate
   participant Engine as AuraRoutingEngine
-  participant Redirect as followRedirectsWithBlockingPhases
+  participant Redirect as followRedirectsWithGuardWalk
   participant Coord as NavigationCoordinator
   participant Tx as NavigationTransaction
   participant Pipeline as NavigationTransactionPipeline
@@ -40,8 +40,9 @@ sequenceDiagram
   Source->>Engine: navigateTo(href, action, options)
   Engine->>Engine: normalize href, hash-only shortcut
   Engine->>Coord: navigate(href, action, options)
-  Coord->>Redirect: followRedirectsWithBlockingPhases(href, matchableNodes)
-  alt no match / redirect error
+  Coord->>Redirect: followRedirectsWithGuardWalk(href, from, action)
+  alt no match / redirect error / terminal from probe
+    Coord->>Engine: handleUnmatchedNavigation / handleRedirectError / finalizeResolveTerminal
     Coord-->>Engine: return
   else resolved target
     Coord->>Coord: plan() — noop / cancel-pending / run

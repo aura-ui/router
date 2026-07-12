@@ -6,9 +6,12 @@ import { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { CompletedBlockingPhases, PipelineStepResult } from '../navigation/types';
 import type { RouteNode } from '../route-tree/route-node.types';
 import {
+  createHopContext,
   followDeclarativeRedirectHops,
   followNavigationRedirectHops,
   isDeclarativeTerminal,
+  shouldReplace,
+  type HopContext,
 } from './hop-loop';
 import type { DeclarativeTargetResolve, MatchedNavigationTarget } from './types';
 
@@ -42,11 +45,6 @@ type RedirectChainInput = {
   readonly options: NavigateHistoryOptions;
 };
 
-type NavigationHopState = {
-  replace: boolean;
-  redirected: boolean;
-};
-
 /**
  * Sync target resolution — declarative `redirect` attr hops only (no hooks).
  *
@@ -74,17 +72,13 @@ export async function resolveRedirectChain(
   ctx: RedirectChainContext,
   input: RedirectChainInput,
 ): Promise<RedirectResolveResult> {
-  const nodes = ctx.getMatchableNodes();
-  const hopState: NavigationHopState = {
-    replace: input.options.replace ?? false,
-    redirected: false,
-  };
+  const hopCtx = createHopContext(input.href, input.options.replace ?? false);
 
   const outcome = await followNavigationRedirectHops<RedirectResolveResult>(
+    hopCtx,
     ctx.matcher,
-    input.href,
-    nodes,
-    async (target) => resolveMatchedHop(ctx, input, target, hopState),
+    ctx.getMatchableNodes(),
+    async (target) => resolveMatchedHop(ctx, input, target, hopCtx),
   );
 
   if (isDeclarativeTerminal(outcome)) {
@@ -99,7 +93,7 @@ async function resolveMatchedHop(
   ctx: RedirectChainContext,
   input: RedirectChainInput,
   target: MatchedNavigationTarget,
-  hopState: NavigationHopState,
+  hopCtx: HopContext,
 ): Promise<RedirectResolveResult | { kind: 'redirect'; href: string }> {
   const probe = createBlockingProbe(ctx, {
     from: input.from,
@@ -113,8 +107,7 @@ async function resolveMatchedHop(
   const blocking = await probe.runBlockingProbe();
 
   if (blocking?.status === 'redirect') {
-    hopState.replace = hopState.replace || (blocking.replace ?? input.action === 'pop');
-    hopState.redirected = true;
+    hopCtx.replace = hopCtx.replace || (blocking.replace ?? input.action === 'pop');
     return { kind: 'redirect', href: blocking.url };
   }
 
@@ -124,8 +117,8 @@ async function resolveMatchedHop(
 
   return {
     status: 'resolved',
-    target: hopState.redirected || target.viaRedirect ? { ...target, viaRedirect: true } : target,
-    replace: hopState.replace || target.viaRedirect,
+    target,
+    replace: shouldReplace(hopCtx, target),
     completedBlockingPhases: {
       ...(probe.dataSnapshot && { dataSnapshot: probe.dataSnapshot }),
     },

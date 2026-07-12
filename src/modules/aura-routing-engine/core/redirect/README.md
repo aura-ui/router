@@ -10,8 +10,9 @@ Pre-commit redirect resolution: declarative `redirect` attr hops and blocking ho
 | `resolveDeclarativeTarget` | sync, hooks skipped | prefetch plan, diagnostics |
 | `resolveRedirectChain` | async, blocking hooks | `NavigationCoordinator.navigate` |
 
-Both share the same hop loop and cycle / depth guards. `search` and `hash` from the original
-href are preserved on the final leaf; redirect targets are path-only.
+Both share the same hop helpers (`HopContext`, cycle / depth guards) and parallel sync/async
+loops. `search` and `hash` from the original href are preserved on the final leaf; redirect
+targets are path-only.
 
 ## Pipeline
 
@@ -21,7 +22,7 @@ href
   ▼
 matchNavigationStep          ← match-hop.ts
   │
-  ├─ redirect attr ──► advanceRedirectHop (cycle / depth) ──► next hop
+  ├─ redirect attr ──► continueRedirectHop (cycle / depth) ──► next hop
   │
   └─ leaf match ──► onMatched callback
                       │
@@ -59,7 +60,7 @@ redirect/
 ├── index.ts              barrel (public API)
 ├── types.ts              shared union types
 ├── match-hop.ts          one URL match hop + resolveRedirectHref
-├── hop-loop.ts           hop state, guards, sync/async loop
+├── hop-loop.ts           HopContext, shared hop helpers, sync/async loops
 └── redirect-resolver.ts  resolveDeclarativeTarget, resolveRedirectChain
 ```
 

@@ -1,65 +1,31 @@
 import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import type { ResolvedDocumentHref } from '../../../aura-utils/misc/url';
-import type { AuraRoutingEngine } from '../aura-routing-engine';
-import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-matcher';
-import { NavigationTransaction } from '../navigation/navigation-transaction';
-import type { CompletedBlockingPhases, PipelineStepResult } from '../navigation/types';
 import type { RouteNode } from '../route-tree/route-node.types';
+import { NavigationTransaction } from '../navigation/navigation-transaction';
 import { lookupNavigationStep } from './match-step';
-import type { DeclarativeRedirectOutcome, MatchedNavigationTarget, RedirectErrorOutcome } from './types';
+import type {
+  BlockingPhasesProbeOutcome,
+  DeclarativeRedirectOutcome,
+  MatchedNavigationTarget,
+  RedirectChainInput,
+  RedirectErrorOutcome,
+  RedirectMatcher,
+  RedirectResolveResult,
+  RedirectResolverContext,
+  RedirectionContext,
+} from './types';
 
 export const MAX_REDIRECTION_STEPS = 5;
-
-export type RedirectionContext = {
-  readonly originalUrlParts: ResolvedDocumentHref;
-  stepHref: string;
-  readonly visitedPathnames: Set<string>;
-  viaRedirect: boolean;
-  historyReplace: boolean;
-};
-
-export type RedirectResolveResult =
-  | {
-  readonly status: 'resolved';
-  readonly target: MatchedNavigationTarget;
-  readonly replace: boolean;
-  readonly completedBlockingPhases: CompletedBlockingPhases;
-}
-  | { readonly status: 'unmatched' }
-  | RedirectErrorOutcome
-  | {
-  readonly status: 'terminal';
-  readonly result: Exclude<PipelineStepResult, null>;
-  readonly probe: NavigationTransaction
-};
-
-export type RedirectResolverContext = {
-  readonly engine: AuraRoutingEngine;
-  readonly matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
-  readonly getMatchableNodes: () => readonly RouteNode[];
-  readonly isActive: () => boolean;
-};
-
-type RedirectChainInput = {
-  readonly href: string | ResolvedDocumentHref;
-  readonly from: MatchedRouteInfo | null;
-  readonly action: HistoryAction;
-  readonly options: NavigateHistoryOptions;
-};
-
-type Matcher = Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
-
-type BlockingPhasesProbeOutcome =
-  | { readonly done: true; readonly result: RedirectResolveResult }
-  | { readonly done: false; readonly href: string };
 
 /** Normalized pathname key for redirect cycle detection (`/a` and `/a/` → same key). */
 export function navigationVisitKey(href: string): string {
   return stripTrailingSlash(resolveDocumentHrefParts(href).pathname);
 }
 
-export function createRedirectionContext(href: string | ResolvedDocumentHref, replace = false): RedirectionContext {
+export function createRedirectionContext(
+  href: string | ResolvedDocumentHref,
+  replace = false,
+): RedirectionContext {
   const originalUrlParts = typeof href === 'string' ? resolveDocumentHrefParts(href) : href;
   return {
     originalUrlParts,
@@ -106,7 +72,7 @@ function depthExceeded(redirection: RedirectionContext): RedirectErrorOutcome {
  * Redirect targets are path-only; `search` / `hash` from the original request are kept on the leaf.
  */
 export function followDeclarativeRedirects(
-  matcher: Matcher,
+  matcher: RedirectMatcher,
   href: string | ResolvedDocumentHref,
   nodes: readonly RouteNode[],
 ): DeclarativeRedirectOutcome {

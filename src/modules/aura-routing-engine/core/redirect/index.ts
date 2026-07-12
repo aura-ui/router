@@ -6,10 +6,13 @@ export {
   followDeclarativeRedirects,
   followRedirectsWithBlockingPhases,
 } from './redirect-resolver';
-export type { RedirectionContext, RedirectResolverContext, RedirectResolveResult } from './redirect-resolver';
 export type {
   DeclarativeRedirectOutcome,
   MatchedNavigationTarget,
   NavigationMatchStep,
   RedirectErrorOutcome,
+  RedirectMatcher,
+  RedirectResolveResult,
+  RedirectResolverContext,
+  RedirectionContext,
 } from './types';

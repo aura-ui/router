@@ -55,7 +55,7 @@ type RedirectChainInput = {
 
 type Matcher = Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
 
-type ResolveMatchedStepOutcome =
+type BlockingPhasesProbeOutcome =
   | { readonly done: true; readonly result: RedirectResolveResult }
   | { readonly done: false; readonly href: string };
 
@@ -93,7 +93,7 @@ function applyRedirectStep(
   return null;
 }
 
-function withViaRedirect(
+function applyRedirectArrivalFlag(
   redirection: RedirectionContext,
   step: MatchedNavigationTarget,
 ): MatchedNavigationTarget {
@@ -137,7 +137,7 @@ export function resolveDeclarativeTarget(
       continue;
     }
 
-    return withViaRedirect(redirection, matchStep);
+    return applyRedirectArrivalFlag(redirection, matchStep);
   }
 
   return depthExceeded(redirection);
@@ -169,10 +169,10 @@ export async function resolveRedirectChain(
       continue;
     }
 
-    const matched = await resolveMatchedStep(
+    const matched = await runTransactionBlockingPhases(
       resolverCtx,
       input,
-      withViaRedirect(redirection, matchStep),
+      applyRedirectArrivalFlag(redirection, matchStep),
       redirection,
     );
 
@@ -188,12 +188,12 @@ export async function resolveRedirectChain(
   return toRedirectError(depthExceeded(redirection));
 }
 
-async function resolveMatchedStep(
+async function runTransactionBlockingPhases(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
   target: MatchedNavigationTarget,
   redirection: RedirectionContext,
-): Promise<ResolveMatchedStepOutcome> {
+): Promise<BlockingPhasesProbeOutcome> {
   const probe = new NavigationTransaction(
     0,
     0,
@@ -209,7 +209,7 @@ async function resolveMatchedStep(
     resolverCtx.engine,
   );
 
-  const probeResult = await probe.runBlockingProbe();
+  const probeResult = await probe.runBlockingPhases();
 
   if (probeResult?.status === 'redirect') {
     redirection.historyReplace = redirection.historyReplace || (probeResult.replace ?? input.action === 'pop');

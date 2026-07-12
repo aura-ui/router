@@ -92,7 +92,7 @@ export class NavigationTransactionPipeline {
    * Used by {@link ../redirect/redirect-resolver!resolveRedirectChain} to detect hook redirects
    * before view commit.
    */
-  async runBlockingOnly(): Promise<PipelineStepResult> {
+  async runBlockingPhases(): Promise<PipelineStepResult> {
     return await this.runSequentially([
       () => this.runGuards(),
       () => this.runLoads(),

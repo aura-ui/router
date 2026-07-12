@@ -24,9 +24,9 @@ lookupNavigationStep          ← match-step.ts
   │
   ├─ redirect attr ──► applyRedirectStep (cycle / depth) ──► next step
   │
-  └─ leaf match ──► onMatched callback
+  └─ leaf match ──► runTransactionBlockingPhases
                       │
-                      ├─ sync: return MatchedNavigationTarget
+                      ├─ sync: resolveDeclarativeTarget returns leaf directly
                       └─ async: blocking probe (NavigationTransaction.runBlockingProbe)
                               │
                               ├─ redirect ──► next step

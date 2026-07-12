@@ -8,9 +8,9 @@ import type { RouteNode } from '../route-tree/route-node.types';
 import {
   createHopContext,
   followDeclarativeRedirectHops,
-  followNavigationRedirectHops,
-  isDeclarativeTerminal,
-  shouldReplace,
+  followRedirectHopsWithHooks,
+  isHopLoopTerminal,
+  shouldReplaceHistory,
   type HopContext,
 } from './hop-loop';
 import type { DeclarativeTargetResolve, MatchedNavigationTarget } from './types';
@@ -30,7 +30,7 @@ export type RedirectResolveResult =
     }
   | { readonly status: 'terminal'; readonly result: Exclude<PipelineStepResult, null>; readonly probe: NavigationTransaction };
 
-export type RedirectChainContext = {
+export type RedirectResolverContext = {
   readonly engine: AuraRoutingEngine;
   readonly matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
   readonly getMatchableNodes: () => readonly RouteNode[];
@@ -69,19 +69,19 @@ export function resolveDeclarativeTarget(
  * without render. Returns the final navigation target for one full pipeline run.
  */
 export async function resolveRedirectChain(
-  ctx: RedirectChainContext,
+  resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
 ): Promise<RedirectResolveResult> {
-  const hopCtx = createHopContext(input.href, input.options.replace ?? false);
+  const hopState = createHopContext(input.href, input.options.replace ?? false);
 
-  const outcome = await followNavigationRedirectHops<RedirectResolveResult>(
-    hopCtx,
-    ctx.matcher,
-    ctx.getMatchableNodes(),
-    async (target) => resolveMatchedHop(ctx, input, target, hopCtx),
+  const outcome = await followRedirectHopsWithHooks<RedirectResolveResult>(
+    hopState,
+    resolverCtx.matcher,
+    resolverCtx.getMatchableNodes(),
+    async (target) => resolveMatchedHop(resolverCtx, input, target, hopState),
   );
 
-  if (isDeclarativeTerminal(outcome)) {
+  if (isHopLoopTerminal(outcome)) {
     if (outcome.kind === 'unmatched') return { status: 'unmatched' };
     return { status: 'redirect-error', code: outcome.code, href: outcome.href };
   }
@@ -90,12 +90,12 @@ export async function resolveRedirectChain(
 }
 
 async function resolveMatchedHop(
-  ctx: RedirectChainContext,
+  resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
   target: MatchedNavigationTarget,
-  hopCtx: HopContext,
+  hopState: HopContext,
 ): Promise<RedirectResolveResult | { kind: 'redirect'; href: string }> {
-  const probe = createBlockingProbe(ctx, {
+  const probe = createBlockingProbe(resolverCtx, {
     from: input.from,
     to: target.leaf,
     href: target.href,
@@ -104,21 +104,21 @@ async function resolveMatchedHop(
     options: input.options,
   });
 
-  const blocking = await probe.runBlockingProbe();
+  const probeResult = await probe.runBlockingProbe();
 
-  if (blocking?.status === 'redirect') {
-    hopCtx.replace = hopCtx.replace || (blocking.replace ?? input.action === 'pop');
-    return { kind: 'redirect', href: blocking.url };
+  if (probeResult?.status === 'redirect') {
+    hopState.replace = hopState.replace || (probeResult.replace ?? input.action === 'pop');
+    return { kind: 'redirect', href: probeResult.url };
   }
 
-  if (blocking) {
-    return { status: 'terminal', result: blocking, probe };
+  if (probeResult) {
+    return { status: 'terminal', result: probeResult, probe };
   }
 
   return {
     status: 'resolved',
     target,
-    replace: shouldReplace(hopCtx, target),
+    replace: shouldReplaceHistory(hopState, target),
     completedBlockingPhases: {
       ...(probe.dataSnapshot && { dataSnapshot: probe.dataSnapshot }),
     },
@@ -126,7 +126,7 @@ async function resolveMatchedHop(
 }
 
 function createBlockingProbe(
-  ctx: RedirectChainContext,
+  resolverCtx: RedirectResolverContext,
   options: {
     from: MatchedRouteInfo | null;
     to: MatchedRouteInfo;
@@ -140,7 +140,7 @@ function createBlockingProbe(
     0,
     0,
     options,
-    () => !ctx.isActive(),
-    ctx.engine,
+    () => !resolverCtx.isActive(),
+    resolverCtx.engine,
   );
 }

@@ -9,7 +9,7 @@ export type MatchedNavigationTarget = {
   readonly hash: string;
   readonly leaf: MatchedRouteInfo;
   readonly chain: readonly MatchedRouteInfo[];
-  /** True when any hop in the chain was a declarative redirect (history should replace). */
+  /** True when the target was reached via any redirect hop (declarative attr or hook). */
   readonly viaRedirect: boolean;
 };
 

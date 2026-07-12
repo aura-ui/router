@@ -33,9 +33,34 @@ type SingleMatch =
   | MatchedNavigationTarget
   | { readonly kind: 'redirect'; readonly href: string };
 
+/** Terminal redirect hop failure (cycle or depth). */
+export type RedirectHopError = {
+  readonly kind: 'redirect-error';
+  readonly code: 'redirect-cycle' | 'redirect-depth-exceeded';
+  readonly href: string;
+};
+
 /** Normalized pathname key for redirect cycle detection (`/a` and `/a/` → same key). */
-function visitKey(href: string): string {
+export function navigationVisitKey(href: string): string {
   return stripTrailingSlash(resolveDocumentHrefParts(href).pathname);
+}
+
+/** Validates and records one redirect hop (declarative or hook). */
+export function advanceRedirectHop(
+  visited: Set<string>,
+  nextHref: string,
+  hop: number,
+  currentHref: string,
+): { href: string } | RedirectHopError {
+  if (hop >= MAX_REDIRECT_HOPS) {
+    return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: currentHref };
+  }
+  const nextKey = navigationVisitKey(nextHref);
+  if (visited.has(nextKey)) {
+    return { kind: 'redirect-error', code: 'redirect-cycle', href: nextHref };
+  }
+  visited.add(nextKey);
+  return { href: nextHref };
 }
 
 /**
@@ -52,10 +77,10 @@ export function resolveNavigationTarget(
   const initial = typeof href === 'string' ? resolveDocumentHrefParts(href) : href;
   let currentHref = initial.href;
   let viaRedirect = false;
-  const visited = new Set<string>([visitKey(currentHref)]);
+  const visited = new Set<string>([navigationVisitKey(currentHref)]);
 
   for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
-    const step = matchSingleNavigationTarget(
+    const step = matchNavigationStep(
       matcher,
       currentHref,
       nodes,
@@ -65,16 +90,9 @@ export function resolveNavigationTarget(
     if (!step) return { kind: 'unmatched' };
 
     if (step.kind === 'redirect') {
-      if (hop >= MAX_REDIRECT_HOPS) {
-        return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: currentHref };
-      }
-      const nextKey = visitKey(step.href);
-      if (visited.has(nextKey)) {
-        return { kind: 'redirect-error', code: 'redirect-cycle', href: step.href };
-      }
-
-      visited.add(nextKey);
-      currentHref = step.href;
+      const redirectHop = advanceRedirectHop(visited, step.href, hop, currentHref);
+      if ('kind' in redirectHop) return redirectHop;
+      currentHref = redirectHop.href;
       viaRedirect = true;
       continue;
     }
@@ -85,7 +103,8 @@ export function resolveNavigationTarget(
   return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: currentHref };
 }
 
-function matchSingleNavigationTarget(
+/** One match hop: leaf page/folder index, declarative redirect, or no match. */
+export function matchNavigationStep(
   matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
   href: string,
   nodes: readonly RouteNode[],

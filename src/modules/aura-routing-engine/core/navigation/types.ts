@@ -64,7 +64,7 @@ export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation
 /**
  * Terminal navigation outcome returned by {@link ./navigation-transaction!NavigationTransaction.run}.
  *
- * Dispatched by {@link ./navigation-coordinator!NavigationCoordinator.processResult} to engine
+ * Dispatched by {@link ./navigation-coordinator!NavigationCoordinator} to engine
  * finalizers; history side-effects applied via {@link ./navigation-finalize!applyTransactionHistory}.
  *
  * - `navigationSucceeded` — full pipeline completed (not the same as view `committed`
@@ -105,7 +105,14 @@ export interface NavigationTransactionOptions {
   hash: string;
   /** Provider-specific history options (scroll, state, etc.). */
   options: NavigateHistoryOptions;
+  /** Blocking phases already completed during {@link ../redirect/redirect-resolver!resolveRedirectChain}. */
+  completedBlockingPhases?: CompletedBlockingPhases;
 }
+
+/** Leave/guard/load already ran during redirect probe — skip duplicate blocking in full pipeline. */
+export type CompletedBlockingPhases = {
+  dataSnapshot?: DataSnapshot;
+};
 
 // --- Pipeline policy ---
 

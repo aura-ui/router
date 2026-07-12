@@ -1,0 +1,192 @@
+import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
+import { MAX_REDIRECT_HOPS } from '../../core/redirect/hop-loop';
+import { resolveRedirectHref } from '../../core/redirect/match-hop';
+import { resolveDeclarativeTarget } from '../../core/redirect/redirect-resolver';
+import {
+  buildTreeFromDom,
+  createDomRedirectRoute,
+  createDomRoute,
+} from '../helpers/test-route-dom';
+
+describe('resolveDeclarativeTarget', () => {
+  const matcher = new AuraRoutingUrlMatcher();
+
+  beforeEach(() => {
+    matcher.destroy();
+  });
+
+  it('returns leaf match and active chain for nested route', () => {
+    const profile = createDomRoute('profile');
+    const settings = createDomRoute('/settings', [profile]);
+    const { matchableNodes } = buildTreeFromDom(settings);
+
+    const target = resolveDeclarativeTarget(matcher, '/settings/profile', matchableNodes);
+
+    expect(target.kind).toBe('matched');
+    if (target.kind !== 'matched') return;
+
+    expect(target.leaf.pattern).toBe('/settings/profile');
+    expect(target.chain.map((info) => info.pattern)).toEqual(['/settings', '/settings/profile']);
+    expect(target.viaRedirect).toBe(false);
+  });
+
+  it('returns unmatched when no route matches', () => {
+    const settings = createDomRoute('/settings');
+    const { matchableNodes } = buildTreeFromDom(settings);
+
+    expect(resolveDeclarativeTarget(matcher, '/missing', matchableNodes)).toEqual({ kind: 'unmatched' });
+  });
+
+  it('matches index folder with trailing slash in URL', () => {
+    const index = createDomRoute('.');
+    const settings = createDomRoute('/app/settings', [index]);
+    const { matchableNodes } = buildTreeFromDom(settings);
+
+    const target = resolveDeclarativeTarget(matcher, '/app/settings/', matchableNodes);
+
+    expect(target.kind).toBe('matched');
+    if (target.kind !== 'matched') return;
+
+    expect(target.leaf.node?.isIndex).toBe(true);
+    expect(target.leaf.pattern).toBe('/app/settings');
+    expect(target.pathname).toBe('/app/settings/');
+    expect(target.href).toBe('/app/settings/');
+  });
+
+  it('canonicalizes index folder URL without trailing slash', () => {
+    const index = createDomRoute('.');
+    const settings = createDomRoute('/app/settings', [index]);
+    const { matchableNodes } = buildTreeFromDom(settings);
+
+    const target = resolveDeclarativeTarget(matcher, '/app/settings', matchableNodes);
+
+    expect(target.kind).toBe('matched');
+    if (target.kind !== 'matched') return;
+
+    expect(target.href).toBe('/app/settings/');
+    expect(target.pathname).toBe('/app/settings/');
+  });
+
+  it('follows top-level absolute redirect to final leaf', () => {
+    const profile = createDomRoute('/settings/profile');
+    const alias = createDomRedirectRoute('/settings', '/settings/profile');
+    const { matchableNodes } = buildTreeFromDom(alias, profile);
+
+    const target = resolveDeclarativeTarget(matcher, '/settings', matchableNodes);
+
+    expect(target).toEqual(
+      expect.objectContaining({
+        kind: 'matched',
+        href: '/settings/profile',
+        viaRedirect: true,
+        leaf: expect.objectContaining({ pattern: '/settings/profile' }),
+      }),
+    );
+  });
+
+  it('follows nested relative redirect from index child', () => {
+    const dashboard = createDomRoute('dashboard');
+    const indexRedirect = createDomRedirectRoute('.', 'dashboard');
+    const app = createDomRoute('/app', [indexRedirect, dashboard]);
+    const { matchableNodes } = buildTreeFromDom(app);
+
+    const target = resolveDeclarativeTarget(matcher, '/app', matchableNodes);
+
+    expect(target.kind).toBe('matched');
+    if (target.kind !== 'matched') return;
+
+    expect(target.href).toBe('/app/dashboard');
+    expect(target.leaf.pattern).toBe('/app/dashboard');
+    expect(target.chain.map((info) => info.pattern)).toEqual(['/app', '/app/dashboard']);
+    expect(target.viaRedirect).toBe(true);
+  });
+
+  it('follows multi-hop redirect chains', () => {
+    const final = createDomRoute('/target');
+    const hopB = createDomRedirectRoute('/b', '/target');
+    const hopA = createDomRedirectRoute('/a', '/b');
+    const { matchableNodes } = buildTreeFromDom(hopA, hopB, final);
+
+    const target = resolveDeclarativeTarget(matcher, '/a', matchableNodes);
+
+    expect(target.kind).toBe('matched');
+    if (target.kind !== 'matched') return;
+
+    expect(target.leaf.pattern).toBe('/target');
+    expect(target.viaRedirect).toBe(true);
+  });
+
+  it('detects redirect cycles', () => {
+    const routeA = createDomRedirectRoute('/a', '/b');
+    const routeB = createDomRedirectRoute('/b', '/a');
+    const { matchableNodes } = buildTreeFromDom(routeA, routeB);
+
+    expect(resolveDeclarativeTarget(matcher, '/a', matchableNodes)).toEqual({
+      kind: 'redirect-error',
+      code: 'redirect-cycle',
+      href: '/a',
+    });
+  });
+
+  it('detects redirect depth overflow', () => {
+    const routes = Array.from({ length: MAX_REDIRECT_HOPS + 1 }, (_, index) => {
+      const path = `/hop-${index}`;
+      const next = `/hop-${index + 1}`;
+      return createDomRedirectRoute(path, next);
+    });
+    const { matchableNodes } = buildTreeFromDom(...routes);
+
+    expect(resolveDeclarativeTarget(matcher, '/hop-0', matchableNodes)).toEqual({
+      kind: 'redirect-error',
+      code: 'redirect-depth-exceeded',
+      href: `/hop-${MAX_REDIRECT_HOPS}`,
+    });
+  });
+
+  it('detects redirect cycles across trailing-slash variants', () => {
+    const routeA = createDomRedirectRoute('/a', '/b');
+    const routeB = createDomRedirectRoute('/b', '/a/');
+    const { matchableNodes } = buildTreeFromDom(routeA, routeB);
+
+    expect(resolveDeclarativeTarget(matcher, '/a', matchableNodes)).toEqual({
+      kind: 'redirect-error',
+      code: 'redirect-cycle',
+      href: '/a',
+    });
+  });
+
+  it('returns unmatched when redirect target has no route', () => {
+    const alias = createDomRedirectRoute('/entry', '/missing');
+    const { matchableNodes } = buildTreeFromDom(alias);
+
+    expect(resolveDeclarativeTarget(matcher, '/entry', matchableNodes)).toEqual({ kind: 'unmatched' });
+  });
+
+  it('preserves search and hash from the original href on the final leaf', () => {
+    const profile = createDomRoute('/settings/profile');
+    const alias = createDomRedirectRoute('/settings', '/settings/profile');
+    const { matchableNodes } = buildTreeFromDom(alias, profile);
+
+    const target = resolveDeclarativeTarget(matcher, '/settings?tab=1#panel', matchableNodes);
+
+    expect(target.kind).toBe('matched');
+    if (target.kind !== 'matched') return;
+
+    expect(target.href).toBe('/settings/profile?tab=1#panel');
+    expect(target.search).toBe('?tab=1');
+    expect(target.hash).toBe('#panel');
+  });
+});
+
+describe('resolveRedirectHref', () => {
+  it('resolves absolute and relative targets against parent pattern', () => {
+    const dashboard = createDomRoute('dashboard');
+    const indexRedirect = createDomRedirectRoute('.', 'dashboard');
+    const app = createDomRoute('/app', [indexRedirect, dashboard]);
+    const { nodesByPattern } = buildTreeFromDom(app);
+    const indexNode = nodesByPattern.get('/app')!;
+
+    expect(resolveRedirectHref(indexNode, 'dashboard')).toBe('/app/dashboard');
+    expect(resolveRedirectHref(indexNode, '/login')).toBe('/login');
+  });
+});

@@ -10,7 +10,7 @@ Pre-commit redirect resolution: declarative `redirect` attr hops and blocking ho
 | `resolveDeclarativeTarget` | sync, hooks skipped | prefetch plan, diagnostics |
 | `resolveRedirectChain` | async, blocking hooks | `NavigationCoordinator.navigate` |
 
-Both share the same hop helpers (`HopContext`, cycle / depth guards) and the same match/redirect
+Both share the same redirection helpers (`RedirectionContext`, cycle / depth guards) and the same match/redirect
 step logic. `search` and `hash` from the original href are preserved on the final leaf; redirect
 targets are path-only.
 
@@ -22,7 +22,7 @@ href
   ▼
 matchNavigationStep          ← match-hop.ts
   │
-  ├─ redirect attr ──► applyRedirectHop (cycle / depth) ──► next hop
+  ├─ redirect attr ──► applyRedirectStep (cycle / depth) ──► next hop
   │
   └─ leaf match ──► onMatched callback
                       │

@@ -111,7 +111,7 @@ export class NavigationCoordinator {
 
       await this.run({
         from: this.host.getCommittedRoute(),
-        to: found.leaf,
+        to: found,
         action,
         href: found.href,
         hash: found.hash,

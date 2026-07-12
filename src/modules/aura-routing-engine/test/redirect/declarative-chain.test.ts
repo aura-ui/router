@@ -1,5 +1,5 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
-import { MAX_REDIRECT_HOPS } from '../../core/redirect/redirect-resolver';
+import { MAX_REDIRECTION_STEPS } from '../../core/redirect/redirect-resolver';
 import { resolveRedirectHref } from '../../core/redirect/match-hop';
 import { resolveDeclarativeTarget } from '../../core/redirect/redirect-resolver';
 import {
@@ -25,8 +25,8 @@ describe('resolveDeclarativeTarget', () => {
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;
 
-    expect(target.leaf.pattern).toBe('/settings/profile');
-    expect(target.chain.map((info) => info.pattern)).toEqual(['/settings', '/settings/profile']);
+    expect(target.pattern).toBe('/settings/profile');
+    expect(target.chain!.map((info) => info.pattern)).toEqual(['/settings', '/settings/profile']);
     expect(target.viaRedirect).toBe(false);
   });
 
@@ -47,8 +47,8 @@ describe('resolveDeclarativeTarget', () => {
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;
 
-    expect(target.leaf.node?.isIndex).toBe(true);
-    expect(target.leaf.pattern).toBe('/app/settings');
+    expect(target.node?.isIndex).toBe(true);
+    expect(target.pattern).toBe('/app/settings');
     expect(target.pathname).toBe('/app/settings/');
     expect(target.href).toBe('/app/settings/');
   });
@@ -79,7 +79,7 @@ describe('resolveDeclarativeTarget', () => {
         kind: 'matched',
         href: '/settings/profile',
         viaRedirect: true,
-        leaf: expect.objectContaining({ pattern: '/settings/profile' }),
+        pattern: '/settings/profile',
       }),
     );
   });
@@ -96,8 +96,8 @@ describe('resolveDeclarativeTarget', () => {
     if (target.kind !== 'matched') return;
 
     expect(target.href).toBe('/app/dashboard');
-    expect(target.leaf.pattern).toBe('/app/dashboard');
-    expect(target.chain.map((info) => info.pattern)).toEqual(['/app', '/app/dashboard']);
+    expect(target.pattern).toBe('/app/dashboard');
+    expect(target.chain!.map((info) => info.pattern)).toEqual(['/app', '/app/dashboard']);
     expect(target.viaRedirect).toBe(true);
   });
 
@@ -112,7 +112,7 @@ describe('resolveDeclarativeTarget', () => {
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;
 
-    expect(target.leaf.pattern).toBe('/target');
+    expect(target.pattern).toBe('/target');
     expect(target.viaRedirect).toBe(true);
   });
 
@@ -129,7 +129,7 @@ describe('resolveDeclarativeTarget', () => {
   });
 
   it('detects redirect depth overflow', () => {
-    const routes = Array.from({ length: MAX_REDIRECT_HOPS + 1 }, (_, index) => {
+    const routes = Array.from({ length: MAX_REDIRECTION_STEPS + 1 }, (_, index) => {
       const path = `/hop-${index}`;
       const next = `/hop-${index + 1}`;
       return createDomRedirectRoute(path, next);
@@ -139,7 +139,7 @@ describe('resolveDeclarativeTarget', () => {
     expect(resolveDeclarativeTarget(matcher, '/hop-0', matchableNodes)).toEqual({
       kind: 'redirect-error',
       code: 'redirect-depth-exceeded',
-      href: `/hop-${MAX_REDIRECT_HOPS}`,
+      href: `/hop-${MAX_REDIRECTION_STEPS}`,
     });
   });
 

@@ -1,15 +1,8 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
 /** Successful match after following declarative redirect hops. */
-export type MatchedNavigationTarget = {
+export type MatchedNavigationTarget = MatchedRouteInfo & {
   readonly kind: 'matched';
-  readonly href: string;
-  readonly pathname: string;
-  readonly search: string;
-  readonly hash: string;
-  readonly leaf: MatchedRouteInfo;
-  readonly chain: readonly MatchedRouteInfo[];
-  /** True when the target was reached via any redirect hop (declarative attr or hook). */
   readonly viaRedirect: boolean;
 };
 

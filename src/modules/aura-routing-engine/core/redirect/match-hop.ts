@@ -1,6 +1,5 @@
 import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import { applyCanonicalIndexFolderHref } from '../match/canonical-index-href';
-import { getActiveChain } from '../route-tree/matched-chain';
 import { resolvePattern } from '../route-tree/resolve-pattern';
 import type { RouteNode } from '../route-tree/route-node.types';
 import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
@@ -48,13 +47,8 @@ export function matchNavigationStep(
   );
 
   return {
+    ...leaf,
     kind: 'matched',
-    href: canonical.href,
-    pathname: canonical.pathname,
-    search: preservedSearch,
-    hash: preservedHash,
-    leaf,
-    chain: getActiveChain(leaf),
     viaRedirect: false,
   };
 }

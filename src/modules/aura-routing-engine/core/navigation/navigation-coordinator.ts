@@ -1,5 +1,5 @@
 import { resolveDocumentHrefParts } from '../../../aura-utils/misc/url';
-import { resolveRedirectChain } from '../redirect/redirect-resolver';
+import { followRedirectsWithBlockingPhases } from '../redirect/redirect-resolver';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { NavigationHost } from './navigation-host';
@@ -61,7 +61,7 @@ export class NavigationCoordinator {
     }
 
     try {
-      const chain = await resolveRedirectChain(
+      const chain = await followRedirectsWithBlockingPhases(
         {
           engine: this.host.engine,
           matcher: this.host.matcher,

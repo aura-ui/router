@@ -1,4 +1,4 @@
-import { resolveDeclarativeTarget } from '../redirect/redirect-resolver';
+import { followDeclarativeRedirects } from '../redirect/redirect-resolver';
 import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-matcher';
 import { buildTransitionPlan } from '../route-tree/transition-plan';
 import { getActiveChain } from '../route-tree/matched-chain';
@@ -36,7 +36,7 @@ export class PrefetchPlanResolver {
       return cached.plan;
     }
 
-    const target = resolveDeclarativeTarget(this.deps.matcher, normalized, nodes);
+    const target = followDeclarativeRedirects(this.deps.matcher, normalized, nodes);
     if (target.kind !== 'matched') return null;
 
     const transition = buildTransitionPlan(from, target);
@@ -68,7 +68,7 @@ export class PrefetchPlanResolver {
     const normalized = this.policy.normalizeHref(currentHref);
     if (!normalized) return null;
 
-    const target = resolveDeclarativeTarget(this.deps.matcher, normalized, nodes);
+    const target = followDeclarativeRedirects(this.deps.matcher, normalized, nodes);
     return target.kind === 'matched' ? target : null;
   }
 

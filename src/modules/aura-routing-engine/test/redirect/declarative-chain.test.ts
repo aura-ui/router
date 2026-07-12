@@ -1,14 +1,14 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { MAX_REDIRECTION_STEPS } from '../../core/redirect/redirect-resolver';
 import { resolveRedirectHref } from '../../core/redirect/match-step';
-import { resolveDeclarativeTarget } from '../../core/redirect/redirect-resolver';
+import { followDeclarativeRedirects } from '../../core/redirect/redirect-resolver';
 import {
   buildTreeFromDom,
   createDomRedirectRoute,
   createDomRoute,
 } from '../helpers/test-route-dom';
 
-describe('resolveDeclarativeTarget', () => {
+describe('followDeclarativeRedirects', () => {
   const matcher = new AuraRoutingUrlMatcher();
 
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe('resolveDeclarativeTarget', () => {
     const settings = createDomRoute('/settings', [profile]);
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    const target = resolveDeclarativeTarget(matcher, '/settings/profile', matchableNodes);
+    const target = followDeclarativeRedirects(matcher, '/settings/profile', matchableNodes);
 
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;
@@ -34,7 +34,7 @@ describe('resolveDeclarativeTarget', () => {
     const settings = createDomRoute('/settings');
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    expect(resolveDeclarativeTarget(matcher, '/missing', matchableNodes)).toEqual({ kind: 'unmatched' });
+    expect(followDeclarativeRedirects(matcher, '/missing', matchableNodes)).toEqual({ kind: 'unmatched' });
   });
 
   it('matches index folder with trailing slash in URL', () => {
@@ -42,7 +42,7 @@ describe('resolveDeclarativeTarget', () => {
     const settings = createDomRoute('/app/settings', [index]);
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    const target = resolveDeclarativeTarget(matcher, '/app/settings/', matchableNodes);
+    const target = followDeclarativeRedirects(matcher, '/app/settings/', matchableNodes);
 
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;
@@ -58,7 +58,7 @@ describe('resolveDeclarativeTarget', () => {
     const settings = createDomRoute('/app/settings', [index]);
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    const target = resolveDeclarativeTarget(matcher, '/app/settings', matchableNodes);
+    const target = followDeclarativeRedirects(matcher, '/app/settings', matchableNodes);
 
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;
@@ -72,7 +72,7 @@ describe('resolveDeclarativeTarget', () => {
     const alias = createDomRedirectRoute('/settings', '/settings/profile');
     const { matchableNodes } = buildTreeFromDom(alias, profile);
 
-    const target = resolveDeclarativeTarget(matcher, '/settings', matchableNodes);
+    const target = followDeclarativeRedirects(matcher, '/settings', matchableNodes);
 
     expect(target).toEqual(
       expect.objectContaining({
@@ -90,7 +90,7 @@ describe('resolveDeclarativeTarget', () => {
     const app = createDomRoute('/app', [indexRedirect, dashboard]);
     const { matchableNodes } = buildTreeFromDom(app);
 
-    const target = resolveDeclarativeTarget(matcher, '/app', matchableNodes);
+    const target = followDeclarativeRedirects(matcher, '/app', matchableNodes);
 
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;
@@ -107,7 +107,7 @@ describe('resolveDeclarativeTarget', () => {
     const hopA = createDomRedirectRoute('/a', '/b');
     const { matchableNodes } = buildTreeFromDom(hopA, hopB, final);
 
-    const target = resolveDeclarativeTarget(matcher, '/a', matchableNodes);
+    const target = followDeclarativeRedirects(matcher, '/a', matchableNodes);
 
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;
@@ -121,7 +121,7 @@ describe('resolveDeclarativeTarget', () => {
     const routeB = createDomRedirectRoute('/b', '/a');
     const { matchableNodes } = buildTreeFromDom(routeA, routeB);
 
-    expect(resolveDeclarativeTarget(matcher, '/a', matchableNodes)).toEqual({
+    expect(followDeclarativeRedirects(matcher, '/a', matchableNodes)).toEqual({
       kind: 'redirect-error',
       code: 'redirect-cycle',
       href: '/a',
@@ -136,7 +136,7 @@ describe('resolveDeclarativeTarget', () => {
     });
     const { matchableNodes } = buildTreeFromDom(...routes);
 
-    expect(resolveDeclarativeTarget(matcher, '/hop-0', matchableNodes)).toEqual({
+    expect(followDeclarativeRedirects(matcher, '/hop-0', matchableNodes)).toEqual({
       kind: 'redirect-error',
       code: 'redirect-depth-exceeded',
       href: `/hop-${MAX_REDIRECTION_STEPS}`,
@@ -148,7 +148,7 @@ describe('resolveDeclarativeTarget', () => {
     const routeB = createDomRedirectRoute('/b', '/a/');
     const { matchableNodes } = buildTreeFromDom(routeA, routeB);
 
-    expect(resolveDeclarativeTarget(matcher, '/a', matchableNodes)).toEqual({
+    expect(followDeclarativeRedirects(matcher, '/a', matchableNodes)).toEqual({
       kind: 'redirect-error',
       code: 'redirect-cycle',
       href: '/a',
@@ -159,7 +159,7 @@ describe('resolveDeclarativeTarget', () => {
     const alias = createDomRedirectRoute('/entry', '/missing');
     const { matchableNodes } = buildTreeFromDom(alias);
 
-    expect(resolveDeclarativeTarget(matcher, '/entry', matchableNodes)).toEqual({ kind: 'unmatched' });
+    expect(followDeclarativeRedirects(matcher, '/entry', matchableNodes)).toEqual({ kind: 'unmatched' });
   });
 
   it('preserves search and hash from the original href on the final leaf', () => {
@@ -167,7 +167,7 @@ describe('resolveDeclarativeTarget', () => {
     const alias = createDomRedirectRoute('/settings', '/settings/profile');
     const { matchableNodes } = buildTreeFromDom(alias, profile);
 
-    const target = resolveDeclarativeTarget(matcher, '/settings?tab=1#panel', matchableNodes);
+    const target = followDeclarativeRedirects(matcher, '/settings?tab=1#panel', matchableNodes);
 
     expect(target.kind).toBe('matched');
     if (target.kind !== 'matched') return;

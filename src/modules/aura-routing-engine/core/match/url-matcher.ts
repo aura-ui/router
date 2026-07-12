@@ -65,7 +65,7 @@ function routeScore(pattern: string): number {
 /**
  * Сопоставление browser pathname с зарегистрированными маршрутами.
  *
- * Используется из {@link ../redirect/redirect-resolver!resolveDeclarativeTarget} и prefetch pipeline.
+ * Используется из {@link ../redirect/redirect-resolver!followDeclarativeRedirects} и prefetch pipeline.
  * Кэширует скомпилированные `URLPattern` per pattern (`patterns`); сброс — {@link destroy}.
  */
 export class AuraRoutingUrlMatcher {

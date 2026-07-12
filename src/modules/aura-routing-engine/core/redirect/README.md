@@ -7,8 +7,8 @@ Pre-commit redirect resolution: declarative `redirect` attr steps and blocking h
 
 | Function | Mode | Consumer |
 |----------|------|----------|
-| `resolveDeclarativeTarget` | sync, hooks skipped | prefetch plan, diagnostics |
-| `resolveRedirectChain` | async, blocking hooks | `NavigationCoordinator.navigate` |
+| `followDeclarativeRedirects` | sync, hooks skipped | prefetch plan, diagnostics |
+| `followRedirectsWithBlockingPhases` | async, blocking hooks | `NavigationCoordinator.navigate` |
 
 Both share the same redirection helpers (`RedirectionContext`, cycle / depth guards) and the same match/redirect
 step logic. `search` and `hash` from the original href are preserved on the final leaf; redirect
@@ -26,8 +26,8 @@ lookupNavigationStep          ← match-step.ts
   │
   └─ leaf match ──► runTransactionBlockingPhases
                       │
-                      ├─ sync: resolveDeclarativeTarget returns leaf directly
-                      └─ async: blocking probe (NavigationTransaction.runBlockingProbe)
+                      ├─ sync: followDeclarativeRedirects returns leaf directly
+                      └─ async: blocking probe (NavigationTransaction.runBlockingPhases)
                               │
                               ├─ redirect ──► next step
                               ├─ terminal (cancel / error) ──► stop
@@ -60,11 +60,11 @@ redirect/
 ├── index.ts              barrel (public API)
 ├── types.ts              shared union types
 ├── match-step.ts         one URL match step + resolveRedirectHref
-└── redirect-resolver.ts  step guards, resolveDeclarativeTarget, resolveRedirectChain
+└── redirect-resolver.ts  step guards, followDeclarativeRedirects, followRedirectsWithBlockingPhases
 ```
 
 ## See also
 
 - [`navigation/`](../navigation) — coordinator and pipeline after redirect resolution
-- [`prefetch/`](../prefetch) — uses `resolveDeclarativeTarget` in plan
+- [`prefetch/`](../prefetch) — uses `followDeclarativeRedirects` in plan
 - [`ARCHITECTURE.md`](../ARCHITECTURE.md) — navigation flow diagram

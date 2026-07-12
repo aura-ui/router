@@ -6,31 +6,46 @@ import type { NavigationTransaction } from '../navigation/navigation-transaction
 import type { CompletedBlockingPhases, PipelineStepResult } from '../navigation/types';
 import type { RouteNode } from '../route-tree/route-node.types';
 
-/** Leaf match at one redirect-resolution step (internal match-step union tag). */
+/**
+ * Leaf match at one redirect-resolution step.
+ * Tagged union branch used by {@link NavigationMatchStep}.
+ */
 export type MatchedNavigationTarget = MatchedRouteInfo & {
   readonly kind: 'matched';
+  /** `true` when the leaf was reached after at least one redirect hop in the chain. */
   readonly viaRedirect: boolean;
 };
 
-/** Redirect chain failure (cycle or depth). */
+/**
+ * Terminal redirect-chain failure: cycle or max depth exceeded.
+ * Shared by sync and async redirect resolution (`status: 'redirect-error'`).
+ */
 export type RedirectErrorOutcome = {
   readonly status: 'redirect-error';
   readonly code: 'redirect-cycle' | 'redirect-depth-exceeded';
   readonly href: string;
 };
 
-/** Result of sync declarative redirect resolution (prefetch, diagnostics). */
+/**
+ * Outcome of {@link ./redirect-resolver!followDeclarativeRedirects}.
+ * Sync resolution over declarative `redirect` attrs only (no hooks).
+ */
 export type DeclarativeRedirectOutcome =
   | { readonly status: 'resolved'; readonly target: MatchedNavigationTarget }
   | { readonly status: 'unmatched' }
   | RedirectErrorOutcome;
 
-/** Result of pre-commit redirect resolution with blocking phases. */
+/**
+ * Outcome of {@link ./redirect-resolver!followRedirectsWithBlockingPhases}.
+ * Pre-commit resolution: declarative redirects + blocking hooks, no render.
+ */
 export type RedirectResolveResult =
   | {
       readonly status: 'resolved';
       readonly target: MatchedNavigationTarget;
+      /** When `true`, coordinator should commit via `history.replaceState`. */
       readonly replace: boolean;
+      /** Marker that blocking probe ran; any value (even `{}`) skips leave/guard/load in full pipeline. */
       readonly completedBlockingPhases: CompletedBlockingPhases;
     }
   | { readonly status: 'unmatched' }
@@ -41,26 +56,37 @@ export type RedirectResolveResult =
       readonly probe: NavigationTransaction;
     };
 
-/** Mutable state while walking a redirect chain. */
+/**
+ * Mutable state while walking a redirect chain.
+ * `originalUrlParts.search` / `hash` are preserved on every hop; redirect targets are path-only.
+ */
 export type RedirectionContext = {
   readonly originalUrlParts: ResolvedDocumentHref;
+  /** Current href in the chain (updated on each redirect hop). */
   stepHref: string;
+  /** Normalized pathname keys for cycle detection (`/a` and `/a/` share one key). */
   readonly visitedPathnames: Set<string>;
+  /** `true` after at least one redirect hop in this chain. */
   viaRedirect: boolean;
+  /** Initial `options.replace` plus hook-redirect `replace` / `pop` accumulation. */
   historyReplace: boolean;
 };
 
-/** Dependencies injected into {@link followRedirectsWithBlockingPhases}. */
+/**
+ * Dependencies injected into {@link ./redirect-resolver!followRedirectsWithBlockingPhases}.
+ */
 export type RedirectResolverContext = {
   readonly engine: AuraRoutingEngine;
   readonly matcher: RedirectMatcher;
   readonly getMatchableNodes: () => readonly RouteNode[];
+  /** `true` while the navigation attempt is still current; `false` after supersede. */
   readonly isActive: () => boolean;
 };
 
+/** Matcher surface required for redirect resolution and prefetch lookup. */
 export type RedirectMatcher = Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
 
-/** Input for {@link followRedirectsWithBlockingPhases}. */
+/** Input for {@link ./redirect-resolver!followRedirectsWithBlockingPhases}. */
 export type RedirectChainInput = {
   readonly href: string | ResolvedDocumentHref;
   readonly from: MatchedRouteInfo | null;
@@ -68,12 +94,18 @@ export type RedirectChainInput = {
   readonly options: NavigateHistoryOptions;
 };
 
-/** Outcome of {@link runTransactionBlockingPhases} inside redirect resolution. */
+/**
+ * Internal outcome of a blocking-phases probe on one candidate leaf.
+ * `done: false` — hook returned redirect; `done: true` + `terminal` — cancel/error; else `resolved`.
+ */
 export type BlockingPhasesProbeOutcome =
   | { readonly done: true; readonly result: RedirectResolveResult }
   | { readonly done: false; readonly href: string };
 
-/** One redirection step: leaf match or declarative redirect. */
+/**
+ * One step of redirect resolution for a single href:
+ * leaf match, declarative redirect hop, or no match (`null`).
+ */
 export type NavigationMatchStep =
   | MatchedNavigationTarget
   | { readonly kind: 'redirect'; readonly href: string };

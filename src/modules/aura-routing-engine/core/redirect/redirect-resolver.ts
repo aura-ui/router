@@ -15,13 +15,23 @@ import type {
   RedirectionContext,
 } from './types';
 
+/** Max loop index before `redirect-depth-exceeded` (`step >=` this value on a redirect hop). */
 export const MAX_REDIRECTION_STEPS = 5;
 
-/** Normalized pathname key for redirect cycle detection (`/a` and `/a/` → same key). */
+/**
+ * Normalized pathname key for redirect cycle detection.
+ * `/a` and `/a/` resolve to the same key.
+ */
 export function navigationVisitKey(href: string): string {
   return stripTrailingSlash(resolveDocumentHrefParts(href).pathname);
 }
 
+/**
+ * Creates the initial redirect-chain context for a navigation href.
+ *
+ * @param href - Raw href or pre-resolved document parts.
+ * @param replace - Initial `historyReplace` flag from navigation options.
+ */
 export function createRedirectionContext(
   href: string | ResolvedDocumentHref,
   replace = false,
@@ -36,6 +46,11 @@ export function createRedirectionContext(
   };
 }
 
+/**
+ * Validates depth/cycle guards and advances the chain to `nextHref`.
+ *
+ * @returns `RedirectErrorOutcome` when the hop is invalid; `null` when applied.
+ */
 function tryApplyRedirectStep(
   redirection: RedirectionContext,
   nextHref: string,
@@ -54,6 +69,10 @@ function tryApplyRedirectStep(
   return null;
 }
 
+/**
+ * Marks the final leaf with `viaRedirect` when any hop ran in this chain.
+ * Used by the coordinator to choose `history.replace` vs `push`.
+ */
 function applyRedirectArrivalFlag(
   redirection: RedirectionContext,
   target: MatchedNavigationTarget,
@@ -61,12 +80,13 @@ function applyRedirectArrivalFlag(
   return redirection.viaRedirect || target.viaRedirect ? { ...target, viaRedirect: true } : target;
 }
 
+/** Defensive fallthrough when the redirect loop exits without a terminal outcome. */
 function depthExceeded(redirection: RedirectionContext): RedirectErrorOutcome {
   return { status: 'redirect-error', code: 'redirect-depth-exceeded', href: redirection.stepHref };
 }
 
 /**
- * Sync target resolution — declarative `redirect` attr steps only (no hooks).
+ * Sync declarative redirect resolution — `redirect` attr steps only (no hooks).
  *
  * Used by prefetch and any caller that needs a final leaf without running the navigation pipeline.
  * Redirect targets are path-only; `search` / `hash` from the original request are kept on the leaf.
@@ -104,8 +124,9 @@ export function followDeclarativeRedirects(
 }
 
 /**
- * Pre-commit redirect resolution: declarative attr steps + blocking hooks (leave/guard/load)
- * without render. Returns the final navigation target for one full pipeline run.
+ * Pre-commit redirect resolution: declarative attr steps + blocking hooks (leave/guard/load),
+ * without history commit or render. Returns the target and probe metadata for
+ * {@link ../navigation/navigation-coordinator!NavigationCoordinator.run} — does not run the full pipeline itself.
  */
 export async function followRedirectsWithBlockingPhases(
   resolverCtx: RedirectResolverContext,
@@ -148,6 +169,10 @@ export async function followRedirectsWithBlockingPhases(
   return depthExceeded(redirection);
 }
 
+/**
+ * Runs leave → guard → load on a probe {@link NavigationTransaction} for one candidate leaf.
+ * Does not commit history or render views.
+ */
 async function runTransactionBlockingPhases(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,

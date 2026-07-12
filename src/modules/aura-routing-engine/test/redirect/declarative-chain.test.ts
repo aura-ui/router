@@ -1,5 +1,5 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
-import { MAX_REDIRECT_HOPS } from '../../core/redirect/hop-loop';
+import { MAX_REDIRECT_HOPS } from '../../core/redirect/redirect-resolver';
 import { resolveRedirectHref } from '../../core/redirect/match-hop';
 import { resolveDeclarativeTarget } from '../../core/redirect/redirect-resolver';
 import {

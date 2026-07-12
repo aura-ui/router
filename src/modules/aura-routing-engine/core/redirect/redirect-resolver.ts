@@ -44,6 +44,7 @@ export function createRedirectionContext(
     visitedPathnames: new Set([stripTrailingSlash(originalUrlParts.pathname)]),
     viaRedirect: false,
     historyReplace: replace,
+    blockingPhasesCompleted: false,
   };
 }
 
@@ -125,10 +126,17 @@ export function followDeclarativeRedirects(
 }
 
 /**
- * Pre-commit redirect resolution: declarative attr steps + guard walk (hook redirect only),
- * without history commit or render. Returns the target for
- * {@link ../navigation/navigation-coordinator!NavigationCoordinator.run} — full
- * {@code leave → guard → load} runs in the pipeline, not here.
+ * Pre-commit redirect resolution: declarative attr steps + blocking walk (`leave` → `guard`),
+ * without history commit or render.
+ *
+ * Blocking walk runs {@link ../navigation/navigation-transaction!NavigationTransaction.runGuardPhase}
+ * on each hop where the transition plan has `hasLeave` on exit or `hasGuard` on enter.
+ * Full `runGuards()` is invoked per hop (overlapping exit routes may run `leave` more than once —
+ * acceptable for short chains; see `redirect/README.md`).
+ *
+ * Resolved navigations set {@link RedirectResolveResult.skipBlockingPhases} so
+ * {@link ../navigation/navigation-coordinator!NavigationCoordinator.run} skips duplicate
+ * `runGuards` in the full pipeline.
  */
 export async function followRedirectsWithGuardWalk(
   resolverCtx: RedirectResolverContext,
@@ -155,9 +163,9 @@ export async function followRedirectsWithGuardWalk(
     const target = applyRedirectArrivalFlag(redirection, matchStep);
     const transitionPlan = buildTransitionPlan(input.from, target);
 
-    const blockingOutcome = enterChainHasGuard(transitionPlan)
-      ? await runGuardWalkProbe(resolverCtx, input, target, redirection, transitionPlan)
-      : resolveWithoutGuardWalkProbe(target, redirection);
+    const blockingOutcome = planNeedsBlockingWalk(transitionPlan)
+      ? await runBlockingWalkProbe(resolverCtx, input, target, redirection, transitionPlan)
+      : resolveWithoutBlockingWalkProbe(target, redirection);
 
     if (!blockingOutcome.done) {
       const error = tryApplyRedirectStep(redirection, blockingOutcome.href, step);
@@ -171,13 +179,22 @@ export async function followRedirectsWithGuardWalk(
   return depthExceeded(redirection);
 }
 
-/** Whether enter routes in a pre-built plan declare guard hooks (inherited attrs included). */
-function enterChainHasGuard(plan: TransitionMap): boolean {
-  return plan.enterRoutes.some((matched) => matched.route.hasGuard);
+/**
+ * Whether this hop needs redirect-walk blocking probe.
+ *
+ * True when exit routes declare `leave` or enter routes declare `guard` in the
+ * pre-built plan for `from → target`. No incremental dedup — each matching hop runs full
+ * {@link ../navigation/navigation-transaction-pipeline!NavigationTransactionPipeline.runGuards}.
+ */
+function planNeedsBlockingWalk(plan: TransitionMap): boolean {
+  return (
+    plan.exitRoutes.some((matched) => matched.route.hasLeave)
+    || plan.enterRoutes.some((matched) => matched.route.hasGuard)
+  );
 }
 
-/** Guard walk not needed — no enter-route guards can redirect. */
-function resolveWithoutGuardWalkProbe(
+/** Leaf resolved without blocking work on this hop (may still set `skipBlockingPhases` from prior hops). */
+function resolveWithoutBlockingWalkProbe(
   target: MatchedNavigationTarget,
   redirection: RedirectionContext,
 ): BlockingPhasesProbeOutcome {
@@ -187,15 +204,18 @@ function resolveWithoutGuardWalkProbe(
       status: 'resolved',
       target,
       replace: redirection.historyReplace || target.viaRedirect,
+      skipBlockingPhases: redirection.blockingPhasesCompleted,
     },
   };
 }
 
 /**
- * Guard-only probe on one candidate leaf during redirect walk (no leave/load/render).
- * Caller supplies a pre-built {@link TransitionMap} when {@link enterChainHasGuard} is true.
+ * `leave` → `guard` probe for one redirect-walk hop.
+ *
+ * Uses a throwaway probe transaction (`id 0`) with a preset {@link TransitionMap}.
+ * Preserves pipeline phase order so hook `guard` redirect never runs before exit `leave`.
  */
-async function runGuardWalkProbe(
+async function runBlockingWalkProbe(
   resolverCtx: RedirectResolverContext,
   input: RedirectChainInput,
   target: MatchedNavigationTarget,
@@ -221,6 +241,7 @@ async function runGuardWalkProbe(
   probe.transitionOrder = getEnterRoute(transitionPlan)?.transition?.order ?? null;
 
   const walkResult = await probe.runGuardPhase();
+  redirection.blockingPhasesCompleted = true;
 
   if (walkResult?.status === 'redirect') {
     redirection.historyReplace = redirection.historyReplace || (walkResult.replace ?? input.action === 'pop');
@@ -237,6 +258,7 @@ async function runGuardWalkProbe(
       status: 'resolved',
       target,
       replace: redirection.historyReplace || target.viaRedirect,
+      skipBlockingPhases: true,
     },
   };
 }

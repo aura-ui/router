@@ -2,7 +2,7 @@
 
 > **Статус:** ⚠️ **под вопросом** — идея зафиксирована, решение не принято; нужно обсудить scope, API и связь с client pipeline.  
 > **Roadmap:** **не обещаем** (см. [SSR_MPA_STRATEGY.md](./SSR_MPA_STRATEGY.md) — публичный Phase 8 = MPA→SPA без server runtime).  
-> **Сверка с кодом:** 2026-07-13 — client-only; `followRedirectsWithGuardWalk` + full pipeline.
+> **Сверка с кодом:** 2026-07-13 — client-only; `followRedirectsWithGuardWalk` (blocking walk) + pipeline с `skipBlockingPhases`.
 
 ---
 
@@ -17,16 +17,16 @@
 
 ```text
 navigateTo
-  → followRedirectsWithGuardWalk     ← declarative redirect + guard walk (enter guard only)
-  → coordinator.run
-       → leave → guard → load → render → history
+  → followRedirectsWithGuardWalk     ← declarative redirect + blocking walk (leave → guard per hop)
+  → coordinator.run (skipBlockingPhases)
+       → load → render → history   (runGuards пропущен, если walk уже был)
 ```
 
 | Redirect | Поведение на client |
 |----------|---------------------|
 | declarative `redirect` attr | collapse в resolve |
-| `guard` | collapse в guard walk или full pipeline |
-| `load` | **после `leave`** → `applyRedirect` → **новый** `navigateTo` |
+| `leave` / `guard` | collapse в blocking walk или full pipeline (`runGuards`) |
+| `load` | **после** resolve `leave` (walk или pipeline) → `applyRedirect` → **новый** `navigateTo` |
 
 См. [HOOKS.md § Redirect: guard vs load](../HOOKS.md), [redirect/README.md](../../src/modules/aura-routing-engine/core/redirect/README.md).
 
@@ -51,7 +51,7 @@ GET /users/42
 | `leave` | да | обычно **нет** (нет «текущей SPA-страницы» в том же смысле) |
 | Render | DOM patch | HTML string |
 | `load` redirect | новый `navigateTo` | **302** или re-resolve в том же request |
-| Guard redirect | guard walk collapse | **302 до body** |
+| Guard / leave redirect | blocking walk collapse (как на client) | **302 до body** |
 | Supersede | coordinator generation | один request — один проход |
 
 ---
@@ -65,7 +65,7 @@ GET /users/42
    В RR/TanStack loader redirect = HTTP response. На client мы load redirect **не** collapse в walk — на server это может быть **основной** паттерн.
 
 3. **Guard walk на server**  
-   Нужен ли аналог `followRedirectsWithGuardWalk`, или достаточно одного прохода guard+load без «walk»?
+   Нужен ли аналог `followRedirectsWithGuardWalk` (blocking walk: `leave` → `guard`), или достаточно одного прохода guard+load без «walk»?
 
 4. **Cookies / session**  
    Guard на server читает cookie; контракт hook context (`from`, `action`, signal) другой.
@@ -77,7 +77,7 @@ GET /users/42
    Если сервер отдаёт готовые `.html` — **server path не нужен** ([SSR_MPA_STRATEGY § MPA→SPA](./SSR_MPA_STRATEGY.md)). Эта задача актуальна только для **единого SPA entry** на все URL.
 
 7. **Приоритет vs client polish**  
-   Guard 2×, prefetch cache LRU, load-redirect policy на client — делать раньше server path?
+   Повторный `leave` на коротких redirect-цепочках, prefetch cache LRU, load-redirect policy на client — делать раньше server path?
 
 ---
 

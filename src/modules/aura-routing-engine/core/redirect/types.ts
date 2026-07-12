@@ -54,6 +54,8 @@ export type RedirectResolveResult =
       readonly target: MatchedNavigationTarget;
       /** When `true`, coordinator should commit via `history.replaceState`. */
       readonly replace: boolean;
+      /** When `true`, {@link ../navigation/navigation-coordinator!NavigationCoordinator.run} skips `runGuards` in full pipeline. */
+      readonly skipBlockingPhases?: boolean;
     }
   | RedirectUnmatchedOutcome
   | RedirectErrorOutcome
@@ -77,6 +79,10 @@ export type RedirectionContext = {
   viaRedirect: boolean;
   /** Initial `options.replace` plus hook-redirect `replace` / `pop` accumulation. */
   historyReplace: boolean;
+  /**
+   * `true` after redirect walk ran blocking probe (`leave` → `guard`) on at least one hop in this chain.
+   */
+  blockingPhasesCompleted: boolean;
 };
 
 /**

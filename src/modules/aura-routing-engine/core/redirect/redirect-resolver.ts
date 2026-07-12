@@ -10,7 +10,6 @@ import {
   followDeclarativeRedirectHops,
   followRedirectHopsWithHooks,
   isHopLoopTerminal,
-  shouldReplaceHistory,
   type HopContext,
 } from './hop-loop';
 import type { DeclarativeTargetResolve, MatchedNavigationTarget } from './types';
@@ -78,7 +77,7 @@ export async function resolveRedirectChain(
     hopState,
     resolverCtx.matcher,
     resolverCtx.getMatchableNodes(),
-    async (target) => resolveMatchedHop(resolverCtx, input, target, hopState),
+    (target) => resolveMatchedHop(resolverCtx, input, target, hopState),
   );
 
   if (isHopLoopTerminal(outcome)) {
@@ -95,14 +94,20 @@ async function resolveMatchedHop(
   target: MatchedNavigationTarget,
   hopState: HopContext,
 ): Promise<RedirectResolveResult | { kind: 'redirect'; href: string }> {
-  const probe = createBlockingProbe(resolverCtx, {
-    from: input.from,
-    to: target.leaf,
-    href: target.href,
-    hash: target.hash,
-    action: input.action,
-    options: input.options,
-  });
+  const probe = new NavigationTransaction(
+    0,
+    0,
+    {
+      from: input.from,
+      to: target.leaf,
+      href: target.href,
+      hash: target.hash,
+      action: input.action,
+      options: input.options,
+    },
+    () => !resolverCtx.isActive(),
+    resolverCtx.engine,
+  );
 
   const probeResult = await probe.runBlockingProbe();
 
@@ -118,29 +123,9 @@ async function resolveMatchedHop(
   return {
     status: 'resolved',
     target,
-    replace: shouldReplaceHistory(hopState, target),
+    replace: hopState.replace || target.viaRedirect,
     completedBlockingPhases: {
       ...(probe.dataSnapshot && { dataSnapshot: probe.dataSnapshot }),
     },
   };
-}
-
-function createBlockingProbe(
-  resolverCtx: RedirectResolverContext,
-  options: {
-    from: MatchedRouteInfo | null;
-    to: MatchedRouteInfo;
-    href: string;
-    hash: string;
-    action: HistoryAction;
-    options: NavigateHistoryOptions;
-  },
-): NavigationTransaction {
-  return new NavigationTransaction(
-    0,
-    0,
-    options,
-    () => !resolverCtx.isActive(),
-    resolverCtx.engine,
-  );
 }

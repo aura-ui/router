@@ -3,7 +3,7 @@ import type { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
-import type { CompletedBlockingPhases, PipelineStepResult } from '../navigation/types';
+import type { PipelineStepResult } from '../navigation/types';
 import type { RouteNode } from '../route-tree/route-node.types';
 
 /**
@@ -45,8 +45,6 @@ export type RedirectResolveResult =
       readonly target: MatchedNavigationTarget;
       /** When `true`, coordinator should commit via `history.replaceState`. */
       readonly replace: boolean;
-      /** Marker that blocking probe ran; any value (even `{}`) skips leave/guard/load in full pipeline. */
-      readonly completedBlockingPhases: CompletedBlockingPhases;
     }
   | { readonly status: 'unmatched' }
   | RedirectErrorOutcome

@@ -3,10 +3,7 @@ import {
   FakeHistoryProvider,
 } from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import { DEFAULT_PUSH_NAV_OPTIONS } from '../helpers/jest/constants';
 import { registerTestHook } from '../helpers/jest/navigation-fixtures';
-import { createMatchedRoute, createMockEngine } from '../helpers/create-mock-transaction';
 import {
   collectRoutesFromDom,
   createDomRedirectRoute,
@@ -44,8 +41,44 @@ describe('RedirectResolver integration', () => {
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]!.to.pattern).toBe('/login');
-    expect(transactions[0]!.completedBlockingPhases).toEqual({});
     expect(applyRedirectSpy).not.toHaveBeenCalled();
+  });
+
+  it('runs leave only once after guard redirect chain resolves', async () => {
+    let leaveCalls = 0;
+
+    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
+      const { buildTransitionPlan, getEnterRoute } = await import('../../core/route-tree/transition-plan');
+      const { NavigationTransactionPipeline } = await import('../../core/navigation/navigation-transaction-pipeline');
+      this.transitionPlan = buildTransitionPlan(this.from, this.to);
+      this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+      const guards = await new NavigationTransactionPipeline(this).runGuards();
+      if (guards) return guards;
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
+    });
+
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+
+    const home = createDomRoute('/');
+    home.setAttribute('leave', 'home-leave');
+    registerTestHook(engine.hooksRegistry, 'home-leave', () => {
+      leaveCalls++;
+    });
+    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
+
+    const login = createDomRoute('/login');
+    const dashboard = createDomRoute('/dashboard');
+    dashboard.setAttribute('guard', 'auth');
+
+    engine.replaceRoutes(collectRoutesFromDom(home, dashboard, login));
+    provider.start();
+
+    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
+
+    expect(leaveCalls).toBe(1);
   });
 
   it('collapses declarative redirect and guard redirect in one run', async () => {
@@ -75,79 +108,5 @@ describe('RedirectResolver integration', () => {
     expect(transactions[0]!.to.pattern).toBe('/login');
     expect(transactions[0]!.href).toBe('/login');
     expect(transactions[0]!.historyOptions.replace).toBe(true);
-  });
-
-  it('skips duplicate blocking phases when completedBlockingPhases is set', async () => {
-    const to = createMatchedRoute('/login');
-    const transaction = new NavigationTransaction(
-      1,
-      0,
-      {
-        from: null,
-        to,
-        href: '/login',
-        hash: '',
-        action: 'push',
-        options: DEFAULT_PUSH_NAV_OPTIONS,
-        completedBlockingPhases: {},
-      },
-      () => false,
-      createMockEngine(),
-    );
-    transaction.transitionPlan = {
-      exitRoutes: [],
-      enterRoutes: [to],
-      lca: null,
-      update: false,
-    };
-    transaction.transitionOrder = null;
-
-    const pipeline = new NavigationTransactionPipeline(transaction);
-    const guardsSpy = jest.spyOn(pipeline, 'runGuards');
-    const loadsSpy = jest.spyOn(pipeline, 'runLoads');
-    const historySpy = jest.spyOn(pipeline, 'runCommitHistory').mockResolvedValue(null);
-    jest.spyOn(pipeline, 'runRenderWithTransition').mockResolvedValue(null);
-    jest.spyOn(pipeline, 'runAfterRender').mockResolvedValue(null);
-
-    await pipeline.runFullPipeline();
-
-    expect(guardsSpy).not.toHaveBeenCalled();
-    expect(loadsSpy).not.toHaveBeenCalled();
-    expect(historySpy).toHaveBeenCalled();
-  });
-
-  it('skips duplicate loads in runUpdate when completedBlockingPhases is set', async () => {
-    const to = createMatchedRoute('/users/2');
-    const transaction = new NavigationTransaction(
-      1,
-      0,
-      {
-        from: createMatchedRoute('/users/1'),
-        to,
-        href: '/users/2',
-        hash: '',
-        action: 'push',
-        options: DEFAULT_PUSH_NAV_OPTIONS,
-        completedBlockingPhases: {},
-      },
-      () => false,
-      createMockEngine(),
-    );
-    transaction.transitionPlan = {
-      exitRoutes: [],
-      enterRoutes: [to],
-      lca: to,
-      update: true,
-    };
-    transaction.transitionOrder = null;
-
-    const pipeline = new NavigationTransactionPipeline(transaction);
-    const loadsSpy = jest.spyOn(pipeline, 'runLoads');
-    jest.spyOn(pipeline, 'runCommitHistory').mockResolvedValue(null);
-    jest.spyOn(pipeline, 'runLifecyclePhase').mockResolvedValue(null);
-
-    await pipeline.runUpdate();
-
-    expect(loadsSpy).not.toHaveBeenCalled();
   });
 });

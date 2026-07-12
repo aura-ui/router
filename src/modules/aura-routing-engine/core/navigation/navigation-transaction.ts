@@ -3,7 +3,7 @@ import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route
 import { NavigationTransactionPipeline } from './navigation-transaction-pipeline';
 import type { PipelineStepResult, TransactionResult } from './types';
 import { AuraRoutingEngine } from '../aura-routing-engine';
-import type { NavigationTransactionOptions, CompletedBlockingPhases } from './types';
+import type { NavigationTransactionOptions } from './types';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { type NavigationErrorPhase } from '../failure';
@@ -35,8 +35,6 @@ export class NavigationTransaction {
   transitionPlan!: TransitionMap;
   transitionOrder: TransitionOrderType | null = null;
   dataSnapshot?: DataSnapshot;
-  /** When set, {@link NavigationTransactionPipeline.runFullPipeline} skips leave/guard/load. */
-  readonly completedBlockingPhases?: CompletedBlockingPhases;
   /** Pre-resolved enter-branch view contents between resolve and apply (transition + atomic). */
   preResolvedBranchContents?: readonly (ViewPayload | null)[];
   viewCommitTracker: ViewCommitTracker;
@@ -62,7 +60,6 @@ export class NavigationTransaction {
     this.signal = this.abortController.signal;
     this.isStale = () => isTransactionStale(transactionId, routerGenerationId);
     this.engine = engine;
-    this.completedBlockingPhases = options.completedBlockingPhases;
 
     this.viewCommitTracker = new ViewCommitTracker(options.to.href);
   }
@@ -102,11 +99,11 @@ export class NavigationTransaction {
     });
   }
 
-  /** Pre-commit probe for {@link ../redirect/redirect-resolver!followRedirectsWithBlockingPhases} — no render. */
-  async runBlockingPhases(): Promise<PipelineStepResult> {
+  /** Pre-commit guard probe for {@link ../redirect/redirect-resolver!followRedirectsWithBlockingPhases} — no render. */
+  async runGuardPhase(): Promise<PipelineStepResult> {
     this.transitionPlan = buildTransitionPlan(this.from, this.to);
     this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
-    return new NavigationTransactionPipeline(this).runBlockingPhases();
+    return new NavigationTransactionPipeline(this).runGuardPhase();
   }
 
   async fail(

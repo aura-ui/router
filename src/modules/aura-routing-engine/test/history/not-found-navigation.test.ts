@@ -40,7 +40,7 @@ describe('AuraRoutingEngine NOT_FOUND', () => {
   it('reports NOT_FOUND for redirect target href, not the original request', async () => {
     const onNotFound = jest.fn();
     const recover = jest.fn();
-    const followSpy = jest.spyOn(redirectResolver, 'followRedirectsWithBlockingPhases').mockResolvedValue({
+    const followSpy = jest.spyOn(redirectResolver, 'followRedirectsWithGuardWalk').mockResolvedValue({
       status: 'unmatched',
       href: '/missing',
     });

@@ -1,5 +1,5 @@
 /**
- * Pre-commit redirect resolution: declarative `redirect` attrs and blocking hook redirects.
+ * Pre-commit redirect resolution: declarative `redirect` attrs and guard-walk hook redirects.
  *
  * @see `README.md` for pipeline diagram and outcome types.
  */
@@ -9,7 +9,7 @@ export {
   createRedirectionContext,
   navigationVisitKey,
   followDeclarativeRedirects,
-  followRedirectsWithBlockingPhases,
+  followRedirectsWithGuardWalk,
 } from './redirect-resolver';
 export type {
   DeclarativeRedirectOutcome,

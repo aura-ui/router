@@ -3,8 +3,14 @@
  * by {@link ../hooks/registry!normalizeHookResult}.
  *
  * Shared guard contract for {@link ../hooks/registry}, {@link ../navigation/types!NavigationShortCircuit},
- * Guard outcomes consumed by {@link ./navigation/navigation-transaction-pipeline-phase}
- * — not the author-facing {@link ../hooks/types!HookResult}.
+ * and {@link ./navigation/navigation-transaction-pipeline-phase}.
+ *
+ * **Redirect placement (client navigation):**
+ * - **`guard` during redirect resolve** — {@link ./redirect/redirect-resolver!followRedirectsWithGuardWalk}
+ *   collapses hook redirect into the same `navigateTo` (guard-only walk, no render).
+ * - **`guard` / `leave` / `load` in full pipeline** — {@link ./navigation/navigation-transaction-pipeline!NavigationTransactionPipeline.runFullPipeline};
+ *   load redirect runs after `leave`, triggers a new `navigateTo` via {@link ./aura-routing-engine!AuraRoutingEngine.applyRedirect}.
+ * Prefer auth/role redirects in **`guard`**, not **`load`**, for client-first apps.
  *
  * @module guard.types
  */

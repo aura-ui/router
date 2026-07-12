@@ -99,7 +99,7 @@ export class NavigationTransaction {
     });
   }
 
-  /** Pre-commit guard probe for {@link ../redirect/redirect-resolver!followRedirectsWithBlockingPhases} — no render. */
+  /** Pre-commit guard probe for {@link ../redirect/redirect-resolver!followRedirectsWithGuardWalk} — no render. */
   async runGuardPhase(): Promise<PipelineStepResult> {
     if (!this.transitionPlan) {
       this.transitionPlan = buildTransitionPlan(this.from, this.to);

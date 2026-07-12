@@ -1,6 +1,7 @@
 import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import type { ResolvedDocumentHref } from '../../../aura-utils/misc/url';
 import type { RouteNode } from '../route-tree/route-node.types';
+import { enterChainHasGuard } from '../route-tree/enter-chain-has-guard';
 import { NavigationTransaction } from '../navigation/navigation-transaction';
 import { lookupNavigationStep } from './match-step';
 import type {
@@ -150,12 +151,11 @@ export async function followRedirectsWithBlockingPhases(
       continue;
     }
 
-    const blockingOutcome = await runGuardWalkProbe(
-      resolverCtx,
-      input,
-      applyRedirectArrivalFlag(redirection, matchStep),
-      redirection,
-    );
+    const target = applyRedirectArrivalFlag(redirection, matchStep);
+
+    const blockingOutcome = enterChainHasGuard(input.from, target)
+      ? await runGuardWalkProbe(resolverCtx, input, target, redirection)
+      : resolveWithoutGuardWalkProbe(target, redirection);
 
     if (!blockingOutcome.done) {
       const error = tryApplyRedirectStep(redirection, blockingOutcome.href, step);
@@ -167,6 +167,21 @@ export async function followRedirectsWithBlockingPhases(
   }
 
   return depthExceeded(redirection);
+}
+
+/** Guard walk not needed — no enter-route guards can redirect. */
+function resolveWithoutGuardWalkProbe(
+  target: MatchedNavigationTarget,
+  redirection: RedirectionContext,
+): BlockingPhasesProbeOutcome {
+  return {
+    done: true,
+    result: {
+      status: 'resolved',
+      target,
+      replace: redirection.historyReplace || target.viaRedirect,
+    },
+  };
 }
 
 /**

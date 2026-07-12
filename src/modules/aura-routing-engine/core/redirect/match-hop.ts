@@ -1,10 +1,16 @@
 import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import { applyCanonicalIndexFolderHref } from '../match/canonical-index-href';
 import { getActiveChain } from '../route-tree/matched-chain';
+import { resolvePattern } from '../route-tree/resolve-pattern';
 import type { RouteNode } from '../route-tree/route-node.types';
 import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
-import { resolveRedirectHref } from './href';
 import type { NavigationMatchStep } from './types';
+
+/** Resolves declarative `redirect` attr to an app-relative href (absolute or relative to parent). */
+export function resolveRedirectHref(node: RouteNode, rawTarget: string): string {
+  const pathname = resolvePattern(node.parent?.pattern ?? null, rawTarget.trim());
+  return resolveDocumentHrefParts(pathname).href;
+}
 
 /** One match hop: leaf page/folder index, declarative redirect, or no match. */
 export function matchNavigationStep(

@@ -5,8 +5,12 @@ import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-match
 import { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { CompletedBlockingPhases, PipelineStepResult } from '../navigation/types';
 import type { RouteNode } from '../route-tree/route-node.types';
-import { followNavigationRedirectHops, isDeclarativeTerminal } from './hop-iterator';
-import type { MatchedNavigationTarget } from './types';
+import {
+  followDeclarativeRedirectHops,
+  followNavigationRedirectHops,
+  isDeclarativeTerminal,
+} from './hop-loop';
+import type { DeclarativeTargetResolve, MatchedNavigationTarget } from './types';
 
 export type RedirectResolveResult =
   | {
@@ -42,6 +46,25 @@ type NavigationHopState = {
   replace: boolean;
   redirected: boolean;
 };
+
+/**
+ * Sync target resolution — declarative `redirect` attr hops only (no hooks).
+ *
+ * Used by prefetch and any caller that needs a final leaf without running the navigation pipeline.
+ * Redirect targets are path-only; `search` / `hash` from the original request are kept on the leaf.
+ */
+export function resolveDeclarativeTarget(
+  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
+  href: string | ResolvedDocumentHref,
+  nodes: readonly RouteNode[],
+): DeclarativeTargetResolve {
+  return followDeclarativeRedirectHops(
+    matcher,
+    href,
+    nodes,
+    (target: MatchedNavigationTarget) => target,
+  );
+}
 
 /**
  * Pre-commit redirect resolution: declarative attr hops + blocking hooks (leave/guard/load)

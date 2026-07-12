@@ -271,6 +271,13 @@ export class DataGraph {
       const terminal = NavigationTransactionPipelinePhase.resolveBlockingHookOutcome(
         normalizeHookResult(raw as HookResultInput),
       );
+
+      if (mode === 'navigation' && terminal?.status === 'redirect') {
+        console.warn(
+          `[load] hook "${name}" on route ${lifecycleContext.route.path} returned redirect — prefer guard for client redirects: ${terminal.url}`,
+        );
+      }
+
       this.throwIfTerminal(terminal, mode);
 
       const data = extractLoadPayload(raw);

@@ -120,6 +120,8 @@ describe('DataGraph', () => {
   });
 
   it('returns redirect from navigation load without snapshot', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
@@ -133,6 +135,11 @@ describe('DataGraph', () => {
 
     expect(outcome).toEqual({ status: 'redirect', url: '/login' });
     expect(snapshot).toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[load] hook "data" on route /admin returned redirect — prefer guard for client redirects: /login',
+    );
+
+    warnSpy.mockRestore();
   });
 
   it('prefetch ignores redirect and does not cache', async () => {

@@ -5,13 +5,25 @@ import type { RouteNode } from '../route-tree/route-node.types';
 import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
 import type { NavigationMatchStep } from './types';
 
-/** Resolves declarative `redirect` attr to an app-relative href (absolute or relative to parent). */
+/**
+ * Resolves a declarative `redirect` attr to an app-relative href.
+ * Relative targets are resolved against the parent route pattern.
+ */
 export function resolveRedirectHref(node: RouteNode, rawTarget: string): string {
   const pathname = resolvePattern(node.parent?.pattern ?? null, rawTarget.trim());
   return resolveDocumentHrefParts(pathname).href;
 }
 
-/** One redirection step: leaf page/folder index, declarative redirect, or no match. */
+/**
+ * Looks up one navigation step for `href` in the route tree.
+ *
+ * @param matcher - URL matcher (`matchPath` + `toRouteInfo`).
+ * @param href - Current chain href (pathname may change per hop).
+ * @param nodes - Matchable route nodes for this registry generation.
+ * @param preservedSearch - `search` from the original navigation request.
+ * @param preservedHash - `hash` from the original navigation request.
+ * @returns Leaf match, declarative redirect hop, or `null` when unmatched.
+ */
 export function lookupNavigationStep(
   matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
   href: string,

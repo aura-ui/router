@@ -1,3 +1,8 @@
+/**
+ * Pre-commit redirect resolution: declarative `redirect` attrs and blocking hook redirects.
+ *
+ * @see `README.md` for pipeline diagram and outcome types.
+ */
 export { resolveRedirectHref, lookupNavigationStep } from './match-step';
 export {
   MAX_REDIRECTION_STEPS,

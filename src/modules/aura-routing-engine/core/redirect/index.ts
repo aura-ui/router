@@ -8,8 +8,8 @@ export {
 } from './redirect-resolver';
 export type { RedirectionContext, RedirectResolverContext, RedirectResolveResult } from './redirect-resolver';
 export type {
-  DeclarativeTargetResolve,
+  DeclarativeRedirectOutcome,
   MatchedNavigationTarget,
   NavigationMatchStep,
-  RedirectStepError,
+  RedirectErrorOutcome,
 } from './types';

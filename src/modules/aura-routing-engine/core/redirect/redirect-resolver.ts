@@ -7,7 +7,7 @@ import { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { CompletedBlockingPhases, PipelineStepResult } from '../navigation/types';
 import type { RouteNode } from '../route-tree/route-node.types';
 import { lookupNavigationStep } from './match-step';
-import type { DeclarativeTargetResolve, MatchedNavigationTarget, RedirectStepError } from './types';
+import type { DeclarativeRedirectOutcome, MatchedNavigationTarget, RedirectErrorOutcome } from './types';
 
 export const MAX_REDIRECTION_STEPS = 5;
 
@@ -27,11 +27,7 @@ export type RedirectResolveResult =
   readonly completedBlockingPhases: CompletedBlockingPhases;
 }
   | { readonly status: 'unmatched' }
-  | {
-  readonly status: 'redirect-error';
-  readonly code: 'redirect-cycle' | 'redirect-depth-exceeded';
-  readonly href: string;
-}
+  | RedirectErrorOutcome
   | {
   readonly status: 'terminal';
   readonly result: Exclude<PipelineStepResult, null>;
@@ -79,13 +75,13 @@ function applyRedirectStep(
   redirection: RedirectionContext,
   nextHref: string,
   step: number,
-): RedirectStepError | null {
+): RedirectErrorOutcome | null {
   if (step >= MAX_REDIRECTION_STEPS) {
-    return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: redirection.stepHref };
+    return { status: 'redirect-error', code: 'redirect-depth-exceeded', href: redirection.stepHref };
   }
   const nextKey = navigationVisitKey(nextHref);
   if (redirection.visitedPathnames.has(nextKey)) {
-    return { kind: 'redirect-error', code: 'redirect-cycle', href: nextHref };
+    return { status: 'redirect-error', code: 'redirect-cycle', href: nextHref };
   }
   redirection.visitedPathnames.add(nextKey);
   redirection.stepHref = nextHref;
@@ -100,12 +96,8 @@ function applyRedirectArrivalFlag(
   return redirection.viaRedirect || step.viaRedirect ? { ...step, viaRedirect: true } : step;
 }
 
-function depthExceeded(redirection: RedirectionContext): RedirectStepError {
-  return { kind: 'redirect-error', code: 'redirect-depth-exceeded', href: redirection.stepHref };
-}
-
-function toRedirectError(error: RedirectStepError): Extract<RedirectResolveResult, { status: 'redirect-error' }> {
-  return { status: 'redirect-error', code: error.code, href: error.href };
+function depthExceeded(redirection: RedirectionContext): RedirectErrorOutcome {
+  return { status: 'redirect-error', code: 'redirect-depth-exceeded', href: redirection.stepHref };
 }
 
 /**
@@ -118,7 +110,7 @@ export function followDeclarativeRedirects(
   matcher: Matcher,
   href: string | ResolvedDocumentHref,
   nodes: readonly RouteNode[],
-): DeclarativeTargetResolve {
+): DeclarativeRedirectOutcome {
   const redirection = createRedirectionContext(href);
 
   for (let step = 0; step <= MAX_REDIRECTION_STEPS; step++) {
@@ -129,7 +121,7 @@ export function followDeclarativeRedirects(
       redirection.originalUrlParts.search,
       redirection.originalUrlParts.hash,
     );
-    if (!matchStep) return { kind: 'unmatched' };
+    if (!matchStep) return { status: 'unmatched' };
 
     if (matchStep.kind === 'redirect') {
       const error = applyRedirectStep(redirection, matchStep.href, step);
@@ -137,7 +129,10 @@ export function followDeclarativeRedirects(
       continue;
     }
 
-    return applyRedirectArrivalFlag(redirection, matchStep);
+    return {
+      status: 'resolved',
+      target: applyRedirectArrivalFlag(redirection, matchStep),
+    };
   }
 
   return depthExceeded(redirection);
@@ -165,7 +160,7 @@ export async function followRedirectsWithBlockingPhases(
 
     if (matchStep.kind === 'redirect') {
       const error = applyRedirectStep(redirection, matchStep.href, step);
-      if (error) return toRedirectError(error);
+      if (error) return error;
       continue;
     }
 
@@ -178,14 +173,14 @@ export async function followRedirectsWithBlockingPhases(
 
     if (!matched.done) {
       const error = applyRedirectStep(redirection, matched.href, step);
-      if (error) return toRedirectError(error);
+      if (error) return error;
       continue;
     }
 
     return matched.result;
   }
 
-  return toRedirectError(depthExceeded(redirection));
+  return depthExceeded(redirection);
 }
 
 async function runTransactionBlockingPhases(

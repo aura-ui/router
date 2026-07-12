@@ -1,5 +1,5 @@
 import { resolveDocumentHrefParts } from '../../../aura-utils/misc/url';
-import { resolveRedirectChain } from '../redirect/redirect-resolver';
+import { resolveRedirectChain } from '../redirect/navigation-chain';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { NavigationHost } from './navigation-host';

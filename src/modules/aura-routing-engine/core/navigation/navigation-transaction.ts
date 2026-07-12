@@ -101,8 +101,10 @@ export class NavigationTransaction {
 
   /** Pre-commit guard probe for {@link ../redirect/redirect-resolver!followRedirectsWithBlockingPhases} — no render. */
   async runGuardPhase(): Promise<PipelineStepResult> {
-    this.transitionPlan = buildTransitionPlan(this.from, this.to);
-    this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+    if (!this.transitionPlan) {
+      this.transitionPlan = buildTransitionPlan(this.from, this.to);
+      this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+    }
     return new NavigationTransactionPipeline(this).runGuardPhase();
   }
 

@@ -134,10 +134,10 @@ Store: aura-cache-store (AuraResolvableCache)
 - [x] `staleTime`, `gcTime`, stale-while-revalidate
 - [x] Cache hit → skip hook fetch
 - [x] LCA snapshot из кэша
-- [x] `load()` / `prefetch()` — разная политика redirect/error
-- [x] Parallel loads + sibling abort
+- [x] `load()` / `prefetch()` — разная политика error (prefetch swallow); redirect из load не поддерживается
+- [x] Parallel loads + sibling abort (cancel/error)
 - [x] Wired в `ProcessorPipeline` + prefetch executor
-- [x] Тесты: hit, redirect, prefetch, invalidate, LCA snapshot
+- [x] Тесты: hit, payload, cancel, prefetch cache, invalidate, LCA snapshot
 
 ### Parity (TODO) — см. [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md)
 

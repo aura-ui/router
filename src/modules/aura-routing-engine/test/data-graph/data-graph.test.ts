@@ -119,9 +119,7 @@ describe('DataGraph', () => {
     expect(snapshot!.get(key)).toEqual({ type: 'article', id: 7, title: 'Hello' });
   });
 
-  it('returns redirect from navigation load without snapshot', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
+  it('treats string load return as payload not redirect', async () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
@@ -133,16 +131,12 @@ describe('DataGraph', () => {
       transaction: loadTransaction(hookRegistry, [route]),
     });
 
-    expect(outcome).toEqual({ status: 'redirect', url: '/login' });
-    expect(snapshot).toBeUndefined();
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[load] hook "data" on route /admin returned redirect — prefer guard for client redirects: /login',
-    );
-
-    warnSpy.mockRestore();
+    expect(outcome).toBeUndefined();
+    const key = [...snapshot!.keys()][0]!;
+    expect(snapshot!.get(key)).toBe('/login');
   });
 
-  it('prefetch ignores redirect and does not cache', async () => {
+  it('prefetch caches string payload from load hook', async () => {
     let loads = 0;
     hookRegistry.register({
       name: 'data',
@@ -157,7 +151,22 @@ describe('DataGraph', () => {
     await dataGraph.prefetch([route], { mode: 'intent' });
     await dataGraph.prefetch([route], { mode: 'intent' });
 
-    expect(loads).toBe(2);
+    expect(loads).toBe(1);
+  });
+
+  it('returns cancelled when load hook returns false', async () => {
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => false,
+    });
+
+    const route = matchedRoute('/admin');
+    const { outcome } = await dataGraph.load([route], {
+      transaction: loadTransaction(hookRegistry, [route]),
+    });
+
+    expect(outcome).toEqual({ status: 'cancelled' });
   });
 
   it('omits snapshot when no cache.data entries on the active branch', async () => {
@@ -221,7 +230,7 @@ describe('DataGraph', () => {
     expect(loads).toBe(2);
   });
 
-  it('aborts sibling loads on redirect', async () => {
+  it('does not abort sibling loads on non-terminal hook return', async () => {
     let siblingLoads = 0;
 
     hookRegistry.register({
@@ -233,9 +242,7 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'child',
       version: '1.0.0',
-      fn: async (ctx) => {
-        await new Promise((r) => setTimeout(r, 50));
-        if (ctx.transactionSignal.aborted) return null;
+      fn: async () => {
         siblingLoads++;
         return { ok: true };
       },
@@ -247,7 +254,7 @@ describe('DataGraph', () => {
 
     await dataGraph.load([layout, child], { transaction });
 
-    expect(siblingLoads).toBe(0);
+    expect(siblingLoads).toBe(1);
   });
 
   it('builds snapshot from full chain including LCA cache hits', async () => {

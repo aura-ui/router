@@ -12,7 +12,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type {
   BlockingHookStepResult,
   NavigationLifecycleContext,
-  PipelinePhaseDefinition,
+  PipelinePhaseDefinition, PipelineStepResult,
   RoutePhaseContextInput,
   RoutePhaseFailure,
   RoutePhaseRunResult,
@@ -195,6 +195,11 @@ export class NavigationTransactionPipelinePhase {
       };
     }
 
+    return null;
+  }
+
+  static resolveLoadHookOutcome(result: unknown): PipelineStepResult {
+    if (result === false) return { status: 'cancelled' };
     return null;
   }
 

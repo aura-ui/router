@@ -209,7 +209,10 @@ export class DataGraph {
     const ctx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
       from: null,
       action: 'push',
-      router: { navigate: () => {} },
+      router: {
+        navigate: () => {
+        },
+      },
       transactionId: 0,
       transactionSignal: abort,
     });
@@ -268,21 +271,14 @@ export class DataGraph {
       const raw = await entry.fn({ ...lifecycleContext, options: entry.options });
       this.assertJobActive(isJobActive, mode);
 
-      const terminal = NavigationTransactionPipelinePhase.resolveBlockingHookOutcome(
+      const terminal = NavigationTransactionPipelinePhase.resolveLoadHookOutcome(
         normalizeHookResult(raw as HookResultInput),
       );
 
-      if (mode === 'navigation' && terminal?.status === 'redirect') {
-        console.warn(
-          `[load] hook "${name}" on route ${lifecycleContext.route.path} returned redirect — prefer guard for client redirects: ${terminal.url}`,
-        );
-      }
-
       this.throwIfTerminal(terminal, mode);
 
-      const data = extractLoadPayload(raw);
-      if (data !== SKIP_PAYLOAD) {
-        payload = data;
+      if (raw !== undefined && raw !== true) {
+        payload = raw;
       }
     }
 
@@ -304,24 +300,6 @@ export class DataGraph {
   }
 }
 
-const SKIP_PAYLOAD = Symbol('skip-payload');
-
 function routePreservesLoadData(route: MatchedRouteInfo): boolean {
   return route.route.cache?.data ?? false;
-}
-
-/** Non-terminal hook return stored in the data graph cache. */
-function extractLoadPayload(raw: unknown): unknown {
-  if (raw === undefined || raw === true || raw === false) return SKIP_PAYLOAD;
-
-  const normalized = normalizeHookResult(raw as HookResultInput);
-  if (normalized === false || typeof normalized === 'string') return SKIP_PAYLOAD;
-  if (typeof normalized === 'object' && normalized !== null && 'url' in normalized) return SKIP_PAYLOAD;
-
-  if (typeof raw === 'object' && raw !== null && 'type' in raw) {
-    const { type } = raw as { type: string };
-    if (type === 'continue' || type === 'cancel' || type === 'redirect') return SKIP_PAYLOAD;
-  }
-
-  return raw;
 }

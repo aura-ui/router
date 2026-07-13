@@ -47,13 +47,3 @@ function matchLinkActiveParts(link: AppHrefParts, current: AppHrefParts): LinkAc
 export function matchLinkActive(linkHref: string, current: AppHrefParts): LinkActiveMatch {
   return matchLinkActiveParts(splitAppHref(linkHref), current);
 }
-
-/** Exact href match: same path + search; hash rules apply when the link declares a hash. */
-export function isExactLinkMatch(linkHref: string, currentHref: string): boolean {
-  return matchLinkActiveParts(splitAppHref(linkHref), splitAppHref(currentHref)).exact;
-}
-
-/** Prefix match for folder/section links. Root `/` matches only itself. */
-export function isPrefixLinkMatch(linkHref: string, currentHref: string): boolean {
-  return matchLinkActiveParts(splitAppHref(linkHref), splitAppHref(currentHref)).prefix;
-}

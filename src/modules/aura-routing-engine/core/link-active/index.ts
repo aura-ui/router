@@ -1,4 +1,3 @@
-export { isExactLinkMatch, isPrefixLinkMatch } from './match';
 export {
   getCurrentAppHref,
   isHashOnlyChange,

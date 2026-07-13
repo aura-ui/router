@@ -1,6 +1,6 @@
 # Nested routes: модель «радости» (Route Folders)
 
-> **Статус:** <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ В РАБОТЕ</span> · сверка с кодом **2026-07-11** (catch-all verify, folder-without-index)  
+> **Статус:** <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ В РАБОТЕ</span> · сверка с кодом **2026-07-13** (redirect resolve, lifecycle inherit override, link-active)  
 > **Согласован с** [ROUTE_API_V3.md](./ROUTE_API_V3.md)  
 > **Контекст:** как nested должны ощущаться через 5 лет — легко и интуитивно  
 > **Область:** nested-специфика поверх v3 attrs; attrs и lifecycle — **из v3, не дублируем**  
@@ -14,14 +14,14 @@
 | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | база есть, контракт Joy не закрыт |
 | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> | не реализовано |
 | <span style="background:#57606a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ НЕ ДЕЛАЕМ</span> | осознанно вне дизайна (не backlog) |
-| <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> | делаем **после** остальных пунктов Route Folders |
+| <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ОПЦИОНАЛЬНО</span> | backlog после core DX (colocated, overlay, breadcrumbs) |
 
 ---
 
 ## Статус реализации
 
-> **Политика:** declarative `redirect` и chain collapse — **последний этап**, когда folder/page/links/dev UX закрыты.  
-> **Код:** `src/modules/aura-route/`, `src/modules/aura-routing-engine/core/route-tree/`, `aura-outlet/`
+> **Политика:** colocated frame и dev overlay — основной backlog; declarative `redirect` **в engine** ✓; redirect из **`load`** — **не по дизайну**, будет убран из кода (см. [§Redirect chain collapse](#redirect-chain-collapse)).  
+> **Код:** `src/modules/aura-route/`, `src/modules/aura-routing-engine/core/route-tree/`, `core/redirect/`, `aura-outlet/`
 
 ### Порядок минишагов
 
@@ -34,11 +34,11 @@
 | 5 | Nested engine: LCA, `enterRoutes`, branch mount, sibling nav без remount frame | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 6 | `<aura-outlet>` в frame, `findNestedOutlet()` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 7 | Relative `href` (HTML-native + slash policy) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| 8 | `data-router-active-class`, `data-branch-active`, `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `<aura-breadcrumbs/>` <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
-| 9 | Dev UX: light DOM frame error, relative path warn, dev overlay | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| 8 | `data-router-active-class`, `data-branch-active-class`, `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `<aura-breadcrumbs/>` <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
+| 9 | Dev UX: light DOM frame error, relative path warn, dev overlay | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> · `warnMissingLayoutOutlet` ✓; overlay / light-DOM error ✗; relative-path warn ⊘ |
 | 10 | Nested 404 / catch-all в outlet folder | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> · scoped `path="*"` ✓ ([§Nested 404](#nested-404-scoped-catch-all)); miss без nested `*` / error scope ✗ |
-| 11 | Attr `redirect` + engine navigation (без render) | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
-| 12 | Redirect chain collapse ([REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md)) | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
+| 11 | Attr `redirect` + engine navigation (без render) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `followRedirectsWithGuardWalk`, `lookupNavigationStep`; тесты `redirect-resolver.integration.test.ts`, `engine-tree-integration.test.ts` |
+| 12 | Redirect chain collapse ([§ниже](#redirect-chain-collapse)) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · declarative + `leave`/`guard` в одном `navigateTo`; redirect из `load` <span style="background:#57606a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ УБИРАЕМ</span> |
 
 ### Сводка по слоям
 
@@ -49,10 +49,10 @@
 | Folder frame (external `layout`) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | `TemplateLoader` → `document.getElementById` |
 | Folder frame (colocated) | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> | нужен lookup subtree route → document |
 | Page + nested `view` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | `view` attr, view-graph loaders |
-| Lifecycle inherit | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | в коде `guard`/`ready` (не `enter`/`after`); inherit через `closest`, без concat lists |
+| Lifecycle inherit | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | `guard`/`leave`/`load`/`ready`; inherit через `closest` (**override**); opt-out `guard=""`; layering cold enter — `enterRoutes` |
 | `cache` nested | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | dom / data / screen, sibling skip render |
-| Links + active state | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | `resolveDocumentHref` + trailing slash ✓; `data-router-active-class` ✓; `data-branch-active` ✓; `router.trail` ✓; `<aura-breadcrumbs/>` ✗ |
-| Redirect declarative | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> | attr на route ✓; engine match → navigate ✗ |
+| Links + active state | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | `resolveDocumentHref` + trailing slash ✓; `data-router-active-class` ✓; `data-branch-active-class` ✓; `router.trail` ✓; `<aura-breadcrumbs/>` ✗ |
+| Redirect declarative | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | attr + `lookupNavigationStep` → `followRedirectsWithGuardWalk` до render |
 | SSR / hydration | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> | RFC / adoption checklist |
 | Nested scoped catch-all (`path="*"` in folder) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | matcher + branch mount; `nested-catch-all.integration.test.ts`; demo `routing-nested` |
 
@@ -61,9 +61,20 @@
 | Тема | Решение |
 |------|---------|
 | **Scoped catch-all** | Декларативный `<aura-route path="*">` **внутри** folder — frame стабилен, 404 Page в nested outlet. Matcher (`/prefix/*`), `splat`, sibling nav без remount frame — **verified** (integration + demo). |
-| **Folder URL без index** | **Не ошибка.** `/settings` без `path="."` → layout + **пустой outlet** — валидно (sidebar-only, placeholder в layout template). Dev warn **не делаем**. Альтернативы: index overview или `redirect` (⏸). |
+| **Folder URL без index** | **Не ошибка.** `/settings` без `path="."` → layout + **пустой outlet** — валидно (sidebar-only, placeholder в layout template). Dev warn **не делаем**. Альтернативы: index overview или `redirect`. |
 | **Miss под folder без nested `*`** | Пока **не закрыто**: URL вне children → global `*` или root `not-found-template`; frame folder **теряется**. Backlog минишага 10 (не warn). |
 | **Catch-all vs `error-template`** | Match miss → declarative `path="*"` + `view`. Load/render error → inherited `error-template` в child outlet — контракт P1 §13, отдельная проверка. |
+
+### Принятые решения (2026-07-13)
+
+| Тема | Решение |
+|------|---------|
+| **Declarative `redirect`** | В engine: `lookupNavigationStep` → `followRedirectsWithGuardWalk` в coordinator **до** render/history. Relative target через `resolveRedirectHref` + parent pattern. |
+| **Redirect chain collapse** | Blocking `leave`/`guard` + declarative hops схлопываются в один `coordinator.run` (`skipBlockingPhases`). **Redirect из `load` не входит в модель** — убирается (сейчас в коде legacy + `console.warn`; auth/roles → `guard`). |
+| **Colocated `<template>`** | По-прежнему **не в коде**: `TemplateLoader` / `getTemplate()` — только `document.getElementById`. Demo (`layout-templates.ts`) инжектит templates в `document.body` до старта router. |
+| **Lifecycle attrs в примерах** | Shipped API — `guard` / `leave` / `load` / `ready` (не `enter` / `after`). |
+| **`load` redirect** | **Не по дизайну.** `load` — только данные для view; «куда идти» — `guard` или attr `redirect`. В коде пока legacy path (`applyRedirect`); планируется удаление. |
+| **Lifecycle inherit** | **Override на attr-уровне** (как CSS: nearest wins). Attr отсутствует → inherit с router/folder; явный attr → **заменяет** унаследованное; `guard=""` / `none` / `off` → opt-out. **Не делаем** auto-concat списков router + folder. Несколько hooks на узле — `guard="auth,role-check"`. Слои parent → child на cold enter — pipeline `enterRoutes` (см. [§Lifecycle и inherit](#lifecycle-и-inherit-v3--nested)). Attr `inherit-hooks` (v2 draft) — **не планируется**. |
 
 ---
 
@@ -76,15 +87,17 @@ Public API nested строится на **Route API v3**:
 ```text
 1. Куда?  → path (+ relative внутри папки)
 2. Что?   → view (Page) | frame + outlet (Folder: colocated `<template>` или `layout`)
-3. Когда? → enter | leave | load | after  (+ inherit с router и folder)
+3. Когда? → guard | leave | load | ready  (+ inherit с router и folder)
 ```
+
+> **Имена в коде:** `guard` (было `enter` в v2), `ready` (post-commit, было `after`). См. [ROUTE_API_V3.md](./ROUTE_API_V3.md).
 
 Дополнительно для nested (этот документ):
 
 1. **Folder route** = frame + children + outlet — colocated `<template>` или `layout="id"`  
 2. **Page route** = короткий `view` в outlet родительской папки  
 3. **Paths** = относительные имена внутри папки  
-4. **Hooks** = inherit с `<aura-router>` и folder; opt-out через `enter=""`  
+4. **Hooks** = inherit (override) с `<aura-router>` и folder; opt-out `guard=""` / `guard="none"`; layering — `enterRoutes`  
 5. **Links** = relative by default, active state бесплатно  
 
 Engine (LCA, `enterRoutes`, outlet chain) **не ломаем** — меняем только DX поверх v3.
@@ -97,10 +110,10 @@ Engine (LCA, `enterRoutes`, outlet chain) **не ломаем** — меняем
 |------|------------------|----------------------------|
 | Контент leaf | `view="page.html"` → loader `url`; `view="html::…"` inline | то же; короткий attr внутри folder |
 | Folder frame | `layout="template-id"` | external или colocated `<template id="…">` внутри folder |
-| Lifecycle | `enter` · `leave` · `load` · `after` | inherit вниз по дереву |
-| Post-commit | `after` + `ctx.phase` | analytics/scroll на folder или router |
+| Lifecycle | `guard` · `leave` · `load` · `ready` | inherit вниз (**override**); cold enter — hooks по `enterRoutes` |
+| Post-commit | `ready` + `ctx.phase` | analytics/scroll на folder или router |
 | Кэш DOM | `cache` / `cache="data"` | folder frame: `cache`; leaf: по необходимости |
-| Глобальные defaults | `enter`, `after` на `<aura-router>` | auth один раз на router или folder |
+| Глобальные defaults | `guard`, `ready` на `<aura-router>` | auth один раз на router или folder |
 | Анимации | `data-transition` на router, `transition` на route | sibling swap — outlet child, frame не трогаем |
 | Escape hatch | `hooks="phase:hook-name"` | редкие asymmetric transitions |
 | Deprecated | `source`+`content`, `html-src:…`, `entered`/`left`/`reenter`, `keep-alive` | в nested-примерах **не используем** |
@@ -110,7 +123,7 @@ Engine (LCA, `enterRoutes`, outlet chain) **не ломаем** — меняем
 | Фича | Статус |
 |------|--------|
 | Relative `data-router-link` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (href resolution + slash policy + active classes — [§Ссылки](#ссылки-html-native-без-link-resolver)) |
-| `data-branch-active`, `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| `data-branch-active-class`, `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `<aura-breadcrumbs/>` CE | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 | `aura-route-fragment` / CMS partials | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> |
 
@@ -119,7 +132,7 @@ Engine (LCA, `enterRoutes`, outlet chain) **не ломаем** — меняем
 | Фича | Почему |
 |------|--------|
 | `[data-route-outlet]` marker (`<main data-route-outlet>` без CE) | Nested slot — **только** `<aura-outlet>` в layout template. Не апгрейдим plain HTML в `AuraOutlet`. См. [Nested outlet](#outlet-и-nested-прозрачность). |
-| Dev warn «folder без index child» | Пустой outlet на URL folder — **осознанный** паттерн; не все разделы нуждаются в overview. Index или `redirect` (⏸) — выбор разработчика, не runtime warn. |
+| Dev warn «folder без index child» | Пустой outlet на URL folder — **осознанный** паттерн; не все разделы нуждаются в overview. Index или `redirect` — выбор разработчика, не runtime warn. |
 
 ---
 
@@ -143,16 +156,14 @@ Nested в v3 уже проще (`layout` + короткий `view` на child), 
 |-----|-------------|------------|--------|
 | **Page** | `path` + `view`, без children | `/about` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | **Folder** | children + `layout` | `/settings/*` | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (external layout ✓; colocated ✗) |
-| **Redirect** | `redirect="..."` | `/settings` → `/settings/profile` | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> (attr + validation ✓; engine ✗) |
+| **Redirect** | `redirect="..."` | `/settings` → `/settings/profile` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (attr + `followRedirectsWithGuardWalk`; relative target ✓) |
 
 Router определяет тип по DOM: `redirect` → Redirect; nested `<aura-route>` → Folder; иначе → Page.  
 Детекция и валидация attrs — <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`AuraRoute.type`, `throwIfInvalidAttrs()`).
 
-### Redirect (кратко) — <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ ЭТАП</span>
+### Redirect (кратко)
 
-> **Не начинать до закрытия** минишагов 3–10 в [порядке реализации](#порядок-минишагов).
-
-URL без UI — сразу другой адрес. Статический alias в разметке; условный (auth, role) — `guard` hook (в коде v3: `guard`, не `enter`).
+URL без UI — сразу другой адрес. Статический alias в разметке; условный (auth, role) — `guard` hook.
 
 ```html
 <aura-route path="/settings" redirect="/settings/profile"/>
@@ -167,11 +178,26 @@ URL без UI — сразу другой адрес. Статический ali
 | URL folder | уходит на target | показывает overview |
 | UI | нет | есть |
 
-Relative target (`redirect="dashboard"`) резолвится от parent path. Синхронные цепочки — см. [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md).
+Relative target (`redirect="dashboard"`) резолвится от parent path (`resolveRedirectHref`). Цепочки declarative + blocking `leave`/`guard` — один `navigateTo` ([§Redirect chain collapse](#redirect-chain-collapse)).
+
+### Redirect chain collapse
+
+**Целевая модель (закрыта):** схлопываются только источники **до render**:
+
+| Источник | Схлопывание |
+|----------|-------------|
+| Attr `redirect` | ✓ `followRedirectsWithGuardWalk` |
+| `guard` / `leave` hook | ✓ тот же resolve-walk |
+| `load` hook → redirect | <span style="background:#57606a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ НЕ ДЕЛАЕМ</span> — убирается из API |
+
+`load` не должен менять маршрут: сессия, роли, «нельзя сюда» — **`guard`**; статический alias — attr **`redirect`**.  
+Сейчас redirect из `load` ещё может сработать через `applyRedirect` (второй `navigateTo`) с предупреждением в консоли — **временный legacy**, не backlog на collapse.
+
+См. также [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) (исторический RFC; resolve с `runLoads` **не** планируется).
 
 | Статический alias | Условный (auth, role) |
 |-------------------|------------------------|
-| `redirect="..."` | `enter` hook → `return '/path'` |
+| `redirect="..."` | `guard` hook → `return '/path'` |
 
 ### Page (кратко)
 
@@ -201,7 +227,7 @@ Inline HTML без `view` (raw children) — RFC; v3 canonical: `view="html::…
 
 URL folder без суффикса (/settings)?
   ├─ overview на месте           → index Page (path=".")
-  ├─ всегда default tab          → Redirect (⏸)
+  ├─ всегда default tab          → Redirect
   └─ sidebar-only / «выберите»   → layout + empty outlet (index не нужен)
 ```
 
@@ -223,7 +249,7 @@ URL folder без суффикса (/settings)?
   <main><aura-outlet/></main>
 </template>
 
-<aura-route path="/settings" layout="settings-frame" enter="auth">
+<aura-route path="/settings" layout="settings-frame" guard="auth">
   <aura-route path="profile" view="profile.html"/>
   <aura-route path="security" view="security.html"/>
 </aura-route>
@@ -233,7 +259,7 @@ URL folder без суффикса (/settings)?
 |---------|-----------|--------|
 | Folder имеет `layout` | frame монтируется один раз при входе в ветку | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | В template — `<aura-outlet>` | child `view` рендерится в nested slot | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| Нет outlet в template | dev warn с подсказкой | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (`console.warn`, только `<aura-outlet>`) |
+| Нет outlet в template | `console.warn` (`warnMissingLayoutOutlet`) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Sibling nav | только child в `enterRoutes`; frame стабилен | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 
 Shared layout между разделами — один `<template id="...">`, несколько folder routes.
@@ -288,7 +314,7 @@ Shared layout между разделами — один `<template id="...">`, 
 </aura-route>
 ```
 
-Нет outlet при children → dev warn. URL folder без index → **layout + пустой outlet** (by design, см. [решения](#принятые-решения-2026-07-11)). Unknown child под folder → scoped catch-all `path="*"` в outlet ([§Nested 404](#nested-404-scoped-catch-all) ✓) или global `*` / Redirect ([⏸](#redirect-кратко--последний-этап)).
+Нет outlet при children → `warnMissingLayoutOutlet`. URL folder без index → **layout + пустой outlet** (by design, см. [решения](#принятые-решения-2026-07-11)). Unknown child под folder → scoped catch-all `path="*"` в outlet ([§Nested 404](#nested-404-scoped-catch-all) ✓) или global `*` / Redirect.
 
 Engine: `layout` → clone `<template id="…">`; `findNestedOutlet()` ищет **только** `<aura-outlet>` внутри смонтированного frame.
 
@@ -307,7 +333,7 @@ UA default: `aura-route { display: none }` — <span style="background:#cf222e;c
 Folder внутри folder — цепочка frames и outlets:
 
 ```html
-<aura-route path="/admin" layout="admin-frame" enter="auth">
+<aura-route path="/admin" layout="admin-frame" guard="auth">
   <aura-route path="users" layout="users-frame">
     <aura-route path="." view="users-list.html"/>
     <aura-route path=":id" view="user-detail.html"/>
@@ -393,37 +419,52 @@ Global `path="*"` на router — отдельно; не смешивать со
 
 | Attr | Когда | Nested note |
 |------|-------|-------------|
-| `enter` | guard до активации | folder `enter="auth"` → все children |
+| `guard` | guard до активации | folder `guard="auth"` → все children |
 | `leave` | guard до ухода | child leave при sibling swap; folder leave при выходе из ветки |
 | `load` | данные до render | parallel на `enterRoutes` (engine) |
-| `after` | post-commit | `ctx.phase`: `entered` \| `reenter` \| `left` |
+| `ready` | post-commit | `ctx.phase`: `entered` \| `reenter` \| `left` |
 
-Hook в `after` не нужно дублировать на каждый child, если достаточно router default.
+Hook в `ready` не нужно дублировать на каждый child, если достаточно router default.
 
 ### Inherit: router → folder → page
 
 ```html
-<aura-router enter="auth" after="analytics">
+<aura-router guard="auth" ready="analytics">
   <aura-outlet/>
 
-  <aura-route path="/login" view="login.html" enter=""/>
+  <aura-route path="/login" view="login.html" guard=""/>
 
   <aura-route path="/app" layout="app-frame">
     <aura-route path="dashboard" view="dashboard.html"/>
-    <!-- inherit: enter=auth, after=analytics -->
-    <aura-route path="public" view="public.html" enter=""/>
+    <!-- inherit: guard=auth, ready=analytics -->
+    <aura-route path="public" view="public.html" guard=""/>
   </aura-route>
 </aura-router>
 ```
 
 | Механизм | Поведение |
 |----------|-----------|
-| Attr на `<aura-router>` | defaults для всего дерева |
-| Attr на folder | merge с router (hook lists concat, если не override) |
-| Child переопределяет attr | заменяет унаследованное значение целиком |
-| `enter=""` / `leave=""` / … | opt-out inherited для **этого** слота на node |
+| Attr на `<aura-router>` | defaults для всего дерева (если на route attr нет) |
+| Attr на folder | **override** router default на этой ветке (nearest wins) |
+| Attr отсутствует на child | inherit ближайшего ancestor (folder → router) |
+| Явный attr на child | **заменяет** унаследованное значение целиком |
+| `guard=""` / `guard="none"` / `leave=""` / … | opt-out: слот пуст на **этом** node (≠ отсутствие attr) |
+| Несколько hooks на одном node | `guard="auth,role-check"` (comma-list в одном attr) |
+| Cold enter nested URL | pipeline: `enterRoutes` root→leaf — guard folder, затем guard leaf (разные routes) |
+| Sibling nav в folder | только child в `enterRoutes`; folder guard **не** re-run |
 
-Отдельный attr `isolated` **не нужен** — v3 решает через пустой `enter=""` и override.
+Отдельный attr `isolated` **не нужен** — v3: `guard=""` / `guard="none"` и override.  
+Attr-level **concat** router + folder (`auth` + `section-check` автоматически) — **не по дизайну**; нужны оба → явно `guard="auth,section-check"` на folder. См. [LIFECYCLE_PLACEMENT.md](../LIFECYCLE_PLACEMENT.md).
+
+```html
+<!-- folder: auth + своя проверка — явно, без magic merge -->
+<aura-router guard="auth">
+  <aura-route path="/admin" layout="admin-frame" guard="auth,admin-role">
+    <aura-route path="users" guard="users-policy" view="users.html"/>
+    <!-- cold enter /admin/users: enterRoutes → auth+admin-role (folder), users-policy (leaf) -->
+  </aura-route>
+</aura-router>
+```
 
 ### UX-слой для onboarding (не attrs)
 
@@ -432,7 +473,7 @@ Pipeline по-прежнему детальный; в docs для app-dev — т
 ```text
 Leaving…  →  Loading…  →  Ready
      ↑            ↑           ↑
-  leave        load      after (entered)
+  leave        load      ready (entered)
 ```
 
 При sibling nav: frame folder не мигает; Loading/Ready только на outlet child.
@@ -443,8 +484,8 @@ Leaving…  →  Loading…  →  Ready
 
 ```html
 <aura-router
-  enter="auth"
-  after="analytics"
+  guard="auth"
+  ready="analytics"
   loading-template="loading"
   error-template="error"
   data-transition="out-in"
@@ -457,7 +498,7 @@ Leaving…  →  Loading…  →  Ready
 
 | На router | Зачем не на каждом route |
 |-----------|--------------------------|
-| `enter`, `after` | один раз auth/analytics |
+| `guard`, `ready` | один раз auth/analytics |
 | `loading-template`, `error-template` | inherit; nested error в child outlet |
 | `data-transition` | политика outlet |
 | `scroll` | `restore` \| `top` \| `manual` |
@@ -610,7 +651,7 @@ Nested slot для child-страниц — **только `<aura-outlet>`** в�
 Для base `/app/settings/` (trailing slash) сегмент считается directory → `users` → `/app/settings/users` ✓.
 
 **Что должен делать engine:** при входе на index child (`path="."`) коммитить в history **canonical** URL **`/app/settings/`** (replace/redirect), даже если `path` parent в разметке без slash.  
-**В коде:** trailing-slash canonicalize <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`applyCanonicalIndexFolderHref` в `resolve-navigation-target.ts`; commit на start/navigate).
+**В коде:** trailing-slash canonicalize <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`applyCanonicalIndexFolderHref` в `canonical-index-href.ts`; commit в `lookupNavigationStep` / coordinator).
 
 ### `../` и `../../` — выход из folder и вложенность
 
@@ -695,10 +736,10 @@ Path-relative с `..` следуют **URL страницы**, не «route tree
 |------|--------|
 | Перехват клика `[data-router-link]` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Navigate по `href` as-is (absolute) | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| Relative `href` → `new URL(href, location.href)` на клике | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`resolveDocumentHref` в `router-link.ts`) |
-| Canonical trailing slash на folder index | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| `data-router-active-class` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`syncRouterActiveLinks` после `navigation`) |
-| `data-branch-active` на folder | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`branchActiveClass` + prefix match в `router-link.ts`) |
+| Relative `href` → `new URL(href, location.href)` на клике | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`resolveLinkHref` / `resolveDocumentHref` в `link-resolve.ts`, `app-href.ts`) |
+| Canonical trailing slash на folder index | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`applyCanonicalIndexFolderHref` в `canonical-index-href.ts`) |
+| `data-router-active-class` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`syncRouterHostActiveLinks` после `navigation`) |
+| `data-branch-active-class` на folder | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (prefix match в `link-active/match.ts`) |
 | `router.trail` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`toRouteTrail` на `<aura-router>`) |
 | `<aura-breadcrumbs/>` CE | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> (данные есть через `router.trail`; UI-компонент не shipped) |
 
@@ -718,7 +759,7 @@ Path-relative с `..` следуют **URL страницы**, не «route tree
   Swapping: profile → security in outlet
 ```
 
-Dev overlay: дерево, active branch, resolved paths — <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> (сейчас только `throw`/`console.warn` на отдельных кейсах).
+Dev overlay: дерево, active branch, resolved paths — <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> (сейчас `throw` / `console.warn` на отдельных кейсах: `throwIfInvalidAttrs`, `warnMissingLayoutOutlet`, duplicate pattern).
 
 ---
 
@@ -738,7 +779,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 ## Минимальный первый опыт (colocated template)
 
 ```html
-<aura-router enter="auth" after="analytics">
+<aura-router guard="auth" ready="analytics">
   <aura-outlet/>
 
   <aura-route path="/" view="html::<h1>Home</h1>"/>
@@ -755,9 +796,11 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
     <aura-route path="settings" view="settings.html"/>
   </aura-route>
 
-  <aura-route path="/login" view="login.html" enter=""/>
+  <aura-route path="/login" view="login.html" guard=""/>
 </aura-router>
 ```
+
+> **Colocated пример выше** — целевой DX; в коде template должен быть в `document` (см. `installDemoLayoutTemplates` в demo). Subtree lookup — backlog минишага 3.
 
 Тот же сценарий с shared `layout="app-frame"` — см. [Shared frame: layout + template](#shared-frame-layout--template).
 
@@ -769,12 +812,12 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 |----------------------|--------|--------|
 | Folder `layout` | `viewKind: 'layout'` → template по id → `findNestedOutlet()` | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (document id ✓; subtree ✗) |
 | Leaf `view` | `buildContentDescriptor(view)` → mount в parent outlet | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| Router/folder inherit | `@routeAttr({ inherit })` + `closest` | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (override, не concat lists) |
-| `guard=""` / `none` / `off` | opt-out inherited hooks | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| Router/folder inherit | `@routeAttr({ inherit })` + `closest` (override); opt-out `none`/`off`/`""` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `lifecycle-inherit.test.ts` |
+| Layering parent → child hooks | `enterRoutes` + `runLifecyclePhase(guard)` root→leaf | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · sibling — только child |
 | `cache` | view cache + skip re-render на sibling nav | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Relative paths | `resolvePattern(parent, child)` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | `path="."` | `normalizeRouteSegment('.')` → index child | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| `redirect` | match → navigate target без render | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
+| `redirect` | match → `followRedirectsWithGuardWalk` → navigate target без render | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Scoped catch-all `path="*"` in folder | match → leaf `view` в nested outlet; frame в `enterRoutes` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Relative links / branch-active | HTML-native `href` + slash policy ✓; active classes + `router.trail` ✓; `<aura-breadcrumbs/>` ✗ | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
 | Route `type` + attr validation | `AuraRoute.type`, `throwIfInvalidAttrs()` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
@@ -789,6 +832,8 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | `preload` на route | link intent + `router.prefetch()` (v3) |
 | Param inheritance на folder | params на leaf |
 | 9 phase attrs на route | v3: 4 слота + `hooks` escape |
+| Attr-level hook list concat (router + folder auto-merge) | override + comma на одном attr; parent→child — `enterRoutes` |
+| `inherit-hooks` bool attr (v2 draft) | заменён router/folder defaults + override + `enterRoutes` |
 
 **Антипаттерны:** folder с children без frame/outlet; `layout` на leaf без children; absolute path на child уже внутри folder.
 
@@ -807,8 +852,8 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | 3 | **CSR без SSR: пустая страница до JS** | Пустой `<aura-outlet>` до JS; skeleton или SSR. | <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span> (docs only) |
 | 4 | **Тип route: конфликтующие attrs** | `redirect` + children / `view` / `layout` → error; folder + `view` → error. | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`throwIfInvalidAttrs`) |
 | 5 | **Folder без `layout`** | children есть, нет `layout` → dev error | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (на render, не at collect) |
-| 6 | **Inherit: merge semantics** | Concat hook lists router + folder; `guard=""` opt-out. | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (inherit + opt-out ✓; concat ✗) |
-| 7 | **Top-level Redirect vs Folder** | `redirect` без frame = Redirect type, не Folder. | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (type ✓; engine navigate ✗ — <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span>) |
+| 6 | **Inherit: override semantics** | Attr: nearest wins + `guard=""` opt-out; несколько hooks — comma на node; parent→child — `enterRoutes`. Auto-concat уровней — **не делаем**. | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`lifecycle-inherit.test.ts`, `PHASES.guard` / `enterRoutes`) |
+| 7 | **Top-level Redirect vs Folder** | `redirect` без frame = Redirect type, не Folder. | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (type + `lookupNavigationStep` + coordinator) |
 
 ### P1 — UX / SEO / hydration
 
@@ -831,7 +876,7 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | 18 | **`aura-route-fragment`** | Children вне DOM folder — paths **absolute** или `for=` задаёт base; folder-relative не работает без anchor. |
 | 19 | **`path="."` vs engine `""`** | Alias при collect: `"."` → index child. Canonical в docs: `"."`. | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 20 | **Catch-all / 404 в folder** | `/settings/*` → parent frame + catch-all Page в outlet. Global `*` — отдельно. | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (declarative scoped `*` ✓; miss без `*` ✗) |
-| 21 | **Deep link auth** | Cold enter: folder `enter` → child `enter` (serial). Sibling: только child hooks. Inherit не должен re-run parent `enter`. |
+| 21 | **Deep link auth** | Cold enter: `enterRoutes` root→leaf (folder guard → child guard). Sibling: только child в `enterRoutes` — parent guard не re-run. | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | 22 | **noscript** | Без JS: `<a href>` с absolute URLs в frame (resolved at build/SSR). Router-enhanced nav — progressive enhancement. |
 
 ### Противоречия в proposal (исправлено в этом доке)
@@ -840,7 +885,8 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 |------|-------|
 | «inline frame» = light DOM в route | inline = **colocated inert `<template id>`** + `layout` |
 | Folder без `layout` в colocated примере | folder требует attr `layout` (id template в subtree или document) |
-| `enter=""` только для auth opt-out | opt-out для любого inherited slot; документировать `leave=""` и т.д. |
+| `guard=""` / `guard="none"` opt-out | opt-out для любого inherited slot (`leave=""` и т.д.) |
+| «concat hook lists router + folder» | **Убрано** — override + comma на node + `enterRoutes` layering |
 | Relative links в примерах | HTML-native `href` + trailing slash policy ([§Ссылки](#ссылки-html-native-без-link-resolver)) |
 | «folder must have index» dev warn | folder без index → **empty outlet OK**; warn убран ([§Принятые решения](#принятые-решения-2026-07-11)) |
 
@@ -862,11 +908,14 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 3. ~~**`path="."` engine alias**~~ — <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`normalizeRouteSegment`)
 4. **Template в HTML source vs SEO** — build-time strip для CSR-only (см. аудит §9) — <span style="background:#cf222e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ НЕТ</span>
 5. ~~**Folder без index — dev warn?**~~ — **нет warn**; empty outlet by design ([§Принятые решения](#принятые-решения-2026-07-11))
+6. ~~**Declarative `redirect` в engine**~~ — <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (`core/redirect/`).
+7. ~~**Collapse redirect из `load`**~~ — **не делаем**; redirect из `load` убирается по дизайну ([§Redirect chain collapse](#redirect-chain-collapse)).
+8. ~~**Inherit: concat vs override**~~ — **override** на attr; layering — `enterRoutes`; auto-concat уровней — **не делаем** ([§Принятые решения 2026-07-13](#принятые-решения-2026-07-13)).
 
 Вопросы v3:
 
-- Пустой `enter=""` vs отсутствие attr — см. [ROUTE_API_V3.md §Открытые вопросы](./ROUTE_API_V3.md#открытые-вопросы)
-- `after` + blocking semantics для `left` phase
+- Пустой `guard=""` vs отсутствие attr — см. [ROUTE_API_V3.md §Открытые вопросы](./ROUTE_API_V3.md#открытые-вопросы) (отсутствие = inherit; `""` / `none` = opt-out)
+- `ready` + blocking semantics для `left` phase
 
 ---
 
@@ -877,14 +926,15 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 | Leaf content | `source` + `content` | `view="page.html"` (`url`) · `view="html::…"` · `view="component::…"` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Folder frame | `layout` + template | colocated `<template>` или external `layout` | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
 | Lifecycle | 9 attrs | 4: `guard` `leave` `load` `ready` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| Inherit | `inherit-hooks` | router/folder defaults + `guard=""` opt-out | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
+| Inherit | `inherit-hooks` | router/folder defaults + override + `guard=""` opt-out + `enterRoutes` layering | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Кэш | `keep-alive` + `cache` | `cache` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Mental model | parent/child/outlet | **папки и страницы** | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (`type` ✓) |
 | Paths | `""` index | `path="."` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | Nav links | full href | relative | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (href + slash + active classes ✓; `<aura-breadcrumbs/>` ✗) |
-| Redirect attr | — | `redirect="…"` | <span style="background:#6f42c1;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⏸ ПОСЛЕДНИЙ</span> |
+| Redirect attr | — | `redirect="…"` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| Redirect chain collapse | — | declarative + `guard`/`leave` в одном hop | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · `load` redirect <span style="background:#57606a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ убираем</span> |
 | Scoped catch-all in folder | — | nested `path="*"` + `view` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| Ошибки | warn partial | actionable + dev overlay | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> |
+| Ошибки | warn partial | actionable + dev overlay | <span style="background:#bf8700;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> (`throwIfInvalidAttrs`, `warnMissingLayoutOutlet`) |
 
 ---
 
@@ -894,3 +944,4 @@ Dev overlay: дерево, active branch, resolved paths — <span style="backgr
 - [NESTED_ROUTES.md](../NESTED_ROUTES.md) — engine design v0.2
 - [OUTLET_AND_RENDER.md](./OUTLET_AND_RENDER.md) — view layer, ViewHandle
 - [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) — схлопывание sync redirect chains
+- [`core/redirect/README.md`](../../src/modules/aura-routing-engine/core/redirect/README.md) — as-is redirect resolve в engine

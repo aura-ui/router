@@ -229,13 +229,13 @@ export class AuraRoutingEngine implements NavigationHost {
    * Центральный метод навигации: match → processor → finalize.
    *
    * **Порядок history commit (push/replace, `syncHistory: true`):**
-   * 1. `runGuards` — leave + guard.
-   * 2. `runLoads` — DataGraph / load hooks.
-   * 3. `commitHistoryIfNeeded` — `pushState` / `replaceState` (до render).
+   * 1. `runGuards` — leave + guard (после redirect collapse в coordinator).
+   * 2. `commitHistoryIfNeeded` — `pushState` / `replaceState` (до load/render).
+   * 3. `runLoads` — DataGraph / load hooks.
    * 4. render → `commitNavigation` (prev + callbacks, без повторного pushState).
    *
-   * **Отмена до load:** URL не менялся (guard cancel или load error).
-   * **Отмена/error после history commit (push/replace):** URL остаётся на target, rollback не делается.
+   * **Отмена до history commit:** URL не менялся (guard cancel / redirect).
+   * **Load/render error после history commit (push/replace):** URL остаётся на target, rollback не делается (product policy).
    *
    * **Отмена при `pop` (Back/Forward) — особый случай:**
    * Браузер меняет адресную строку *до* `popstate`. К моменту `processor.run` `window.location`

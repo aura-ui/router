@@ -42,5 +42,6 @@
 | [NESTED_ROUTES_JOY_MODEL.md](./NESTED_ROUTES_JOY_MODEL.md) | Route Folders: nested DX поверх v3 — **статус реализации** (✓/~✗/⏸); redirect — последний этап |
 | [PRE_RELEASE_0.0.1.md](./PRE_RELEASE_0.0.1.md) | **Чеклист:** merge в `main` + npm `@aura-ui-web/router@0.0.1` — аудит, блокеры, must-have |
 | [ADOPTION_AND_GTM.md](./ADOPTION_AND_GTM.md) | Перспективы, GTM, hero README/landing, outline Vaadin→Aura migration |
+| [DOCUMENT_FIRST_WC.md](./DOCUMENT_FIRST_WC.md) | **Стратегия:** document-first + WC — что «дожать», чеклист, tiered prefetch, ЦА |
 | [NAVIGATION_ERROR_V2.md](./NAVIGATION_ERROR_V2.md) | **Реализовано:** обработка ошибок v2 — detection / recovery / reporting (5 фаз) |
 | [navigation-error-v2.sketch.ts](./navigation-error-v2.sketch.ts) | Deprecated TS-скетч (историческая справка) |

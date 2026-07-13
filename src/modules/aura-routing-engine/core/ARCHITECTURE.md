@@ -59,7 +59,7 @@ sequenceDiagram
       else full
         Tx->>Pipeline: runFullPipeline()
       end
-      Note over Pipeline,History: push/replace URL after guards + loads, before render
+      Note over Pipeline,History: push/replace URL after guards (post collapse), before load/render
       Pipeline->>Engine: commitHistoryIfNeeded()
       Pipeline->>Engine: commitNavigation() after view promotion
       Engine->>Engine: setPrev(to)
@@ -77,9 +77,9 @@ sequenceDiagram
 
 | Tier | Entry | Skips | Order (high level) |
 | --- | --- | --- | --- |
-| **Update** | `runUpdate()` | guards, render, unmount, ready | loads → history → `update` → `commitNavigation` |
+| **Update** | `runUpdate()` | guards, render, unmount, ready | history → loads → `update` → `commitNavigation` |
 | **Fast (Tier 0)** | `runFastPipeline()` | guards, loads, transitions | history → single `runViewCommit` → after-render |
-| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → loads → history → render → after-render |
+| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → history → loads → render → after-render |
 
 `skipBlockingPhases`: redirect walk already ran `leave` → `guard` — see `redirect/README.md`.
 
@@ -126,8 +126,9 @@ The engine keeps three related concepts separate:
 - `ViewCommitSnapshot.view`: `none` → `staged` → `committed` — DOM promotion
   state during the transaction.
 - History commit: `provider.commit()` writes the target URL. For programmatic
-  push/replace, the URL is written in `commitHistoryIfNeeded()` after guards and
-  loads, **before** render. Terminal outcomes use `resolveHistoryPolicy()`.
+  push/replace, the URL is written in `commitHistoryIfNeeded()` after guards (post
+  redirect collapse) and **before** loads/render. Terminal outcomes use
+  `resolveHistoryPolicy()`; load/render errors after early commit preserve the URL.
 
 `commitNavigation()` on the engine is the view-success boundary: staged view is
 promoted, `prev` is updated, scroll/hash and `onNavigationCommitted` run. It does

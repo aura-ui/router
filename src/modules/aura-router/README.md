@@ -43,7 +43,7 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 ### Статические методы
 
 - `AuraRouter.use(hook, options?)` — регистрация глобального route hook.
-- `AuraRouter.configure(options)` — глобальная конфигурация (`contentLoaderService`, `notFoundHandler`).
+- `AuraRouter.configure(options)` — глобальная конфигурация (`viewCache`, `notFoundHandler`).
 - `AuraRouter.registerLoader(loaderId, fn)` — регистрация кастомного loader в `defaultLoaderRegistry` (`view="loaderId::content"`).
 
 ### Методы экземпляра

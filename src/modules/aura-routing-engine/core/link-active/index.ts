@@ -1,4 +1,4 @@
-export { isRouterLinkActive, isRouterLinkBranchActive } from './match';
+export { isExactLinkMatch, isPrefixLinkMatch } from './match';
 export {
   getCurrentAppHref,
   isHashOnlyChange,
@@ -6,13 +6,13 @@ export {
   pathnamesEqual,
   resolveDocumentHref,
   resolveDocumentHrefParts,
-  toLinkResolutionBase,
+  toDocumentResolutionBase,
   type ResolvedDocumentHref,
 } from './app-href';
 export {
   syncRouterActiveLinks,
   syncRouterHostActiveLinks,
-  type RouterLinkActiveConfig,
+  type ActiveLinkSyncConfig,
   type SyncRouterActiveLinksOptions,
 } from './sync';
 export { toRouteTrail, type RouteTrailEntry } from './route-trail';

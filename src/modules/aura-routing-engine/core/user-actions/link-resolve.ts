@@ -1,7 +1,7 @@
 import {
   getCurrentAppHref,
   resolveDocumentHref,
-  toLinkResolutionBase,
+  toDocumentResolutionBase,
 } from '../link-active/app-href';
 
 export function findRouterLink(
@@ -25,7 +25,7 @@ function readLinkHref(anchor: HTMLAnchorElement): string | null {
 export function resolveLinkHref(anchor: HTMLAnchorElement, baseAppHref?: string): string | null {
   const raw = readLinkHref(anchor);
   if (!raw) return null;
-  return resolveDocumentHref(raw, toLinkResolutionBase(baseAppHref ?? getCurrentAppHref()));
+  return resolveDocumentHref(raw, toDocumentResolutionBase(baseAppHref ?? getCurrentAppHref()));
 }
 
 export function readRouterLinkFromEvent(

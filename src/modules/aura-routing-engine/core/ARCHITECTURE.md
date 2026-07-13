@@ -1,7 +1,7 @@
 # Aura Routing Engine Architecture
 
 This document is the top-level map for `aura-routing-engine/core`. The nested route
-tree model lives in `route-tree/README.md`; content loading in `content/README.md`;
+tree model lives in `route-tree/README.md`; view loading in `view-graph/README.md`;
 failure handling in `failure/README.md`.
 
 ## Module Map
@@ -20,10 +20,11 @@ failure handling in `failure/README.md`.
 | `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
 | `view-mount/` | View staging/commit tracking, per-route render (`view-commit-render`), atomic branch resolve/mount (`branch-resolver`, `branch-mount`), staged-view rollback. |
 | `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |
-| `content/` | Route attrs → `ContentLoadService` → cache → loader payload. |
+| `view-graph/` | Route view attrs → `ViewGraph` → payload cache → loader payload. |
 | `data-graph/` | Route `load` hooks, SWR cache, prefetch intent, cache invalidation. |
 | `prefetch/` | `PrefetchPipeline`: intent bus → policy → plan → resource scheduler (content + data executors). |
-| `user-actions/` | Link click interception (`link-navigation.ts`), router-link helpers, link prefetch intent. |
+| `user-actions/` | Link click interception (`link-navigation.ts`), href resolution (`link-resolve.ts`), link prefetch intent. |
+| `link-active/` | App href resolution/comparison (`app-href.ts`), active link matching (`match.ts`), DOM class sync (`sync.ts`), and `router.trail` (`route-trail.ts`). |
 
 ## Navigation Flow
 

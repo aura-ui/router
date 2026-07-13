@@ -108,14 +108,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
   linksSelector: string;
   /** CSS class toggled on `[data-router-link]` when its resolved href matches the current URL. */
-  @attr({ dataAttr: true, parser: parseNullableString, cached: true })
-  routerActiveClass: string | null;
+  @attr({ dataAttr: true, parser: parseNullableString, cached: true, name: 'router-active-class' })
+  exactActiveClass: string | null;
   /** CSS class for section/folder links when the current URL is under the link path (prefix match). */
-  @attr({ dataAttr: true, parser: parseNullableString, cached: true })
-  branchActiveClass: string | null;
+  @attr({ dataAttr: true, parser: parseNullableString, cached: true, name: 'branch-active-class' })
+  prefixActiveClass: string | null;
   /** Ancestor selector for active-link scan when nav is outside router (demo: `.demo-site`). */
   @attr({ dataAttr: true, parser: parseNullableString, cached: true, name: 'router-link-root' })
-  linkActiveRootSelector: string | null;
+  activeLinkScope: string | null;
   /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   /** Default CSS selector for `url` fragment extract on child routes (`extract="none"` opts out). */
@@ -286,9 +286,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private syncActiveLinks(href: string): void {
     syncRouterHostActiveLinks(this, href, {
       linksSelector: this.linksSelector,
-      routerActiveClass: this.routerActiveClass,
-      branchActiveClass: this.branchActiveClass,
-      linkActiveRootSelector: this.linkActiveRootSelector,
+      exactActiveClass: this.exactActiveClass,
+      prefixActiveClass: this.prefixActiveClass,
+      scopeSelector: this.activeLinkScope,
     });
   }
 

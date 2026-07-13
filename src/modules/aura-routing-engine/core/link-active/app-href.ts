@@ -1,6 +1,5 @@
 import {
   joinAppHref,
-  splitAppHref,
   stripTrailingSlash,
   type AppHrefParts,
 } from '../../../aura-utils/misc/url';
@@ -18,13 +17,19 @@ export function getCurrentAppHref(): string {
 }
 
 /**
- * Absolute document URL used as base for HTML relative `<a href>` resolution.
- * The fragment is stripped — `#section` does not change how `profile` resolves.
+ * Base URL для разрешения HTML-относительных `<a href>`.
+ * Фрагмент (hash) не участвует в разрешении, поэтому удаляется.
  */
 export function toDocumentResolutionBase(appHref: string): string {
-  const { pathname, search } = splitAppHref(appHref);
-  return new URL(joinAppHref({ pathname, search, hash: '' }), window.location.origin).href;
+  // Если уже нет хеша — возвращаем сразу
+  const hashIndex = appHref.indexOf('#');
+  const base = hashIndex === -1 ? appHref : appHref.slice(0, hashIndex);
+
+  // new URL нужен только для гарантии валидности и нормализации path/search.
+  // Это минимально необходимая операция.
+  return new URL(base, window.location.origin).href;
 }
+
 
 /** HTML resolution: `new URL(href, base)` → app-relative parts + `href` (`pathname + search + hash`). */
 export function resolveDocumentHrefParts(
@@ -48,7 +53,8 @@ export function pathnamesEqual(a: string, b: string): boolean {
 
 /** Same `pathname` (trailing `/` ignored) and `search`; `hash` is not compared. */
 export function isSamePathAndSearch(a: AppHrefParts, b: AppHrefParts): boolean {
-  return a.search === b.search && pathnamesEqual(a.pathname, b.pathname);
+  if (a.search !== b.search) return false;
+  return pathnamesEqual(a.pathname, b.pathname);
 }
 
 /**

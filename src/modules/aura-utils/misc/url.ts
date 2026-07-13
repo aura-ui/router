@@ -31,11 +31,9 @@ export function joinAppHref(parts: AppHrefParts): string {
 }
 
 /** Remove trailing `/` (keeps root `/` unchanged). */
-export function stripTrailingSlash(pathname: string): string {
-  if (pathname.length > 1 && pathname.endsWith('/')) {
-    return pathname.slice(0, -1);
-  }
-  return pathname;
+export function stripTrailingSlash(path: string): string {
+  if (path.length <= 1) return path; // root или пустая строка
+  return path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
 /** Parse a URL `search` string (`?a=1`) into a query record; `undefined` when empty. */

@@ -6,7 +6,8 @@ import {
 
 import { isSamePathAndSearch } from './app-href';
 
-export function isRouterLinkActive(linkHref: string, currentHref: string): boolean {
+/** Exact href match: same path + search; hash rules apply when the link declares a hash. */
+export function isExactLinkMatch(linkHref: string, currentHref: string): boolean {
   const link = splitAppHref(linkHref);
   const current = splitAppHref(currentHref);
 
@@ -14,8 +15,8 @@ export function isRouterLinkActive(linkHref: string, currentHref: string): boole
   return isSamePathAndSearch(link, current) && current.hash === '';
 }
 
-/** Prefix match for folder/section links. Root `/` — only exact. */
-export function isRouterLinkBranchActive(linkHref: string, currentHref: string): boolean {
+/** Prefix match for folder/section links. Root `/` matches only itself. */
+export function isPrefixLinkMatch(linkHref: string, currentHref: string): boolean {
   const link = splitAppHref(linkHref);
   const current = splitAppHref(currentHref);
 

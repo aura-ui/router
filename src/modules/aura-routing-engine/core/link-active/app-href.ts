@@ -21,7 +21,7 @@ export function getCurrentAppHref(): string {
  * Absolute document URL used as base for HTML relative `<a href>` resolution.
  * The fragment is stripped — `#section` does not change how `profile` resolves.
  */
-export function toLinkResolutionBase(appHref: string): string {
+export function toDocumentResolutionBase(appHref: string): string {
   const { pathname, search } = splitAppHref(appHref);
   return new URL(joinAppHref({ pathname, search, hash: '' }), window.location.origin).href;
 }

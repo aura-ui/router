@@ -36,7 +36,7 @@ export const PHASES = {
   load: {
     phase: 'load',
     targetRoutes: 'enterRoutes',
-    hookPolicy: { kind: 'blocking' },
+    hookPolicy: { kind: 'preCommit', onError: 'propagate' },
     errorPolicy: 'failure',
     htmlAttr: 'load',
     routeHookProp: 'load',

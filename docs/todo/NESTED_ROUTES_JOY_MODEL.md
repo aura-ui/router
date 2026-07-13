@@ -73,7 +73,7 @@
 | **Redirect chain collapse** | Blocking `leave`/`guard` + declarative hops схлопываются в один `coordinator.run` (`skipBlockingPhases`). **Redirect из `load` не входит в модель** — убирается (сейчас в коде legacy + `console.warn`; auth/roles → `guard`). |
 | **Colocated `<template>`** | По-прежнему **не в коде**: `TemplateLoader` / `getTemplate()` — только `document.getElementById`. Demo (`layout-templates.ts`) инжектит templates в `document.body` до старта router. |
 | **Lifecycle attrs в примерах** | Shipped API — `guard` / `leave` / `load` / `ready` (не `enter` / `after`). |
-| **`load` redirect** | **Не по дизайну.** `load` — только данные для view; «куда идти» — `guard` или attr `redirect`. В коде пока legacy path (`applyRedirect`); планируется удаление. |
+| **`load` redirect** | **Не поддерживается.** `load` — только данные для view; маршрутизация — `guard` или attr `redirect`. |
 | **Lifecycle inherit** | **Override на attr-уровне** (как CSS: nearest wins). Attr отсутствует → inherit с router/folder; явный attr → **заменяет** унаследованное; `guard=""` / `none` / `off` → opt-out. **Не делаем** auto-concat списков router + folder. Несколько hooks на узле — `guard="auth,role-check"`. Слои parent → child на cold enter — pipeline `enterRoutes` (см. [§Lifecycle и inherit](#lifecycle-и-inherit-v3--nested)). Attr `inherit-hooks` (v2 draft) — **не планируется**. |
 
 ---
@@ -190,8 +190,7 @@ Relative target (`redirect="dashboard"`) резолвится от parent path (
 | `guard` / `leave` hook | ✓ тот же resolve-walk |
 | `load` hook → redirect | <span style="background:#57606a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ НЕ ДЕЛАЕМ</span> — убирается из API |
 
-`load` не должен менять маршрут: сессия, роли, «нельзя сюда» — **`guard`**; статический alias — attr **`redirect`**.  
-Сейчас redirect из `load` ещё может сработать через `applyRedirect` (второй `navigateTo`) с предупреждением в консоли — **временный legacy**, не backlog на collapse.
+`load` не меняет маршрут: сессия, роли, «нельзя сюда» — **`guard`**; статический alias — attr **`redirect`**.
 
 См. также [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) (исторический RFC; resolve с `runLoads` **не** планируется).
 

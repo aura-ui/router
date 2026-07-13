@@ -2,7 +2,7 @@
 
 > **Статус:** guard/leave + declarative collapse — **готово**; resolve с `runLoads` — **не планируется**  
 > **Дизайн (2026-07-13):** redirect из **`load`** **убирается** — не backlog на collapse. `load` только данные; маршрутизация — `guard` / attr `redirect`. См. [NESTED_ROUTES_JOY_MODEL.md §Redirect chain collapse](./NESTED_ROUTES_JOY_MODEL.md#redirect-chain-collapse).  
-> **As-is в коде:** `followRedirectsWithGuardWalk` — declarative + blocking walk ✓; legacy `load` redirect → `applyRedirect` (временно, с warn) — **к удалению**.  
+> **As-is в коде:** `followRedirectsWithGuardWalk` — declarative + blocking walk ✓; redirect из **`load`** **удалён** (payload-only).  
 > **Связь:** дополнение к [P1-7](../comparison/FEATURE_PARITY_ROADMAP.md) — политика redirect уже зафиксирована; этот документ про **оптимизацию blocking-redirect**, не про post-commit redirect.  
 > **См. также:** [NAVIGATION_TRANSACTION_MODEL.md §7](../NAVIGATION_TRANSACTION_MODEL.md#7-redirect-и-cancel--политика-aura-p1-7)
 

@@ -129,7 +129,7 @@ export function followDeclarativeRedirects(
  * Pre-commit redirect resolution: declarative attr steps + blocking walk (`leave` → `guard`),
  * without history commit or render.
  *
- * Blocking walk runs {@link ../navigation/navigation-transaction!NavigationTransaction.runGuardPhase}
+ * Blocking walk runs {@link ../navigation/navigation-transaction!NavigationTransaction.runRedirectCollapse}
  * on each hop where the transition plan has `hasLeave` on exit or `hasGuard` on enter.
  * Full `runGuards()` is invoked per hop (overlapping exit routes may run `leave` more than once —
  * acceptable for short chains; see `redirect/README.md`).
@@ -240,7 +240,7 @@ async function runBlockingWalkProbe(
   probe.transitionPlan = transitionPlan;
   probe.transitionOrder = getEnterRoute(transitionPlan)?.transition?.order ?? null;
 
-  const walkResult = await probe.runGuardPhase();
+  const walkResult = await probe.runRedirectCollapse();
   redirection.blockingPhasesCompleted = true;
 
   if (walkResult?.status === 'redirect') {

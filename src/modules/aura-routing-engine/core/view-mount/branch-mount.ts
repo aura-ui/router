@@ -42,6 +42,7 @@ export function mountEnterBranch(
       parentSignal: ctx.signal,
       preResolvedContent: preResolvedContents[i]!,
       ...(data !== undefined && { data }),
+      ...(ctx.paramChangeRemount ? { paramChangeRemount: true } : {}),
     };
 
     const result = matchedRoute.route.applyPreResolved(matchedRoute, options);

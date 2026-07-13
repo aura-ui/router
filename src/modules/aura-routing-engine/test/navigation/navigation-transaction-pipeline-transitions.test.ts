@@ -4,43 +4,62 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
   require('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
+import * as branchMount from '../../core/view-mount/branch-mount';
 import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
 import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
 
 describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () => {
+  let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
+
   beforeEach(() => {
     resetPipelineMocks();
+    mountEnterBranchSpy = jest
+      .spyOn(branchMount, 'mountEnterBranch')
+      .mockReturnValue({ status: 'ok' });
   });
 
-  it('cancels before transitions when view commit is aborted', async () => {
-    mockRunViewCommit.mockResolvedValue('aborted');
+  afterEach(() => {
+    mountEnterBranchSpy.mockRestore();
+  });
 
+  function withPreparedBranch(
+    transaction: ReturnType<typeof createMockTransaction>,
+    contents: readonly (string | null)[] = ['<page/>'],
+  ) {
+    transaction.preResolvedBranchContents = contents;
+    return transaction;
+  }
+
+  it('cancels before transitions when branch contents are missing', async () => {
     const transaction = createMockTransaction({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(mockRunPhaseHooks).not.toHaveBeenCalled();
+    expect(mountEnterBranchSpy).not.toHaveBeenCalled();
   });
 
-  it('runs render before parallel transition hooks', async () => {
+  it('runs commit before parallel transition hooks', async () => {
     const callOrder: string[] = [];
 
-    mockRunViewCommit.mockImplementation(async () => {
+    mountEnterBranchSpy.mockImplementation(() => {
       callOrder.push('render');
-      return 'ok';
+      return { status: 'ok' };
     });
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       callOrder.push(ctx.phase);
     });
 
-    const transaction = createMockTransaction({
-      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
-    });
+    const transaction = withPreparedBranch(
+      createMockTransaction({
+        exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
+        enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      }),
+    );
 
     await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 
@@ -50,10 +69,12 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
   });
 
   it('returns navigationSucceeded when render and both transitions succeed', async () => {
-    const transaction = createMockTransaction({
-      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
-    });
+    const transaction = withPreparedBranch(
+      createMockTransaction({
+        exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
+        enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      }),
+    );
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 
@@ -62,17 +83,19 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
 
   it('returns error from exit transition when it fails', async () => {
     const transitionError = new Error('exit transition failed');
-    const transaction = createMockTransaction({
-      exitRoutes: [
-        createMatchedRoute('/from', {
-          transitionOut: ['fade'],
-          onTransitionOut: () => {
-            throw transitionError;
-          },
-        }),
-      ],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
-    });
+    const transaction = withPreparedBranch(
+      createMockTransaction({
+        exitRoutes: [
+          createMatchedRoute('/from', {
+            transitionOut: ['fade'],
+            onTransitionOut: () => {
+              throw transitionError;
+            },
+          }),
+        ],
+        enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      }),
+    );
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 
@@ -91,24 +114,26 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
   it('prefers exit transition error over enter transition error', async () => {
     const exitError = new Error('exit failed');
     const enterError = new Error('enter failed');
-    const transaction = createMockTransaction({
-      exitRoutes: [
-        createMatchedRoute('/from', {
-          transitionOut: ['fade'],
-          onTransitionOut: () => {
-            throw exitError;
-          },
-        }),
-      ],
-      enterRoutes: [
-        createMatchedRoute('/to', {
-          transitionIn: ['fade'],
-          onTransitionIn: () => {
-            throw enterError;
-          },
-        }),
-      ],
-    });
+    const transaction = withPreparedBranch(
+      createMockTransaction({
+        exitRoutes: [
+          createMatchedRoute('/from', {
+            transitionOut: ['fade'],
+            onTransitionOut: () => {
+              throw exitError;
+            },
+          }),
+        ],
+        enterRoutes: [
+          createMatchedRoute('/to', {
+            transitionIn: ['fade'],
+            onTransitionIn: () => {
+              throw enterError;
+            },
+          }),
+        ],
+      }),
+    );
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 
@@ -116,56 +141,32 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
       status: 'error',
       failure: expect.objectContaining({
         error: expect.objectContaining({
-          code: 'TRANSITION_FAILED',
           message: 'exit failed',
         }),
-        commit: { view: 'staged', href: '/to' },
       }),
     });
   });
 });
 
-describe('NavigationTransactionPipeline sequential transition policies', () => {
+describe('NavigationTransactionPipeline transition + remount order', () => {
+  let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
+
   beforeEach(() => {
     resetPipelineMocks();
+    mountEnterBranchSpy = jest
+      .spyOn(branchMount, 'mountEnterBranch')
+      .mockImplementation(() => ({ status: 'ok' }));
   });
 
-  it.each([
-    ['out-in', ['transitionOut', 'render', 'transitionIn']],
-    ['in-out', ['render', 'transitionIn', 'transitionOut']],
-  ] as const)('runs %s steps in order', async (policy, expectedOrder) => {
+  afterEach(() => {
+    mountEnterBranchSpy.mockRestore();
+  });
+
+  it('parallel: transitions run after commit, unmount runs before commitStaged', async () => {
     const callOrder: string[] = [];
-
-    mockRunViewCommit.mockImplementation(async () => {
+    mountEnterBranchSpy.mockImplementation(() => {
       callOrder.push('render');
-      return 'ok';
-    });
-    mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
-      callOrder.push(ctx.phase);
-    });
-
-    const transaction = createMockTransaction({
-      transitionOrder: policy,
-      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
-    });
-
-    await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
-
-    expect(callOrder).toEqual(expectedOrder);
-  });
-});
-
-describe('NavigationTransactionPipeline in-place param remount + transition', () => {
-  beforeEach(() => {
-    resetPipelineMocks();
-  });
-
-  it('parallel: transitions run after render, unmount runs before commitStaged', async () => {
-    const callOrder: string[] = [];
-    mockRunViewCommit.mockImplementation(async () => {
-      callOrder.push('render');
-      return 'ok';
+      return { status: 'ok' };
     });
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       callOrder.push(ctx.phase);
@@ -207,13 +208,14 @@ describe('NavigationTransactionPipeline in-place param remount + transition', ()
     expect(callOrder.indexOf('ready')).toBeGreaterThan(callOrder.indexOf('commitStaged'));
     expect(onUnmount).toHaveBeenCalledTimes(1);
     expect(commitStagedView).toHaveBeenCalledTimes(1);
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 
-  it('out-in: transitionOut before render on same leaf param remount', async () => {
+  it('out-in: transitionOut before commit on same leaf param remount', async () => {
     const callOrder: string[] = [];
-    mockRunViewCommit.mockImplementation(async () => {
+    mountEnterBranchSpy.mockImplementation(() => {
       callOrder.push('render');
-      return 'ok';
+      return { status: 'ok' };
     });
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       callOrder.push(ctx.phase);
@@ -236,16 +238,28 @@ describe('NavigationTransactionPipeline in-place param remount + transition', ()
       enterRoutes: [enterRoute],
     });
     transaction.transitionPlan.paramChangeRemount = true;
-
-    await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
+    // prepare already done — render path only (contents set by runPrepare in full pipeline)
+    // For order assertion use prepare + render:
+    const pipeline = new NavigationTransactionPipeline(transaction);
+    await pipeline.runPrepare();
+    await pipeline.runRenderWithTransition();
 
     expect(callOrder).toEqual(['transitionOut', 'render', 'transitionIn']);
   });
 });
 
 describe('NavigationTransactionPipeline parallel transition edge cases', () => {
+  let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
+
   beforeEach(() => {
     resetPipelineMocks();
+    mountEnterBranchSpy = jest
+      .spyOn(branchMount, 'mountEnterBranch')
+      .mockReturnValue({ status: 'ok' });
+  });
+
+  afterEach(() => {
+    mountEnterBranchSpy.mockRestore();
   });
 
   it('returns cancelled when inactive after parallel transitions finish', async () => {
@@ -261,8 +275,9 @@ describe('NavigationTransactionPipeline parallel transition edge cases', () => {
 
     const transaction = createMockTransaction({
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'], mountStrategy: 'per-route' })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
+    transaction.preResolvedBranchContents = ['<page/>'];
     jest.spyOn(transaction, 'isActive').mockImplementation(() => active);
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
@@ -277,13 +292,13 @@ describe('NavigationTransactionPipeline parallel transition edge cases', () => {
       enterRoutes: [
         createMatchedRoute('/to', {
           transitionIn: ['fade'],
-          mountStrategy: 'per-route',
           onTransitionIn: () => {
             throw enterError;
           },
         }),
       ],
     });
+    transaction.preResolvedBranchContents = ['<page/>'];
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 

@@ -14,6 +14,7 @@ import {
 import { createMockEngine } from '../helpers/create-mock-transaction';
 import { runNavigationTransaction } from '../helpers/jest/navigation-fixtures';
 import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
+import * as branchMount from '../../core/view-mount/branch-mount';
 
 async function runNavigation(
   from: MatchedRouteInfo,
@@ -24,8 +25,17 @@ async function runNavigation(
 }
 
 describe('param-change lifecycle (RFC cases A/B/C)', () => {
+  let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
+
   beforeEach(() => {
     resetPipelineMocks();
+    mountEnterBranchSpy = jest
+      .spyOn(branchMount, 'mountEnterBranch')
+      .mockReturnValue({ status: 'ok' });
+  });
+
+  afterEach(() => {
+    mountEnterBranchSpy.mockRestore();
   });
 
   it('case A: same viewKey → UPDATE without render/unmount/ready', async () => {
@@ -80,7 +90,8 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     const { transaction } = await runNavigation(from, to);
 
     expect(transaction.transitionPlan.update).toBe(false);
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
+    expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
     expect(phases).toContain('unmount');
     expect(phases).toContain('ready');
     expect(phases).not.toContain('update');
@@ -106,7 +117,8 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
 
     expect(transaction.transitionPlan.update).toBe(false);
     expect(from.resolvedView?.viewKey).toBe(to.resolvedView?.viewKey);
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
+    expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
     expect(phases).toContain('unmount');
     expect(phases).toContain('ready');
     expect(phases).not.toContain('update');
@@ -128,13 +140,23 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     expect(transaction.transitionPlan.exitRoutes).toHaveLength(1);
     expect(transaction.transitionPlan.lca?.pattern).toBe('/users');
     expect(transaction.transitionPlan.exitRoutes[0]!.pattern).toBe('/users/:id');
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
+    expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 });
 
 describe('param-change lifecycle by view loader', () => {
+  let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
+
   beforeEach(() => {
     resetPipelineMocks();
+    mountEnterBranchSpy = jest
+      .spyOn(branchMount, 'mountEnterBranch')
+      .mockReturnValue({ status: 'ok' });
+  });
+
+  afterEach(() => {
+    mountEnterBranchSpy.mockRestore();
   });
 
   async function collectPhases(from: MatchedRouteInfo, to: MatchedRouteInfo) {
@@ -185,7 +207,8 @@ describe('param-change lifecycle by view loader', () => {
     const { phases, transaction } = await collectPhases(from, to);
 
     expect(transaction.transitionPlan.update).toBe(false);
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
+    expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
     expect(phases).toContain('unmount');
     expect(phases).toContain('ready');
     expect(phases).not.toContain('update');

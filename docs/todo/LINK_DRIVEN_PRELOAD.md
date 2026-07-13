@@ -283,7 +283,7 @@ Prefetch **не заменяет** navigation path — только прогре
 click /users/42
 
 1. runGuards           enter / leave        ← только здесь; DataGraph не участвует
-2. runLoads            dataGraph.load()     ← blocking; redirect из hook возможен
+2. runLoads            dataGraph.load()     ← payload / throw (error) / false (cancel)
 3. runRender           content.resolve()    ← свой cache; promotion после prefetch
 4. runAfterRender      left / entered
 ```
@@ -463,7 +463,7 @@ MVP: без очереди — простой dedupe + abort previous on new hov
 - [ ] два router на странице → изолированные cache instances
 - [ ] intent → `Promise.all` content + DataGraph; mouseleave abort обоих
 - [ ] click после data prefetch → `dataGraph.load()` cache hit
-- [ ] redirect из `load` hook на prefetch → игнор; на navigation → blocking
+- [x] redirect из `load` **не поддерживается** (guard-only); prefetch кэширует payload как navigation
 
 ---
 

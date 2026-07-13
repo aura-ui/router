@@ -160,9 +160,11 @@ describe('ViewRenderPipeline', () => {
     expect(root.textContent).toBe('No content to display');
   });
 
-  it('syncBranchMount does not use cache restore shortcuts', () => {
+  it('syncBranchMount restores DomCache hit before applying pre-resolved content', () => {
     const root = createOutlet();
-    const cache = { extract: jest.fn(() => document.createElement('div')), stash: jest.fn() };
+    const cached = document.createElement('div');
+    cached.textContent = 'from-dom-cache';
+    const cache = { extract: jest.fn(() => cached), put: jest.fn() };
     const pipeline = createPipeline(root, {
       route: { cache: { dom: true, view: true, data: true } },
       cache,
@@ -174,7 +176,25 @@ describe('ViewRenderPipeline', () => {
     });
 
     expect(result).toEqual({ status: 'ok' });
+    expect(cache.extract).toHaveBeenCalled();
+    expect(root.textContent).toBe('from-dom-cache');
+  });
+
+  it('syncBranchMount applies pre-resolved content when DomCache misses', () => {
+    const root = createOutlet();
+    const cache = { extract: jest.fn(() => undefined), put: jest.fn() };
+    const pipeline = createPipeline(root, {
+      route: { cache: { dom: true, view: true, data: true } },
+      cache,
+    });
+
+    const result = pipeline.syncBranchMount({
+      ...renderPass(),
+      preResolvedContent: '<span>from-branch</span>',
+    });
+
+    expect(result).toEqual({ status: 'ok' });
+    expect(cache.extract).toHaveBeenCalled();
     expect(root.textContent).toBe('from-branch');
-    expect(cache.extract).not.toHaveBeenCalled();
   });
 });

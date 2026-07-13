@@ -15,7 +15,19 @@ import {
   withViewGraph,
 } from '../helpers/jest/pipeline-mocks';
 
-describe('NavigationTransactionPipeline branch-atomic render', () => {
+async function prepareThenRender(pipeline: NavigationTransactionPipeline) {
+  const prepareResult = await pipeline.runPrepare();
+  if (prepareResult) return prepareResult;
+  return pipeline.runRender();
+}
+
+async function prepareThenRenderWithTransition(pipeline: NavigationTransactionPipeline) {
+  const prepareResult = await pipeline.runPrepare();
+  if (prepareResult) return prepareResult;
+  return pipeline.runRenderWithTransition();
+}
+
+describe('NavigationTransactionPipeline branch prepare → commit render', () => {
   let resolveEnterBranchSpy: jest.SpiedFunction<typeof branchResolver.resolveEnterBranch>;
   let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
 
@@ -34,7 +46,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     mountEnterBranchSpy.mockRestore();
   });
 
-  it('resolves branch then sync-mounts pre-resolved contents for multi-route enter', async () => {
+  it('resolves in prepare then sync-mounts in render for multi-route enter', async () => {
     const layout = createMatchedRoute('/users');
     const index = createMatchedRoute('/users/1');
     const transaction = withViewGraph({
@@ -42,12 +54,15 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
       transitionOrder: null,
     });
 
-    await new NavigationTransactionPipeline(transaction).runRender();
+    await prepareThenRender(new NavigationTransactionPipeline(transaction));
 
     expect(resolveEnterBranchSpy).toHaveBeenCalledWith(
       [layout, index],
       transaction.engine.viewGraph,
-      expect.objectContaining({ signal: transaction.signal }),
+      expect.objectContaining({
+        signal: transaction.signal,
+        paramChangeRemount: false,
+      }),
     );
     expect(mountEnterBranchSpy).toHaveBeenCalledWith(
       [layout, index],
@@ -57,63 +72,62 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 
-  it('uses eager per-route render for a single sync route', async () => {
+  it('uses branch prepare/commit for a single sync route', async () => {
+    resolveEnterBranchSpy.mockResolvedValue({
+      status: 'ok',
+      preResolvedContents: ['<page/>'],
+    });
     const transaction = withViewGraph({
       enterRoutes: [createMatchedRoute('/page')],
       transitionOrder: null,
     });
 
-    await new NavigationTransactionPipeline(transaction).runRender();
-
-    expect(resolveEnterBranchSpy).not.toHaveBeenCalled();
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
-    expect(mockRunViewCommit).toHaveBeenCalledWith(
-      transaction.transitionPlan.enterRoutes[0],
-      expect.objectContaining({ isAborted: expect.any(Function) }),
-      undefined,
-    );
-  });
-
-  it('renders every enter route when mount-strategy is per-route', async () => {
-    const layout = createMatchedRoute('/users', { mountStrategy: 'per-route' });
-    const index = createMatchedRoute('/users/1', { mountStrategy: 'per-route' });
-    const transaction = withViewGraph({
-      enterRoutes: [layout, index],
-      transitionOrder: null,
-    });
-
-    await new NavigationTransactionPipeline(transaction).runRender();
-
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(2);
-    expect(mockRunViewCommit).toHaveBeenNthCalledWith(
-      1,
-      layout,
-      expect.objectContaining({ isAborted: expect.any(Function) }),
-      undefined,
-    );
-    expect(mockRunViewCommit).toHaveBeenNthCalledWith(
-      2,
-      index,
-      expect.objectContaining({ isAborted: expect.any(Function) }),
-      undefined,
-    );
-    expect(resolveEnterBranchSpy).not.toHaveBeenCalled();
-  });
-
-  it('uses branch atomic with transition order on multi-route enter', async () => {
-    const transaction = withViewGraph({
-      enterRoutes: [createMatchedRoute('/users'), createMatchedRoute('/users/1')],
-      transitionOrder: 'out-in',
-    });
-
-    await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
+    await prepareThenRender(new NavigationTransactionPipeline(transaction));
 
     expect(resolveEnterBranchSpy).toHaveBeenCalledTimes(1);
     expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
     expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 
-  it('out-in branch atomic resolves before transitionOut and mounts before transitionIn', async () => {
+  it('passes paramChangeRemount through branch resolve context', async () => {
+    resolveEnterBranchSpy.mockResolvedValue({
+      status: 'ok',
+      preResolvedContents: ['<page/>'],
+    });
+    const transaction = withViewGraph({
+      enterRoutes: [createMatchedRoute('/users/2')],
+      transitionOrder: null,
+    });
+    transaction.transitionPlan.paramChangeRemount = true;
+
+    await prepareThenRender(new NavigationTransactionPipeline(transaction));
+
+    expect(resolveEnterBranchSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ paramChangeRemount: true }),
+    );
+    expect(mountEnterBranchSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ paramChangeRemount: true }),
+    );
+  });
+
+  it('uses branch prepare/commit with transition order on multi-route enter', async () => {
+    const transaction = withViewGraph({
+      enterRoutes: [createMatchedRoute('/users'), createMatchedRoute('/users/1')],
+      transitionOrder: 'out-in',
+    });
+
+    await prepareThenRenderWithTransition(new NavigationTransactionPipeline(transaction));
+
+    expect(resolveEnterBranchSpy).toHaveBeenCalledTimes(1);
+    expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
+  });
+
+  it('out-in resolves in prepare before transitionOut and mounts before transitionIn', async () => {
     const callOrder: string[] = [];
 
     resolveEnterBranchSpy.mockImplementation(async () => {
@@ -134,7 +148,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
       transitionOrder: 'out-in',
     });
 
-    await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
+    await prepareThenRenderWithTransition(new NavigationTransactionPipeline(transaction));
 
     expect(callOrder).toEqual(['resolve', 'transitionOut', 'apply', 'transitionIn']);
   });
@@ -146,7 +160,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
       transitionOrder: null,
     });
 
-    const outcome = await new NavigationTransactionPipeline(transaction).runRender();
+    const outcome = await new NavigationTransactionPipeline(transaction).runPrepare();
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(mountEnterBranchSpy).not.toHaveBeenCalled();
@@ -164,7 +178,7 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
     });
     jest.spyOn(transaction, 'isActive').mockReturnValue(false);
 
-    const outcome = await new NavigationTransactionPipeline(transaction).runRender();
+    const outcome = await new NavigationTransactionPipeline(transaction).runPrepare();
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(mountEnterBranchSpy).not.toHaveBeenCalled();
@@ -182,9 +196,21 @@ describe('NavigationTransactionPipeline branch-atomic render', () => {
       return { status: 'ok' };
     });
 
+    const outcome = await prepareThenRender(new NavigationTransactionPipeline(transaction));
+
+    expect(outcome).toEqual({ status: 'cancelled' });
+  });
+
+  it('returns cancelled when render runs without prepare', async () => {
+    const transaction = withViewGraph({
+      enterRoutes: [createMatchedRoute('/page')],
+      transitionOrder: null,
+    });
+
     const outcome = await new NavigationTransactionPipeline(transaction).runRender();
 
     expect(outcome).toEqual({ status: 'cancelled' });
+    expect(mountEnterBranchSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -217,14 +243,19 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
     expect(recoverySpy).toHaveBeenCalledTimes(1);
   }
 
-  it('recovers after per-route render error', async () => {
-    const renderError = new Error('per-route render failed');
-    mockRunViewCommit.mockResolvedValue({ status: 'error', error: renderError });
+  it('recovers after branch mount error', async () => {
+    const mountError = new Error('branch mount failed');
+    const failingRoute = createMatchedRoute('/b');
+    mountEnterBranchSpy.mockReturnValue({
+      status: 'error',
+      error: mountError,
+      route: failingRoute,
+    });
 
     const { phases } = trackLifecyclePhases();
     const transaction = withViewGraph({
       exitRoutes: [createMatchedRoute('/from', { unmount: ['cleanup'] })],
-      enterRoutes: [createMatchedRoute('/to', { mountStrategy: 'per-route' })],
+      enterRoutes: [createMatchedRoute('/a'), failingRoute],
       transitionOrder: null,
     });
     const recoverySpy = jest.spyOn(
@@ -232,10 +263,9 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
       'markViewCommittedAfterErrorRecovery',
     );
 
-    const outcome = await new NavigationTransactionPipeline(transaction).runRender();
+    const outcome = await prepareThenRender(new NavigationTransactionPipeline(transaction));
 
     await expectRenderErrorRecovery(outcome, phases, recoverySpy);
-    expect(resolveEnterBranchSpy).not.toHaveBeenCalled();
   });
 
   it('recovers after branch resolve error', async () => {
@@ -258,35 +288,10 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
       'markViewCommittedAfterErrorRecovery',
     );
 
-    const outcome = await new NavigationTransactionPipeline(transaction).runRender();
+    const outcome = await new NavigationTransactionPipeline(transaction).runPrepare();
 
     await expectRenderErrorRecovery(outcome, phases, recoverySpy);
     expect(mountEnterBranchSpy).not.toHaveBeenCalled();
-  });
-
-  it('recovers after branch mount error', async () => {
-    const mountError = new Error('branch mount failed');
-    const failingRoute = createMatchedRoute('/b');
-    mountEnterBranchSpy.mockReturnValue({
-      status: 'error',
-      error: mountError,
-      route: failingRoute,
-    });
-
-    const { phases } = trackLifecyclePhases();
-    const transaction = withViewGraph({
-      exitRoutes: [createMatchedRoute('/from', { unmount: ['cleanup'] })],
-      enterRoutes: [createMatchedRoute('/a'), failingRoute],
-      transitionOrder: null,
-    });
-    const recoverySpy = jest.spyOn(
-      transaction.viewCommitTracker,
-      'markViewCommittedAfterErrorRecovery',
-    );
-
-    const outcome = await new NavigationTransactionPipeline(transaction).runRender();
-
-    await expectRenderErrorRecovery(outcome, phases, recoverySpy);
   });
 
   it('returns cancelled when branch mount aborts mid-apply', async () => {
@@ -297,7 +302,7 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
       transitionOrder: null,
     });
 
-    const outcome = await new NavigationTransactionPipeline(transaction).runRender();
+    const outcome = await prepareThenRender(new NavigationTransactionPipeline(transaction));
 
     expect(outcome).toEqual({ status: 'cancelled' });
   });
@@ -315,14 +320,16 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
       }
     });
 
-    const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
+    const outcome = await prepareThenRenderWithTransition(
+      new NavigationTransactionPipeline(transaction),
+    );
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(mountEnterBranchSpy).not.toHaveBeenCalled();
   });
 });
 
-describe('NavigationTransactionPipeline branch-atomic transition matrix gaps', () => {
+describe('NavigationTransactionPipeline branch transition matrix', () => {
   let resolveEnterBranchSpy: jest.SpiedFunction<typeof branchResolver.resolveEnterBranch>;
   let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
 
@@ -346,7 +353,7 @@ describe('NavigationTransactionPipeline branch-atomic transition matrix gaps', (
   it.each([
     ['parallel', ['resolve', 'apply', 'transitionOut', 'transitionIn']],
     ['in-out', ['resolve', 'apply', 'transitionIn', 'transitionOut']],
-  ] as const)('atomic + %s runs steps in order', async (policy, expectedOrder) => {
+  ] as const)('branch + %s runs steps in order', async (policy, expectedOrder) => {
     const callOrder: string[] = [];
 
     resolveEnterBranchSpy.mockImplementation(async () => {
@@ -367,7 +374,7 @@ describe('NavigationTransactionPipeline branch-atomic transition matrix gaps', (
       transitionOrder: policy,
     });
 
-    await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
+    await prepareThenRenderWithTransition(new NavigationTransactionPipeline(transaction));
 
     expect(callOrder).toEqual(expectedOrder);
     expect(mockRunViewCommit).not.toHaveBeenCalled();

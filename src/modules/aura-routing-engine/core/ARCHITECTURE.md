@@ -18,7 +18,7 @@ failure handling in `failure/README.md`.
 | `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`. |
 | `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit blocking walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
 | `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
-| `view-mount/` | View staging/commit tracking, per-route render (`view-commit-render`), atomic branch resolve/mount (`branch-resolver`, `branch-mount`), staged-view rollback. |
+| `view-mount/` | View staging/commit tracking, fast-path `runViewCommit`, branch resolve/mount (`branch-resolver`, `branch-mount`), staged-view rollback. |
 | `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |
 | `view-graph/` | Route view attrs → `ViewGraph` → payload cache → loader payload. |
 | `data-graph/` | Route `load` hooks, SWR cache, prefetch intent, cache invalidation. |
@@ -78,19 +78,19 @@ sequenceDiagram
 | Tier | Entry | Skips | Order (high level) |
 | --- | --- | --- | --- |
 | **Update** | `runUpdate()` | guards, render, unmount, ready | history → loads → `update` → `commitNavigation` |
-| **Fast (Tier 0)** | `runFastPipeline()` | guards, loads, transitions | history → single `runViewCommit` → after-render |
-| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → history → loads → render → after-render |
+| **Fast (Tier 0)** | `runFastPipeline()` | guards, loads/prepare, transitions | history → single `runViewCommit` → after-render |
+| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → history → **prepare** (loads + resolve views) → commit + transitions → after-render |
 
 `skipBlockingPhases`: redirect walk already ran `leave` → `guard` — see `redirect/README.md`.
 
 Fast path eligibility: `canUseFastPath()` — flat swap (one exit, one enter), sync inline
 content, no blocking hooks or `transition-order`.
 
-Full render splits on `shouldUsePrepareCommitEnterBranch()`:
+Full render is always **branch prepare → commit**:
 
-- **atomic** — parallel content resolve (`branch-resolver`) then sync DOM mount (`branch-mount`)
-- **per-route** — sequential `runViewCommit` on each enter route
-
+1. `runPrepare()` — `DataGraph.load` then parallel `resolveEnterBranch` (`ViewGraph.loadView`)
+2. `commitEnterBranchToDom()` — sync `mountEnterBranch` / `applyPreResolved` (incl. `paramChangeRemount`)
+3. `syncBranchMount` early-exit restores `cache.dom` when present
 ## Ownership Boundaries
 
 `AuraRoutingEngine` owns external I/O: history provider lifecycle, link tracking,

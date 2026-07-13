@@ -61,7 +61,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
   const router: RouterInstance = { navigate: jest.fn() };
 
   beforeEach(() => {
-    jest.spyOn(NavigationTransaction.prototype, 'runGuardPhase').mockResolvedValue(null);
+    jest.spyOn(NavigationTransaction.prototype, 'runRedirectCollapse').mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -207,7 +207,7 @@ describe('AuraRoutingEngine navigation dedupe', () => {
     await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
     run.mockClear();
 
-    jest.spyOn(NavigationTransaction.prototype, 'runGuardPhase').mockImplementationOnce(
+    jest.spyOn(NavigationTransaction.prototype, 'runRedirectCollapse').mockImplementationOnce(
       async function (this: NavigationTransaction) {
         await Promise.resolve();
         await Promise.resolve();

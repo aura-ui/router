@@ -156,16 +156,22 @@ async function runRenderStep(
   transaction.transitionOrder = options?.transitionOrder ?? null;
 
   const pipeline = new NavigationTransactionPipeline(transaction);
-  const renderPromise = options?.transitionOrder
-    ? pipeline.runRenderWithTransition()
-    : pipeline.runRender();
+  const preparePromise = pipeline.runPrepare();
 
   if (options?.cancelAfterMs != null) {
     await sleep(options.cancelAfterMs);
     transaction.cancel();
   }
 
-  const outcome = await renderPromise;
+  const prepareOutcome = await preparePromise;
+  if (prepareOutcome) {
+    return { outcome: prepareOutcome, transaction };
+  }
+
+  const outcome = options?.transitionOrder
+    ? await pipeline.runRenderWithTransition()
+    : await pipeline.runRender();
+
   return { outcome, transaction };
 }
 
@@ -300,18 +306,20 @@ describe('atomic branch commit integration', () => {
     expect(router.appOutlet.textContent).toContain('CACHED-CHILD');
   });
 
-  it('mount-strategy="per-route" mounts layout before async child resolves', async () => {
-    const { router, childGate } = await mountBranchFixture({ 'mount-strategy': 'per-route' });
+  it('branch mount waits for async child then applies layout+child together', async () => {
+    const { router, childGate } = await mountBranchFixture({ 'mount-strategy': 'branch' });
     const outlet = router.appOutlet;
 
     router.navigate('/users/list', { replace: false, syncHistory: false });
     await sleep(40);
 
-    expect(outlet.textContent).toContain('LAYOUT');
+    // prepare holds render until child resolves — layout not painted alone
     expect(outlet.textContent).not.toContain('CHILD');
+    expect(outlet.textContent).not.toContain('LAYOUT');
 
     childGate.release();
     await waitForText(outlet, 'CHILD');
+    expect(outlet.textContent).toContain('LAYOUT');
   });
 
   it('render error during branch resolve leaves outgoing DOM intact', async () => {

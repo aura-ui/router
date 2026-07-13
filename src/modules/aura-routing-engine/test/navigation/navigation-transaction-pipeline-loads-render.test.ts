@@ -7,6 +7,7 @@ import { PHASES } from '../../core/navigation/lifecycle-phases';
 import type { DataSnapshot } from '../../core/data-graph';
 import { buildRouteDataKey } from '../../core/data-graph/route-data';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
+import * as branchMount from '../../core/view-mount/branch-mount';
 import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
 import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
 
@@ -33,17 +34,25 @@ describe('NavigationTransactionPipeline phase hook attrs', () => {
   });
 });
 
-describe('NavigationTransactionPipeline viewCommitOptions data', () => {
+describe('NavigationTransactionPipeline branch mount data', () => {
+  let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
+
   beforeEach(() => {
     resetPipelineMocks();
     mockRunViewCommit.mockResolvedValue('ok');
+    mountEnterBranchSpy = jest
+      .spyOn(branchMount, 'mountEnterBranch')
+      .mockReturnValue({ status: 'ok' });
   });
 
-  it('passes load-hook data from dataSnapshot to runViewCommit', async () => {
+  afterEach(() => {
+    mountEnterBranchSpy.mockRestore();
+  });
+
+  it('passes load-hook data from dataSnapshot via branch resolve context', async () => {
     const enterRoute = createMatchedRoute('/to', {
       load: ['fetch'],
       hasLoad: true,
-      mountStrategy: 'per-route',
     });
     const loadPayload = { items: [1, 2] };
     const snapshot = new Map([
@@ -55,14 +64,20 @@ describe('NavigationTransactionPipeline viewCommitOptions data', () => {
       transitionOrder: null,
     });
     transaction.dataSnapshot = snapshot;
+    transaction.preResolvedBranchContents = ['<page/>'];
 
     await new NavigationTransactionPipeline(transaction).runRender();
 
-    expect(mockRunViewCommit).toHaveBeenCalledWith(
-      enterRoute,
-      expect.objectContaining({ isAborted: expect.any(Function) }),
-      { data: loadPayload },
+    expect(mountEnterBranchSpy).toHaveBeenCalledWith(
+      [enterRoute],
+      ['<page/>'],
+      expect.objectContaining({
+        dataFor: expect.any(Function),
+      }),
     );
+    const ctx = mountEnterBranchSpy.mock.calls[0]![2]!;
+    expect(ctx.dataFor?.(enterRoute)).toEqual(loadPayload);
+    expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 });
 
@@ -97,46 +112,54 @@ describe('NavigationTransactionPipeline.runLoads activeChain', () => {
   });
 });
 
-describe('NavigationTransactionPipeline per-route render cancellation', () => {
+describe('NavigationTransactionPipeline branch render cancellation', () => {
+  let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
+
   beforeEach(() => {
     resetPipelineMocks();
+    mountEnterBranchSpy = jest
+      .spyOn(branchMount, 'mountEnterBranch')
+      .mockReturnValue({ status: 'ok' });
   });
 
-  it('passes live isAborted check to runViewCommit during per-route render', async () => {
-    mockRunViewCommit.mockImplementation(async (_route, cancellation) => {
-      expect(cancellation.isAborted()).toBe(false);
-      return 'ok';
+  afterEach(() => {
+    mountEnterBranchSpy.mockRestore();
+  });
+
+  it('passes live isActive check to branch resolve context during commit', async () => {
+    mountEnterBranchSpy.mockImplementation((_routes, _contents, ctx) => {
+      expect(ctx.aborted()).toBe(false);
+      return { status: 'ok' };
     });
 
     const transaction = createMockTransaction({
-      enterRoutes: [createMatchedRoute('/page', { mountStrategy: 'per-route' })],
+      enterRoutes: [createMatchedRoute('/page')],
       transitionOrder: null,
     });
+    transaction.preResolvedBranchContents = ['<page/>'];
 
     await new NavigationTransactionPipeline(transaction).runRender();
 
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
+    expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('returns cancelled when superseded between per-route commits', async () => {
+  it('returns cancelled when superseded during branch mount', async () => {
     let active = true;
-    mockRunViewCommit.mockImplementation(async () => {
+    mountEnterBranchSpy.mockImplementation(() => {
       active = false;
-      return 'ok';
+      return { status: 'ok' };
     });
 
     const transaction = createMockTransaction({
-      enterRoutes: [
-        createMatchedRoute('/a', { mountStrategy: 'per-route' }),
-        createMatchedRoute('/b', { mountStrategy: 'per-route' }),
-      ],
+      enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: null,
     });
+    transaction.preResolvedBranchContents = ['<a/>', '<b/>'];
     jest.spyOn(transaction, 'isActive').mockImplementation(() => active);
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRender();
 
     expect(outcome).toEqual({ status: 'cancelled' });
-    expect(mockRunViewCommit).toHaveBeenCalledTimes(1);
+    expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
   });
 });

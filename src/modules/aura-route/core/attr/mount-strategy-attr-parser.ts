@@ -1,5 +1,5 @@
-/** `mount-strategy` attr: per-route · branch · full (P1). */
-export const MOUNT_STRATEGIES = ['per-route', 'branch', 'full'] as const;
+/** `mount-strategy` attr: branch · full (P1). `per-route` removed — all mounts use branch prepare/commit. */
+export const MOUNT_STRATEGIES = ['branch', 'full'] as const;
 
 export type MountStrategy = (typeof MOUNT_STRATEGIES)[number];
 

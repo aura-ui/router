@@ -41,7 +41,11 @@ function wireRouteViewController(
   outlet: AuraOutlet,
   resolve: (id: string) => string,
   options: WireOptions = {},
-): { controller: RouteViewController; stash: Map<string, Element> } {
+): {
+  controller: RouteViewController;
+  stash: Map<string, Element>;
+  loadView: NonNullable<ReturnType<typeof createMockEngine>['viewGraph']>['loadView'];
+} {
   let passId = 0;
   const stash = new Map<string, Element>();
   const cacheDom = options.cacheDom ?? false;
@@ -58,6 +62,7 @@ function wireRouteViewController(
     transitionIn: string[] | null;
     transitionOut: string[] | null;
     render: RouteViewController['render'];
+    applyPreResolved: RouteViewController['applyPreResolved'];
     onUnmount: (ctx: RouteLifecycleContext) => void;
     onTransitionOut: (ctx: RouteLifecycleContext) => void;
     onTransitionIn: (ctx: RouteLifecycleContext) => void;
@@ -75,22 +80,26 @@ function wireRouteViewController(
   routeRecord.transitionIn = transition.in;
   routeRecord.transitionOut = transition.out;
 
+  const loadView = async (info: MatchedRouteInfo) => resolve(info.params?.id ?? '?');
+  lastWiredLoadView = loadView;
+
   const controller = new RouteViewController(
     {
       route: routeRecord,
-      view: {
-        loadView: async (info) => resolve(info.params?.id ?? '?'),
-      },
+      view: { loadView },
       cache: cacheDom
         ? {
-            extract: (key) => {
-              const root = stash.get(key);
-              if (root) stash.delete(key);
-              return root;
-            },
-            put: (key, root) => stash.set(key, root),
-          }
-        : { extract: () => undefined, put: () => {} },
+          extract: (key) => {
+            const root = stash.get(key);
+            if (root) stash.delete(key);
+            return root;
+          },
+          put: (key, root) => stash.set(key, root),
+        }
+        : {
+          extract: () => undefined, put: () => {
+          },
+        },
       mountTarget: {
         appOutlet: () => outlet,
         nestedOutlet: () => null,
@@ -100,6 +109,8 @@ function wireRouteViewController(
   );
 
   routeRecord.render = (info, renderOptions) => controller.render(info, renderOptions);
+  routeRecord.applyPreResolved = (info, applyOptions) =>
+    controller.applyPreResolved(info, applyOptions);
   routeRecord.onUnmount = (ctx) => {
     passId++;
     controller.onUnmount({ domCacheKey: domCacheKey(ctx.to, routeRecord.path) });
@@ -108,10 +119,21 @@ function wireRouteViewController(
   routeRecord.onTransitionIn = (ctx) => options.onTransitionIn?.(ctx, outlet);
   routeRecord.commitStagedView = () => controller.commitStagedView();
 
-  return { controller, stash };
+  return { controller, stash, loadView };
 }
 
-async function runParamRemountNavigation(from: MatchedRouteInfo, to: MatchedRouteInfo) {
+/** Last `loadView` from {@link wireRouteViewController} — used by remount helpers in this file. */
+let lastWiredLoadView: ((info: MatchedRouteInfo, signal: AbortSignal) => Promise<string>) | null =
+  null;
+
+async function runParamRemountNavigation(
+  from: MatchedRouteInfo,
+  to: MatchedRouteInfo,
+  loadView: NonNullable<typeof lastWiredLoadView> = lastWiredLoadView!,
+) {
+  const engine = createMockEngine();
+  engine.viewGraph = { loadView } as NonNullable<typeof engine.viewGraph>;
+
   const transaction = new NavigationTransaction(
     1,
     0,
@@ -124,7 +146,7 @@ async function runParamRemountNavigation(from: MatchedRouteInfo, to: MatchedRout
       options: { replace: false, syncHistory: true },
     },
     () => false,
-    createMockEngine(),
+    engine,
   );
 
   return {
@@ -429,10 +451,13 @@ describe('param-change in-place + transition pipeline order', () => {
       out: ['fade-out'],
     };
     const node = createTransitionNode(transition);
-    wireRouteViewController(node, outlet, viewMarkup, { transition });
+    const { loadView } = wireRouteViewController(node, outlet, viewMarkup, { transition });
 
     const exitRoute = createUsersIdMatch('1', node);
     const enterRoute = createUsersIdMatch('2', node);
+
+    const engine = createMockEngine();
+    engine.viewGraph = { loadView } as NonNullable<typeof engine.viewGraph>;
 
     const transaction = new NavigationTransaction(
       1,
@@ -446,7 +471,7 @@ describe('param-change in-place + transition pipeline order', () => {
         options: { replace: false, syncHistory: true },
       },
       () => false,
-      createMockEngine(),
+      engine,
     );
 
     await exitRoute.route.render(exitRoute);

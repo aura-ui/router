@@ -86,11 +86,12 @@ Outgoing DOM нужно положить в cache под **exit** key (`/users/1
 | `unmountParamChangeOutgoing` | outlet снимает только `stageOutgoingHandle` | `outlet-adapter.ts` |
 | `ViewTeardownPipeline` | post-render teardown: unmount / commitStaged / revert | `view-teardown-pipeline.ts` |
 | `trySkipAlreadyMounted` bypass | при remount не skip render из‑за живого mount | `view-render-pipeline-phase.ts` |
-| `paramChangeRemount` в render options | pipeline → `runViewCommit` → controller | `navigation-transaction-pipeline.ts` |
-| unmount hooks на exitRoutes | `PHASES.unmount.targetRoutes = 'exitRoutes'` | `phase-registry.ts` |
+| unmount hooks на exitRoutes | `PHASES.unmount.targetRoutes = 'exitRoutes'` | `lifecycle-phases.ts` |
 | **Pipeline order** | `unmount → commitStaged → commitNavigation → ready` | `runAfterRender()` |
 | **Exit domCacheKey** | `domCacheKey(ctx.to, path)` → `onUnmount({ domCacheKey })` | `aura-route.ts`, `view-teardown-pipeline.ts` |
-| Fast-path / branch-atomic block | remount всегда full pipeline | `can-use-fast-path.ts`, `branch-resolver.ts` |
+| `paramChangeRemount` в apply options | pipeline → `mountEnterBranch` → `applyPreResolved` | `navigation-transaction-pipeline.ts`, `branch-mount.ts` |
+| DomCache early-exit on branch commit | `syncBranchMount` → `tryCacheRestore` | `view-render-pipeline.ts` |
+| Fast-path skip | remount всегда full + branch prepare/commit | `can-use-fast-path.ts` |
 
 Content cache (`DataCache`) не затронут — loader cache живёт отдельно от RouteDomCache.
 

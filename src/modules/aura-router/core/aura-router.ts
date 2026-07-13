@@ -126,7 +126,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
    */
   @attr({ parser: parsePrefetchAttr, cached: true, name: 'prefetch' })
   prefetchDomAttr: PrefetchType | false | null;
-  /** Default enter-branch mount strategy for child routes (`per-route` | `branch` | `full`). */
+  /** Default enter-branch mount strategy for child routes (`branch` | `full`). */
   @attr({ parser: parseMountStrategyAttr, cached: true }) mountStrategy: MountStrategy | null;
 
   private engine?: AuraRoutingEngine;

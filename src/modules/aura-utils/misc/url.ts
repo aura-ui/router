@@ -1,10 +1,18 @@
 export type AppHrefParts = { pathname: string; search: string; hash: string };
 
+/** Remove trailing `/` (keeps root `/` unchanged). */
+export function stripTrailingSlash(path: string): string {
+  if (path.length <= 1) return path; // root или пустая строка
+  return path.endsWith('/') ? path.slice(0, -1) : path;
+}
+
 /**
  * Split an origin-root absolute in-app href (`/path?search#hash`).
  * Does not resolve document-relative segments — use app-href resolution first.
  */
 export function splitAppHref(href: string): AppHrefParts {
+  let parts: AppHrefParts;
+
   if (href.startsWith('/') && !href.startsWith('//')) {
     let pathname = href;
     let search = '';
@@ -19,21 +27,17 @@ export function splitAppHref(href: string): AppHrefParts {
       search = pathname.slice(searchIndex);
       pathname = pathname.slice(0, searchIndex);
     }
-    return { pathname, search, hash };
+    parts = { pathname, search, hash };
+  } else {
+    const { pathname, search, hash } = new URL(href, window.location.origin);
+    parts = { pathname, search, hash };
   }
 
-  const { pathname, search, hash } = new URL(href, window.location.origin);
-  return { pathname, search, hash };
+  return { pathname: stripTrailingSlash(parts.pathname), search: parts.search, hash: parts.hash };
 }
 
 export function joinAppHref(parts: AppHrefParts): string {
   return parts.pathname + parts.search + parts.hash;
-}
-
-/** Remove trailing `/` (keeps root `/` unchanged). */
-export function stripTrailingSlash(path: string): string {
-  if (path.length <= 1) return path; // root или пустая строка
-  return path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
 /** Parse a URL `search` string (`?a=1`) into a query record; `undefined` when empty. */

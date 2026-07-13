@@ -41,7 +41,11 @@ import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/cor
 import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import { parseNullableString } from '../../aura-utils/misc';
-import { syncRouterActiveLinks, toRouteTrail, type RouteTrailEntry } from '../../aura-routing-engine/core/user-actions/router-link';
+import {
+  syncRouterHostActiveLinks,
+  toRouteTrail,
+  type RouteTrailEntry,
+} from '../../aura-routing-engine/core/link-active';
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 
 export {
@@ -92,7 +96,7 @@ export interface AuraRouterConfigureOptions {
 }
 
 export type { RouterInstance } from '../../aura-routing-engine/core';
-export type { RouteTrailEntry } from '../../aura-routing-engine/core/user-actions/router-link';
+export type { RouteTrailEntry } from '../../aura-routing-engine/core/link-active';
 
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
@@ -280,15 +284,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   private syncActiveLinks(href: string): void {
-    if (!this.routerActiveClass?.trim() && !this.branchActiveClass?.trim()) return;
-
-    const scope = this.linkActiveRootSelector?.trim();
-    syncRouterActiveLinks({
-      root: scope ? (this.closest(scope) ?? this) : this,
+    syncRouterHostActiveLinks(this, href, {
       linksSelector: this.linksSelector,
-      activeClass: this.routerActiveClass ?? undefined,
-      branchActiveClass: this.branchActiveClass ?? undefined,
-      currentHref: href,
+      routerActiveClass: this.routerActiveClass,
+      branchActiveClass: this.branchActiveClass,
+      linkActiveRootSelector: this.linkActiveRootSelector,
     });
   }
 

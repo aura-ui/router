@@ -1,8 +1,8 @@
 import {
   isHashOnlyChange,
   resolveDocumentHref,
-  splitAppHref,
-} from '../../../aura-utils/misc/url';
+} from '../link-active/app-href';
+import { splitAppHref } from '../../../aura-utils/misc/url';
 import type {
   PrefetchConfig,
   PrefetchMode,

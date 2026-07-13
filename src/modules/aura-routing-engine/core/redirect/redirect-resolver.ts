@@ -1,5 +1,5 @@
-import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
-import type { ResolvedDocumentHref } from '../../../aura-utils/misc/url';
+import { resolveDocumentHrefParts, type ResolvedDocumentHref } from '../link-active/app-href';
+import { stripTrailingSlash } from '../../../aura-utils/misc/url';
 import type { RouteNode } from '../route-tree/route-node.types';
 import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route-tree/transition-plan';
 import { NavigationTransaction } from '../navigation/navigation-transaction';

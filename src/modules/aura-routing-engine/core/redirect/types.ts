@@ -1,4 +1,4 @@
-import type { ResolvedDocumentHref } from '../../../aura-utils/misc/url';
+import type { ResolvedDocumentHref } from '../link-active/app-href';
 import type { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-matcher';

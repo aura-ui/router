@@ -59,7 +59,7 @@ class DataGraphTerminalError extends Error {
 
 /**
  * Coordinator for route `load` hooks: parallel branch loads, SWR cache, prefetch intent.
- * View/HTML caching stays in `core/content/`.
+ * View/HTML caching stays in `core/view-graph/`.
  */
 export class DataGraph {
   private static defaultOptions: DataGraphOptions = {};

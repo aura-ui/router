@@ -1,4 +1,5 @@
-import { resolveDocumentHrefParts, stripTrailingSlash } from '../../../aura-utils/misc/url';
+import { resolveDocumentHrefParts } from '../link-active/app-href';
+import { stripTrailingSlash } from '../../../aura-utils/misc/url';
 import { applyCanonicalIndexFolderHref } from '../match/canonical-index-href';
 import { resolvePattern } from '../route-tree/resolve-pattern';
 import type { RouteNode } from '../route-tree/route-node.types';

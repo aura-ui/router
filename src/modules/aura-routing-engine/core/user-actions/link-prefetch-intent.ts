@@ -1,7 +1,7 @@
 import { bind } from '../../../aura-utils/decorators/bind';
 import type { PrefetchMode } from '../prefetch/types';
 
-import { findRouterLink, readRouterLinkFromEvent, resolveLinkHref } from './router-link';
+import { findRouterLink, readRouterLinkFromEvent, resolveLinkHref } from './link-resolve';
 
 export type LinkPrefetchHandlers = {
   scheduleIntent(href: string, mode?: PrefetchMode): void;

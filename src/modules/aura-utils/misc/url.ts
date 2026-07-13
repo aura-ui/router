@@ -1,11 +1,8 @@
 export type AppHrefParts = { pathname: string; search: string; hash: string };
 
-/** App-relative href after document resolution (`pathname + search + hash` + parts). */
-export type ResolvedDocumentHref = AppHrefParts & { href: string };
-
 /**
  * Split an origin-root absolute in-app href (`/path?search#hash`).
- * Does not resolve document-relative segments — use {@link resolveDocumentHrefParts} first.
+ * Does not resolve document-relative segments — use app-href resolution first.
  */
 export function splitAppHref(href: string): AppHrefParts {
   if (href.startsWith('/') && !href.startsWith('//')) {
@@ -33,72 +30,12 @@ export function joinAppHref(parts: AppHrefParts): string {
   return parts.pathname + parts.search + parts.hash;
 }
 
-/** App-relative href from the address bar (`pathname + search + hash`). */
-export function getCurrentAppHref(): string {
-  return joinAppHref({
-    pathname: window.location.pathname,
-    search: window.location.search,
-    hash: window.location.hash,
-  });
-}
-
-/**
- * Absolute document URL used as base for HTML relative `<a href>` resolution.
- * The fragment is stripped — `#section` does not change how `profile` resolves.
- */
-export function toLinkResolutionBase(appHref: string): string {
-  const { pathname, search } = splitAppHref(appHref);
-  return new URL(joinAppHref({ pathname, search, hash: '' }), window.location.origin).href;
-}
-
-/** HTML resolution: `new URL(href, base)` → app-relative parts + `href` (`pathname + search + hash`). */
-export function resolveDocumentHrefParts(
-  href: string,
-  baseHref = window.location.href,
-): ResolvedDocumentHref {
-  const { pathname, search, hash } = new URL(href, baseHref);
-  return { href: joinAppHref({ pathname, search, hash }), pathname, search, hash };
-}
-
-/** HTML resolution: `new URL(href, base)` → app-relative href (`pathname + search + hash`). */
-export function resolveDocumentHref(href: string, baseHref = window.location.href): string {
-  return resolveDocumentHrefParts(href, baseHref).href;
-}
-
 /** Remove trailing `/` (keeps root `/` unchanged). */
 export function stripTrailingSlash(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith('/')) {
     return pathname.slice(0, -1);
   }
   return pathname;
-}
-
-/** Compare pathnames, ignoring a trailing `/` (except root). */
-export function pathnamesEqual(a: string, b: string): boolean {
-  if (a === b) return true;
-  return stripTrailingSlash(a) === stripTrailingSlash(b);
-}
-
-/** Same `pathname` (trailing `/` ignored) and `search`; `hash` is not compared. */
-export function isSamePathAndSearch(a: AppHrefParts, b: AppHrefParts): boolean {
-  return a.search === b.search && pathnamesEqual(a.pathname, b.pathname);
-}
-
-/**
- * `true` when navigation changes only `hash` on the same path + search.
- *
- * @param requireExistingHash — prefetch mode: both URLs must already have a hash
- *   (`/page` → `/page#tab` is not hash-only).
- */
-export function isHashOnlyChange(
-  next: AppHrefParts,
-  current: AppHrefParts,
-  options?: { requireExistingHash?: boolean },
-): boolean {
-  if (!isSamePathAndSearch(next, current)) return false;
-  if (!next.hash || next.hash === current.hash) return false;
-  if (options?.requireExistingHash && !current.hash) return false;
-  return true;
 }
 
 /** Parse a URL `search` string (`?a=1`) into a query record; `undefined` when empty. */

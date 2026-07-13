@@ -1,8 +1,8 @@
 import {
   isHashOnlyChange,
   resolveDocumentHrefParts,
-  splitAppHref,
-} from '../../aura-utils/misc/url';
+} from './link-active/app-href';
+import { splitAppHref } from '../../aura-utils/misc/url';
 
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import type { ViewGraph } from './view-graph';

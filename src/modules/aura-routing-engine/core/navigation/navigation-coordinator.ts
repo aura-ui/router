@@ -1,4 +1,4 @@
-import { resolveDocumentHrefParts } from '../../../aura-utils/misc/url';
+import { resolveDocumentHrefParts } from '../link-active/app-href';
 import { followRedirectsWithGuardWalk } from '../redirect/redirect-resolver';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';

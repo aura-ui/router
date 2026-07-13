@@ -1,4 +1,4 @@
-import { isSamePathAndSearch } from '../../../aura-utils/misc/url';
+import { isSamePathAndSearch } from '../link-active/app-href';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouteInstance } from '../route/types';
 import {

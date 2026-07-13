@@ -1,7 +1,6 @@
 import {
   joinAppHref,
-  stripTrailingSlash,
-  type AppHrefParts,
+  type AppHrefParts, stripTrailingSlash,
 } from '../../../aura-utils/misc/url';
 
 /** App-relative href after document resolution (`pathname + search + hash` + parts). */
@@ -37,7 +36,13 @@ export function resolveDocumentHrefParts(
   baseHref = window.location.href,
 ): ResolvedDocumentHref {
   const { pathname, search, hash } = new URL(href, baseHref);
-  return { href: joinAppHref({ pathname, search, hash }), pathname, search, hash };
+  const normalizedPathname = stripTrailingSlash(pathname);
+  return {
+    pathname: normalizedPathname,
+    search,
+    hash,
+    href: joinAppHref({ pathname: normalizedPathname, search, hash }),
+  };
 }
 
 /** HTML resolution: `new URL(href, base)` → app-relative href (`pathname + search + hash`). */
@@ -45,7 +50,7 @@ export function resolveDocumentHref(href: string, baseHref = window.location.hre
   return resolveDocumentHrefParts(href, baseHref).href;
 }
 
-/** Compare pathnames, ignoring a trailing `/` (except root). */
+/** Compare pathnames (trailing `/` ignored via {@link stripTrailingSlash}). */
 export function pathnamesEqual(a: string, b: string): boolean {
   if (a === b) return true;
   return stripTrailingSlash(a) === stripTrailingSlash(b);

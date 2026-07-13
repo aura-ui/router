@@ -1,6 +1,8 @@
+import { splitAppHref } from '../../../aura-utils/misc/url';
+
 import { resolveLinkHref } from '../user-actions/link-resolve';
 
-import { isExactLinkMatch, isPrefixLinkMatch } from './match';
+import { matchLinkActive } from './match';
 
 export interface SyncRouterActiveLinksOptions {
   root: ParentNode;
@@ -16,13 +18,15 @@ export function syncRouterActiveLinks(options: SyncRouterActiveLinksOptions): vo
   if (!exactClasses.length && !prefixClasses.length) return;
 
   const { root, linksSelector, currentHref } = options;
+  const current = splitAppHref(currentHref);
 
   root.querySelectorAll(linksSelector).forEach((node) => {
     if (!(node instanceof HTMLAnchorElement)) return;
 
     const linkHref = resolveLinkHref(node, currentHref);
-    const isExactMatch = linkHref !== null && isExactLinkMatch(linkHref, currentHref);
-    const isPrefixMatch = linkHref !== null && isPrefixLinkMatch(linkHref, currentHref);
+    const { exact: isExactMatch, prefix: isPrefixMatch } = linkHref
+      ? matchLinkActive(linkHref, current)
+      : { exact: false, prefix: false };
 
     for (const c of exactClasses) node.classList.toggle(c, isExactMatch);
     for (const c of prefixClasses) node.classList.toggle(c, isPrefixMatch);

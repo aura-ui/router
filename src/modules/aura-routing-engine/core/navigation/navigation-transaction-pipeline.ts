@@ -64,7 +64,7 @@ export class NavigationTransactionPipeline {
   /**
    * Standard navigation pipeline.
    *
-   * Order: `leave` → `guard` → {@link runLoads} → history commit → render (with transitions) →
+   * Order: `leave` → `guard` → history commit → {@link runLoads} → render (with transitions) →
    * {@link runAfterRender}.
    *
    * @returns first terminal step result (`error`, `redirect`, `cancelled`), or `navigationSucceeded` when all steps return `null`
@@ -72,8 +72,8 @@ export class NavigationTransactionPipeline {
   async runFullPipeline(): Promise<PipelineStepResult> {
     return await this.runSequentially([
       ...(this.transaction.skipBlockingPhases ? [] : [() => this.runGuards()]),
-      () => this.runLoads(),
       () => this.runCommitHistory(),
+      () => this.runLoads(),
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
     ]) ?? { status: 'navigationSucceeded' };
@@ -117,15 +117,15 @@ export class NavigationTransactionPipeline {
   /**
    * In-place update on the same route record (param/query change).
    *
-   * Order: {@link runLoads} → history commit → `update` lifecycle phase →
+   * Order: history commit → {@link runLoads} → `update` lifecycle phase →
    * {@link NavigationTransaction.commitNavigation} (no guards, render, `unmount`, or `ready`).
    *
    * @returns terminal result from loads/update (`error`, `redirect`, `cancelled`), or `navigationSucceeded`
    */
   async runUpdate(): Promise<PipelineStepResult> {
     const stepResult = await this.runSequentially([
-      () => this.runLoads(),
-      () => this.runCommitHistory(),
+        () => this.runCommitHistory(),
+        () => this.runLoads(),
       () => this.runLifecyclePhase(PHASES.update),
     ]);
     if (stepResult) return stepResult;
@@ -165,7 +165,7 @@ export class NavigationTransactionPipeline {
   /**
    * Blocking data load for the enter branch.
    *
-   * Runs after guards and before render. Delegates to `engine.dataGraph.load`; stores
+   * Runs after history commit and before render. Delegates to `engine.dataGraph.load`; stores
    * the resulting snapshot on the transaction for view commit and lifecycle hooks.
    *
    * `activeChain` is the full target branch (`to.chain`) when present, otherwise enter routes.
@@ -173,7 +173,9 @@ export class NavigationTransactionPipeline {
   async runLoads(): Promise<PipelineStepResult> {
     const { to, transitionPlan } = this.transaction;
     const activeChain = to.chain ?? transitionPlan.enterRoutes;
-    const { outcome, snapshot } = await this.transaction.engine.dataGraph.load(
+    const dataGraph = this.transaction.engine.dataGraph;
+    // todo should be executed resource Graph to load all content in parallel - data + html + chunks
+    const { outcome, snapshot } = await dataGraph.load(
       this.transaction.transitionPlan.enterRoutes,
       {
         activeChain,

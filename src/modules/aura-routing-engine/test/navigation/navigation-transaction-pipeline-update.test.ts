@@ -32,7 +32,7 @@ describe('NavigationTransactionPipeline.runUpdate', () => {
     expect(transaction.engine.commitNavigation).toHaveBeenCalledWith(transaction);
   });
 
-  it('commits history after load and before update', async () => {
+  it('commits history before load and update', async () => {
     const order: string[] = [];
     const loadHook = jest.fn().mockImplementation(async () => {
       order.push('load');
@@ -56,12 +56,12 @@ describe('NavigationTransactionPipeline.runUpdate', () => {
 
     await new NavigationTransactionPipeline(transaction).runUpdate();
 
-    expect(order.indexOf('history')).toBeGreaterThan(order.indexOf('load'));
+    expect(order.indexOf('history')).toBeLessThan(order.indexOf('load'));
     expect(order.indexOf('hook:update')).toBeGreaterThan(order.indexOf('history'));
     expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
   });
 
-  it('does not commit history when load fails on update', async () => {
+  it('keeps history committed when load fails on update (optimistic URL, no rollback)', async () => {
     const loadHook = jest.fn().mockRejectedValue(new Error('load failed'));
     const transaction = createMockTransaction({
       enterRoutes: [createMatchedRoute('/to', { load: ['fetch'], update: ['sync'] })],
@@ -76,7 +76,7 @@ describe('NavigationTransactionPipeline.runUpdate', () => {
     const result = await new NavigationTransactionPipeline(transaction).runUpdate();
 
     expect(result.status).toBe('error');
-    expect(transaction.engine.commitHistoryIfNeeded).not.toHaveBeenCalled();
+    expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
   });
 
   it('runs DataGraph load before update when route declares load hooks', async () => {

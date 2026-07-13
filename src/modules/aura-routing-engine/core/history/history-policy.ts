@@ -16,7 +16,7 @@ import type { HistoryAction, NavigateHistoryOptions } from './provider.types';
  * - `rollback-source` — pop cancelled/error: restore `from` URL
  *
  * Programmatic push/replace: URL is written in {@link AuraRoutingEngine.commitHistoryIfNeeded}
- * after guards and load, before render.
+ * after guards (post redirect collapse), before load and render.
  */
 export type HistoryPolicy = 'preserve' | 'commit-target' | 'rollback-source';
 

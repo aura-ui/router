@@ -14,8 +14,12 @@ describe('NavigationTransactionPipeline history commit', () => {
     resetPipelineMocks();
   });
 
-  it('commits history after load and before render', async () => {
+  it('commits history after guard and before load and render', async () => {
     const order: string[] = [];
+    const loadHook = jest.fn().mockImplementation(async () => {
+      order.push('load');
+      return {};
+    });
     const transaction = createMockTransaction({
       enterRoutes: [createMatchedRoute('/to', { guard: ['auth'], load: ['fetch'] })],
       transitionOrder: null,
@@ -30,6 +34,11 @@ describe('NavigationTransactionPipeline history commit', () => {
       order.push('render');
       return 'ok';
     });
+    transaction.engine.hooksRegistry.register({
+      name: 'fetch',
+      version: '1.0.0',
+      fn: loadHook,
+    });
     jest.spyOn(branchResolver, 'resolveEnterBranch').mockResolvedValue({ status: 'ok', preResolvedContents: [null] });
     jest.spyOn(branchMount, 'mountEnterBranch').mockImplementation(() => {
       order.push('render');
@@ -39,8 +48,8 @@ describe('NavigationTransactionPipeline history commit', () => {
     await new NavigationTransactionPipeline(transaction).runFullPipeline();
 
     expect(order.indexOf('history')).toBeGreaterThan(order.indexOf('hook:guard'));
-    expect(order.indexOf('history')).toBeGreaterThan(order.indexOf('hook:load'));
-    expect(order.indexOf('render')).toBeGreaterThan(order.indexOf('history'));
+    expect(order.indexOf('load')).toBeGreaterThan(order.indexOf('history'));
+    expect(order.indexOf('render')).toBeGreaterThan(order.indexOf('load'));
     expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
 
     jest.restoreAllMocks();
@@ -64,7 +73,7 @@ describe('NavigationTransactionPipeline history commit', () => {
     expect(transaction.engine.commitHistoryIfNeeded).not.toHaveBeenCalled();
   });
 
-  it('does not commit history when load fails', async () => {
+  it('keeps history committed when load fails (optimistic URL, no rollback)', async () => {
     const loadHook = jest.fn().mockRejectedValue(new Error('load failed'));
     const transaction = createMockTransaction({
       enterRoutes: [createMatchedRoute('/to', { load: ['fetch'] })],
@@ -79,7 +88,7 @@ describe('NavigationTransactionPipeline history commit', () => {
     const result = await new NavigationTransactionPipeline(transaction).runFullPipeline();
 
     expect(result.status).toBe('error');
-    expect(transaction.engine.commitHistoryIfNeeded).not.toHaveBeenCalled();
+    expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
   });
 
   it('does not commit history when leave cancels', async () => {

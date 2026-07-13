@@ -84,7 +84,7 @@ export class DataGraph {
   }
 
   /**
-   * Blocking navigation load — after guards, before render.
+   * Blocking navigation load — after history commit, before render.
    * @param enterRoutes Routes entering this transition (LCA delta); load hooks run only here.
    */
   async load(routes: readonly MatchedRouteInfo[], options: DataGraphLoadOptions): Promise<DataGraphLoadResult> {

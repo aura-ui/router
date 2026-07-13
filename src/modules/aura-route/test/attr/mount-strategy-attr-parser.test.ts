@@ -15,7 +15,7 @@ describe('parseMountStrategyAttr', () => {
   });
 
   it('parses known mount strategies', () => {
-    expect(parseMountStrategyAttr('per-route')).toBe('per-route');
+    expect(parseMountStrategyAttr('per-route')).toBeNull();
     expect(parseMountStrategyAttr('BRANCH')).toBe('branch');
     expect(parseMountStrategyAttr(' full ')).toBe('full');
   });

@@ -103,7 +103,7 @@ export class NavigationTransaction {
   }
 
   /** Pre-commit blocking walk for {@link ../redirect/redirect-resolver!followRedirectsWithGuardWalk}: `leave` → `guard` via {@link NavigationTransactionPipeline.runGuards}. */
-  async runGuardPhase(): Promise<PipelineStepResult> {
+  async runRedirectCollapse(): Promise<PipelineStepResult> {
     if (!this.transitionPlan) {
       this.transitionPlan = buildTransitionPlan(this.from, this.to);
       this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;

@@ -177,7 +177,8 @@ lookupNavigationStep
                                                            └─► coordinator.run → load → render
 ```
 
-Probe — `NavigationTransaction` с id `0` / `0`, вызывает `runGuardPhase()` → `runGuards()` (полный `leave` → `guard` для **текущего** `buildTransitionPlan(from, target)`). Load/render — только в [`runFullPipeline`](../navigation/navigation-transaction-pipeline.ts).
+Probe — `NavigationTransaction` с id `0` / `0`, вызывает `runRedirectCollapse()` → `runGuards()` 
+(полный `leave` → `guard` для **текущего** `buildTransitionPlan(from, target)`). Load/render — только в [`runFullPipeline`](../navigation/navigation-transaction-pipeline.ts).
 
 ---
 
@@ -340,7 +341,7 @@ buildTransitionPlan(from, target)
         probe.transitionPlan = plan (reuse)
           │
           ▼
-        probe.runGuardPhase()  →  pipeline.runGuards()  →  leave → guard
+        probe.runRedirectCollapse()  →  pipeline.runGuards()  →  leave → guard
           │
           ├─ { status: 'redirect', url } ──► done: false, href: url
           ├─ другой terminal ────────────────► done: true, status: 'terminal'
@@ -448,7 +449,7 @@ AuraRoutingEngine.navigateTo
   └─ NavigationCoordinator.navigate
         ├─ followRedirectsWithGuardWalk
         │     ├─ lookupNavigationStep (match-step)
-        │     └─ runBlockingWalkProbe → runGuardPhase (leave → guard, skip без hasLeave/hasGuard)
+        │     └─ runBlockingWalkProbe → runRedirectCollapse (leave → guard, skip без hasLeave/hasGuard)
         ├─ plan() — noop / cancel-pending / run
         └─ coordinator.run → runFullPipeline (load → render; runGuards если !skipBlockingPhases)
 

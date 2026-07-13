@@ -3,10 +3,7 @@
  *
  * @module view-mount/branch-resolver
  */
-import type { MountStrategy } from '../../../aura-route/core/attr/mount-strategy-attr-parser';
 import type { DataSnapshot } from '../data-graph';
-import type { TransitionMap } from '../route-tree/transition-plan';
-import { isCrossOutletReplace } from '../route-tree/transition-plan';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { BranchViewResolver, ViewPayload } from '../view-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -20,6 +17,7 @@ export type BranchResolveContext = {
    * (abort + supersede), not `signal.aborted` alone.
    */
   aborted: () => boolean;
+  paramChangeRemount?: boolean;
   /** Load-hook snapshot for a route (from DataGraph). */
   dataFor?: (route: MatchedRouteInfo) => unknown | undefined;
 };
@@ -29,6 +27,7 @@ export type BranchResolveTransaction = {
   signal: AbortSignal;
   isActive(): boolean;
   dataSnapshot?: DataSnapshot;
+  paramChangeRemount?: boolean;
 };
 
 export type BranchResolveResult =
@@ -36,26 +35,6 @@ export type BranchResolveResult =
   | { status: 'aborted' }
   | { status: 'error'; error: unknown; route: MatchedRouteInfo };
 
-/** Whether enter routes use prepare → commit render (parallel resolve, then sync mount root→leaf). */
-export function shouldUsePrepareCommitEnterBranch(options: {
-  enterRoutes: readonly MatchedRouteInfo[];
-  paramChangeRemount?: boolean;
-  mountStrategy?: MountStrategy | null;
-  transitionPlan?: TransitionMap;
-}): boolean {
-  const { enterRoutes, paramChangeRemount, mountStrategy, transitionPlan } = options;
-
-  if (paramChangeRemount) return false;
-  if (enterRoutes.length === 0) return false;
-
-  if (mountStrategy === 'per-route') return false;
-  if (mountStrategy === 'branch' || mountStrategy === 'full') return true;
-
-  if (enterRoutes.length > 1) return true;
-  if (enterRoutes.some((route) => route.route.hasAsyncContent)) return true;
-  if (transitionPlan && isCrossOutletReplace(transitionPlan)) return true;
-  return false;
-}
 
 /** Build resolve context: `isActive()` covers abort and supersede. */
 export function createBranchResolveContext(
@@ -66,6 +45,7 @@ export function createBranchResolveContext(
   return {
     signal: transaction.signal,
     aborted: () => !transaction.isActive(),
+    paramChangeRemount: transaction.paramChangeRemount === true,
     dataFor: dataSnapshot
       ? (route) => resolveRouteData(dataSnapshot, route)
       : undefined,

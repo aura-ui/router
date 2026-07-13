@@ -21,9 +21,9 @@ describe('redirect blocking walk policy', () => {
 
   it('runs blocking walk probe only on hops with leave or guard', async () => {
     let guardPhaseCalls = 0;
-    const original = NavigationTransaction.prototype.runGuardPhase;
+    const original = NavigationTransaction.prototype.runRedirectCollapse;
 
-    jest.spyOn(NavigationTransaction.prototype, 'runGuardPhase').mockImplementation(async function (
+    jest.spyOn(NavigationTransaction.prototype, 'runRedirectCollapse').mockImplementation(async function (
       this: NavigationTransaction,
     ) {
       guardPhaseCalls++;
@@ -59,7 +59,7 @@ describe('redirect blocking walk policy', () => {
   it('skips blocking walk for declarative-only redirect chains', async () => {
     let guardPhaseCalls = 0;
 
-    jest.spyOn(NavigationTransaction.prototype, 'runGuardPhase').mockImplementation(async function () {
+    jest.spyOn(NavigationTransaction.prototype, 'runRedirectCollapse').mockImplementation(async function () {
       guardPhaseCalls++;
       return null;
     });
@@ -88,7 +88,7 @@ describe('redirect blocking walk policy', () => {
     expect(guardPhaseCalls).toBe(0);
   });
 
-  it('runGuardPhase reuses a preset transition plan', async () => {
+  it('runRedirectCollapse reuses a preset transition plan', async () => {
     const planSpy = jest.spyOn(transitionPlan, 'buildTransitionPlan');
     const engine = createMockEngine();
     const from = createMatchedRoute('/home');
@@ -115,7 +115,7 @@ describe('redirect blocking walk policy', () => {
     planSpy.mockClear();
     jest.spyOn(NavigationTransactionPipeline.prototype, 'runGuards').mockResolvedValue(null);
 
-    await transaction.runGuardPhase();
+    await transaction.runRedirectCollapse();
 
     expect(planSpy).not.toHaveBeenCalled();
   });
@@ -152,9 +152,9 @@ describe('redirect blocking walk policy', () => {
 
   it('runs blocking walk when only exit routes declare leave', async () => {
     let guardPhaseCalls = 0;
-    const original = NavigationTransaction.prototype.runGuardPhase;
+    const original = NavigationTransaction.prototype.runRedirectCollapse;
 
-    jest.spyOn(NavigationTransaction.prototype, 'runGuardPhase').mockImplementation(async function (
+    jest.spyOn(NavigationTransaction.prototype, 'runRedirectCollapse').mockImplementation(async function (
       this: NavigationTransaction,
     ) {
       guardPhaseCalls++;

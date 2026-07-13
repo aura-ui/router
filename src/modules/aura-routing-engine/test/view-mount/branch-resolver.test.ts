@@ -10,7 +10,6 @@ import {
   ViewPayloadCache,
   LoaderRegistry,
 } from '../../core/view-graph';
-import { shouldUsePrepareCommitEnterBranch } from '../../core/view-mount/branch-resolver';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { buildRouteDataKey, resolveRouteData } from '../../core/data-graph/route-data';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
@@ -271,90 +270,14 @@ describe('resolveEnterBranch', () => {
     });
     expect(document.body.children).toHaveLength(0);
   });
-});
 
-describe('shouldUsePrepareCommitEnterBranch', () => {
-  const base = {
-    paramChangeRemount: false,
-  };
+  it('createBranchResolveContext forwards paramChangeRemount', () => {
+    const ctx = createBranchResolveContext({
+      signal: new AbortController().signal,
+      isActive: () => true,
+      paramChangeRemount: true,
+    });
 
-  it('returns true when transition order is set on a multi-route enter branch', () => {
-    expect(
-      shouldUsePrepareCommitEnterBranch({
-        ...base,
-        enterRoutes: [matched('/a'), matched('/b')],
-      }),
-    ).toBe(true);
-  });
-
-  it('returns false for param-change remount', () => {
-    expect(
-      shouldUsePrepareCommitEnterBranch({
-        ...base,
-        paramChangeRemount: true,
-        enterRoutes: [matched('/users/1'), matched('/users/2')],
-      }),
-    ).toBe(false);
-  });
-
-  it('returns true for multiple enter routes', () => {
-    expect(
-      shouldUsePrepareCommitEnterBranch({
-        ...base,
-        enterRoutes: [matched('/users'), matched('/users/1')],
-      }),
-    ).toBe(true);
-  });
-
-  it('returns true for a single route with async content', () => {
-    expect(
-      shouldUsePrepareCommitEnterBranch({
-        ...base,
-        enterRoutes: [createMatchedRoute('/page', { load: ['fetch'] })],
-      }),
-    ).toBe(true);
-  });
-
-  it('returns false for a single sync route', () => {
-    expect(
-      shouldUsePrepareCommitEnterBranch({
-        ...base,
-        enterRoutes: [createMatchedRoute('/page')],
-      }),
-    ).toBe(false);
-  });
-
-  it('returns true for cross-outlet full branch swap', () => {
-    expect(
-      shouldUsePrepareCommitEnterBranch({
-        ...base,
-        enterRoutes: [createMatchedRoute('/about')],
-        transitionPlan: {
-          exitRoutes: [createMatchedRoute('/settings/profile')],
-          enterRoutes: [createMatchedRoute('/about')],
-          lca: null,
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it('returns false when mount-strategy is per-route', () => {
-    expect(
-      shouldUsePrepareCommitEnterBranch({
-        ...base,
-        enterRoutes: [createMatchedRoute('/users'), createMatchedRoute('/users/1')],
-        mountStrategy: 'per-route',
-      }),
-    ).toBe(false);
-  });
-
-  it('returns true when mount-strategy is branch for a single sync route', () => {
-    expect(
-      shouldUsePrepareCommitEnterBranch({
-        ...base,
-        enterRoutes: [createMatchedRoute('/page')],
-        mountStrategy: 'branch',
-      }),
-    ).toBe(true);
+    expect(ctx.paramChangeRemount).toBe(true);
   });
 });

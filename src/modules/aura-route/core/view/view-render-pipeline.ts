@@ -19,7 +19,7 @@ export class ViewRenderPipeline {
   }
 
   /**
-   * Branch-atomic sync mount — applies payload as-is (no cache restore / skip shortcuts).
+   * Branch-atomic sync mount — applies payload as-is.
    */
   syncBranchMount(pass: RenderPass): ViewRenderResult | 'aborted' {
     if (this.ctx.renderSignal.aborted) return 'aborted';
@@ -32,6 +32,9 @@ export class ViewRenderPipeline {
     }
 
     try {
+      const early = this.tryEarlyExit(pass); // tryCacheRestore ?? trySkipAlreadyMounted
+      if (early) return early;
+
       this.phase.applyResolvedContent(pass, pass.preResolvedContent);
       return { status: 'ok' };
     } catch (error) {

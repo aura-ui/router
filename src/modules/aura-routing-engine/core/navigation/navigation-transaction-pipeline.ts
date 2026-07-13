@@ -13,19 +13,14 @@
 import { NavigationTransaction } from './navigation-transaction';
 import { PHASES } from './lifecycle-phases';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import { resolveRouteData } from '../data-graph';
 import {
   createBranchResolveContext,
   resolveEnterBranch,
-  shouldUsePrepareCommitEnterBranch,
 } from '../view-mount/branch-resolver';
-import { getEnterRoute } from '../route-tree/transition-plan';
 import { mountEnterBranch } from '../view-mount/branch-mount';
 import {
   isRenderError,
   runViewCommit,
-  type ViewCommitRenderOptions,
-  type ViewRenderCancellation,
 } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -41,12 +36,10 @@ type PipelineStep = () => Promise<PipelineStepResult>;
  * - `null` — step succeeded; run the next step
  * - non-`null` — terminal outcome: `cancelled`, `redirect`, `error`, or (top-level only) `navigationSucceeded`
  *
- * Render path splits on {@link shouldUsePrepareCommitEnterBranch}:
- * - **atomic** — parallel resolve ({@link prepareEnterBranch}) then sync DOM mount ({@link commitEnterBranchToDom})
- * - **per-route** (`!atomic`) — sequential {@link runViewCommit} on each enter route via {@link renderEnterRoutes}
- *
- * Both render paths honor `transition-order` on the enter leaf. {@link runFastPipeline} skips transitions
- * entirely (see {@link canUseFastPath}).
+ * Full path: {@link runPrepare} (`runLoads` → parallel {@link prepareEnterBranch}) then render
+ * as sync {@link commitEnterBranchToDom} interleaved with `transition-order`. Param remount uses
+ * the same branch commit with `paramChangeRemount` (DomCache restore via `syncBranchMount` early-exit).
+ * {@link runFastPipeline} skips prepare/transitions (see {@link canUseFastPath}).
  *
  * @see docs/MAIN_PIPELINE.md
  */
@@ -64,7 +57,7 @@ export class NavigationTransactionPipeline {
   /**
    * Standard navigation pipeline.
    *
-   * Order: `leave` → `guard` → history commit → {@link runLoads} → render (with transitions) →
+   * Order: `leave` → `guard` → history commit → {@link runPrepare} → render (with transitions) →
    * {@link runAfterRender}.
    *
    * @returns first terminal step result (`error`, `redirect`, `cancelled`), or `navigationSucceeded` when all steps return `null`
@@ -73,7 +66,7 @@ export class NavigationTransactionPipeline {
     return await this.runSequentially([
       ...(this.transaction.skipBlockingPhases ? [] : [() => this.runGuards()]),
       () => this.runCommitHistory(),
-      () => this.runLoads(),
+      () => this.runPrepare(),
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
     ]) ?? { status: 'navigationSucceeded' };
@@ -90,6 +83,7 @@ export class NavigationTransactionPipeline {
    *
    * @returns `cancelled` on abort/supersede; render errors via {@link failRender}; otherwise {@link runAfterRender} result or `navigationSucceeded`
    */
+  // todo move to branch API??
   async runFastPipeline(): Promise<PipelineStepResult> {
     this.commitHistory();
 
@@ -124,8 +118,8 @@ export class NavigationTransactionPipeline {
    */
   async runUpdate(): Promise<PipelineStepResult> {
     const stepResult = await this.runSequentially([
-        () => this.runCommitHistory(),
-        () => this.runLoads(),
+      () => this.runCommitHistory(),
+      () => this.runLoads(),
       () => this.runLifecyclePhase(PHASES.update),
     ]);
     if (stepResult) return stepResult;
@@ -186,6 +180,14 @@ export class NavigationTransactionPipeline {
     return outcome ?? null;
   }
 
+  async runPrepare(): Promise<PipelineStepResult> {
+    //todo Лишний loadView при DomCache hit
+    return this.runSequentially([
+      () => this.runLoads(),
+      () => this.prepareEnterBranch(),
+    ]);
+  }
+
   /**
    * Render enter branch without `transition-order` interleaving.
    *
@@ -205,91 +207,42 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Dispatches enter-branch render for atomic vs per-route mode and `transition-order`.
+   * Commit enter-branch DOM with `transition-order` from the enter leaf.
    *
-   * **Atomic** (`prepare` → `commit`): parallel content resolve, then sync mount root→leaf.
-   * **Per-route**: sequential {@link runViewCommit} on each enter route.
+   * Content must already be on `transaction.preResolvedBranchContents` ({@link runPrepare}).
    *
-   * | atomic | transition-order | step sequence |
-   * |--------|------------------|---------------|
-   * | yes    | `null`           | prepare → commit |
-   * | yes    | `out-in`         | prepare → transitionOut → commit → transitionIn |
-   * | yes    | `parallel`       | prepare → commit → transitionOut ∥ transitionIn |
-   * | yes    | `in-out`         | prepare → commit → transitionIn → transitionOut |
-   * | no     | `null`           | renderEnterRoutes |
-   * | no     | `out-in`         | transitionOut → renderEnterRoutes → transitionIn |
-   * | no     | `parallel`       | renderEnterRoutes → transitionOut ∥ transitionIn |
-   * | no     | `in-out`         | renderEnterRoutes → transitionIn → transitionOut |
-   * | either | (invalid order) | `null` — defensive fallthrough; all valid {@link TransitionOrderType} values are handled above |
+   * | transition-order | step sequence |
+   * |------------------|---------------|
+   * | `null`           | commit |
+   * | `out-in`         | transitionOut → commit → transitionIn |
+   * | `parallel`       | commit → transitionOut ∥ transitionIn |
+   * | `in-out`         | commit → transitionIn → transitionOut |
    *
    * @param transitionOrder — enter leaf `transition-order`, or `null` when absent
    */
   private renderEnterBranch(transitionOrder: TransitionOrderType | null): Promise<PipelineStepResult> {
-    const transitionPlan = this.transaction.transitionPlan;
-    const { enterRoutes, paramChangeRemount } = transitionPlan;
-    const mountStrategy = getEnterRoute(transitionPlan)?.mountStrategy ?? null;
-    const atomic = shouldUsePrepareCommitEnterBranch({
-      enterRoutes,
-      paramChangeRemount,
-      mountStrategy,
-      transitionPlan,
-    });
-
-    if (atomic && transitionOrder === null) {
-      return this.runSequentially([
-        () => this.prepareEnterBranch(),
-        () => this.commitEnterBranchToDom(),
-      ]);
+    if (transitionOrder === null) {
+      return this.commitEnterBranchToDom();
     }
 
-    if (atomic && transitionOrder === 'out-in') {
+    if (transitionOrder === 'out-in') {
       return this.runSequentially([
-        () => this.prepareEnterBranch(),
         () => this.runLifecyclePhase(PHASES.transitionOut),
         () => this.commitEnterBranchToDom(),
         () => this.runLifecyclePhase(PHASES.transitionIn),
       ]);
     }
 
-    if (atomic && transitionOrder === 'parallel') {
+    if (transitionOrder === 'parallel') {
       return this.runSequentially([
-        () => this.prepareEnterBranch(),
         () => this.commitEnterBranchToDom(),
         () => this.runTransitionOutInParallel(),
       ]);
     }
 
-    if (atomic && transitionOrder === 'in-out') {
+    if (transitionOrder === 'in-out') {
       return this.runSequentially([
-        () => this.prepareEnterBranch(),
         () => this.commitEnterBranchToDom(),
-        () => this.runLifecyclePhase(PHASES.transitionIn),
-        () => this.runLifecyclePhase(PHASES.transitionOut),
-      ]);
-    }
-
-    if (!atomic && transitionOrder === null) {
-      return this.runSequentially([() => this.renderEnterRoutes()]);
-    }
-
-    if (!atomic && transitionOrder === 'out-in') {
-      return this.runSequentially([
-        () => this.runLifecyclePhase(PHASES.transitionOut),
-        () => this.renderEnterRoutes(),
-        () => this.runLifecyclePhase(PHASES.transitionIn),
-      ]);
-    }
-
-    if (!atomic && transitionOrder === 'parallel') {
-      return this.runSequentially([
-        () => this.renderEnterRoutes(),
-        () => this.runTransitionOutInParallel(),
-      ]);
-    }
-
-    if (!atomic && transitionOrder === 'in-out') {
-      return this.runSequentially([
-        () => this.renderEnterRoutes(),
         () => this.runLifecyclePhase(PHASES.transitionIn),
         () => this.runLifecyclePhase(PHASES.transitionOut),
       ]);
@@ -325,7 +278,12 @@ export class NavigationTransactionPipeline {
    */
   private async prepareEnterBranch(): Promise<PipelineStepResult> {
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const resolveContext = createBranchResolveContext(this.transaction);
+    const resolveContext = createBranchResolveContext({
+      signal: this.transaction.signal,
+      dataSnapshot: this.transaction.dataSnapshot,
+      isActive: () => this.transaction.isActive(),
+      paramChangeRemount: this.transaction.transitionPlan.paramChangeRemount === true,
+    });
     const resolved = await resolveEnterBranch(
       enterRoutes,
       this.transaction.engine.viewGraph!,
@@ -359,7 +317,12 @@ export class NavigationTransactionPipeline {
     }
 
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const resolveContext = createBranchResolveContext(this.transaction);
+    const resolveContext = createBranchResolveContext({
+      signal: this.transaction.signal,
+      dataSnapshot: this.transaction.dataSnapshot,
+      isActive: () => this.transaction.isActive(),
+      paramChangeRemount: this.transaction.transitionPlan.paramChangeRemount === true,
+    });
     const mountResult = mountEnterBranch(enterRoutes, preResolvedContents, resolveContext);
 
     if (mountResult.status === 'aborted' || !this.transaction.isActive()) {
@@ -372,41 +335,6 @@ export class NavigationTransactionPipeline {
 
     this.transaction.viewCommitTracker.markViewStaged();
     return Promise.resolve(null);
-  }
-
-  /**
-   * Per-route render: sequential {@link runViewCommit} on each enter route (root → leaf).
-   *
-   * Passes load-hook data and `paramChangeRemount` via {@link viewCommitOptions}.
-   * Stops on first abort, cancel, or render error.
-   */
-  private async renderEnterRoutes(): Promise<PipelineStepResult> {
-    const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const viewRenderCancellation: ViewRenderCancellation = {
-      signal: this.transaction.signal,
-      isAborted: () => !this.transaction.isActive(),
-    };
-
-    for (let i = 0; i < enterRoutes.length; i++) {
-      const matchedRoute = enterRoutes[i]!;
-      const viewCommit = await runViewCommit(
-        matchedRoute,
-        viewRenderCancellation,
-        this.viewCommitOptions(matchedRoute),
-      );
-
-      if (viewCommit === 'ok') {
-        this.transaction.viewCommitTracker.markViewStaged();
-      }
-      if (viewCommit === 'aborted' || !this.transaction.isActive()) {
-        return { status: 'cancelled' };
-      }
-      if (isRenderError(viewCommit)) {
-        return this.failRender(matchedRoute, viewCommit.error);
-      }
-    }
-
-    return null;
   }
 
   /**
@@ -473,26 +401,6 @@ export class NavigationTransactionPipeline {
     await this.runLifecyclePhase(PHASES.unmount);
     this.transaction.viewCommitTracker.markViewCommittedAfterErrorRecovery();
     return this.transaction.fail(matchedRoute, error, 'render');
-  }
-
-  /**
-   * Per-route view-commit options ({@link renderEnterRoutes} only; atomic path uses
-   * {@link createBranchResolveContext} / `dataFor` instead).
-   *
-   * Attaches load-hook payload from `dataSnapshot` when present and sets
-   * `paramChangeRemount` when the transition plan requests in-place remount.
-   */
-  private viewCommitOptions(matchedRoute: MatchedRouteInfo): ViewCommitRenderOptions | undefined {
-    const options: ViewCommitRenderOptions = {};
-    const snapshot = this.transaction.dataSnapshot;
-    if (snapshot) {
-      const routeData = resolveRouteData(snapshot, matchedRoute);
-      if (routeData !== undefined) options.data = routeData;
-    }
-    if (this.transaction.transitionPlan.paramChangeRemount) {
-      options.paramChangeRemount = true;
-    }
-    return Object.keys(options).length > 0 ? options : undefined;
   }
 
   /**

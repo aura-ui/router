@@ -14,7 +14,7 @@
 | `replace` уничтожает outgoing до commit gate | Cancel/supersede после replace не откатывает DOM | **Detached snapshot** (`pendingOutgoingRoot`) до gate |
 | URL пишется до render (optimistic history) | DOM может отставать | P0: **dom-deferred**; P1: **fully-atomic** (URL после promote) |
 
-**Рекомендуемый P0 default:** `mount-strategy="branch"` + `dom-deferred` — outgoing visible до полного resolve ветки; один sync apply root→leaf.
+**Рекомендуемый P0 default:** `mount-strategy="branch"` (или omit) + `dom-deferred` — outgoing visible до полного resolve ветки; один sync apply root→leaf. Progressive `per-route` mount снят.
 
 ---
 
@@ -430,12 +430,12 @@ resolve branch (payloads in memory, DOM unchanged)
 
 ```html
 <aura-router mount-strategy="branch">
-<!-- per-route | branch | full (P1) -->
+<!-- branch | full (P1). per-route removed — prepare/commit always branch-atomic -->
 
-<aura-route path="/users" layout="users-layout" mount-strategy="per-route">
+<aura-route path="/users" layout="users-layout" mount-strategy="branch">
 ```
 
-**Cascade:** route → router → эвристика (`per-route` для sync-only single route, `branch` для nested/async).
+**Cascade:** route → router → эвристика (`branch` для nested/async; single sync leaf тоже через prepare/commit).
 
 **Значения:** `per-route` — mount по узлам · `branch` — mount всей enter-ветки · `full` — DOM + URL вместе (P1).
 

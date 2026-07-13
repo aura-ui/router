@@ -11,11 +11,12 @@ export interface SyncRouterActiveLinksOptions {
 }
 
 export function syncRouterActiveLinks(options: SyncRouterActiveLinksOptions): void {
-  const exactClasses = options.exactActiveClass?.trim().split(/\s+/).filter(Boolean) ?? [];
-  const prefixClasses = options.prefixActiveClass?.trim().split(/\s+/).filter(Boolean) ?? [];
+  const exactClasses = options.exactActiveClass?.split(/\s+/).filter(Boolean) ?? [];
+  const prefixClasses = options.prefixActiveClass?.split(/\s+/).filter(Boolean) ?? [];
   if (!exactClasses.length && !prefixClasses.length) return;
 
   const { root, linksSelector, currentHref } = options;
+
   root.querySelectorAll(linksSelector).forEach((node) => {
     if (!(node instanceof HTMLAnchorElement)) return;
 
@@ -43,9 +44,9 @@ export function syncRouterHostActiveLinks(
   currentHref: string,
   config: ActiveLinkSyncConfig,
 ): void {
-  if (!config.exactActiveClass?.trim() && !config.prefixActiveClass?.trim()) return;
+  if (!config.exactActiveClass && !config.prefixActiveClass) return;
 
-  const scope = config.scopeSelector?.trim();
+  const scope = config.scopeSelector;
   syncRouterActiveLinks({
     root: scope ? (host.closest(scope) ?? host) : host,
     linksSelector: config.linksSelector,

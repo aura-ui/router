@@ -3,8 +3,6 @@ import {
   type AppHrefParts,
 } from '../../../aura-utils/misc/url';
 
-import { isSamePathAndSearch } from './app-href';
-
 export interface LinkActiveMatch {
   exact: boolean;
   prefix: boolean;
@@ -22,17 +20,25 @@ function matchLinkActiveParts(link: AppHrefParts, current: AppHrefParts): LinkAc
   }
 
   if (current.hash) return { exact: false, prefix: false };
-  if (link.search && link.search !== current.search) return { exact: false, prefix: false };
 
-  const exact = isSamePathAndSearch(link, current);
+  const { pathname: linkPath, search: linkSearch } = link;
+  const { pathname: currentPath, search: currentSearch } = current;
 
-  const linkPath = link.pathname;
-  const currentPath = current.pathname;
+  if (linkSearch && linkSearch !== currentSearch) {
+    return { exact: false, prefix: false };
+  }
 
-  let prefix = false;
-  if (linkPath === '/') prefix = currentPath === '/';
-  else if (currentPath === linkPath) prefix = true;
-  else prefix = currentPath.startsWith(`${linkPath}/`);
+  const exact = linkSearch === currentSearch && linkPath === currentPath;
+
+  let prefix = exact;
+
+  if (!prefix && linkPath !== '/') {
+    const len = linkPath.length;
+    prefix =
+      currentPath.length > len &&
+      currentPath.charCodeAt(len) === 47 &&
+      currentPath.startsWith(linkPath);
+  }
 
   return { exact, prefix };
 }

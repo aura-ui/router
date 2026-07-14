@@ -2,6 +2,28 @@ import { Singleflight } from '../../aura-utils/async/singleflight';
 import { AuraCacheStore, type CacheStoreOptions, type InvalidatePolicy } from './aura-cache-store';
 
 /**
+ * Resolve policy for {@link AuraResolvableCache} — fixed at construction, not per `resolve` call.
+ *
+ * Avoids concurrent `resolve` callers disagreeing on write / side-effects for the same key.
+ */
+export type ResolvableCachePolicy = {
+  /**
+   * Whether to write the settled value into this store.
+   * Default `true`. Pass `false` or a predicate to skip / filter storage
+   * (in-flight dedupe still applies).
+   */
+  readonly write?: boolean | ((value: unknown) => boolean);
+  /**
+   * Extra side-effect after a successful load settle; does not replace {@link write}.
+   * Not called on fresh cache hits.
+   */
+  readonly onSettled?: (key: string, value: unknown) => void;
+};
+
+/** Constructor options: store config + fixed resolve policy. */
+export type ResolvableCacheOptions<T> = CacheStoreOptions<T> & ResolvableCachePolicy;
+
+/**
  * In-memory cache with LRU eviction, in-flight load deduplication, and SWR resolve.
  * Composes {@link AuraCacheStore} + {@link Singleflight} for `resolve(key, load)` flows.
  *
@@ -11,9 +33,14 @@ import { AuraCacheStore, type CacheStoreOptions, type InvalidatePolicy } from '.
 export class AuraResolvableCache<T> {
   private readonly store: AuraCacheStore<T>;
   private readonly singleflight = new Singleflight<string, unknown>();
+  private readonly write: ResolvableCachePolicy['write'];
+  private readonly onSettled: ResolvableCachePolicy['onSettled'];
 
-  constructor(options: CacheStoreOptions<T> = {}) {
-    this.store = new AuraCacheStore(options);
+  constructor(options: ResolvableCacheOptions<T> = {}) {
+    const { write, onSettled, ...storeOptions } = options;
+    this.store = new AuraCacheStore(storeOptions);
+    this.write = write;
+    this.onSettled = onSettled;
   }
 
   get(key: string): T | undefined {
@@ -60,13 +87,10 @@ export class AuraResolvableCache<T> {
    * With SWR (`staleTime`): fresh → cached value; stale → cached value + background `load`;
    * missing → await `load`. Background revalidation errors are ignored.
    *
-   * @param persist Custom write path; default writes the settled value with {@link set}.
+   * On settle: writes into this store when the constructor {@link ResolvableCachePolicy.write}
+   * allows (default), then runs optional {@link ResolvableCachePolicy.onSettled}.
    */
-  resolve<R>(
-    key: string,
-    load: () => Promise<R>,
-    persist?: (key: string, value: R) => void,
-  ): Promise<R> {
+  resolve<R>(key: string, load: () => Promise<R>): Promise<R> {
     const entry = this.store.lookup(key, true);
 
     if (entry.status === 'fresh') {
@@ -74,31 +98,33 @@ export class AuraResolvableCache<T> {
     }
 
     if (entry.status === 'stale') {
-      void this.runLoad(key, load, persist).catch(() => {});
+      void this.runLoad(key, load).catch(() => {});
       return Promise.resolve(entry.value as unknown as R);
     }
 
-    return this.runLoad(key, load, persist) as Promise<R>;
+    return this.runLoad(key, load) as Promise<R>;
   }
 
-  private runLoad<R>(
-    key: string,
-    load: () => Promise<R>,
-    persist?: (key: string, value: R) => void,
-  ): Promise<R> {
+  private runLoad<R>(key: string, load: () => Promise<R>): Promise<R> {
     return this.singleflight.do(key, () =>
       load().then((value) => {
-        this.commit(key, value, persist);
+        this.commit(key, value);
         return value;
       }),
     ) as Promise<R>;
   }
 
-  private commit<R>(key: string, value: R, persist?: (key: string, value: R) => void): void {
-    if (persist) {
-      persist(key, value);
-    } else {
-      this.store.set(key, value as unknown as T);
+  private commit(key: string, value: unknown): void {
+    if (this.shouldWrite(value)) {
+      this.store.set(key, value as T);
     }
+    this.onSettled?.(key, value);
+  }
+
+  private shouldWrite(value: unknown): boolean {
+    const write = this.write;
+    if (write === undefined) return true;
+    if (typeof write === 'function') return write(value);
+    return write;
   }
 }

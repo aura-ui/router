@@ -45,16 +45,42 @@ describe('ResolvableCache', () => {
     expect(hit).toBe('cached');
   });
 
-  it('uses persist instead of the default set', async () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+  it('onSettled is an extra write; this store still keeps the settled value', async () => {
+    const side = new Map<string, string>();
+    cache = new AuraResolvableCache({
+      gcSweepInterval: false,
+      onSettled: (key, value) => {
+        side.set(key, value as string);
+      },
+    });
 
-    await cache.resolve(
-      'k',
-      async () => 'loaded',
-      () => {},
-    );
+    await cache.resolve('k', async () => 'loaded');
 
+    expect(cache.get('k')).toBe('loaded');
+    expect(side.get('k')).toBe('loaded');
+  });
+
+  it('write: false skips storing while still settling the promise', async () => {
+    cache = new AuraResolvableCache({ gcSweepInterval: false, write: false });
+
+    const value = await cache.resolve('k', async () => 'loaded');
+
+    expect(value).toBe('loaded');
     expect(cache.get('k')).toBeUndefined();
+  });
+
+  it('write predicate can filter what is stored', async () => {
+    const mixed = new AuraResolvableCache<unknown>({
+      gcSweepInterval: false,
+      write: (v) => typeof v === 'string',
+    });
+
+    await mixed.resolve('a', async () => 'keep');
+    await mixed.resolve('b', async () => 42);
+
+    expect(mixed.get('a')).toBe('keep');
+    expect(mixed.get('b')).toBeUndefined();
+    mixed.destroy();
   });
 
   it('clears rejected in-flight work so callers can retry', async () => {

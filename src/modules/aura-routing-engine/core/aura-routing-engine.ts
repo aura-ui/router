@@ -52,6 +52,7 @@ import {
   isSameNavigationTarget,
 } from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
+import { onAbort } from '../../aura-utils/async/on-abort';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -410,6 +411,9 @@ export class AuraRoutingEngine implements NavigationHost {
       },
     ): Promise<void> => {
       const from = this.prev;
+
+      if (ctx.signal.aborted) return;
+
       const probe = new NavigationTransaction(
         0,
         0,
@@ -426,19 +430,15 @@ export class AuraRoutingEngine implements NavigationHost {
         this,
       );
 
-      probe.transitionPlan = buildTransitionPlan(from, plan.leaf);
-      probe.transitionOrder = getEnterRoute(probe.transitionPlan)?.transition?.order ?? null;
-
-      const onAbort = () => probe.cancel();
-      ctx.signal.addEventListener('abort', onAbort, { once: true });
+      const clearOnAbort = onAbort(ctx.signal, () => probe.cancel());
       try {
-        if (ctx.signal.aborted) return;
+        probe.transitionPlan = buildTransitionPlan(from, plan.leaf);
+        probe.transitionOrder = getEnterRoute(probe.transitionPlan)?.transition?.order ?? null;
         await probe.runSpeculativePrepare({ data: ctx.data, view: ctx.view });
       } finally {
-        ctx.signal.removeEventListener('abort', onAbort);
+        clearOnAbort();
       }
     };
-
 
     this.prefetchPipeline = new PrefetchPipeline(
       {

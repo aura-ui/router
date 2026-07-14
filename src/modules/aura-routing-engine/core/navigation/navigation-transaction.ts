@@ -1,7 +1,7 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route-tree/transition-plan';
 import { NavigationTransactionPipeline } from './navigation-transaction-pipeline';
-import type { PipelineStepResult, TransactionResult } from './types';
+import type { NavigationPhaseMode, PipelineStepResult, TransactionResult } from './types';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { NavigationTransactionOptions } from './types';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
@@ -27,6 +27,7 @@ export class NavigationTransaction {
   readonly historyOptions: NavigateHistoryOptions;
   /** When `true`, redirect walk already ran `leave` + `guard`; full pipeline skips {@link NavigationTransactionPipeline.runGuards}. */
   readonly skipBlockingPhases: boolean;
+  readonly phaseMode: NavigationPhaseMode;
 
   readonly transactionId: number;
   readonly signal: AbortSignal;
@@ -63,6 +64,7 @@ export class NavigationTransaction {
     this.signal = this.abortController.signal;
     this.isStale = () => isTransactionStale(transactionId, routerGenerationId);
     this.engine = engine;
+    this.phaseMode = options.phaseMode ?? 'navigation';
 
     this.viewCommitTracker = new ViewCommitTracker(options.to.href);
   }
@@ -109,6 +111,14 @@ export class NavigationTransaction {
       this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
     }
     return new NavigationTransactionPipeline(this).runGuards();
+  }
+
+  async runSpeculativePrepare(opts?: { data?: boolean; view?: boolean }): Promise<PipelineStepResult> {
+    if (!this.transitionPlan) {
+      this.transitionPlan = buildTransitionPlan(this.from, this.to);
+      this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+    }
+    return new NavigationTransactionPipeline(this).runSpeculativePrepare(opts);
   }
 
   async fail(

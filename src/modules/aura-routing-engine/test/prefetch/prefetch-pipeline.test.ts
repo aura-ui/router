@@ -5,14 +5,12 @@ import { PrefetchPipeline } from '../../core/prefetch/pipeline';
 import {
   DataPrefetchExecutor,
   DefaultPrefetchResourcePlanner,
-  PrefetchResourceScheduler,
 } from '../../core/prefetch/resources';
 import type {
   PrefetchConfig,
-  PrefetchPlan,
-  PrefetchResource,
-  PrefetchResourceExecutor,
+  PrefetchPipelineDeps,
   PrefetchResourcePlanner,
+  SpeculationPrefetchPort,
 } from '../../core/prefetch/types';
 import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
 
@@ -27,27 +25,21 @@ describe('PrefetchPipeline', () => {
 
   function createPipeline(overrides: {
     planner?: PrefetchResourcePlanner;
-    executors?: PrefetchResourceExecutor[];
+    runSpeculativePrepare?: PrefetchPipelineDeps['runSpeculativePrepare'];
     currentHref?: string;
     config?: Partial<PrefetchConfig>;
+    speculation?: SpeculationPrefetchPort;
+    matchableNodes?: ReturnType<typeof buildTreeFromDom>['matchableNodes'];
   } = {}) {
     const profile = createDomRoute('profile');
     profile.setAttribute('view', 'html::profile');
     const settings = createDomRoute('/settings', [profile]);
-    const { matchableNodes } = buildTreeFromDom(settings);
+    const { matchableNodes: defaultNodes } = buildTreeFromDom(settings);
+    const matchableNodes = overrides.matchableNodes ?? defaultNodes;
 
     const planner = overrides.planner ?? new DefaultPrefetchResourcePlanner();
-
-    const executors = overrides.executors ?? [
-      {
-        kind: 'view',
-        run: async () => {},
-      },
-      {
-        kind: 'data',
-        run: async () => {},
-      },
-    ];
+    const runSpeculativePrepare =
+      overrides.runSpeculativePrepare ?? jest.fn().mockResolvedValue(undefined);
 
     return {
       pipeline: new PrefetchPipeline(
@@ -56,13 +48,15 @@ describe('PrefetchPipeline', () => {
           getMatchableNodes: () => matchableNodes,
           getRegistryGeneration: () => 1,
           planner,
-          scheduler: new PrefetchResourceScheduler(executors),
+          runSpeculativePrepare,
+          speculation: overrides.speculation,
         },
         {
           currentHref: () => overrides.currentHref ?? '',
           ...overrides.config,
         },
       ),
+      runSpeculativePrepare,
       matchableNodes,
     };
   }
@@ -76,7 +70,7 @@ describe('PrefetchPipeline', () => {
     jest.useRealTimers();
   });
 
-  it('prefetch plans resources and runs kind executors in parallel', async () => {
+  it('prefetch plans resources and runs speculative prepare with data+view flags', async () => {
     const order: string[] = [];
     const { pipeline } = createPipeline({
       planner: {
@@ -85,20 +79,10 @@ describe('PrefetchPipeline', () => {
           { kind: 'data', targets: plan.enterRoutes, priority: 'high' },
         ],
       },
-      executors: [
-        {
-          kind: 'view',
-          run: async (resource) => {
-            order.push(`view:${resource.targets.at(-1)?.pattern}`);
-          },
-        },
-        {
-          kind: 'data',
-          run: async (resource) => {
-            order.push(`data:${resource.targets.at(-1)?.pattern}`);
-          },
-        },
-      ],
+      runSpeculativePrepare: async (plan, ctx) => {
+        if (ctx.view) order.push(`view:${plan.enterRoutes.at(-1)?.pattern}`);
+        if (ctx.data) order.push(`data:${plan.enterRoutes.at(-1)?.pattern}`);
+      },
     });
 
     await pipeline.prefetch('/settings/profile');
@@ -108,41 +92,31 @@ describe('PrefetchPipeline', () => {
     expect(order).toContain('data:/settings/profile');
   });
 
-  it('completes when planned resources have no matching executor', async () => {
+  it('completes when speculative prepare is a no-op', async () => {
     const { pipeline } = createPipeline({
       planner: {
         planResources: (plan) => [{ kind: 'data', targets: plan.enterRoutes, priority: 'high' }],
       },
-      executors: [],
+      runSpeculativePrepare: async () => undefined,
     });
 
     await expect(pipeline.prefetch('/settings/profile')).resolves.toBeUndefined();
   });
 
-  it('runs DataPrefetchExecutor when data resource is planned', async () => {
+  it('runs speculative prepare for data when data resource is planned', async () => {
     let dataRuns = 0;
     const profile = createDomRoute('profile');
     profile.setAttribute('load', 'profile');
     const settings = createDomRoute('/settings', [profile]);
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    const pipeline = new PrefetchPipeline(
-      {
-        matcher,
-        getMatchableNodes: () => matchableNodes,
-        getRegistryGeneration: () => 1,
-        planner: new DefaultPrefetchResourcePlanner({ view: false }),
-        scheduler: new PrefetchResourceScheduler([
-          {
-            kind: 'data',
-            run: async () => {
-              dataRuns++;
-            },
-          },
-        ]),
+    const { pipeline } = createPipeline({
+      matchableNodes,
+      planner: new DefaultPrefetchResourcePlanner({ view: false }),
+      runSpeculativePrepare: async (_plan, ctx) => {
+        if (ctx.data) dataRuns++;
       },
-      {},
-    );
+    });
 
     await pipeline.prefetch('/settings/profile', { mode: 'intent' });
 
@@ -165,14 +139,14 @@ describe('PrefetchPipeline', () => {
     profile.setAttribute('cache', 'data');
     const settings = createDomRoute('/settings', [profile]);
     const { matchableNodes } = buildTreeFromDom(settings);
-    const matcher = new AuraRoutingUrlMatcher();
-    const match = matcher.matchPath('/settings/profile', matchableNodes);
+    const localMatcher = new AuraRoutingUrlMatcher();
+    const match = localMatcher.matchPath('/settings/profile', matchableNodes);
     expect(match).not.toBeNull();
 
     const dataGraph = new DataGraph(hookRegistry);
     const executor = new DataPrefetchExecutor(dataGraph);
 
-    const leaf = matcher.toRouteInfo(
+    const leaf = localMatcher.toRouteInfo(
       '/settings/profile',
       '/settings/profile',
       '',
@@ -195,47 +169,32 @@ describe('PrefetchPipeline', () => {
 
     expect(loads).toBe(1);
     dataGraph.destroy();
+    localMatcher.destroy();
   });
 
   it('scheduleIntent waits for delay then prefetches', async () => {
-    const runs: PrefetchResource[] = [];
-    const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async (resource) => {
-            runs.push(resource);
-          },
-        },
-      ],
-    });
+    const { pipeline, runSpeculativePrepare } = createPipeline();
 
     pipeline.scheduleIntent('/settings/profile', 'intent');
-    expect(runs).toHaveLength(0);
+    expect(runSpeculativePrepare).not.toHaveBeenCalled();
 
     jest.advanceTimersByTime(49);
-    expect(runs).toHaveLength(0);
+    expect(runSpeculativePrepare).not.toHaveBeenCalled();
 
     jest.advanceTimersByTime(1);
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(runs).toHaveLength(0);
+    // intent → low confidence → view-only routes skip prepare
+    expect(runSpeculativePrepare).not.toHaveBeenCalled();
   });
 
   it('tap mode prefetches content resources', async () => {
-    const runs: PrefetchPlan[] = [];
+    const runs: string[] = [];
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async (resource) => {
-            runs.push({
-              href: resource.targets.at(-1)?.href ?? '',
-            } as PrefetchPlan);
-          },
-        },
-      ],
+      runSpeculativePrepare: async (plan, ctx) => {
+        if (ctx.view) runs.push(plan.href);
+      },
     });
 
     await pipeline.prefetch('/settings/profile', { mode: 'tap' });
@@ -246,20 +205,15 @@ describe('PrefetchPipeline', () => {
   it('cancelIntent aborts scheduled and in-flight prefetch', async () => {
     let aborted = false;
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async (_resource, ctx) => {
-            await new Promise<void>((resolve, reject) => {
-              ctx.signal.addEventListener('abort', () => {
-                aborted = true;
-                reject(new DOMException('aborted', 'AbortError'));
-              });
-              setTimeout(resolve, 100);
-            });
-          },
-        },
-      ],
+      runSpeculativePrepare: async (_plan, ctx) => {
+        await new Promise<void>((resolve, reject) => {
+          ctx.signal.addEventListener('abort', () => {
+            aborted = true;
+            reject(new DOMException('aborted', 'AbortError'));
+          });
+          setTimeout(resolve, 100);
+        });
+      },
     });
 
     const pending = pipeline.prefetch('/settings/profile', { mode: 'tap' });
@@ -272,15 +226,10 @@ describe('PrefetchPipeline', () => {
   it('dedupes in-flight prefetch for the same href', async () => {
     let loads = 0;
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async () => {
-            loads++;
-            await new Promise((resolve) => setTimeout(resolve, 50));
-          },
-        },
-      ],
+      runSpeculativePrepare: async () => {
+        loads++;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      },
     });
 
     const first = pipeline.prefetch('/settings/profile', { mode: 'tap' });
@@ -295,14 +244,9 @@ describe('PrefetchPipeline', () => {
   it('skips repeat prefetch within staleTime', async () => {
     let loads = 0;
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async () => {
-            loads++;
-          },
-        },
-      ],
+      runSpeculativePrepare: async () => {
+        loads++;
+      },
     });
 
     await pipeline.prefetch('/settings/profile', { mode: 'tap' });
@@ -314,19 +258,13 @@ describe('PrefetchPipeline', () => {
   it('skips hash-only href changes', async () => {
     const skipped: string[] = [];
     const matchableNodes = pageMatchableNodes();
-    const pipeline = new PrefetchPipeline(
-      {
-        matcher,
-        getMatchableNodes: () => matchableNodes,
-        getRegistryGeneration: () => 1,
-        planner: new DefaultPrefetchResourcePlanner(),
-        scheduler: new PrefetchResourceScheduler([{ kind: 'view', run: async () => {} }]),
-      },
-      {
-        currentHref: () => '/page#tab',
+    const { pipeline } = createPipeline({
+      matchableNodes,
+      currentHref: '/page#tab',
+      config: {
         onSkipped: (_href, reason) => skipped.push(reason),
       },
-    );
+    });
 
     await pipeline.prefetch('/page#other');
 
@@ -334,23 +272,13 @@ describe('PrefetchPipeline', () => {
   });
 
   it('skips when mode is none', async () => {
-    let loads = 0;
-    const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async () => {
-            loads++;
-          },
-        },
-      ],
-    });
+    const { pipeline, runSpeculativePrepare } = createPipeline();
 
     pipeline.scheduleIntent('/settings/profile', 'none');
     jest.runAllTimers();
     await Promise.resolve();
 
-    expect(loads).toBe(0);
+    expect(runSpeculativePrepare).not.toHaveBeenCalled();
   });
 
   it('does not record stale skip when no resources are produced', async () => {
@@ -359,27 +287,16 @@ describe('PrefetchPipeline', () => {
     const { matchableNodes } = buildTreeFromDom(page);
 
     let loads = 0;
-    const withContent = new PrefetchPipeline({
-      matcher,
-      getMatchableNodes: () => matchableNodes,
-      getRegistryGeneration: () => 1,
-      planner: new DefaultPrefetchResourcePlanner(),
-      scheduler: new PrefetchResourceScheduler([
-        {
-          kind: 'view',
-          run: async () => {
-            loads++;
-          },
-        },
-      ]),
+    const { pipeline: withContent } = createPipeline({
+      matchableNodes,
+      runSpeculativePrepare: async (_plan, ctx) => {
+        if (ctx.view) loads++;
+      },
     });
 
-    const noop = new PrefetchPipeline({
-      matcher,
-      getMatchableNodes: () => matchableNodes,
-      getRegistryGeneration: () => 1,
+    const { pipeline: noop } = createPipeline({
+      matchableNodes,
       planner: { planResources: () => [] },
-      scheduler: new PrefetchResourceScheduler([]),
     });
     await noop.prefetch('/page', { mode: 'intent' });
 
@@ -392,26 +309,16 @@ describe('PrefetchPipeline', () => {
     const skipped: string[] = [];
     const runs: string[] = [];
     const matchableNodes = pageMatchableNodes();
-    const pipeline = new PrefetchPipeline(
-      {
-        matcher,
-        getMatchableNodes: () => matchableNodes,
-        getRegistryGeneration: () => 1,
-        planner: new DefaultPrefetchResourcePlanner(),
-        scheduler: new PrefetchResourceScheduler([
-          {
-            kind: 'view',
-            run: async (resource) => {
-              runs.push(resource.targets[0]?.href ?? '');
-            },
-          },
-        ]),
-      },
-      {
-        currentHref: () => '/page',
+    const { pipeline } = createPipeline({
+      matchableNodes,
+      currentHref: '/page',
+      config: {
         onSkipped: (_href, reason) => skipped.push(reason),
       },
-    );
+      runSpeculativePrepare: async (plan, ctx) => {
+        if (ctx.view) runs.push(plan.href);
+      },
+    });
 
     await pipeline.prefetch('/page#section', { mode: 'tap' });
 
@@ -423,15 +330,15 @@ describe('PrefetchPipeline', () => {
     let loads = 0;
     let hang = true;
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async () => {
-            loads++;
-            if (hang) await new Promise<void>(() => {});
-          },
-        },
-      ],
+      runSpeculativePrepare: async (_plan, ctx) => {
+        loads++;
+        if (!hang) return;
+        await new Promise<void>((_resolve, reject) => {
+          ctx.signal.addEventListener('abort', () => {
+            reject(new DOMException('aborted', 'AbortError'));
+          });
+        });
+      },
     });
 
     const pending = pipeline.prefetch('/settings/profile', { mode: 'tap' });
@@ -473,18 +380,13 @@ describe('PrefetchPipeline', () => {
   it('force aborts in-flight prefetch and starts a new run', async () => {
     let loads = 0;
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async (_resource, ctx) => {
-            loads++;
-            await new Promise<void>((resolve, reject) => {
-              ctx.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
-              setTimeout(resolve, 100);
-            });
-          },
-        },
-      ],
+      runSpeculativePrepare: async (_plan, ctx) => {
+        loads++;
+        await new Promise<void>((resolve, reject) => {
+          ctx.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+          setTimeout(resolve, 100);
+        });
+      },
     });
 
     const first = pipeline.prefetch('/settings/profile', { mode: 'tap' });
@@ -502,14 +404,9 @@ describe('PrefetchPipeline', () => {
       config: {
         onError: (_plan, error) => errors.push(error),
       },
-      executors: [
-        {
-          kind: 'view',
-          run: async () => {
-            throw new Error('load failed');
-          },
-        },
-      ],
+      runSpeculativePrepare: async () => {
+        throw new Error('load failed');
+      },
     });
 
     await pipeline.prefetch('/settings/profile', { mode: 'tap' });
@@ -519,14 +416,9 @@ describe('PrefetchPipeline', () => {
 
   it('rethrows load errors for manual prefetch', async () => {
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async () => {
-            throw new Error('load failed');
-          },
-        },
-      ],
+      runSpeculativePrepare: async () => {
+        throw new Error('load failed');
+      },
     });
 
     await expect(pipeline.prefetch('/settings/profile', { mode: 'manual' })).rejects.toThrow(
@@ -540,31 +432,23 @@ describe('PrefetchPipeline', () => {
     const hinted: string[] = [];
     const intents: string[] = [];
 
-    const { pipeline, matchableNodes } = createPipeline({
+    const { pipeline } = createPipeline({
       config: {
         onStart: (plan) => started.push(plan.href),
         onComplete: (plan) => completed.push(plan.href),
         onIntent: (intent) => intents.push(intent.type),
       },
-      executors: [{ kind: 'view', run: async () => {} }],
     });
 
-    const withSpeculation = new PrefetchPipeline(
-      {
-        matcher,
-        getMatchableNodes: () => matchableNodes,
-        getRegistryGeneration: () => 1,
-        planner: new DefaultPrefetchResourcePlanner(),
-        scheduler: new PrefetchResourceScheduler([{ kind: 'view', run: async () => {} }]),
-        speculation: {
-          hint: (plan) => hinted.push(plan.href),
-        },
+    const { pipeline: withSpeculation } = createPipeline({
+      speculation: {
+        hint: (plan) => hinted.push(plan.href),
       },
-      {},
-    );
+    });
 
     pipeline.scheduleIntent('/settings/profile', 'tap');
     jest.runAllTimers();
+    await Promise.resolve();
     await Promise.resolve();
 
     await withSpeculation.prefetch('/settings/profile', { mode: 'tap' });
@@ -592,14 +476,9 @@ describe('PrefetchPipeline', () => {
     });
 
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async () => {
-            await gate;
-          },
-        },
-      ],
+      runSpeculativePrepare: async () => {
+        await gate;
+      },
     });
 
     const pending = pipeline.prefetch('/settings/profile', { mode: 'tap' });
@@ -631,19 +510,14 @@ describe('PrefetchPipeline', () => {
     let aborted = false;
     const external = new AbortController();
     const { pipeline } = createPipeline({
-      executors: [
-        {
-          kind: 'view',
-          run: async (_resource, ctx) => {
-            await new Promise<void>((resolve, reject) => {
-              ctx.signal.addEventListener('abort', () => {
-                aborted = true;
-                reject(new DOMException('aborted', 'AbortError'));
-              });
-            });
-          },
-        },
-      ],
+      runSpeculativePrepare: async (_plan, ctx) => {
+        await new Promise<void>((_resolve, reject) => {
+          ctx.signal.addEventListener('abort', () => {
+            aborted = true;
+            reject(new DOMException('aborted', 'AbortError'));
+          });
+        });
+      },
     });
 
     const pending = pipeline.prefetch('/settings/profile', {

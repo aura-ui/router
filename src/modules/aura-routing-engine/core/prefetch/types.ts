@@ -132,6 +132,14 @@ export type PrefetchPipelineDeps = {
   readonly getMatchableNodes: () => readonly RouteNode[];
   readonly getRegistryGeneration: () => number;
   readonly planner: PrefetchResourcePlanner;
-  readonly scheduler: PrefetchResourceScheduler;
   readonly speculation?: SpeculationPrefetchPort;
+  readonly runSpeculativePrepare: (
+    plan: PrefetchPlan,
+    ctx: {
+      readonly mode: PrefetchMode;
+      readonly signal: AbortSignal;
+      readonly data: boolean;
+      readonly view: boolean;
+    },
+  ) => Promise<void>;
 };

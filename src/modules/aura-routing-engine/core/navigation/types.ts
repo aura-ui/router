@@ -41,6 +41,7 @@ import type { TransitionMap } from '../route-tree/transition-plan';
 import type { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 
 // --- Shared outcomes ---
+export type NavigationPhaseMode = 'navigation' | 'speculative';
 
 /**
  * Early navigation exit without a structured {@link FailedNavigation}.
@@ -107,6 +108,8 @@ export interface NavigationTransactionOptions {
   options: NavigateHistoryOptions;
   /** Skip {@link NavigationTransactionPipeline.runGuards} when redirect walk already ran `leave` → `guard`. */
   skipBlockingPhases?: boolean;
+
+  phaseMode?: NavigationPhaseMode;
 }
 
 // --- Pipeline policy ---

@@ -188,6 +188,51 @@ export class NavigationTransactionPipeline {
     ]);
   }
 
+  async runSpeculativePrepare(opts?: {
+    data?: boolean;
+    view?: boolean;
+  }): Promise<PipelineStepResult> {
+    if (!this.transaction.isActive()) {
+      return { status: 'cancelled' };
+    }
+
+    const data = opts?.data ?? true;
+    const view = opts?.view ?? false;
+    const { engine, signal, transitionPlan } = this.transaction;
+    const enterRoutes = transitionPlan.enterRoutes;
+
+    try {
+      const parts: Promise<void>[] = [];
+
+      if (data) {
+        parts.push(engine.dataGraph.prefetch(enterRoutes, { signal, mode: 'intent' }));
+      }
+
+      if (view) {
+        if (!engine.viewGraph) {
+          // no-op: content prefetch unavailable
+        } else {
+          parts.push(engine.viewGraph.prefetchBranch(enterRoutes, signal));
+        }
+      }
+
+      if (parts.length) {
+        await Promise.all(parts);
+      }
+
+      if (!this.transaction.isActive()) {
+        return { status: 'cancelled' };
+      }
+
+      return null;
+    } catch {
+      if (!this.transaction.isActive()) {
+        return { status: 'cancelled' };
+      }
+      return null;
+    }
+  }
+
   /**
    * Render enter branch without `transition-order` interleaving.
    *

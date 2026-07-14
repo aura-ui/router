@@ -209,7 +209,7 @@ describe('param-change in-place + transition integration (real view)', () => {
 
     expect(result).toEqual({ status: 'navigationSucceeded' });
     expect(transaction.transitionPlan.paramChangeRemount).toBe(true);
-    expect(transaction.transitionOrder).toBe('parallel');
+    expect(transaction.transitionPlan.transitionOrder).toBe('parallel');
 
     expect(transitionSnapshots).toEqual([
       { phase: 'transitionOut', childCount: 2 },
@@ -284,7 +284,7 @@ describe('param-change in-place + transition integration (real view)', () => {
 
     expect(result).toEqual({ status: 'navigationSucceeded' });
     expect(transaction.transitionPlan.paramChangeRemount).toBe(true);
-    expect(transaction.transitionOrder).toBe(order);
+    expect(transaction.transitionPlan.transitionOrder).toBe(order);
     expect(phases).toContain('transitionOut');
     expect(phases).toContain('transitionIn');
     expect(phases).toContain('unmount');
@@ -398,7 +398,7 @@ describe('param-change in-place + transition integration (real view)', () => {
 
     expect(result).toEqual({ status: 'navigationSucceeded' });
     expect(transaction.transitionPlan.paramChangeRemount).toBe(true);
-    expect(transaction.transitionOrder).toBe('parallel');
+    expect(transaction.transitionPlan.transitionOrder).toBe('parallel');
     expect(transitionSnapshots).toEqual([
       { phase: 'transitionOut', childCount: 2 },
       { phase: 'transitionIn', childCount: 2 },

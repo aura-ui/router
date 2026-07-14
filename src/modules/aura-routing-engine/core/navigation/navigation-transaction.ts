@@ -5,7 +5,6 @@ import type { NavigationPhaseMode, PipelineStepResult, TransactionResult } from 
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import type { NavigationTransactionOptions } from './types';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { type NavigationErrorPhase } from '../failure';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import type { NavigationLifecycleContext } from './types';
@@ -36,7 +35,6 @@ export class NavigationTransaction {
   readonly engine: AuraRoutingEngine;
 
   transitionPlan!: TransitionMap;
-  transitionOrder: TransitionOrderType | null = null;
   dataSnapshot?: DataSnapshot;
   /** Pre-resolved enter-branch view contents between resolve and apply (transition + atomic). */
   preResolvedBranchContents?: readonly (ViewPayload | null)[];
@@ -92,7 +90,6 @@ export class NavigationTransaction {
 
   async run(): Promise<TransactionResult> {
     this.transitionPlan = buildTransitionPlan(this.from, this.to);
-    this.transitionOrder = this.transitionPlan.transitionOrder;
 
     return this.runWithStagedViewRollback(() => {
       const pipeline = new NavigationTransactionPipeline(this);
@@ -108,7 +105,6 @@ export class NavigationTransaction {
   async runRedirectCollapse(): Promise<PipelineStepResult> {
     if (!this.transitionPlan) {
       this.transitionPlan = buildTransitionPlan(this.from, this.to);
-      this.transitionOrder = this.transitionPlan.transitionOrder;
     }
     return new NavigationTransactionPipeline(this).runGuards();
   }
@@ -116,7 +112,6 @@ export class NavigationTransaction {
   async runSpeculativePrepare(opts?: { data?: boolean; view?: boolean }): Promise<PipelineStepResult> {
     if (!this.transitionPlan) {
       this.transitionPlan = buildTransitionPlan(this.from, this.to);
-      this.transitionOrder = this.transitionPlan.transitionOrder;
     }
     return new NavigationTransactionPipeline(this).runSpeculativePrepare(opts);
   }

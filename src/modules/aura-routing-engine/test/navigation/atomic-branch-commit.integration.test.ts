@@ -10,6 +10,7 @@ import { NavigationTransaction } from '../../core/navigation/navigation-transact
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { buildRouteTree } from '../../core/route-tree/build-route-tree';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
+import { withPlanTransitionOrder } from '../helpers/create-mock-transaction';
 import { createDomRoute } from '../helpers/test-route-dom';
 
 const SLOW_CHILD_LOADER = 'branch-slow-child';
@@ -153,7 +154,12 @@ async function runRenderStep(
     engine,
   );
   transaction.transitionPlan = buildTransitionPlan(from, to);
-  transaction.transitionOrder = options?.transitionOrder ?? null;
+  if (options?.transitionOrder !== undefined) {
+    transaction.transitionPlan = withPlanTransitionOrder(
+      transaction.transitionPlan,
+      options.transitionOrder,
+    );
+  }
 
   const pipeline = new NavigationTransactionPipeline(transaction);
   const preparePromise = pipeline.runPrepare();

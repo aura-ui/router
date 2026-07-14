@@ -432,7 +432,6 @@ export class AuraRoutingEngine implements NavigationHost {
       const clearOnAbort = onAbort(ctx.signal, () => probe.cancel());
       try {
         probe.transitionPlan = buildTransitionPlan(from, plan.leaf);
-        probe.transitionOrder = probe.transitionPlan.transitionOrder;
         await probe.runSpeculativePrepare({ data: ctx.data, view: ctx.view });
       } finally {
         clearOnAbort();

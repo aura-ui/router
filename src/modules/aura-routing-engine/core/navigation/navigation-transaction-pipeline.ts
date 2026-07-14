@@ -244,12 +244,11 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Render enter branch with `transition-order` from the enter leaf route.
-   *
-   * Resolves `transitionOrder` from the transaction (set in {@link NavigationTransaction.run}).
+   * Render enter branch with `transition-order` from the enter leaf
+   * ({@link TransitionMap.transitionOrder}).
    */
   async runRenderWithTransition(): Promise<PipelineStepResult> {
-    return this.renderEnterBranch(this.transaction.transitionOrder);
+    return this.renderEnterBranch(this.transaction.transitionPlan.transitionOrder);
   }
 
   /**

@@ -182,7 +182,7 @@ describe('cross-route transition integration (real view)', () => {
     expect(result).toEqual({ status: 'navigationSucceeded' });
     expect(transaction.transitionPlan.paramChangeRemount).toBeFalsy();
     expect(transaction.transitionPlan.update).toBe(false);
-    expect(transaction.transitionOrder).toBe('parallel');
+    expect(transaction.transitionPlan.transitionOrder).toBe('parallel');
 
     expect(transitionSnapshots).toEqual([
       { phase: 'transitionOut', childCount: 2 },
@@ -342,7 +342,7 @@ describe('cross-route transition pipeline order', () => {
     const { result, transaction } = await runCrossRouteNavigation(from.match, to.match);
 
     expect(result).toEqual({ status: 'navigationSucceeded' });
-    expect(transaction.transitionOrder).toBe(order);
+    expect(transaction.transitionPlan.transitionOrder).toBe(order);
 
     const unmountIdx = callOrder.indexOf('unmount');
     const readyIdx = callOrder.indexOf('ready');

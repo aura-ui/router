@@ -33,15 +33,11 @@ import {
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
 import {
-  ViewPrefetchExecutor,
-  DataPrefetchExecutor,
   DefaultPrefetchResourcePlanner,
-  PrefetchResourceScheduler,
 } from './prefetch/resources';
 import type {
-  PrefetchConfig,
-  PrefetchOptions,
-  PrefetchResourceExecutor,
+  PrefetchConfig, PrefetchMode,
+  PrefetchOptions, PrefetchPlan,
 } from './prefetch/types';
 import type { RouterInstance } from './route/types';
 import { syncChainHref } from './route-tree/matched-chain';
@@ -50,7 +46,11 @@ import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
 import { DataGraph } from './data-graph';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
 import { NavigationTransaction } from './navigation/navigation-transaction';
-import { isSameNavigationTarget } from './route-tree/transition-plan';
+import {
+  buildTransitionPlan,
+  getEnterRoute,
+  isSameNavigationTarget,
+} from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
@@ -398,13 +398,47 @@ export class AuraRoutingEngine implements NavigationHost {
     };
 
     const prefetchPolicy = new PrefetchPolicy(prefetchConfig);
-    const prefetchExecutors: PrefetchResourceExecutor[] = [
-      new DataPrefetchExecutor(this.dataGraph),
-    ];
 
-    if (this.viewGraph) {
-      prefetchExecutors.unshift(new ViewPrefetchExecutor(this.viewGraph));
-    }
+
+    const runSpeculativePrepare = async (
+      plan: PrefetchPlan,
+      ctx: {
+        mode: PrefetchMode;
+        signal: AbortSignal;
+        data: boolean;
+        view: boolean;
+      },
+    ): Promise<void> => {
+      const from = this.prev;
+      const probe = new NavigationTransaction(
+        0,
+        0,
+        {
+          from,
+          to: plan.leaf,
+          href: plan.href,
+          hash: plan.hash,
+          action: 'push',
+          options: { replace: false, syncHistory: false },
+          phaseMode: 'speculative',
+        },
+        () => ctx.signal.aborted,
+        this,
+      );
+
+      probe.transitionPlan = buildTransitionPlan(from, plan.leaf);
+      probe.transitionOrder = getEnterRoute(probe.transitionPlan)?.transition?.order ?? null;
+
+      const onAbort = () => probe.cancel();
+      ctx.signal.addEventListener('abort', onAbort, { once: true });
+      try {
+        if (ctx.signal.aborted) return;
+        await probe.runSpeculativePrepare({ data: ctx.data, view: ctx.view });
+      } finally {
+        ctx.signal.removeEventListener('abort', onAbort);
+      }
+    };
+
 
     this.prefetchPipeline = new PrefetchPipeline(
       {
@@ -415,7 +449,7 @@ export class AuraRoutingEngine implements NavigationHost {
           { view: Boolean(this.viewGraph) },
           prefetchPolicy,
         ),
-        scheduler: new PrefetchResourceScheduler(prefetchExecutors),
+        runSpeculativePrepare,
       },
       prefetchConfig,
       { linksSelector: config.linksSelector },

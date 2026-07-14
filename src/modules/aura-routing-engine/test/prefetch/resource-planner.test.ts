@@ -1,11 +1,6 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
-import type { ViewGraph } from '../../core/view-graph';
 import { PrefetchPolicy } from '../../core/prefetch/policy';
-import {
-  ViewPrefetchExecutor,
-  DefaultPrefetchResourcePlanner,
-  PrefetchResourceScheduler,
-} from '../../core/prefetch/resources';
+import { DefaultPrefetchResourcePlanner } from '../../core/prefetch/resources';
 import type { PrefetchPlan } from '../../core/prefetch/types';
 import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
 
@@ -145,69 +140,5 @@ describe('DefaultPrefetchResourcePlanner', () => {
 
     expect(disabled.planResources(plan, planCtx)).toHaveLength(0);
     expect(disabled.explainEmptyPlan(plan, planCtx)).toBe('no-targets');
-  });
-});
-
-describe('PrefetchResourceScheduler', () => {
-  it('starts higher-priority resources before lower-priority ones', async () => {
-    const order: string[] = [];
-    const scheduler = new PrefetchResourceScheduler([
-      {
-        kind: 'view',
-        run: async (resource) => {
-          order.push(resource.priority);
-        },
-      },
-      {
-        kind: 'data',
-        run: async (resource) => {
-          order.push(resource.priority);
-        },
-      },
-    ]);
-
-    await scheduler.run(
-      [
-        { kind: 'data', targets: [], priority: 'low' },
-        { kind: 'view', targets: [], priority: 'high' },
-        { kind: 'view', targets: [], priority: 'normal' },
-      ],
-      { signal: new AbortController().signal, mode: 'manual', confidence: 1 },
-    );
-
-    expect(order).toEqual(['high', 'normal', 'low']);
-  });
-});
-
-describe('ViewPrefetchExecutor', () => {
-  it('delegates content resources to ViewGraph.prefetchBranch', async () => {
-    const prefetchBranch = jest.fn().mockResolvedValue(undefined);
-    const content = { prefetchBranch } as unknown as ViewGraph;
-    const executor = new ViewPrefetchExecutor(content);
-    const signal = new AbortController().signal;
-    const targets = [{ href: '/page' }] as never;
-
-    await executor.run({ kind: 'view', targets, priority: 'high' }, {
-      signal,
-      mode: 'manual',
-      confidence: 1,
-    });
-
-    expect(prefetchBranch).toHaveBeenCalledWith(targets, signal);
-  });
-
-  it('ignores non-content resources', async () => {
-    const prefetchBranch = jest.fn();
-    const executor = new ViewPrefetchExecutor({
-      prefetchBranch,
-    } as unknown as ViewGraph);
-
-    await executor.run({ kind: 'data', targets: [], priority: 'high' }, {
-      signal: new AbortController().signal,
-      mode: 'manual',
-      confidence: 1,
-    });
-
-    expect(prefetchBranch).not.toHaveBeenCalled();
   });
 });

@@ -27,6 +27,7 @@ export class NavigationTransaction {
   readonly historyOptions: NavigateHistoryOptions;
   /** When `true`, redirect walk already ran `leave` + `guard`; full pipeline skips {@link NavigationTransactionPipeline.runGuards}. */
   readonly skipBlockingPhases: boolean;
+  /** See {@link NavigationTransactionOptions.phaseMode}. */
   readonly phaseMode: NavigationPhaseMode;
 
   readonly transactionId: number;

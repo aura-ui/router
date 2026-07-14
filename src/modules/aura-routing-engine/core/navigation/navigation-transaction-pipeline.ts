@@ -24,6 +24,7 @@ import {
 } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { TransitionMap } from '../route-tree/transition-plan';
 import type { PipelinePhaseDefinition, PipelineStepResult } from './types';
 
 /** Single pipeline step. `null` = success and continue; otherwise a terminal {@link PipelineStepResult}. */
@@ -39,7 +40,7 @@ type PipelineStep = () => Promise<PipelineStepResult>;
  * Full path: {@link runPrepare} (`runLoads` → parallel {@link prepareEnterBranch}) then render
  * as sync {@link commitEnterBranchToDom} interleaved with `transition-order`. Param remount uses
  * the same branch commit with `paramChangeRemount` (DomCache restore via `syncBranchMount` early-exit).
- * {@link runFastPipeline} skips prepare/transitions (see {@link canUseFastPath}).
+ * {@link runFastPipeline} skips prepare/transitions (see {@link TransitionMap.canUseFastPath}).
  *
  * @see docs/MAIN_PIPELINE.md
  */
@@ -78,7 +79,7 @@ export class NavigationTransactionPipeline {
    * Skips guards, data loads, and transition phases. Commits history synchronously, runs a single
    * {@link runViewCommit} on the sole enter route, then {@link runAfterRender}.
    *
-   * Selected by {@link canUseFastPath}: flat swap (one exit, one enter), no blocking hooks,
+   * Selected by {@link TransitionMap.canUseFastPath}: flat swap (one exit, one enter), no blocking hooks,
    * no async content, no `transition-order`.
    *
    * @returns `cancelled` on abort/supersede; render errors via {@link failRender}; otherwise {@link runAfterRender} result or `navigationSucceeded`
@@ -87,8 +88,8 @@ export class NavigationTransactionPipeline {
   async runFastPipeline(): Promise<PipelineStepResult> {
     this.commitHistory();
 
-    const enterRoute = this.transaction.transitionPlan.enterRoutes[0]!;
-    const viewCommit = await runViewCommit(enterRoute, {
+    const enterMatch = this.transaction.transitionPlan.enterMatch!;
+    const viewCommit = await runViewCommit(enterMatch, {
       signal: this.transaction.signal,
       isAborted: () => !this.transaction.isActive(),
     });
@@ -102,7 +103,7 @@ export class NavigationTransactionPipeline {
     }
 
     if (isRenderError(viewCommit)) {
-      return this.failRender(enterRoute, viewCommit.error);
+      return this.failRender(enterMatch, viewCommit.error);
     }
 
     return await this.runAfterRender() ?? { status: 'navigationSucceeded' };

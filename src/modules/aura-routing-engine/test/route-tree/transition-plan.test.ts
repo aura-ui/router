@@ -1,8 +1,7 @@
 import { createTestRoute } from '../helpers/create-test-route';
 import {
   buildTransitionPlan,
-  getEnterRoute,
-  isCrossOutletReplace,
+  finalizeTransitionPlan,
   isSameNavigationTarget,
 } from '../../core/route-tree/transition-plan';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
@@ -321,41 +320,124 @@ describe('isSameNavigationTarget', () => {
   });
 });
 
-describe('getEnterRoute', () => {
-  it('returns enter branch leaf route', () => {
+describe('derived TransitionMap fields', () => {
+  it('fills enterMatch / exitMatch and leaf routes', () => {
     const chain = chainFromPaths(['/settings', '/settings/profile']);
     const plan = buildTransitionPlan(null, chain[1]!);
 
-    expect(getEnterRoute(plan)).toBe(chain[1]!.route);
+    expect(plan.enterMatch).toBe(chain[1]!);
+    expect(plan.enterRoute).toBe(chain[1]!.route);
+    expect(plan.exitMatch).toBeUndefined();
+    expect(plan.exitRoute).toBeUndefined();
+    expect(plan.transitionOrder).toBeNull();
   });
 
-  it('returns undefined for empty enter branch', () => {
-    const plan = { exitRoutes: [], enterRoutes: [], lca: null, update: false };
+  it('fills exitMatch as leaving leaf', () => {
+    const chain = chainFromPaths(['/settings', '/settings/profile']);
+    const profile = chain[1]!;
+    const about = chainFromPaths(['/about'])[0]!;
+    const plan = buildTransitionPlan(profile, about);
 
-    expect(getEnterRoute(plan)).toBeUndefined();
+    expect(plan.exitMatch).toBe(profile);
+    expect(plan.exitRoute).toBe(profile.route);
+    expect(plan.enterMatch).toBe(about);
+  });
+
+  it('finalizeTransitionPlan handles empty branches', () => {
+    const plan = finalizeTransitionPlan({ exitRoutes: [], enterRoutes: [], lca: null, update: false });
+
+    expect(plan.enterMatch).toBeUndefined();
+    expect(plan.exitMatch).toBeUndefined();
+    expect(plan.needsBlockingWalk).toBe(false);
+    expect(plan.isFlatSingleEnter).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
+    expect(plan.transitionOrder).toBeNull();
   });
 });
 
-describe('isCrossOutletReplace', () => {
-  it('detects full branch swap with a single enter leaf', () => {
-    expect(
-      isCrossOutletReplace({
-        exitRoutes: [createMatchedRoute('/settings/profile')],
-        enterRoutes: [createMatchedRoute('/about')],
-        lca: null,
-        update: false,
-      }),
-    ).toBe(true);
+describe('needsBlockingWalk field', () => {
+  it('is true when an exit route has leave', () => {
+    const exit = createMatchedRoute('/a');
+    (exit.route as { leave: string }).leave = 'on-leave';
+    const plan = finalizeTransitionPlan({
+      exitRoutes: [exit],
+      enterRoutes: [createMatchedRoute('/b')],
+      lca: null,
+      update: false,
+    });
+
+    expect(plan.hasExitLeave).toBe(true);
+    expect(plan.hasEnterGuard).toBe(false);
+    expect(plan.needsBlockingWalk).toBe(true);
   });
 
-  it('returns false for sibling nested swaps', () => {
+  it('is true when an enter route has guard', () => {
+    const enter = createMatchedRoute('/b');
+    (enter.route as { guard: string }).guard = 'on-guard';
+    const plan = finalizeTransitionPlan({
+      exitRoutes: [createMatchedRoute('/a')],
+      enterRoutes: [enter],
+      lca: null,
+      update: false,
+    });
+
+    expect(plan.hasExitLeave).toBe(false);
+    expect(plan.hasEnterGuard).toBe(true);
+    expect(plan.needsBlockingWalk).toBe(true);
+  });
+
+  it('is false when exit/enter have no leave or guard', () => {
+    const plan = finalizeTransitionPlan({
+      exitRoutes: [createMatchedRoute('/a')],
+      enterRoutes: [createMatchedRoute('/b')],
+      lca: null,
+      update: false,
+    });
+
+    expect(plan.needsBlockingWalk).toBe(false);
+  });
+});
+
+describe('isFlatSingleEnter / canUseFastPath fields', () => {
+  it('accepts one enter and at most one exit', () => {
+    const plan = finalizeTransitionPlan({
+      exitRoutes: [createMatchedRoute('/a')],
+      enterRoutes: [createMatchedRoute('/b')],
+      lca: null,
+      update: false,
+    });
+
+    expect(plan.isFlatSingleEnter).toBe(true);
+    expect(plan.canUseFastPath).toBe(true);
+  });
+
+  it('rejects update, remount, and multi-enter/exit shapes', () => {
     expect(
-      isCrossOutletReplace({
-        exitRoutes: [createMatchedRoute('/settings/profile')],
-        enterRoutes: [createMatchedRoute('/settings/security')],
-        lca: createMatchedRoute('/settings'),
+      finalizeTransitionPlan({
+        exitRoutes: [],
+        enterRoutes: [createMatchedRoute('/a')],
+        lca: createMatchedRoute('/a'),
+        update: true,
+      }).isFlatSingleEnter,
+    ).toBe(false);
+
+    expect(
+      finalizeTransitionPlan({
+        exitRoutes: [createMatchedRoute('/users/1')],
+        enterRoutes: [createMatchedRoute('/users/2')],
+        lca: null,
         update: false,
-      }),
+        paramChangeRemount: true,
+      }).isFlatSingleEnter,
+    ).toBe(false);
+
+    expect(
+      finalizeTransitionPlan({
+        exitRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
+        enterRoutes: [createMatchedRoute('/c')],
+        lca: null,
+        update: false,
+      }).isFlatSingleEnter,
     ).toBe(false);
   });
 });

@@ -1,9 +1,9 @@
 import type { RouteInstance } from '../route/types';
-import type { TransitionMap } from '../route-tree/transition-plan';
+import type { TransitionPlanBase } from '../route-tree/transition-plan';
 import type { ViewCommitTracker } from './view-commit-tracker';
 
 /** Unique routes touched by enter/exit branches of one transaction. */
-export function collectTransactionRoutes(plan: TransitionMap): RouteInstance[] {
+export function collectTransactionRoutes(plan: TransitionPlanBase): RouteInstance[] {
   const seen = new Set<RouteInstance>();
   const routes: RouteInstance[] = [];
 
@@ -18,7 +18,7 @@ export function collectTransactionRoutes(plan: TransitionMap): RouteInstance[] {
 
 /** Restores uncommitted outlet/view state after supersede, guard cancel, or render abort. */
 export function rollbackUncommittedViews(
-  plan: TransitionMap,
+  plan: TransitionPlanBase,
   viewCommitTracker: ViewCommitTracker,
 ): void {
   if (viewCommitTracker.isViewCommitted()) return;

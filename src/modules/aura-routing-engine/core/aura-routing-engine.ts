@@ -48,7 +48,6 @@ import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-rout
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import {
   buildTransitionPlan,
-  getEnterRoute,
   isSameNavigationTarget,
 } from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
@@ -433,7 +432,7 @@ export class AuraRoutingEngine implements NavigationHost {
       const clearOnAbort = onAbort(ctx.signal, () => probe.cancel());
       try {
         probe.transitionPlan = buildTransitionPlan(from, plan.leaf);
-        probe.transitionOrder = getEnterRoute(probe.transitionPlan)?.transition?.order ?? null;
+        probe.transitionOrder = probe.transitionPlan.transitionOrder;
         await probe.runSpeculativePrepare({ data: ctx.data, view: ctx.view });
       } finally {
         clearOnAbort();

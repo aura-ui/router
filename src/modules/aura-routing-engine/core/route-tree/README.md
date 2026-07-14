@@ -17,7 +17,7 @@
 | `build-route-tree.ts` | flat/DOM `<aura-route>` → дерево |
 | `matched-chain.ts` | `MatchedRouteInfo.chain`, leaf, ключи сравнения |
 | `branch-diff.ts` | LCA + `exitRoutes` / `enterRoutes` |
-| `transition-plan.ts` | `TransitionMap`, `buildTransitionPlan()`, `getEnterRoute()` |
+| `transition-plan.ts` | `TransitionMap`, `buildTransitionPlan()`, `finalizeTransitionPlan()` |
 | `index.ts` | public exports модуля |
 
 Публичная точка branch diff — `transition-plan.ts` (`TransitionMap` + `buildTransitionPlan`).

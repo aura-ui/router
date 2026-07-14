@@ -48,9 +48,9 @@ describe('RedirectResolver integration', () => {
     let leaveCalls = 0;
 
     jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(async function (this: NavigationTransaction) {
-      const { buildTransitionPlan, getEnterRoute } = await import('../../core/route-tree/transition-plan');
+      const { buildTransitionPlan } = await import('../../core/route-tree/transition-plan');
       this.transitionPlan = buildTransitionPlan(this.from, this.to);
-      this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+      this.transitionOrder = this.transitionPlan.transitionOrder;
       this.engine.commitNavigation(this);
       return { status: 'navigationSucceeded' };
     });

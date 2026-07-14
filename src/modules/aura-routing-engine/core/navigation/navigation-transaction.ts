@@ -1,5 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route-tree/transition-plan';
+import { buildTransitionPlan, type TransitionMap } from '../route-tree/transition-plan';
 import { NavigationTransactionPipeline } from './navigation-transaction-pipeline';
 import type { NavigationPhaseMode, PipelineStepResult, TransactionResult } from './types';
 import { AuraRoutingEngine } from '../aura-routing-engine';
@@ -11,7 +11,6 @@ import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import type { NavigationLifecycleContext } from './types';
 import type { DataSnapshot } from '../data-graph';
 import type { ViewPayload } from '../view-graph';
-import { canUseFastPath } from '../route-tree/can-use-fast-path';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 import { NavigationFailureHandler } from './navigation-failure-handler';
 
@@ -93,13 +92,13 @@ export class NavigationTransaction {
 
   async run(): Promise<TransactionResult> {
     this.transitionPlan = buildTransitionPlan(this.from, this.to);
-    this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+    this.transitionOrder = this.transitionPlan.transitionOrder;
 
     return this.runWithStagedViewRollback(() => {
       const pipeline = new NavigationTransactionPipeline(this);
       return this.transitionPlan.update
         ? pipeline.runUpdate()
-        : canUseFastPath(this.transitionPlan, this.from, this.to)
+        : this.transitionPlan.canUseFastPath
           ? pipeline.runFastPipeline()
           : pipeline.runFullPipeline();
     });
@@ -109,7 +108,7 @@ export class NavigationTransaction {
   async runRedirectCollapse(): Promise<PipelineStepResult> {
     if (!this.transitionPlan) {
       this.transitionPlan = buildTransitionPlan(this.from, this.to);
-      this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+      this.transitionOrder = this.transitionPlan.transitionOrder;
     }
     return new NavigationTransactionPipeline(this).runGuards();
   }
@@ -117,7 +116,7 @@ export class NavigationTransaction {
   async runSpeculativePrepare(opts?: { data?: boolean; view?: boolean }): Promise<PipelineStepResult> {
     if (!this.transitionPlan) {
       this.transitionPlan = buildTransitionPlan(this.from, this.to);
-      this.transitionOrder = getEnterRoute(this.transitionPlan)?.transition?.order ?? null;
+      this.transitionOrder = this.transitionPlan.transitionOrder;
     }
     return new NavigationTransactionPipeline(this).runSpeculativePrepare(opts);
   }

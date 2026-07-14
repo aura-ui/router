@@ -548,7 +548,6 @@ CSS (`scrollbar-gutter`, min-height) — defense-in-depth, не primary fix.
 |------|-----------|--------|
 | `aura-routing-engine/core/view-mount/branch-resolver.ts` | `resolveEnterBranch`, `shouldUseBranchMount` | ✓ |
 | `aura-routing-engine/core/view-mount/branch-mount.ts` | `mountEnterBranch` — sync apply root→leaf | ✓ |
-| `aura-routing-engine/core/route-tree/transition-plan.ts` | `isCrossOutletReplace` | ✓ |
 | `aura-routing-engine/core/navigation/navigation-transaction-pipeline.ts` | `runRender` → resolve + sync mount | ✓ |
 | `aura-route/core/view/view-controller.ts` | `applyPreResolved`, skip inline resolve | ✓ |
 | `aura-route/core/view/outlet-adapter.ts` | `pendingOutgoingRoot`, `rollbackReplace` | ✓ |

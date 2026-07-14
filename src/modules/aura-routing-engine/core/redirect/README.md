@@ -167,7 +167,7 @@ Hooks **не** запускаются. Подходит, когда нужен �
 ```text
 lookupNavigationStep
   ├─ redirect attr ──► tryApplyRedirectStep ──► next iteration
-  └─ leaf ─────────► planNeedsBlockingWalk?
+  └─ leaf ─────────► plan.needsBlockingWalk?
                         ├─ нет ──► resolved (skipBlockingPhases от blockingPhasesCompleted)
                         └─ да ───► runBlockingWalkProbe (leave → guard)
                                       │
@@ -193,7 +193,7 @@ Probe — `NavigationTransaction` с id `0` / `0`, вызывает `runRedirect
 | Match step | `lookupNavigationStep`, `resolveRedirectHref` |
 | Types | `DeclarativeRedirectOutcome`, `RedirectResolveResult`, `RedirectErrorOutcome`, `RedirectionContext`, `RedirectResolverContext`, `RedirectMatcher`, `MatchedNavigationTarget`, `NavigationMatchStep` |
 
-**Не в barrel** (внутренние): `tryApplyRedirectStep`, `applyRedirectArrivalFlag`, `runBlockingWalkProbe`, `planNeedsBlockingWalk`, `RedirectChainInput`, `BlockingPhasesProbeOutcome`.
+**Не в barrel** (внутренние): `tryApplyRedirectStep`, `applyRedirectArrivalFlag`, `runBlockingWalkProbe`, `plan.needsBlockingWalk`, `RedirectChainInput`, `BlockingPhasesProbeOutcome`.
 
 ---
 
@@ -326,7 +326,7 @@ stripTrailingSlash(resolveDocumentHrefParts(href).pathname)
 
 ## Blocking walk
 
-`runBlockingWalkProbe` (private) — pre-commit `leave` → `guard` на candidate leaf. Запускается, когда `planNeedsBlockingWalk` видит `hasLeave` на **exit** или `hasGuard` на **enter** в `buildTransitionPlan(from, target)`.
+`runBlockingWalkProbe` (private) — pre-commit `leave` → `guard` на candidate leaf. Запускается, когда `plan.needsBlockingWalk` видит `hasLeave` на **exit** или `hasGuard` на **enter** в `buildTransitionPlan(from, target)`.
 
 ```text
 buildTransitionPlan(from, target)
@@ -370,7 +370,7 @@ guard (walk) → … цепочка … → leave (pipeline)   // нарушен
 
 Альтернатива — инкрементальный `leave` (только новые exit routes в diff между hop'ами). Это корректнее при guard-redirect на другую ветку, но заметно усложняет resolver (`completedLeavePatterns`, пошаговый leave, отдельные флаги для guard).
 
-**Выбран более простой вариант:** на каждом hop, где `planNeedsBlockingWalk`, снова `runGuards()` для **текущего** transition plan. Пересекающиеся exit routes могут получить `leave` **дважды** (типично 2–3 hop'а в реальных цепочках).
+**Выбран более простой вариант:** на каждом hop, где `plan.needsBlockingWalk`, снова `runGuards()` для **текущего** transition plan. Пересекающиеся exit routes могут получить `leave` **дважды** (типично 2–3 hop'а в реальных цепочках).
 
 | Плюс | Минус |
 |------|-------|
@@ -389,7 +389,7 @@ hop 1: leave(settings) + guard(dashboard) → redirect
 hop 2: leave(settings) + leave(app)       ← settings повторно; app впервые
 ```
 
-Guard-redirect на промежуточном hop не останавливает walk: следующий candidate снова проходит `planNeedsBlockingWalk`. Финальный hop без `leave`/`guard` всё равно получает `skipBlockingPhases: true` через `blockingPhasesCompleted`.
+Guard-redirect на промежуточном hop не останавливает walk: следующий candidate снова проходит `plan.needsBlockingWalk`. Финальный hop без `leave`/`guard` всё равно получает `skipBlockingPhases: true` через `blockingPhasesCompleted`.
 
 ### 4. Что не делаем (намеренно)
 

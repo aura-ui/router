@@ -1,7 +1,10 @@
 import { resolveDocumentHrefParts, type ResolvedDocumentHref } from '../link-active/app-href';
 import { stripTrailingSlash } from '../../../aura-utils/misc/url';
 import type { RouteNode } from '../route-tree/route-node.types';
-import { buildTransitionPlan, getEnterRoute, type TransitionMap } from '../route-tree/transition-plan';
+import {
+  buildTransitionPlan,
+  type TransitionMap,
+} from '../route-tree/transition-plan';
 import { NavigationTransaction } from '../navigation/navigation-transaction';
 import { lookupNavigationStep } from './match-step';
 import type {
@@ -163,7 +166,7 @@ export async function followRedirectsWithGuardWalk(
     const target = applyRedirectArrivalFlag(redirection, matchStep);
     const transitionPlan = buildTransitionPlan(input.from, target);
 
-    const blockingOutcome = planNeedsBlockingWalk(transitionPlan)
+    const blockingOutcome = transitionPlan.needsBlockingWalk
       ? await runBlockingWalkProbe(resolverCtx, input, target, redirection, transitionPlan)
       : resolveWithoutBlockingWalkProbe(target, redirection);
 
@@ -177,20 +180,6 @@ export async function followRedirectsWithGuardWalk(
   }
 
   return depthExceeded(redirection);
-}
-
-/**
- * Whether this hop needs redirect-walk blocking probe.
- *
- * True when exit routes declare `leave` or enter routes declare `guard` in the
- * pre-built plan for `from → target`. No incremental dedup — each matching hop runs full
- * {@link ../navigation/navigation-transaction-pipeline!NavigationTransactionPipeline.runGuards}.
- */
-function planNeedsBlockingWalk(plan: TransitionMap): boolean {
-  return (
-    plan.exitRoutes.some((matched) => matched.route.hasLeave)
-    || plan.enterRoutes.some((matched) => matched.route.hasGuard)
-  );
 }
 
 /** Leaf resolved without blocking work on this hop (may still set `skipBlockingPhases` from prior hops). */
@@ -238,7 +227,7 @@ async function runBlockingWalkProbe(
   );
 
   probe.transitionPlan = transitionPlan;
-  probe.transitionOrder = getEnterRoute(transitionPlan)?.transition?.order ?? null;
+  probe.transitionOrder = transitionPlan.transitionOrder;
 
   const walkResult = await probe.runRedirectCollapse();
   redirection.blockingPhasesCompleted = true;

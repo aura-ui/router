@@ -4,6 +4,7 @@ import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
 import { createMockEngine } from '../helpers/create-mock-transaction';
 import { createTestRoute } from '../helpers/create-test-route';
 
@@ -38,12 +39,12 @@ function loadTransaction(
     () => false,
     engine,
   );
-  transaction.transitionPlan = {
+  transaction.transitionPlan = finalizeTransitionPlan({
     enterRoutes: [...enterRoutes],
     exitRoutes: [],
     lca: null,
     update: false,
-  };
+  });
   return transaction;
 }
 

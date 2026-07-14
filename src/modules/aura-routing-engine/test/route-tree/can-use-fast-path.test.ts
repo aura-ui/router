@@ -1,6 +1,5 @@
 import type { RouteInstance } from '../../core';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { canUseFastPath } from '../../core/route-tree/can-use-fast-path';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
 import { createTestRoute } from '../helpers/create-test-route';
 import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
@@ -16,13 +15,13 @@ function createMatchedRoute(path: string, overrides: Partial<RouteInstance> = {}
   };
 }
 
-describe('canUseFastPath', () => {
+describe('TransitionMap.canUseFastPath', () => {
   it('allows trivial flat sibling navigation with sync html view', () => {
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b');
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(true);
+    expect(plan.canUseFastPath).toBe(true);
   });
 
   it('blocks routes without sync inline content (hasSyncContent false)', () => {
@@ -30,7 +29,7 @@ describe('canUseFastPath', () => {
     const to = createMatchedRoute('/b', { view: null });
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks url fetch loader routes', () => {
@@ -40,7 +39,7 @@ describe('canUseFastPath', () => {
     });
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks layout routes even with inline html view', () => {
@@ -51,7 +50,7 @@ describe('canUseFastPath', () => {
     });
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks routes with loading template', () => {
@@ -61,7 +60,7 @@ describe('canUseFastPath', () => {
     } as Partial<RouteInstance>);
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks when enter hooks are declared', () => {
@@ -69,7 +68,7 @@ describe('canUseFastPath', () => {
     const to = createMatchedRoute('/b', { guard: ['auth'] });
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks when enter route has load hooks (via hasSyncContent)', () => {
@@ -77,7 +76,7 @@ describe('canUseFastPath', () => {
     const to = createMatchedRoute('/b', { load: ['data'] });
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks when exit route has leave hooks', () => {
@@ -85,7 +84,7 @@ describe('canUseFastPath', () => {
     const to = createMatchedRoute('/b');
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks update plans', () => {
@@ -96,7 +95,7 @@ describe('canUseFastPath', () => {
     to.route = route as MatchedRouteInfo['route'];
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks param-change remount plans', () => {
@@ -108,7 +107,7 @@ describe('canUseFastPath', () => {
     const plan = buildTransitionPlan(from, to);
 
     expect(plan.paramChangeRemount).toBe(true);
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks param-change shortcut plans', () => {
@@ -118,7 +117,7 @@ describe('canUseFastPath', () => {
     const plan = buildTransitionPlan(from, to);
 
     expect(plan.update).toBe(true);
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
   });
 
   it('blocks when enter route has transition order without in/out hooks', () => {
@@ -128,6 +127,7 @@ describe('canUseFastPath', () => {
     });
     const plan = buildTransitionPlan(from, to);
 
-    expect(canUseFastPath(plan, from, to)).toBe(false);
+    expect(plan.canUseFastPath).toBe(false);
+    expect(plan.transitionOrder).toBe('parallel');
   });
 });

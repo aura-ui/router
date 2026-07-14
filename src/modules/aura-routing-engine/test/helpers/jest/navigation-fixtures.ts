@@ -9,6 +9,7 @@ import type { RouteTransitionType } from '../../../../aura-route/core/attr/trans
 import { ViewCommitTracker } from '../../../core/view-mount/view-commit-tracker';
 import { createMockNavigationJob } from '../mock-navigation-job';
 import { createMockEngine } from '../create-mock-transaction';
+import { finalizeTransitionPlan } from '../../../core/route-tree/transition-plan';
 import { DEFAULT_PUSH_NAV_OPTIONS } from './constants';
 
 export { DEFAULT_PUSH_NAV_OPTIONS } from './constants';
@@ -60,12 +61,12 @@ export function createNavigationLifecycleContext(
       from: null,
       to: matchedRoute,
       action: 'push',
-      plan: {
+      plan: finalizeTransitionPlan({
         exitRoutes: [],
         enterRoutes: [matchedRoute],
         lca: null,
         update: false,
-      },
+      }),
     },
     transactionId: job.transactionId,
     transactionSignal: job.transactionSignal,

@@ -14,7 +14,7 @@ failure handling in `failure/README.md`.
 | `route/` | `RouteInstance`, lifecycle phase vocabulary (`RoutePhase`, `RouteLifecycleContext`, …), hook attr props. |
 | `guard.types.ts` | Shared blocking-hook contract: `GuardResult`, `RedirectTarget` (normalized from hook return values). |
 | `hooks/` | Global hook registry, `resolve-hook-names`, `normalizeHookResult`, hook result normalization. |
-| `route-tree/` | Nested route tree, active chain, LCA branch diff, `TransitionMap`, `canUseFastPath`. |
+| `route-tree/` | Nested route tree, active chain, LCA branch diff, `TransitionMap` (+ derived `canUseFastPath`). |
 | `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`. |
 | `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit blocking walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
 | `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
@@ -83,7 +83,7 @@ sequenceDiagram
 
 `skipBlockingPhases`: redirect walk already ran `leave` → `guard` — see `redirect/README.md`.
 
-Fast path eligibility: `canUseFastPath()` — flat swap (one exit, one enter), sync inline
+Fast path eligibility: `TransitionMap.canUseFastPath` — flat swap (one exit, one enter), sync inline
 content, no blocking hooks or `transition-order`.
 
 Full render is always **branch prepare → commit**:

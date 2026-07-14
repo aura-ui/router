@@ -29,6 +29,15 @@ export class PrefetchPipeline {
   private readonly intentBus = new PrefetchIntentBus();
   private readonly linkSource: LinkIntentSource;
   private readonly unsubscribeIntent: () => void;
+  runSpeculativePrepare: (
+    plan: PrefetchPlan,
+    ctx: {
+      readonly mode: PrefetchMode;
+      readonly signal: AbortSignal;
+      readonly data: boolean;
+      readonly view: boolean;
+    },
+  ) => Promise<void>;
 
   constructor(
     deps: PrefetchPipelineDeps,
@@ -45,6 +54,8 @@ export class PrefetchPipeline {
       getRegistryGeneration: deps.getRegistryGeneration,
       currentHref: config.currentHref,
     });
+
+    this.runSpeculativePrepare = deps.runSpeculativePrepare;
 
     this.unsubscribeIntent = this.intentBus.subscribe((intent) => this.handleIntent(intent));
 
@@ -213,14 +224,19 @@ export class PrefetchPipeline {
       return false;
     }
 
+    const data = resources.some((r) => r.kind === 'data');
+    const view = resources.some((r) => r.kind === 'view');
+
     this.deps.speculation?.hint(plan, ctx);
     this.config.onStart?.(plan, ctx);
 
     try {
       await this.raceWithAbort(
-        this.deps.scheduler.run(resources, {
+        this.deps.runSpeculativePrepare(plan, {
+          mode: ctx.mode,
           signal: ctx.signal,
-          ...planCtx,
+          data,
+          view,
         }),
         ctx.signal,
       );

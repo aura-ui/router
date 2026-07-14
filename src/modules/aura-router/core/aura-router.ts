@@ -21,7 +21,7 @@ import {
   type RouterDataInvalidateOptions,
   type ViewInvalidateOptions,
   type RouterInstance,
-  type DataGraphOptions,
+  type DataGraphOptions, Loader,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
 
@@ -172,8 +172,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /** Registers a custom content loader on the shared {@link defaultLoaderRegistry}. */
-  static registerLoader(loaderId: LoaderId, fn: LoaderFn): void {
-    defaultLoaderRegistry.register(loaderId, fn);
+  static registerLoader(id: LoaderId, fn: LoaderFn, options?: any): void {
+    defaultLoaderRegistry.register(id, fn, options);
+  }
+
+  static getLoader(id: LoaderId): Loader {
+    return defaultLoaderRegistry.get(id);
   }
 
   /** Per-instance override (перекрывает configure и template). Только fallback. */

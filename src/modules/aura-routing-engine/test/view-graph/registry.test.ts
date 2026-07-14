@@ -71,6 +71,18 @@ describe('LoaderRegistry', () => {
     ).resolves.toEqual({ kind: 'html', html: 'fn' });
   });
 
+  it('register(id, fn) without options does not throw', () => {
+    const registry = new LoaderRegistry(undefined, []);
+    expect(() => registry.register('probe', async () => 'ok')).not.toThrow();
+    expect(registry.get('probe').needsData).toBeFalsy();
+  });
+
+  it('register(id, fn, { needsData }) sets FnLoader.needsData', () => {
+    const registry = new LoaderRegistry(undefined, []);
+    registry.register('needs-data-probe', async () => 'ok', { needsData: true });
+    expect(registry.get('needs-data-probe').needsData).toBe(true);
+  });
+
   it('warns when overwriting a registered type', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const registry = new LoaderRegistry(undefined, [new HtmlLoader(createBrowserEnv())]);

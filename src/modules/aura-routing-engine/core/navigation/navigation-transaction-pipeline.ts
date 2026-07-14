@@ -167,13 +167,13 @@ export class NavigationTransactionPipeline {
    */
   async runLoads(): Promise<PipelineStepResult> {
     const { to, transitionPlan } = this.transaction;
-    const activeChain = to.chain ?? transitionPlan.enterRoutes;
+    const branch = to.chain ?? transitionPlan.enterRoutes;
     const dataGraph = this.transaction.engine.dataGraph;
     // todo should be executed resource Graph to load all content in parallel - data + html + chunks
     const { outcome, snapshot } = await dataGraph.load(
       this.transaction.transitionPlan.enterRoutes,
       {
-        activeChain,
+        branch,
         transaction: this.transaction,
       },
     );

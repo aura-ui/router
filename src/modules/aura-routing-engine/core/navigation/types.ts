@@ -244,6 +244,11 @@ export type RoutePhaseContextInput = {
   transactionSignal: AbortSignal;
   /** Resolved load-hook payload for the current route, when available. */
   data?: unknown;
+  /**
+   * Load-phase only: await nearest ancestor load payload (promise join; parallel by default).
+   * @see RouteLifecycleContext.parent
+   */
+  parent?: () => Promise<unknown>;
   /** Normalized error for the terminal `error` phase recovery path. */
   error?: unknown;
 };

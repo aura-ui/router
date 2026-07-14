@@ -89,13 +89,13 @@ describe('NavigationTransactionPipeline.runLoads activeChain', () => {
   it('prefers to.chain over enterRoutes when calling DataGraph.load', async () => {
     const parent = createMatchedRoute('/users');
     const child = createMatchedRoute('/users/1');
-    const activeChain = [parent, child];
+    const branch = [parent, child];
 
     const transaction = createMockTransaction({
       enterRoutes: [child],
       transitionOrder: null,
     });
-    transaction.to = { ...child, chain: activeChain };
+    transaction.to = { ...child, chain: branch };
 
     const loadSpy = jest
       .spyOn(transaction.engine.dataGraph, 'load')
@@ -105,7 +105,7 @@ describe('NavigationTransactionPipeline.runLoads activeChain', () => {
 
     expect(loadSpy).toHaveBeenCalledWith(
       [child],
-      expect.objectContaining({ activeChain, transaction }),
+      expect.objectContaining({ branch, transaction }),
     );
 
     loadSpy.mockRestore();

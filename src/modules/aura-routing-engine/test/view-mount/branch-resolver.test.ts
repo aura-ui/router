@@ -12,7 +12,6 @@ import {
 } from '../../core/view-graph';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { buildRouteDataKey, resolveRouteData } from '../../core/data-graph/route-data';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
 import { withResolvedView } from '../helpers/with-resolved-view';
 
 function matched(

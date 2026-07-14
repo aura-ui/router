@@ -5,9 +5,13 @@ import type { ViewLoaderEnv, ViewLoadResult, ViewLoadContext, LoaderFn } from '.
 export abstract class Loader {
   protected readonly env: ViewLoaderEnv;
   readonly type: LoaderId;
+  readonly needsData: boolean;
 
-  constructor(env: ViewLoaderEnv, typeOverride?: LoaderId) {
+  constructor(env: ViewLoaderEnv, typeOverride?: LoaderId, needsDataOverride?: boolean) {
     this.env = env;
+    if (needsDataOverride !== undefined) {
+      this.needsData = needsDataOverride;
+    }
     if (typeOverride !== undefined) {
       this.type = typeOverride;
       return;
@@ -23,7 +27,7 @@ export abstract class Loader {
 }
 
 export type LoaderClass = {
-  new (env: ViewLoaderEnv): Loader;
+  new(env: ViewLoaderEnv): Loader;
   readonly type: LoaderId;
 };
 
@@ -31,8 +35,8 @@ export type LoaderClass = {
 export class FnLoader extends Loader {
   private readonly fn: LoaderFn;
 
-  constructor(env: ViewLoaderEnv, loaderId: LoaderId, fn: LoaderFn) {
-    super(env, loaderId);
+  constructor(env: ViewLoaderEnv, loaderId: LoaderId, fn: LoaderFn, needsData?: boolean) {
+    super(env, loaderId, needsData);
     this.fn = fn;
   }
 

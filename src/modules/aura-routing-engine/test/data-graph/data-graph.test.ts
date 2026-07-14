@@ -170,7 +170,7 @@ describe('DataGraph', () => {
     expect(outcome).toEqual({ status: 'cancelled' });
   });
 
-  it('omits snapshot when no cache.data entries on the active branch', async () => {
+  it('returns navigation snapshot even when cache.data is off', async () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
@@ -184,7 +184,11 @@ describe('DataGraph', () => {
       transaction: loadTransaction(hookRegistry, [route]),
     });
 
-    expect(snapshot).toBeUndefined();
+    expect(snapshot).toBeDefined();
+    const key = [...snapshot!.keys()][0]!;
+    expect(snapshot!.get(key)).toEqual({ id: 1 });
+    // Not preserved in SWR cache when cache.data is off
+    expect(dataGraph.getData(route)).toBeUndefined();
   });
 
   it('does not cache load hooks when cache.data is off', async () => {
@@ -258,7 +262,7 @@ describe('DataGraph', () => {
     expect(siblingLoads).toBe(1);
   });
 
-  it('builds snapshot from full chain including LCA cache hits', async () => {
+  it('keeps LCA parent payload in cache while navigation snapshot is enter-only', async () => {
     hookRegistry.register({
       name: 'parent-data',
       version: '1.0.0',
@@ -278,17 +282,155 @@ describe('DataGraph', () => {
 
     await dataGraph.load([parent], {
       transaction: loadTransaction(hookRegistry, [parent]),
-      activeChain: [parent],
+      branch: [parent],
     });
 
     const { snapshot } = await dataGraph.load([leaf], {
       transaction: loadTransaction(hookRegistry, [leaf]),
-      activeChain: [parent, leaf],
+      branch: [parent, leaf],
     });
 
-    expect(snapshot!.size).toBe(2);
-    expect(snapshot!.get([...snapshot!.keys()].find((k) => k.includes('/app|'))!)).toEqual({
-      role: 'layout',
+    // Navigation snapshot covers enter routes only (leaf); parent stays in SWR cache.
+    expect(snapshot!.size).toBe(1);
+    expect(snapshot!.get([...snapshot!.keys()][0]!)).toEqual({ page: 'home' });
+    expect(dataGraph.getData(parent)).toEqual({ role: 'layout' });
+
+    const branchSnapshot = dataGraph.snapshot([parent, leaf]);
+    expect(branchSnapshot!.size).toBe(2);
+  });
+
+  it('keeps enter loads parallel when child does not call parent()', async () => {
+    let parentStarted = false;
+    let childStartedBeforeParentDone = false;
+    let releaseParent!: () => void;
+    const parentGate = new Promise<void>((resolve) => {
+      releaseParent = resolve;
     });
+
+    hookRegistry.register({
+      name: 'parent-data',
+      version: '1.0.0',
+      fn: async () => {
+        parentStarted = true;
+        await parentGate;
+        return { orgId: 1 };
+      },
+    });
+
+    hookRegistry.register({
+      name: 'child-data',
+      version: '1.0.0',
+      fn: async () => {
+        childStartedBeforeParentDone = parentStarted;
+        return { users: [] };
+      },
+    });
+
+    const parent = matchedRoute('/settings', ['parent-data']);
+    const child = matchedRoute('/settings/users', ['child-data']);
+    const branch = [parent, child];
+
+    const loadPromise = dataGraph.load(branch, {
+      transaction: loadTransaction(hookRegistry, branch),
+      branch,
+    });
+
+    await Promise.resolve();
+    expect(parentStarted).toBe(true);
+    expect(childStartedBeforeParentDone).toBe(true);
+    releaseParent();
+    await loadPromise;
+  });
+
+  it('joins nearest ancestor payload when child awaits ctx.parent()', async () => {
+    let childSawParent: unknown;
+
+    hookRegistry.register({
+      name: 'parent-data',
+      version: '1.0.0',
+      fn: async () => {
+        await new Promise((r) => setTimeout(r, 20));
+        return { orgId: 7 };
+      },
+    });
+
+    hookRegistry.register({
+      name: 'child-data',
+      version: '1.0.0',
+      fn: async (ctx) => {
+        childSawParent = await ctx.parent?.();
+        return { users: [(childSawParent as { orgId: number }).orgId] };
+      },
+    });
+
+    const parent = matchedRoute('/settings', ['parent-data']);
+    const child = matchedRoute('/settings/users', ['child-data']);
+    const branch = [parent, child];
+
+    const { snapshot } = await dataGraph.load(branch, {
+      transaction: loadTransaction(hookRegistry, branch),
+      branch,
+    });
+
+    expect(childSawParent).toEqual({ orgId: 7 });
+    expect(snapshot!.get([...snapshot!.keys()].find((k) => k.includes('/settings/users'))!)).toEqual({
+      users: [7],
+    });
+  });
+
+  it('resolves ctx.parent() from LCA cache when parent is outside enterRoutes', async () => {
+    let childSawParent: unknown;
+
+    hookRegistry.register({
+      name: 'parent-data',
+      version: '1.0.0',
+      fn: async () => ({ orgId: 3 }),
+    });
+
+    hookRegistry.register({
+      name: 'child-data',
+      version: '1.0.0',
+      fn: async (ctx) => {
+        childSawParent = await ctx.parent?.();
+        return { ok: true };
+      },
+    });
+
+    const parent = matchedRoute('/app', ['parent-data']);
+    const leaf = matchedRoute('/app/home', ['child-data']);
+    const branch = [parent, leaf];
+
+    await dataGraph.load([parent], {
+      transaction: loadTransaction(hookRegistry, [parent]),
+      branch: [parent],
+    });
+
+    await dataGraph.load([leaf], {
+      transaction: loadTransaction(hookRegistry, [leaf]),
+      branch,
+    });
+
+    expect(childSawParent).toEqual({ orgId: 3 });
+  });
+
+  it('returns undefined from ctx.parent() when no ancestor has load', async () => {
+    let parentResult: unknown = 'unset';
+
+    hookRegistry.register({
+      name: 'child-data',
+      version: '1.0.0',
+      fn: async (ctx) => {
+        parentResult = await ctx.parent?.();
+        return { ok: true };
+      },
+    });
+
+    const leaf = matchedRoute('/alone', ['child-data']);
+    await dataGraph.load([leaf], {
+      transaction: loadTransaction(hookRegistry, [leaf]),
+      branch: [leaf],
+    });
+
+    expect(parentResult).toBeUndefined();
   });
 });

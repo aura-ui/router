@@ -26,6 +26,7 @@
 | [CONTENT_RESOLVER_ARCHITECTURE.md](./CONTENT_RESOLVER_ARCHITECTURE.md) | Content resolver в `aura-route-2/core/loader` — статус, аудит, ограничения |
 | [ROUTE_CONTENT_SNAPSHOT_PATCH.md](./ROUTE_CONTENT_SNAPSHOT_PATCH.md) | Точечное обновление `RouteNode.content` vs полный `refreshRoutes()` |
 | [PREFETCH_NEXT_GEN.md](./PREFETCH_NEXT_GEN.md) | Prefetch следующего поколения (ISNR); **топ-3 SSR** post-parity |
+| [RESOURCE_GRAPH_HANDOFF.md](./RESOURCE_GRAPH_HANDOFF.md) | **TODO:** ResourceGraph prepare handoff (~30s) — prefetch→nav без `cache.*`; этапы A–E (A1 ✓) |
 | [LIFECYCLE_PHASE_NAMING.md](./LIFECYCLE_PHASE_NAMING.md) | Lifecycle attrs (tiers) + **parity с мировыми роутерами** (как думать в будущем) |
 | [PARAM_CHANGE_POLICY.md](./PARAM_CHANGE_POLICY.md) | **RFC:** param-change на `:id` — view-key inference (update vs full) + `param-change` override |
 | [IN_PLACE_REMOUNT.md](./IN_PLACE_REMOUNT.md) | **TODO:** in-place remount — controller-first, оба cache, упрощение plan (убрать hook/view exit split) |

@@ -227,7 +227,6 @@ async function runBlockingWalkProbe(
   );
 
   probe.transitionPlan = transitionPlan;
-  probe.transitionOrder = transitionPlan.transitionOrder;
 
   const walkResult = await probe.runRedirectCollapse();
   redirection.blockingPhasesCompleted = true;

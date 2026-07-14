@@ -6,7 +6,10 @@ import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationHost } from '../../core/navigation/navigation-host';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
-import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
+import {
+  finalizeTransitionPlan,
+  type TransitionMap,
+} from '../../core/route-tree/transition-plan';
 import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
 import { createTestRoute } from './create-test-route';
 
@@ -22,6 +25,14 @@ export function createMatchedRoute(
     pattern: path,
     route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
   };
+}
+
+/** Test helper: override plan `transitionOrder` without rebuilding route attrs. */
+export function withPlanTransitionOrder(
+  plan: TransitionMap,
+  transitionOrder: TransitionOrderType | null,
+): TransitionMap {
+  return { ...plan, transitionOrder };
 }
 
 export function createMockEngine(): AuraRoutingEngine {
@@ -92,13 +103,16 @@ export function createPairTransaction(options: {
     engine,
   );
 
-  transaction.transitionPlan = finalizeTransitionPlan({
+  const plan = finalizeTransitionPlan({
     exitRoutes: [options.from],
     enterRoutes: [options.to],
     lca: null,
     update: false,
   });
-  transaction.transitionOrder = options.transitionOrder ?? 'parallel';
+  transaction.transitionPlan = withPlanTransitionOrder(
+    plan,
+    options.transitionOrder ?? 'parallel',
+  );
 
   return transaction;
 }
@@ -131,14 +145,16 @@ export function createMockTransaction(options: {
     engine,
   );
 
-  transaction.transitionPlan = finalizeTransitionPlan({
+  const plan = finalizeTransitionPlan({
     exitRoutes: options.exitRoutes ?? (from ? [from] : []),
     enterRoutes,
     lca: null,
     update: options.update ?? false,
   });
-  transaction.transitionOrder =
-    options.transitionOrder === undefined ? 'parallel' : options.transitionOrder;
+  transaction.transitionPlan = withPlanTransitionOrder(
+    plan,
+    options.transitionOrder === undefined ? 'parallel' : options.transitionOrder,
+  );
 
   return transaction;
 }

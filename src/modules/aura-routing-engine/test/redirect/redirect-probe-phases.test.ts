@@ -110,7 +110,6 @@ describe('redirect blocking walk policy', () => {
       engine,
     );
     transaction.transitionPlan = presetPlan;
-    transaction.transitionOrder = null;
 
     planSpy.mockClear();
     jest.spyOn(NavigationTransactionPipeline.prototype, 'runGuards').mockResolvedValue(null);

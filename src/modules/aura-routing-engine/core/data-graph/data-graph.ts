@@ -12,7 +12,9 @@ import type { PipelineStepResult } from '../navigation/types';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import type { RouteLifecycleContext } from '../route/types';
-import { buildRouteDataKey, routeHasLoadHooks, routeLoadHookNames } from './route-data';
+import { routeMatchKey } from '../route-tree/matched-chain';
+import { buildRouteDataKey, closestRouteWithLoadHooks, routeHasLoadHooks, routeLoadHookNames } from './route-data';
+import { promiseWithResolvers } from '../../../aura-utils/async/promises';
 
 export type DataSnapshot = ReadonlyMap<string, unknown>;
 
@@ -29,7 +31,7 @@ export type DataGraphLoadOptions = {
    * Full active branch (root → leaf) for snapshot lookup.
    * Includes LCA parents outside {@link load} enterRoutes (cache hits without re-fetch).
    */
-  activeChain?: readonly MatchedRouteInfo[];
+  branch?: readonly MatchedRouteInfo[]; // Full active branch (root → leaf)
   transaction: NavigationTransaction;
 };
 
@@ -47,6 +49,22 @@ type RouteLoadDescriptor = {
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
+/** In-flight / settled load payload for one enter route within a single `load()` call. */
+type RouteLoadHandle = {
+  route: MatchedRouteInfo;
+  payload: Promise<unknown>;
+};
+
+type PayloadDeferred = {
+  promise: Promise<unknown>;
+  resolve: (value: unknown) => void;
+};
+
+type NavigationLoadResult = {
+  outcome: PipelineStepResult;
+  payload: unknown;
+};
+
 class DataGraphTerminalError extends Error {
   readonly outcome: TerminalOutcome;
 
@@ -60,6 +78,8 @@ class DataGraphTerminalError extends Error {
 /**
  * Coordinator for route `load` hooks: parallel branch loads, SWR cache, prefetch intent.
  * View/HTML caching stays in `core/view-graph/`.
+ *
+ * Child hooks may opt into parent data via `ctx.parent()` (promise join); default stays parallel.
  */
 export class DataGraph {
   private static defaultOptions: DataGraphOptions = {};
@@ -88,15 +108,20 @@ export class DataGraph {
    * @param enterRoutes Routes entering this transition (LCA delta); load hooks run only here.
    */
   async load(routes: readonly MatchedRouteInfo[], options: DataGraphLoadOptions): Promise<DataGraphLoadResult> {
-    const activeChain = options.activeChain ?? routes;
+    const branch = options.branch ?? routes;
     const routesWithLoadHooks = routes.filter(routeHasLoadHooks);
+    let snapshot;
     if (routesWithLoadHooks.length) {
-      const terminal = await this.runParallelNavigationLoads(routesWithLoadHooks, options.transaction);
-      if (terminal) {
-        return { outcome: terminal };
+      const { error, snapshot: _snapshot } = await this.runParallelNavigationLoads(
+        routesWithLoadHooks,
+        options.transaction,
+        branch,
+      );
+      if (error) {
+        return { outcome: error };
       }
+      snapshot = _snapshot;
     }
-    const snapshot = this.snapshot(activeChain);
     return snapshot ? { snapshot } : {};
   }
 
@@ -106,7 +131,22 @@ export class DataGraph {
     options: DataGraphPrefetchOptions,
   ): Promise<void> {
     const routesWithLoadHooks = routes.filter(routeHasLoadHooks);
-    await Promise.all(routesWithLoadHooks.map((route) => this.prefetchRoute(route, options.signal)));
+    const branch = routes;
+    const handles = this.createPayloadHandles(routesWithLoadHooks);
+
+    await Promise.all(
+      routesWithLoadHooks.map(async (route) => {
+        const deferred = handles.deferreds.get(routeMatchKey(route))!;
+        try {
+          const payload = await this.prefetchRoute(route, options.signal, () =>
+            this.awaitParentPayload(route, handles.handles, branch),
+          );
+          deferred.resolve(payload);
+        } catch {
+          deferred.resolve(undefined);
+        }
+      }),
+    );
   }
 
   invalidate(options: RouterInvalidateOptions = {}): number {
@@ -117,9 +157,9 @@ export class DataGraph {
    * Reads cached load-hook payloads for `cache.data` routes on the active branch.
    * @returns `null` when no preserved entries — keeps truthy checks meaningful downstream.
    */
-  snapshot(activeChain: readonly MatchedRouteInfo[]): DataSnapshot | undefined {
+  snapshot(branch: readonly MatchedRouteInfo[]): DataSnapshot | undefined {
     const data = new Map<string, unknown>();
-    for (const route of activeChain) {
+    for (const route of branch) {
       if (!routePreservesLoadData(route)) continue;
       const descriptor = this.buildRouteLoadDescriptor(route);
       if (!descriptor) continue;
@@ -135,29 +175,58 @@ export class DataGraph {
     this.cache.destroy();
   }
 
+  getData(route: MatchedRouteInfo) {
+    const descriptor = this.buildRouteLoadDescriptor(route);
+    if (!descriptor) return;
+    return this.cache.get(descriptor.key);
+  }
+
   /**
    * Parallel sibling abort: on redirect/cancel/error, abort in-flight loads on other enter routes.
    * To allow parallel loads to finish despite a terminal sibling, remove `siblingAbort` wiring
    * and pass only `runtime.isJobActive` into `ensureNavigationLoad`.
+   *
+   * `ctx.parent()` joins the nearest ancestor handle (or cache for LCA parents outside enter).
    */
   private async runParallelNavigationLoads(
     enterRoutesWithLoadHooks: readonly MatchedRouteInfo[],
     transaction: NavigationTransaction,
-  ): Promise<PipelineStepResult> {
+    branch: readonly MatchedRouteInfo[],
+  ): Promise<any> {
     const siblingAbort = new AbortController();
     const loadSignal = AbortSignal.any([transaction.signal, siblingAbort.signal]);
     const outcomes: PipelineStepResult[] = [];
+    const { handles, deferreds } = this.createPayloadHandles(enterRoutesWithLoadHooks);
+    const snapshot = new Map<string, unknown>();
 
     await Promise.all(
       enterRoutesWithLoadHooks.map(async (route, index) => {
-        outcomes[index] = await this.ensureNavigationLoad(route, transaction, loadSignal, siblingAbort);
+
+        const deferred = deferreds.get(routeMatchKey(route))!;
+
+        const result = await this.ensureNavigationLoad(
+          route,
+          transaction,
+          loadSignal,
+          siblingAbort,
+          () => this.awaitParentPayload(route, handles, branch),
+        );
+
+        const descriptor = this.buildRouteLoadDescriptor(route);
+        descriptor?.key && snapshot.set(descriptor.key, result.payload);
+
+        outcomes[index] = result.outcome;
+        deferred.resolve(result.payload);
+
         if (outcomes[index]) {
           siblingAbort.abort();
         }
       }),
     );
 
-    return outcomes.find((outcome) => outcome) ?? null;
+    const error = outcomes.find((outcome) => outcome) ?? null;
+
+    return { error, snapshot };
   }
 
   private async ensureNavigationLoad(
@@ -165,9 +234,10 @@ export class DataGraph {
     transaction: NavigationTransaction,
     loadSignal: AbortSignal,
     siblingAbort: AbortController,
-  ): Promise<PipelineStepResult> {
+    parent: () => Promise<unknown>,
+  ): Promise<NavigationLoadResult> {
     const descriptor = this.buildRouteLoadDescriptor(route);
-    if (!descriptor) return null;
+    if (!descriptor) return { outcome: null, payload: undefined };
 
     const ctx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
       from: transaction.from,
@@ -175,11 +245,12 @@ export class DataGraph {
       router: transaction.engine.router,
       transactionId: transaction.transactionId,
       transactionSignal: loadSignal,
+      parent,
     });
     const isActive = () => transaction.isActive() && !siblingAbort.signal.aborted;
 
     try {
-      await this.resolveRouteLoad(route, descriptor, () =>
+      const payload = await this.resolveRouteLoad(route, descriptor, () =>
         this.runLoadPhaseHooks(
           transaction.engine.hooksRegistry,
           ctx,
@@ -191,20 +262,26 @@ export class DataGraph {
 
       // Immutable pipeline step: onLoad runs on every navigation, including cache hits.
       route.route.onLoad(ctx);
-      return null;
+      return { outcome: null, payload };
     } catch (error) {
-      if (error instanceof DataGraphTerminalError) return error.outcome;
-      if (!isActive()) return { status: 'cancelled' };
-      return transaction.fail(route, error, 'load');
+      if (error instanceof DataGraphTerminalError) {
+        return { outcome: error.outcome, payload: undefined };
+      }
+      if (!isActive()) return { outcome: { status: 'cancelled' }, payload: undefined };
+      return { outcome: transaction.fail(route, error, 'load'), payload: undefined };
     }
   }
 
-  private async prefetchRoute(route: MatchedRouteInfo, signal?: AbortSignal): Promise<void> {
+  private async prefetchRoute(
+    route: MatchedRouteInfo,
+    signal: AbortSignal | undefined,
+    parent: () => Promise<unknown>,
+  ): Promise<unknown> {
     const abort = signal ?? new AbortController().signal;
-    if (abort.aborted) return;
+    if (abort.aborted) return undefined;
 
     const descriptor = this.buildRouteLoadDescriptor(route);
-    if (!descriptor) return;
+    if (!descriptor) return undefined;
 
     const ctx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
       from: null,
@@ -215,18 +292,20 @@ export class DataGraph {
       },
       transactionId: 0,
       transactionSignal: abort,
+      parent,
     });
 
     try {
-      await this.resolveRouteLoad(route, descriptor, () =>
+      return await this.resolveRouteLoad(route, descriptor, () =>
         this.runLoadPhaseHooks(this.hooks, ctx, descriptor.hookNames, () => !abort.aborted, 'prefetch'),
       );
     } catch {
       // intent: silent
+      return undefined;
     }
   }
 
-  private buildRouteLoadDescriptor(route: MatchedRouteInfo): RouteLoadDescriptor | null {
+  buildRouteLoadDescriptor(route: MatchedRouteInfo): RouteLoadDescriptor | null {
     const hookNames = routeLoadHookNames(route);
     if (!hookNames) return null;
     return { hookNames, key: buildRouteDataKey(route, hookNames) };
@@ -236,16 +315,15 @@ export class DataGraph {
     route: MatchedRouteInfo,
     descriptor: RouteLoadDescriptor,
     load: () => Promise<unknown>,
-  ): Promise<void> {
+  ): Promise<unknown> {
     if (routePreservesLoadData(route)) {
-      await this.cache.resolve(descriptor.key, load);
-    } else {
-      await load();
+      return this.cache.resolve(descriptor.key, load);
     }
+    return load();
   }
 
   /**
-   * Runs load hooks sequentially; caches hook payload (last non-terminal return).
+   * Runs load hooks sequentially; returns last non-terminal payload.
    * Does not invoke `onLoad` — caller runs it after cache resolve.
    */
   private async runLoadPhaseHooks(
@@ -298,8 +376,42 @@ export class DataGraph {
     if (mode === 'prefetch') throw new Error('prefetch ignored terminal');
     throw new DataGraphTerminalError(terminal);
   }
+
+  private createPayloadHandles(routes: readonly MatchedRouteInfo[]): {
+    handles: Map<string, RouteLoadHandle>;
+    deferreds: Map<string, PayloadDeferred>;
+  } {
+    const handles = new Map<string, RouteLoadHandle>();
+    const deferreds = new Map<string, PayloadDeferred>();
+
+    for (const route of routes) {
+      const { promise, resolve } = promiseWithResolvers();
+      const key = routeMatchKey(route);
+      deferreds.set(key, { promise, resolve });
+      handles.set(key, { route, payload: promise });
+    }
+
+    return { handles, deferreds };
+  }
+
+  private async awaitParentPayload(
+    child: MatchedRouteInfo,
+    handles: ReadonlyMap<string, RouteLoadHandle>,
+    branch: readonly MatchedRouteInfo[],
+  ): Promise<unknown> {
+    const parent = closestRouteWithLoadHooks(child, branch);
+    if (!parent) return undefined;
+
+    const inFlight = handles.get(routeMatchKey(parent));
+    if (inFlight) return inFlight.payload;
+
+    const descriptor = this.buildRouteLoadDescriptor(parent);
+    if (!descriptor) return undefined;
+    return this.cache.get(descriptor.key);
+  }
 }
 
 function routePreservesLoadData(route: MatchedRouteInfo): boolean {
   return route.route.cache?.data ?? false;
 }
+

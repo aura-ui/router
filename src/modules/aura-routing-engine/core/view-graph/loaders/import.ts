@@ -16,6 +16,7 @@ async function resolveImportedTag(path: string): Promise<string> {
 /** `view="import::./module.js"` — dynamic import, then component markup. */
 export class ImportLoader extends Loader {
   static readonly type = 'import' as const satisfies LoaderId;
+  static readonly needsData = true;
 
   async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     if (ctx.signal.aborted) return null;

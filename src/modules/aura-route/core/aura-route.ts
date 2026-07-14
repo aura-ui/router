@@ -180,6 +180,12 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.view?.loader === 'html';
   }
 
+  get viewLoaderNeedsData() {
+    if (!this.view?.loader) return undefined;
+    const loader = AuraRouter.getLoader(this.view?.loader);
+    return (loader.constructor as { needsData?: boolean }).needsData || (loader as { needsData?: boolean }).needsData;
+  }
+
   private async init(generation: number): Promise<void> {
     await customElements.whenDefined(AuraRouter.is);
     if (generation !== this.initGeneration || !this.isConnected) {

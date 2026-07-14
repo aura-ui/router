@@ -34,11 +34,11 @@ export class LoaderRegistry {
   /** Instance, class (`new C(env)`), or `(loaderId, fn)` → {@link FnLoader}. */
   register(loader: Loader): void;
   register(loaderClass: LoaderClass): void;
-  register(loaderId: LoaderId, fn: LoaderFn): void;
-  register(loaderIdOrLoader: LoaderId | Loader | LoaderClass, fn?: LoaderFn): void {
+  register(loaderId: LoaderId, fn: LoaderFn, options?: any): void;
+  register(loaderIdOrLoader: LoaderId | Loader | LoaderClass, fn?: LoaderFn, options?: any): void {
     if (typeof loaderIdOrLoader === 'string') {
       if (!fn) throw new TypeError(`register("${loaderIdOrLoader}") requires a loader function`);
-      return this.install(new FnLoader(this.env, loaderIdOrLoader, fn));
+      return this.install(new FnLoader(this.env, loaderIdOrLoader, fn, options?.needsData));
     }
     if (fn) throw new TypeError('register(loader) accepts a single argument');
     if (typeof loaderIdOrLoader === 'function') {

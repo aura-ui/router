@@ -77,6 +77,11 @@ export interface RouteLifecycleContext {
   transactionSignal: AbortSignal;
   /** Load-hook payload from DataGraph when available for this route/phase. */
   data?: unknown;
+  /**
+   * Opt-in join to the nearest ancestor `load` payload (load phase only).
+   * Loads stay parallel until a hook awaits this; then that hook waits for the parent promise.
+   */
+  parent?: () => Promise<unknown>;
   error?: unknown;
 }
 

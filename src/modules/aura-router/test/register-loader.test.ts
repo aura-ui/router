@@ -18,7 +18,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
       viewContent = context.content;
       return 'custom-payload';
     };
-    AuraRouter.registerLoader('register-loader-test', customLoader);
+    expect(() => AuraRouter.registerLoader('register-loader-test', customLoader)).not.toThrow();
 
     const viewGraph = new ViewGraph({
       registry: defaultLoaderRegistry,
@@ -44,6 +44,14 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     expect(payload).toBe('custom-payload');
     expect(viewContent).toBe('any-ref');
+    expect(AuraRouter.getLoader('register-loader-test').needsData).toBeFalsy();
+  });
+
+  it('registerLoader accepts needsData option', () => {
+    AuraRouter.registerLoader('register-loader-needs-data', async () => 'x', {
+      needsData: true,
+    });
+    expect(AuraRouter.getLoader('register-loader-needs-data').needsData).toBe(true);
   });
 
   it('passes view attr content to LoaderFn as context.content', async () => {

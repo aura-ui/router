@@ -160,7 +160,7 @@ export class NavigationTransactionPipelinePhase {
     route: MatchedRouteInfo,
     source: RoutePhaseContextInput,
   ): RouteLifecycleContext {
-    const { data, error, from, action, router, transactionId, transactionSignal } = source;
+    const { data, error, from, action, router, transactionId, transactionSignal, parent } = source;
     return {
       phase,
       to: this.toRouteInfo(route),
@@ -171,6 +171,7 @@ export class NavigationTransactionPipelinePhase {
       transactionId,
       transactionSignal,
       ...(data !== undefined && { data }),
+      ...(parent !== undefined && { parent }),
       ...(error !== undefined && { error }),
     };
   }

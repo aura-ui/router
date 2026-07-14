@@ -2,10 +2,7 @@ import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { PrefetchPipeline } from '../../core/prefetch/pipeline';
-import {
-  DataPrefetchExecutor,
-  DefaultPrefetchResourcePlanner,
-} from '../../core/prefetch/resources';
+import { DefaultPrefetchResourcePlanner } from '../../core/prefetch/resources';
 import type {
   PrefetchConfig,
   PrefetchPipelineDeps,
@@ -123,7 +120,7 @@ describe('PrefetchPipeline', () => {
     expect(dataRuns).toBe(1);
   });
 
-  it('DataPrefetchExecutor warms load-hook cache', async () => {
+  it('DataGraph.prefetch warms load-hook cache', async () => {
     const hookRegistry = new HookRegistry();
     let loads = 0;
     hookRegistry.register({
@@ -144,7 +141,6 @@ describe('PrefetchPipeline', () => {
     expect(match).not.toBeNull();
 
     const dataGraph = new DataGraph(hookRegistry);
-    const executor = new DataPrefetchExecutor(dataGraph);
 
     const leaf = localMatcher.toRouteInfo(
       '/settings/profile',
@@ -155,19 +151,13 @@ describe('PrefetchPipeline', () => {
       match!.params,
     );
 
-    await executor.run(
-      { kind: 'data', targets: [leaf], priority: 'high' },
-      { signal: new AbortController().signal, mode: 'intent', confidence: 1 },
-    );
-
+    const signal = new AbortController().signal;
+    await dataGraph.prefetch([leaf], { signal, mode: 'intent' });
     expect(loads).toBe(1);
 
-    await executor.run(
-      { kind: 'data', targets: [leaf], priority: 'high' },
-      { signal: new AbortController().signal, mode: 'intent', confidence: 1 },
-    );
-
+    await dataGraph.prefetch([leaf], { signal, mode: 'intent' });
     expect(loads).toBe(1);
+
     dataGraph.destroy();
     localMatcher.destroy();
   });

@@ -109,6 +109,10 @@ export interface NavigationTransactionOptions {
   /** Skip {@link NavigationTransactionPipeline.runGuards} when redirect walk already ran `leave` → `guard`. */
   skipBlockingPhases?: boolean;
 
+  /**
+   * Pipeline participation mode. Prefetch probes use `'speculative'`.
+   * Reserved for future phase branching (guard lite, etc.); not read by pipeline steps yet.
+   */
   phaseMode?: NavigationPhaseMode;
 }
 

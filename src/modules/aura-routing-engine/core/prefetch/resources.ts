@@ -1,5 +1,3 @@
-import type { ViewLoadPort } from '../view-graph';
-import type { DataGraph } from '../data-graph';
 import { routeHasLoadHooks } from '../data-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
@@ -10,11 +8,7 @@ import type {
   PrefetchPlan,
   PrefetchPlanContext,
   PrefetchResource,
-  PrefetchResourceExecutor,
   PrefetchResourcePlanner,
-  PrefetchResourcePriority,
-  PrefetchResourceRunContext,
-  PrefetchResourceScheduler as PrefetchResourceSchedulerPort,
 } from './types';
 
 export type DefaultPrefetchResourcePlannerOptions = {
@@ -22,14 +16,9 @@ export type DefaultPrefetchResourcePlannerOptions = {
   readonly data?: boolean;
 };
 
-const PRIORITY_WEIGHT: Record<PrefetchResourcePriority, number> = {
-  high: 0,
-  normal: 1,
-  low: 2,
-};
-
 /**
  * Default ISNR planner: enterRoutes → view and/or data resources by confidence tier.
+ * PrefetchPipeline turns planned kinds into `{ data, view }` flags for speculative prepare.
  */
 export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
   private readonly policy: PrefetchPolicy;
@@ -102,63 +91,5 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
 
   private routeHasView(routeInfo: MatchedRouteInfo): boolean {
     return routeInfo.route.hasViewContent;
-  }
-}
-
-/** Dispatches planned resources to kind-specific executors (parallel, priority-ordered). */
-export class PrefetchResourceScheduler implements PrefetchResourceSchedulerPort {
-  private readonly executorsByKind: ReadonlyMap<PrefetchResource['kind'], PrefetchResourceExecutor>;
-
-  constructor(executors: readonly PrefetchResourceExecutor[]) {
-    this.executorsByKind = new Map(executors.map((executor) => [executor.kind, executor]));
-  }
-
-  async run(
-    resources: readonly PrefetchResource[],
-    ctx: PrefetchResourceRunContext,
-  ): Promise<void> {
-    const ordered = [...resources].sort(
-      (a, b) => PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority],
-    );
-
-    await Promise.all(ordered.map((resource) => this.runResource(resource, ctx)));
-  }
-
-  private runResource(resource: PrefetchResource, ctx: PrefetchResourceRunContext): Promise<void> {
-    const executor = this.executorsByKind.get(resource.kind);
-    if (!executor) return Promise.resolve();
-    return executor.run(resource, ctx);
-  }
-}
-
-/** Prefetch view payloads via shared {@link ViewGraph} cache. */
-export class ViewPrefetchExecutor implements PrefetchResourceExecutor {
-  readonly kind = 'view' as const;
-
-  private readonly viewGraph: ViewLoadPort;
-
-  constructor(viewGraph: ViewLoadPort) {
-    this.viewGraph = viewGraph;
-  }
-
-  run(resource: PrefetchResource, ctx: PrefetchResourceRunContext): Promise<void> {
-    if (resource.kind !== 'view') return Promise.resolve();
-    return this.viewGraph.prefetchBranch(resource.targets, ctx.signal);
-  }
-}
-
-/** Prefetch load-hook data via {@link DataGraph}. */
-export class DataPrefetchExecutor implements PrefetchResourceExecutor {
-  readonly kind = 'data' as const;
-
-  private readonly dataGraph: DataGraph;
-
-  constructor(dataGraph: DataGraph) {
-    this.dataGraph = dataGraph;
-  }
-
-  run(resource: PrefetchResource, ctx: PrefetchResourceRunContext): Promise<void> {
-    if (resource.kind !== 'data') return Promise.resolve();
-    return this.dataGraph.prefetch(resource.targets, { signal: ctx.signal, mode: 'intent' });
   }
 }

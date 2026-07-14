@@ -39,22 +39,17 @@ export type PrefetchResourceKind = 'view' | 'data';
 
 export type PrefetchResourcePriority = 'low' | 'normal' | 'high';
 
-/** Mode + confidence passed to planner and executors. */
+/** Mode + confidence passed to the resource planner. */
 export type PrefetchPlanContext = {
   readonly mode: PrefetchMode;
   readonly confidence: number;
 };
 
-/** Declarative work unit — planner output, executor input. */
+/** Declarative work unit — planner output; PrefetchPipeline maps kinds to speculative prepare flags. */
 export type PrefetchResource = {
   readonly kind: PrefetchResourceKind;
   readonly targets: readonly MatchedRouteInfo[];
   readonly priority: PrefetchResourcePriority;
-};
-
-/** Executor input: abort signal + plan context. */
-export type PrefetchResourceRunContext = PrefetchPlanContext & {
-  readonly signal: AbortSignal;
 };
 
 /** Plans which resources to prefetch for a navigation target. */
@@ -64,20 +59,6 @@ export interface PrefetchResourcePlanner {
     plan: PrefetchPlan,
     ctx: PrefetchPlanContext,
   ): 'low-confidence' | 'no-targets';
-}
-
-/** Loads one resource kind (view, data, …). */
-export interface PrefetchResourceExecutor {
-  readonly kind: PrefetchResourceKind;
-  run(resource: PrefetchResource, ctx: PrefetchResourceRunContext): Promise<void>;
-}
-
-/** Runs planned resources via kind executors. */
-export interface PrefetchResourceScheduler {
-  run(
-    resources: readonly PrefetchResource[],
-    ctx: PrefetchResourceRunContext,
-  ): Promise<void>;
 }
 
 export interface SpeculationPrefetchPort {

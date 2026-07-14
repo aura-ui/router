@@ -303,7 +303,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 Ошибки prefetch **не пробрасываются** — intent prefetch, как в `DataGraph`.
 
-В engine: `ViewPrefetchExecutor` (resource kind `'view'`) при наличии `config.viewGraph`.
+Prefetch (hover/intent) идёт через speculative prepare → `viewGraph.prefetchBranch` при наличии `config.viewGraph`.
 
 ---
 
@@ -331,7 +331,7 @@ AuraRouter
   └─ invalidateView() → viewGraph.invalidate()
 
 AuraRoutingEngine
-  └─ config.viewGraph → ViewPrefetchExecutor
+  └─ config.viewGraph → speculative prepare → viewGraph.prefetchBranch
 
 AuraRoute / RouteViewController
   └─ config.view: router.viewGraph   // ViewResolverPort

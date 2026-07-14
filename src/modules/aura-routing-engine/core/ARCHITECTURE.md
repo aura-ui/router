@@ -22,7 +22,7 @@ failure handling in `failure/README.md`.
 | `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |
 | `view-graph/` | Route view attrs → `ViewGraph` → payload cache → loader payload. |
 | `data-graph/` | Route `load` hooks, SWR cache, prefetch intent, cache invalidation. |
-| `prefetch/` | `PrefetchPipeline`: intent bus → policy → plan → resource scheduler (content + data executors). |
+| `prefetch/` | `PrefetchPipeline`: intent bus → policy → plan → speculative prepare (`dataGraph` / `viewGraph`). |
 | `user-actions/` | Link click interception (`link-navigation.ts`), href resolution (`link-resolve.ts`), link prefetch intent. |
 | `link-active/` | App href resolution/comparison (`app-href.ts`), active link matching (`match.ts`), DOM class sync (`sync.ts`), and `router.trail` (`route-trail.ts`). |
 

@@ -18,7 +18,7 @@ import type {
 } from './types';
 
 /**
- * Prefetch orchestrator: intent bus → policy → plan → resolve resources → scheduler.
+ * Prefetch orchestrator: intent bus → policy → plan → speculative prepare.
  */
 export class PrefetchPipeline {
   private readonly deps: PrefetchPipelineDeps;
@@ -29,15 +29,6 @@ export class PrefetchPipeline {
   private readonly intentBus = new PrefetchIntentBus();
   private readonly linkSource: LinkIntentSource;
   private readonly unsubscribeIntent: () => void;
-  runSpeculativePrepare: (
-    plan: PrefetchPlan,
-    ctx: {
-      readonly mode: PrefetchMode;
-      readonly signal: AbortSignal;
-      readonly data: boolean;
-      readonly view: boolean;
-    },
-  ) => Promise<void>;
 
   constructor(
     deps: PrefetchPipelineDeps,
@@ -54,8 +45,6 @@ export class PrefetchPipeline {
       getRegistryGeneration: deps.getRegistryGeneration,
       currentHref: config.currentHref,
     });
-
-    this.runSpeculativePrepare = deps.runSpeculativePrepare;
 
     this.unsubscribeIntent = this.intentBus.subscribe((intent) => this.handleIntent(intent));
 

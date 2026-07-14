@@ -1,3 +1,4 @@
+import { onAbort } from '../../../aura-utils/async/on-abort';
 import { PrefetchPolicy } from './policy';
 import { PrefetchPlanResolver } from './plan';
 import { PrefetchRunStore } from './store';
@@ -105,8 +106,9 @@ export class PrefetchPipeline {
 
     const abort = new AbortController();
     const ctx: PrefetchRunContext = { signal: abort.signal, mode };
-
-    options.signal?.addEventListener('abort', () => abort.abort(), { once: true });
+    const clearParentAbort = options.signal
+      ? onAbort(options.signal, () => abort.abort())
+      : undefined;
 
     const runPromise = this.runResources(plan, ctx);
     const promise = runPromise.then(
@@ -125,6 +127,7 @@ export class PrefetchPipeline {
         if (mode === 'manual') throw error;
       }
     } finally {
+      clearParentAbort?.();
       this.store.deleteInflight(normalized, abort);
     }
   }
@@ -250,16 +253,17 @@ export class PrefetchPipeline {
     }
 
     return new Promise<T>((resolve, reject) => {
-      const onAbort = () => reject(new DOMException('Prefetch aborted', 'AbortError'));
+      const clear = onAbort(signal, () => {
+        reject(new DOMException('Prefetch aborted', 'AbortError'));
+      });
 
-      signal.addEventListener('abort', onAbort, { once: true });
       promise.then(
         (value) => {
-          signal.removeEventListener('abort', onAbort);
+          clear();
           resolve(value);
         },
         (error) => {
-          signal.removeEventListener('abort', onAbort);
+          clear();
           reject(error);
         },
       );

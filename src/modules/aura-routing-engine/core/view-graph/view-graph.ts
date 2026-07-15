@@ -1,8 +1,8 @@
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
 import { createViewLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import { viewKey, viewKeyWithData } from '../match/resource-keys';
 import { getActiveChain } from '../route-tree/matched-chain';
-import { viewCacheKey } from './cache/cache-key';
 import { ViewPayloadCache } from './cache/view-payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { ResolvedView } from '../route-tree/resolved-view';
@@ -75,8 +75,9 @@ export class ViewGraph {
     if (signal.aborted) return Promise.resolve(null);
 
     const load = () => this.loadViewPayload(descriptor, routeInfo, signal, data);
-    return descriptor.cache
-      ? this.cache.resolve(viewCacheKey(descriptor, routeInfo, { data }), load)
+    const key = resolveViewCacheKey(routeInfo, data);
+    return descriptor.cache && key
+      ? this.cache.resolve(key, load)
       : load();
   }
 
@@ -175,4 +176,11 @@ export class ViewGraph {
       ...(descriptor.extract && { extract: descriptor.extract }),
     };
   }
+}
+
+/** Prefer precomputed `match.viewKey`; fall back for hand-built matches. */
+function resolveViewCacheKey(routeInfo: MatchedRouteInfo, data?: unknown): string | null {
+  const base = routeInfo.viewKey ?? viewKey(routeInfo);
+  if (!base) return null;
+  return data !== undefined ? viewKeyWithData(base, data) : base;
 }

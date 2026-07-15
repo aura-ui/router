@@ -90,7 +90,6 @@ export type { GuardResult, RedirectTarget } from './core/guard.types';
 export {
   ViewGraph,
   ViewPayloadCache,
-  viewCacheKey,
   Loader,
   LoaderRegistry,
   createLoaderRegistry,

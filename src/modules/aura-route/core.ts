@@ -18,7 +18,8 @@ export { loadingBodyClass, loadingEvent } from './core/plugins/view-loading-plug
 export {
   LoaderRegistry,
   defaultLoaderRegistry,
-  viewCacheKey,
+  viewKey,
+  viewKeyWithData,
 } from '../aura-routing-engine/core';
 export type {
   ViewDescriptor,

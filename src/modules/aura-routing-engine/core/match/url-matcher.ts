@@ -2,7 +2,7 @@ import { memoize } from '../../../aura-utils/decorators/memoize';
 import { parseSearch } from '../../../aura-utils/misc/url';
 import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
 import { attachNavigationChain, getActiveChain } from '../route-tree/matched-chain';
-import { dataKey, viewKey } from './resource-keys';
+import { resourceKeys } from './resource-keys';
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { RouteNode } from '../route-tree/route-node.types';
@@ -204,8 +204,9 @@ export class AuraRoutingUrlMatcher {
     );
 
     for (const info of getActiveChain(leaf)) {
-      info.dataKey = dataKey(info);
-      info.viewKey = viewKey(info);
+      const keys = resourceKeys(info);
+      info.dataKey = keys.dataKey;
+      info.viewKey = keys.viewKey;
     }
 
     return leaf;

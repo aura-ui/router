@@ -2,6 +2,7 @@ import type { ViewGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
+import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationHost } from '../../core/navigation/navigation-host';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
@@ -17,7 +18,7 @@ export function createMatchedRoute(
   path: string,
   overrides: Partial<RouteInstance> = {},
 ): MatchedRouteInfo {
-  return {
+  const info: MatchedRouteInfo = {
     href: path,
     pathname: path,
     search: '',
@@ -25,6 +26,10 @@ export function createMatchedRoute(
     pattern: path,
     route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
   };
+  const keys = resourceKeys(info);
+  info.dataKey = keys.dataKey;
+  info.viewKey = keys.viewKey;
+  return info;
 }
 
 /** Test helper: override plan `transitionOrder` without rebuilding route attrs. */

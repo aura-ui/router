@@ -1,5 +1,4 @@
 import { resolveHookNames } from '../hooks/resolve-hook-names';
-import { dataKey } from '../match/resource-keys';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
 /** Resolved `load` hook names for a route, or `null` when the phase is inactive. */
@@ -14,11 +13,6 @@ export function routeHasLoadHooks(route: MatchedRouteInfo): boolean {
   return route.route.hasLoad;
 }
 
-/** Cache / snapshot key for one route's load payload (`match.dataKey` or fallback). */
-export function routeDataKey(route: MatchedRouteInfo): string {
-  return route.dataKey ?? dataKey(route);
-}
-
 /** Lookup load-hook payload for a route in a navigation snapshot. */
 export function resolveRouteData(
   snapshot: ReadonlyMap<string, unknown>,
@@ -26,8 +20,8 @@ export function resolveRouteData(
 ): unknown | undefined {
   if (!routeLoadHookNames(route)) return undefined;
 
-  const key = routeDataKey(route);
-  if (!snapshot.has(key)) return undefined;
+  const key = route.dataKey;
+  if (key == null || !snapshot.has(key)) return undefined;
 
   return snapshot.get(key);
 }

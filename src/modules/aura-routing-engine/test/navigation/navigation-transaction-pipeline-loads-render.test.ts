@@ -5,7 +5,6 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
 
 import { PHASES } from '../../core/navigation/lifecycle-phases';
 import type { DataSnapshot } from '../../core/data-graph';
-import { routeDataKey } from '../../core/data-graph/route-data';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as branchMount from '../../core/view-mount/branch-mount';
 import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
@@ -56,7 +55,7 @@ describe('NavigationTransactionPipeline branch mount data', () => {
     });
     const loadPayload = { items: [1, 2] };
     const snapshot = new Map([
-      [routeDataKey(enterRoute), loadPayload],
+      [enterRoute.dataKey!, loadPayload],
     ]) as DataSnapshot;
 
     const transaction = createMockTransaction({

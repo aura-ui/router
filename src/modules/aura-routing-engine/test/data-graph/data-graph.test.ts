@@ -2,6 +2,7 @@ import { DataGraph } from '../../core/data-graph';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { HookRegistry } from '../../core/hooks/registry';
+import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
@@ -9,7 +10,7 @@ import { createMockEngine } from '../helpers/create-mock-transaction';
 import { createTestRoute } from '../helpers/create-test-route';
 
 function matchedRoute(path: string, load: string[] | null = ['data']): MatchedRouteInfo {
-  return {
+  const info: MatchedRouteInfo = {
     href: path,
     pathname: path,
     search: '',
@@ -17,6 +18,10 @@ function matchedRoute(path: string, load: string[] | null = ['data']): MatchedRo
     pattern: path,
     route: createTestRoute(path, { load }) as MatchedRouteInfo['route'],
   };
+  const keys = resourceKeys(info);
+  info.dataKey = keys.dataKey;
+  info.viewKey = keys.viewKey;
+  return info;
 }
 
 function loadTransaction(

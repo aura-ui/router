@@ -12,7 +12,7 @@ import type { PipelineStepResult } from '../navigation/types';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import type { RouteLifecycleContext } from '../route/types';
-import { closestRouteWithLoadHooks, routeDataKey, routeHasLoadHooks, routeLoadHookNames } from './route-data';
+import { closestRouteWithLoadHooks, routeHasLoadHooks, routeLoadHookNames } from './route-data';
 import { promiseWithResolvers } from '../../../aura-utils/async/promises';
 
 export type DataSnapshot = ReadonlyMap<string, unknown>;
@@ -307,7 +307,7 @@ export class DataGraph {
   buildRouteLoadDescriptor(route: MatchedRouteInfo): RouteLoadDescriptor | null {
     const hookNames = routeLoadHookNames(route);
     if (!hookNames) return null;
-    return { hookNames, key: routeDataKey(route) };
+    return { hookNames, key: route.dataKey! };
   }
 
   private async resolveRouteLoad(

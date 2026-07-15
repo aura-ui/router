@@ -1,5 +1,4 @@
 import { type DataGraph, type DataGraphLoadResult, type DataSnapshot } from '../data-graph';
-import { routeDataKey } from '../data-graph/route-data';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
@@ -112,8 +111,7 @@ export class ResourceGraph {
     const dataBoundContentPromise = Promise.all(
       dataBoundContentRoutes.map((route) => {
         const { snapshot } = dataResult;
-        const key = routeDataKey(route);
-        const data = snapshot?.get(key);
+        const data = snapshot?.get(route.dataKey!);
         return this.viewGraph.loadView(route, this.signal, { data });
       }),
     );

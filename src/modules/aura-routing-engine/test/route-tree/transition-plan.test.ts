@@ -6,6 +6,7 @@ import {
 } from '../../core/route-tree/transition-plan';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
+import { computeMatchScore } from '../../core/match/route-score';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { createUsersIdMatch, createUsersIdNode, createNestedUsersIdMatch, createNestedUsersIdSetup } from '../helpers/create-dynamic-leaf-match';
@@ -28,6 +29,7 @@ function chainFromPaths(paths: string[]): MatchedRouteInfo[] {
     content: { kind: 'view' as const, loader: '', content: '', cache: false },
     segment: pattern,
     pattern,
+    matchScore: computeMatchScore(pattern),
     parent: null as RouteNode | null,
     children: [] as RouteNode[],
     depth: 0,
@@ -55,6 +57,7 @@ describe('buildTransitionPlan', () => {
         route: createTestRoute('/a'),
         segment: '/a',
         pattern: '/a',
+        matchScore: computeMatchScore('/a'),
         parent: null,
         children: [],
         depth: 0,
@@ -68,6 +71,7 @@ describe('buildTransitionPlan', () => {
         route: createTestRoute('/b'),
         segment: '/b',
         pattern: '/b',
+        matchScore: computeMatchScore('/b'),
         parent: null,
         children: [],
         depth: 0,
@@ -111,6 +115,7 @@ describe('buildTransitionPlan', () => {
         route: createTestRoute('/'),
         segment: '/',
         pattern: '/',
+        matchScore: computeMatchScore('/'),
         parent: null,
         children: [],
         depth: 0,

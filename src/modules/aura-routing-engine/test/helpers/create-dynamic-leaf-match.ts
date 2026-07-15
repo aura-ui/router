@@ -1,5 +1,6 @@
 import type { RouteInstance } from '../../core';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { computeMatchScore } from '../../core/match/route-score';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { createTestRoute } from './create-test-route';
 import { withResolvedView } from './with-resolved-view';
@@ -13,6 +14,7 @@ export function createUsersLayoutNode(): RouteNode {
     content: { kind: 'view' as const, loader: '', content: '', cache: false },
     segment: USERS_LAYOUT_PATTERN,
     pattern: USERS_LAYOUT_PATTERN,
+    matchScore: computeMatchScore(USERS_LAYOUT_PATTERN),
     parent: null,
     children: [] as RouteNode[],
     depth: 0,
@@ -64,6 +66,7 @@ export function createUsersIdNode(overrides: Partial<RouteInstance> = {}): Route
     content: { kind: 'view' as const, loader: '', content: '', cache: false },
     segment: USERS_ID_PATTERN,
     pattern: USERS_ID_PATTERN,
+    matchScore: computeMatchScore(USERS_ID_PATTERN),
     parent: null,
     children: [] as RouteNode[],
     depth: 0,

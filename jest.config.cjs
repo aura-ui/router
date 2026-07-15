@@ -2,6 +2,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
+  setupFiles: ['<rootDir>/src/modules/aura-routing-engine/test/helpers/jest/urlpattern-setup.ts'],
   roots: [
     '<rootDir>/src/modules/aura-routing-engine/test',
     '<rootDir>/src/modules/aura-dom/test',

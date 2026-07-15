@@ -6,6 +6,7 @@ import {
   findLcaNodes,
 } from '../../core/route-tree/branch-diff';
 import { buildMatchedChain } from '../../core/route-tree/matched-chain';
+import { computeMatchScore } from '../../core/match/route-score';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 
@@ -26,6 +27,7 @@ function buildChain(patterns: string[]): MatchedRouteInfo[] {
     route: createTestRoute(pattern),
     segment: pattern.split('/').pop() ?? pattern,
     pattern,
+    matchScore: computeMatchScore(pattern),
     parent: null,
     children: [],
     depth,

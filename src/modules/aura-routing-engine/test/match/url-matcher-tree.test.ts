@@ -56,4 +56,22 @@ describe('AuraRoutingUrlMatcher + route tree', () => {
     expect(info.chain?.every((entry) => entry.chain === info.chain)).toBe(true);
     expect(infoMatcher.matchPath('/settings/profile', snapshot.matchableNodes)?.node).toBe(leaf);
   });
+
+  it('matchPath prefers static sibling over param at the same depth', () => {
+    const about = createDomRoute('about');
+    const id = createDomRoute(':id');
+    const users = createDomRoute('/users', [id, about]);
+    const { matchableNodes } = buildRouteTree(collectRoutesFromDom(users));
+
+    expect(matcher.matchPath('/users/about', matchableNodes)?.node.pattern).toBe('/users/about');
+    expect(matcher.matchPath('/users/about', matchableNodes)?.params).toEqual({});
+    expect(matcher.matchPath('/users/42', matchableNodes)?.node.pattern).toBe('/users/:id');
+    expect(matcher.matchPath('/users/42', matchableNodes)?.params).toEqual({ id: '42' });
+  });
+
+  it('getPathParams uses equality for static patterns without URLPattern', () => {
+    expect(matcher.getPathParams('/about', '/about')).toEqual({});
+    expect(matcher.getPathParams('/about', '/other')).toBeNull();
+    expect(matcher.getPathParams('/users/42', '/users/:id')).toEqual({ id: '42' });
+  });
 });

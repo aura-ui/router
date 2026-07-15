@@ -1,4 +1,5 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
+import { computeMatchScore } from '../match/route-score';
 import { normalizeRouteSegment, resolvePattern } from './resolve-pattern';
 import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
 
@@ -139,6 +140,7 @@ function buildRouteNode(
     route,
     segment,
     pattern,
+    matchScore: computeMatchScore(pattern),
     parent: parentNode,
     children: [],
     depth,

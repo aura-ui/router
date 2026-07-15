@@ -7,6 +7,11 @@ export interface RouteNode {
   segment: string;
   /** Resolved URL-паттерн для match/registry. @example `'/settings/profile'` */
   pattern: string;
+  /**
+   * Приоритет для `matchPath`: больше = лучше match.
+   * Считается в `buildRouteTree` ({@link ../match/route-score!computeMatchScore}).
+   */
+  matchScore: number;
   parent: RouteNode | null;
   children: RouteNode[];
   /** 0 = direct child of router. @example settings=0, profile=1 */

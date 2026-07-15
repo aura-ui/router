@@ -191,8 +191,6 @@ export class AuraRoutingUrlMatcher {
     this.urlPatterns.clear();
   }
 
-  // --- private: matchPath ---
-
   /**
    * Static O(1) map + dynamic `rest` list for `nodes`.
    * Cached by array identity (`WeakMap`); a new `nodes` reference rebuilds the index.
@@ -212,8 +210,6 @@ export class AuraRoutingUrlMatcher {
     this.matchIndexByNodes.set(nodes, index);
     return index;
   }
-
-  // --- private: getPathParams ---
 
   /**
    * Params via compiled {@link URLPattern} for `:param` patterns.

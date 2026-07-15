@@ -1,77 +1,205 @@
-import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
+import {
+  AuraRoutingUrlMatcher,
+  CATCH_ALL_SEGMENT,
+  computeMatchScore,
+  isCatchAllRoutePattern,
+  isParamRoutePattern,
+  isStaticRoutePattern,
+} from '../../core/match/url-matcher';
 import { buildRouteTree } from '../../core/route-tree/build-route-tree';
 import { createDomRoute, collectRoutesFromDom } from '../helpers/test-route-dom';
 
-describe('AuraRoutingUrlMatcher + route tree', () => {
+describe('AuraRoutingUrlMatcher', () => {
   const matcher = new AuraRoutingUrlMatcher();
 
-  it('matchPath matches parent when branch has no index child', () => {
-    const about = createDomRoute('about');
-    const users = createDomRoute('/users', [about]);
-    const { matchableNodes } = buildRouteTree(collectRoutesFromDom(users));
-
-    expect(matcher.matchPath('/users', matchableNodes)?.node.pattern).toBe('/users');
-    expect(matcher.matchPath('/users/about', matchableNodes)?.node.pattern).toBe('/users/about');
+  afterEach(() => {
+    matcher.destroy();
   });
 
-  it('matchPath selects deepest matchable node', () => {
-    const profile = createDomRoute('profile');
-    const settings = createDomRoute('/settings', [profile]);
-    const home = createDomRoute('/');
-    const { matchableNodes } = buildRouteTree(collectRoutesFromDom(home, settings));
+  describe('getPathParams', () => {
+    it('global catch-all strips a leading slash from splat', () => {
+      expect(matcher.getPathParams('/missing/page', '*')).toEqual({ splat: 'missing/page' });
+    });
 
-    expect(matcher.matchPath('/settings/profile', matchableNodes)?.node.pattern).toBe(
-      '/settings/profile',
-    );
+    it('global catch-all keeps pathname as splat when it has no leading slash', () => {
+      expect(matcher.getPathParams('missing', '*')).toEqual({ splat: 'missing' });
+    });
+
+    it('scoped catch-all returns the tail after the prefix', () => {
+      expect(matcher.getPathParams('/users/unknown', '/users/*')).toEqual({ splat: 'unknown' });
+    });
+
+    it('scoped catch-all rejects empty splat and off-prefix paths', () => {
+      expect(matcher.getPathParams('/users/', '/users/*')).toBeNull();
+      expect(matcher.getPathParams('/other/x', '/users/*')).toBeNull();
+    });
+
+    it('static patterns use exact equality', () => {
+      expect(matcher.getPathParams('/about', '/about')).toEqual({});
+      expect(matcher.getPathParams('/about', '/other')).toBeNull();
+    });
+
+    it('param patterns extract groups via URLPattern', () => {
+      expect(matcher.getPathParams('/users/42', '/users/:id')).toEqual({ id: '42' });
+      expect(matcher.getPathParams('/users', '/users/:id')).toBeNull();
+    });
+
+    it('skips undefined URLPattern groups', () => {
+      const Orig = globalThis.URLPattern;
+      class FakeURLPattern {
+        exec() {
+          return { pathname: { groups: { id: '1', optional: undefined } } };
+        }
+      }
+      (globalThis as { URLPattern: typeof URLPattern }).URLPattern =
+        FakeURLPattern as unknown as typeof URLPattern;
+
+      try {
+        const local = new AuraRoutingUrlMatcher();
+        expect(local.getPathParams('/x', '/x/:id')).toEqual({ id: '1' });
+        local.destroy();
+      } finally {
+        (globalThis as { URLPattern: typeof URLPattern }).URLPattern = Orig;
+      }
+    });
+
+    it('falls back to static equality when URLPattern throws', () => {
+      const Orig = globalThis.URLPattern;
+      (globalThis as { URLPattern: typeof URLPattern }).URLPattern = class {
+        constructor() {
+          throw new Error('compile failed');
+        }
+      } as unknown as typeof URLPattern;
+
+      try {
+        const local = new AuraRoutingUrlMatcher();
+        // Param patterns reach getUrlPatternParams; catch compares pathname === pattern.
+        expect(local.getPathParams('/:id', '/:id')).toEqual({});
+        expect(local.getPathParams('/users/1', '/users/:id')).toBeNull();
+        local.destroy();
+      } finally {
+        (globalThis as { URLPattern: typeof URLPattern }).URLPattern = Orig;
+      }
+    });
   });
 
-  it('matchPath scopes nested catch-all under parent prefix', () => {
-    const fallback = createDomRoute('*');
-    const about = createDomRoute('about');
-    const users = createDomRoute('/users', [about, fallback]);
-    const global404 = createDomRoute('*');
-    const { matchableNodes, nodesByPattern } = buildRouteTree(
-      collectRoutesFromDom(users, global404),
-    );
+  describe('matchPath', () => {
+    it('returns null when nothing matches', () => {
+      const { matchableNodes } = buildRouteTree(collectRoutesFromDom(createDomRoute('/about')));
+      expect(matcher.matchPath('/other', matchableNodes)).toBeNull();
+    });
 
-    expect(nodesByPattern.get('/users/*')?.segment).toBe('*');
-    expect(matcher.matchPath('/users', matchableNodes)?.node.pattern).toBe('/users');
-    expect(matcher.matchPath('/users/about', matchableNodes)?.node.pattern).toBe('/users/about');
-    expect(matcher.matchPath('/users/unknown', matchableNodes)?.node.pattern).toBe('/users/*');
-    expect(matcher.matchPath('/users/unknown', matchableNodes)?.params).toEqual({ splat: 'unknown' });
-    expect(matcher.matchPath('/other', matchableNodes)?.node.pattern).toBe('*');
+    it('selects the deepest static matchable node', () => {
+      const profile = createDomRoute('profile');
+      const settings = createDomRoute('/settings', [profile]);
+      const { matchableNodes } = buildRouteTree(collectRoutesFromDom(createDomRoute('/'), settings));
+
+      expect(matcher.matchPath('/settings', matchableNodes)?.node.pattern).toBe('/settings');
+      expect(matcher.matchPath('/settings/profile', matchableNodes)?.node.pattern).toBe(
+        '/settings/profile',
+      );
+    });
+
+    it('prefers a static sibling over a param at the same depth', () => {
+      const about = createDomRoute('about');
+      const id = createDomRoute(':id');
+      const users = createDomRoute('/users', [id, about]);
+      const { matchableNodes } = buildRouteTree(collectRoutesFromDom(users));
+
+      expect(matcher.matchPath('/users/about', matchableNodes)).toEqual(
+        expect.objectContaining({
+          node: expect.objectContaining({ pattern: '/users/about' }),
+          params: {},
+        }),
+      );
+      expect(matcher.matchPath('/users/42', matchableNodes)).toEqual(
+        expect.objectContaining({
+          node: expect.objectContaining({ pattern: '/users/:id' }),
+          params: { id: '42' },
+        }),
+      );
+    });
+
+    it('scopes nested catch-all under the parent prefix', () => {
+      const fallback = createDomRoute('*');
+      const about = createDomRoute('about');
+      const users = createDomRoute('/users', [about, fallback]);
+      const global404 = createDomRoute('*');
+      const { matchableNodes, nodesByPattern } = buildRouteTree(
+        collectRoutesFromDom(users, global404),
+      );
+
+      expect(nodesByPattern.get('/users/*')?.segment).toBe('*');
+      expect(matcher.matchPath('/users/unknown', matchableNodes)).toEqual(
+        expect.objectContaining({
+          node: expect.objectContaining({ pattern: '/users/*' }),
+          params: { splat: 'unknown' },
+        }),
+      );
+      expect(matcher.matchPath('/other', matchableNodes)?.node.pattern).toBe('*');
+    });
+
+    it('reuses the match index for the same nodes array', () => {
+      const { matchableNodes } = buildRouteTree(collectRoutesFromDom(createDomRoute('/a'), createDomRoute('/b')));
+      expect(matcher.matchPath('/a', matchableNodes)?.node.pattern).toBe('/a');
+      expect(matcher.matchPath('/b', matchableNodes)?.node.pattern).toBe('/b');
+    });
   });
 
-  it('buildMatchedRouteInfo builds chain from node.branch', () => {
-    const profile = createDomRoute('profile');
-    const settings = createDomRoute('/settings', [profile]);
-    const snapshot = buildRouteTree(collectRoutesFromDom(settings));
-    const leaf = snapshot.nodesByPattern.get('/settings/profile')!;
+  describe('buildMatchedRouteInfo', () => {
+    it('builds a shared chain and attaches resource keys', () => {
+      const profile = createDomRoute('profile');
+      const settings = createDomRoute('/settings', [profile]);
+      const leaf = buildRouteTree(collectRoutesFromDom(settings)).nodesByPattern.get(
+        '/settings/profile',
+      )!;
 
-    const infoMatcher = new AuraRoutingUrlMatcher();
-    const info = infoMatcher.buildMatchedRouteInfo('/settings/profile', '/settings/profile', '', '', leaf);
+      const info = matcher.buildMatchedRouteInfo(
+        '/settings/profile?q=1#tab',
+        '/settings/profile',
+        '?q=1',
+        '#tab',
+        leaf,
+      );
 
-    expect(info.pattern).toBe('/settings/profile');
-    expect(info.chain?.map((entry) => entry.pattern)).toEqual(['/settings', '/settings/profile']);
-    expect(info.chain?.every((entry) => entry.chain === info.chain)).toBe(true);
-    expect(infoMatcher.matchPath('/settings/profile', snapshot.matchableNodes)?.node).toBe(leaf);
+      expect(info).toEqual(
+        expect.objectContaining({
+          pattern: '/settings/profile',
+          href: '/settings/profile?q=1#tab',
+          query: { q: '1' },
+          dataKey: expect.stringMatching(/^data:/),
+          viewKey: expect.stringMatching(/^view:/),
+        }),
+      );
+      expect(info.chain?.map((entry) => entry.pattern)).toEqual([
+        '/settings',
+        '/settings/profile',
+      ]);
+      expect(info.chain?.every((entry) => entry.chain === info.chain)).toBe(true);
+      expect(info.chain?.[0]?.dataKey).toMatch(/^data:/);
+    });
   });
 
-  it('matchPath prefers static sibling over param at the same depth', () => {
-    const about = createDomRoute('about');
-    const id = createDomRoute(':id');
-    const users = createDomRoute('/users', [id, about]);
-    const { matchableNodes } = buildRouteTree(collectRoutesFromDom(users));
+  describe('destroy', () => {
+    it('clears memoized matchPath and compiled URLPattern cache', () => {
+      const { matchableNodes } = buildRouteTree(collectRoutesFromDom(createDomRoute('/about')));
+      expect(matcher.matchPath('/about', matchableNodes)?.node.pattern).toBe('/about');
+      expect(matcher.getPathParams('/users/1', '/users/:id')).toEqual({ id: '1' });
 
-    expect(matcher.matchPath('/users/about', matchableNodes)?.node.pattern).toBe('/users/about');
-    expect(matcher.matchPath('/users/about', matchableNodes)?.params).toEqual({});
-    expect(matcher.matchPath('/users/42', matchableNodes)?.node.pattern).toBe('/users/:id');
-    expect(matcher.matchPath('/users/42', matchableNodes)?.params).toEqual({ id: '42' });
+      matcher.destroy();
+
+      expect(matcher.matchPath('/about', matchableNodes)?.node.pattern).toBe('/about');
+      expect(matcher.getPathParams('/users/2', '/users/:id')).toEqual({ id: '2' });
+    });
   });
 
-  it('getPathParams uses equality for static patterns without URLPattern', () => {
-    expect(matcher.getPathParams('/about', '/about')).toEqual({});
-    expect(matcher.getPathParams('/about', '/other')).toBeNull();
-    expect(matcher.getPathParams('/users/42', '/users/:id')).toEqual({ id: '42' });
+  describe('re-exports', () => {
+    it('exposes route-score helpers and CATCH_ALL_SEGMENT', () => {
+      expect(CATCH_ALL_SEGMENT).toBe('*');
+      expect(isStaticRoutePattern('/about')).toBe(true);
+      expect(isParamRoutePattern('/users/:id')).toBe(true);
+      expect(isCatchAllRoutePattern('/users/*')).toBe(true);
+      expect(computeMatchScore('/a/b')).toBe(2);
+    });
   });
 });

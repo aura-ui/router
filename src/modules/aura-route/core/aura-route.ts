@@ -44,6 +44,11 @@ let idCounter = 0;
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
   static is = 'aura-route';
 
+  /** Attrs that feed {@link viewKeySuffix}; changes call {@link refresh}. */
+  static get observedAttributes(): string[] {
+    return ['layout', 'view', 'extract'];
+  }
+
   @routeAttr({ inherit: false }) path: string;
   @routeAttr({ inherit: false, cached: false }) layout: string;
   @routeAttr({ parser: parseInheritableNullableString }) loadingTemplate: string | null;
@@ -92,12 +97,28 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   refresh() {
     routeAttr.clear(this);
-    memoize.clear(this, 'transition');
+    memoize.clear(this, ['transition', 'viewKeySuffix']);
   }
 
   @memoize()
   get transition() {
     return this.initTransition();
+  }
+
+  /**
+   * Suffix of `viewKey` / resource identity (`layout:template:…` / `view:…`).
+   * Memoized; cleared in {@link refresh} when `layout` / `view` / `extract` change.
+   */
+  @memoize()
+  get viewKeySuffix(): string | null {
+    const layout = this.layout.trim();
+    if (layout) return `layout:template:${layout}`;
+
+    const view = this.view;
+    if (!view?.loader || !view.content) return null;
+
+    const slot = `view:${view.loader}:${view.content}`;
+    return view.loader === 'url' && this.extract ? `${slot}::${this.extract}` : slot;
   }
 
   /** Merges decl attrs with `transition` shortcut; `none`/`off`/`false` on decl opts out of inherited shortcut on that side. */

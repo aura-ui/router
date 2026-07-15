@@ -16,43 +16,55 @@ describe('invalidateRouterCache', () => {
 
   it('invalidates an exact key', () => {
     cache = new AuraResolvableCache({ gcSweepInterval: false });
-    cache.set('/users|fetch', 'a');
-    cache.set('/users|fetch|a=1', 'b');
-    cache.set('/users|other', 'c');
+    cache.set('data:/users', 'a');
+    cache.set('data:/users|id=1', 'b');
+    cache.set('data:/users/other', 'c');
 
-    const count = invalidateRouterCache(cache, { key: '/users|fetch', policy: 'remove' });
+    const count = invalidateRouterCache(cache, { key: 'data:/users', policy: 'remove' });
 
     expect(count).toBe(1);
-    expect(cache.get('/users|fetch')).toBeUndefined();
-    expect(cache.get('/users|fetch|a=1')).toBe('b');
-    expect(cache.get('/users|other')).toBe('c');
+    expect(cache.get('data:/users')).toBeUndefined();
+    expect(cache.get('data:/users|id=1')).toBe('b');
+    expect(cache.get('data:/users/other')).toBe('c');
   });
 
-  it('invalidates by path prefix', () => {
+  it('invalidates by path prefix for data keys', () => {
     cache = new AuraResolvableCache({ gcSweepInterval: false });
-    cache.set('/items|fetch', 'a');
-    cache.set('/profile|fetch', 'b');
+    cache.set('data:/items', 'a');
+    cache.set('data:/profile', 'b');
 
     const count = invalidateRouterCache(cache, { path: '/items', policy: 'remove' });
 
     expect(count).toBe(1);
-    expect(cache.get('/items|fetch')).toBeUndefined();
-    expect(cache.get('/profile|fetch')).toBe('b');
+    expect(cache.get('data:/items')).toBeUndefined();
+    expect(cache.get('data:/profile')).toBe('b');
   });
 
-  it('matches path prefix before hook suffix', () => {
+  it('invalidates by path prefix for view keys', () => {
     cache = new AuraResolvableCache({ gcSweepInterval: false });
-    cache.set('/users', 'root');
-    cache.set('/users|fetch-user', 'hook');
-    cache.set('/users|fetch-user|id=1', 'param');
-    cache.set('/users-extra|fetch', 'other');
+    cache.set('view:/users|layout:template:x', 'a');
+    cache.set('view:/profile|view:html:y', 'b');
+
+    const count = invalidateRouterCache(cache, { path: '/users', policy: 'remove' });
+
+    expect(count).toBe(1);
+    expect(cache.get('view:/users|layout:template:x')).toBeUndefined();
+    expect(cache.get('view:/profile|view:html:y')).toBe('b');
+  });
+
+  it('matches path prefix before params/query/slot segments', () => {
+    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache.set('data:/users', 'root');
+    cache.set('data:/users|id=1', 'param');
+    cache.set('view:/users|view:html:<p/>', 'view');
+    cache.set('data:/users-extra', 'other');
 
     const count = invalidateRouterCache(cache, { path: '/users', policy: 'remove' });
 
     expect(count).toBe(3);
-    expect(cache.get('/users')).toBeUndefined();
-    expect(cache.get('/users|fetch-user')).toBeUndefined();
-    expect(cache.get('/users|fetch-user|id=1')).toBeUndefined();
-    expect(cache.get('/users-extra|fetch')).toBe('other');
+    expect(cache.get('data:/users')).toBeUndefined();
+    expect(cache.get('data:/users|id=1')).toBeUndefined();
+    expect(cache.get('view:/users|view:html:<p/>')).toBeUndefined();
+    expect(cache.get('data:/users-extra')).toBe('other');
   });
 });

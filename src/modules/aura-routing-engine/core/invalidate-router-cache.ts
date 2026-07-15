@@ -1,7 +1,10 @@
 import type { InvalidatePolicy } from '../../aura-cache-store/core';
 
-/** Separator between path and hook segments in cache keys (`/users|fetch`). */
+/** Separator between identity segments in cache keys (`data:/users|id=1`). */
 const CACHE_KEY_SEP = '|';
+
+/** Kind prefix length for `data:` / `view:` resource keys. */
+const KIND_PREFIX_LEN = 5;
 
 /**
  * Tests whether a cache key should be invalidated.
@@ -20,7 +23,7 @@ export type InvalidateScope = {
   key?: string;
   /**
    * Route **pattern** (e.g. `/users/:id`), not browser pathname.
-   * Matches `data:{pattern}…` / `view:{pattern}…` and legacy keys without kind prefix.
+   * Matches `data:{pattern}` / `view:{pattern}` and keys with `|…` after the pattern.
    */
   path?: string;
   /** Custom key filter when `key` and `path` are not enough. */
@@ -53,11 +56,9 @@ export type RouterCacheInvalidator = {
   invalidateAll(policy?: InvalidatePolicy): number;
 };
 
+/** Keys are always `data:…` or `view:…` — strip the kind prefix, then match pattern. */
 function belongsToPath(entryKey: string, path: string): boolean {
-  const body =
-    entryKey.startsWith('data:') || entryKey.startsWith('view:')
-      ? entryKey.slice(5)
-      : entryKey;
+  const body = entryKey.slice(KIND_PREFIX_LEN);
   return body === path || body.startsWith(`${path}${CACHE_KEY_SEP}`);
 }
 

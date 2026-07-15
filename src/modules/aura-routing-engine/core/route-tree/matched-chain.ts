@@ -42,7 +42,7 @@ export function getLeafMatch(info: MatchedRouteInfo): MatchedRouteInfo {
  *
  * Nested chain — не несколько URL в браузере, а несколько `<aura-route>`, активных для
  * **одного** pathname. У parent (`/settings`) и leaf (`/settings/profile`) разные `pattern`
- * / `node.pattern`, но одинаковые `href`, `pathname`, `search`, `hash` (см. `attachNavigationChain`).
+ * / `node.pattern`, но одинаковые `href`, `pathname`, `search`, `hash` (см. `buildActiveChain`).
  *
  * При переходе только якоря (`/settings/profile` → `/settings/profile#tab`) pathname не меняется,
  * processor и lifecycle не запускаются (`AuraRoutingEngine.finalizeAnchorNavigation`), но `prev`
@@ -83,7 +83,7 @@ export interface NavigationChainBase {
 /**
  * Собирает active branch (root → leaf) в массив `MatchedRouteInfo` и связывает их через `chain`.
  *
- * Вызывается из `AuraRoutingUrlMatcher.toRouteInfo()` после match по pathname.
+ * Вызывается из `AuraRoutingUrlMatcher.buildMatchedRouteInfo()` после match по pathname.
  *
  * **Зачем chain:** nested-маршруты активируют несколько `<aura-route>` одновременно
  * (layout parent + content leaf), но в браузере один URL. Engine и branch diff нужен
@@ -112,7 +112,7 @@ export interface NavigationChainBase {
  * pathname `/settings/profile` → leaf = profileNode, chain:
  * `[ { settings, href/pathname/... общие }, { profile, + params, + query } ]`
  */
-export function attachNavigationChain(
+export function buildActiveChain(
   /** Конечный (deepest) RouteNode — результат `matchPath()`. */
   leaf: RouteNode,
   /** URL snapshot + params/query leaf из matcher. */

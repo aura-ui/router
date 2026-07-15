@@ -97,7 +97,7 @@ export type RedirectResolverContext = {
 };
 
 /** Matcher surface required for redirect resolution and prefetch lookup. */
-export type RedirectMatcher = Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
+export type RedirectMatcher = Pick<AuraRoutingUrlMatcher, 'matchPath' | 'buildMatchedRouteInfo'>;
 
 /** Input for {@link ./redirect-resolver!followRedirectsWithGuardWalk}. */
 export type RedirectChainInput = {

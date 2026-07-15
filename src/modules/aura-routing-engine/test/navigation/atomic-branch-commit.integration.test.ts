@@ -126,7 +126,7 @@ function matchAt(router: AuraRouter, pathname: string) {
   const tree = buildRouteTree(Array.from(router.routes));
   const hit = matcher.matchPath(pathname, tree.matchableNodes);
   if (!hit) throw new Error(`No match for ${pathname}`);
-  return matcher.toRouteInfo(pathname, pathname, '', '', hit.node, hit.params);
+  return matcher.buildMatchedRouteInfo(pathname, pathname, '', '', hit.node, hit.params);
 }
 
 async function runRenderStep(

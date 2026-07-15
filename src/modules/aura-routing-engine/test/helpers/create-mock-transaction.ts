@@ -61,7 +61,7 @@ export function createCoordinatorMockHost(): NavigationHost & {
   const hookRegistry = new HookRegistry();
   const host = {
     isRunning: true,
-    matcher: { matchPath: jest.fn(), toRouteInfo: jest.fn() },
+    matcher: { matchPath: jest.fn(), buildMatchedRouteInfo: jest.fn() },
     getCommittedRoute: jest.fn().mockReturnValue(null),
     getMatchableNodes: jest.fn().mockReturnValue([]),
     commitPopSlashFix: jest.fn(),

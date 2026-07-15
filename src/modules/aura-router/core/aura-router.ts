@@ -9,7 +9,7 @@ import {
   DataGraph,
   defaultLoaderRegistry,
   defaultHookRegistry,
-  isCatchAllRoute,
+  isCatchAllRoutePattern,
   resolvePrefetchEngineConfig,
   type AuraRoutingEngineConfig,
   type HistoryAction,
@@ -243,7 +243,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         },
         onNavigationCommitted: (ctx) => {
           this.notFound.hide();
-          if (isCatchAllRoute(ctx.to.pattern)) {
+          if (isCatchAllRoutePattern(ctx.to.pattern)) {
             dispatchNotFound(this, ctx.to.href, 'route');
           }
           this.scrollRestoration.handleCommit(ctx);

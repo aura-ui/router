@@ -7,7 +7,7 @@ import { PrefetchPolicy } from './policy';
 import type { PrefetchPlan } from './types';
 
 export type PrefetchPlanResolverDeps = {
-  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
+  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'buildMatchedRouteInfo'>;
   getMatchableNodes: () => readonly RouteNode[];
   getRegistryGeneration: () => number;
   currentHref?: () => string;

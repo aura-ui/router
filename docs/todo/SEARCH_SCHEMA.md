@@ -145,7 +145,7 @@ Serialization: `URLSearchParams` — только defined keys; `null` удал�
 ```text
 match pathname (URLPattern)
   → parse raw query (URLSearchParams)           ← уже есть
-  → attachNavigationChain
+  → buildActiveChain
   → resolveSearchSchema(leaf route)             ← NEW
   → SearchValidator.validate(raw, schema)
   → MatchedRouteInfo.validatedQuery             ← NEW

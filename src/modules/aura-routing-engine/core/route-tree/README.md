@@ -259,7 +259,7 @@ AuraRouter.refreshRoutes()
 
 navigate(from, to)
   └─ matchPath(pathname, registry.getMatchableNodes())
-  └─ toRouteInfo(..., node) → MatchedRouteInfo + chain
+  └─ buildMatchedRouteInfo(..., node) → MatchedRouteInfo + chain
   └─ buildTransitionPlan(from, to) → branch diff
   └─ processor.run({ plan })
 ```

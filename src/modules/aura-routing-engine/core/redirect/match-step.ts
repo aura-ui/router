@@ -18,7 +18,7 @@ export function resolveRedirectHref(node: RouteNode, rawTarget: string): string 
 /**
  * Looks up one navigation step for `href` in the route tree.
  *
- * @param matcher - URL matcher (`matchPath` + `toRouteInfo`).
+ * @param matcher - URL matcher (`matchPath` + `buildMatchedRouteInfo`).
  * @param href - Current chain href (pathname may change per hop).
  * @param nodes - Matchable route nodes for this registry generation.
  * @param preservedSearch - `search` from the original navigation request.
@@ -26,7 +26,7 @@ export function resolveRedirectHref(node: RouteNode, rawTarget: string): string 
  * @returns Leaf match, declarative redirect hop, or `null` when unmatched.
  */
 export function lookupNavigationStep(
-  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>,
+  matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'buildMatchedRouteInfo'>,
   href: string,
   nodes: readonly RouteNode[],
   preservedSearch: string,
@@ -50,7 +50,7 @@ export function lookupNavigationStep(
     found.node,
   );
 
-  const leaf = matcher.toRouteInfo(
+  const leaf = matcher.buildMatchedRouteInfo(
     canonical.href,
     canonical.pathname,
     preservedSearch,

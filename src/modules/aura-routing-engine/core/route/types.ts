@@ -92,6 +92,8 @@ export type RouteErrorContext = RouteLifecycleContext & {
 
 /** Route surface used by the routing engine and hook runtime. */
 export interface RouteInstance extends RouteHookNamesSource {
+  /** Session-scoped instance id (`AuraRoute.uid`) — in-flight maps / equality, not cache keys. */
+  readonly uid: number;
   path: string;
   view?: ViewAttrDescriptor | null;
   paramChange?: ParamChangePolicy | null;

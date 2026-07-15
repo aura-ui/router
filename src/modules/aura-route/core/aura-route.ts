@@ -39,6 +39,8 @@ import type { RouteType } from './types';
 
 export type { RouteRenderOptions, ApplyPreResolvedOptions, AuraRouteInterface, RouteType };
 
+let idCounter = 0;
+
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
   static is = 'aura-route';
 
@@ -78,6 +80,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   private setupDone!: Promise<void>;
   private viewReady = false;
   private initGeneration = 0;
+  readonly uid = ++idCounter;
 
   get nestedOutlet(): AuraOutlet | null {
     return this.viewController?.nestedOutlet ?? null;

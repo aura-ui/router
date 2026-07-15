@@ -10,6 +10,8 @@ const noopRender = async (): Promise<ViewRenderResult> => ({ status: 'ok' });
 
 const INACTIVE_TRANSITION: RouteTransitionType = { order: null, in: null, out: null };
 
+let testRouteUid = 0;
+
 /** Default inline sync view for Tier-0 / fast-path test routes (`html::`). */
 export const SYNC_HTML_VIEW: ViewAttrDescriptor = { loader: 'html', content: '<span/>' };
 
@@ -19,6 +21,7 @@ export function createTestRoute(
 ): RouteInstance {
   const { cache = { dom: false, view: false, data: true }, ...routeOverrides } = overrides;
   const route = {
+    uid: ++testRouteUid,
     path,
     cache,
     getAttribute(name: string): string | null {

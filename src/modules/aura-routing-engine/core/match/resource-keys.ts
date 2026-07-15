@@ -9,19 +9,22 @@ export function dataKey(match: MatchedRouteInfo): string {
 }
 
 /**
- * `view:{pattern}|{params?}|{query?}|{slot}` — slot as in ViewGraph descriptor.
- * Optional `data` appends `|d:…` at the end (for needsData loads).
+ * Base view identity (no load payload): `view:{pattern}|{params?}|{query?}|{slot}`.
+ * Stored on {@link MatchedRouteInfo.viewKey} at match time.
  * `null` when route has no layout/view content.
  */
-export function viewKey(match: MatchedRouteInfo, data?: unknown): string | null {
+export function viewKey(match: MatchedRouteInfo): string | null {
   const slot = viewSlot(match);
   if (!slot) return null;
+  return `view:${identity(match)}|${slot}`;
+}
 
-  let key = `view:${identity(match)}|${slot}`;
-  if (data !== undefined) {
-    key += `|d:${encodeURIComponent(JSON.stringify(data, sortKeys))}`;
-  }
-  return key;
+/**
+ * Enrich a precomputed {@link viewKey} / `match.viewKey` with load-hook data.
+ * Does not rebuild identity/slot — only appends `|d:…`.
+ */
+export function viewKeyWithData(base: string, data: unknown): string {
+  return `${base}|d:${encodeURIComponent(JSON.stringify(data, sortKeys))}`;
 }
 
 function identity(match: MatchedRouteInfo): string {

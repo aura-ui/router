@@ -57,14 +57,26 @@ describe('ViewPayloadCache', () => {
 
   it('invalidate removes entries by key', async () => {
     cache = new ViewPayloadCache();
-    await cache.resolve('/users|view:html:a', async () => 'a');
-    await cache.resolve('/profile|view:html:b', async () => 'b');
+    await cache.resolve('view:/users|view:html:a', async () => 'a');
+    await cache.resolve('view:/profile|view:html:b', async () => 'b');
 
-    const count = cache.invalidate({ key: '/users|view:html:a', policy: 'remove' });
+    const count = cache.invalidate({ key: 'view:/users|view:html:a', policy: 'remove' });
 
     expect(count).toBe(1);
-    expect(cache.get('/users|view:html:a')).toBeUndefined();
-    expect(cache.get('/profile|view:html:b')).toBe('b');
+    expect(cache.get('view:/users|view:html:a')).toBeUndefined();
+    expect(cache.get('view:/profile|view:html:b')).toBe('b');
+  });
+
+  it('invalidate by path removes matching view keys', async () => {
+    cache = new ViewPayloadCache();
+    await cache.resolve('view:/users|view:html:a', async () => 'a');
+    await cache.resolve('view:/profile|view:html:b', async () => 'b');
+
+    const count = cache.invalidate({ path: '/users', policy: 'remove' });
+
+    expect(count).toBe(1);
+    expect(cache.get('view:/users|view:html:a')).toBeUndefined();
+    expect(cache.get('view:/profile|view:html:b')).toBe('b');
   });
 
   it('invalidate with default policy marks entries stale but keeps values', async () => {

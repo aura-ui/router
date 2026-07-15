@@ -98,18 +98,22 @@ export class AuraRoutingUrlMatcher {
    */
   @memoize((pathname: string) => pathname)
   matchPath(pathname: string, nodes: readonly RouteNode[]): NodePathMatch | null {
-    let best: NodePathMatch & { score: number } | null = null;
+    let bestNode: RouteNode | null = null;
+    let bestParams: Record<string, string> = {};
+    let bestScore = -Infinity;
 
     for (const node of nodes) {
       const params = this.getPathParams(pathname, node.pattern);
       if (params === null) continue;
       const score = routeScore(node.pattern);
-      if (!best || score > best.score) {
-        best = { node, params, score };
+      if (score > bestScore) {
+        bestNode = node;
+        bestParams = params;
+        bestScore = score;
       }
     }
 
-    return best ? { node: best.node, params: best.params } : null;
+    return bestNode ? { node: bestNode, params: bestParams } : null;
   }
 
   /**
@@ -135,7 +139,7 @@ export class AuraRoutingUrlMatcher {
    */
   getPathParams(pathname: string, pattern: string): Record<string, string> | null {
     if (isGlobalCatchAllPattern(pattern)) {
-      const splat = pathname.replace(/^\//, '');
+      const splat = pathname.startsWith('/') ? pathname.slice(1) : pathname;
       return { splat };
     }
 
@@ -152,7 +156,6 @@ export class AuraRoutingUrlMatcher {
       for (const [key, value] of Object.entries(result.pathname.groups)) {
         if (value !== undefined) groups[key] = value;
       }
-
       return groups;
     } catch {
       return pathname === pattern ? {} : null;
@@ -188,8 +191,6 @@ export class AuraRoutingUrlMatcher {
     node: RouteNode,
     params?: Record<string, string>,
   ): MatchedRouteInfo {
-    const query = parseSearch(search);
-
     const leaf = attachNavigationChain(
       node,
       {
@@ -197,8 +198,8 @@ export class AuraRoutingUrlMatcher {
         pathname,
         search,
         hash,
-        ...(params && Object.keys(params).length > 0 && { params }),
-        ...(query && Object.keys(query).length > 0 && { query }),
+        params,
+        query: parseSearch(search),
       },
       (targetPathname, targetPattern) => this.getPathParams(targetPathname, targetPattern),
     );

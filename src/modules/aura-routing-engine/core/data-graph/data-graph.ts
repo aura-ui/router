@@ -12,7 +12,6 @@ import type { PipelineStepResult } from '../navigation/types';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import type { RouteLifecycleContext } from '../route/types';
-import { routeMatchKey } from '../route-tree/matched-chain';
 import { buildRouteDataKey, closestRouteWithLoadHooks, routeHasLoadHooks, routeLoadHookNames } from './route-data';
 import { promiseWithResolvers } from '../../../aura-utils/async/promises';
 
@@ -136,7 +135,7 @@ export class DataGraph {
 
     await Promise.all(
       routesWithLoadHooks.map(async (route) => {
-        const deferred = handles.deferreds.get(routeMatchKey(route))!;
+        const deferred = handles.deferreds.get(route.route.uid)!;
         try {
           const payload = await this.prefetchRoute(route, options.signal, () =>
             this.awaitParentPayload(route, handles.handles, branch),
@@ -202,7 +201,7 @@ export class DataGraph {
     await Promise.all(
       enterRoutesWithLoadHooks.map(async (route, index) => {
 
-        const deferred = deferreds.get(routeMatchKey(route))!;
+        const deferred = deferreds.get(route.route.uid)!;
 
         const result = await this.ensureNavigationLoad(
           route,
@@ -378,15 +377,15 @@ export class DataGraph {
   }
 
   private createPayloadHandles(routes: readonly MatchedRouteInfo[]): {
-    handles: Map<string, RouteLoadHandle>;
-    deferreds: Map<string, PayloadDeferred>;
+    handles: Map<number, RouteLoadHandle>;
+    deferreds: Map<number, PayloadDeferred>;
   } {
-    const handles = new Map<string, RouteLoadHandle>();
-    const deferreds = new Map<string, PayloadDeferred>();
+    const handles = new Map<number, RouteLoadHandle>();
+    const deferreds = new Map<number, PayloadDeferred>();
 
     for (const route of routes) {
       const { promise, resolve } = promiseWithResolvers();
-      const key = routeMatchKey(route);
+      const key = route.route.uid;
       deferreds.set(key, { promise, resolve });
       handles.set(key, { route, payload: promise });
     }
@@ -396,13 +395,13 @@ export class DataGraph {
 
   private async awaitParentPayload(
     child: MatchedRouteInfo,
-    handles: ReadonlyMap<string, RouteLoadHandle>,
+    handles: ReadonlyMap<number, RouteLoadHandle>,
     branch: readonly MatchedRouteInfo[],
   ): Promise<unknown> {
     const parent = closestRouteWithLoadHooks(child, branch);
     if (!parent) return undefined;
 
-    const inFlight = handles.get(routeMatchKey(parent));
+    const inFlight = handles.get(parent.route.uid);
     if (inFlight) return inFlight.payload;
 
     const descriptor = this.buildRouteLoadDescriptor(parent);

@@ -55,8 +55,8 @@ function encodeRecord(record: Record<string, string>): string {
 
 /** Nearest ancestor on `branch` (root→leaf) that participates in DataGraph load. */
 export function closestRouteWithLoadHooks(child: MatchedRouteInfo, branch: readonly MatchedRouteInfo[]): MatchedRouteInfo | undefined {
-  const childKey = routeMatchKey(child);
-  const childIndex = branch.findIndex((route) => routeMatchKey(route) === childKey);
+  const childUid = child.route.uid;
+  const childIndex = branch.findIndex((route) => route.route.uid === childUid);
   if (childIndex <= 0) return undefined;
 
   for (let i = childIndex - 1; i >= 0; i--) {

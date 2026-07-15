@@ -106,3 +106,50 @@ describe('AuraRoute hasViewContent', () => {
     expect(mount({}).hasViewContent).toBe(false);
   });
 });
+
+describe('AuraRoute viewKeySuffix', () => {
+  beforeAll(() => {
+    if (!customElements.get(AuraRoute.is)) {
+      customElements.define(AuraRoute.is, AuraRoute);
+    }
+  });
+
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  function mount(attrs: Record<string, string>): AuraRoute {
+    const route = document.createElement(AuraRoute.is) as AuraRoute;
+    route.setAttribute('path', '/');
+    for (const [name, value] of Object.entries(attrs)) {
+      route.setAttribute(name, value);
+    }
+    document.body.append(route);
+    return route;
+  }
+
+  it('builds layout and view slots', () => {
+    expect(mount({ layout: 'shell' }).viewKeySuffix).toBe('layout:template:shell');
+    expect(mount({ view: 'html::<p/>' }).viewKeySuffix).toBe('view:html:<p/>');
+    expect(mount({ view: 'url::page.html', extract: '#main' }).viewKeySuffix).toBe(
+      'view:url:page.html::#main',
+    );
+    expect(mount({}).viewKeySuffix).toBeNull();
+  });
+
+  it('invalidates cached slot when layout/view/extract change', () => {
+    const route = mount({ view: 'html::a' });
+    expect(route.viewKeySuffix).toBe('view:html:a');
+
+    route.setAttribute('view', 'html::b');
+    expect(route.viewKeySuffix).toBe('view:html:b');
+
+    route.setAttribute('layout', 'shell');
+    expect(route.viewKeySuffix).toBe('layout:template:shell');
+
+    route.removeAttribute('layout');
+    route.setAttribute('view', 'url::x.html');
+    route.setAttribute('extract', '#c');
+    expect(route.viewKeySuffix).toBe('view:url:x.html::#c');
+  });
+});

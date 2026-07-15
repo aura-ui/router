@@ -63,6 +63,21 @@ export function createTestRoute(
     hasUpdate: { get(): boolean { return !!route.update?.length; } },
     hasLeave: { get(): boolean { return !!route.leave?.length; } },
     hasLoad: { get(): boolean { return !!route.load?.length; } },
+    viewKeySuffix: {
+      get(): string | null {
+        const r = route as RouteInstance & {
+          layout?: string;
+          view?: ViewAttrDescriptor | null;
+          extract?: string | null;
+        };
+        const layout = r.layout?.trim();
+        if (layout) return `layout:template:${layout}`;
+        const view = r.view;
+        if (!view?.loader || !view.content) return null;
+        const slot = `view:${view.loader}:${view.content}`;
+        return view.loader === 'url' && r.extract ? `${slot}::${r.extract}` : slot;
+      },
+    },
     hasViewContent: {
       get(): boolean {
         const r = route as RouteInstance & { layout?: string; view?: ViewAttrDescriptor | null };

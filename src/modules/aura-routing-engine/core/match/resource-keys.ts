@@ -14,9 +14,9 @@ export function dataKey(match: MatchedRouteInfo): string {
  * `null` when route has no layout/view content.
  */
 export function viewKey(match: MatchedRouteInfo): string | null {
-  const slot = viewSlot(match);
-  if (!slot) return null;
-  return `view:${identity(match)}|${slot}`;
+  const suffix = match.route.viewKeySuffix;
+  if (!suffix) return null;
+  return `view:${identity(match)}|${suffix}`;
 }
 
 /**
@@ -27,10 +27,10 @@ export function resourceKeys(match: MatchedRouteInfo): {
   viewKey: string | null;
 } {
   const id = identity(match);
-  const slot = viewSlot(match);
+  const suffix = match.route.viewKeySuffix;
   return {
     dataKey: `data:${id}`,
-    viewKey: slot ? `view:${id}|${slot}` : null,
+    viewKey: suffix ? `view:${id}|${suffix}` : null,
   };
 }
 
@@ -49,23 +49,6 @@ function identity(match: MatchedRouteInfo): string {
   const query = encode(match.query);
   if (query) out += `|${query}`;
   return out;
-}
-
-function viewSlot(match: MatchedRouteInfo): string | null {
-  const route = match.route as {
-    layout?: string;
-    view?: { loader: string; content: string } | null;
-    extract?: string | null;
-  };
-
-  const layout = route.layout?.trim();
-  if (layout) return `layout:template:${layout}`;
-
-  const view = route.view;
-  if (!view?.loader || !view.content) return null;
-
-  const slot = `view:${view.loader}:${view.content}`;
-  return view.loader === 'url' && route.extract ? `${slot}::${route.extract}` : slot;
 }
 
 function encode(record: Record<string, string> | undefined): string {

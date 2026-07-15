@@ -105,6 +105,11 @@ export interface RouteInstance extends RouteHookNamesSource {
   readonly mountStrategy?: MountStrategy | null;
   readonly extract?: string | null;
   readonly transition: RouteTransitionType;
+  /**
+   * Suffix of `viewKey` (`layout:template:…` / `view:…`).
+   * Cached on the route; invalidate via attr change / `refresh()`.
+   */
+  readonly viewKeySuffix: string | null;
   readonly hasGuard: boolean;
   readonly hasUpdate: boolean;
   readonly hasLeave: boolean;

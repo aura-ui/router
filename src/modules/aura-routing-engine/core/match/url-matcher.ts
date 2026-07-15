@@ -1,7 +1,8 @@
 import { memoize } from '../../../aura-utils/decorators/memoize';
 import { parseSearch } from '../../../aura-utils/misc/url';
 import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
-import { attachNavigationChain } from '../route-tree/matched-chain';
+import { attachNavigationChain, getActiveChain } from '../route-tree/matched-chain';
+import { dataKey, viewKey } from './resource-keys';
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { RouteNode } from '../route-tree/route-node.types';
@@ -25,6 +26,13 @@ export interface MatchedRouteInfo {
   chain?: MatchedRouteInfo[];
   /** Resolved `view` attr for this navigation (leaf); set in {@link attachNavigationChain}. */
   resolvedView?: ResolvedView | null;
+  /** Resource identity for DataGraph / handoff — set in {@link AuraRoutingUrlMatcher.toRouteInfo}. */
+  dataKey?: string;
+  /**
+   * Resource identity for ViewGraph / handoff (no `d:data` suffix).
+   * Set in {@link AuraRoutingUrlMatcher.toRouteInfo}; `null` when no layout/view.
+   */
+  viewKey?: string | null;
 }
 
 /** Результат `matchPath`: победивший узел и извлечённые path params. */
@@ -181,7 +189,7 @@ export class AuraRoutingUrlMatcher {
   ): MatchedRouteInfo {
     const query = parseSearch(search);
 
-    return attachNavigationChain(
+    const leaf = attachNavigationChain(
       node,
       {
         href,
@@ -193,6 +201,13 @@ export class AuraRoutingUrlMatcher {
       },
       (targetPathname, targetPattern) => this.getPathParams(targetPathname, targetPattern),
     );
+
+    for (const info of getActiveChain(leaf)) {
+      info.dataKey = dataKey(info);
+      info.viewKey = viewKey(info);
+    }
+
+    return leaf;
   }
 
   /** Lazy compile + reuse `URLPattern` для param/static patterns (ключ — `pattern`). */

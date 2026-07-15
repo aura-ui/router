@@ -6,4 +6,4 @@ export {
   type DataGraphPrefetchOptions,
   type DataSnapshot,
 } from './data-graph';
-export { routeDataKey, resolveRouteData, routeHasLoadHooks, routeLoadHookNames } from './route-data';
+export { resolveRouteData, routeHasLoadHooks, routeLoadHookNames } from './route-data';

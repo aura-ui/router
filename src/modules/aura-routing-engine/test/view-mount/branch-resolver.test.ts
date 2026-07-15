@@ -11,14 +11,15 @@ import {
   LoaderRegistry,
 } from '../../core/view-graph';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import { routeDataKey, resolveRouteData } from '../../core/data-graph/route-data';
+import { resolveRouteData } from '../../core/data-graph/route-data';
+import { resourceKeys } from '../../core/match/resource-keys';
 import { withResolvedView } from '../helpers/with-resolved-view';
 
 function matched(
   pattern: string,
   overrides: Partial<MatchedRouteInfo> = {},
 ): MatchedRouteInfo {
-  return withResolvedView({
+  const info = withResolvedView({
     href: pattern,
     pathname: pattern,
     search: '',
@@ -31,6 +32,12 @@ function matched(
     },
     ...overrides,
   } as MatchedRouteInfo);
+  if (info.dataKey == null) {
+    const keys = resourceKeys(info);
+    info.dataKey = keys.dataKey;
+    info.viewKey = keys.viewKey;
+  }
+  return info;
 }
 
 function resolveCtx(signal: AbortSignal, aborted = () => signal.aborted): BranchResolveContext {
@@ -223,7 +230,7 @@ describe('resolveEnterBranch', () => {
       },
     });
     const snapshot = new Map<string, unknown>([
-      [routeDataKey(layout), { userId: '42' }],
+      [layout.dataKey!, { userId: '42' }],
     ]) as DataSnapshot;
 
     const resolve = jest.fn(async (_route, _signal, options) => (

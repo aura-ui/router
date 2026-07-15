@@ -81,7 +81,7 @@ export type {
 } from './core/match/url-matcher';
 
 export { isCatchAllRoute } from './core/match/url-matcher';
-export { dataKey, viewKey } from './core/match/resource-keys';
+export { dataKey, viewKey, viewKeyWithData } from './core/match/resource-keys';
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';
 

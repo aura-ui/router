@@ -29,8 +29,9 @@ export interface MatchedRouteInfo {
   /** Resource identity for DataGraph / handoff — set in {@link AuraRoutingUrlMatcher.toRouteInfo}. */
   dataKey?: string;
   /**
-   * Resource identity for ViewGraph / handoff (no `d:data` suffix).
-   * Set in {@link AuraRoutingUrlMatcher.toRouteInfo}; `null` when no layout/view.
+   * Base view resource identity (no `d:data`) — set in {@link AuraRoutingUrlMatcher.toRouteInfo}.
+   * For needsData loads use {@link viewKeyWithData}.
+   * `null` when no layout/view.
    */
   viewKey?: string | null;
 }

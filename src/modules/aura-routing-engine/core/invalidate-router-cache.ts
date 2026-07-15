@@ -16,11 +16,11 @@ export type CacheKeyMatcher = (key: string) => boolean;
  * resolution order is `key` → `path` → `match`.
  */
 export type InvalidateScope = {
-  /** Exact cache key ({@link buildRouteDataKey} or {@link viewCacheKey}). */
+  /** Exact cache key (`match.dataKey` / `match.viewKey` / {@link viewKeyWithData}). */
   key?: string;
   /**
-   * Route pathname — matches the bare path and keys prefixed with `path|`
-   * (e.g. `/users` matches `/users|fetch-user`).
+   * Route **pattern** (e.g. `/users/:id`), not browser pathname.
+   * Matches `data:{pattern}…` / `view:{pattern}…` and legacy keys without kind prefix.
    */
   path?: string;
   /** Custom key filter when `key` and `path` are not enough. */
@@ -54,7 +54,11 @@ export type RouterCacheInvalidator = {
 };
 
 function belongsToPath(entryKey: string, path: string): boolean {
-  return entryKey === path || entryKey.startsWith(`${path}${CACHE_KEY_SEP}`);
+  const body =
+    entryKey.startsWith('data:') || entryKey.startsWith('view:')
+      ? entryKey.slice(5)
+      : entryKey;
+  return body === path || body.startsWith(`${path}${CACHE_KEY_SEP}`);
 }
 
 function exactKeyMatcher(key: string): CacheKeyMatcher {

@@ -17,7 +17,6 @@ export type ViewResolverPort = Pick<ViewGraph, 'loadView'>;
 export type BranchViewResolver = ViewResolverPort;
 
 export { ViewPayloadCache } from './cache/view-payload-cache';
-export { viewCacheKey } from './cache/cache-key';
 
 export { LoaderRegistry, createLoaderRegistry, defaultLoaderRegistry } from './registry';
 export { Loader, type LoaderClass } from './loader';

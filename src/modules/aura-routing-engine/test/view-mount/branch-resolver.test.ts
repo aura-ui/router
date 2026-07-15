@@ -11,7 +11,7 @@ import {
   LoaderRegistry,
 } from '../../core/view-graph';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import { buildRouteDataKey, resolveRouteData } from '../../core/data-graph/route-data';
+import { routeDataKey, resolveRouteData } from '../../core/data-graph/route-data';
 import { withResolvedView } from '../helpers/with-resolved-view';
 
 function matched(
@@ -223,7 +223,7 @@ describe('resolveEnterBranch', () => {
       },
     });
     const snapshot = new Map<string, unknown>([
-      [buildRouteDataKey(layout, ['user']), { userId: '42' }],
+      [routeDataKey(layout), { userId: '42' }],
     ]) as DataSnapshot;
 
     const resolve = jest.fn(async (_route, _signal, options) => (

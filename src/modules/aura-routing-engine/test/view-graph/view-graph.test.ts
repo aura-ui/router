@@ -1,25 +1,30 @@
-import { ViewGraph, ViewPayloadCache, LoaderRegistry, viewCacheKey } from '../../core/view-graph';
+import { ViewGraph, ViewPayloadCache, LoaderRegistry } from '../../core/view-graph';
+import { viewKey } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { withResolvedView } from '../helpers/with-resolved-view';
+import { createTestRoute } from '../helpers/create-test-route';
+import type { RouteInstance } from '../../core';
 
 function matched(
   pattern: string,
   overrides: Partial<MatchedRouteInfo> = {},
 ): MatchedRouteInfo {
+  const { route: routeOverride, ...rest } = overrides;
   return withResolvedView({
     href: pattern,
     pathname: pattern,
     search: '',
     hash: '',
     pattern,
-    route: {
+    route: createTestRoute(pattern, {
       layout: '',
       view: null,
       cache: NO_CACHE,
-    },
-    ...overrides,
-  } as MatchedRouteInfo);
+      ...(routeOverride as Partial<RouteInstance> | undefined),
+    }),
+    ...rest,
+  });
 }
 
 describe('ViewGraph', () => {
@@ -408,10 +413,7 @@ describe('ViewGraph', () => {
       route: { layout: '', view: { loader: 'html', content: 'x' }, cache: { dom: false, view: true, data: false } },
       resolvedView: { loader: 'html', content: 'x' },
     });
-    const key = viewCacheKey(
-      { kind: 'view', loader: 'html', content: 'x', cache: true },
-      route,
-    );
+    const key = viewKey(route)!;
 
     await graph.loadView(route, new AbortController().signal);
     expect(cache.get(key)).toBe('cached');

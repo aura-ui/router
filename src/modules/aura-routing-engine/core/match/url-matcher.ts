@@ -1,7 +1,7 @@
 import { memoize } from '../../../aura-utils/decorators/memoize';
 import { parseSearch } from '../../../aura-utils/misc/url';
 import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
-import { attachNavigationChain, getActiveChain } from '../route-tree/matched-chain';
+import { buildActiveChain, getActiveChain } from '../route-tree/matched-chain';
 import { resourceKeys } from './resource-keys';
 import { isStaticRoutePattern } from './route-score';
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
@@ -25,12 +25,12 @@ export interface MatchedRouteInfo {
   node?: RouteNode;
   /** Active branch root → leaf. */
   chain?: MatchedRouteInfo[];
-  /** Resolved `view` attr for this navigation (leaf); set in {@link attachNavigationChain}. */
+  /** Resolved `view` attr for this navigation (leaf); set in {@link buildActiveChain}. */
   resolvedView?: ResolvedView | null;
-  /** Resource identity for DataGraph / handoff — set in {@link AuraRoutingUrlMatcher.toRouteInfo}. */
+  /** Resource identity for DataGraph / handoff — set in {@link AuraRoutingUrlMatcher.buildMatchedRouteInfo}. */
   dataKey?: string;
   /**
-   * Base view resource identity (no `d:data`) — set in {@link AuraRoutingUrlMatcher.toRouteInfo}.
+   * Base view resource identity (no `d:data`) — set in {@link AuraRoutingUrlMatcher.buildMatchedRouteInfo}.
    * For needsData loads use {@link viewKeyWithData}.
    * `null` when no layout/view.
    */
@@ -47,7 +47,7 @@ export interface NodePathMatch {
 export const CATCH_ALL_SEGMENT = '*' as const;
 
 /** exact = static O(1); rest = `:param` / catch-all. */
-interface MatchableRoutes {
+interface MatchIndex {
   exact: Map<string, RouteNode>;
   rest: readonly RouteNode[];
 }
@@ -58,7 +58,7 @@ interface MatchableRoutes {
  */
 export class AuraRoutingUrlMatcher {
   private readonly urlPatterns = new Map<string, URLPattern>();
-  private readonly routesByNodes = new WeakMap<readonly RouteNode[], MatchableRoutes>();
+  private readonly matchIndexByNodes = new WeakMap<readonly RouteNode[], MatchIndex>();
 
   /**
    * Лучший match среди `matchableNodes`.
@@ -67,7 +67,7 @@ export class AuraRoutingUrlMatcher {
    */
   @memoize((pathname: string) => pathname)
   matchPath(pathname: string, nodes: readonly RouteNode[]): NodePathMatch | null {
-    const { exact, rest } = this.matchableRoutes(nodes);
+    const { exact, rest } = this.getMatchIndex(nodes);
 
     let bestNode = exact.get(pathname) ?? null;
     let bestParams: Record<string, string> = {};
@@ -94,14 +94,14 @@ export class AuraRoutingUrlMatcher {
     }
 
     if (isScopedCatchAllPattern(pattern)) {
-      return matchScopedCatchAll(pathname, pattern);
+      return getScopedCatchAllParams(pathname, pattern);
     }
 
     if (isStaticRoutePattern(pattern)) {
       return pathname === pattern ? {} : null;
     }
 
-    return this.matchParamPattern(pathname, pattern);
+    return this.getUrlPatternParams(pathname, pattern);
   }
 
   destroy() {
@@ -113,7 +113,7 @@ export class AuraRoutingUrlMatcher {
    * Leaf {@link MatchedRouteInfo} + nested `chain` из `node.branch`.
    * Ancestor params — {@link getPathParams}; keys — {@link resourceKeys}.
    */
-  toRouteInfo(
+  buildMatchedRouteInfo(
     href: string,
     pathname: string,
     search: string,
@@ -121,7 +121,7 @@ export class AuraRoutingUrlMatcher {
     node: RouteNode,
     params?: Record<string, string>,
   ): MatchedRouteInfo {
-    const leaf = attachNavigationChain(
+    const leaf = buildActiveChain(
       node,
       {
         href,
@@ -143,8 +143,8 @@ export class AuraRoutingUrlMatcher {
     return leaf;
   }
 
-  private matchableRoutes(nodes: readonly RouteNode[]): MatchableRoutes {
-    const cached = this.routesByNodes.get(nodes);
+  private getMatchIndex(nodes: readonly RouteNode[]): MatchIndex {
+    const cached = this.matchIndexByNodes.get(nodes);
     if (cached) return cached;
 
     const exact = new Map<string, RouteNode>();
@@ -154,12 +154,12 @@ export class AuraRoutingUrlMatcher {
       else rest.push(node);
     }
 
-    const routes = { exact, rest };
-    this.routesByNodes.set(nodes, routes);
-    return routes;
+    const index = { exact, rest };
+    this.matchIndexByNodes.set(nodes, index);
+    return index;
   }
 
-  private matchParamPattern(pathname: string, pattern: string): Record<string, string> | null {
+  private getUrlPatternParams(pathname: string, pattern: string): Record<string, string> | null {
     try {
       const result = this.getUrlPattern(pattern).exec({ pathname });
       if (!result) return null;
@@ -185,7 +185,7 @@ export class AuraRoutingUrlMatcher {
 }
 
 /** Scoped `/users/*`: `/users/unknown` → `{ splat: 'unknown' }`. */
-function matchScopedCatchAll(pathname: string, pattern: string): Record<string, string> | null {
+function getScopedCatchAllParams(pathname: string, pattern: string): Record<string, string> | null {
   const prefix = pattern.slice(0, -1); // `/users/*` → `/users/`
   if (!pathname.startsWith(prefix)) return null;
   const splat = pathname.slice(prefix.length);
@@ -194,7 +194,7 @@ function matchScopedCatchAll(pathname: string, pattern: string): Record<string, 
 
 export {
   computeMatchScore,
-  isCatchAllRoute,
+  isCatchAllRoutePattern,
   isParamRoutePattern,
   isStaticRoutePattern,
 } from './route-score';

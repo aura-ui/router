@@ -6,13 +6,13 @@ export function isParamRoutePattern(pattern: string): boolean {
 }
 
 /** Global (`*`) или scoped (`/prefix/*`). */
-export function isCatchAllRoute(pattern: string): boolean {
+export function isCatchAllRoutePattern(pattern: string): boolean {
   return isGlobalCatchAllPattern(pattern) || isScopedCatchAllPattern(pattern);
 }
 
 /** Exact pathname; без `:param` и без `*`. */
 export function isStaticRoutePattern(pattern: string): boolean {
-  return !isParamRoutePattern(pattern) && !isCatchAllRoute(pattern);
+  return !isParamRoutePattern(pattern) && !isCatchAllRoutePattern(pattern);
 }
 
 /**

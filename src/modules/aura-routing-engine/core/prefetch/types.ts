@@ -101,7 +101,7 @@ export type PrefetchPipelineDeps = {
       node: RouteNode;
       params: Record<string, string>;
     } | null;
-    toRouteInfo(
+    buildMatchedRouteInfo(
       href: string,
       pathname: string,
       search: string,

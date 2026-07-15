@@ -20,7 +20,7 @@ export function viewKey(match: MatchedRouteInfo): string | null {
 }
 
 /**
- * Both resource keys with a single identity encode (hot path in `toRouteInfo`).
+ * Both resource keys with a single identity encode (hot path in `buildMatchedRouteInfo`).
  */
 export function resourceKeys(match: MatchedRouteInfo): {
   dataKey: string;

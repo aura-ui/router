@@ -142,7 +142,7 @@ describe('PrefetchPipeline', () => {
 
     const dataGraph = new DataGraph(hookRegistry);
 
-    const leaf = localMatcher.toRouteInfo(
+    const leaf = localMatcher.buildMatchedRouteInfo(
       '/settings/profile',
       '/settings/profile',
       '',

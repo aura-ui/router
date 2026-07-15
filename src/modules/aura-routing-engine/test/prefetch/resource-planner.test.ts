@@ -26,7 +26,7 @@ describe('DefaultPrefetchResourcePlanner', () => {
     const found = matcher.matchPath('/page', matchableNodes);
     if (!found) throw new Error('route not found');
 
-    const routeInfo = matcher.toRouteInfo('/page', '/page', '', '', found.node, found.params);
+    const routeInfo = matcher.buildMatchedRouteInfo('/page', '/page', '', '', found.node, found.params);
 
     return {
       href: '/page',
@@ -103,7 +103,7 @@ describe('DefaultPrefetchResourcePlanner', () => {
     const found = matcher.matchPath('/layout-page', matchableNodes);
     if (!found) throw new Error('route not found');
 
-    const routeInfo = matcher.toRouteInfo(
+    const routeInfo = matcher.buildMatchedRouteInfo(
       '/layout-page',
       '/layout-page',
       '',

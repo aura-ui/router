@@ -1,12 +1,12 @@
 /**
- * Bench: attachNavigationChain — ancestor URLPattern re-match per depth.
+ * Bench: buildActiveChain — ancestor URLPattern re-match per depth.
  * Maps to NAVIGATION_PERF_AUDIT §5.
  *
  * Run: npm run bench:matched-chain
  */
 import '../lib/dom-bootstrap';
 import { AuraRoutingUrlMatcher } from '../../src/modules/aura-routing-engine/core/match/url-matcher';
-import { attachNavigationChain } from '../../src/modules/aura-routing-engine/core/route-tree/matched-chain';
+import { buildActiveChain } from '../../src/modules/aura-routing-engine/core/route-tree/matched-chain';
 import { linearChainRouteNodes, nestedDashboardMatchableNodes } from '../lib/fixtures';
 import { BenchSession, isBenchMain, type SavedReport } from '../lib/report';
 import { bench, consume } from '../lib/stats';
@@ -26,14 +26,14 @@ export function runMatchedChainBench(): SavedReport {
     const pathname = leaf.pattern;
     const ops = 5_000;
     session.beginScenario(
-      `toRouteInfo + chain (${childCount} siblings, depth=2)`,
+      `buildMatchedRouteInfo + chain (${childCount} siblings, depth=2)`,
       ops,
       7,
     );
-    const full = bench('matchPath + attachNavigationChain', () => {
+    const full = bench('matchPath + buildActiveChain', () => {
       const m = matcher.matchPath(pathname, matchableNodes);
       if (!m) return;
-      consume(matcher.toRouteInfo(pathname, pathname, '', '', m.node, m.params));
+      consume(matcher.buildMatchedRouteInfo(pathname, pathname, '', '', m.node, m.params));
     }, { ops });
     const leafOnly = bench('matchPath only (no chain)', () => {
       consume(matcher.matchPath(pathname, matchableNodes));
@@ -51,20 +51,20 @@ export function runMatchedChainBench(): SavedReport {
     const { leaf, matchableNodes } = linearChainRouteNodes(depth);
     const pathname = leaf.pattern;
     const ops = 3_000;
-    session.beginScenario(`attachNavigationChain (linear depth=${depth})`, ops, 7);
-    const chainOnly = bench('attachNavigationChain only', () => {
+    session.beginScenario(`buildActiveChain (linear depth=${depth})`, ops, 7);
+    const chainOnly = bench('buildActiveChain only', () => {
       consume(
-        attachNavigationChain(
+        buildActiveChain(
           leaf,
           { href: pathname, pathname, search: '', hash: '' },
           (p, pat) => matcher.getPathParams(p, pat),
         ),
       );
     }, { ops });
-    const full = bench('matchPath + toRouteInfo', () => {
+    const full = bench('matchPath + buildMatchedRouteInfo', () => {
       const m = matcher.matchPath(pathname, matchableNodes);
       if (!m) return;
-      consume(matcher.toRouteInfo(pathname, pathname, '', '', m.node, m.params));
+      consume(matcher.buildMatchedRouteInfo(pathname, pathname, '', '', m.node, m.params));
     }, { ops });
     const best = Math.max(chainOnly.medianOps, full.medianOps);
     session.recordResult(chainOnly, best);

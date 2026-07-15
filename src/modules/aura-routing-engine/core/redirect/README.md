@@ -257,7 +257,7 @@ if (chain.status === 'resolved') {
 | Поле | Назначение |
 |------|------------|
 | `engine` | Probe `NavigationTransaction` и hook registry |
-| `matcher` | `RedirectMatcher` — `matchPath` + `toRouteInfo` |
+| `matcher` | `RedirectMatcher` — `matchPath` + `buildMatchedRouteInfo` |
 | `getMatchableNodes` | Снимок узлов registry generation |
 | `isActive` | `true`, пока attempt navigate актуален; `false` после supersede — probe видит stale через `NavigationTransaction.isActive()` |
 
@@ -276,7 +276,7 @@ matchPath(stripTrailingSlash(pathname))
   ├─ нет узла ─────────────► null
   ├─ route.type === redirect ► { kind: 'redirect', href: resolveRedirectHref(...) }
   └─ leaf ───────────────────► canonical index folder href
-                                 + toRouteInfo(preserved search/hash)
+                                 + buildMatchedRouteInfo(preserved search/hash)
                                  ► { kind: 'matched', viaRedirect: false, ... }
 ```
 
@@ -460,7 +460,7 @@ PrefetchPlanResolver.resolve
 
 ```text
 redirect/
-  ◄── match/url-matcher (matchPath, toRouteInfo)
+  ◄── match/url-matcher (matchPath, buildMatchedRouteInfo)
   ◄── route-tree (RouteNode, resolvePattern)
   ◄── match/canonical-index-href
   ──► navigation/coordinator (RedirectResolveResult)

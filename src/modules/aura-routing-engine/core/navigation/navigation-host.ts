@@ -13,7 +13,7 @@ export interface NavigationHost {
   readonly isRunning: boolean;
   /** Probe transactions and the full pipeline require the engine instance. */
   readonly engine: AuraRoutingEngine;
-  readonly matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'toRouteInfo'>;
+  readonly matcher: Pick<AuraRoutingUrlMatcher, 'matchPath' | 'buildMatchedRouteInfo'>;
 
   getCommittedRoute(): MatchedRouteInfo | null;
   getMatchableNodes(): readonly RouteNode[];

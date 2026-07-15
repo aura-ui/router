@@ -56,7 +56,7 @@ bench/
 | Сценарий | Audit § | Что измеряет |
 |----------|---------|--------------|
 | `url-matcher` | 1–2 | `matchPath` scale 10–500; `getPathParams` cold vs cached URLPattern |
-| `matched-chain` | 5 | `toRouteInfo` + `attachNavigationChain`; linear chain depth 2–8 |
+| `matched-chain` | 5 | `buildMatchedRouteInfo` + `buildActiveChain`; linear chain depth 2–8 |
 | `transition-plan` | — | `buildTransitionPlan` sibling / cold / exit / update |
 | `prefetch-plan` | 7 | `PrefetchPlanResolver.resolve` cold/warm; hover storm |
 | `dom-patch` | 3 | `replaceInner` / `updateInner` 1–50 KB HTML |

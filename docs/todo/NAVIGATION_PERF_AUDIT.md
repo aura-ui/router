@@ -90,11 +90,11 @@ Nested default: `resolveEnterBranch` (async parallel) → `mountEnterBranch` (sy
 
 ## High
 
-### 5. <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> — Ancestor param re-match в `attachNavigationChain`
+### 5. <span style="color: #cf222e; font-weight: bold;">✗ ОСТАЛОСЬ</span> — Ancestor param re-match в `buildActiveChain`
 
 **Что:** для каждого non-leaf в chain снова `getPathParams(pathname, node.pattern)`.
 
-**Код:** `route-tree/matched-chain.ts` `attachNavigationChain` (~L124–129)
+**Код:** `route-tree/matched-chain.ts` `buildActiveChain` (~L124–129)
 
 **Bench:** `matched-chain.bench.ts`
 

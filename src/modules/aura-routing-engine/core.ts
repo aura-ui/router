@@ -80,7 +80,7 @@ export type {
   CATCH_ALL_SEGMENT,
 } from './core/match/url-matcher';
 
-export { isCatchAllRoute } from './core/match/url-matcher';
+export { isCatchAllRoutePattern } from './core/match/url-matcher';
 export { dataKey, viewKey, viewKeyWithData, resourceKeys } from './core/match/resource-keys';
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';

@@ -5,7 +5,6 @@ import { AuraRoute, RouteDomCache } from '../../aura-route/core';
 import {
   AuraRoutingEngine,
   ViewGraph,
-  ViewPayloadCache,
   DataGraph,
   defaultLoaderRegistry,
   defaultHookRegistry,
@@ -21,7 +20,8 @@ import {
   type RouterDataInvalidateOptions,
   type ViewInvalidateOptions,
   type RouterInstance,
-  type DataGraphOptions, Loader,
+  type DataGraphOptions,
+  type Loader,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
 
@@ -101,8 +101,6 @@ export type { RouteTrailEntry } from '../../aura-routing-engine/core/link-active
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
-  private static viewCacheOptions: CacheStoreOptions<string> = {};
-
   /** Fallback template id — когда нет `<aura-route path="*">`. */
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
   @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
@@ -132,9 +130,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();
   private readonly notFound = new AuraRouterNotFoundController(this);
-  private readonly viewLoaderCache = new ViewPayloadCache(AuraRouter.viewCacheOptions);
-  private readonly loaderRegistry = defaultLoaderRegistry;
-  private viewGraphInstance?: ViewGraph;
   private _trail: RouteTrailEntry[] = [];
 
   /** Active branch root → leaf after the last settled navigation. */
@@ -164,7 +159,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       RouteDomCache.configure(options.domCache);
     }
     if (options.viewCache) {
-      AuraRouter.viewCacheOptions = options.viewCache;
+      ViewGraph.configure(options.viewCache);
     }
     if (options.dataCache) {
       DataGraph.configure(options.dataCache);
@@ -188,14 +183,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     });
   }
 
+  /** Facade to the engine-owned {@link ViewGraph} (creates engine on first access). */
   get viewGraph(): ViewGraph {
-    if (!this.viewGraphInstance) {
-      this.viewGraphInstance = new ViewGraph({
-        registry: this.loaderRegistry,
-        cache: this.viewLoaderCache,
-      });
-    }
-    return this.viewGraphInstance;
+    return this.ensureEngine().viewGraph;
   }
 
   get routes() {
@@ -220,8 +210,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   disconnectedCallback(): void {
     this.engine?.destroy();
     this.engine = undefined;
-    this.viewGraphInstance?.destroy();
-    this.viewGraphInstance = undefined;
     this.scrollRestoration.clear();
     this.notFound.reset();
   }
@@ -230,7 +218,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (!this.engine) {
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
-        viewGraph: this.viewGraph,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
         onNavigationHistoryCommitted: (ctx) => {

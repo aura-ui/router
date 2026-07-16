@@ -9,6 +9,7 @@ import type {
   PrefetchResourcePlanner,
   SpeculationPrefetchPort,
 } from '../../core/prefetch/types';
+import { HandoffCache } from '../../core/resource-graph';
 import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('PrefetchPipeline', () => {
@@ -140,7 +141,7 @@ describe('PrefetchPipeline', () => {
     const match = localMatcher.matchPath('/settings/profile', matchableNodes);
     expect(match).not.toBeNull();
 
-    const dataGraph = new DataGraph(hookRegistry);
+    const dataGraph = new DataGraph(hookRegistry, new HandoffCache());
 
     const leaf = localMatcher.buildMatchedRouteInfo(
       '/settings/profile',

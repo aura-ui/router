@@ -1,5 +1,4 @@
-import { ViewGraph, ViewPayloadCache, LoaderRegistry } from '../../core/view-graph';
-import { viewKey } from '../../core/match/resource-keys';
+import { ViewGraph, LoaderRegistry } from '../../core/view-graph';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { withResolvedView } from '../helpers/with-resolved-view';
@@ -33,7 +32,7 @@ describe('ViewGraph', () => {
 
   beforeEach(() => {
     registry = new LoaderRegistry(undefined, []);
-    viewGraph = new ViewGraph({ registry, cache: new ViewPayloadCache() });
+    viewGraph = new ViewGraph({ registry });
   });
 
   afterEach(() => {
@@ -405,20 +404,28 @@ describe('ViewGraph', () => {
   });
 
   it('destroy clears the payload cache', async () => {
-    const cache = new ViewPayloadCache();
-    const graph = new ViewGraph({ registry, cache });
-    registry.register('html', async () => 'cached');
+    let loads = 0;
+    registry.register('html', async () => {
+      loads++;
+      return 'cached';
+    });
 
     const route = matched('/items', {
       route: { layout: '', view: { loader: 'html', content: 'x' }, cache: { dom: false, view: true, data: false } },
       resolvedView: { loader: 'html', content: 'x' },
     });
-    const key = viewKey(route)!;
 
-    await graph.loadView(route, new AbortController().signal);
-    expect(cache.get(key)).toBe('cached');
+    const graph = new ViewGraph({ registry });
+    const signal = new AbortController().signal;
+    await graph.loadView(route, signal);
+    await graph.loadView(route, signal);
+    expect(loads).toBe(1);
 
     graph.destroy();
-    expect(cache.get(key)).toBeUndefined();
+
+    const next = new ViewGraph({ registry });
+    await next.loadView(route, signal);
+    expect(loads).toBe(2);
+    next.destroy();
   });
 });

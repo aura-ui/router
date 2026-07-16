@@ -1,6 +1,5 @@
 import { AuraRoutingEngine } from '../../core';
 import {
-  ViewPayloadCache,
   ViewGraph,
   LoaderRegistry,
 } from '../../core/view-graph';
@@ -18,7 +17,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return '<span>about</span>';
     });
 
-    const viewGraph = new ViewGraph({ registry, cache: new ViewPayloadCache() });
+    const viewGraph = new ViewGraph({ registry });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
@@ -39,7 +38,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return 'x';
     });
 
-    const viewGraph = new ViewGraph({ registry, cache: new ViewPayloadCache() });
+    const viewGraph = new ViewGraph({ registry });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');

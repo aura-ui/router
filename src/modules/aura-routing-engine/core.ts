@@ -113,6 +113,7 @@ export {
 
 export type {
   ViewGraphDeps,
+  ViewGraphCacheOptions,
   ViewPrefetchOptions,
   ViewLoadPort,
   ViewResolverPort,

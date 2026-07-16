@@ -210,11 +210,7 @@ export class NavigationTransactionPipeline {
       }
 
       if (view) {
-        if (!engine.viewGraph) {
-          // no-op: content prefetch unavailable
-        } else {
-          parts.push(engine.viewGraph.prefetchBranch(enterRoutes, signal));
-        }
+        parts.push(engine.viewGraph.prefetchBranch(enterRoutes, signal));
       }
 
       if (parts.length) {
@@ -331,7 +327,7 @@ export class NavigationTransactionPipeline {
     });
     const resolved = await resolveEnterBranch(
       enterRoutes,
-      this.transaction.engine.viewGraph!,
+      this.transaction.engine.viewGraph,
       resolveContext,
     );
 

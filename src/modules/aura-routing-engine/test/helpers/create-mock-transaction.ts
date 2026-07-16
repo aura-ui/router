@@ -2,6 +2,7 @@ import type { ViewGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
+import { HandoffCache } from '../../core/resource-graph';
 import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationHost } from '../../core/navigation/navigation-host';
@@ -46,7 +47,7 @@ export function createMockEngine(): AuraRoutingEngine {
     commitHistoryIfNeeded: jest.fn(),
     commitNavigation: jest.fn(),
     finalizeCancelled: jest.fn(),
-    dataGraph: new DataGraph(hookRegistry),
+    dataGraph: new DataGraph(hookRegistry, new HandoffCache()),
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
     viewGraph: { loadView: jest.fn().mockResolvedValue(null) } as unknown as ViewGraph,
@@ -72,7 +73,7 @@ export function createCoordinatorMockHost(): NavigationHost & {
     finalizeCancelled: jest.fn(),
     applyRedirect: jest.fn(),
     finalizeError: jest.fn(),
-    dataGraph: new DataGraph(hookRegistry),
+    dataGraph: new DataGraph(hookRegistry, new HandoffCache()),
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
     reportNavigationHookError: jest.fn(),

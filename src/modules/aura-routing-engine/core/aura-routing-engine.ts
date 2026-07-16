@@ -5,7 +5,10 @@ import {
 import { splitAppHref } from '../../aura-utils/misc/url';
 
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import type { ViewGraph } from './view-graph';
+import {
+  ViewGraph,
+  type ViewGraphCacheOptions,
+} from './view-graph';
 import {
   FailedNavigation,
   type CompleteFailureDeps,
@@ -52,6 +55,7 @@ import {
 } from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import { onAbort } from '../../aura-utils/async/on-abort';
+import { HandoffCache } from './resource-graph';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -78,8 +82,13 @@ export interface AuraRoutingEngineConfig {
   onNotFound?: (failure: FailedNavigation) => void | boolean;
   /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
   provider?: NavigationProvider;
-  /** Router-owned view graph (shared prefetch + render cache). */
+  /**
+   * Override engine-owned {@link ViewGraph} (tests / custom registry).
+   * Production path: omit — engine creates ViewGraph + {@link ViewPayloadCache}.
+   */
   viewGraph?: ViewGraph;
+  /** Options for the engine-created `cache.view` store (ignored when `viewGraph` is passed). */
+  viewCache?: ViewGraphCacheOptions;
   /** Link-driven prefetch; `false` disables. */
   prefetch?: false | PrefetchConfig;
 }
@@ -95,11 +104,12 @@ export class AuraRoutingEngine implements NavigationHost {
   readonly router: RouterInstance;
 
   private notFoundHandler: NotFoundFallbackHandler | null = null;
-  readonly viewGraph?: ViewGraph;
+  readonly viewGraph: ViewGraph;
   private prefetchPipeline?: PrefetchPipeline;
   private readonly linkNavigation: LinkNavigationTracker;
   readonly hooksRegistry: HookRegistry;
   readonly dataGraph: DataGraph;
+  readonly handoffBuffer: HandoffCache;
 
   private readonly navigationCoordinator: NavigationCoordinator;
 
@@ -114,10 +124,14 @@ export class AuraRoutingEngine implements NavigationHost {
   ) {
     this.router = router;
     this.config = config;
-    this.viewGraph = config.viewGraph;
 
     this.hooksRegistry = defaultHookRegistry;
-    this.dataGraph = new DataGraph(this.hooksRegistry);
+
+    this.handoffBuffer = new HandoffCache({});
+
+    this.dataGraph = new DataGraph(this.hooksRegistry, this.handoffBuffer);
+
+    this.viewGraph = config.viewGraph ?? new ViewGraph({ cache: config.viewCache });
 
     this.provider = config.provider ?? new BrowserHistoryProvider();
 
@@ -168,8 +182,6 @@ export class AuraRoutingEngine implements NavigationHost {
    * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
    */
   invalidateView(options: RouterInvalidateOptions = {}): number {
-    if (!this.viewGraph) return 0;
-
     const count = this.viewGraph.invalidate(options);
     this.resetPrefetchRecords(options);
     return count;
@@ -223,6 +235,7 @@ export class AuraRoutingEngine implements NavigationHost {
     this.registry.clear();
     this.prev = null;
     this.navigationCoordinator.invalidate();
+    this.viewGraph.destroy();
   }
 
   /**
@@ -444,7 +457,7 @@ export class AuraRoutingEngine implements NavigationHost {
         getMatchableNodes: () => this.registry.getMatchableNodes(),
         getRegistryGeneration: () => this.registry.generationId,
         planner: new DefaultPrefetchResourcePlanner(
-          { view: Boolean(this.viewGraph) },
+          { view: true },
           prefetchPolicy,
         ),
         runSpeculativePrepare,

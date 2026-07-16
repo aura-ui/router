@@ -1,7 +1,6 @@
 /** @jest-environment jsdom */
 
 import {
-  ViewPayloadCache,
   ViewGraph,
   defaultLoaderRegistry,
   routeSnapshot,
@@ -22,7 +21,6 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     const viewGraph = new ViewGraph({
       registry: defaultLoaderRegistry,
-      cache: new ViewPayloadCache(),
     });
 
     const payload = await viewGraph.loadViewDescriptor(
@@ -63,7 +61,6 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     const service = new ViewGraph({
       registry: defaultLoaderRegistry,
-      cache: new ViewPayloadCache(),
     });
 
     await service.loadView(
@@ -96,7 +93,6 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     const service = new ViewGraph({
       registry: defaultLoaderRegistry,
-      cache: new ViewPayloadCache(),
     });
 
     await service.loadView(
@@ -135,7 +131,6 @@ describe('AuraRouter.registerLoaderLoader', () => {
 
     const service = new ViewGraph({
       registry: defaultLoaderRegistry,
-      cache: new ViewPayloadCache(),
     });
 
     await service.loadViewDescriptor(

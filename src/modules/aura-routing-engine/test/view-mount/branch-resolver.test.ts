@@ -7,7 +7,6 @@ import {
 } from '../../core';
 import {
   ViewGraph,
-  ViewPayloadCache,
   LoaderRegistry,
 } from '../../core/view-graph';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
@@ -256,7 +255,7 @@ describe('resolveEnterBranch', () => {
     registry.register('template', async (ctx) => `<header>${ctx.content}</header>`);
     registry.register('html', async (ctx) => ctx.content);
 
-    const content = new ViewGraph({ registry, cache: new ViewPayloadCache() });
+    const content = new ViewGraph({ registry });
     const signal = new AbortController().signal;
 
     const layout = matched('/users', {

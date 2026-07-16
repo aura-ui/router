@@ -1,3 +1,4 @@
+import type { CacheStoreOptions } from '../../../aura-cache-store/core';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
 import { createViewLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -8,7 +9,10 @@ import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { LoaderRegistry } from './registry';
+import { defaultLoaderRegistry, type LoaderRegistry } from './registry';
+
+/** Options for the long-lived `cache.view` store ({@link ViewPayloadCache}). */
+export type ViewGraphCacheOptions = CacheStoreOptions<string>;
 
 export type ViewPrefetchOptions = {
   /** Parallel prefetch cap. Default: `3`. */
@@ -30,21 +34,33 @@ export type RouteViewSource = {
 };
 
 export type ViewGraphDeps = {
-  readonly registry: LoaderRegistry;
-  readonly cache: ViewPayloadCache;
+  /** Defaults to {@link defaultLoaderRegistry}. */
+  readonly registry?: LoaderRegistry;
+  /** Merged over {@link ViewGraph.configure} defaults for the internal {@link ViewPayloadCache}. */
+  readonly cache?: ViewGraphCacheOptions;
 };
 
 /**
  * View payload coordinator: descriptor → loader → cache → {@link ViewPayload}.
- * One instance per {@link AuraRouter} (render, branch-resolve, prefetch).
+ * One instance per {@link AuraRoutingEngine} (render, branch-resolve, prefetch).
  */
 export class ViewGraph {
+  private static defaultCacheOptions: ViewGraphCacheOptions = {};
+
   private readonly registry: LoaderRegistry;
   private readonly cache: ViewPayloadCache;
 
-  constructor(deps: ViewGraphDeps) {
-    this.registry = deps.registry;
-    this.cache = deps.cache;
+  /** Default {@link ViewPayloadCache} options for engine-created graphs. */
+  static configure(options: ViewGraphCacheOptions = {}): void {
+    ViewGraph.defaultCacheOptions = { ...ViewGraph.defaultCacheOptions, ...options };
+  }
+
+  constructor(deps: ViewGraphDeps = {}) {
+    this.registry = deps.registry ?? defaultLoaderRegistry;
+    this.cache = new ViewPayloadCache({
+      ...ViewGraph.defaultCacheOptions,
+      ...deps.cache,
+    });
   }
 
   /**

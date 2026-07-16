@@ -4,7 +4,12 @@
  */
 import type { ViewGraph } from './view-graph';
 
-export { ViewGraph, type RouteViewSource, type ViewPrefetchOptions } from './view-graph';
+export {
+  ViewGraph,
+  type RouteViewSource,
+  type ViewPrefetchOptions,
+  type ViewGraphCacheOptions,
+} from './view-graph';
 export type { ViewGraphDeps } from './view-graph';
 
 /** Minimal surface for prefetch executor and DI mocks. */

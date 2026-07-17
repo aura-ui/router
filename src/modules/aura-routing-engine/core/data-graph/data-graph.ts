@@ -12,6 +12,7 @@ import type { NavigationTransaction } from '../navigation/navigation-transaction
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import type { RouteLifecycleContext } from '../route/types';
 import { closestRouteWithLoadHooks, routeLoadHookNames } from './route-data';
+import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { promiseWithResolvers } from '../../../aura-utils/async/promises';
 import { HandoffCache } from '../resource-graph';
 
@@ -72,6 +73,13 @@ class DataGraphTerminalError extends Error {
 }
 
 /**
+ * Shared prepare work is not tied to a caller transaction.
+ * Caller abort detaches the waiter via {@link awaitUntilAbort}; underlying load keeps running
+ * for handoff join (speculative → navigation), same contract as `import::`.
+ */
+const SHARED_LOAD_SIGNAL = new AbortController().signal;
+
+/**
  * Coordinator for route `load` hooks: parallel branch loads, SWR cache, prefetch intent.
  * View/HTML caching stays in `core/view-graph/`.
  *
@@ -120,8 +128,8 @@ export class DataGraph {
   }
 
   /**
-   * Parallel sibling abort: on cancel/error, abort in-flight loads on other enter routes.
-   * `ctx.parent()` joins the nearest ancestor handle (or cache for LCA parents outside enter).
+   * Parallel enter loads. Caller/sibling abort detaches waiters only — handoff work keeps running.
+   * `ctx.parent()` joins the nearest ancestor shared payload (or cache for LCA parents outside enter).
    */
   private async loadParallelRoutes(
     routes: readonly MatchedRouteInfo[],
@@ -130,7 +138,8 @@ export class DataGraph {
     mode: LoadHookMode,
   ): Promise<LoadResult<Map<string, unknown>>> {
     const siblingAbort = new AbortController();
-    const loadSignal = AbortSignal.any([transaction.signal, siblingAbort.signal]);
+    /** Interest for this batch: supersede / sibling terminal — not the shared handoff factory. */
+    const interestSignal = AbortSignal.any([transaction.signal, siblingAbort.signal]);
     const errors: PipelineStepResult[] = [];
     const { handles, deferreds } = this.createPayloadHandles(routes);
     const result = new Map<string, unknown>();
@@ -143,21 +152,20 @@ export class DataGraph {
         const { error, data } = await this.ensureRouteLoad(
           match,
           transaction,
-          loadSignal,
+          interestSignal,
           siblingAbort,
           mode,
           () => this.awaitParentPayload(match, handles, branch),
+          deferred,
         );
 
         if (error) {
           errors[index] = error;
-          deferred.reject(error instanceof Error ? error : new DataGraphTerminalError(error));
           siblingAbort.abort();
           return;
         }
 
         result.set(match.dataKey, data);
-        deferred.resolve(data);
       }),
     );
 
@@ -167,30 +175,54 @@ export class DataGraph {
   private async ensureRouteLoad(
     route: MatchedRouteInfo,
     transaction: NavigationTransaction,
-    loadSignal: AbortSignal,
+    interestSignal: AbortSignal,
     siblingAbort: AbortController,
     mode: LoadHookMode,
     parent: () => Promise<unknown>,
+    deferred: PayloadDeferred,
   ): Promise<LoadResult> {
     const hookNames = routeLoadHookNames(route);
-    if (!hookNames) return {};
+    if (!hookNames) {
+      deferred.resolve(undefined);
+      return {};
+    }
 
-    const ctx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
+    const isActive = () => transaction.isActive() && !siblingAbort.signal.aborted;
+
+    const loadCtx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
       from: transaction.from,
       action: transaction.action,
       router: transaction.engine.router,
       transactionId: transaction.transactionId,
-      transactionSignal: loadSignal,
+      transactionSignal: SHARED_LOAD_SIGNAL,
       parent,
     });
 
-    const isActive = () => transaction.isActive() && !siblingAbort.signal.aborted;
-
     try {
-      const data = await this.getRouteData(route, () => this.runHookLoaders(ctx, hookNames, isActive));
+      const shared = this.getRouteData(route, () => this.runHookLoaders(loadCtx, hookNames));
+      // parent() / sibling join follow shared settle — not waiter interest.
+      void shared.then(deferred.resolve, deferred.reject);
+
+      const data = await awaitUntilAbort(shared, interestSignal);
+
+      if (!isActive()) {
+        return mode === 'prefetch' ? {} : { error: { status: 'cancelled' } };
+      }
 
       // Immutable pipeline step: onLoad runs on every navigation, including cache hits.
-      mode === 'navigation' && route.route.onLoad(ctx);
+      if (mode === 'navigation') {
+        const onLoadCtx = NavigationTransactionPipelinePhase.buildPhaseContext('load', route, {
+          from: transaction.from,
+          action: transaction.action,
+          router: transaction.engine.router,
+          transactionId: transaction.transactionId,
+          transactionSignal: transaction.signal,
+          parent,
+          data,
+        });
+        route.route.onLoad(onLoadCtx);
+      }
+
       return { data };
     } catch (error) {
       if (mode === 'prefetch') {
@@ -199,7 +231,9 @@ export class DataGraph {
       if (error instanceof DataGraphTerminalError) {
         return { error: error.outcome };
       }
-      if (!isActive()) return { error: { status: 'cancelled' } };
+      if (!isActive() || interestSignal.aborted) {
+        return { error: { status: 'cancelled' } };
+      }
       return { error: await transaction.fail(route, error, 'load') };
     }
   }
@@ -210,12 +244,12 @@ export class DataGraph {
     return { hookNames, key: route.dataKey! };
   }
 
-  private async getRouteData(
+  private getRouteData(
     match: MatchedRouteInfo,
     load: () => Promise<LoadResult>,
   ): Promise<unknown> {
     const { route, dataKey } = match;
-    if (!dataKey) return undefined;
+    if (!dataKey) return Promise.resolve(undefined);
 
     return this.sharedBuffer.resolve(dataKey, async () => {
       const useLongCache = route.hasDataCache;
@@ -236,13 +270,13 @@ export class DataGraph {
 
   /**
    * Runs load hooks in parallel; returns `{ data }` or `{ error }`.
-   * Does not invoke `onLoad` — caller runs it after cache resolve.
+   * Does not invoke `onLoad` — caller runs it after the waiter accepts the result.
    * Thrown loader errors propagate to {@link ensureRouteLoad}.
+   * Must not consult caller interest — this factory is shared via handoff.
    */
   private async runHookLoaders(
     context: RouteLifecycleContext,
     hookNames: readonly string[],
-    isActive: () => boolean,
   ): Promise<LoadResult> {
     const response = await Promise.all(
       hookNames.map((hookName) => {
@@ -256,10 +290,6 @@ export class DataGraph {
         return loader.fn({ ...context, options: loader.options });
       }),
     );
-
-    if (!isActive()) {
-      return { error: { status: 'cancelled' } };
-    }
 
     if (hookNames.length === 1) {
       return { data: response[0] };
@@ -354,4 +384,3 @@ export class DataGraph {
 function routePreservesLoadData(route: MatchedRouteInfo): boolean {
   return route.route.cache?.data ?? false;
 }
-

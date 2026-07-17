@@ -439,4 +439,115 @@ describe('DataGraph', () => {
 
     expect(parentResult).toBeUndefined();
   });
+
+  it('keeps handoff load alive when prefetch aborts; navigation joins once', async () => {
+    let loads = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => {
+        loads++;
+        await gate;
+        return { id: 1 };
+      },
+    });
+
+    const route = matchedRoute('/users');
+    route.route.cache = NO_CACHE;
+
+    const prefetchTx = loadTransaction(hookRegistry, [route]);
+    const prefetchPromise = dataGraph.prefetch([route], {
+      transaction: prefetchTx,
+      mode: 'prefetch',
+    });
+
+    await Promise.resolve();
+    expect(loads).toBe(1);
+
+    prefetchTx.cancel();
+    await expect(prefetchPromise).resolves.toMatchObject({ data: expect.any(Map) });
+
+    const navigation = dataGraph.load([route], navOptions(hookRegistry, [route]));
+    release();
+    const { error, data } = await navigation;
+
+    expect(error).toBeUndefined();
+    expect(loads).toBe(1);
+    expect(data!.get(route.dataKey!)).toEqual({ id: 1 });
+  });
+
+  it('cancels navigation waiter on abort without poisoning handoff for the next join', async () => {
+    let loads = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => {
+        loads++;
+        await gate;
+        return { id: 2 };
+      },
+    });
+
+    const route = matchedRoute('/items');
+    route.route.cache = NO_CACHE;
+
+    const firstTx = loadTransaction(hookRegistry, [route]);
+    const first = dataGraph.load([route], {
+      transaction: firstTx,
+      mode: 'navigation',
+    });
+
+    await Promise.resolve();
+    firstTx.cancel();
+    await expect(first).resolves.toEqual({ error: { status: 'cancelled' } });
+
+    const second = dataGraph.load([route], navOptions(hookRegistry, [route]));
+    release();
+    const { error, data } = await second;
+
+    expect(error).toBeUndefined();
+    expect(loads).toBe(1);
+    expect(data!.get(route.dataKey!)).toEqual({ id: 2 });
+  });
+
+  it('does not abort shared load hooks via caller transactionSignal', async () => {
+    let sawAbortedInsideHook = false;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async (ctx) => {
+        await gate;
+        sawAbortedInsideHook = ctx.transactionSignal.aborted;
+        return { ok: true };
+      },
+    });
+
+    const route = matchedRoute('/signal');
+    route.route.cache = NO_CACHE;
+
+    const tx = loadTransaction(hookRegistry, [route]);
+    const pending = dataGraph.prefetch([route], { transaction: tx, mode: 'prefetch' });
+
+    await Promise.resolve();
+    tx.cancel();
+    release();
+    await pending;
+
+    expect(sawAbortedInsideHook).toBe(false);
+  });
 });

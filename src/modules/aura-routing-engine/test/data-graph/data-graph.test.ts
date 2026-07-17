@@ -54,6 +54,18 @@ function loadTransaction(
   return transaction;
 }
 
+function navOptions(
+  hookRegistry: HookRegistry,
+  enterRoutes: readonly MatchedRouteInfo[],
+  branch?: readonly MatchedRouteInfo[],
+) {
+  return {
+    transaction: loadTransaction(hookRegistry, enterRoutes),
+    mode: 'navigation' as const,
+    ...(branch ? { branch } : {}),
+  };
+}
+
 describe('DataGraph', () => {
   let hookRegistry: HookRegistry;
   let dataGraph: DataGraph;
@@ -85,16 +97,16 @@ describe('DataGraph', () => {
       onLoadCalls++;
     };
 
-    const transaction = loadTransaction(hookRegistry, [route]);
+    const options = navOptions(hookRegistry, [route]);
 
-    await dataGraph.load([route], { transaction });
-    await dataGraph.load([route], { transaction });
+    await dataGraph.load([route], options);
+    await dataGraph.load([route], options);
 
     expect(hookCalls).toBe(1);
     expect(onLoadCalls).toBe(2);
   });
 
-  it('stores hook payload in cache and snapshot', async () => {
+  it('stores hook payload in cache and data map', async () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
@@ -102,12 +114,10 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/users');
-    const { snapshot } = await dataGraph.load([route], {
-      transaction: loadTransaction(hookRegistry, [route]),
-    });
+    const { data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
 
-    const key = [...snapshot!.keys()][0]!;
-    expect(snapshot!.get(key)).toEqual({ id: 42, name: 'Ada' });
+    const key = [...data!.keys()][0]!;
+    expect(data!.get(key)).toEqual({ id: 42, name: 'Ada' });
   });
 
   it('stores hook payload with arbitrary type field', async () => {
@@ -118,12 +128,10 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/posts/7');
-    const { snapshot } = await dataGraph.load([route], {
-      transaction: loadTransaction(hookRegistry, [route]),
-    });
+    const { data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
 
-    const key = [...snapshot!.keys()][0]!;
-    expect(snapshot!.get(key)).toEqual({ type: 'article', id: 7, title: 'Hello' });
+    const key = [...data!.keys()][0]!;
+    expect(data!.get(key)).toEqual({ type: 'article', id: 7, title: 'Hello' });
   });
 
   it('treats string load return as payload not redirect', async () => {
@@ -134,13 +142,11 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/admin');
-    const { outcome, snapshot } = await dataGraph.load([route], {
-      transaction: loadTransaction(hookRegistry, [route]),
-    });
+    const { error, data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
 
-    expect(outcome).toBeUndefined();
-    const key = [...snapshot!.keys()][0]!;
-    expect(snapshot!.get(key)).toBe('/login');
+    expect(error).toBeUndefined();
+    const key = [...data!.keys()][0]!;
+    expect(data!.get(key)).toBe('/login');
   });
 
   it('prefetch caches string payload from load hook', async () => {
@@ -155,13 +161,17 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/admin');
-    await dataGraph.prefetch([route], { mode: 'intent' });
-    await dataGraph.prefetch([route], { mode: 'intent' });
+    const options = {
+      transaction: loadTransaction(hookRegistry, [route]),
+      mode: 'prefetch' as const,
+    };
+    await dataGraph.prefetch([route], options);
+    await dataGraph.prefetch([route], options);
 
     expect(loads).toBe(1);
   });
 
-  it('returns cancelled when load hook returns false', async () => {
+  it('stores false load return as payload (cancel is signal-driven)', async () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
@@ -169,14 +179,14 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/admin');
-    const { outcome } = await dataGraph.load([route], {
-      transaction: loadTransaction(hookRegistry, [route]),
-    });
+    const { error, data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
 
-    expect(outcome).toEqual({ status: 'cancelled' });
+    expect(error).toBeUndefined();
+    const key = [...data!.keys()][0]!;
+    expect(data!.get(key)).toBe(false);
   });
 
-  it('returns navigation snapshot even when cache.data is off', async () => {
+  it('returns navigation data even when cache.data is off', async () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
@@ -186,18 +196,16 @@ describe('DataGraph', () => {
     const route = matchedRoute('/users');
     route.route.cache = NO_CACHE;
 
-    const { snapshot } = await dataGraph.load([route], {
-      transaction: loadTransaction(hookRegistry, [route]),
-    });
+    const { data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
 
-    expect(snapshot).toBeDefined();
-    const key = [...snapshot!.keys()][0]!;
-    expect(snapshot!.get(key)).toEqual({ id: 1 });
+    expect(data).toBeDefined();
+    const key = [...data!.keys()][0]!;
+    expect(data!.get(key)).toEqual({ id: 1 });
     // Not preserved in SWR cache when cache.data is off
     expect(dataGraph.getData(route)).toBeUndefined();
   });
 
-  it('does not cache load hooks when cache.data is off', async () => {
+  it('does not write long cache when cache.data is off (handoff still dedupes)', async () => {
     let hookCalls = 0;
 
     hookRegistry.register({
@@ -211,16 +219,22 @@ describe('DataGraph', () => {
 
     const route = matchedRoute('/users');
     route.route.cache = NO_CACHE;
+    const options = navOptions(hookRegistry, [route]);
 
-    const transaction = loadTransaction(hookRegistry, [route]);
+    await dataGraph.load([route], options);
+    await dataGraph.load([route], options);
 
-    await dataGraph.load([route], { transaction });
-    await dataGraph.load([route], { transaction });
+    expect(hookCalls).toBe(1);
+    expect(dataGraph.getData(route)).toBeUndefined();
 
+    // Fresh handoff → load again (no long-cache persist)
+    const graph2 = new DataGraph(hookRegistry, new HandoffCache());
+    await graph2.load([route], options);
     expect(hookCalls).toBe(2);
+    graph2.destroy();
   });
 
-  it('invalidate clears cache', async () => {
+  it('invalidate clears long cache; new handoff reloads', async () => {
     let loads = 0;
     hookRegistry.register({
       name: 'data',
@@ -232,11 +246,16 @@ describe('DataGraph', () => {
     });
 
     const route = matchedRoute('/items');
-    const transaction = loadTransaction(hookRegistry, [route]);
+    const options = navOptions(hookRegistry, [route]);
 
-    await dataGraph.load([route], { transaction });
+    await dataGraph.load([route], options);
+    expect(dataGraph.getData(route)).toEqual({ n: 1 });
     dataGraph.invalidate({ policy: 'remove' });
-    await dataGraph.load([route], { transaction });
+    expect(dataGraph.getData(route)).toBeUndefined();
+
+    const graph2 = new DataGraph(hookRegistry, new HandoffCache(), { staleTime: 60_000 });
+    await graph2.load([route], options);
+    graph2.destroy();
 
     expect(loads).toBe(2);
   });
@@ -261,14 +280,13 @@ describe('DataGraph', () => {
 
     const layout = matchedRoute('/app', ['layout']);
     const child = matchedRoute('/app/page', ['child']);
-    const transaction = loadTransaction(hookRegistry, [layout, child]);
 
-    await dataGraph.load([layout, child], { transaction });
+    await dataGraph.load([layout, child], navOptions(hookRegistry, [layout, child]));
 
     expect(siblingLoads).toBe(1);
   });
 
-  it('keeps LCA parent payload in cache while navigation snapshot is enter-only', async () => {
+  it('keeps LCA parent payload in cache while navigation data is enter-only', async () => {
     hookRegistry.register({
       name: 'parent-data',
       version: '1.0.0',
@@ -286,19 +304,16 @@ describe('DataGraph', () => {
     leaf.chain = [parent, leaf];
     parent.chain = leaf.chain;
 
-    await dataGraph.load([parent], {
-      transaction: loadTransaction(hookRegistry, [parent]),
-      branch: [parent],
-    });
+    await dataGraph.load([parent], navOptions(hookRegistry, [parent], [parent]));
 
-    const { snapshot } = await dataGraph.load([leaf], {
-      transaction: loadTransaction(hookRegistry, [leaf]),
-      branch: [parent, leaf],
-    });
+    const { data } = await dataGraph.load(
+      [leaf],
+      navOptions(hookRegistry, [leaf], [parent, leaf]),
+    );
 
-    // Navigation snapshot covers enter routes only (leaf); parent stays in SWR cache.
-    expect(snapshot!.size).toBe(1);
-    expect(snapshot!.get([...snapshot!.keys()][0]!)).toEqual({ page: 'home' });
+    // Navigation data covers enter routes only (leaf); parent stays in SWR cache.
+    expect(data!.size).toBe(1);
+    expect(data!.get([...data!.keys()][0]!)).toEqual({ page: 'home' });
     expect(dataGraph.getData(parent)).toEqual({ role: 'layout' });
 
     const branchSnapshot = dataGraph.snapshot([parent, leaf]);
@@ -336,10 +351,7 @@ describe('DataGraph', () => {
     const child = matchedRoute('/settings/users', ['child-data']);
     const branch = [parent, child];
 
-    const loadPromise = dataGraph.load(branch, {
-      transaction: loadTransaction(hookRegistry, branch),
-      branch,
-    });
+    const loadPromise = dataGraph.load(branch, navOptions(hookRegistry, branch, branch));
 
     await Promise.resolve();
     expect(parentStarted).toBe(true);
@@ -373,13 +385,10 @@ describe('DataGraph', () => {
     const child = matchedRoute('/settings/users', ['child-data']);
     const branch = [parent, child];
 
-    const { snapshot } = await dataGraph.load(branch, {
-      transaction: loadTransaction(hookRegistry, branch),
-      branch,
-    });
+    const { data } = await dataGraph.load(branch, navOptions(hookRegistry, branch, branch));
 
     expect(childSawParent).toEqual({ orgId: 7 });
-    expect(snapshot!.get([...snapshot!.keys()].find((k) => k.includes('/settings/users'))!)).toEqual({
+    expect(data!.get([...data!.keys()].find((k) => k.includes('/settings/users'))!)).toEqual({
       users: [7],
     });
   });
@@ -406,15 +415,9 @@ describe('DataGraph', () => {
     const leaf = matchedRoute('/app/home', ['child-data']);
     const branch = [parent, leaf];
 
-    await dataGraph.load([parent], {
-      transaction: loadTransaction(hookRegistry, [parent]),
-      branch: [parent],
-    });
+    await dataGraph.load([parent], navOptions(hookRegistry, [parent], [parent]));
 
-    await dataGraph.load([leaf], {
-      transaction: loadTransaction(hookRegistry, [leaf]),
-      branch,
-    });
+    await dataGraph.load([leaf], navOptions(hookRegistry, [leaf], branch));
 
     expect(childSawParent).toEqual({ orgId: 3 });
   });
@@ -432,10 +435,7 @@ describe('DataGraph', () => {
     });
 
     const leaf = matchedRoute('/alone', ['child-data']);
-    await dataGraph.load([leaf], {
-      transaction: loadTransaction(hookRegistry, [leaf]),
-      branch: [leaf],
-    });
+    await dataGraph.load([leaf], navOptions(hookRegistry, [leaf], [leaf]));
 
     expect(parentResult).toBeUndefined();
   });

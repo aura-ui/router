@@ -170,15 +170,16 @@ export class NavigationTransactionPipeline {
     const branch = to.chain ?? transitionPlan.enterRoutes;
     const dataGraph = this.transaction.engine.dataGraph;
     // todo should be executed resource Graph to load all content in parallel - data + html + chunks
-    const { outcome, snapshot } = await dataGraph.load(
+    const { error, data } = await dataGraph.load(
       this.transaction.transitionPlan.enterRoutes,
       {
         branch,
         transaction: this.transaction,
+        mode: 'navigation',
       },
     );
-    snapshot && (this.transaction.dataSnapshot = snapshot);
-    return outcome ?? null;
+    data && (this.transaction.dataSnapshot = data);
+    return error ?? null;
   }
 
   async runPrepare(): Promise<PipelineStepResult> {
@@ -203,10 +204,16 @@ export class NavigationTransactionPipeline {
     const enterRoutes = transitionPlan.enterRoutes;
 
     try {
-      const parts: Promise<void>[] = [];
+      const parts: Promise<unknown>[] = [];
 
       if (data) {
-        parts.push(engine.dataGraph.prefetch(enterRoutes, { signal, mode: 'intent' }));
+        const { to } = this.transaction;
+        const branch = to.chain ?? transitionPlan.enterRoutes;
+        parts.push(engine.dataGraph.prefetch(enterRoutes, {
+          branch,
+          transaction: this.transaction,
+          mode: 'prefetch',
+        }));
       }
 
       if (view) {

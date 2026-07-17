@@ -109,7 +109,7 @@ export class AuraRoutingEngine implements NavigationHost {
   private readonly linkNavigation: LinkNavigationTracker;
   readonly hooksRegistry: HookRegistry;
   readonly dataGraph: DataGraph;
-  readonly handoffBuffer: HandoffCache;
+  readonly sharedBuffer: HandoffCache;
 
   private readonly navigationCoordinator: NavigationCoordinator;
 
@@ -127,11 +127,11 @@ export class AuraRoutingEngine implements NavigationHost {
 
     this.hooksRegistry = defaultHookRegistry;
 
-    this.handoffBuffer = new HandoffCache({});
+    this.sharedBuffer = new HandoffCache({});
 
-    this.dataGraph = new DataGraph(this.hooksRegistry, this.handoffBuffer);
+    this.dataGraph = new DataGraph(this.hooksRegistry, this.sharedBuffer);
 
-    this.viewGraph = config.viewGraph ?? new ViewGraph({ cache: config.viewCache });
+    this.viewGraph = config.viewGraph ?? new ViewGraph(this.sharedBuffer, { cache: config.viewCache });
 
     this.provider = config.provider ?? new BrowserHistoryProvider();
 

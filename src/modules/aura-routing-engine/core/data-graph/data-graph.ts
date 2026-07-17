@@ -46,8 +46,7 @@ export type DataGraphLoadOptions = {
 export type DataGraphPrefetchOptions = DataGraphLoadOptions;
 
 /** Per-enter deferred payload — children join via `ctx.parent()`. */
-type PayloadJoinEntry = {
-  match: MatchedRouteInfo;
+type PayloadJoin = {
   promise: Promise<unknown>;
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
@@ -62,7 +61,7 @@ type EnterRouteLoad = {
   siblingAbort: AbortController;
   mode: LoadHookMode;
   parent: () => Promise<unknown>;
-  join: PayloadJoinEntry;
+  join: PayloadJoin;
 };
 
 class DataGraphTerminalError extends Error {
@@ -121,15 +120,14 @@ export class DataGraph {
     enterRoutes: readonly MatchedRouteInfo[],
     options: DataGraphLoadOptions,
   ): Promise<DataGraphLoadResult> {
-    const result = await this.loadEnterRoutes(
+    const { error, data } = await this.loadEnterRoutes(
       enterRoutes,
       options.branch ?? enterRoutes,
       options.transaction,
       options.mode,
     );
     // Navigation callers treat error as terminal — omit partial batch data.
-    if (result.error) return { error: result.error };
-    return { data: result.data };
+    return error ? { error } : { data };
   }
 
   async prefetch(
@@ -155,15 +153,22 @@ export class DataGraph {
     transaction: NavigationTransaction,
     mode: LoadHookMode,
   ): Promise<LoadResult<Map<string, unknown>>> {
+    if (enterRoutes.length === 0) return { data: new Map() };
+
     const siblingAbort = new AbortController();
     const interestSignal = AbortSignal.any([transaction.signal, siblingAbort.signal]);
-    const joins = this.createPayloadJoinTable(enterRoutes);
-    const errors: PipelineStepResult[] = [];
+    const joins = createPayloadJoinTable(enterRoutes);
     const result = new Map<string, unknown>();
+    let terminalError: TerminalOutcome | undefined;
+    let terminalIndex = -1;
 
     await Promise.all(
       enterRoutes.map(async (match, index) => {
-        if (!match.dataKey) return;
+        const join = joins.get(match.route.uid)!;
+        if (!match.dataKey) {
+          join.resolve(undefined);
+          return;
+        }
 
         const { error, data } = await this.loadEnterRoute({
           match,
@@ -172,11 +177,14 @@ export class DataGraph {
           siblingAbort,
           mode,
           parent: () => this.joinParentPayload(match, joins, branch),
-          join: joins.get(match.route.uid)!,
+          join,
         });
 
         if (error) {
-          errors[index] = error;
+          if (terminalIndex < 0 || index < terminalIndex) {
+            terminalIndex = index;
+            terminalError = error;
+          }
           siblingAbort.abort();
           return;
         }
@@ -185,7 +193,7 @@ export class DataGraph {
       }),
     );
 
-    return { error: errors.find((entry) => entry), data: result };
+    return { error: terminalError, data: result };
   }
 
   /**
@@ -242,12 +250,13 @@ export class DataGraph {
   /** Immutable pipeline step: runs on every navigation accept, including cache hits. */
   private notifyOnLoad(request: EnterRouteLoad, data: unknown): void {
     const { match, transaction, parent } = request;
-    const onLoadCtx = this.buildLoadHookContext(match, transaction, {
-      transactionSignal: transaction.signal,
-      parent,
-      data,
-    });
-    match.route.onLoad(onLoadCtx);
+    match.route.onLoad(
+      this.buildLoadHookContext(match, transaction, {
+        transactionSignal: transaction.signal,
+        parent,
+        data,
+      }),
+    );
   }
 
   private buildLoadHookContext(
@@ -274,7 +283,7 @@ export class DataGraph {
     error: unknown,
     request: EnterRouteLoad,
   ): Promise<LoadResult> {
-    const { match, transaction, interestSignal, mode } = request;
+    const { match, transaction, mode } = request;
 
     if (mode === 'prefetch') {
       return { data: undefined };
@@ -282,7 +291,8 @@ export class DataGraph {
     if (error instanceof DataGraphTerminalError) {
       return { error: error.outcome };
     }
-    if (!isBatchActive(request) || interestSignal.aborted) {
+    // Covers tx abort/stale and sibling terminal — interestSignal is a subset of this.
+    if (!isBatchActive(request)) {
       return { error: { status: 'cancelled' } };
     }
     return { error: await transaction.fail(match, error, 'load') };
@@ -344,55 +354,36 @@ export class DataGraph {
       return { data: values[0] };
     }
 
-    return {
-      data: Object.fromEntries(hookNames.map((name, i) => [name, values[i]])),
-    };
-  }
-
-  /** Deferred payloads keyed by route uid — children join via `ctx.parent()`. */
-  private createPayloadJoinTable(
-    enterRoutes: readonly MatchedRouteInfo[],
-  ): Map<number, PayloadJoinEntry> {
-    const table = new Map<number, PayloadJoinEntry>();
-
-    for (const match of enterRoutes) {
-      const { promise, resolve, reject } = promiseWithResolvers();
-      // Avoid unhandledrejection when no child awaits ctx.parent().
-      void promise.catch(() => {});
-      table.set(match.route.uid, { match, promise, resolve, reject });
+    const data: Record<string, unknown> = {};
+    for (let i = 0; i < hookNames.length; i++) {
+      data[hookNames[i]!] = values[i];
     }
-
-    return table;
+    return { data };
   }
 
   /** Join nearest ancestor load payload (in-batch → handoff → persisted cache). */
-  private async joinParentPayload(
+  private joinParentPayload(
     child: MatchedRouteInfo,
-    joins: ReadonlyMap<number, PayloadJoinEntry>,
+    joins: ReadonlyMap<number, PayloadJoin>,
     branch: readonly MatchedRouteInfo[],
   ): Promise<unknown> {
     const parent = closestRouteWithLoadHooks(child, branch);
-    if (!parent) return undefined;
+    if (!parent) return Promise.resolve(undefined);
 
     const inBatch = joins.get(parent.route.uid);
     if (inBatch) return inBatch.promise;
 
     const dataKey = parent.dataKey;
-    if (!dataKey) return undefined;
+    if (!dataKey) return Promise.resolve(undefined);
 
     return this.joinHandoffOrCache(dataKey);
   }
 
   /** Prefer handoff (in-flight or settled); fall back to long cache on miss/failure. */
-  private async joinHandoffOrCache(dataKey: string): Promise<unknown> {
+  private joinHandoffOrCache(dataKey: string): Promise<unknown> {
     const joined = this.sharedBuffer.join(dataKey);
-    if (!joined) return this.cache.get(dataKey);
-
-    try {
-      return await joined;
-    } catch {
-      return this.cache.get(dataKey);
-    }
+    if (!joined) return Promise.resolve(this.cache.get(dataKey));
+    return joined.catch(() => this.cache.get(dataKey));
   }
 
   invalidate(options: RouterInvalidateOptions = {}): number {
@@ -426,6 +417,22 @@ export class DataGraph {
   destroy(): void {
     this.cache.destroy();
   }
+}
+
+/** Deferred payloads keyed by route uid — children join via `ctx.parent()`. */
+function createPayloadJoinTable(
+  enterRoutes: readonly MatchedRouteInfo[],
+): Map<number, PayloadJoin> {
+  const table = new Map<number, PayloadJoin>();
+
+  for (const match of enterRoutes) {
+    const join = promiseWithResolvers();
+    // Avoid unhandledrejection when no child awaits ctx.parent().
+    void join.promise.catch(() => {});
+    table.set(match.route.uid, join);
+  }
+
+  return table;
 }
 
 function isBatchActive(request: EnterRouteLoad): boolean {

@@ -47,6 +47,21 @@ export class AuraResolvableCache<T> {
     return this.store.get(key);
   }
 
+  /**
+   * Join in-flight `resolve` work or a settled store value — never starts a load.
+   *
+   * @returns Promise of the value when in-flight or settled; `undefined` when missing.
+   */
+  join(key: string): Promise<T> | undefined {
+    const pending = this.singleflight.get(key);
+    if (pending) return pending as Promise<T>;
+
+    const settled = this.store.get(key);
+    if (settled !== undefined) return Promise.resolve(settled);
+
+    return undefined;
+  }
+
   set(key: string, value: T): void {
     this.store.set(key, value);
   }

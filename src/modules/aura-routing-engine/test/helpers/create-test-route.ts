@@ -63,6 +63,9 @@ export function createTestRoute(
     hasUpdate: { get(): boolean { return !!route.update?.length; } },
     hasLeave: { get(): boolean { return !!route.leave?.length; } },
     hasLoad: { get(): boolean { return !!route.load?.length; } },
+    hasDataCache: { get(): boolean { return !!route.cache?.data; } },
+    hasViewCache: { get(): boolean { return !!route.cache?.view; } },
+    hasDomCache: { get(): boolean { return !!route.cache?.dom; } },
     viewKeySuffix: {
       get(): string | null {
         const r = route as RouteInstance & {

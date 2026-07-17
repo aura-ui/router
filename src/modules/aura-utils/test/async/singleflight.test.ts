@@ -78,6 +78,22 @@ describe('Singleflight', () => {
     expect(value).toBe('ok');
   });
 
+  it('get returns in-flight promise without starting work', async () => {
+    const singleflight = new Singleflight<string, string>();
+    let release!: (value: string) => void;
+    const gate = new Promise<string>((resolve) => {
+      release = resolve;
+    });
+
+    const pending = singleflight.do('k', () => gate);
+    expect(singleflight.get('k')).toBe(pending);
+    expect(singleflight.get('missing')).toBeUndefined();
+
+    release('done');
+    await pending;
+    expect(singleflight.get('k')).toBeUndefined();
+  });
+
   it('delete and clear drop pending entries without cancelling work', async () => {
     const singleflight = new Singleflight<string, string>();
     let runs = 0;

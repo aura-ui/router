@@ -38,6 +38,9 @@ export type HandoffCacheOptions = ResolvableCachePolicy & {
  * or constructor {@link ResolvableCachePolicy.onSettled}).
  *
  * Owned by {@link ResourceGraph}; DataGraph / ViewGraph share one instance.
+ *
+ * Use {@link AuraResolvableCache.join} from `ctx.parent()` / waiters to attach to
+ * in-flight or settled prepare without starting a new load.
  */
 export class HandoffCache extends AuraResolvableCache<unknown> {
   constructor(options: HandoffCacheOptions = {}) {

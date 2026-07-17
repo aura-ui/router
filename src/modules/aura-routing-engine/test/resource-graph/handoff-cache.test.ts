@@ -103,6 +103,36 @@ describe('HandoffCache', () => {
     jest.useRealTimers();
   });
 
+  it('join attaches to in-flight resolve without starting a second load', async () => {
+    handoff = new HandoffCache();
+    let loads = 0;
+    let release!: (value: string) => void;
+    const gate = new Promise<string>((resolve) => {
+      release = resolve;
+    });
+
+    const loading = handoff.resolve('k', async () => {
+      loads++;
+      return gate;
+    });
+
+    const joined = handoff.join('k');
+    expect(joined).toBeDefined();
+    expect(loads).toBe(1);
+
+    release('warm');
+    await expect(Promise.all([loading, joined])).resolves.toEqual(['warm', 'warm']);
+    expect(loads).toBe(1);
+  });
+
+  it('join returns settled value and undefined when missing', async () => {
+    handoff = new HandoffCache();
+    expect(handoff.join('missing')).toBeUndefined();
+
+    await handoff.resolve('k', async () => 'settled');
+    await expect(handoff.join('k')).resolves.toBe('settled');
+  });
+
   it('clears rejected in-flight work so callers can retry', async () => {
     handoff = new HandoffCache();
     let loads = 0;

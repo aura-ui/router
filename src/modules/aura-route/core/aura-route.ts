@@ -191,6 +191,18 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.querySelector(`:scope > ${AuraRoute.is}`);
   }
 
+  get hasDataCache() {
+    return this.cache.data;
+  }
+
+  get hasViewCache() {
+    return this.cache.data;
+  }
+
+  get hasDomCache() {
+    return this.cache.data;
+  }
+
   get type(): RouteType {
     if (this.redirect.trim()) return 'redirect';
     if (this.hasChildrenRoutes) return 'folder';

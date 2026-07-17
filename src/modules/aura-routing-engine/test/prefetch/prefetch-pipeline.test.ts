@@ -10,6 +10,7 @@ import type {
   SpeculationPrefetchPort,
 } from '../../core/prefetch/types';
 import { HandoffCache } from '../../core/resource-graph';
+import { createMockTransaction } from '../helpers/create-mock-transaction';
 import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('PrefetchPipeline', () => {
@@ -152,11 +153,16 @@ describe('PrefetchPipeline', () => {
       match!.params,
     );
 
-    const signal = new AbortController().signal;
-    await dataGraph.prefetch([leaf], { signal, mode: 'intent' });
+    const transaction = createMockTransaction({ enterRoutes: [leaf] });
+    const prefetchOpts = {
+      transaction,
+      mode: 'prefetch' as const,
+      branch: [leaf],
+    };
+    await dataGraph.prefetch([leaf], prefetchOpts);
     expect(loads).toBe(1);
 
-    await dataGraph.prefetch([leaf], { signal, mode: 'intent' });
+    await dataGraph.prefetch([leaf], prefetchOpts);
     expect(loads).toBe(1);
 
     dataGraph.destroy();

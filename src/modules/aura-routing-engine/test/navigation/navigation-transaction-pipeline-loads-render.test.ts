@@ -98,13 +98,13 @@ describe('NavigationTransactionPipeline.runLoads activeChain', () => {
 
     const loadSpy = jest
       .spyOn(transaction.engine.dataGraph, 'load')
-      .mockResolvedValue({ outcome: null, snapshot: undefined });
+      .mockResolvedValue({});
 
     await new NavigationTransactionPipeline(transaction).runLoads();
 
     expect(loadSpy).toHaveBeenCalledWith(
       [child],
-      expect.objectContaining({ branch, transaction }),
+      expect.objectContaining({ branch, transaction, mode: 'navigation' }),
     );
 
     loadSpy.mockRestore();

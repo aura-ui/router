@@ -3,6 +3,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
 import type { ViewGraph } from '../view-graph';
+import { HandoffCache } from './handoff-cache';
 
 export type ResourceGraphMode = 'navigation' | 'speculative';
 
@@ -26,8 +27,8 @@ export type ResourceGraphLoadPlan = {
 };
 
 export type ResourceGraphResolveResult = {
-  outcome?: PipelineStepResult;
-  snapshot?: DataSnapshot;
+  error?: PipelineStepResult;
+  data?: DataSnapshot;
 };
 
 /**
@@ -46,6 +47,7 @@ export class ResourceGraph {
   private enterRoutes!: readonly MatchedRouteInfo[];
   private signal!: AbortSignal;
   private transaction!: NavigationTransaction; // todo remove
+  private sharedBuffer: HandoffCache;
 
   constructor(viewGraph: ViewGraph, dataGraph: DataGraph) {
     this.viewGraph = viewGraph;
@@ -97,7 +99,7 @@ export class ResourceGraph {
     const { dataRoutes, contentRoutes, dataBoundContentRoutes } = plan;
 
     const dataPromise: Promise<DataGraphLoadResult> = dataRoutes.length
-      ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction: this.transaction })
+      ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction: this.transaction, mode: 'navigation' })
       : Promise.resolve({});
 
     const contentPromise = Promise.all(
@@ -106,12 +108,11 @@ export class ResourceGraph {
 
     const [dataResult] = await Promise.all([dataPromise, contentPromise]);
 
-    if (dataResult.outcome) return dataResult; // was issue
+    if (dataResult.error) return dataResult; // was issue
 
     const dataBoundContentPromise = Promise.all(
       dataBoundContentRoutes.map((route) => {
-        const { snapshot } = dataResult;
-        const data = snapshot?.get(route.dataKey!);
+        const data = dataResult.data?.get(route.dataKey!);
         return this.viewGraph.loadView(route, this.signal, { data });
       }),
     );
@@ -126,7 +127,11 @@ export class ResourceGraph {
     let parts: Promise<unknown>[] = [];
 
     if (dataRoutes.length) {
-      parts.push(this.dataGraph.prefetch(dataRoutes, { signal: this.signal, mode: 'intent' }));
+      parts.push(this.dataGraph.prefetch(dataRoutes, {
+        branch: this.branch,
+        transaction: this.transaction,
+        mode: 'prefetch',
+      }));
     }
 
     if (contentRoutes.length) {

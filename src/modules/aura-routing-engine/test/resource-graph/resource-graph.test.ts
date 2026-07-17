@@ -86,7 +86,7 @@ describe('ResourceGraph', () => {
         order.push(`data-start:${routes.map((r) => r.pattern).join(',')}`);
         await dataGate;
         order.push('data-done');
-        return { snapshot: new Map([['k', { ok: true }]]) };
+        return { data: new Map([['k', { ok: true }]]) };
       }),
       prefetch: jest.fn(),
     };
@@ -120,13 +120,18 @@ describe('ResourceGraph', () => {
     const result = await resultPromise;
     expect(order).toContain('data-done');
 
-    expect(dataGraph.load).toHaveBeenCalledWith(branch, { branch, transaction });
-    expect(result.snapshot?.get('k')).toEqual({ ok: true });
+    expect(dataGraph.load).toHaveBeenCalledWith(branch, {
+      branch,
+      transaction,
+      mode: 'navigation',
+    });
+    expect(result.data?.get('k')).toEqual({ ok: true });
   });
 
   it('speculative mode prefetches data and content in parallel', async () => {
     const leaf = matchedRoute('/x', { load: ['data'], asyncView: true });
     const signal = new AbortController().signal;
+    const transaction = {} as NavigationTransaction;
 
     const dataGraph = {
       load: jest.fn(),
@@ -142,10 +147,14 @@ describe('ResourceGraph', () => {
       mode: 'speculative',
       branch: [leaf],
       signal,
-      transaction: {} as NavigationTransaction,
+      transaction,
     });
 
-    expect(dataGraph.prefetch).toHaveBeenCalledWith([leaf], { signal, mode: 'intent' });
+    expect(dataGraph.prefetch).toHaveBeenCalledWith([leaf], {
+      branch: [leaf],
+      transaction,
+      mode: 'prefetch',
+    });
     expect(viewGraph.prefetchBranch).toHaveBeenCalledWith([leaf], signal);
     expect(dataGraph.load).not.toHaveBeenCalled();
   });

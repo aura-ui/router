@@ -17,6 +17,11 @@ export class Singleflight<K, T> {
     return promise;
   }
 
+  /** In-flight promise for `key`, if any — does not start work. */
+  get(key: K): Promise<T> | undefined {
+    return this.pending.get(key);
+  }
+
   delete(key: K): void {
     this.pending.delete(key);
   }

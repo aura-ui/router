@@ -314,7 +314,7 @@ Prefetch (hover/intent) идёт через speculative prepare → `viewGraph.p
 
 **Безопасность:** `url`, bare `view` и `iframe::` используют значения из атрибутов маршрута без allowlist — разметка `<aura-route>` считается доверенной. См. [LIMITATIONS.md](../../../../LIMITATIONS.md#view-layer-viewgraph).
 
-`loadViewDescriptor(descriptor, …)` — загрузка по готовому descriptor, минуя route attrs. Используется в тестах и при явном resolve.
+`loadPayload(descriptor, …)` — загрузка по готовому descriptor, минуя route attrs. Используется в тестах и при явном resolve.
 
 ---
 
@@ -333,7 +333,7 @@ AuraRoute / RouteViewController
   └─ config.view: router.viewGraph   // ViewResolverPort
 ```
 
-Построение descriptor (`buildViewDescriptor`, `buildLoadContext`) — **private**. Снаружи доступны только `loadView` и `loadViewDescriptor`.
+Построение descriptor (`buildViewDescriptor`, `buildLoadContext`) — **private**. Снаружи доступны только `loadView` и `loadPayload`.
 
 ---
 

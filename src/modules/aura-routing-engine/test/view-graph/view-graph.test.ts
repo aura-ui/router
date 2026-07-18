@@ -420,14 +420,14 @@ describe('ViewGraph', () => {
     next.destroy();
   });
 
-  it('loadViewDescriptor includes url extract in loader context', async () => {
+  it('loadPayload includes url extract in loader context', async () => {
     let extract: string | undefined;
     registry.register('url', async (ctx) => {
       extract = ctx.extract;
       return 'html';
     });
 
-    await viewGraph.loadViewDescriptor(
+    await viewGraph.loadPayload(
       { kind: 'view', loader: 'url', content: 'page.html', cache: false, extract: '#main' },
       matched('/page', {
         route: { layout: '', view: { loader: 'url', content: 'page.html' }, cache: NO_CACHE },
@@ -497,7 +497,7 @@ describe('ViewGraph', () => {
     });
   });
 
-  it('loadViewDescriptor returns null when signal is already aborted', async () => {
+  it('loadPayload returns null when signal is already aborted', async () => {
     registry.register('html', async () => {
       throw new Error('should not run');
     });
@@ -505,7 +505,7 @@ describe('ViewGraph', () => {
     controller.abort();
 
     await expect(
-      viewGraph.loadViewDescriptor(
+      viewGraph.loadPayload(
         { kind: 'view', loader: 'html', content: 'x', cache: false },
         matched('/x', {
           route: { layout: '', view: { loader: 'html', content: 'x' }, cache: NO_CACHE },

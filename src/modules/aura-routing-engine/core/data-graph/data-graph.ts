@@ -144,9 +144,14 @@ export class DataGraph {
     return error ? { error } : { data };
   }
 
-  /** Invalidate payload cache entries ({@link RouterInvalidateOptions}, default policy `stale`). */
+  /**
+   * Invalidate long `cache.data` entries ({@link RouterInvalidateOptions}, default policy `stale`).
+   * Clears the shared prepare handoff buffer so the next load/prefetch cannot reuse stale settles.
+   */
   invalidate(options: RouterInvalidateOptions = {}): number {
-    return invalidateRouterCache(this.cache, options, 'stale');
+    const count = invalidateRouterCache(this.cache, options, 'stale');
+    this.sharedBuffer.clear();
+    return count;
   }
 
   /** Cached `cache.data` payloads on the branch, or `undefined` when empty. */

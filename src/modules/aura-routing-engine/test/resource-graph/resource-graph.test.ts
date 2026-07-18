@@ -1,9 +1,13 @@
 import type { DataGraph } from '../../core/data-graph';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { ResourceGraph } from '../../core/resource-graph';
+import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
 import type { ViewGraph } from '../../core/view-graph';
 import { createTestRoute } from '../helpers/create-test-route';
+
+function createGraph(viewGraph: ViewGraph, dataGraph: DataGraph): ResourceGraph {
+  return new ResourceGraph(viewGraph, dataGraph, new HandoffCache());
+}
 
 function matchedRoute(
   path: string,
@@ -40,7 +44,7 @@ describe('ResourceGraph', () => {
     const leaf = matchedRoute('/app/home', { load: ['page'], asyncView: true });
     const staticOnly = matchedRoute('/about', { asyncView: true });
 
-    const graph = new ResourceGraph({} as ViewGraph, {} as DataGraph);
+    const graph = createGraph({} as ViewGraph, {} as DataGraph);
     const plan = graph.buildLoadPlan([parent, leaf, staticOnly]);
 
     expect(plan.dataRoutes).toEqual([parent, leaf]);
@@ -59,7 +63,7 @@ describe('ResourceGraph', () => {
     });
     const leaf = matchedRoute('/settings/profile', { asyncView: true });
 
-    const graph = new ResourceGraph({} as ViewGraph, {} as DataGraph);
+    const graph = createGraph({} as ViewGraph, {} as DataGraph);
     const plan = graph.buildLoadPlan([folder, leaf]);
 
     expect(plan.dataRoutes).toEqual([folder]);
@@ -99,7 +103,7 @@ describe('ResourceGraph', () => {
       prefetchBranch: jest.fn(),
     };
 
-    const graph = new ResourceGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
+    const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
     const signal = new AbortController().signal;
     const transaction = {} as NavigationTransaction;
 
@@ -142,7 +146,7 @@ describe('ResourceGraph', () => {
       prefetchBranch: jest.fn(async () => undefined),
     };
 
-    const graph = new ResourceGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
+    const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
     await graph.resolve([leaf], {
       mode: 'speculative',
       branch: [leaf],

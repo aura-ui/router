@@ -2,7 +2,7 @@ import type { ViewGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
-import { HandoffCache } from '../../core/resource-graph';
+import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
 import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationHost } from '../../core/navigation/navigation-host';
@@ -43,14 +43,19 @@ export function withPlanTransitionOrder(
 
 export function createMockEngine(): AuraRoutingEngine {
   const hookRegistry = new HookRegistry();
+  const sharedBuffer = new HandoffCache();
+  const dataGraph = new DataGraph(hookRegistry, sharedBuffer);
+  const viewGraph = { loadView: jest.fn().mockResolvedValue(null) } as unknown as ViewGraph;
   return {
     commitHistoryIfNeeded: jest.fn(),
     commitNavigation: jest.fn(),
     finalizeCancelled: jest.fn(),
-    dataGraph: new DataGraph(hookRegistry, new HandoffCache()),
+    sharedBuffer,
+    dataGraph,
+    viewGraph,
+    resourceGraph: new ResourceGraph(viewGraph, dataGraph, sharedBuffer),
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
-    viewGraph: { loadView: jest.fn().mockResolvedValue(null) } as unknown as ViewGraph,
   } as unknown as AuraRoutingEngine;
 }
 
@@ -60,6 +65,9 @@ export function createCoordinatorMockHost(): NavigationHost & {
   finalizeError: jest.Mock;
 } {
   const hookRegistry = new HookRegistry();
+  const sharedBuffer = new HandoffCache();
+  const dataGraph = new DataGraph(hookRegistry, sharedBuffer);
+  const viewGraph = { loadView: jest.fn().mockResolvedValue(null) } as unknown as ViewGraph;
   const host = {
     isRunning: true,
     matcher: { matchPath: jest.fn(), buildMatchedRouteInfo: jest.fn() },
@@ -73,7 +81,10 @@ export function createCoordinatorMockHost(): NavigationHost & {
     finalizeCancelled: jest.fn(),
     applyRedirect: jest.fn(),
     finalizeError: jest.fn(),
-    dataGraph: new DataGraph(hookRegistry, new HandoffCache()),
+    sharedBuffer,
+    dataGraph,
+    viewGraph,
+    resourceGraph: new ResourceGraph(viewGraph, dataGraph, sharedBuffer),
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
     reportNavigationHookError: jest.fn(),

@@ -157,25 +157,34 @@ export class NavigationCoordinator {
       return;
     }
 
-    if (this.activeTransaction) {
-      this.activeTransaction.cancel();
-    }
-
     this.activeTransactionId++;
-    const transaction = new NavigationTransaction(
+    const next = new NavigationTransaction(
       this.activeTransactionId,
       this.routerGenerationId,
       options,
       this.isTransactionStale.bind(this),
       this.host.engine,
     );
-    this.activeTransaction = transaction;
+
+    const resources = this.host.engine.resourceGraph;
+
+    // Hold shared buffer for B before cancelling A (owned handle — safe under A→B→C).
+    const sharedBufferHold = this.activeTransaction
+      ? resources.holdSharedBufferFor(options.to)
+      : null;
+
+    if (this.activeTransaction) {
+      this.activeTransaction.cancel();
+    }
+
+    this.activeTransaction = next;
 
     try {
-      const result = await transaction.run();
-      this.processResult(result, transaction);
+      const result = await next.run();
+      this.processResult(result, next);
     } finally {
-      if (this.activeTransaction === transaction) {
+      sharedBufferHold?.unhold();
+      if (this.activeTransaction === next) {
         this.activeTransaction = null;
       }
     }

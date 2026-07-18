@@ -2,8 +2,10 @@ import { type DataGraph, type DataGraphLoadResult, type DataSnapshot } from '../
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
+import { getActiveChain } from '../route-tree/matched-chain';
 import type { ViewGraph } from '../view-graph';
 import { HandoffCache } from './handoff-cache';
+import type { HandoffWaiter } from './handoff-work-registry';
 
 export type ResourceGraphMode = 'navigation' | 'speculative';
 
@@ -32,30 +34,65 @@ export type ResourceGraphResolveResult = {
 };
 
 /**
- * Coordinates data + view prepare for an enter branch.
- * Data stays parallel in {@link DataGraph} (child may `await ctx.parent()`);
- * independent content loads run alongside data.
+ * One supersede hold from {@link ResourceGraph.holdSharedBufferFor}.
+ * Unhold only this lease — concurrent A→B→C holds stay independent.
+ */
+export type SharedBufferHold = {
+  /** Idempotent. Drops handoff holds taken for this lease only. */
+  unhold(): void;
+};
+
+/**
+ * Owner of prepare: data + view plan, handoff interest across supersede.
  *
- * Not wired into {@link NavigationTransactionPipeline} yet.
+ * Coordinator: `hold = holdSharedBufferFor(B)` → cancel(A) → run(B) → `hold.unhold()`.
+ * Does not touch {@link HandoffCache} directly.
+ *
+ * {@link resolve} is not wired into {@link NavigationTransactionPipeline} yet.
  */
 export class ResourceGraph {
   readonly viewGraph: ViewGraph;
   readonly dataGraph: DataGraph;
+  private readonly sharedBuffer: HandoffCache;
 
   private mode!: ResourceGraphMode;
   private branch!: readonly MatchedRouteInfo[];
   private enterRoutes!: readonly MatchedRouteInfo[];
   private signal!: AbortSignal;
   private transaction!: NavigationTransaction; // todo remove
-  private sharedBuffer: HandoffCache;
 
-  constructor(viewGraph: ViewGraph, dataGraph: DataGraph) {
+  constructor(viewGraph: ViewGraph, dataGraph: DataGraph, sharedBuffer: HandoffCache) {
     this.viewGraph = viewGraph;
     this.dataGraph = dataGraph;
+    this.sharedBuffer = sharedBuffer;
   }
 
   private get isNavigationMode(): boolean {
     return this.mode === 'navigation';
+  }
+
+  /**
+   * Hold handoff generations for `to`’s data keys.
+   * Call on B **before** cancelling A. Returns a handle — only that handle’s `unhold` drops these holds.
+   */
+  holdSharedBufferFor(to: MatchedRouteInfo): SharedBufferHold {
+    const waiters: HandoffWaiter[] = [];
+    for (const match of getActiveChain(to)) {
+      if (match.dataKey) {
+        waiters.push(this.sharedBuffer.hold(match.dataKey, 'navigation'));
+      }
+    }
+
+    let released = false;
+    return {
+      unhold: () => {
+        if (released) return;
+        released = true;
+        for (const waiter of waiters) {
+          waiter.release();
+        }
+      },
+    };
   }
 
   resolve(enterRoutes: readonly MatchedRouteInfo[], context: ResourceGraphRunContext): Promise<ResourceGraphResolveResult> {

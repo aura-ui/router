@@ -55,7 +55,7 @@ import {
 } from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import { onAbort } from '../../aura-utils/async/on-abort';
-import { HandoffCache } from './resource-graph';
+import { HandoffCache, ResourceGraph } from './resource-graph';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -110,6 +110,7 @@ export class AuraRoutingEngine implements NavigationHost {
   readonly hooksRegistry: HookRegistry;
   readonly dataGraph: DataGraph;
   readonly sharedBuffer: HandoffCache;
+  readonly resourceGraph: ResourceGraph;
 
   private readonly navigationCoordinator: NavigationCoordinator;
 
@@ -132,6 +133,8 @@ export class AuraRoutingEngine implements NavigationHost {
     this.dataGraph = new DataGraph(this.hooksRegistry, this.sharedBuffer);
 
     this.viewGraph = config.viewGraph ?? new ViewGraph(this.sharedBuffer, { cache: config.viewCache });
+
+    this.resourceGraph = new ResourceGraph(this.viewGraph, this.dataGraph, this.sharedBuffer);
 
     this.provider = config.provider ?? new BrowserHistoryProvider();
 

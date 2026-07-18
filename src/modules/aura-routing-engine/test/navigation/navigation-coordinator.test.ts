@@ -406,6 +406,98 @@ describe('NavigationCoordinator', () => {
 
     });
 
+
+
+    it('begins ResourceGraph prepare before cancelling A on supersede', async () => {
+
+      const host = createCoordinatorMockHost();
+
+      const coordinator = new NavigationCoordinator(host);
+
+      const home = createMatchedRoute('/');
+
+      const about = createMatchedRoute('/about', { load: ['data'] });
+
+      const gallery = createMatchedRoute('/gallery', { load: ['data'] });
+
+      const events: string[] = [];
+
+      const resources = host.engine.resourceGraph;
+
+      const originalHold = resources.holdSharedBufferFor.bind(resources);
+
+      jest.spyOn(resources, 'holdSharedBufferFor').mockImplementation((to) => {
+
+        events.push('holdSharedBufferFor');
+
+        const hold = originalHold(to);
+
+        const originalUnhold = hold.unhold.bind(hold);
+
+        hold.unhold = () => {
+
+          events.push('unhold');
+
+          return originalUnhold();
+
+        };
+
+        return hold;
+
+      });
+
+      const originalCancel = NavigationTransaction.prototype.cancel;
+
+      jest.spyOn(NavigationTransaction.prototype, 'cancel').mockImplementation(function (
+
+        this: NavigationTransaction,
+
+        reason?: unknown,
+
+      ) {
+
+        events.push('cancel');
+
+        return originalCancel.call(this, reason);
+
+      });
+
+
+
+      const { resolveAt } = mockDeferredTransactionRun();
+
+
+
+      const aboutNav = coordinator.run(navOptions({ from: home, to: about, href: '/about' }));
+
+      events.length = 0;
+
+
+
+      const galleryNav = coordinator.run(navOptions({ from: home, to: gallery, href: '/gallery' }));
+
+
+
+      expect(events.indexOf('holdSharedBufferFor')).toBeGreaterThanOrEqual(0);
+
+      expect(events.indexOf('cancel')).toBeGreaterThan(events.indexOf('holdSharedBufferFor'));
+
+
+
+      resolveAt(0, { status: 'cancelled' });
+
+      resolveAt(1, { status: 'navigationSucceeded' });
+
+      await aboutNav;
+
+      await galleryNav;
+
+
+
+      expect(events).toContain('unhold');
+
+    });
+
   });
 
 

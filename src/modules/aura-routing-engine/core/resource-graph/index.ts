@@ -8,6 +8,7 @@ export {
 export { HandoffWorkRegistry } from './handoff-work-registry';
 export {
   ResourceGraph,
+  type SharedBufferHold,
   type ResourceGraphLoadPlan,
   type ResourceGraphMode,
   type ResourceGraphResolveResult,

@@ -39,6 +39,16 @@ export class ViewPayloadCache {
     return this.store.get(key);
   }
 
+  /**
+   * Persist a settled payload. Same write filter as {@link resolve}
+   * (string only; `DocumentFragment` is skipped).
+   */
+  set(key: string, payload: ViewPayload): void {
+    if (typeof payload === 'string') {
+      this.store.set(key, payload);
+    }
+  }
+
   clear(): void {
     this.store.clear();
   }

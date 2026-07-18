@@ -227,8 +227,8 @@ export class ViewGraph {
       const payload = await load();
 
       if (useLongCache && payload !== null) {
-        // Persist via ViewPayloadCache so DocumentFragment stays write-filtered.
-        await this.cache.resolve(key, async () => payload);
+        // Write-filtered: strings persist; DocumentFragment is skipped.
+        this.cache.set(key, payload);
       }
 
       return payload;

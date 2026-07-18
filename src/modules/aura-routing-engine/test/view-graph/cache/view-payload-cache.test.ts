@@ -48,6 +48,17 @@ describe('ViewPayloadCache', () => {
     expect(cache.get('/frag')).toBeUndefined();
   });
 
+  it('set persists strings and skips DocumentFragment', () => {
+    cache = new ViewPayloadCache();
+    const fragment = document.createDocumentFragment();
+
+    cache.set('/html', '<p>ok</p>');
+    cache.set('/frag', fragment);
+
+    expect(cache.get('/html')).toBe('<p>ok</p>');
+    expect(cache.get('/frag')).toBeUndefined();
+  });
+
   it('clear removes cached entries', async () => {
     cache = new ViewPayloadCache();
     await cache.resolve('/x', async () => 'cached');

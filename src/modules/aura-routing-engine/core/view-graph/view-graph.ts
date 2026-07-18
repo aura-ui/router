@@ -33,7 +33,7 @@ export type ViewGraphDeps = {
 };
 
 /** Static view data, or a per-route resolver (e.g. data-bound content in {@link ViewGraph.load}). */
-export type ViewDataInput = unknown | ((route: MatchedRouteInfo) => unknown);
+export type ViewDataInput = unknown | ((match: MatchedRouteInfo) => unknown);
 
 export type ViewLoadOptions = {
   readonly data?: ViewDataInput;
@@ -118,17 +118,17 @@ export class ViewGraph {
    * Parallel {@link loadView} for independent content routes.
    * Primary navigation entry (ResourceGraph / {@link DataGraph.load} twin).
    * No parent-join, no sibling-abort — but same terminal fold: first `{ error }` wins,
-   * partial sibling `data` dropped. Per-route data: pass `options.data` as `(route) => …`.
+   * partial sibling `data` dropped. Per-route data: pass `options.data` as `(match) => …`.
    */
   async load(
-    routes: readonly MatchedRouteInfo[],
+    matches: readonly MatchedRouteInfo[],
     signal: AbortSignal,
     options?: ViewLoadOptions,
   ): Promise<ViewGraphLoadViewsResult> {
-    if (!routes.length) return {};
+    if (!matches.length) return {};
 
     const results = await Promise.all(
-      routes.map((route) => this.loadView(route, signal, options)),
+      matches.map((match) => this.loadView(match, signal, options)),
     );
     const error = results.find((result) => result.error)?.error;
     return error ? { error } : { data: results };
@@ -139,31 +139,31 @@ export class ViewGraph {
    * Single-route entry ({@link ViewResolverPort}). Outcome: `{ data }` / `{ error }` / `{}`.
    */
   loadView(
-    routeInfo: MatchedRouteInfo,
+    match: MatchedRouteInfo,
     signal: AbortSignal,
     options?: ViewLoadOptions,
   ): Promise<ViewGraphLoadResult> {
     const descriptor = buildViewDescriptor(
-      routeInfo.route as RouteViewSource,
-      routeInfo.resolvedView,
+      match.route as RouteViewSource,
+      match.resolvedView,
     );
     if (!descriptor) return Promise.resolve({});
 
-    return this.loadPayload(descriptor, routeInfo, signal, options);
+    return this.loadPayload(descriptor, match, signal, options);
   }
 
   /** Intent prefetch for enter routes with bounded concurrency; never fails the caller. */
   prefetch(
-    routes: readonly MatchedRouteInfo[],
+    matches: readonly MatchedRouteInfo[],
     signal: AbortSignal,
     options: ViewPrefetchOptions = {},
   ): Promise<void> {
     const { concurrency, order } = { ...DEFAULT_PREFETCH, ...options };
-    const ordered = order === 'leaf-first' ? [...routes].reverse() : routes;
+    const ordered = order === 'leaf-first' ? [...matches].reverse() : matches;
     return runConcurrent(
       ordered,
       concurrency,
-      (info) => this.loadView(info, signal, { mode: 'prefetch' }),
+      (match) => this.loadView(match, signal, { mode: 'prefetch' }),
       signal,
     );
   }
@@ -171,38 +171,39 @@ export class ViewGraph {
   /** Direct resolve bypassing route attrs — tests and explicit descriptor loads. */
   async loadPayload(
     descriptor: ViewDescriptor,
-    routeInfo: MatchedRouteInfo,
-    signal: AbortSignal,
+    match: MatchedRouteInfo,
+    interestSignal: AbortSignal,
     options?: ViewLoadOptions,
   ): Promise<ViewGraphLoadResult> {
     const mode = options?.mode ?? 'navigation';
     const transaction = options?.transaction;
-    const data = resolveViewData(routeInfo, options?.data);
+    const data = resolveViewData(match, options?.data);
 
-    if (signal.aborted) return cancelledResult(mode);
+    if (interestSignal.aborted) return cancelledResult(mode);
 
-    const key = resolveViewCacheKey(routeInfo, data);
+    const key = resolveViewCacheKey(match, data);
     if (!key) return {};
 
+    const useLongCache = descriptor.cache;
+
     // Warm long cache → no hold, no handoff.
-    const cached = this.fastCacheCheck(descriptor.cache, key, signal, mode, transaction);
-    if (cached) return cached;
+    const hit = this.readLongCacheHit(useLongCache, key, interestSignal, mode, transaction);
+    if (hit) return hit;
 
     const waiter = this.sharedBuffer.hold(key, mode);
 
     try {
-      const shared = this.runSharedLoad(key, descriptor.cache, () =>
-        this.runViewLoader(descriptor, routeInfo, waiter.workSignal, data),
+      const shared = this.runSharedLoad(key, useLongCache, () =>
+        this.runViewLoader(descriptor, match, waiter.workSignal, data),
       );
       // Interest may detach before settle; don't leave an unhandled rejection on shared.
-      void shared.catch(() => {
-      });
-      const payload = await awaitUntilAbort(shared, signal);
+      void shared.catch(() => {});
+      const payload = await awaitUntilAbort(shared, interestSignal);
 
-      if (isInactive(signal, transaction)) return cancelledResult(mode);
+      if (!isInterestActive(interestSignal, transaction)) return cancelledResult(mode);
       return { data: payload };
     } catch (error) {
-      return this.toLoadErrorResult(error, routeInfo, signal, mode, transaction);
+      return this.toLoadErrorResult(error, match, interestSignal, mode, transaction);
     } finally {
       waiter.release();
     }
@@ -218,20 +219,20 @@ export class ViewGraph {
   }
 
   /** Hit on `cache.view` without touching handoff; `undefined` → miss. */
-  private fastCacheCheck(
+  private readLongCacheHit(
     useLongCache: boolean,
     key: string,
-    signal: AbortSignal,
+    interestSignal: AbortSignal,
     mode: LoadHookMode,
     transaction: NavigationTransaction | undefined,
   ): ViewGraphLoadResult | undefined {
     if (!useLongCache) return undefined;
 
-    const cached = this.cache.get(key);
-    if (cached === undefined) return undefined;
+    const payload = this.cache.get(key);
+    if (payload === undefined) return undefined;
 
-    if (isInactive(signal, transaction)) return cancelledResult(mode);
-    return { data: cached };
+    if (!isInterestActive(interestSignal, transaction)) return cancelledResult(mode);
+    return { data: payload };
   }
 
   /**
@@ -245,8 +246,8 @@ export class ViewGraph {
   ): Promise<ViewPayload | null> {
     return this.sharedBuffer.resolve(key, async () => {
       if (useLongCache) {
-        const cached = this.cache.get(key);
-        if (cached !== undefined) return cached;
+        const payload = this.cache.get(key);
+        if (payload !== undefined) return payload;
       }
 
       const payload = await load();
@@ -261,42 +262,44 @@ export class ViewGraph {
   }
 
   /**
-   * Run the view loader against `signal` (caller interest or shared {@link HandoffWaiter.workSignal}).
+   * Run the view loader against `workSignal` (shared {@link HandoffWaiter.workSignal}).
    * Abort must **reject** — never settle `null` into handoff (that would poison the TTL window).
    */
   private async runViewLoader(
     descriptor: ViewDescriptor,
-    routeInfo: MatchedRouteInfo,
-    signal: AbortSignal,
+    match: MatchedRouteInfo,
+    workSignal: AbortSignal,
     data?: unknown,
   ): Promise<ViewPayload | null> {
-    throwIfAborted(signal);
+    throwIfAborted(workSignal);
 
     try {
-      const result = await this.registry.get(descriptor.loader).load(
-        buildLoadContext(routeInfo, descriptor, signal, data),
+      const loadResult = await this.registry.get(descriptor.loader).load(
+        buildLoadContext(match, descriptor, workSignal, data),
       );
-      if (!result) return null;
-      return result.kind === 'html'
-        ? result.html
-        : result.kind === 'markup'
-          ? result.markup
-          : result.node;
+      if (!loadResult) return null;
+      return loadResult.kind === 'html'
+        ? loadResult.html
+        : loadResult.kind === 'markup'
+          ? loadResult.markup
+          : loadResult.node;
     } catch (error: unknown) {
-      throwIfAborted(signal);
-      throw createViewLoadError(descriptor.loader, routeInfo.pattern, error);
+      throwIfAborted(workSignal);
+      throw createViewLoadError(descriptor.loader, match.pattern, error);
     }
   }
 
   private async toLoadErrorResult(
     error: unknown,
     match: MatchedRouteInfo,
-    signal: AbortSignal,
+    interestSignal: AbortSignal,
     mode: LoadHookMode,
     transaction: NavigationTransaction | undefined,
   ): Promise<ViewGraphLoadResult> {
     if (mode === 'prefetch') return {};
-    if (isInactive(signal, transaction)) return { error: { status: 'cancelled' } };
+    if (!isInterestActive(interestSignal, transaction)) {
+      return { error: { status: 'cancelled' } };
+    }
     if (transaction) {
       return { error: await transaction.fail(match, error, 'render') };
     }
@@ -323,13 +326,13 @@ function buildViewDescriptor(
     : descriptor;
 }
 
-function resolveViewData(route: MatchedRouteInfo, data: ViewDataInput | undefined): unknown {
-  return typeof data === 'function' ? data(route) : data;
+function resolveViewData(match: MatchedRouteInfo, data: ViewDataInput | undefined): unknown {
+  return typeof data === 'function' ? data(match) : data;
 }
 
 /** Prefer precomputed `match.viewKey`; fall back for hand-built matches. */
-function resolveViewCacheKey(routeInfo: MatchedRouteInfo, data?: unknown): string | null {
-  const base = routeInfo.viewKey ?? viewKey(routeInfo);
+function resolveViewCacheKey(match: MatchedRouteInfo, data?: unknown): string | null {
+  const base = match.viewKey ?? viewKey(match);
   if (!base) return null;
   return data !== undefined ? viewKeyWithData(base, data) : base;
 }
@@ -338,25 +341,28 @@ function cancelledResult(mode: LoadHookMode): ViewGraphLoadResult {
   return mode === 'prefetch' ? {} : { error: { status: 'cancelled' } };
 }
 
-function isInactive(signal: AbortSignal, transaction?: NavigationTransaction): boolean {
-  return signal.aborted || (transaction != null && !transaction.isActive());
+function isInterestActive(
+  interestSignal: AbortSignal,
+  transaction?: NavigationTransaction,
+): boolean {
+  return !interestSignal.aborted && (transaction == null || transaction.isActive());
 }
 
 function buildLoadContext(
-  routeInfo: MatchedRouteInfo,
+  match: MatchedRouteInfo,
   descriptor: Pick<ViewDescriptor, 'kind' | 'content' | 'extract'>,
-  signal: AbortSignal,
+  workSignal: AbortSignal,
   data?: unknown,
 ): ViewLoadContext {
   return {
     content: descriptor.content,
     kind: descriptor.kind,
-    signal,
+    signal: workSignal,
     route: {
-      href: routeInfo.href,
-      pattern: routeInfo.pattern,
-      ...(routeInfo.params && { params: routeInfo.params }),
-      ...(routeInfo.query && { query: routeInfo.query }),
+      href: match.href,
+      pattern: match.pattern,
+      ...(match.params && { params: match.params }),
+      ...(match.query && { query: match.query }),
     },
     ...(data !== undefined && { data }),
     ...(descriptor.extract && { extract: descriptor.extract }),

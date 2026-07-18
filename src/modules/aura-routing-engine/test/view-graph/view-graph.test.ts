@@ -288,7 +288,7 @@ describe('ViewGraph', () => {
     ).resolves.toEqual({ data: [{ data: 'parent' }, { data: 'child' }] });
   });
 
-  it('loadViews accepts a per-route options factory', async () => {
+  it('loadViews accepts a per-route data resolver', async () => {
     const seen: unknown[] = [];
     registry.register('html', async (ctx) => {
       seen.push(ctx.data);
@@ -297,9 +297,9 @@ describe('ViewGraph', () => {
     const a = matched('/a', { resolvedView: { loader: 'html', content: 'a' } });
     const b = matched('/b', { resolvedView: { loader: 'html', content: 'b' } });
 
-    await viewGraph.loadViews([a, b], new AbortController().signal, (route) => ({
-      data: { pattern: route.pattern },
-    }));
+    await viewGraph.loadViews([a, b], new AbortController().signal, {
+      data: (route) => ({ pattern: route.pattern }),
+    });
 
     expect(seen).toEqual([{ pattern: '/a' }, { pattern: '/b' }]);
   });

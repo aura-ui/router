@@ -65,8 +65,11 @@ export type ViewGraphDeps = {
   readonly cache?: ViewGraphCacheOptions;
 };
 
+/** Static view data, or a per-route resolver (e.g. data-bound content in {@link ViewGraph.loadViews}). */
+export type ViewDataInput = unknown | ((route: MatchedRouteInfo) => unknown);
+
 export type ViewLoadOptions = {
-  readonly data?: unknown;
+  readonly data?: ViewDataInput;
   /** Defaults to `navigation`. Prefetch paths pass `prefetch`. */
   readonly mode?: LoadHookMode;
   /**
@@ -75,6 +78,10 @@ export type ViewLoadOptions = {
    */
   readonly transaction?: NavigationTransaction;
 };
+
+function resolveViewData(route: MatchedRouteInfo, data: ViewDataInput | undefined): unknown {
+  return typeof data === 'function' ? data(route) : data;
+}
 
 /**
  * View payload coordinator: descriptor → loader → cache → {@link ViewPayload}.
@@ -123,7 +130,7 @@ export class ViewGraph {
       descriptor,
       routeInfo,
       signal,
-      options?.data,
+      resolveViewData(routeInfo, options?.data),
       options?.mode ?? 'navigation',
       options?.transaction,
     );
@@ -133,19 +140,17 @@ export class ViewGraph {
    * Parallel {@link loadView} for independent content routes.
    * Unlike {@link DataGraph.load}: no parent-join, no sibling-abort — but same
    * terminal fold: first `{ error }` wins, partial sibling `data` dropped.
-   * `options` may be a per-route factory (e.g. data-bound content).
+   * Per-route data: pass `options.data` as `(route) => …`.
    */
   async loadViews(
     routes: readonly MatchedRouteInfo[],
     signal: AbortSignal,
-    options?: ViewLoadOptions | ((route: MatchedRouteInfo) => ViewLoadOptions | undefined),
+    options?: ViewLoadOptions,
   ): Promise<ViewGraphLoadViewsResult> {
     if (!routes.length) return {};
 
     const results = await Promise.all(
-      routes.map((route) =>
-        this.loadView(route, signal, typeof options === 'function' ? options(route) : options),
-      ),
+      routes.map((route) => this.loadView(route, signal, options)),
     );
     const error = results.find((result) => result.error)?.error;
     return error ? { error } : { data: results };

@@ -116,6 +116,7 @@ export type {
   ViewGraphCacheOptions,
   ViewPrefetchOptions,
   ViewLoadOptions,
+  ViewDataInput,
   ViewGraphLoadResult,
   ViewGraphLoadViewsResult,
   ViewLoadPort,

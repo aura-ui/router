@@ -12,7 +12,7 @@ import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { defaultLoaderRegistry, type LoaderRegistry } from './registry';
 import { HandoffCache, type HandoffWaiterKind } from '../resource-graph';
-import type { LoadHookMode } from '../data-graph';
+import type { DataGraph, LoadHookMode } from '../data-graph';
 import type { PipelineStepResult } from '../navigation/types';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 
@@ -39,6 +39,15 @@ type TerminalOutcome = Exclude<PipelineStepResult, null>;
  */
 export type ViewGraphLoadResult = {
   data?: ViewPayload | null;
+  error?: TerminalOutcome;
+};
+
+/**
+ * Batch {@link ViewGraph.loadViews}: `{ data }` ok · `{ error }` first failure · `{}` empty.
+ * On error drops partial sibling results (same as {@link DataGraph.load}).
+ */
+export type ViewGraphLoadViewsResult = {
+  data?: ViewGraphLoadResult[];
   error?: TerminalOutcome;
 };
 
@@ -118,6 +127,28 @@ export class ViewGraph {
       options?.mode ?? 'navigation',
       options?.transaction,
     );
+  }
+
+  /**
+   * Parallel {@link loadView} for independent content routes.
+   * Unlike {@link DataGraph.load}: no parent-join, no sibling-abort — but same
+   * terminal fold: first `{ error }` wins, partial sibling `data` dropped.
+   * `options` may be a per-route factory (e.g. data-bound content).
+   */
+  async loadViews(
+    routes: readonly MatchedRouteInfo[],
+    signal: AbortSignal,
+    options?: ViewLoadOptions | ((route: MatchedRouteInfo) => ViewLoadOptions | undefined),
+  ): Promise<ViewGraphLoadViewsResult> {
+    if (!routes.length) return {};
+
+    const results = await Promise.all(
+      routes.map((route) =>
+        this.loadView(route, signal, typeof options === 'function' ? options(route) : options),
+      ),
+    );
+    const error = results.find((result) => result.error)?.error;
+    return error ? { error } : { data: results };
   }
 
   /** Direct resolve bypassing route attrs — tests and explicit descriptor loads. */

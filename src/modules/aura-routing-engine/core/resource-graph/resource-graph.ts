@@ -139,35 +139,27 @@ export class ResourceGraph {
       ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction: this.transaction, mode: 'navigation' })
       : Promise.resolve({});
 
-    const contentPromise = Promise.all(
-      contentRoutes.map((route) =>
-        this.viewGraph.loadView(route, this.signal, {
-          mode: 'navigation',
-          transaction: this.transaction,
-        }),
-      ),
-    );
+    const contentPromise = this.viewGraph.loadViews(contentRoutes, this.signal, {
+      mode: 'navigation',
+      transaction: this.transaction,
+    });
 
-    const [dataResult, contentResults] = await Promise.all([dataPromise, contentPromise]);
+    const [dataResult, contentResult] = await Promise.all([dataPromise, contentPromise]);
 
     if (dataResult.error) return dataResult;
+    if (contentResult.error) return contentResult;
 
-    const contentError = contentResults.find((result) => result.error)?.error;
-    if (contentError) return { error: contentError };
-
-    const dataBoundContentResults = await Promise.all(
-      dataBoundContentRoutes.map((route) => {
-        const data = dataResult.data?.get(route.dataKey!);
-        return this.viewGraph.loadView(route, this.signal, {
-          data,
-          mode: 'navigation',
-          transaction: this.transaction,
-        });
+    const dataBoundResult = await this.viewGraph.loadViews(
+      dataBoundContentRoutes,
+      this.signal,
+      (route) => ({
+        data: dataResult.data?.get(route.dataKey!),
+        mode: 'navigation',
+        transaction: this.transaction,
       }),
     );
 
-    const dataBoundError = dataBoundContentResults.find((result) => result.error)?.error;
-    if (dataBoundError) return { error: dataBoundError };
+    if (dataBoundResult.error) return dataBoundResult;
 
     return dataResult;
   }

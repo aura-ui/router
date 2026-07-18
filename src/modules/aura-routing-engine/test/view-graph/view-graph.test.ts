@@ -273,6 +273,56 @@ describe('ViewGraph', () => {
     await expect(viewGraph.prefetchNode(route, new AbortController().signal)).resolves.toBeUndefined();
   });
 
+  it('loadViews runs loadView in parallel for each route', async () => {
+    registry.register('html', async (ctx) => ctx.content);
+    const parent = matched('/users', {
+      resolvedView: { loader: 'html', content: 'parent' },
+    });
+    const child = matched('/users/1', {
+      pattern: '/users/:id',
+      resolvedView: { loader: 'html', content: 'child' },
+    });
+
+    await expect(
+      viewGraph.loadViews([parent, child], new AbortController().signal),
+    ).resolves.toEqual({ data: [{ data: 'parent' }, { data: 'child' }] });
+  });
+
+  it('loadViews accepts a per-route options factory', async () => {
+    const seen: unknown[] = [];
+    registry.register('html', async (ctx) => {
+      seen.push(ctx.data);
+      return ctx.content;
+    });
+    const a = matched('/a', { resolvedView: { loader: 'html', content: 'a' } });
+    const b = matched('/b', { resolvedView: { loader: 'html', content: 'b' } });
+
+    await viewGraph.loadViews([a, b], new AbortController().signal, (route) => ({
+      data: { pattern: route.pattern },
+    }));
+
+    expect(seen).toEqual([{ pattern: '/a' }, { pattern: '/b' }]);
+  });
+
+  it('loadViews returns first error and drops sibling data', async () => {
+    registry.register('html', async (ctx) => {
+      if (ctx.route.pattern === '/bad') throw new Error('boom');
+      return ctx.content;
+    });
+    const ok = matched('/ok', { resolvedView: { loader: 'html', content: 'ok' } });
+    const bad = matched('/bad', { resolvedView: { loader: 'html', content: 'bad' } });
+    const transaction = {
+      isActive: () => true,
+      fail: jest.fn(async () => ({ status: 'error' as const, error: new Error('boom') })),
+    };
+
+    await expect(
+      viewGraph.loadViews([ok, bad], new AbortController().signal, {
+        transaction: transaction as never,
+      }),
+    ).resolves.toEqual({ error: { status: 'error', error: expect.any(Error) } });
+  });
+
   it('prefetchBranch loads enter chain with bounded concurrency', async () => {
     const order: string[] = [];
     registry.register('html', async (ctx) => {

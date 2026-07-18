@@ -122,7 +122,7 @@ ViewPayload
 
 | Тип | Методы | Потребитель |
 |-----|--------|-------------|
-| `ViewLoadPort` | `loadView`, `loadViews`, `prefetchBranch` | prefetch / prepare executor |
+| `ViewLoadPort` | `loadView`, `loadViews`, `prefetch` | prefetch / prepare executor |
 | `ViewResolverPort` | `loadView` | `RouteViewController` |
 | `BranchViewResolver` | `loadView` | branch-atomic resolve |
 
@@ -293,17 +293,13 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 ## Prefetch
 
-| Метод | Назначение |
-|-------|------------|
-| `prefetchNode(route, signal)` | один маршрут |
-| `prefetchBranch(chain, signal, opts?)` | enter chain, с ограничением параллелизма |
-| `prefetchLeaf(leaf, signal, opts?)` | `getActiveChain(leaf)` + branch |
+`prefetch(routes, signal, opts?)` — warmup enter-routes с ограничением параллелизма (`runConcurrent`).
 
 По умолчанию: `concurrency: 3`, `order: 'root-first'`.
 
 Ошибки prefetch **не пробрасываются** — intent prefetch, как в `DataGraph`.
 
-Prefetch (hover/intent) идёт через speculative prepare → `viewGraph.prefetchBranch` при наличии `config.viewGraph`.
+Prefetch (hover/intent) идёт через speculative prepare → `viewGraph.prefetch` при наличии `config.viewGraph`.
 
 ---
 
@@ -331,7 +327,7 @@ AuraRouter
   └─ invalidateView() → viewGraph.invalidate()
 
 AuraRoutingEngine
-  └─ config.viewGraph → speculative prepare → viewGraph.prefetchBranch
+  └─ config.viewGraph → speculative prepare → viewGraph.prefetch
 
 AuraRoute / RouteViewController
   └─ config.view: router.viewGraph   // ViewResolverPort

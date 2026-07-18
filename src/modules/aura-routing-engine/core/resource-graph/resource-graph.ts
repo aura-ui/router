@@ -169,7 +169,7 @@ export class ResourceGraph {
     }
 
     if (contentRoutes.length) {
-      parts.push(this.viewGraph.prefetchBranch(contentRoutes, signal));
+      parts.push(this.viewGraph.prefetch(contentRoutes, signal));
     }
 
     if (parts.length) {
@@ -179,7 +179,7 @@ export class ResourceGraph {
     if (dataBoundContentRoutes.length) {
       // todo check data
       parts = [];
-      parts.push(this.viewGraph.prefetchBranch(dataBoundContentRoutes, signal));
+      parts.push(this.viewGraph.prefetch(dataBoundContentRoutes, signal));
       await Promise.all(parts);
     }
 

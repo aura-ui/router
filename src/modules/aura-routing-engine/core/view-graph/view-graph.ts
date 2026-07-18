@@ -4,7 +4,6 @@ import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { createViewLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { viewKey, viewKeyWithData } from '../match/resource-keys';
-import { getActiveChain } from '../route-tree/matched-chain';
 import { ViewPayloadCache } from './cache/view-payload-cache';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { ResolvedView } from '../route-tree/resolved-view';
@@ -236,29 +235,20 @@ export class ViewGraph {
     });
   }
 
-  /** Intent prefetch for one route; never fails the caller. */
-  async prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
-    await this.loadView(routeInfo, signal, { mode: 'prefetch' });
-  }
-
-  /** Prefetch enter chain with bounded concurrency. */
-  prefetchBranch(
-    chain: readonly MatchedRouteInfo[],
+  /** Intent prefetch for enter routes with bounded concurrency; never fails the caller. */
+  prefetch(
+    routes: readonly MatchedRouteInfo[],
     signal: AbortSignal,
     options: ViewPrefetchOptions = {},
   ): Promise<void> {
     const { concurrency, order } = { ...DEFAULT_PREFETCH, ...options };
-    const ordered = order === 'leaf-first' ? [...chain].reverse() : chain;
-    return runConcurrent(ordered, concurrency, (info) => this.prefetchNode(info, signal), signal);
-  }
-
-  /** `getActiveChain(leaf)` + {@link prefetchBranch}. */
-  prefetchLeaf(
-    leaf: MatchedRouteInfo,
-    signal: AbortSignal,
-    options?: ViewPrefetchOptions,
-  ): Promise<void> {
-    return this.prefetchBranch(getActiveChain(leaf), signal, options);
+    const ordered = order === 'leaf-first' ? [...routes].reverse() : routes;
+    return runConcurrent(
+      ordered,
+      concurrency,
+      (info) => this.loadView(info, signal, { mode: 'prefetch' }),
+      signal,
+    );
   }
 
   /** Invalidate payload cache entries ({@link RouterInvalidateOptions}, default policy `stale`). */

@@ -261,7 +261,7 @@ describe('ViewGraph', () => {
     next.destroy();
   });
 
-  it('prefetchNode swallows loader errors', async () => {
+  it('prefetch swallows loader errors', async () => {
     registry.register('html', async () => {
       throw new Error('prefetch fail');
     });
@@ -270,7 +270,9 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: 'x' },
     });
 
-    await expect(viewGraph.prefetchNode(route, new AbortController().signal)).resolves.toBeUndefined();
+    await expect(
+      viewGraph.prefetch([route], new AbortController().signal),
+    ).resolves.toBeUndefined();
   });
 
   it('loadViews runs loadView in parallel for each route', async () => {
@@ -323,7 +325,7 @@ describe('ViewGraph', () => {
     ).resolves.toEqual({ error: { status: 'error', error: expect.any(Error) } });
   });
 
-  it('prefetchBranch loads enter chain with bounded concurrency', async () => {
+  it('prefetch loads enter routes with bounded concurrency', async () => {
     const order: string[] = [];
     registry.register('html', async (ctx) => {
       order.push(`start:${ctx.route.pattern}`);
@@ -340,7 +342,7 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: 'child' },
     });
 
-    await viewGraph.prefetchBranch([parent, child], new AbortController().signal, {
+    await viewGraph.prefetch([parent, child], new AbortController().signal, {
       concurrency: 1,
       order: 'root-first',
     });
@@ -353,7 +355,7 @@ describe('ViewGraph', () => {
     ]);
   });
 
-  it('prefetchBranch respects leaf-first order', async () => {
+  it('prefetch respects leaf-first order', async () => {
     const order: string[] = [];
     registry.register('html', async (ctx) => {
       order.push(`start:${ctx.route.pattern}`);
@@ -370,7 +372,7 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: 'child' },
     });
 
-    await viewGraph.prefetchBranch([parent, child], new AbortController().signal, {
+    await viewGraph.prefetch([parent, child], new AbortController().signal, {
       concurrency: 1,
       order: 'leaf-first',
     });
@@ -395,28 +397,6 @@ describe('ViewGraph', () => {
     });
 
     await expect(viewGraph.loadView(route, controller.signal)).resolves.toEqual({ error: { status: 'cancelled' } });
-  });
-
-  it('prefetchLeaf prefetches the active chain', async () => {
-    let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      return 'x';
-    });
-
-    const parent = matched('/app', {
-      resolvedView: { loader: 'html', content: 'layout' },
-    });
-    const leaf = matched('/app/home', {
-      resolvedView: { loader: 'html', content: 'home' },
-      chain: undefined,
-    });
-    leaf.chain = [parent, leaf];
-    parent.chain = leaf.chain;
-
-    await viewGraph.prefetchLeaf(leaf, new AbortController().signal);
-
-    expect(loads).toBe(2);
   });
 
   it('invalidate clears long cache.view payloads', async () => {

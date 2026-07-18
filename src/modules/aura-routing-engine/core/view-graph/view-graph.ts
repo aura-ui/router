@@ -15,7 +15,7 @@ import type { NavigationTransaction } from '../navigation/navigation-transaction
 import type { PipelineStepResult } from '../navigation/types';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { LoaderRegistry } from './registry';
-import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
+import type { ViewDescriptor, ViewLoadContext, ViewLoadResult, ViewPayload } from './types';
 
 /** Default `cache.view` payload TTL — 12 hours. */
 const VIEW_CACHE_GC_TIME = 43_200_000;
@@ -75,6 +75,11 @@ const DEFAULT_PREFETCH: Required<ViewPrefetchOptions> = {
   concurrency: 3,
   order: 'root-first',
 };
+
+/** Soft skip — prefetch cancel / no descriptor. */
+const SKIP_RESULT: ViewGraphLoadResult = {};
+/** Navigation interest dropped before settle. */
+const CANCELLED_RESULT: ViewGraphLoadResult = { error: { status: 'cancelled' } };
 
 /** Route fields read when building a {@link ViewDescriptor} from {@link MatchedRouteInfo}. */
 export type RouteViewSource = {
@@ -147,7 +152,7 @@ export class ViewGraph {
       match.route as RouteViewSource,
       match.resolvedView,
     );
-    if (!descriptor) return Promise.resolve({});
+    if (!descriptor) return Promise.resolve(SKIP_RESULT);
 
     return this.loadPayload(descriptor, match, signal, options);
   }
@@ -158,14 +163,13 @@ export class ViewGraph {
     signal: AbortSignal,
     options: ViewPrefetchOptions = {},
   ): Promise<void> {
-    const { concurrency, order } = { ...DEFAULT_PREFETCH, ...options };
+    const concurrency = options.concurrency ?? DEFAULT_PREFETCH.concurrency;
+    const order = options.order ?? DEFAULT_PREFETCH.order;
     const ordered = order === 'leaf-first' ? [...matches].reverse() : matches;
     return runConcurrent(
       ordered,
       concurrency,
-      async (match) => {
-        await this.loadView(match, signal, { mode: 'prefetch' });
-      },
+      (match) => this.loadView(match, signal, { mode: 'prefetch' }),
       signal,
     );
   }
@@ -280,11 +284,7 @@ export class ViewGraph {
         buildLoadContext(match, descriptor, workSignal, data),
       );
       if (!loadResult) return null;
-      return loadResult.kind === 'html'
-        ? loadResult.html
-        : loadResult.kind === 'markup'
-          ? loadResult.markup
-          : loadResult.node;
+      return toViewPayload(loadResult);
     } catch (error: unknown) {
       throwIfAborted(workSignal);
       throw createViewLoadError(descriptor.loader, match.pattern, error);
@@ -298,10 +298,8 @@ export class ViewGraph {
     mode: LoadHookMode,
     transaction: NavigationTransaction | undefined,
   ): Promise<ViewGraphLoadResult> {
-    if (mode === 'prefetch') return {};
-    if (!isInterestActive(interestSignal, transaction)) {
-      return { error: { status: 'cancelled' } };
-    }
+    if (mode === 'prefetch') return SKIP_RESULT;
+    if (!isInterestActive(interestSignal, transaction)) return CANCELLED_RESULT;
     if (transaction) {
       return { error: await transaction.fail(match, error, 'render') };
     }
@@ -340,7 +338,7 @@ function resolveViewCacheKey(match: MatchedRouteInfo, data?: unknown): string | 
 }
 
 function cancelledResult(mode: LoadHookMode): ViewGraphLoadResult {
-  return mode === 'prefetch' ? {} : { error: { status: 'cancelled' } };
+  return mode === 'prefetch' ? SKIP_RESULT : CANCELLED_RESULT;
 }
 
 function isInterestActive(
@@ -348,6 +346,17 @@ function isInterestActive(
   transaction?: NavigationTransaction,
 ): boolean {
   return !interestSignal.aborted && (transaction == null || transaction.isActive());
+}
+
+function toViewPayload(result: ViewLoadResult): ViewPayload {
+  switch (result.kind) {
+    case 'html':
+      return result.html;
+    case 'markup':
+      return result.markup;
+    case 'fragment':
+      return result.node;
+  }
 }
 
 function buildLoadContext(

@@ -44,7 +44,7 @@ export function withPlanTransitionOrder(
 export function createMockEngine(): AuraRoutingEngine {
   const hookRegistry = new HookRegistry();
   const sharedBuffer = new HandoffCache();
-  const dataGraph = new DataGraph(hookRegistry, sharedBuffer);
+  const dataGraph = new DataGraph(sharedBuffer, { hooks: hookRegistry });
   const viewGraph = { loadView: jest.fn().mockResolvedValue({}) } as unknown as ViewGraph;
   return {
     commitHistoryIfNeeded: jest.fn(),
@@ -66,7 +66,7 @@ export function createCoordinatorMockHost(): NavigationHost & {
 } {
   const hookRegistry = new HookRegistry();
   const sharedBuffer = new HandoffCache();
-  const dataGraph = new DataGraph(hookRegistry, sharedBuffer);
+  const dataGraph = new DataGraph(sharedBuffer, { hooks: hookRegistry });
   const viewGraph = { loadView: jest.fn().mockResolvedValue({}) } as unknown as ViewGraph;
   const host = {
     isRunning: true,

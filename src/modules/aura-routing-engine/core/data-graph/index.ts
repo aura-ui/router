@@ -1,9 +1,10 @@
 export {
   DataGraph,
+  type DataGraphCacheOptions,
+  type DataGraphDeps,
   type DataGraphLoadOptions,
   type DataGraphLoadResult,
-  type DataGraphOptions,
-  type DataGraphPrefetchOptions,
+  type DataGraphRouteLoadResult,
   type DataSnapshot,
   type LoadHookMode,
 } from './data-graph';

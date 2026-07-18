@@ -72,7 +72,7 @@ describe('DataGraph', () => {
 
   beforeEach(() => {
     hookRegistry = new HookRegistry();
-    dataGraph = new DataGraph(hookRegistry, new HandoffCache(), { staleTime: 60_000 });
+    dataGraph = new DataGraph(new HandoffCache(), { hooks: hookRegistry, cache: { staleTime: 60_000 } });
   });
 
   afterEach(() => {
@@ -228,7 +228,7 @@ describe('DataGraph', () => {
     expect(dataGraph.getData(route)).toBeUndefined();
 
     // Fresh handoff → load again (no long-cache persist)
-    const graph2 = new DataGraph(hookRegistry, new HandoffCache());
+    const graph2 = new DataGraph(new HandoffCache(), { hooks: hookRegistry });
     await graph2.load([route], options);
     expect(hookCalls).toBe(2);
     graph2.destroy();
@@ -253,7 +253,7 @@ describe('DataGraph', () => {
     dataGraph.invalidate({ policy: 'remove' });
     expect(dataGraph.getData(route)).toBeUndefined();
 
-    const graph2 = new DataGraph(hookRegistry, new HandoffCache(), { staleTime: 60_000 });
+    const graph2 = new DataGraph(new HandoffCache(), { hooks: hookRegistry, cache: { staleTime: 60_000 } });
     await graph2.load([route], options);
     graph2.destroy();
 

@@ -154,11 +154,13 @@ export type { RouterPrefetchPolicy } from './core/prefetch/prefetch-policy';
 
 export { DataGraph } from './core/data-graph';
 export type {
+  DataGraphCacheOptions,
+  DataGraphDeps,
   DataGraphLoadOptions,
   DataGraphLoadResult,
-  DataGraphOptions,
-  DataGraphPrefetchOptions,
+  DataGraphRouteLoadResult,
   DataSnapshot,
+  LoadHookMode,
 } from './core/data-graph';
 export type {
   RouterInvalidateOptions,

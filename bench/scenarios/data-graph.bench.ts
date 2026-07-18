@@ -7,6 +7,7 @@
 import '../lib/dom-bootstrap';
 import { DataGraph } from '../../src/modules/aura-routing-engine/core/data-graph';
 import { HookRegistry } from '../../src/modules/aura-routing-engine/core/hooks/registry';
+import { HandoffCache } from '../../src/modules/aura-routing-engine/core/resource-graph';
 import { createMatchedRoute, createMockTransaction } from '../../src/modules/aura-routing-engine/test/helpers/create-mock-transaction';
 import { BenchSession, isBenchMain, type SavedReport } from '../lib/report';
 const BENCH_ID = 'data-graph';
@@ -21,7 +22,10 @@ export async function runDataGraphBench(): Promise<SavedReport> {
   });
   session.header();
   const registry = new HookRegistry();
-  const graph = new DataGraph(registry, { staleTime: 30_000, gcSweepInterval: false });
+  const graph = new DataGraph(new HandoffCache(), {
+    hooks: registry,
+    cache: { staleTime: 30_000 },
+  });
   registry.register({
     name: 'slow-a',
     version: '1.0.0',

@@ -142,7 +142,7 @@ describe('PrefetchPipeline', () => {
     const match = localMatcher.matchPath('/settings/profile', matchableNodes);
     expect(match).not.toBeNull();
 
-    const dataGraph = new DataGraph(hookRegistry, new HandoffCache());
+    const dataGraph = new DataGraph(new HandoffCache(), { hooks: hookRegistry });
 
     const leaf = localMatcher.buildMatchedRouteInfo(
       '/settings/profile',

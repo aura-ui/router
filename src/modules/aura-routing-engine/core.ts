@@ -115,6 +115,8 @@ export type {
   ViewGraphDeps,
   ViewGraphCacheOptions,
   ViewPrefetchOptions,
+  ViewLoadOptions,
+  ViewGraphLoadResult,
   ViewLoadPort,
   ViewResolverPort,
   BranchViewResolver,

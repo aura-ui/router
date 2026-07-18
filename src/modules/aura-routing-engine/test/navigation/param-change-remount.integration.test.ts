@@ -53,7 +53,7 @@ function wireRouteViewController(
   routeRecord.cache = { dom: cacheDom, view: false, data: false };
   routeRecord.transition = NO_TRANSITION;
 
-  const loadView: ViewGraph['loadView'] = async (info) => resolve(info.params?.id ?? '?');
+  const loadView: ViewGraph['loadView'] = async (info) => ({ data: resolve(info.params?.id ?? '?') });
 
   const controller = new RouteViewController(
     {
@@ -204,7 +204,7 @@ describe('NavigationTransactionPipeline branch remount options', () => {
     enterRoute.route.applyPreResolved = applyPreResolved;
 
     const engine = createMockEngine();
-    (engine.viewGraph!.loadView as jest.Mock).mockResolvedValue('<span>view-2</span>');
+    (engine.viewGraph!.loadView as jest.Mock).mockResolvedValue({ data: '<span>view-2</span>' });
 
     const transaction = new NavigationTransaction(
       1,

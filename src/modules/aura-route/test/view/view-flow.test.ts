@@ -95,8 +95,8 @@ describe('view flow (controller → outlet)', () => {
     const { controller } = createController(root, {
       loadView: async (routeInfo) => {
         resolveCount++;
-        if (routeInfo?.pathname === '/old') return '<span>old</span>';
-        return '<span>new</span>';
+        if (routeInfo?.pathname === '/old') return { data: '<span>old</span>' };
+        return { data: '<span>new</span>' };
       },
     }, '/', true);
 
@@ -118,7 +118,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       loadView: async (routeInfo) =>
-        routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
+        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
     await controller.render(matched('/old'));
@@ -131,7 +131,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       loadView: async (routeInfo) =>
-        routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
+        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
     await controller.render(matched('/old'));
@@ -146,7 +146,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       loadView: async (routeInfo) =>
-        routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
+        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
     await controller.render(matched('/old'));
@@ -162,7 +162,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller, route } = createController(root, {
       loadView: async (routeInfo) =>
-        routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
+        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     }, '/', true);
 
     await controller.render(matched('/old'));
@@ -185,7 +185,7 @@ describe('view flow (controller → outlet)', () => {
   it('revertInFlightView clears transition inline styles on active view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      loadView: async () => '<span>page</span>',
+      loadView: async () => ({ data: '<span>page</span>' }),
     });
 
     await controller.render(matched('/page'));
@@ -203,7 +203,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       loadView: async (routeInfo) =>
-        routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>',
+        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     }, '/', true);
 
     await controller.render(matched('/old'));
@@ -217,7 +217,7 @@ describe('view flow (controller → outlet)', () => {
   it('onUnmount clears a committed single view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      loadView: async () => '<span>page</span>',
+      loadView: async () => ({ data: '<span>page</span>' }),
     });
 
     await controller.render(matched('/page'));

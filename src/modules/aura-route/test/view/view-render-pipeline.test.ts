@@ -52,7 +52,7 @@ function createPipeline(
         transition: { order: null, in: null, out: null },
         ...overrides.route,
       } as AuraRouteInterface,
-      view: overrides.view ?? { loadView: async () => '<span>ok</span>' },
+      view: overrides.view ?? { loadView: async () => ({ data: '<span>ok</span>' }) },
       cache: overrides.cache ?? defaultDomCache,
       mountTarget: {
         appOutlet: () => root,
@@ -121,7 +121,7 @@ describe('ViewRenderPipeline', () => {
 
   it('syncBranchMount mounts pre-resolved content without calling loadView', () => {
     const root = createOutlet();
-    const loadView = jest.fn(async () => '<span>from-resolve</span>');
+    const loadView = jest.fn(async () => ({ data: '<span>from-resolve</span>' }));
     const onLoadingStart = jest.fn();
     const onLoadingEnd = jest.fn();
     const onContentResolved = jest.fn();

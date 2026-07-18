@@ -13,6 +13,8 @@ import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser
 import { defaultLoaderRegistry, type LoaderRegistry } from './registry';
 import { HandoffCache, type HandoffWaiterKind } from '../resource-graph';
 import type { LoadHookMode } from '../data-graph';
+import type { PipelineStepResult } from '../navigation/types';
+import type { NavigationTransaction } from '../navigation/navigation-transaction';
 
 /** Options for the long-lived `cache.view` store ({@link ViewPayloadCache}). */
 export type ViewGraphCacheOptions = CacheStoreOptions<string>;
@@ -27,6 +29,17 @@ export type ViewPrefetchOptions = {
 const DEFAULT_PREFETCH: Required<ViewPrefetchOptions> = {
   concurrency: 3,
   order: 'root-first',
+};
+
+type TerminalOutcome = Exclude<PipelineStepResult, null>;
+
+/**
+ * `{ data }` ok · `{ error }` navigation stop · `{}` soft skip (no descriptor / prefetch).
+ * Same shape as DataGraph load/prefetch results.
+ */
+export type ViewGraphLoadResult = {
+  data?: ViewPayload | null;
+  error?: TerminalOutcome;
 };
 
 /** Route fields read when building a {@link ViewDescriptor} from {@link MatchedRouteInfo}. */
@@ -47,6 +60,11 @@ export type ViewLoadOptions = {
   readonly data?: unknown;
   /** Defaults to `navigation`. Prefetch paths pass `prefetch`. */
   readonly mode?: LoadHookMode;
+  /**
+   * When set, loader failures go through {@link NavigationTransaction.fail}
+   * (same as DataGraph). Tests / {@link ViewResolverPort} may omit it — then errors throw.
+   */
+  readonly transaction?: NavigationTransaction;
 };
 
 /**
@@ -79,26 +97,27 @@ export class ViewGraph {
 
   /**
    * Load payload for a matched route (`layout` or `view` attr).
-   * Returns `null` when there is no descriptor, the loader yields nothing, or `signal` is aborted.
+   * Same outcome shape as DataGraph: `{ data }` / `{ error }` / `{}`.
    */
   loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     options?: ViewLoadOptions,
-  ): Promise<ViewPayload | null> {
+  ): Promise<ViewGraphLoadResult> {
     const descriptor = ViewGraph.buildViewDescriptor(
       routeInfo.route as RouteViewSource,
       routeInfo.resolvedView,
     );
-    return descriptor
-      ? this.loadViewDescriptor(
-        descriptor,
-        routeInfo,
-        signal,
-        options?.data,
-        options?.mode,
-      )
-      : Promise.resolve(null);
+    if (!descriptor) return Promise.resolve({});
+
+    return this.loadViewDescriptor(
+      descriptor,
+      routeInfo,
+      signal,
+      options?.data,
+      options?.mode ?? 'navigation',
+      options?.transaction,
+    );
   }
 
   /** Direct resolve bypassing route attrs — tests and explicit descriptor loads. */
@@ -108,8 +127,11 @@ export class ViewGraph {
     signal: AbortSignal,
     data?: unknown,
     mode: LoadHookMode = 'navigation',
-  ): Promise<ViewPayload | null> {
-    if (signal.aborted) return null;
+    transaction?: NavigationTransaction,
+  ): Promise<ViewGraphLoadResult> {
+    if (signal.aborted) {
+      return mode === 'prefetch' ? {} : { error: { status: 'cancelled' } };
+    }
 
     // Descriptor implies route content → viewKey (same identity as match time).
     const key = resolveViewCacheKey(routeInfo, data)!;
@@ -121,14 +143,35 @@ export class ViewGraph {
       );
       // Interest may detach before settle; don't leave an unhandled rejection on shared.
       void shared.catch(() => {});
-      return await awaitUntilAbort(shared, signal);
+      const payload = await awaitUntilAbort(shared, signal);
+
+      if (signal.aborted || (transaction && !transaction.isActive())) {
+        return mode === 'prefetch' ? {} : { error: { status: 'cancelled' } };
+      }
+
+      return { data: payload };
     } catch (error) {
-      // Interest abort (or rare work-generation abort) → soft null for callers.
-      if (signal.aborted || isAbortError(error)) return null;
-      throw error;
+      return this.toLoadErrorResult(error, routeInfo, signal, mode, transaction);
     } finally {
       waiter.release();
     }
+  }
+
+  private async toLoadErrorResult(
+    error: unknown,
+    match: MatchedRouteInfo,
+    signal: AbortSignal,
+    mode: LoadHookMode,
+    transaction: NavigationTransaction | undefined,
+  ): Promise<ViewGraphLoadResult> {
+    if (mode === 'prefetch') return {};
+    if (signal.aborted || (transaction && !transaction.isActive())) {
+      return { error: { status: 'cancelled' } };
+    }
+    if (transaction) {
+      return { error: await transaction.fail(match, error, 'render') };
+    }
+    throw error;
   }
 
   /**
@@ -157,13 +200,9 @@ export class ViewGraph {
     });
   }
 
-  /** Intent prefetch for one route; errors are swallowed. */
+  /** Intent prefetch for one route; never fails the caller. */
   async prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
-    try {
-      await this.loadView(routeInfo, signal, { mode: 'prefetch' });
-    } catch {
-      // mirrors DataGraph.prefetch
-    }
+    await this.loadView(routeInfo, signal, { mode: 'prefetch' });
   }
 
   /** Prefetch enter chain with bounded concurrency. */
@@ -205,7 +244,11 @@ export class ViewGraph {
     signal: AbortSignal,
     data?: unknown,
   ): Promise<ViewPayload | null> {
-    if (signal.aborted) throw abortReason(signal);
+    if (signal.aborted) {
+      throw signal.reason instanceof Error
+        ? signal.reason
+        : new DOMException('Aborted', 'AbortError');
+    }
 
     try {
       const result = await this.registry.get(descriptor.loader).load(
@@ -214,7 +257,11 @@ export class ViewGraph {
       if (!result) return null;
       return result.kind === 'html' ? result.html : result.kind === 'markup' ? result.markup : result.node;
     } catch (error: unknown) {
-      if (signal.aborted) throw abortReason(signal);
+      if (signal.aborted) {
+        throw signal.reason instanceof Error
+          ? signal.reason
+          : new DOMException('Aborted', 'AbortError');
+      }
       throw createViewLoadError(descriptor.loader, routeInfo.pattern, error);
     }
   }
@@ -267,17 +314,4 @@ function resolveViewCacheKey(routeInfo: MatchedRouteInfo, data?: unknown): strin
 
 function toHandoffWaiterKind(mode: LoadHookMode): HandoffWaiterKind {
   return mode === 'navigation' ? 'navigation' : 'speculative';
-}
-
-function isAbortError(error: unknown): boolean {
-  return (
-    (typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError') ||
-    (error instanceof Error && error.name === 'AbortError')
-  );
-}
-
-function abortReason(signal: AbortSignal): Error {
-  return signal.reason instanceof Error
-    ? signal.reason
-    : new DOMException('Aborted', 'AbortError');
 }

@@ -10,6 +10,7 @@ import { RouteViewController } from '../../../aura-route/core/view/view-controll
 import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { RouteLifecycleContext } from '../../core/route/types';
+import type { ViewGraph } from '../../core/view-graph';
 import {
   createUsersIdMatch,
   createUsersIdNode,
@@ -80,7 +81,7 @@ function wireRouteViewController(
   routeRecord.transitionIn = transition.in;
   routeRecord.transitionOut = transition.out;
 
-  const loadView = async (info: MatchedRouteInfo) => resolve(info.params?.id ?? '?');
+  const loadView = async (info: MatchedRouteInfo) => ({ data: resolve(info.params?.id ?? '?') });
   lastWiredLoadView = loadView;
 
   const controller = new RouteViewController(
@@ -122,9 +123,7 @@ function wireRouteViewController(
   return { controller, stash, loadView };
 }
 
-/** Last `loadView` from {@link wireRouteViewController} — used by remount helpers in this file. */
-let lastWiredLoadView: ((info: MatchedRouteInfo, signal: AbortSignal) => Promise<string>) | null =
-  null;
+let lastWiredLoadView: ViewGraph['loadView'] | null = null;
 
 async function runParamRemountNavigation(
   from: MatchedRouteInfo,

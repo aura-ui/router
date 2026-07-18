@@ -87,7 +87,7 @@ function wireRoute(
   const controller = new RouteViewController(
     {
       route: routeRecord,
-      view: { loadView: async () => markup },
+      view: { loadView: async () => ({ data: markup }) },
       cache: { extract: () => undefined, put: () => {} },
       mountTarget: {
         appOutlet: () => outlet,
@@ -115,7 +115,7 @@ function wireRoute(
 async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteInfo) {
   const engine = createMockEngine();
   engine.viewGraph = {
-    loadView: async (routeInfo) => routeMarkup.get(routeInfo.route) ?? null,
+    loadView: async (routeInfo) => ({ data: routeMarkup.get(routeInfo.route) ?? null }),
   } as typeof engine.viewGraph;
 
   const transaction = new NavigationTransaction(

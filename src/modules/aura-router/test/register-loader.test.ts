@@ -42,7 +42,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
       new AbortController().signal,
     );
 
-    expect(payload).toBe('custom-payload');
+    expect(payload).toEqual({ data: 'custom-payload' });
     expect(viewContent).toBe('any-ref');
     expect(AuraRouter.getLoader('register-loader-test').needsData).toBeFalsy();
   });

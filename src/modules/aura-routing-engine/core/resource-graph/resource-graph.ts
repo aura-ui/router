@@ -140,21 +140,34 @@ export class ResourceGraph {
       : Promise.resolve({});
 
     const contentPromise = Promise.all(
-      contentRoutes.map((route) => this.viewGraph.loadView(route, this.signal)),
+      contentRoutes.map((route) =>
+        this.viewGraph.loadView(route, this.signal, {
+          mode: 'navigation',
+          transaction: this.transaction,
+        }),
+      ),
     );
 
-    const [dataResult] = await Promise.all([dataPromise, contentPromise]);
+    const [dataResult, contentResults] = await Promise.all([dataPromise, contentPromise]);
 
-    if (dataResult.error) return dataResult; // was issue
+    if (dataResult.error) return dataResult;
 
-    const dataBoundContentPromise = Promise.all(
+    const contentError = contentResults.find((result) => result.error)?.error;
+    if (contentError) return { error: contentError };
+
+    const dataBoundContentResults = await Promise.all(
       dataBoundContentRoutes.map((route) => {
         const data = dataResult.data?.get(route.dataKey!);
-        return this.viewGraph.loadView(route, this.signal, { data });
+        return this.viewGraph.loadView(route, this.signal, {
+          data,
+          mode: 'navigation',
+          transaction: this.transaction,
+        });
       }),
     );
 
-    await Promise.all([dataBoundContentPromise]);
+    const dataBoundError = dataBoundContentResults.find((result) => result.error)?.error;
+    if (dataBoundError) return { error: dataBoundError };
 
     return dataResult;
   }

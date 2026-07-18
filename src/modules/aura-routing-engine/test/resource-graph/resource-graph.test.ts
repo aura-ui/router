@@ -98,7 +98,7 @@ describe('ResourceGraph', () => {
     const viewGraph = {
       loadView: jest.fn(async (route: MatchedRouteInfo) => {
         order.push(`view:${route.pattern}`);
-        return null;
+        return {};
       }),
       prefetchBranch: jest.fn(),
     };

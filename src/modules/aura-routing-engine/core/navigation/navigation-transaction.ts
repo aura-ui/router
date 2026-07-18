@@ -1,9 +1,13 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { buildTransitionPlan, type TransitionMap } from '../route-tree/transition-plan';
 import { NavigationTransactionPipeline } from './navigation-transaction-pipeline';
-import type { NavigationPhaseMode, PipelineStepResult, TransactionResult } from './types';
+import type {
+  NavigationPhaseMode,
+  NavigationTransactionOptions,
+  PipelineStepResult,
+  TransactionResult,
+} from './types';
 import { AuraRoutingEngine } from '../aura-routing-engine';
-import type { NavigationTransactionOptions } from './types';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import { type NavigationErrorPhase } from '../failure';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';

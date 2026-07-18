@@ -110,8 +110,8 @@ export interface NavigationTransactionOptions {
   skipBlockingPhases?: boolean;
 
   /**
-   * Pipeline participation mode. Prefetch probes use `'speculative'`.
-   * Reserved for future phase branching (guard lite, etc.); not read by pipeline steps yet.
+   * Pipeline / prepare mode. Prefetch probes use `'speculative'`
+   * (`ResourceGraph` → prefetch; navigation → load).
    */
   phaseMode?: NavigationPhaseMode;
 }

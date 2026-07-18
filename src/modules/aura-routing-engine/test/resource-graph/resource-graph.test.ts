@@ -112,12 +112,10 @@ describe('ResourceGraph', () => {
 
     const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
     const signal = new AbortController().signal;
-    const transaction = {} as NavigationTransaction;
+    const transaction = { phaseMode: 'navigation', signal } as NavigationTransaction;
 
     const resultPromise = graph.resolve(branch, {
-      mode: 'navigation',
       branch,
-      signal,
       transaction,
     });
 
@@ -142,7 +140,7 @@ describe('ResourceGraph', () => {
   it('speculative mode prefetches data and content in parallel', async () => {
     const leaf = matchedRoute('/x', { load: ['data'], asyncView: true });
     const signal = new AbortController().signal;
-    const transaction = {} as NavigationTransaction;
+    const transaction = { phaseMode: 'speculative', signal } as NavigationTransaction;
 
     const dataGraph = {
       load: jest.fn(),
@@ -155,9 +153,7 @@ describe('ResourceGraph', () => {
 
     const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
     await graph.resolve([leaf], {
-      mode: 'speculative',
       branch: [leaf],
-      signal,
       transaction,
     });
 

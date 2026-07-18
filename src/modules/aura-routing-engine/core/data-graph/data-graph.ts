@@ -78,8 +78,11 @@ class DataGraphTerminalError extends Error {
  * Route `load` hooks: parallel enter loads, SWR cache, prefetch handoff.
  * View/HTML stays in `core/view-graph/`. Child may `await ctx.parent()`; default is parallel.
  *
- * Shared prepare uses {@link HandoffCache.hold}: hooks see `workSignal`; caller cancel
- * detaches via {@link awaitUntilAbort}. Last navigation waiter release may abort work.
+ * Shared prepare: {@link HandoffCache.hold} → hooks use `workSignal`; caller tx cancel
+ * only detaches via {@link awaitUntilAbort} (prefetch cancel does not abort shared work
+ * while navigation still holds, or before a later nav rejoins). After navigation interest,
+ * the last {@link HandoffWaiter.release} on that key may abort its generation — see
+ * {@link HandoffWorkRegistry}.
  */
 export class DataGraph {
   private static defaultOptions: DataGraphOptions = {};
@@ -133,7 +136,8 @@ export class DataGraph {
 
   /**
    * Parallel enter loads.
-   * Interest abort detaches waiters; last navigation {@link HandoffCache.hold} release may abort work.
+   * Interest abort detaches callers; last {@link HandoffWaiter.release} after navigation
+   * interest may abort that key’s work — see {@link HandoffWorkRegistry}.
    */
   private async loadEnterRoutes(
     enterRoutes: readonly MatchedRouteInfo[],

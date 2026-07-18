@@ -481,19 +481,28 @@ describe('DataGraph', () => {
     expect(data!.get(route.dataKey!)).toEqual({ id: 1 });
   });
 
-  it('cancels navigation waiter on abort without poisoning handoff for the next join', async () => {
+  it('aborts shared workSignal when the last navigation waiter releases', async () => {
     let loads = 0;
-    let release!: () => void;
+    let workSignal!: AbortSignal;
+    let releaseGate!: () => void;
     const gate = new Promise<void>((resolve) => {
-      release = resolve;
+      releaseGate = resolve;
     });
 
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: async (ctx) => {
         loads++;
-        await gate;
+        workSignal = ctx.transactionSignal;
+        await Promise.race([
+          gate,
+          new Promise<never>((_, reject) => {
+            onAbortOnce(ctx.transactionSignal, () => {
+              reject(ctx.transactionSignal.reason ?? new DOMException('Aborted', 'AbortError'));
+            });
+          }),
+        ]);
         return { id: 2 };
       },
     });
@@ -508,20 +517,26 @@ describe('DataGraph', () => {
     });
 
     await Promise.resolve();
+    expect(loads).toBe(1);
+    expect(workSignal.aborted).toBe(false);
+
     firstTx.cancel();
     await expect(first).resolves.toEqual({ error: { status: 'cancelled' } });
+    expect(workSignal.aborted).toBe(true);
 
+    // New generation after work abort — second navigation loads again.
     const second = dataGraph.load([route], navOptions(hookRegistry, [route]));
-    release();
+    releaseGate();
     const { error, data } = await second;
 
     expect(error).toBeUndefined();
-    expect(loads).toBe(1);
+    expect(loads).toBe(2);
     expect(data!.get(route.dataKey!)).toEqual({ id: 2 });
   });
 
-  it('does not abort shared load hooks via caller transactionSignal', async () => {
+  it('does not abort workSignal when prefetch interest cancels', async () => {
     let sawAbortedInsideHook = false;
+    let workSignal!: AbortSignal;
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
@@ -531,6 +546,7 @@ describe('DataGraph', () => {
       name: 'data',
       version: '1.0.0',
       fn: async (ctx) => {
+        workSignal = ctx.transactionSignal;
         await gate;
         sawAbortedInsideHook = ctx.transactionSignal.aborted;
         return { ok: true };
@@ -549,5 +565,65 @@ describe('DataGraph', () => {
     await pending;
 
     expect(sawAbortedInsideHook).toBe(false);
+    expect(workSignal.aborted).toBe(false);
+  });
+
+  it('keeps shared work alive while a later navigation waiter still holds the key', async () => {
+    let loads = 0;
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async (ctx) => {
+        loads++;
+        await Promise.race([
+          gate,
+          new Promise<never>((_, reject) => {
+            onAbortOnce(ctx.transactionSignal, () => {
+              reject(ctx.transactionSignal.reason ?? new DOMException('Aborted', 'AbortError'));
+            });
+          }),
+        ]);
+        return { id: 3 };
+      },
+    });
+
+    const route = matchedRoute('/overlap');
+    route.route.cache = NO_CACHE;
+
+    const firstTx = loadTransaction(hookRegistry, [route]);
+    const first = dataGraph.load([route], {
+      transaction: firstTx,
+      mode: 'navigation',
+    });
+
+    await Promise.resolve();
+    expect(loads).toBe(1);
+
+    // Second navigation holds before first releases (overlap) → join, no abort yet.
+    const second = dataGraph.load([route], navOptions(hookRegistry, [route]));
+    await Promise.resolve();
+
+    firstTx.cancel();
+    await expect(first).resolves.toEqual({ error: { status: 'cancelled' } });
+
+    releaseGate();
+    const { error, data } = await second;
+
+    expect(error).toBeUndefined();
+    expect(loads).toBe(1);
+    expect(data!.get(route.dataKey!)).toEqual({ id: 3 });
   });
 });
+
+function onAbortOnce(signal: AbortSignal, callback: () => void): void {
+  if (signal.aborted) {
+    callback();
+    return;
+  }
+  signal.addEventListener('abort', callback, { once: true });
+}

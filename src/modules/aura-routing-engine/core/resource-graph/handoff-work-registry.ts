@@ -11,10 +11,11 @@ export type HandoffWaiterKind = 'speculative' | 'navigation';
 /**
  * One hold on shared prepare work for a resource key ({@link HandoffWorkRegistry.hold}).
  *
- * {@link workSignal} is for the shared load factory (hooks/fetch). Caller interest
- * (transaction / sibling abort) is a separate signal at the call site — releasing
- * this waiter (or cancelling interest) does not by itself abort other waiters;
- * only the registry idle policy may abort {@link workSignal}.
+ * Call sites wire the load factory to {@link workSignal} and the caller’s own interest
+ * (tx / sibling) separately. Cancelling interest only detaches that caller; dropping
+ * this hold is {@link release}. {@link workSignal} aborts only via registry idle policy
+ * (or {@link HandoffWorkRegistry.destroy}) — not because another waiter released while
+ * `refs` remain.
  */
 export type HandoffWaiter = {
   /** Resource key this waiter is held on. */
@@ -27,9 +28,9 @@ export type HandoffWaiter = {
    */
   readonly workSignal: AbortSignal;
   /**
-   * Drop this waiter. Idempotent.
-   * Aborts {@link workSignal} only when this was the last waiter and `'navigation'`
-   * was seen on the generation.
+   * Drop this hold. Idempotent.
+   * Aborts {@link workSignal} only if this was the last hold on the generation and
+   * `'navigation'` was seen (even if a speculative waiter releases last).
    */
   release(): void;
 };
@@ -55,15 +56,20 @@ type WorkEntry = {
 /**
  * Per-key shared work {@link AbortSignal} + waiter refcount for prepare handoff.
  *
- * Concurrent {@link hold}s on the same key share one generation until that
- * generation’s work is aborted.
+ * **Algorithm:** Prefetch and navigation use different interest (tx) signals. The load
+ * factory must follow {@link HandoffWaiter.workSignal} so that:
+ * 1. Prefetch cancel while navigation still {@link hold}s the key → speculative
+ *    {@link HandoffWaiter.release | release} only; work keeps running.
+ * 2. Prefetch cancel before navigation → speculative-only idle keeps the generation so a
+ *    later {@link hold} can rejoin the same in-flight work.
+ * 3. After `'navigation'` was seen, when **every** hold is gone (`refs === 0`) → abort
+ *    that key’s generation (orphan / superseded prepare). A speculative waiter releasing
+ *    last still aborts if navigation was seen earlier.
  *
- * When the last waiter {@link HandoffWaiter.release | releases}:
- * - never seen `'navigation'` → keep the generation (speculative rejoin / hover fidget)
- * - seen `'navigation'` → abort {@link HandoffWaiter.workSignal} and drop the entry
+ * Abort is per key generation, not the whole {@link HandoffCache} (except {@link destroy}).
+ * Concurrent {@link hold}s share one generation until it aborts.
  *
- * Owned by {@link HandoffCache}. This type does not store settled values — only
- * work-signal lifetime; value handoff is {@link HandoffCache} itself.
+ * Owned by {@link HandoffCache}. Work-signal lifetime only; settled values live in the cache.
  */
 export class HandoffWorkRegistry {
   /**
@@ -77,7 +83,7 @@ export class HandoffWorkRegistry {
    *
    * @param key - Resource identity (e.g. `data:…` / `view:…`).
    * @param kind - Interest kind. `'navigation'` sets sticky abort-on-idle for this generation.
-   * @returns Waiter whose {@link HandoffWaiter.workSignal} is shared with other active holds on `key`.
+   * @returns Waiter whose {@link HandoffWaiter.workSignal} is shared for this key’s current generation.
    */
   hold(key: string, kind: HandoffWaiterKind): HandoffWaiter {
     const entry = this.entryFor(key);

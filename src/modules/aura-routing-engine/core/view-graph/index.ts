@@ -6,18 +6,18 @@ import type { ViewGraph } from './view-graph';
 
 export {
   ViewGraph,
-  type ViewPrefetchOptions,
   type ViewGraphCacheOptions,
-  type ViewLoadOptions,
+  type ViewGraphDeps,
   type ViewDataInput,
+  type ViewLoadOptions,
   type ViewGraphLoadResult,
   type ViewGraphLoadViewsResult,
+  type ViewPrefetchOptions,
   type RouteViewSource,
 } from './view-graph';
-export type { ViewGraphDeps } from './view-graph';
 
-/** Minimal surface for prefetch executor and DI mocks. */
-export type ViewLoadPort = Pick<ViewGraph, 'loadView' | 'load' | 'prefetch'>;
+/** Minimal surface for prepare / prefetch executor and DI mocks. */
+export type ViewLoadPort = Pick<ViewGraph, 'load' | 'loadView' | 'prefetch'>;
 
 /** Async layout / view loader — same contract as aura-route `ViewResolverPort`. */
 export type ViewResolverPort = Pick<ViewGraph, 'loadView'>;

@@ -7,13 +7,9 @@ import type { ViewGraph } from '../view-graph';
 import { HandoffCache } from './handoff-cache';
 import type { HandoffWaiter } from './handoff-work-registry';
 
-export type ResourceGraphMode = 'navigation' | 'speculative';
-
 export type ResourceGraphRunContext = {
-  mode: ResourceGraphMode;
   /** Full active branch (root → leaf), including LCA parents outside enterRoutes. */
   branch: readonly MatchedRouteInfo[];
-  signal: AbortSignal;
   transaction: NavigationTransaction;
 };
 
@@ -55,11 +51,9 @@ export class ResourceGraph {
   readonly dataGraph: DataGraph;
   private readonly sharedBuffer: HandoffCache;
 
-  private mode!: ResourceGraphMode;
   private branch!: readonly MatchedRouteInfo[];
   private enterRoutes!: readonly MatchedRouteInfo[];
-  private signal!: AbortSignal;
-  private transaction!: NavigationTransaction; // todo remove
+  private transaction!: NavigationTransaction;
 
   constructor(viewGraph: ViewGraph, dataGraph: DataGraph, sharedBuffer: HandoffCache) {
     this.viewGraph = viewGraph;
@@ -68,7 +62,7 @@ export class ResourceGraph {
   }
 
   private get isNavigationMode(): boolean {
-    return this.mode === 'navigation';
+    return this.transaction.phaseMode === 'navigation';
   }
 
   /**
@@ -96,8 +90,6 @@ export class ResourceGraph {
   }
 
   resolve(enterRoutes: readonly MatchedRouteInfo[], context: ResourceGraphRunContext): Promise<ResourceGraphResolveResult> {
-    this.mode = context.mode;
-    this.signal = context.signal;
     this.branch = context.branch;
     this.transaction = context.transaction;
     this.enterRoutes = enterRoutes;
@@ -134,50 +126,54 @@ export class ResourceGraph {
 
   private async load(plan: ResourceGraphLoadPlan): Promise<ResourceGraphResolveResult> {
     const { dataRoutes, contentRoutes, dataBoundContentRoutes } = plan;
+    const { transaction } = this;
+    const { signal } = transaction;
 
     const dataPromise: Promise<DataGraphLoadResult> = dataRoutes.length
-      ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction: this.transaction, mode: 'navigation' })
+      ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction, mode: 'navigation' })
       : Promise.resolve({});
 
-    const contentPromise = this.viewGraph.loadViews(contentRoutes, this.signal, {
+    const contentPromise = this.viewGraph.loadViews(contentRoutes, signal, {
       mode: 'navigation',
-      transaction: this.transaction,
+      transaction,
     });
 
     const [dataResult, contentResult] = await Promise.all([dataPromise, contentPromise]);
 
     if (dataResult.error) return dataResult;
-    if (contentResult.error) return contentResult;
+    if (contentResult.error) return { error: contentResult.error };
 
     const dataBoundResult = await this.viewGraph.loadViews(
       dataBoundContentRoutes,
-      this.signal,
+      signal,
       (route) => ({
         data: dataResult.data?.get(route.dataKey!),
         mode: 'navigation',
-        transaction: this.transaction,
+        transaction,
       }),
     );
 
-    if (dataBoundResult.error) return dataBoundResult;
+    if (dataBoundResult.error) return { error: dataBoundResult.error };
 
     return dataResult;
   }
 
   private async prefetch(plan: ResourceGraphLoadPlan): Promise<ResourceGraphResolveResult> {
     const { dataRoutes, contentRoutes, dataBoundContentRoutes } = plan;
+    const { transaction } = this;
+    const { signal } = transaction;
     let parts: Promise<unknown>[] = [];
 
     if (dataRoutes.length) {
       parts.push(this.dataGraph.prefetch(dataRoutes, {
         branch: this.branch,
-        transaction: this.transaction,
+        transaction,
         mode: 'prefetch',
       }));
     }
 
     if (contentRoutes.length) {
-      parts.push(this.viewGraph.prefetchBranch(contentRoutes, this.signal));
+      parts.push(this.viewGraph.prefetchBranch(contentRoutes, signal));
     }
 
     if (parts.length) {
@@ -187,7 +183,7 @@ export class ResourceGraph {
     if (dataBoundContentRoutes.length) {
       // todo check data
       parts = [];
-      parts.push(this.viewGraph.prefetchBranch(dataBoundContentRoutes, this.signal));
+      parts.push(this.viewGraph.prefetchBranch(dataBoundContentRoutes, signal));
       await Promise.all(parts);
     }
 

@@ -124,7 +124,7 @@ Render и prefetch — на **`ViewGraph`**:
 ```typescript
 class ViewGraph {
   loadView(routeInfo, signal, options?): Promise<ViewPayload | null>;
-  loadViewDescriptor(descriptor, routeInfo, signal, data?): Promise<ViewPayload | null>;
+  loadPayload(descriptor, routeInfo, signal, data?): Promise<ViewPayload | null>;
   prefetchNode(routeInfo, signal): Promise<void>;
   prefetchBranch(chain, signal, options?): Promise<void>;
   prefetchLeaf(leaf, signal, options?): Promise<void>;
@@ -135,7 +135,7 @@ class ViewGraph {
 Поток при `cache.view === true`:
 
 ```text
-ViewGraph.loadViewDescriptor(...):
+ViewGraph.loadPayload(...):
   if (!descriptor.cache) → runLoader()
   key = viewCacheKey(descriptor, routeInfo, { data })
   return cache.resolve(key, runLoader)

@@ -25,7 +25,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
       registry: defaultLoaderRegistry,
     });
 
-    const payload = await viewGraph.loadViewDescriptor(
+    const payload = await viewGraph.loadPayload(
       { kind: 'view', loader: 'register-loader-test', content: 'any-ref', cache: false },
       withResolvedView({
         href: '/bridge',
@@ -134,7 +134,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
       registry: defaultLoaderRegistry,
     });
 
-    await service.loadViewDescriptor(
+    await service.loadPayload(
       { kind: 'view', loader: 'route-context-probe', content: 'x', cache: false },
       withResolvedView({
         href: '/users/1?q=1',

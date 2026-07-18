@@ -149,7 +149,7 @@ export class ViewGraph {
     );
     if (!descriptor) return Promise.resolve({});
 
-    return this.loadViewDescriptor(descriptor, routeInfo, signal, options);
+    return this.loadPayload(descriptor, routeInfo, signal, options);
   }
 
   /**
@@ -173,7 +173,7 @@ export class ViewGraph {
   }
 
   /** Direct resolve bypassing route attrs — tests and explicit descriptor loads. */
-  async loadViewDescriptor(
+  async loadPayload(
     descriptor: ViewDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,

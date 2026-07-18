@@ -248,7 +248,7 @@ describe('HandoffCache', () => {
   describe('hold / release (work waiters)', () => {
     it('shares one workSignal across concurrent holds', () => {
       handoff = new HandoffCache();
-      const a = handoff.hold('k', 'speculative');
+      const a = handoff.hold('k', 'prefetch');
       const b = handoff.hold('k', 'navigation');
 
       expect(a.workSignal).toBe(b.workSignal);
@@ -259,9 +259,9 @@ describe('HandoffCache', () => {
       b.release();
     });
 
-    it('does not abort work when the last waiter is speculative-only', () => {
+    it('does not abort work when the last waiter is prefetch-only', () => {
       handoff = new HandoffCache();
-      const waiter = handoff.hold('k', 'speculative');
+      const waiter = handoff.hold('k', 'prefetch');
       const { workSignal } = waiter;
 
       waiter.release();
@@ -270,7 +270,7 @@ describe('HandoffCache', () => {
       expect(handoff.waiterCount('k')).toBe(0);
 
       // Next hold reuses the same live generation (hover again → join).
-      const again = handoff.hold('k', 'speculative');
+      const again = handoff.hold('k', 'prefetch');
       expect(again.workSignal).toBe(workSignal);
       again.release();
     });
@@ -300,13 +300,13 @@ describe('HandoffCache', () => {
       expect(workSignal.aborted).toBe(true);
     });
 
-    it('aborts when last hold leaves after navigation was seen (speculative may release last)', () => {
+    it('aborts when last hold leaves after navigation was seen (prefetch may release last)', () => {
       handoff = new HandoffCache();
-      const prefetch = handoff.hold('k', 'speculative');
+      const prefetch = handoff.hold('k', 'prefetch');
       const navigation = handoff.hold('k', 'navigation');
       const { workSignal } = prefetch;
 
-      // Nav releases first, speculative last — still abort (hadNavigation).
+      // Nav releases first, prefetch last — still abort (hadNavigation).
       navigation.release();
       expect(workSignal.aborted).toBe(false);
 
@@ -338,7 +338,7 @@ describe('HandoffCache', () => {
 
     it('destroy aborts outstanding work signals', () => {
       handoff = new HandoffCache();
-      const waiter = handoff.hold('k', 'speculative');
+      const waiter = handoff.hold('k', 'prefetch');
       handoff.destroy();
       expect(waiter.workSignal.aborted).toBe(true);
       handoff = undefined;

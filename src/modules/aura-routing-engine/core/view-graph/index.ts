@@ -10,17 +10,18 @@ export {
   type ViewGraphCacheOptions,
   type ViewLoadOptions,
   type ViewGraphLoadResult,
+  type ViewGraphLoadViewsResult,
   type RouteViewSource,
 } from './view-graph';
 export type { ViewGraphDeps } from './view-graph';
 
 /** Minimal surface for prefetch executor and DI mocks. */
-export type ViewLoadPort = Pick<ViewGraph, 'loadView' | 'prefetchBranch'>;
+export type ViewLoadPort = Pick<ViewGraph, 'loadView' | 'loadViews' | 'prefetchBranch'>;
 
 /** Async layout / view loader — same contract as aura-route `ViewResolverPort`. */
 export type ViewResolverPort = Pick<ViewGraph, 'loadView'>;
 
-/** Branch-atomic resolve: parallel `loadView` without mounting. */
+/** Branch-atomic resolve: per-node `loadView` without mounting. */
 export type BranchViewResolver = ViewResolverPort;
 
 export { ViewPayloadCache } from './cache/view-payload-cache';

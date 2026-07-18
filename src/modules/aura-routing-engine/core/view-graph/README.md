@@ -122,7 +122,7 @@ ViewPayload
 
 | Тип | Методы | Потребитель |
 |-----|--------|-------------|
-| `ViewLoadPort` | `loadView`, `prefetchBranch` | prefetch executor |
+| `ViewLoadPort` | `loadView`, `loadViews`, `prefetchBranch` | prefetch / prepare executor |
 | `ViewResolverPort` | `loadView` | `RouteViewController` |
 | `BranchViewResolver` | `loadView` | branch-atomic resolve |
 

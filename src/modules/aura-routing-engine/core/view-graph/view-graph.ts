@@ -1,5 +1,6 @@
 import type { CacheStoreOptions } from '../../../aura-cache-store/core';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
+import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { createViewLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { viewKey, viewKeyWithData } from '../match/resource-keys';
@@ -10,6 +11,8 @@ import type { ResolvedView } from '../route-tree/resolved-view';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { defaultLoaderRegistry, type LoaderRegistry } from './registry';
+import { HandoffCache, type HandoffWaiterKind } from '../resource-graph';
+import type { LoadHookMode } from '../data-graph';
 
 /** Options for the long-lived `cache.view` store ({@link ViewPayloadCache}). */
 export type ViewGraphCacheOptions = CacheStoreOptions<string>;
@@ -40,23 +43,34 @@ export type ViewGraphDeps = {
   readonly cache?: ViewGraphCacheOptions;
 };
 
+export type ViewLoadOptions = {
+  readonly data?: unknown;
+  /** Defaults to `navigation`. Prefetch paths pass `prefetch`. */
+  readonly mode?: LoadHookMode;
+};
+
 /**
  * View payload coordinator: descriptor → loader → cache → {@link ViewPayload}.
  * One instance per {@link AuraRoutingEngine} (render, branch-resolve, prefetch).
+ *
+ * Shared prepare: {@link HandoffCache.hold} → loader/`workSignal`; interest →
+ * {@link awaitUntilAbort}; `finally` → release. Long revisit stays in {@link ViewPayloadCache}.
  */
 export class ViewGraph {
   private static defaultCacheOptions: ViewGraphCacheOptions = {};
 
   private readonly registry: LoaderRegistry;
   private readonly cache: ViewPayloadCache;
+  private readonly sharedBuffer: HandoffCache;
 
   /** Default {@link ViewPayloadCache} options for engine-created graphs. */
   static configure(options: ViewGraphCacheOptions = {}): void {
     ViewGraph.defaultCacheOptions = { ...ViewGraph.defaultCacheOptions, ...options };
   }
 
-  constructor(deps: ViewGraphDeps = {}) {
+  constructor(sharedBuffer: HandoffCache, deps: ViewGraphDeps = {}) {
     this.registry = deps.registry ?? defaultLoaderRegistry;
+    this.sharedBuffer = sharedBuffer;
     this.cache = new ViewPayloadCache({
       ...ViewGraph.defaultCacheOptions,
       ...deps.cache,
@@ -70,37 +84,83 @@ export class ViewGraph {
   loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
-    options?: { data?: unknown },
+    options?: ViewLoadOptions,
   ): Promise<ViewPayload | null> {
     const descriptor = ViewGraph.buildViewDescriptor(
       routeInfo.route as RouteViewSource,
       routeInfo.resolvedView,
     );
     return descriptor
-      ? this.loadViewDescriptor(descriptor, routeInfo, signal, options?.data)
+      ? this.loadViewDescriptor(
+        descriptor,
+        routeInfo,
+        signal,
+        options?.data,
+        options?.mode,
+      )
       : Promise.resolve(null);
   }
 
   /** Direct resolve bypassing route attrs — tests and explicit descriptor loads. */
-  loadViewDescriptor(
+  async loadViewDescriptor(
     descriptor: ViewDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     data?: unknown,
+    mode: LoadHookMode = 'navigation',
   ): Promise<ViewPayload | null> {
-    if (signal.aborted) return Promise.resolve(null);
+    if (signal.aborted) return null;
 
-    const load = () => this.loadViewPayload(descriptor, routeInfo, signal, data);
-    const key = resolveViewCacheKey(routeInfo, data);
-    return descriptor.cache && key
-      ? this.cache.resolve(key, load)
-      : load();
+    // Descriptor implies route content → viewKey (same identity as match time).
+    const key = resolveViewCacheKey(routeInfo, data)!;
+    const waiter = this.sharedBuffer.hold(key, toHandoffWaiterKind(mode));
+
+    try {
+      const shared = this.runSharedLoad(key, descriptor.cache, () =>
+        this.loadViewPayload(descriptor, routeInfo, waiter.workSignal, data),
+      );
+      // Interest may detach before settle; don't leave an unhandled rejection on shared.
+      void shared.catch(() => {});
+      return await awaitUntilAbort(shared, signal);
+    } catch (error) {
+      // Interest abort (or rare work-generation abort) → soft null for callers.
+      if (signal.aborted || isAbortError(error)) return null;
+      throw error;
+    } finally {
+      waiter.release();
+    }
+  }
+
+  /**
+   * Handoff (+ optional long `cache.view`).
+   * Factory uses the waiter {@link HandoffWaiter.workSignal}, not caller interest.
+   */
+  private runSharedLoad(
+    key: string,
+    useLongCache: boolean,
+    load: () => Promise<ViewPayload | null>,
+  ): Promise<ViewPayload | null> {
+    return this.sharedBuffer.resolve(key, async () => {
+      if (useLongCache) {
+        const cached = this.cache.get(key);
+        if (cached !== undefined) return cached;
+      }
+
+      const payload = await load();
+
+      if (useLongCache && payload !== null) {
+        // Persist via ViewPayloadCache so DocumentFragment stays write-filtered.
+        await this.cache.resolve(key, async () => payload);
+      }
+
+      return payload;
+    });
   }
 
   /** Intent prefetch for one route; errors are swallowed. */
   async prefetchNode(routeInfo: MatchedRouteInfo, signal: AbortSignal): Promise<void> {
     try {
-      await this.loadView(routeInfo, signal);
+      await this.loadView(routeInfo, signal, { mode: 'prefetch' });
     } catch {
       // mirrors DataGraph.prefetch
     }
@@ -135,13 +195,17 @@ export class ViewGraph {
     this.cache.destroy();
   }
 
+  /**
+   * Run the view loader against `signal` (caller interest or shared {@link HandoffWaiter.workSignal}).
+   * Abort must **reject** — never settle `null` into handoff (that would poison the TTL window).
+   */
   private async loadViewPayload(
     descriptor: ViewDescriptor,
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     data?: unknown,
   ): Promise<ViewPayload | null> {
-    if (signal.aborted) return null;
+    if (signal.aborted) throw abortReason(signal);
 
     try {
       const result = await this.registry.get(descriptor.loader).load(
@@ -150,7 +214,7 @@ export class ViewGraph {
       if (!result) return null;
       return result.kind === 'html' ? result.html : result.kind === 'markup' ? result.markup : result.node;
     } catch (error: unknown) {
-      if (signal.aborted) return null;
+      if (signal.aborted) throw abortReason(signal);
       throw createViewLoadError(descriptor.loader, routeInfo.pattern, error);
     }
   }
@@ -199,4 +263,21 @@ function resolveViewCacheKey(routeInfo: MatchedRouteInfo, data?: unknown): strin
   const base = routeInfo.viewKey ?? viewKey(routeInfo);
   if (!base) return null;
   return data !== undefined ? viewKeyWithData(base, data) : base;
+}
+
+function toHandoffWaiterKind(mode: LoadHookMode): HandoffWaiterKind {
+  return mode === 'navigation' ? 'navigation' : 'speculative';
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
+function abortReason(signal: AbortSignal): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException('Aborted', 'AbortError');
 }

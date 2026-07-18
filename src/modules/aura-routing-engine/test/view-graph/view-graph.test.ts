@@ -1,4 +1,5 @@
 import { ViewGraph, LoaderRegistry } from '../../core/view-graph';
+import { HandoffCache } from '../../core/resource-graph';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { withResolvedView } from '../helpers/with-resolved-view';
@@ -10,6 +11,12 @@ function matched(
   overrides: Partial<MatchedRouteInfo> = {},
 ): MatchedRouteInfo {
   const { route: routeOverride, ...rest } = overrides;
+  const resolved = rest.resolvedView;
+  const viewFromResolved =
+    resolved && typeof resolved === 'object' && 'loader' in resolved
+      ? { loader: resolved.loader, content: resolved.content }
+      : null;
+
   return withResolvedView({
     href: pattern,
     pathname: pattern,
@@ -18,7 +25,7 @@ function matched(
     pattern,
     route: createTestRoute(pattern, {
       layout: '',
-      view: null,
+      view: viewFromResolved,
       cache: NO_CACHE,
       ...(routeOverride as Partial<RouteInstance> | undefined),
     }),
@@ -28,15 +35,18 @@ function matched(
 
 describe('ViewGraph', () => {
   let registry: LoaderRegistry;
+  let handoff: HandoffCache;
   let viewGraph: ViewGraph;
 
   beforeEach(() => {
     registry = new LoaderRegistry(undefined, []);
-    viewGraph = new ViewGraph({ registry });
+    handoff = new HandoffCache();
+    viewGraph = new ViewGraph(handoff, { registry });
   });
 
   afterEach(() => {
     viewGraph.destroy();
+    handoff.destroy();
   });
 
   it('returns null when route has no layout or view', async () => {
@@ -97,7 +107,7 @@ describe('ViewGraph', () => {
     expect(loads).toBe(1);
   });
 
-  it('does not cache when cache.view is off', async () => {
+  it('joins prepare handoff when cache.view is off', async () => {
     let loads = 0;
     registry.register('html', async () => {
       loads++;
@@ -105,6 +115,7 @@ describe('ViewGraph', () => {
     });
 
     const route = matched('/fresh', {
+      route: { layout: '', view: { loader: 'html', content: 'x' }, cache: NO_CACHE },
       resolvedView: { loader: 'html', content: 'x' },
     });
     const signal = new AbortController().signal;
@@ -112,7 +123,31 @@ describe('ViewGraph', () => {
     await viewGraph.loadView(route, signal);
     await viewGraph.loadView(route, signal);
 
+    expect(loads).toBe(1);
+  });
+
+  it('does not persist in long cache.view when cache.view is off', async () => {
+    let loads = 0;
+    registry.register('html', async () => {
+      loads++;
+      return 'x';
+    });
+
+    const route = matched('/fresh-long', {
+      route: { layout: '', view: { loader: 'html', content: 'x' }, cache: NO_CACHE },
+      resolvedView: { loader: 'html', content: 'x' },
+    });
+    const signal = new AbortController().signal;
+
+    await viewGraph.loadView(route, signal);
+    expect(loads).toBe(1);
+
+    handoff.destroy();
+    handoff = new HandoffCache();
+    const next = new ViewGraph(handoff, { registry });
+    await next.loadView(route, signal);
     expect(loads).toBe(2);
+    next.destroy();
   });
 
   it('passes load-hook data to custom loaders', async () => {
@@ -146,7 +181,56 @@ describe('ViewGraph', () => {
     });
   });
 
-  it('does not cache DocumentFragment payloads when cache.view is enabled', async () => {
+  it('does not poison handoff when shared workSignal aborts', async () => {
+    let loads = 0;
+    let workSignal!: AbortSignal;
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+
+    registry.register('html', async (ctx) => {
+      loads++;
+      workSignal = ctx.signal;
+      await Promise.race([
+        gate,
+        new Promise<never>((_, reject) => {
+          const onAbort = () => {
+            reject(ctx.signal.reason ?? new DOMException('Aborted', 'AbortError'));
+          };
+          if (ctx.signal.aborted) onAbort();
+          else ctx.signal.addEventListener('abort', onAbort, { once: true });
+        }),
+      ]);
+      return `<p>${loads}</p>`;
+    });
+
+    const route = matched('/poison', {
+      route: { layout: '', view: { loader: 'html', content: 'x' }, cache: NO_CACHE },
+      resolvedView: { loader: 'html', content: 'x' },
+    });
+
+    const interest = new AbortController();
+    const first = viewGraph.loadView(route, interest.signal, { mode: 'navigation' });
+
+    await Promise.resolve();
+    expect(loads).toBe(1);
+    expect(workSignal.aborted).toBe(false);
+
+    interest.abort();
+    await expect(first).resolves.toBeNull();
+    expect(workSignal.aborted).toBe(true);
+    // Rejected generation must leave singleflight before the next resolve can start cleanly.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(loads).toBe(1);
+
+    const second = viewGraph.loadView(route, new AbortController().signal, { mode: 'navigation' });
+    releaseGate();
+    await expect(second).resolves.toBe('<p>2</p>');
+    expect(loads).toBe(2);
+  });
+
+  it('does not persist DocumentFragment in long cache.view', async () => {
     let loads = 0;
     registry.register('html', async () => {
       loads++;
@@ -162,12 +246,19 @@ describe('ViewGraph', () => {
     const signal = new AbortController().signal;
 
     const first = await viewGraph.loadView(route, signal);
-    const second = await viewGraph.loadView(route, signal);
-
     expect(first).toBeInstanceOf(DocumentFragment);
+    expect(loads).toBe(1);
+
+    // Fresh handoff window: long cache.view must not have kept the fragment.
+    handoff.destroy();
+    handoff = new HandoffCache();
+    const next = new ViewGraph(handoff, { registry });
+    const second = await next.loadView(route, signal);
+
     expect(second).toBeInstanceOf(DocumentFragment);
-    expect(first).not.toBe(second);
+    expect(second).not.toBe(first);
     expect(loads).toBe(2);
+    next.destroy();
   });
 
   it('prefetchNode swallows loader errors', async () => {
@@ -278,7 +369,7 @@ describe('ViewGraph', () => {
     expect(loads).toBe(2);
   });
 
-  it('invalidate clears cached payloads', async () => {
+  it('invalidate clears long cache.view payloads', async () => {
     let loads = 0;
     registry.register('html', async () => {
       loads++;
@@ -293,9 +384,15 @@ describe('ViewGraph', () => {
 
     await viewGraph.loadView(route, signal);
     viewGraph.invalidate({ policy: 'remove' });
-    await viewGraph.loadView(route, signal);
+
+    // Fresh handoff window — long cache must miss after invalidate.
+    handoff.destroy();
+    handoff = new HandoffCache();
+    const next = new ViewGraph(handoff, { registry });
+    await next.loadView(route, signal);
 
     expect(loads).toBe(2);
+    next.destroy();
   });
 
   it('loadViewDescriptor includes url extract in loader context', async () => {
@@ -307,7 +404,9 @@ describe('ViewGraph', () => {
 
     await viewGraph.loadViewDescriptor(
       { kind: 'view', loader: 'url', content: 'page.html', cache: false, extract: '#main' },
-      matched('/page'),
+      matched('/page', {
+        route: { layout: '', view: { loader: 'url', content: 'page.html' }, cache: NO_CACHE },
+      }),
       new AbortController().signal,
     );
 
@@ -383,7 +482,9 @@ describe('ViewGraph', () => {
     await expect(
       viewGraph.loadViewDescriptor(
         { kind: 'view', loader: 'html', content: 'x', cache: false },
-        matched('/x'),
+        matched('/x', {
+          route: { layout: '', view: { loader: 'html', content: 'x' }, cache: NO_CACHE },
+        }),
         controller.signal,
       ),
     ).resolves.toBeNull();
@@ -415,17 +516,21 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: 'x' },
     });
 
-    const graph = new ViewGraph({ registry });
+    const graphHandoff = new HandoffCache();
+    const graph = new ViewGraph(graphHandoff, { registry });
     const signal = new AbortController().signal;
     await graph.loadView(route, signal);
     await graph.loadView(route, signal);
     expect(loads).toBe(1);
 
     graph.destroy();
+    graphHandoff.destroy();
 
-    const next = new ViewGraph({ registry });
+    const nextHandoff = new HandoffCache();
+    const next = new ViewGraph(nextHandoff, { registry });
     await next.loadView(route, signal);
     expect(loads).toBe(2);
     next.destroy();
+    nextHandoff.destroy();
   });
 });

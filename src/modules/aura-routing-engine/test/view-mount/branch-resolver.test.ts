@@ -9,28 +9,33 @@ import {
   ViewGraph,
   LoaderRegistry,
 } from '../../core/view-graph';
+import { HandoffCache } from '../../core/resource-graph';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { resolveRouteData } from '../../core/data-graph/route-data';
 import { resourceKeys } from '../../core/match/resource-keys';
 import { withResolvedView } from '../helpers/with-resolved-view';
+import { createTestRoute } from '../helpers/create-test-route';
+import type { RouteInstance } from '../../core';
 
 function matched(
   pattern: string,
   overrides: Partial<MatchedRouteInfo> = {},
 ): MatchedRouteInfo {
+  const { route: routeOverride, ...rest } = overrides;
   const info = withResolvedView({
     href: pattern,
     pathname: pattern,
     search: '',
     hash: '',
     pattern,
-    route: {
+    route: createTestRoute(pattern, {
       layout: '',
       view: null,
       cache: NO_CACHE,
-    },
-    ...overrides,
-  } as MatchedRouteInfo);
+      ...(routeOverride as Partial<RouteInstance> | undefined),
+    }),
+    ...rest,
+  });
   if (info.dataKey == null) {
     const keys = resourceKeys(info);
     info.dataKey = keys.dataKey;
@@ -255,7 +260,7 @@ describe('resolveEnterBranch', () => {
     registry.register('template', async (ctx) => `<header>${ctx.content}</header>`);
     registry.register('html', async (ctx) => ctx.content);
 
-    const content = new ViewGraph({ registry });
+    const content = new ViewGraph(new HandoffCache(), { registry });
     const signal = new AbortController().signal;
 
     const layout = matched('/users', {

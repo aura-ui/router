@@ -6,9 +6,11 @@ import {
   routeSnapshot,
   type LoaderFn,
 } from '../../aura-routing-engine/core';
+import { HandoffCache } from '../../aura-routing-engine/core/resource-graph';
 import { AuraRouter } from '../core/aura-router';
 import { NO_CACHE } from '../../aura-route/core/attr/cache-attr-parser';
 import { withResolvedView } from '../../aura-routing-engine/test/helpers/with-resolved-view';
+import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
 
 describe('AuraRouter.registerLoaderLoader', () => {
   it('registers LoaderFn on defaultLoaderRegistry for ViewGraph', async () => {
@@ -19,24 +21,24 @@ describe('AuraRouter.registerLoaderLoader', () => {
     };
     expect(() => AuraRouter.registerLoader('register-loader-test', customLoader)).not.toThrow();
 
-    const viewGraph = new ViewGraph({
+    const viewGraph = new ViewGraph(new HandoffCache(), {
       registry: defaultLoaderRegistry,
     });
 
     const payload = await viewGraph.loadViewDescriptor(
       { kind: 'view', loader: 'register-loader-test', content: 'any-ref', cache: false },
-      {
+      withResolvedView({
         href: '/bridge',
         pathname: '/bridge',
         search: '',
         hash: '',
         pattern: '/bridge',
-        route: {
+        route: createTestRoute('/bridge', {
           layout: '',
-          view: 'register-loader-test::any-ref',
+          view: { loader: 'register-loader-test', content: 'any-ref' },
           cache: NO_CACHE,
-        },
-      },
+        }),
+      }),
       new AbortController().signal,
     );
 
@@ -59,7 +61,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
       return 'ok';
     });
 
-    const service = new ViewGraph({
+    const service = new ViewGraph(new HandoffCache(), {
       registry: defaultLoaderRegistry,
     });
 
@@ -70,12 +72,11 @@ describe('AuraRouter.registerLoaderLoader', () => {
         search: '',
         hash: '',
         pattern: '/analytics',
-        route: {
+        route: createTestRoute('/analytics', {
           layout: '',
           view: { loader: 'content-probe', content: 'dashboard' },
           cache: NO_CACHE,
-        },
-        resolvedView: { loader: 'content-probe', content: 'dashboard' },
+        }),
       }),
       new AbortController().signal,
     );
@@ -91,7 +92,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
       return 'ok';
     });
 
-    const service = new ViewGraph({
+    const service = new ViewGraph(new HandoffCache(), {
       registry: defaultLoaderRegistry,
     });
 
@@ -103,11 +104,11 @@ describe('AuraRouter.registerLoaderLoader', () => {
         hash: '',
         pattern: '/users/:id',
         params: { id: '1' },
-        route: {
+        route: createTestRoute('/users/:id', {
           layout: '',
           view: { loader: 'route-data-probe', content: 'x' },
           cache: NO_CACHE,
-        },
+        }),
       }),
       new AbortController().signal,
       { data: { userId: '1' } },
@@ -129,13 +130,13 @@ describe('AuraRouter.registerLoaderLoader', () => {
       return 'ok';
     });
 
-    const service = new ViewGraph({
+    const service = new ViewGraph(new HandoffCache(), {
       registry: defaultLoaderRegistry,
     });
 
     await service.loadViewDescriptor(
       { kind: 'view', loader: 'route-context-probe', content: 'x', cache: false },
-      {
+      withResolvedView({
         href: '/users/1?q=1',
         pathname: '/users/1',
         search: '?q=1',
@@ -143,8 +144,12 @@ describe('AuraRouter.registerLoaderLoader', () => {
         pattern: '/users/:id',
         params: { id: '1' },
         query: { q: '1' },
-        route: { layout: '', view: '', cache: NO_CACHE },
-      },
+        route: createTestRoute('/users/:id', {
+          layout: '',
+          view: { loader: 'route-context-probe', content: 'x' },
+          cache: NO_CACHE,
+        }),
+      }),
       new AbortController().signal,
     );
 

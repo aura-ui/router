@@ -119,7 +119,6 @@ export type {
   ViewResolverPort,
   BranchViewResolver,
   ViewLoadResult,
-  RouteViewSource,
   LoaderClass,
   ViewLoaderEnv,
   ViewDescriptor,

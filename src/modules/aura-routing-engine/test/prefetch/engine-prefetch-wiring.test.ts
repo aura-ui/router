@@ -3,6 +3,7 @@ import {
   ViewGraph,
   LoaderRegistry,
 } from '../../core/view-graph';
+import { HandoffCache } from '../../core/resource-graph';
 import type { RouterInstance } from '../../core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
@@ -17,7 +18,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return '<span>about</span>';
     });
 
-    const viewGraph = new ViewGraph({ registry });
+    const viewGraph = new ViewGraph(new HandoffCache(), { registry });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
@@ -38,7 +39,7 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return 'x';
     });
 
-    const viewGraph = new ViewGraph({ registry });
+    const viewGraph = new ViewGraph(new HandoffCache(), { registry });
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');

@@ -20,7 +20,7 @@ import {
   type RouterDataInvalidateOptions,
   type ViewInvalidateOptions,
   type RouterInstance,
-  type DataGraphOptions,
+  type DataGraphCacheOptions,
   type Loader,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
@@ -90,7 +90,7 @@ export interface AuraRouterConfigureOptions {
   /** View-loader payload strings (`cache.view`). */
   viewCache?: CacheStoreOptions<string>;
   /** Load-hook payloads (`cache.data`). */
-  dataCache?: DataGraphOptions;
+  dataCache?: DataGraphCacheOptions;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
   notFoundHandler?: NotFoundHandler | null;
 }

@@ -130,7 +130,7 @@ export class AuraRoutingEngine implements NavigationHost {
 
     this.sharedBuffer = new HandoffCache({});
 
-    this.dataGraph = new DataGraph(this.hooksRegistry, this.sharedBuffer);
+    this.dataGraph = new DataGraph(this.sharedBuffer, { hooks: this.hooksRegistry });
 
     this.viewGraph = config.viewGraph ?? new ViewGraph(this.sharedBuffer, { cache: config.viewCache });
 

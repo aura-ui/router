@@ -481,7 +481,7 @@ describe('DataGraph', () => {
     expect(data!.get(route.dataKey!)).toEqual({ id: 1 });
   });
 
-  it('aborts shared workSignal when the last navigation waiter releases', async () => {
+  it('aborts shared workSignal when sole navigation hold releases', async () => {
     let loads = 0;
     let workSignal!: AbortSignal;
     let releaseGate!: () => void;

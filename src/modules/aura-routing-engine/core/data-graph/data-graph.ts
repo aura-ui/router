@@ -185,8 +185,8 @@ export class DataGraph {
     }
 
     try {
-      const shared = this.resolveSharedPayload(match, () =>
-        this.invokeLoadHooks(
+      const shared = this.runSharedLoad(match, () =>
+        this.callLoadHooks(
           this.buildLoadHookContext(match, transaction, {
             transactionSignal: SHARED_HANDOFF_SIGNAL,
             parent,
@@ -199,7 +199,7 @@ export class DataGraph {
       const data = await awaitUntilAbort(shared, interestSignal);
 
       // Also handled in catch when interest aborts before settle.
-      if (!isBatchActive(request)) {
+      if (!isRequestActive(request)) {
         return mode === 'prefetch' ? {} : { error: { status: 'cancelled' } };
       }
 
@@ -247,12 +247,12 @@ export class DataGraph {
 
     if (mode === 'prefetch') return {};
     if (error instanceof DataGraphTerminalError) return { error: error.outcome };
-    if (!isBatchActive(request)) return { error: { status: 'cancelled' } };
+    if (!isRequestActive(request)) return { error: { status: 'cancelled' } };
     return { error: await transaction.fail(match, error, 'load') };
   }
 
   /** Handoff (+ optional long `cache.data`). Factory ignores caller interest. */
-  private resolveSharedPayload(
+  private runSharedLoad(
     match: MatchedRouteInfo,
     load: () => Promise<LoadResult>,
   ): Promise<unknown> {
@@ -274,7 +274,7 @@ export class DataGraph {
     });
   }
 
-  private async invokeLoadHooks(
+  private async callLoadHooks(
     context: RouteLifecycleContext,
     hookNames: readonly string[],
   ): Promise<LoadResult> {
@@ -309,8 +309,8 @@ export class DataGraph {
     const parent = closestRouteWithLoadHooks(child, branch);
     if (!parent) return Promise.resolve(undefined);
 
-    const inBatch = deferreds.get(parent.route.uid);
-    if (inBatch) return inBatch.promise;
+    const parentDeferred = deferreds.get(parent.route.uid);
+    if (parentDeferred) return parentDeferred.promise;
 
     const dataKey = parent.dataKey;
     if (!dataKey) return Promise.resolve(undefined);
@@ -353,12 +353,13 @@ function createPayloadDeferredTable(
   const table = new Map<number, PayloadDeferred>();
   for (const match of enterRoutes) {
     const deferred = promiseWithResolvers();
-    void deferred.promise.catch(() => {}); // no child may await parent()
+    void deferred.promise.catch(() => {
+    }); // no child may await parent()
     table.set(match.route.uid, deferred);
   }
   return table;
 }
 
-function isBatchActive(request: EnterRouteLoad): boolean {
+function isRequestActive(request: EnterRouteLoad): boolean {
   return request.transaction.isActive() && !request.siblingAbort.signal.aborted;
 }

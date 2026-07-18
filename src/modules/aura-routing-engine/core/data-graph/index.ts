@@ -8,4 +8,4 @@ export {
   type DataSnapshot,
   type LoadHookMode,
 } from './data-graph';
-export { resolveRouteData, routeHasLoadHooks, routeLoadHookNames } from './route-data';
+export { resolveRouteData } from './route-data';

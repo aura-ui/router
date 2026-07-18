@@ -2,10 +2,11 @@ import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolva
 import { DEFAULT_GC_TIME } from '../../../aura-cache-store/core';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { promiseWithResolvers } from '../../../aura-utils/async/promises';
+import { resolveHookNames } from '../hooks/resolve-hook-names';
 import { invalidateRouterCache } from '../invalidate-router-cache';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
 import { HandoffCache } from '../resource-graph';
-import { closestRouteWithLoadHooks, routeLoadHookNames } from './route-data';
+import { closestRouteWithLoadHooks } from './route-data';
 import type { CacheStoreOptions } from '../../../aura-cache-store/core';
 import type { HookRegistry } from '../hooks/registry';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
@@ -234,7 +235,7 @@ export class DataGraph {
   private async loadEnterRoute(request: EnterRouteLoad): Promise<DataGraphRouteLoadResult> {
     const { match, transaction, interestSignal, mode, parent, deferred } = request;
 
-    const hookNames = routeLoadHookNames(match);
+    const hookNames = resolveHookNames(match.route, 'load');
     if (!hookNames) {
       deferred.resolve(undefined);
       return SKIP_RESULT;

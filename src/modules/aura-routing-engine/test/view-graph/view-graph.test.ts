@@ -558,4 +558,17 @@ describe('ViewGraph', () => {
     next.destroy();
     nextHandoff.destroy();
   });
+
+  it('configure merges default cache options for new graphs', () => {
+    const graphProto = ViewGraph as unknown as { defaultCacheOptions: Record<string, unknown> };
+    const prev = { ...graphProto.defaultCacheOptions };
+    try {
+      ViewGraph.configure({ max: 11, staleTime: 5_000 });
+      const graph = new ViewGraph(new HandoffCache(), { registry });
+      expect(graph).toBeInstanceOf(ViewGraph);
+      graph.destroy();
+    } finally {
+      graphProto.defaultCacheOptions = prev;
+    }
+  });
 });

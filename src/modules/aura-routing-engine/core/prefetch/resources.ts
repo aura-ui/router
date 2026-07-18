@@ -1,4 +1,3 @@
-import { routeHasLoadHooks } from '../data-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
   VIEW_PREFETCH_MIN_CONFIDENCE,
@@ -55,7 +54,7 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
       return 'low-confidence';
     }
 
-    const hasDataTargets = plan.enterRoutes.some(routeHasLoadHooks);
+    const hasDataTargets = plan.enterRoutes.some((route) => route.route.hasLoad);
     if (this.dataEnabled && hasDataTargets && !this.policy.shouldPrefetchData(ctx)) {
       return 'low-confidence';
     }
@@ -79,7 +78,7 @@ export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
   private planData(plan: PrefetchPlan, ctx: PrefetchPlanContext): PrefetchResource | null {
     if (!this.dataEnabled || !this.policy.shouldPrefetchData(ctx)) return null;
 
-    const targets = plan.enterRoutes.filter(routeHasLoadHooks);
+    const targets = plan.enterRoutes.filter((route) => route.route.hasLoad);
     if (!targets.length) return null;
 
     return {

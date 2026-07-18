@@ -117,7 +117,7 @@ click /users:
 ```text
 src/modules/aura-routing-engine/core/data-graph/
   data-graph.ts       load(), prefetch(), invalidate*
-  route-data.ts       keys, routeHasLoadHooks
+  route-data.ts       resolveRouteData, closestRouteWithLoadHooks
   index.ts
 
 Тесты: test/data-graph/data-graph.test.ts

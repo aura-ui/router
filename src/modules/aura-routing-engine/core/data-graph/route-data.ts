@@ -1,24 +1,11 @@
-import { resolveHookNames } from '../hooks/resolve-hook-names';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-
-/** Resolved `load` hook names for a route, or `null` when the phase is inactive. */
-export function routeLoadHookNames(
-  route: MatchedRouteInfo,
-): readonly string[] | null {
-  return resolveHookNames(route.route, 'load');
-}
-
-/** Whether the route participates in DataGraph load / snapshot. */
-export function routeHasLoadHooks(route: MatchedRouteInfo): boolean {
-  return route.route.hasLoad;
-}
 
 /** Lookup load-hook payload for a route in a navigation snapshot. */
 export function resolveRouteData(
   snapshot: ReadonlyMap<string, unknown>,
   route: MatchedRouteInfo,
 ): unknown | undefined {
-  if (!routeLoadHookNames(route)) return undefined;
+  if (!route.route.hasLoad) return undefined;
 
   const key = route.dataKey;
   if (key == null || !snapshot.has(key)) return undefined;

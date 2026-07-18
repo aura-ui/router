@@ -246,13 +246,13 @@ describe('HandoffCache', () => {
       expect(workSignal.aborted).toBe(true);
     });
 
-    it('aborts after navigation interest even if speculative releases last', () => {
+    it('aborts when last hold leaves after navigation was seen (speculative may release last)', () => {
       handoff = new HandoffCache();
       const prefetch = handoff.hold('k', 'speculative');
       const navigation = handoff.hold('k', 'navigation');
       const { workSignal } = prefetch;
 
-      // Click away first, mouseout later — still abort (seenNavigation).
+      // Nav releases first, speculative last — still abort (hadNavigation).
       navigation.release();
       expect(workSignal.aborted).toBe(false);
 
@@ -282,7 +282,7 @@ describe('HandoffCache', () => {
       expect(handoff.waiterCount('k')).toBe(0);
     });
 
-    it('destroy aborts outstanding work waiters', () => {
+    it('destroy aborts outstanding work signals', () => {
       handoff = new HandoffCache();
       const waiter = handoff.hold('k', 'speculative');
       handoff.destroy();

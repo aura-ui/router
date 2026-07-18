@@ -46,11 +46,11 @@ type WorkEntry = {
   /** Active (not yet {@link HandoffWaiter.release | released}) waiters on this generation. */
   refs: number;
   /**
-   * Sticky: a `'navigation'` waiter held this generation at least once.
+   * Sticky: `'navigation'` held this generation at least once.
    * When `refs` hits 0 and this is set → abort and delete. Speculative-only idle
    * leaves the entry in place (same `workSignal` for a later hold).
    */
-  seenNavigation: boolean;
+  hadNavigation: boolean;
 };
 
 /**
@@ -84,12 +84,12 @@ export class HandoffWorkRegistry {
    * Register a waiter on `key` and return a {@link HandoffWaiter} for that generation.
    *
    * @param key - Resource identity (e.g. `data:…` / `view:…`).
-   * @param kind - Interest kind. `'navigation'` sets sticky abort-on-idle for this generation.
+   * @param kind - Interest kind. `'navigation'` sets sticky `hadNavigation` for this generation.
    * @returns Waiter whose {@link HandoffWaiter.workSignal} is shared for this key’s current generation.
    */
   hold(key: string, kind: HandoffWaiterKind): HandoffWaiter {
     const entry = this.entryFor(key);
-    if (kind === 'navigation') entry.seenNavigation = true;
+    if (kind === 'navigation') entry.hadNavigation = true;
     entry.refs++;
 
     let released = false;
@@ -133,7 +133,7 @@ export class HandoffWorkRegistry {
     const entry: WorkEntry = {
       controller: new AbortController(),
       refs: 0,
-      seenNavigation: false,
+      hadNavigation: false,
     };
     this.entries.set(key, entry);
     return entry;
@@ -148,7 +148,7 @@ export class HandoffWorkRegistry {
     if (this.entries.get(key) !== entry) return;
 
     entry.refs--;
-    if (entry.refs > 0 || !entry.seenNavigation) return;
+    if (entry.refs > 0 || !entry.hadNavigation) return;
 
     entry.controller.abort();
     this.entries.delete(key);

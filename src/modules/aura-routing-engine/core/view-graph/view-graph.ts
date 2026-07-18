@@ -170,6 +170,11 @@ export class ViewGraph {
 
     // Descriptor implies route content → viewKey (same identity as match time).
     const key = resolveViewCacheKey(routeInfo, data)!;
+
+    // Warm long cache → no hold, no handoff.
+    const cached = this.fastCacheCheck(descriptor, key, signal, mode, transaction);
+    if (cached) return cached;
+
     const waiter = this.sharedBuffer.hold(key, toHandoffWaiterKind(mode));
 
     try {
@@ -177,7 +182,8 @@ export class ViewGraph {
         this.loadViewPayload(descriptor, routeInfo, waiter.workSignal, data),
       );
       // Interest may detach before settle; don't leave an unhandled rejection on shared.
-      void shared.catch(() => {});
+      void shared.catch(() => {
+      });
       const payload = await awaitUntilAbort(shared, signal);
 
       if (signal.aborted || (transaction && !transaction.isActive())) {
@@ -190,6 +196,19 @@ export class ViewGraph {
     } finally {
       waiter.release();
     }
+  }
+
+  /** Hit on `cache.view` without touching handoff; `undefined` → miss. */
+  private fastCacheCheck(descriptor: ViewDescriptor, key: string, signal: AbortSignal, mode: LoadHookMode, transaction: NavigationTransaction | undefined): ViewGraphLoadResult | undefined {
+    if (!descriptor.cache) return undefined;
+
+    const cached = this.cache.get(key);
+    if (cached === undefined) return undefined;
+
+    if (signal.aborted || (transaction && !transaction.isActive())) {
+      return mode === 'prefetch' ? {} : { error: { status: 'cancelled' } };
+    }
+    return { data: cached };
   }
 
   private async toLoadErrorResult(

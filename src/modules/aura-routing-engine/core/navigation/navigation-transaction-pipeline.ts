@@ -217,7 +217,7 @@ export class NavigationTransactionPipeline {
       }
 
       if (view) {
-        parts.push(engine.viewGraph.prefetch(enterRoutes, signal));
+        parts.push(engine.viewGraph.load(enterRoutes, signal, { mode: 'prefetch' }));
       }
 
       if (parts.length) {

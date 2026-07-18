@@ -17,7 +17,7 @@ export {
 } from './view-graph';
 
 /** Minimal surface for prepare / prefetch executor and DI mocks. */
-export type ViewLoadPort = Pick<ViewGraph, 'load' | 'loadView' | 'prefetch'>;
+export type ViewLoadPort = Pick<ViewGraph, 'load' | 'loadView'>;
 
 /** Async layout / view loader — same contract as aura-route `ViewResolverPort`. */
 export type ViewResolverPort = Pick<ViewGraph, 'loadView'>;

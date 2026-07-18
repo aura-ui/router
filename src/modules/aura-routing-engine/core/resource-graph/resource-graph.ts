@@ -144,7 +144,7 @@ export class ResourceGraph {
     if (contentResult.error) return { error: contentResult.error };
 
     const dataBoundResult = await this.viewGraph.load(dataBoundContentRoutes, signal, {
-      data: (route) => dataResult.data?.get(route.dataKey!),
+      data: (route: MatchedRouteInfo) => dataResult.data?.get(route.dataKey!),
       mode: 'navigation',
       transaction,
     });
@@ -169,7 +169,7 @@ export class ResourceGraph {
     }
 
     if (contentRoutes.length) {
-      parts.push(this.viewGraph.prefetch(contentRoutes, signal));
+      parts.push(this.viewGraph.load(contentRoutes, signal, { mode: 'prefetch' }));
     }
 
     if (parts.length) {
@@ -179,7 +179,7 @@ export class ResourceGraph {
     if (dataBoundContentRoutes.length) {
       // todo check data
       parts = [];
-      parts.push(this.viewGraph.prefetch(dataBoundContentRoutes, signal));
+      parts.push(this.viewGraph.load(dataBoundContentRoutes, signal, { mode: 'prefetch' }));
       await Promise.all(parts);
     }
 

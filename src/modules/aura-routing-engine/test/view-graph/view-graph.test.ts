@@ -275,7 +275,7 @@ describe('ViewGraph', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('loadViews runs loadView in parallel for each route', async () => {
+  it('load runs loadView in parallel for each route', async () => {
     registry.register('html', async (ctx) => ctx.content);
     const parent = matched('/users', {
       resolvedView: { loader: 'html', content: 'parent' },
@@ -286,11 +286,11 @@ describe('ViewGraph', () => {
     });
 
     await expect(
-      viewGraph.loadViews([parent, child], new AbortController().signal),
+      viewGraph.load([parent, child], new AbortController().signal),
     ).resolves.toEqual({ data: [{ data: 'parent' }, { data: 'child' }] });
   });
 
-  it('loadViews accepts a per-route data resolver', async () => {
+  it('load accepts a per-route data resolver', async () => {
     const seen: unknown[] = [];
     registry.register('html', async (ctx) => {
       seen.push(ctx.data);
@@ -299,14 +299,14 @@ describe('ViewGraph', () => {
     const a = matched('/a', { resolvedView: { loader: 'html', content: 'a' } });
     const b = matched('/b', { resolvedView: { loader: 'html', content: 'b' } });
 
-    await viewGraph.loadViews([a, b], new AbortController().signal, {
+    await viewGraph.load([a, b], new AbortController().signal, {
       data: (route) => ({ pattern: route.pattern }),
     });
 
     expect(seen).toEqual([{ pattern: '/a' }, { pattern: '/b' }]);
   });
 
-  it('loadViews returns first error and drops sibling data', async () => {
+  it('load returns first error and drops sibling data', async () => {
     registry.register('html', async (ctx) => {
       if (ctx.route.pattern === '/bad') throw new Error('boom');
       return ctx.content;
@@ -319,7 +319,7 @@ describe('ViewGraph', () => {
     };
 
     await expect(
-      viewGraph.loadViews([ok, bad], new AbortController().signal, {
+      viewGraph.load([ok, bad], new AbortController().signal, {
         transaction: transaction as never,
       }),
     ).resolves.toEqual({ error: { status: 'error', error: expect.any(Error) } });

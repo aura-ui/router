@@ -100,7 +100,7 @@ describe('ResourceGraph', () => {
         order.push(`view:${route.pattern}`);
         return {};
       }),
-      loadViews: jest.fn(async (routes: MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {
+      load: jest.fn(async (routes: MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {
         const results = await Promise.all(
           routes.map((route) => viewGraph.loadView(route, signal, options)),
         );

@@ -42,7 +42,7 @@ export type ViewGraphLoadResult = {
 };
 
 /**
- * Batch {@link ViewGraph.loadViews}: `{ data }` ok · `{ error }` first failure · `{}` empty.
+ * Batch {@link ViewGraph.load}: `{ data }` ok · `{ error }` first failure · `{}` empty.
  * On error drops partial sibling results (same as {@link DataGraph.load}).
  */
 export type ViewGraphLoadViewsResult = {
@@ -64,7 +64,7 @@ export type ViewGraphDeps = {
   readonly cache?: ViewGraphCacheOptions;
 };
 
-/** Static view data, or a per-route resolver (e.g. data-bound content in {@link ViewGraph.loadViews}). */
+/** Static view data, or a per-route resolver (e.g. data-bound content in {@link ViewGraph.load}). */
 export type ViewDataInput = unknown | ((route: MatchedRouteInfo) => unknown);
 
 export type ViewLoadOptions = {
@@ -141,7 +141,7 @@ export class ViewGraph {
    * terminal fold: first `{ error }` wins, partial sibling `data` dropped.
    * Per-route data: pass `options.data` as `(route) => …`.
    */
-  async loadViews(
+  async load(
     routes: readonly MatchedRouteInfo[],
     signal: AbortSignal,
     options?: ViewLoadOptions,

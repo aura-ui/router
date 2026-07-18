@@ -1,12 +1,13 @@
 /**
  * Interest kind for a {@link HandoffWaiter} on a handoff key.
+ * Same literals as DataGraph `LoadHookMode` — pass mode straight into {@link hold}.
  *
- * - `'speculative'` — prefetch / hover probe. If only this kind was seen, idle
- *   release keeps the work generation alive so a later hold can rejoin.
+ * - `'prefetch'` — hover / intent probe. If only this kind was seen, idle release
+ *   keeps the work generation alive so a later hold can rejoin.
  * - `'navigation'` — navigation prepare. Sticky for the generation: when the last
  *   waiter releases after this was seen, work is aborted.
  */
-export type HandoffWaiterKind = 'speculative' | 'navigation';
+export type HandoffWaiterKind = 'navigation' | 'prefetch';
 
 /**
  * One hold on shared prepare work for a resource key ({@link HandoffWorkRegistry.hold}).
@@ -30,7 +31,7 @@ export type HandoffWaiter = {
   /**
    * Drop this hold. Idempotent.
    * Aborts {@link workSignal} only if this was the last hold on the generation and
-   * `'navigation'` was seen (even if a speculative waiter releases last).
+   * `'navigation'` was seen (even if a prefetch waiter releases last).
    */
   release(): void;
 };
@@ -47,7 +48,7 @@ type WorkEntry = {
   refs: number;
   /**
    * Sticky: `'navigation'` held this generation at least once.
-   * When `refs` hits 0 and this is set → abort and delete. Speculative-only idle
+   * When `refs` hits 0 and this is set → abort and delete. Prefetch-only idle
    * leaves the entry in place (same `workSignal` for a later hold).
    */
   hadNavigation: boolean;
@@ -62,7 +63,7 @@ type WorkEntry = {
  * - {@link hold} / {@link HandoffWaiter.release | release} — refcount интереса к `workSignal`
  *
  * Cancel interest ≠ abort work. Abort work = последний `release` после того, как на key
- * побывал `'navigation'` (не «last navigation release» — speculative может уйти последним).
+ * побывал `'navigation'` (не «last navigation release» — prefetch может уйти последним).
  *
  * | # | Ситуация | Shared |
  * |---|----------|--------|
@@ -76,7 +77,7 @@ type WorkEntry = {
 export class HandoffWorkRegistry {
   /**
    * Generations by resource key.
-   * Policy-aborted entries are removed; speculative-idle entries may remain with `refs === 0`.
+   * Policy-aborted entries are removed; prefetch-idle entries may remain with `refs === 0`.
    */
   private readonly entries = new Map<string, WorkEntry>();
 
@@ -107,7 +108,7 @@ export class HandoffWorkRegistry {
 
   /**
    * Number of active (unreleased) waiters for `key`.
-   * `0` if the key is absent or only a speculative-idle generation remains.
+   * `0` if the key is absent or only a prefetch-idle generation remains.
    * @internal Tests / diagnostics.
    */
   waiterCount(key: string): number {

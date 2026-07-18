@@ -33,7 +33,8 @@ export type DataGraphLoadResult = LoadResult<DataSnapshot>;
 
 export type DataGraphOptions = Pick<CacheStoreOptions<unknown>, 'max' | 'staleTime' | 'gcTime'>;
 
-export type LoadHookMode = 'navigation' | 'prefetch';
+/** Same literals as {@link HandoffWaiterKind} — pass through to {@link HandoffCache.hold}. */
+export type LoadHookMode = HandoffWaiterKind;
 
 export type DataGraphLoadOptions = {
   /** Full active branch (root → leaf), including LCA parents outside enterRoutes. */
@@ -186,7 +187,7 @@ export class DataGraph {
       return {};
     }
 
-    const waiter = this.sharedBuffer.hold(match.dataKey!, toHandoffWaiterKind(mode));
+    const waiter = this.sharedBuffer.hold(match.dataKey!, mode);
 
     try {
       const shared = this.runSharedLoad(match, () =>
@@ -371,9 +372,4 @@ function createPayloadDeferredTable(
 
 function isRequestActive(request: EnterRouteLoad): boolean {
   return request.transaction.isActive() && !request.siblingAbort.signal.aborted;
-}
-
-// todo move to single contract
-function toHandoffWaiterKind(mode: LoadHookMode): HandoffWaiterKind {
-  return mode === 'navigation' ? 'navigation' : 'speculative';
 }

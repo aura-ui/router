@@ -13,7 +13,7 @@ import { viewKey, viewKeyWithData } from '../match/resource-keys';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
-import { HandoffCache, type HandoffWaiterKind } from '../resource-graph';
+import { HandoffCache } from '../resource-graph';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import { defaultLoaderRegistry, type LoaderRegistry } from './registry';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
@@ -189,7 +189,7 @@ export class ViewGraph {
     const cached = this.fastCacheCheck(descriptor.cache, key, signal, mode, transaction);
     if (cached) return cached;
 
-    const waiter = this.sharedBuffer.hold(key, toHandoffWaiterKind(mode));
+    const waiter = this.sharedBuffer.hold(key, mode);
 
     try {
       const shared = this.runSharedLoad(key, descriptor.cache, () =>
@@ -332,10 +332,6 @@ function resolveViewCacheKey(routeInfo: MatchedRouteInfo, data?: unknown): strin
   const base = routeInfo.viewKey ?? viewKey(routeInfo);
   if (!base) return null;
   return data !== undefined ? viewKeyWithData(base, data) : base;
-}
-
-function toHandoffWaiterKind(mode: LoadHookMode): HandoffWaiterKind {
-  return mode === 'navigation' ? 'navigation' : 'speculative';
 }
 
 function cancelledResult(mode: LoadHookMode): ViewGraphLoadResult {

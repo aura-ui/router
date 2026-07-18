@@ -46,7 +46,7 @@ export type DataGraphLoadOptions = {
 export type DataGraphPrefetchOptions = DataGraphLoadOptions;
 
 /** Deferred payload for one enter route — children await via `ctx.parent()`. */
-type PayloadJoin = {
+type PayloadDeferred = {
   promise: Promise<unknown>;
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
@@ -61,7 +61,7 @@ type EnterRouteLoad = {
   siblingAbort: AbortController;
   mode: LoadHookMode;
   parent: () => Promise<unknown>;
-  join: PayloadJoin;
+  deferred: PayloadDeferred;
 };
 
 class DataGraphTerminalError extends Error {
@@ -140,15 +140,15 @@ export class DataGraph {
   ): Promise<LoadResult<Map<string, unknown>>> {
     const siblingAbort = new AbortController();
     const interestSignal = AbortSignal.any([transaction.signal, siblingAbort.signal]);
-    const joins = createPayloadJoinTable(enterRoutes);
+    const deferreds = createPayloadDeferredTable(enterRoutes);
     const result = new Map<string, unknown>();
     const errors: TerminalOutcome[] = [];
 
     await Promise.all(
       enterRoutes.map(async (match, index) => {
-        const join = joins.get(match.route.uid)!;
+        const deferred = deferreds.get(match.route.uid)!;
         if (!match.dataKey) {
-          join.resolve(undefined);
+          deferred.resolve(undefined);
           return;
         }
 
@@ -158,8 +158,8 @@ export class DataGraph {
           interestSignal,
           siblingAbort,
           mode,
-          parent: () => this.joinParentPayload(match, joins, branch),
-          join,
+          parent: () => this.resolveParentDeferred(match, deferreds, branch),
+          deferred,
         });
 
         if (error) {
@@ -176,11 +176,11 @@ export class DataGraph {
   }
 
   private async loadEnterRoute(request: EnterRouteLoad): Promise<LoadResult> {
-    const { match, transaction, interestSignal, mode, parent, join } = request;
+    const { match, transaction, interestSignal, mode, parent, deferred } = request;
 
     const hookNames = routeLoadHookNames(match);
     if (!hookNames) {
-      join.resolve(undefined);
+      deferred.resolve(undefined);
       return {};
     }
 
@@ -194,8 +194,8 @@ export class DataGraph {
           hookNames,
         ),
       );
-      // Batch join follows shared settle; waiter follows interestSignal.
-      void shared.then(join.resolve, join.reject);
+      // Batch deferred follows shared settle; waiter follows interestSignal.
+      void shared.then(deferred.resolve, deferred.reject);
       const data = await awaitUntilAbort(shared, interestSignal);
 
       // Also handled in catch when interest aborts before settle.
@@ -300,16 +300,16 @@ export class DataGraph {
     return { data };
   }
 
-  /** Nearest ancestor payload: in-batch join → handoff → long cache. */
-  private joinParentPayload(
+  /** Nearest ancestor payload: in-batch deferred → handoff → long cache. */
+  private resolveParentDeferred(
     child: MatchedRouteInfo,
-    joins: ReadonlyMap<number, PayloadJoin>,
+    deferreds: ReadonlyMap<number, PayloadDeferred>,
     branch: readonly MatchedRouteInfo[],
   ): Promise<unknown> {
     const parent = closestRouteWithLoadHooks(child, branch);
     if (!parent) return Promise.resolve(undefined);
 
-    const inBatch = joins.get(parent.route.uid);
+    const inBatch = deferreds.get(parent.route.uid);
     if (inBatch) return inBatch.promise;
 
     const dataKey = parent.dataKey;
@@ -347,14 +347,14 @@ export class DataGraph {
   }
 }
 
-function createPayloadJoinTable(
+function createPayloadDeferredTable(
   enterRoutes: readonly MatchedRouteInfo[],
-): Map<number, PayloadJoin> {
-  const table = new Map<number, PayloadJoin>();
+): Map<number, PayloadDeferred> {
+  const table = new Map<number, PayloadDeferred>();
   for (const match of enterRoutes) {
-    const join = promiseWithResolvers();
-    void join.promise.catch(() => {}); // no child may await parent()
-    table.set(match.route.uid, join);
+    const deferred = promiseWithResolvers();
+    void deferred.promise.catch(() => {}); // no child may await parent()
+    table.set(match.route.uid, deferred);
   }
   return table;
 }

@@ -165,8 +165,8 @@ describe('DataGraph', () => {
       transaction: loadTransaction(hookRegistry, [route]),
       mode: 'prefetch' as const,
     };
-    await dataGraph.prefetch([route], options);
-    await dataGraph.prefetch([route], options);
+    await dataGraph.load([route], options);
+    await dataGraph.load([route], options);
 
     expect(loads).toBe(1);
   });
@@ -461,7 +461,7 @@ describe('DataGraph', () => {
     route.route.cache = NO_CACHE;
 
     const prefetchTx = loadTransaction(hookRegistry, [route]);
-    const prefetchPromise = dataGraph.prefetch([route], {
+    const prefetchPromise = dataGraph.load([route], {
       transaction: prefetchTx,
       mode: 'prefetch',
     });
@@ -557,7 +557,7 @@ describe('DataGraph', () => {
     route.route.cache = NO_CACHE;
 
     const tx = loadTransaction(hookRegistry, [route]);
-    const pending = dataGraph.prefetch([route], { transaction: tx, mode: 'prefetch' });
+    const pending = dataGraph.load([route], { transaction: tx, mode: 'prefetch' });
 
     await Promise.resolve();
     tx.cancel();
@@ -836,7 +836,7 @@ describe('DataGraph', () => {
       update: false,
     });
 
-    const pending = dataGraph.prefetch([route], { transaction, mode: 'prefetch' });
+    const pending = dataGraph.load([route], { transaction, mode: 'prefetch' });
     await Promise.resolve();
     stale = true;
     release();

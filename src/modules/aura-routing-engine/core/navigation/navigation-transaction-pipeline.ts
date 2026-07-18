@@ -209,7 +209,7 @@ export class NavigationTransactionPipeline {
       if (data) {
         const { to } = this.transaction;
         const branch = to.chain ?? transitionPlan.enterRoutes;
-        parts.push(engine.dataGraph.prefetch(enterRoutes, {
+        parts.push(engine.dataGraph.load(enterRoutes, {
           branch,
           transaction: this.transaction,
           mode: 'prefetch',

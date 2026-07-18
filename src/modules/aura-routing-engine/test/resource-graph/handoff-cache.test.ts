@@ -49,6 +49,60 @@ describe('HandoffCache', () => {
     expect(handoff.get('k')).toBe('warm');
   });
 
+  it('does not persist DocumentFragment after settle', async () => {
+    handoff = new HandoffCache();
+    let loads = 0;
+
+    const first = await handoff.resolve('frag', async () => {
+      loads++;
+      const fragment = document.createDocumentFragment();
+      fragment.appendChild(document.createElement('section'));
+      return fragment;
+    });
+
+    expect(first).toBeInstanceOf(DocumentFragment);
+    expect(first.childNodes.length).toBe(1);
+    expect(handoff.get('frag')).toBeUndefined();
+
+    const second = await handoff.resolve('frag', async () => {
+      loads++;
+      const fragment = document.createDocumentFragment();
+      fragment.appendChild(document.createElement('section'));
+      return fragment;
+    });
+
+    expect(loads).toBe(2);
+    expect(second).toBeInstanceOf(DocumentFragment);
+    expect(second).not.toBe(first);
+    expect(second.childNodes.length).toBe(1);
+  });
+
+  it('still dedupes in-flight DocumentFragment loads', async () => {
+    handoff = new HandoffCache();
+    let loads = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const load = async () => {
+      loads++;
+      await gate;
+      const fragment = document.createDocumentFragment();
+      fragment.appendChild(document.createElement('div'));
+      return fragment;
+    };
+
+    const a = handoff.resolve('frag', load);
+    const b = handoff.resolve('frag', load);
+    release();
+
+    const [left, right] = await Promise.all([a, b]);
+    expect(loads).toBe(1);
+    expect(left).toBe(right);
+    expect(handoff.get('frag')).toBeUndefined();
+  });
+
   it('expires after TTL and loads again', async () => {
     jest.useFakeTimers();
     handoff = new HandoffCache({ ttl: 1_000 });

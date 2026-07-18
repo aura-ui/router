@@ -25,8 +25,6 @@ export type ViewResolverPort = Pick<ViewGraph, 'loadView'>;
 /** Branch-atomic resolve: per-node `loadView` without mounting. */
 export type BranchViewResolver = ViewResolverPort;
 
-export { ViewPayloadCache } from './cache/view-payload-cache';
-
 export { LoaderRegistry, createLoaderRegistry, defaultLoaderRegistry } from './registry';
 export { Loader, type LoaderClass } from './loader';
 

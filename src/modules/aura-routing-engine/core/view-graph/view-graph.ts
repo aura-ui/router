@@ -1,11 +1,14 @@
 import type { CacheStoreOptions } from '../../../aura-cache-store/core';
+import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { createViewLoadError } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { viewKey, viewKeyWithData } from '../match/resource-keys';
-import { ViewPayloadCache } from './cache/view-payload-cache';
-import type { RouterInvalidateOptions } from '../invalidate-router-cache';
+import {
+  invalidateRouterCache,
+  type RouterInvalidateOptions,
+} from '../invalidate-router-cache';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
@@ -15,8 +18,11 @@ import type { DataGraph, LoadHookMode } from '../data-graph';
 import type { PipelineStepResult } from '../navigation/types';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 
-/** Options for the long-lived `cache.view` store ({@link ViewPayloadCache}). */
-export type ViewGraphCacheOptions = CacheStoreOptions<string>;
+/** Default `cache.view` payload TTL — 12 hours. */
+const VIEW_CACHE_GC_TIME = 12 * 60 * 60 * 1000;
+
+/** Options for the long-lived `cache.view` store. */
+export type ViewGraphCacheOptions = Pick<CacheStoreOptions<string>, 'max' | 'staleTime' | 'gcTime'>;
 
 export type ViewPrefetchOptions = {
   /** Parallel prefetch cap. Default: `3`. */
@@ -60,7 +66,7 @@ export type RouteViewSource = {
 export type ViewGraphDeps = {
   /** Defaults to {@link defaultLoaderRegistry}. */
   readonly registry?: LoaderRegistry;
-  /** Merged over {@link ViewGraph.configure} defaults for the internal {@link ViewPayloadCache}. */
+  /** Merged over {@link ViewGraph.configure} defaults for the internal payload cache. */
   readonly cache?: ViewGraphCacheOptions;
 };
 
@@ -87,16 +93,16 @@ function resolveViewData(route: MatchedRouteInfo, data: ViewDataInput | undefine
  * One instance per {@link AuraRoutingEngine} (render, branch-resolve, prefetch).
  *
  * Shared prepare: {@link HandoffCache.hold} → loader/`workSignal`; interest →
- * {@link awaitUntilAbort}; `finally` → release. Long revisit stays in {@link ViewPayloadCache}.
+ * {@link awaitUntilAbort}; `finally` → release. Long revisit stays in {@link AuraResolvableCache}.
  */
 export class ViewGraph {
   private static defaultCacheOptions: ViewGraphCacheOptions = {};
 
   private readonly registry: LoaderRegistry;
-  private readonly cache: ViewPayloadCache;
+  private readonly cache: AuraResolvableCache<string>;
   private readonly sharedBuffer: HandoffCache;
 
-  /** Default {@link ViewPayloadCache} options for engine-created graphs. */
+  /** Default `cache.view` options for engine-created graphs. */
   static configure(options: ViewGraphCacheOptions = {}): void {
     ViewGraph.defaultCacheOptions = { ...ViewGraph.defaultCacheOptions, ...options };
   }
@@ -104,9 +110,12 @@ export class ViewGraph {
   constructor(sharedBuffer: HandoffCache, deps: ViewGraphDeps = {}) {
     this.registry = deps.registry ?? defaultLoaderRegistry;
     this.sharedBuffer = sharedBuffer;
-    this.cache = new ViewPayloadCache({
-      ...ViewGraph.defaultCacheOptions,
-      ...deps.cache,
+    const merged = { ...ViewGraph.defaultCacheOptions, ...deps.cache };
+    this.cache = new AuraResolvableCache({
+      max: merged.max ?? 50,
+      staleTime: merged.staleTime,
+      gcTime: merged.gcTime ?? VIEW_CACHE_GC_TIME,
+      gcSweepInterval: false,
     });
   }
 
@@ -245,8 +254,8 @@ export class ViewGraph {
 
       const payload = await load();
 
-      if (useLongCache && payload !== null) {
-        // Write-filtered: strings persist; DocumentFragment is skipped.
+      // Strings only — DocumentFragment is one-shot DOM (mount empties it).
+      if (useLongCache && typeof payload === 'string') {
         this.cache.set(key, payload);
       }
 
@@ -272,7 +281,7 @@ export class ViewGraph {
 
   /** Invalidate payload cache entries ({@link RouterInvalidateOptions}, default policy `stale`). */
   invalidate(options: RouterInvalidateOptions = {}): number {
-    return this.cache.invalidate(options);
+    return invalidateRouterCache(this.cache, options, 'stale');
   }
 
   destroy(): void {

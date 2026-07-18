@@ -1,25 +1,24 @@
-import type { CacheStoreOptions } from '../../../aura-cache-store/core';
 import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
-import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
-import type { DataGraph, LoadHookMode } from '../data-graph';
 import { createViewLoadError } from '../failure';
-import {
-  invalidateRouterCache,
-  type RouterInvalidateOptions,
-} from '../invalidate-router-cache';
+import { invalidateRouterCache } from '../invalidate-router-cache';
 import { viewKey, viewKeyWithData } from '../match/resource-keys';
+import { HandoffCache } from '../resource-graph';
+import { defaultLoaderRegistry } from './registry';
+import type { CacheStoreOptions } from '../../../aura-cache-store/core';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import type { DataGraph, LoadHookMode } from '../data-graph';
+import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
-import { HandoffCache } from '../resource-graph';
 import type { ResolvedView } from '../route-tree/resolved-view';
-import { defaultLoaderRegistry, type LoaderRegistry } from './registry';
+import type { LoaderRegistry } from './registry';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 
 /** Default `cache.view` payload TTL — 12 hours. */
-const VIEW_CACHE_GC_TIME = 12 * 60 * 60 * 1000;
+const VIEW_CACHE_GC_TIME = 43_200_000;
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
@@ -196,7 +195,8 @@ export class ViewGraph {
         this.runViewLoader(descriptor, routeInfo, waiter.workSignal, data),
       );
       // Interest may detach before settle; don't leave an unhandled rejection on shared.
-      void shared.catch(() => {});
+      void shared.catch(() => {
+      });
       const payload = await awaitUntilAbort(shared, signal);
 
       if (isInactive(signal, transaction)) return cancelledResult(mode);

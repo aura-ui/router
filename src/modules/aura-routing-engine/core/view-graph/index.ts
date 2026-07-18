@@ -9,6 +9,7 @@ export {
   type ViewPrefetchOptions,
   type ViewGraphCacheOptions,
   type ViewLoadOptions,
+  type ViewDataInput,
   type ViewGraphLoadResult,
   type ViewGraphLoadViewsResult,
   type RouteViewSource,

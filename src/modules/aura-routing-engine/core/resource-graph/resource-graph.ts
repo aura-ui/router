@@ -143,15 +143,11 @@ export class ResourceGraph {
     if (dataResult.error) return dataResult;
     if (contentResult.error) return { error: contentResult.error };
 
-    const dataBoundResult = await this.viewGraph.loadViews(
-      dataBoundContentRoutes,
-      signal,
-      (route) => ({
-        data: dataResult.data?.get(route.dataKey!),
-        mode: 'navigation',
-        transaction,
-      }),
-    );
+    const dataBoundResult = await this.viewGraph.loadViews(dataBoundContentRoutes, signal, {
+      data: (route) => dataResult.data?.get(route.dataKey!),
+      mode: 'navigation',
+      transaction,
+    });
 
     if (dataBoundResult.error) return { error: dataBoundResult.error };
 

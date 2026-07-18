@@ -44,8 +44,8 @@ export type DataGraphRouteLoadResult<T = unknown> = {
 
 /**
  * Batch {@link DataGraph.load}: `{ data }` ok · `{ error }` first failure.
- * On error drops partial sibling results (same as {@link ViewGraph.load}).
- * {@link DataGraph.prefetch} keeps partial `data` and never fails the caller.
+ * `mode: 'navigation'` drops partial sibling results on error (same as {@link ViewGraph.load}).
+ * `mode: 'prefetch'` keeps partial `data` and never fails the caller.
  */
 export type DataGraphLoadResult = DataGraphRouteLoadResult<DataSnapshot>;
 
@@ -126,9 +126,9 @@ export class DataGraph {
   }
 
   /**
-   * Parallel enter-route loads.
-   * Primary navigation entry (ResourceGraph / {@link ViewGraph.load} twin).
-   * On error → `{ error }` only (no partial sibling data).
+   * Parallel enter-route loads (navigation or prefetch via {@link DataGraphLoadOptions.mode}).
+   * `navigation` → `{ error }` only on failure (no partial sibling data).
+   * `prefetch` → keeps partial `data`; soft skip on cancel/error.
    */
   async load(
     enterRoutes: readonly MatchedRouteInfo[],
@@ -140,23 +140,8 @@ export class DataGraph {
       options.transaction,
       options.mode,
     );
+    if (options.mode === 'prefetch') return { error, data };
     return error ? { error } : { data };
-  }
-
-  /**
-   * Prefetch warmup for enter routes.
-   * Keeps partial `data`; never fails the caller (same soft contract as {@link ViewGraph.prefetch}).
-   */
-  async prefetch(
-    enterRoutes: readonly MatchedRouteInfo[],
-    options: DataGraphLoadOptions,
-  ): Promise<DataGraphLoadResult> {
-    return this.loadEnterRoutes(
-      enterRoutes,
-      options.branch ?? enterRoutes,
-      options.transaction,
-      'prefetch',
-    );
   }
 
   /** Invalidate payload cache entries ({@link RouterInvalidateOptions}, default policy `stale`). */

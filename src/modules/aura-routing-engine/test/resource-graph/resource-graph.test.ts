@@ -143,8 +143,7 @@ describe('ResourceGraph', () => {
     const transaction = { phaseMode: 'speculative', signal } as NavigationTransaction;
 
     const dataGraph = {
-      load: jest.fn(),
-      prefetch: jest.fn(async () => undefined),
+      load: jest.fn(async () => undefined),
     };
     const viewGraph = {
       loadView: jest.fn(),
@@ -157,12 +156,11 @@ describe('ResourceGraph', () => {
       transaction,
     });
 
-    expect(dataGraph.prefetch).toHaveBeenCalledWith([leaf], {
+    expect(dataGraph.load).toHaveBeenCalledWith([leaf], {
       branch: [leaf],
       transaction,
       mode: 'prefetch',
     });
     expect(viewGraph.prefetch).toHaveBeenCalledWith([leaf], signal);
-    expect(dataGraph.load).not.toHaveBeenCalled();
   });
 });

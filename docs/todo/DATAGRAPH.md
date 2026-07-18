@@ -116,7 +116,7 @@ click /users:
 
 ```text
 src/modules/aura-routing-engine/core/data-graph/
-  data-graph.ts       load(), prefetch(), invalidate*
+  data-graph.ts       load({ mode }), invalidate*
   route-data.ts       resolveRouteData, closestRouteWithLoadHooks
   index.ts
 

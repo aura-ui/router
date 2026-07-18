@@ -161,7 +161,7 @@ export class ResourceGraph {
     let parts: Promise<unknown>[] = [];
 
     if (dataRoutes.length) {
-      parts.push(this.dataGraph.prefetch(dataRoutes, {
+      parts.push(this.dataGraph.load(dataRoutes, {
         branch: this.branch,
         transaction,
         mode: 'prefetch',

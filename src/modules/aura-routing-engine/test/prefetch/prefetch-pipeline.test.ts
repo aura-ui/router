@@ -122,7 +122,7 @@ describe('PrefetchPipeline', () => {
     expect(dataRuns).toBe(1);
   });
 
-  it('DataGraph.prefetch warms load-hook cache', async () => {
+  it('DataGraph.load(mode: prefetch) warms load-hook cache', async () => {
     const hookRegistry = new HookRegistry();
     let loads = 0;
     hookRegistry.register({
@@ -159,10 +159,10 @@ describe('PrefetchPipeline', () => {
       mode: 'prefetch' as const,
       branch: [leaf],
     };
-    await dataGraph.prefetch([leaf], prefetchOpts);
+    await dataGraph.load([leaf], prefetchOpts);
     expect(loads).toBe(1);
 
-    await dataGraph.prefetch([leaf], prefetchOpts);
+    await dataGraph.load([leaf], prefetchOpts);
     expect(loads).toBe(1);
 
     dataGraph.destroy();

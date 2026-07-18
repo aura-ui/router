@@ -133,7 +133,7 @@ export class ResourceGraph {
       ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction, mode: 'navigation' })
       : Promise.resolve({});
 
-    const contentPromise = this.viewGraph.loadViews(contentRoutes, signal, {
+    const contentPromise = this.viewGraph.load(contentRoutes, signal, {
       mode: 'navigation',
       transaction,
     });
@@ -143,7 +143,7 @@ export class ResourceGraph {
     if (dataResult.error) return dataResult;
     if (contentResult.error) return { error: contentResult.error };
 
-    const dataBoundResult = await this.viewGraph.loadViews(dataBoundContentRoutes, signal, {
+    const dataBoundResult = await this.viewGraph.load(dataBoundContentRoutes, signal, {
       data: (route) => dataResult.data?.get(route.dataKey!),
       mode: 'navigation',
       transaction,

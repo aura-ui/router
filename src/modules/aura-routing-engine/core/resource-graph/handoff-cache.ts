@@ -3,6 +3,13 @@ import {
   AuraResolvableCache,
   type ResolvableCachePolicy,
 } from '../../../aura-cache-store/core/aura-resolvable-cache';
+import {
+  HandoffWorkRegistry,
+  type HandoffLease,
+  type HandoffWaiterKind,
+} from './handoff-work-registry';
+
+export type { HandoffLease, HandoffWaiterKind } from './handoff-work-registry';
 
 /** Default prepare handoff window (prefetch → navigation), milliseconds. */
 export const DEFAULT_HANDOFF_TTL_MS = 30_000;
@@ -31,18 +38,18 @@ export type HandoffCacheOptions = ResolvableCachePolicy & {
 };
 
 /**
- * Short-lived prepare handoff: in-flight dedupe + TTL settle.
+ * Short-lived prepare handoff: in-flight dedupe + TTL settle + work leases.
  *
  * Thin specialization of {@link AuraResolvableCache}: default TTL, no SWR.
- * Long-lived route revisit stays behind `cache.data` / `cache.view` (separate stores
- * or constructor {@link ResolvableCachePolicy.onSettled}).
+ * Long-lived route revisit stays behind `cache.data` / `cache.view`.
+ *
+ * Work abort policy lives in {@link HandoffWorkRegistry} ({@link acquire} / lease `release`).
  *
  * Owned by {@link ResourceGraph}; DataGraph / ViewGraph share one instance.
- *
- * Use {@link AuraResolvableCache.join} from `ctx.parent()` / waiters to attach to
- * in-flight or settled prepare without starting a new load.
  */
 export class HandoffCache extends AuraResolvableCache<unknown> {
+  private readonly work = new HandoffWorkRegistry();
+
   constructor(options: HandoffCacheOptions = {}) {
     const { ttl, max, gcSweepInterval, onRemove, write, onSettled } = options;
     super({
@@ -55,5 +62,20 @@ export class HandoffCache extends AuraResolvableCache<unknown> {
       write,
       onSettled,
     });
+  }
+
+  /** @see HandoffWorkRegistry.acquire */
+  acquire(key: string, kind: HandoffWaiterKind): HandoffLease {
+    return this.work.acquire(key, kind);
+  }
+
+  /** @internal @see HandoffWorkRegistry.waiterCount */
+  waiterCount(key: string): number {
+    return this.work.waiterCount(key);
+  }
+
+  override destroy(): void {
+    this.work.destroy();
+    super.destroy();
   }
 }

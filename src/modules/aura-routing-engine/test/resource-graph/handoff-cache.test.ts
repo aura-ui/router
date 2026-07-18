@@ -190,4 +190,104 @@ describe('HandoffCache', () => {
     });
     expect(loads).toBe(1);
   });
+
+  describe('acquire / release (work leases)', () => {
+    it('shares one workSignal across concurrent acquires', () => {
+      handoff = new HandoffCache();
+      const a = handoff.acquire('k', 'speculative');
+      const b = handoff.acquire('k', 'navigation');
+
+      expect(a.workSignal).toBe(b.workSignal);
+      expect(a.workSignal.aborted).toBe(false);
+      expect(handoff.waiterCount('k')).toBe(2);
+
+      a.release();
+      b.release();
+    });
+
+    it('does not abort work when the last waiter is speculative-only', () => {
+      handoff = new HandoffCache();
+      const lease = handoff.acquire('k', 'speculative');
+      const { workSignal } = lease;
+
+      lease.release();
+
+      expect(workSignal.aborted).toBe(false);
+      expect(handoff.waiterCount('k')).toBe(0);
+
+      // Next acquire reuses the same live generation (hover again → join).
+      const again = handoff.acquire('k', 'speculative');
+      expect(again.workSignal).toBe(workSignal);
+      again.release();
+    });
+
+    it('aborts work when the last navigation waiter leaves alone', () => {
+      handoff = new HandoffCache();
+      const lease = handoff.acquire('k', 'navigation');
+      const { workSignal } = lease;
+
+      lease.release();
+
+      expect(workSignal.aborted).toBe(true);
+      expect(handoff.waiterCount('k')).toBe(0);
+    });
+
+    it('keeps work alive until the last of several navigation waiters leaves', () => {
+      handoff = new HandoffCache();
+      const first = handoff.acquire('k', 'navigation');
+      const second = handoff.acquire('k', 'navigation');
+      const { workSignal } = first;
+
+      first.release();
+      expect(workSignal.aborted).toBe(false);
+      expect(handoff.waiterCount('k')).toBe(1);
+
+      second.release();
+      expect(workSignal.aborted).toBe(true);
+    });
+
+    it('aborts after navigation interest even if speculative releases last', () => {
+      handoff = new HandoffCache();
+      const prefetch = handoff.acquire('k', 'speculative');
+      const navigation = handoff.acquire('k', 'navigation');
+      const { workSignal } = prefetch;
+
+      // Click away first, mouseout later — still abort (seenNavigation).
+      navigation.release();
+      expect(workSignal.aborted).toBe(false);
+
+      prefetch.release();
+      expect(workSignal.aborted).toBe(true);
+    });
+
+    it('starts a new work generation after abort', () => {
+      handoff = new HandoffCache();
+      const first = handoff.acquire('k', 'navigation');
+      const oldSignal = first.workSignal;
+      first.release();
+      expect(oldSignal.aborted).toBe(true);
+
+      const next = handoff.acquire('k', 'navigation');
+      expect(next.workSignal).not.toBe(oldSignal);
+      expect(next.workSignal.aborted).toBe(false);
+      next.release();
+    });
+
+    it('release is idempotent', () => {
+      handoff = new HandoffCache();
+      const lease = handoff.acquire('k', 'navigation');
+      lease.release();
+      lease.release();
+      expect(lease.workSignal.aborted).toBe(true);
+      expect(handoff.waiterCount('k')).toBe(0);
+    });
+
+    it('destroy aborts outstanding work leases', () => {
+      handoff = new HandoffCache();
+      const lease = handoff.acquire('k', 'speculative');
+      handoff.destroy();
+      expect(lease.workSignal.aborted).toBe(true);
+      handoff = undefined;
+    });
+  });
 });

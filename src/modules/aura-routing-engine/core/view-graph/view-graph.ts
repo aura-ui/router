@@ -13,6 +13,7 @@ import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
+import type { HandoffWaiter } from '../resource-graph';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { LoaderRegistry } from './registry';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
@@ -40,8 +41,9 @@ export type ViewLoadOptions = {
   /** Defaults to `navigation`. Prefetch paths pass `prefetch`. */
   readonly mode?: LoadHookMode;
   /**
-   * When set, loader failures go through {@link NavigationTransaction.fail}
-   * (same as DataGraph). Tests / {@link ViewResolverPort} may omit it — then errors throw.
+   * When set, loader failures go through {@link NavigationTransaction.fail}.
+   * Tests / {@link ViewResolverPort} may omit it — then errors throw
+   * (unlike {@link DataGraph}, where `transaction` is always required).
    */
   readonly transaction?: NavigationTransaction;
   /** Prefetch only — parallel cap. Default: `3`. */
@@ -93,7 +95,9 @@ export type RouteViewSource = {
  * One instance per {@link AuraRoutingEngine} (render, branch-resolve, prefetch).
  *
  * Shared prepare: {@link HandoffCache.hold} → loader/`workSignal`; interest →
- * {@link awaitUntilAbort}; `finally` → release. Long revisit stays in {@link AuraResolvableCache}.
+ * {@link awaitUntilAbort}; `finally` → release.
+ * Long revisit: string payloads with `cache.view` stay in {@link AuraResolvableCache}
+ * (`DocumentFragment` is never long-cached — mount empties it).
  */
 export class ViewGraph {
   private static defaultCacheOptions: ViewGraphCacheOptions = {};
@@ -172,7 +176,7 @@ export class ViewGraph {
   }
 
   /**
-   * Load payload for a matched route (`layout` or `view` attr).
+   * Load payload for a matched route (`layout` wins over resolved `view` attr).
    * Single-route entry ({@link ViewResolverPort}). Outcome: `{ data }` / `{ error }` / `{}`.
    */
   loadView(

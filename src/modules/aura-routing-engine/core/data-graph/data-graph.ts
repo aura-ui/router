@@ -13,10 +13,10 @@ import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
-import type { HandoffWaiterKind } from '../resource-graph';
+import type { HandoffWaiter, HandoffWaiterKind, HandoffWorkRegistry } from '../resource-graph';
 import type { RouteLifecycleContext } from '../route/types';
 
-/** Default `cache.data` payload TTL — from AuraResolvableCache. */
+/** Default `cache.data` payload TTL — cache-store {@link DEFAULT_GC_TIME} (5 minutes). */
 const DATA_CACHE_GC_TIME = DEFAULT_GC_TIME;
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
@@ -45,7 +45,7 @@ export type DataGraphRouteLoadResult<T = unknown> = {
 /**
  * Batch {@link DataGraph.load}: `{ data }` ok · `{ error }` first failure.
  * `mode: 'navigation'` drops partial sibling results on error (same as {@link ViewGraph.load}).
- * `mode: 'prefetch'` keeps partial `data` and never fails the caller.
+ * `mode: 'prefetch'` keeps partial `data` (may be an empty Map) and never fails the caller.
  */
 export type DataGraphLoadResult = DataGraphRouteLoadResult<DataSnapshot>;
 
@@ -75,7 +75,10 @@ type PayloadDeferred = {
 type EnterRouteLoad = {
   match: MatchedRouteInfo;
   transaction: NavigationTransaction;
-  /** Detach this waiter only (`tx` ∪ sibling abort) — not the handoff factory. */
+  /**
+   * Caller interest (`tx` ∪ sibling abort). Abort detaches {@link awaitUntilAbort} only —
+   * does not abort the shared {@link HandoffWaiter.workSignal} (release is in `finally`).
+   */
   interestSignal: AbortSignal;
   siblingAbort: AbortController;
   mode: LoadHookMode;

@@ -6,9 +6,10 @@ import type { ViewGraph } from './view-graph';
 
 export {
   ViewGraph,
-  type RouteViewSource,
   type ViewPrefetchOptions,
   type ViewGraphCacheOptions,
+  type ViewLoadOptions,
+  type RouteViewSource,
 } from './view-graph';
 export type { ViewGraphDeps } from './view-graph';
 

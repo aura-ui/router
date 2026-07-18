@@ -1,5 +1,5 @@
 import { extractHtmlFragment } from '../../../../aura-utils/misc';
-import type { ViewLoadResult, ViewLoadContext } from '../types';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
 import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
 import { Loader } from '../loader';
 
@@ -11,7 +11,7 @@ export class UrlLoader extends Loader {
     const html = await this.env.fetchText(this.env.resolveUrl(ctx.content), ctx.signal);
     return {
       kind: 'html',
-      html: ctx.extract ? extractHtmlFragment(html, ctx.extract) : html,
+      value: ctx.extract ? extractHtmlFragment(html, ctx.extract) : html,
     };
   }
 }

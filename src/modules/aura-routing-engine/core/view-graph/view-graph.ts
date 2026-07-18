@@ -15,7 +15,7 @@ import type { NavigationTransaction } from '../navigation/navigation-transaction
 import type { PipelineStepResult } from '../navigation/types';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { LoaderRegistry } from './registry';
-import type { ViewDescriptor, ViewLoadContext, ViewLoadResult, ViewPayload } from './types';
+import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 
 /** Default `cache.view` payload TTL — 12 hours. */
 const VIEW_CACHE_GC_TIME = 43_200_000;
@@ -280,11 +280,10 @@ export class ViewGraph {
     throwIfAborted(workSignal);
 
     try {
-      const loadResult = await this.registry.get(descriptor.loader).load(
+      const result = await this.registry.get(descriptor.loader).load(
         buildLoadContext(match, descriptor, workSignal, data),
       );
-      if (!loadResult) return null;
-      return toViewPayload(loadResult);
+      return result?.value ?? null;
     } catch (error: unknown) {
       throwIfAborted(workSignal);
       throw createViewLoadError(descriptor.loader, match.pattern, error);
@@ -346,17 +345,6 @@ function isInterestActive(
   transaction?: NavigationTransaction,
 ): boolean {
   return !interestSignal.aborted && (transaction == null || transaction.isActive());
-}
-
-function toViewPayload(result: ViewLoadResult): ViewPayload {
-  switch (result.kind) {
-    case 'html':
-      return result.html;
-    case 'markup':
-      return result.markup;
-    case 'fragment':
-      return result.node;
-  }
 }
 
 function buildLoadContext(

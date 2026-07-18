@@ -20,7 +20,7 @@ describe('Loader', () => {
     static readonly type = 'probe' as const satisfies LoaderId;
 
     load(): Promise<ViewLoadResult | null> {
-      return Promise.resolve({ kind: 'html', html: 'ok' });
+      return Promise.resolve({ kind: 'html', value: 'ok' });
     }
   }
 
@@ -46,9 +46,20 @@ describe('FnLoader', () => {
     expect(loader.type).toBe('custom');
   });
 
-  it('maps string results to html kind', async () => {
+  it('wraps string payloads as html results', async () => {
     const loader = new FnLoader(env, 'html', async () => '<p>hi</p>');
-    await expect(loader.load(ctx())).resolves.toEqual({ kind: 'html', html: '<p>hi</p>' });
+    await expect(loader.load(ctx())).resolves.toEqual({ kind: 'html', value: '<p>hi</p>' });
+  });
+
+  it('passes through explicit ViewLoadResult', async () => {
+    const loader = new FnLoader(env, 'markup', async () => ({
+      kind: 'markup',
+      value: '<x-widget></x-widget>',
+    }));
+    await expect(loader.load(ctx())).resolves.toEqual({
+      kind: 'markup',
+      value: '<x-widget></x-widget>',
+    });
   });
 
   it('returns null for nullish loader output', async () => {
@@ -56,7 +67,7 @@ describe('FnLoader', () => {
     await expect(loader.load(ctx())).resolves.toBeNull();
   });
 
-  it('wraps Element nodes in a DocumentFragment', async () => {
+  it('wraps Element nodes in a DocumentFragment under fragment', async () => {
     const span = document.createElement('span');
     span.textContent = 'node';
     const loader = new FnLoader(env, 'html', async () => span);
@@ -64,16 +75,15 @@ describe('FnLoader', () => {
     const result = await loader.load(ctx());
     expect(result?.kind).toBe('fragment');
     if (result?.kind === 'fragment') {
-      expect(result.node).toBeInstanceOf(DocumentFragment);
-      expect(result.node.firstChild).toBe(span);
+      expect(result.value).toBeInstanceOf(DocumentFragment);
+      expect(result.value.firstChild).toBe(span);
     }
   });
 
-  it('passes through DocumentFragment nodes', async () => {
+  it('passes through DocumentFragment nodes under fragment', async () => {
     const fragment = document.createDocumentFragment();
     const loader = new FnLoader(env, 'html', async () => fragment);
 
-    const result = await loader.load(ctx());
-    expect(result).toEqual({ kind: 'fragment', node: fragment });
+    await expect(loader.load(ctx())).resolves.toEqual({ kind: 'fragment', value: fragment });
   });
 });

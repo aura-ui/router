@@ -1,6 +1,6 @@
 import { Singleflight } from '../../../../aura-utils/async/singleflight';
 import { loadAndRegisterComponent } from '../../../../aura-utils/misc';
-import type { ViewLoadResult, ViewLoadContext } from '../types';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
 import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
 import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
@@ -24,7 +24,7 @@ export class ImportLoader extends Loader {
     try {
       const tagName = await resolveImportedTag(ctx.content);
       if (ctx.signal.aborted) return null;
-      return { kind: 'markup', markup: componentMarkup(tagName, ctx) };
+      return { kind: 'markup', value: componentMarkup(tagName, ctx) };
     } catch (error) {
       if (ctx.signal.aborted) return null;
       throw error;

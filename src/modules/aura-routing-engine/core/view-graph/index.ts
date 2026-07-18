@@ -32,9 +32,9 @@ export type {
   LoaderFn,
   ViewPayload,
   ViewLoadContext,
+  ViewLoadResult,
   ViewDescriptor,
   ViewKind,
-  ViewLoadResult,
   ViewLoaderEnv,
   FetchText,
 } from './types';

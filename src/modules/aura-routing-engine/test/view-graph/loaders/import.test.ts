@@ -30,8 +30,8 @@ describe('ImportLoader', () => {
     expect(mockedLoad).toHaveBeenCalledWith('./widgets/chart.js');
     expect(result?.kind).toBe('markup');
     if (result?.kind === 'markup') {
-      expect(result.markup).toContain('<imported-widget');
-      expect(result.markup).toContain('&quot;params&quot;:{&quot;id&quot;:&quot;1&quot;}');
+      expect(result.value).toContain('<imported-widget');
+      expect(result.value).toContain('&quot;params&quot;:{&quot;id&quot;:&quot;1&quot;}');
     }
   });
 
@@ -84,7 +84,7 @@ describe('ImportLoader', () => {
     await expect(prefetchLoad).resolves.toBeNull();
     await expect(navLoad).resolves.toEqual({
       kind: 'markup',
-      markup: expect.stringContaining('<shared-widget'),
+      value: expect.stringContaining('<shared-widget'),
     });
     expect(mockedLoad).toHaveBeenCalledTimes(1);
   });

@@ -1,4 +1,4 @@
-import type { ViewLoadResult, ViewLoadContext } from '../types';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
 import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
 import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
@@ -10,6 +10,6 @@ export class ComponentLoader extends Loader {
 
   load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     if (!customElements.get(ctx.content)) throw new Error(`Component '${ctx.content}' is not registered`);
-    return Promise.resolve({ kind: 'markup', markup: componentMarkup(ctx.content, ctx) });
+    return Promise.resolve({ kind: 'markup', value: componentMarkup(ctx.content, ctx) });
   }
 }

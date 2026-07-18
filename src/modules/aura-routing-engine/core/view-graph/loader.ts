@@ -1,5 +1,10 @@
 import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
-import type { ViewLoaderEnv, ViewLoadResult, ViewLoadContext, LoaderFn } from './types';
+import type {
+  ViewLoaderEnv,
+  ViewLoadContext,
+  ViewLoadResult,
+  LoaderFn,
+} from './types';
 
 /** Class-based view loader; register via {@link LoaderRegistry.register}. */
 export abstract class Loader {
@@ -31,7 +36,10 @@ export type LoaderClass = {
   readonly type: LoaderId;
 };
 
-/** Wraps {@link LoaderFn} from `register(type, fn)`; string → html, `Node` → fragment. */
+/**
+ * Wraps {@link LoaderFn} from `register(type, fn)`.
+ * `string` → `{ kind: 'html', value }`; `Node` → `{ kind: 'fragment', value }`.
+ */
 export class FnLoader extends Loader {
   private readonly fn: LoaderFn;
 
@@ -41,10 +49,11 @@ export class FnLoader extends Loader {
   }
 
   async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
-    const payload = await this.fn(ctx);
-    if (payload == null) return null;
-    if (typeof payload === 'string') return { kind: 'html', html: payload };
-    return { kind: 'fragment', node: toFragment(payload) };
+    const result = await this.fn(ctx);
+    if (result == null) return null;
+    if (typeof result === 'string') return { kind: 'html', value: result };
+    if (result instanceof Node) return { kind: 'fragment', value: toFragment(result) };
+    return result;
   }
 }
 

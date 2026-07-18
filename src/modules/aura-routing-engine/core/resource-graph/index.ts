@@ -2,7 +2,7 @@ export {
   DEFAULT_HANDOFF_TTL_MS,
   HandoffCache,
   type HandoffCacheOptions,
-  type HandoffLease,
+  type HandoffWaiter,
   type HandoffWaiterKind,
 } from './handoff-cache';
 export { HandoffWorkRegistry } from './handoff-work-registry';

@@ -14,7 +14,7 @@ import type { RouteLifecycleContext } from '../route/types';
 import { closestRouteWithLoadHooks, routeLoadHookNames } from './route-data';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { promiseWithResolvers } from '../../../aura-utils/async/promises';
-import { HandoffCache } from '../resource-graph';
+import { HandoffCache, type HandoffWaiter, type HandoffWaiterKind } from '../resource-graph';
 
 export type DataSnapshot = ReadonlyMap<string, unknown>;
 
@@ -74,12 +74,12 @@ class DataGraphTerminalError extends Error {
   }
 }
 
-/** Never aborted — shared handoff load must outlive caller interest. */
-const SHARED_HANDOFF_SIGNAL = new AbortController().signal;
-
 /**
  * Route `load` hooks: parallel enter loads, SWR cache, prefetch handoff.
  * View/HTML stays in `core/view-graph/`. Child may `await ctx.parent()`; default is parallel.
+ *
+ * Shared prepare uses {@link HandoffCache.hold}: hooks see `workSignal`; caller cancel
+ * detaches via {@link awaitUntilAbort}. Last navigation waiter release may abort work.
  */
 export class DataGraph {
   private static defaultOptions: DataGraphOptions = {};
@@ -131,7 +131,10 @@ export class DataGraph {
     );
   }
 
-  /** Parallel enter loads. Abort detaches waiters only — handoff keeps running. */
+  /**
+   * Parallel enter loads.
+   * Interest abort detaches waiters; last navigation {@link HandoffCache.hold} release may abort work.
+   */
   private async loadEnterRoutes(
     enterRoutes: readonly MatchedRouteInfo[],
     branch: readonly MatchedRouteInfo[],
@@ -184,11 +187,13 @@ export class DataGraph {
       return {};
     }
 
+    const waiter = this.sharedBuffer.hold(match.dataKey!, toHandoffWaiterKind(mode));
+
     try {
       const shared = this.runSharedLoad(match, () =>
         this.callLoadHooks(
           this.buildLoadHookContext(match, transaction, {
-            transactionSignal: SHARED_HANDOFF_SIGNAL,
+            transactionSignal: waiter.workSignal,
             parent,
           }),
           hookNames,
@@ -216,6 +221,8 @@ export class DataGraph {
       return { data };
     } catch (error) {
       return this.toLoadErrorResult(error, request);
+    } finally {
+      waiter.release();
     }
   }
 
@@ -251,7 +258,10 @@ export class DataGraph {
     return { error: await transaction.fail(match, error, 'load') };
   }
 
-  /** Handoff (+ optional long `cache.data`). Factory ignores caller interest. */
+  /**
+   * Handoff (+ optional long `cache.data`).
+   * Factory uses the waiter {@link HandoffWaiter.workSignal}, not caller interest.
+   */
   private runSharedLoad(
     match: MatchedRouteInfo,
     load: () => Promise<LoadResult>,
@@ -362,4 +372,9 @@ function createPayloadDeferredTable(
 
 function isRequestActive(request: EnterRouteLoad): boolean {
   return request.transaction.isActive() && !request.siblingAbort.signal.aborted;
+}
+
+// todo move to single contract
+function toHandoffWaiterKind(mode: LoadHookMode): HandoffWaiterKind {
+  return mode === 'navigation' ? 'navigation' : 'speculative';
 }

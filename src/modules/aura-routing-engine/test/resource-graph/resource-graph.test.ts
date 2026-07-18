@@ -92,7 +92,6 @@ describe('ResourceGraph', () => {
         order.push('data-done');
         return { data: new Map([['k', { ok: true }]]) };
       }),
-      prefetch: jest.fn(),
     };
 
     const viewGraph = {
@@ -107,7 +106,6 @@ describe('ResourceGraph', () => {
         const error = results.find((result) => result.error)?.error;
         return error ? { error } : { data: results };
       }),
-      prefetch: jest.fn(),
     };
 
     const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
@@ -147,7 +145,7 @@ describe('ResourceGraph', () => {
     };
     const viewGraph = {
       loadView: jest.fn(),
-      prefetch: jest.fn(async () => undefined),
+      load: jest.fn(async () => ({})),
     };
 
     const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
@@ -161,6 +159,6 @@ describe('ResourceGraph', () => {
       transaction,
       mode: 'prefetch',
     });
-    expect(viewGraph.prefetch).toHaveBeenCalledWith([leaf], signal);
+    expect(viewGraph.load).toHaveBeenCalledWith([leaf], signal, { mode: 'prefetch' });
   });
 });

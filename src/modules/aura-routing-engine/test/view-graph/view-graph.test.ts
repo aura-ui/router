@@ -256,7 +256,7 @@ describe('ViewGraph', () => {
     expect(loads).toBe(2);
   });
 
-  it('prefetch swallows loader errors', async () => {
+  it('load(mode: prefetch) swallows loader errors', async () => {
     registry.register('html', async () => {
       throw new Error('prefetch fail');
     });
@@ -266,8 +266,8 @@ describe('ViewGraph', () => {
     });
 
     await expect(
-      viewGraph.prefetch([route], new AbortController().signal),
-    ).resolves.toBeUndefined();
+      viewGraph.load([route], new AbortController().signal, { mode: 'prefetch' }),
+    ).resolves.toEqual({});
   });
 
   it('load runs loadView in parallel for each route', async () => {
@@ -320,7 +320,7 @@ describe('ViewGraph', () => {
     ).resolves.toEqual({ error: { status: 'error', error: expect.any(Error) } });
   });
 
-  it('prefetch loads enter routes with bounded concurrency', async () => {
+  it('load(mode: prefetch) loads enter routes with bounded concurrency', async () => {
     const order: string[] = [];
     registry.register('html', async (ctx) => {
       order.push(`start:${ctx.route.pattern}`);
@@ -337,7 +337,8 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: 'child' },
     });
 
-    await viewGraph.prefetch([parent, child], new AbortController().signal, {
+    await viewGraph.load([parent, child], new AbortController().signal, {
+      mode: 'prefetch',
       concurrency: 1,
       order: 'root-first',
     });
@@ -350,7 +351,7 @@ describe('ViewGraph', () => {
     ]);
   });
 
-  it('prefetch respects leaf-first order', async () => {
+  it('load(mode: prefetch) respects leaf-first order', async () => {
     const order: string[] = [];
     registry.register('html', async (ctx) => {
       order.push(`start:${ctx.route.pattern}`);
@@ -367,7 +368,8 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: 'child' },
     });
 
-    await viewGraph.prefetch([parent, child], new AbortController().signal, {
+    await viewGraph.load([parent, child], new AbortController().signal, {
+      mode: 'prefetch',
       concurrency: 1,
       order: 'leaf-first',
     });

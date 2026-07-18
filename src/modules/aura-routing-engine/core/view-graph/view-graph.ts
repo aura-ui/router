@@ -44,11 +44,15 @@ export type ViewLoadOptions = {
    * (same as DataGraph). Tests / {@link ViewResolverPort} may omit it — then errors throw.
    */
   readonly transaction?: NavigationTransaction;
+  /** Prefetch only — parallel cap. Default: `3`. */
+  readonly concurrency?: number;
+  /** Prefetch only — `root-first` matches enter-branch mount order. Default: `root-first`. */
+  readonly order?: 'leaf-first' | 'root-first';
 };
 
 /**
  * `{ data }` ok · `{ error }` navigation stop · `{}` soft skip (no descriptor / prefetch).
- * Same shape as DataGraph load/prefetch results.
+ * Same shape as DataGraph load results.
  */
 export type ViewGraphLoadResult = {
   data?: ViewPayload | null;
@@ -57,25 +61,21 @@ export type ViewGraphLoadResult = {
 
 /**
  * Batch {@link ViewGraph.load}: `{ data }` ok · `{ error }` first failure · `{}` empty.
- * On error drops partial sibling results (same as {@link DataGraph.load}).
+ * `mode: 'navigation'` drops partial sibling results on error (same as {@link DataGraph.load}).
+ * `mode: 'prefetch'` returns `{}` after warmup (soft; never fails the caller).
  */
 export type ViewGraphLoadViewsResult = {
   data?: ViewGraphLoadResult[];
   error?: TerminalOutcome;
 };
 
-export type ViewPrefetchOptions = {
-  /** Parallel prefetch cap. Default: `3`. */
-  readonly concurrency?: number;
-  /** `root-first` matches enter-branch mount order. Default: `root-first`. */
-  readonly order?: 'leaf-first' | 'root-first';
-};
+/** Prefetch scheduling fields on {@link ViewLoadOptions}. */
+export type ViewPrefetchOptions = Pick<ViewLoadOptions, 'concurrency' | 'order'>;
 
-const DEFAULT_PREFETCH: Required<ViewPrefetchOptions> = {
+const DEFAULT_PREFETCH = {
   concurrency: 3,
-  order: 'root-first',
+  order: 'root-first' as const,
 };
-
 /** Soft skip — prefetch cancel / no descriptor. */
 const SKIP_RESULT: ViewGraphLoadResult = {};
 /** Navigation interest dropped before settle. */
@@ -120,10 +120,11 @@ export class ViewGraph {
   }
 
   /**
-   * Parallel {@link loadView} for independent content routes.
-   * Primary navigation entry (ResourceGraph / {@link DataGraph.load} twin).
-   * No parent-join, no sibling-abort — but same terminal fold: first `{ error }` wins,
-   * partial sibling `data` dropped. Per-route data: pass `options.data` as `(match) => …`.
+   * Batch enter-route view loads. Routes by {@link ViewLoadOptions.mode}:
+   * - `navigation` (default) — parallel {@link loadView}; first `{ error }` wins, partial data dropped
+   * - `prefetch` — bounded concurrency / order; soft warmup, returns `{}`
+   *
+   * Per-route data: pass `options.data` as `(match) => …`.
    */
   async load(
     matches: readonly MatchedRouteInfo[],
@@ -132,11 +133,42 @@ export class ViewGraph {
   ): Promise<ViewGraphLoadViewsResult> {
     if (!matches.length) return {};
 
+    if (options?.mode === 'prefetch') {
+      await this.loadPrefetch(matches, signal, options);
+      return {};
+    }
+
+    return this.loadNavigation(matches, signal, options);
+  }
+
+  /** Navigation batch: unbounded parallel {@link loadView}. */
+  private async loadNavigation(
+    matches: readonly MatchedRouteInfo[],
+    signal: AbortSignal,
+    options?: ViewLoadOptions,
+  ): Promise<ViewGraphLoadViewsResult> {
     const results = await Promise.all(
       matches.map((match) => this.loadView(match, signal, options)),
     );
     const error = results.find((result) => result.error)?.error;
     return error ? { error } : { data: results };
+  }
+
+  /** Prefetch batch: bounded concurrency + order; swallows per-route failures. */
+  private loadPrefetch(
+    matches: readonly MatchedRouteInfo[],
+    signal: AbortSignal,
+    options?: ViewLoadOptions,
+  ): Promise<void> {
+    const concurrency = options?.concurrency ?? DEFAULT_PREFETCH.concurrency;
+    const order = options?.order ?? DEFAULT_PREFETCH.order;
+    const ordered = order === 'leaf-first' ? [...matches].reverse() : matches;
+    return runConcurrent(
+      ordered,
+      concurrency,
+      (match) => this.loadView(match, signal, { ...options, mode: 'prefetch' }),
+      signal,
+    );
   }
 
   /**
@@ -155,23 +187,6 @@ export class ViewGraph {
     if (!descriptor) return Promise.resolve(SKIP_RESULT);
 
     return this.loadPayload(descriptor, match, signal, options);
-  }
-
-  /** Intent prefetch for enter routes with bounded concurrency; never fails the caller. */
-  prefetch(
-    matches: readonly MatchedRouteInfo[],
-    signal: AbortSignal,
-    options: ViewPrefetchOptions = {},
-  ): Promise<void> {
-    const concurrency = options.concurrency ?? DEFAULT_PREFETCH.concurrency;
-    const order = options.order ?? DEFAULT_PREFETCH.order;
-    const ordered = order === 'leaf-first' ? [...matches].reverse() : matches;
-    return runConcurrent(
-      ordered,
-      concurrency,
-      (match) => this.loadView(match, signal, { mode: 'prefetch' }),
-      signal,
-    );
   }
 
   /** Direct resolve bypassing route attrs — tests and explicit descriptor loads. */
@@ -203,7 +218,8 @@ export class ViewGraph {
         this.runViewLoader(descriptor, match, waiter.workSignal, data),
       );
       // Interest may detach before settle; don't leave an unhandled rejection on shared.
-      void shared.catch(() => {});
+      void shared.catch(() => {
+      });
       const payload = await awaitUntilAbort(shared, interestSignal);
 
       if (!isInterestActive(interestSignal, transaction)) return cancelledResult(mode);

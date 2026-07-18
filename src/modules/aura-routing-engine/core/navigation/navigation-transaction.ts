@@ -124,7 +124,7 @@ export class NavigationTransaction {
     route: MatchedRouteInfo,
     error: unknown,
     atPhase: NavigationErrorPhase,
-  ): Promise<PipelineStepResult> {
+  ): Promise<TransactionResult> {
     return !this.isActive()
       ? { status: 'cancelled' }
       : NavigationFailureHandler.handle(

@@ -84,7 +84,7 @@ export interface AuraRoutingEngineConfig {
   provider?: NavigationProvider;
   /**
    * Override engine-owned {@link ViewGraph} (tests / custom registry).
-   * Production path: omit — engine creates ViewGraph + {@link ViewPayloadCache}.
+   * Production path: omit — engine creates ViewGraph with its payload cache.
    */
   viewGraph?: ViewGraph;
   /** Options for the engine-created `cache.view` store (ignored when `viewGraph` is passed). */

@@ -4,7 +4,7 @@ import { isOffKeyword } from './off-keyword';
 export type CacheFlags = {
   /** Detached DOM in ViewCache (keep-alive). */
   dom: boolean;
-  /** View-loader payload in ViewPayloadCache (`url`, `html`, …). */
+  /** View-loader payload in ViewGraph cache (`url`, `html`, …). */
   view: boolean;
   /** `load` hook payload in DataGraph. */
   data: boolean;

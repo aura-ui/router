@@ -230,7 +230,7 @@ describe('ViewGraph', () => {
     expect(loads).toBe(2);
   });
 
-  it('does not persist DocumentFragment in long cache.view', async () => {
+  it('does not persist DocumentFragment in handoff or long cache.view', async () => {
     let loads = 0;
     registry.register('html', async () => {
       loads++;
@@ -249,16 +249,11 @@ describe('ViewGraph', () => {
     expect(first.data).toBeInstanceOf(DocumentFragment);
     expect(loads).toBe(1);
 
-    // Fresh handoff window: long cache.view must not have kept the fragment.
-    handoff.destroy();
-    handoff = new HandoffCache();
-    const next = new ViewGraph(handoff, { registry });
-    const second = await next.loadView(route, signal);
-
+    // Same handoff + cache.view: fragment must not settle (mount would empty a reused node).
+    const second = await viewGraph.loadView(route, signal);
     expect(second.data).toBeInstanceOf(DocumentFragment);
     expect(second.data).not.toBe(first.data);
     expect(loads).toBe(2);
-    next.destroy();
   });
 
   it('prefetch swallows loader errors', async () => {

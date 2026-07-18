@@ -311,7 +311,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /**
-   * Invalidates view-loader payload cache ({@link ViewGraph} / {@link ViewPayloadCache}).
+   * Invalidates view-loader payload cache ({@link ViewGraph}).
    * Does not affect load-hook data; use {@link invalidate} for that.
    */
   invalidateView(options?: ViewInvalidateOptions): number {

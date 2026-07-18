@@ -20,7 +20,7 @@ export const DEFAULT_HANDOFF_TTL_MS = 30_000;
  * Uses short TTL (`ttl`) without SWR: entries stay readable until expired, then
  * are removed on access — hover→click join, not long-lived route revisit cache.
  */
-export type HandoffCacheOptions = ResolvableCachePolicy & {
+export type HandoffCacheOptions = {
   /**
    * How long a settled value stays available for a later {@link AuraResolvableCache.resolve}.
    * Default: {@link DEFAULT_HANDOFF_TTL_MS}.
@@ -35,6 +35,8 @@ export type HandoffCacheOptions = ResolvableCachePolicy & {
   readonly gcSweepInterval?: CacheStoreOptions<unknown>['gcSweepInterval'];
   /** Called when a value is discarded (LRU, TTL, delete, clear, invalidate remove). */
   readonly onRemove?: (key: string, value: unknown) => void;
+  /** Extra side-effect after a successful load settle (does not control persist). */
+  readonly onSettled?: ResolvableCachePolicy['onSettled'];
 };
 
 /**
@@ -42,6 +44,9 @@ export type HandoffCacheOptions = ResolvableCachePolicy & {
  *
  * Thin specialization of {@link AuraResolvableCache}: default TTL, no SWR.
  * Long-lived route revisit stays behind `cache.data` / `cache.view`.
+ *
+ * {@link DocumentFragment} is never persisted (one-shot DOM; mount empties it).
+ * In-flight join still works; a later resolve reloads / re-clones.
  *
  * Work-signal policy: {@link HandoffWorkRegistry} (короткая модель interest / workSignal / hold).
  *
@@ -51,7 +56,7 @@ export class HandoffCache extends AuraResolvableCache<unknown> {
   private readonly work = new HandoffWorkRegistry();
 
   constructor(options: HandoffCacheOptions = {}) {
-    const { ttl, max, gcSweepInterval, onRemove, write, onSettled } = options;
+    const { ttl, max, gcSweepInterval, onRemove, onSettled } = options;
     super({
       max,
       // No staleTime: fresh until gcTime, then missing (no background revalidate).
@@ -59,7 +64,9 @@ export class HandoffCache extends AuraResolvableCache<unknown> {
       gcSweepInterval: gcSweepInterval ?? false,
       invalidatePolicy: 'remove',
       onRemove,
-      write,
+      // One-shot DOM: mount empties the node; never settle fragments for reuse.
+      write: (value) =>
+        !(typeof DocumentFragment !== 'undefined' && value instanceof DocumentFragment),
       onSettled,
     });
   }

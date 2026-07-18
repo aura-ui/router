@@ -66,18 +66,27 @@ export class ResourceGraph {
   }
 
   /**
-   * Hold handoff generations for `to`’s data keys.
+   * Hold handoff generations for `to`’s data + view keys (active chain).
    * Call on B **before** cancelling A. Returns a handle — only that handle’s `unhold` drops these holds.
+   *
+   * Pins base {@link MatchedRouteInfo.viewKey} (not `viewKeyWithData`) — enough to keep
+   * in-flight independent content / layout alive across supersede. Data-bound keys with
+   * a data suffix are held by {@link ViewGraph} waiters once load starts with payload.
    */
   holdSharedBufferFor(to: MatchedRouteInfo): SharedBufferHold {
     const waiters: HandoffWaiter[] = [];
+    const seen = new Set<string>();
+
     for (const match of getActiveChain(to)) {
-      if (match.dataKey) {
-        waiters.push(this.sharedBuffer.hold(match.dataKey, 'navigation'));
+      for (const key of [match.dataKey, match.viewKey]) {
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        waiters.push(this.sharedBuffer.hold(key, 'navigation'));
       }
     }
 
     let released = false;
+
     return {
       unhold: () => {
         if (released) return;

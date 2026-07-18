@@ -51,7 +51,7 @@ describe('ViewGraph', () => {
 
   it('returns null when route has no layout or view', async () => {
     const route = matched('/empty');
-    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBeNull();
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({});
   });
 
   it('loads layout via template loader', async () => {
@@ -60,9 +60,9 @@ describe('ViewGraph', () => {
       route: { layout: 'users-layout', view: null, cache: NO_CACHE },
     });
 
-    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBe(
-      '<layout>users-layout</layout>',
-    );
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: '<layout>users-layout</layout>',
+    });
   });
 
   it('loads view via resolvedView loader', async () => {
@@ -72,7 +72,7 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: '<p>about</p>' },
     });
 
-    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBe('<p>about</p>');
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({ data: '<p>about</p>' });
   });
 
   it('returns null immediately when signal is already aborted', async () => {
@@ -85,7 +85,7 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: '<p/>' },
     });
 
-    await expect(viewGraph.loadView(route, controller.signal)).resolves.toBeNull();
+    await expect(viewGraph.loadView(route, controller.signal)).resolves.toEqual({ error: { status: 'cancelled' } });
   });
 
   it('caches string payloads when cache.view is enabled', async () => {
@@ -218,7 +218,7 @@ describe('ViewGraph', () => {
     expect(workSignal.aborted).toBe(false);
 
     interest.abort();
-    await expect(first).resolves.toBeNull();
+    await expect(first).resolves.toEqual({ error: { status: 'cancelled' } });
     expect(workSignal.aborted).toBe(true);
     // Rejected generation must leave singleflight before the next resolve can start cleanly.
     await new Promise((r) => setTimeout(r, 0));
@@ -226,7 +226,7 @@ describe('ViewGraph', () => {
 
     const second = viewGraph.loadView(route, new AbortController().signal, { mode: 'navigation' });
     releaseGate();
-    await expect(second).resolves.toBe('<p>2</p>');
+    await expect(second).resolves.toEqual({ data: '<p>2</p>' });
     expect(loads).toBe(2);
   });
 
@@ -246,7 +246,7 @@ describe('ViewGraph', () => {
     const signal = new AbortController().signal;
 
     const first = await viewGraph.loadView(route, signal);
-    expect(first).toBeInstanceOf(DocumentFragment);
+    expect(first.data).toBeInstanceOf(DocumentFragment);
     expect(loads).toBe(1);
 
     // Fresh handoff window: long cache.view must not have kept the fragment.
@@ -255,8 +255,8 @@ describe('ViewGraph', () => {
     const next = new ViewGraph(handoff, { registry });
     const second = await next.loadView(route, signal);
 
-    expect(second).toBeInstanceOf(DocumentFragment);
-    expect(second).not.toBe(first);
+    expect(second.data).toBeInstanceOf(DocumentFragment);
+    expect(second.data).not.toBe(first.data);
     expect(loads).toBe(2);
     next.destroy();
   });
@@ -344,7 +344,7 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: 'x' },
     });
 
-    await expect(viewGraph.loadView(route, controller.signal)).resolves.toBeNull();
+    await expect(viewGraph.loadView(route, controller.signal)).resolves.toEqual({ error: { status: 'cancelled' } });
   });
 
   it('prefetchLeaf prefetches the active chain', async () => {
@@ -447,18 +447,18 @@ describe('ViewGraph', () => {
       resolvedView: null,
     });
 
-    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBe(
-      'layout:shell',
-    );
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: 'layout:shell',
+    });
   });
 
-  it('returns null when loader yields null', async () => {
+  it('returns data null when loader yields null', async () => {
     registry.register('html', async () => null);
     const route = matched('/empty-view', {
       resolvedView: { loader: 'html', content: 'x' },
     });
 
-    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBeNull();
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({ data: null });
   });
 
   it('collapses markup loader results to string payload', async () => {
@@ -467,9 +467,9 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'iframe', content: 'https://example.com' },
     });
 
-    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toBe(
-      '<iframe src="/x"></iframe>',
-    );
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: '<iframe src="/x"></iframe>',
+    });
   });
 
   it('loadViewDescriptor returns null when signal is already aborted', async () => {
@@ -487,7 +487,7 @@ describe('ViewGraph', () => {
         }),
         controller.signal,
       ),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ error: { status: 'cancelled' } });
   });
 
   it('omits params and query from loader context when route has none', async () => {

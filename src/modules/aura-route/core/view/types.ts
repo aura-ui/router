@@ -42,13 +42,19 @@ export interface DomCachePort {
   put(key: string, root: ViewRoot): void;
 }
 
+/** Outcome of one view/layout resolve — same shape as engine ViewGraph / DataGraph. */
+export type ViewResolveResult = {
+  data?: ViewPayload | null;
+  error?: { status: 'cancelled' } | { status: string; [key: string]: unknown };
+};
+
 /** Async layout template / view loader. */
 export interface ViewResolverPort {
   loadView(
     routeInfo: MatchedRouteInfo,
     signal: AbortSignal,
     options?: { data?: unknown },
-  ): Promise<ViewPayload | null>;
+  ): Promise<ViewResolveResult>;
 }
 
 /** Where to mount: app root + per-navigation nested slot. */

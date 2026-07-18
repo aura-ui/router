@@ -9,6 +9,7 @@ export {
   type ViewPrefetchOptions,
   type ViewGraphCacheOptions,
   type ViewLoadOptions,
+  type ViewGraphLoadResult,
   type RouteViewSource,
 } from './view-graph';
 export type { ViewGraphDeps } from './view-graph';

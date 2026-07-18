@@ -52,7 +52,7 @@ describe('resolveEnterBranch', () => {
   it('returns empty pre-resolved contents for an empty branch', async () => {
     const signal = new AbortController().signal;
 
-    const result = await resolveEnterBranch([], { loadView: async () => null }, resolveCtx(signal));
+    const result = await resolveEnterBranch([], { loadView: async () => ({}) }, resolveCtx(signal));
 
     expect(result).toEqual({ status: 'ok', preResolvedContents: [] });
   });
@@ -71,7 +71,7 @@ describe('resolveEnterBranch', () => {
 
     const resolve = jest.fn(async (routeInfo: MatchedRouteInfo) => {
       await new Promise((r) => setTimeout(r, routeInfo.pattern === '/users' ? 30 : 5));
-      return routeInfo.pattern === '/users' ? '<layout/>' : '<index/>';
+      return { data: routeInfo.pattern === '/users' ? '<layout/>' : '<index/>' };
     });
 
     const result = await resolveEnterBranch([layout, index], { loadView: resolve }, resolveCtx(signal));
@@ -91,9 +91,9 @@ describe('resolveEnterBranch', () => {
       resolvedView: { loader: 'html', content: '<p>one</p>' },
     });
 
-    const resolve = jest.fn(async (_route, _signal, options) => (
-      options?.data ? JSON.stringify(options.data) : 'no-data'
-    ));
+    const resolve = jest.fn(async (_route, _signal, options) => ({
+      data: options?.data ? JSON.stringify(options.data) : 'no-data',
+    }));
 
     const result = await resolveEnterBranch(
       [layout, index],
@@ -115,7 +115,7 @@ describe('resolveEnterBranch', () => {
 
     const result = await resolveEnterBranch(
       [matched('/page')],
-      { loadView: async () => 'never' },
+      { loadView: async () => ({ data: 'never' }) },
       resolveCtx(controller.signal),
     );
 
@@ -134,7 +134,7 @@ describe('resolveEnterBranch', () => {
       {
         loadView: async () => {
           await gate;
-          return '<span>late</span>';
+          return { data: '<span>late</span>' };
         },
       },
       resolveCtx(controller.signal),
@@ -177,7 +177,7 @@ describe('resolveEnterBranch', () => {
       {
         loadView: async (routeInfo) => {
           if (routeInfo.pattern === '/users/:id') throw boom;
-          return '<layout/>';
+          return { data: '<layout/>' };
         },
       },
       resolveCtx(signal),
@@ -200,7 +200,7 @@ describe('resolveEnterBranch', () => {
 
     const pending = resolveEnterBranch(
       [matched('/page')],
-      { loadView: async () => { await gate; return '<span>late</span>'; } },
+      { loadView: async () => { await gate; return { data: '<span>late</span>' }; } },
       ctx,
     );
 
@@ -237,9 +237,9 @@ describe('resolveEnterBranch', () => {
       [layout.dataKey!, { userId: '42' }],
     ]) as DataSnapshot;
 
-    const resolve = jest.fn(async (_route, _signal, options) => (
-      options?.data ? JSON.stringify(options.data) : 'no-data'
-    ));
+    const resolve = jest.fn(async (_route, _signal, options) => ({
+      data: options?.data ? JSON.stringify(options.data) : 'no-data',
+    }));
 
     const result = await resolveEnterBranch(
       [layout],

@@ -96,12 +96,17 @@ async function resolveRouteOutcome(
 
   try {
     const data = ctx.dataFor?.(route);
-    const payload = await contentLoader.loadView(
+    const { data: payload, error } = await contentLoader.loadView(
       route,
       ctx.signal,
       data !== undefined ? { data } : undefined,
     );
-    return { kind: 'ok', payload };
+    if (error) {
+      return error.status === 'cancelled'
+        ? { kind: 'ok', payload: null }
+        : { kind: 'error', error };
+    }
+    return { kind: 'ok', payload: payload ?? null };
   } catch (error) {
     return { kind: 'error', error };
   }

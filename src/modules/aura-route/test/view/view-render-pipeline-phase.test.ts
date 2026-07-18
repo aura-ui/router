@@ -47,7 +47,7 @@ function createPhase(
         transition: { order: null, in: null, out: null },
         ...route,
       } as AuraRouteInterface,
-      view: { loadView: async () => null },
+      view: { loadView: async () => ({ data: null }) },
       cache: defaultDomCache,
       mountTarget: {
         appOutlet: () => root,

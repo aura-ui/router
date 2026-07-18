@@ -52,7 +52,7 @@ function createTeardown(
         transition: { order: null, in: null, out: null },
         ...overrides.route,
       } as AuraRouteInterface,
-      view: { loadView: async () => null },
+      view: { loadView: async () => ({ data: null }) },
       cache: overrides.cache ?? defaultDomCache,
       mountTarget: {
         appOutlet: () => root,

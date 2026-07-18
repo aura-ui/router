@@ -22,7 +22,8 @@ describe('TemplateLoader', () => {
 
     expect(result?.kind).toBe('fragment');
     if (result?.kind === 'fragment') {
-      expect(result.node.textContent).toBe('App');
+      expect(result.value).toBeInstanceOf(DocumentFragment);
+      expect(result.value.textContent).toBe('App');
     }
   });
 

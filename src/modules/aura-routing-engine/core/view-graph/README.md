@@ -77,16 +77,23 @@ type ViewKind = 'layout' | 'view';
 
 Разделитель loader и content — `::`. Левая часть выбирает loader, правая попадает в **`context.content`**. Селектор фрагмента — отдельный атрибут `extract`, не в `view`.
 
-### Два уровня типа результата
+### Результат loader'а: `{ kind, value }`
 
-| Уровень | Тип | Где используется |
-|---------|-----|------------------|
-| Loader | `ViewLoadResult` | `html` \| `markup` \| `fragment` |
-| Graph / route | `ViewPayload` | `string` \| `Node` |
+| Уровень | Тип | Смысл |
+|---------|-----|--------|
+| Loader | `ViewLoadResult` | `{ kind: 'html' \| 'markup' \| 'fragment', value }` |
+| Graph / mount | `ViewPayload` | `string \| Node` — `result.value` |
 
-`ViewGraph` приводит результат loader'а к `ViewPayload`: `html` и `markup` → строка, `fragment` → узел.
+```ts
+type ViewLoadResult =
+  | { kind: 'html'; value: string }
+  | { kind: 'markup'; value: string }
+  | { kind: 'fragment'; value: DocumentFragment };
+```
 
-Для `registry.register(loaderId, fn)` тело loader'а — `LoaderFn`, возвращающий `string | Node | null`. `FnLoader` преобразует строку в `{ kind: 'html' }`, а `Node` — во `DocumentFragment` (через `appendChild`, если узел ещё не fragment).
+`ViewGraph` берёт `value` as-is (`html`/`markup` → string, `fragment` → node).
+
+`LoaderFn` может вернуть `ViewLoadResult` или сахар `string | Node` — `FnLoader` обернёт: `string` → `html`, `Node` → `fragment`.
 
 ### Три хранилища (не смешивать)
 
@@ -137,7 +144,7 @@ ViewPayload
 | Orchestration | `ViewGraph`, `ViewGraphDeps`, `ViewPrefetchOptions`, `RouteViewSource`, `ViewLoadPort`, `ViewResolverPort`, `BranchViewResolver` |
 | Cache | `ViewPayloadCache`, `viewCacheKey` |
 | Registry | `LoaderRegistry`, `createLoaderRegistry`, `defaultLoaderRegistry`, `Loader`, `LoaderClass`, `LoaderFn` |
-| Types | `ViewPayload`, `ViewLoadContext`, `ViewDescriptor`, `ViewKind`, `ViewLoadResult`, `ViewLoaderEnv`, `FetchText` |
+| Types | `ViewPayload`, `ViewLoadResult`, `ViewLoadContext`, `ViewDescriptor`, `ViewKind`, `ViewLoaderEnv`, `FetchText` |
 
 **Не в barrel** (прямой импорт или `aura-routing-engine/core`): `loaders/*`, `environment.ts`, `markup.ts`.
 
@@ -172,7 +179,7 @@ registry.register('charts', loaderFn);  // функция → FnLoader
 
 ## Кастомный loader
 
-Два способа расширить registry. Для большинства приложений достаточно **функции**. **Класс** — когда нужны `ViewLoaderEnv`, состояние на экземпляре или явный `ViewLoadResult` (`markup` / `fragment`).
+Два способа расширить registry. Для большинства приложений достаточно **функции**. **Класс** — когда нужны `ViewLoaderEnv` или состояние на экземпляре.
 
 ### Функция (рекомендуется)
 
@@ -196,8 +203,9 @@ AuraRouter.registerLoader('charts', async (context) => {
 
 | Возврат `LoaderFn` | Что делает `FnLoader` |
 |--------------------|------------------------|
-| `string` | `{ kind: 'html', html }` |
-| `Node` | `{ kind: 'fragment', node }` (обёртка во `DocumentFragment`) |
+| `string` | `{ kind: 'html', value }` |
+| `Node` | `{ kind: 'fragment', value }` (`DocumentFragment`) |
+| `ViewLoadResult` | as-is |
 | `null` | пустой view, не ошибка |
 
 Тот же контракт на изолированном registry: `registry.register('charts', fn)`.
@@ -216,8 +224,7 @@ export class MarkdownLoader extends Loader {
   async load(context: ViewLoadContext): Promise<ViewLoadResult | null> {
     // view="markdown::docs/guide.md" → context.content === 'docs/guide.md'
     const text = await this.env.fetchText(this.env.resolveUrl(context.content), context.signal);
-    const html = renderMarkdown(text);
-    return { kind: 'html', html };
+    return { kind: 'html', value: renderMarkdown(text) };
   }
 }
 ```
@@ -237,7 +244,6 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 Класс уместен, когда:
 
 - нужен `this.env.fetchText` / `resolveUrl` без замыканий;
-- результат — `markup` или `fragment`, а не сахар `LoaderFn`;
 - на экземпляре есть несколько методов или внутреннее состояние.
 
 ### `ViewLoadContext` и `ViewLoaderEnv`

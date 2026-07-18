@@ -22,9 +22,9 @@ describe('ComponentLoader', () => {
 
     expect(result?.kind).toBe('markup');
     if (result?.kind === 'markup') {
-      expect(result.markup).toMatch(new RegExp(`^<${tag} aura-data='`));
-      expect(result.markup).toContain('&quot;href&quot;:&quot;/widgets&quot;');
-      expect(result.markup).toContain('&quot;id&quot;:1');
+      expect(result.value).toMatch(new RegExp(`^<${tag} aura-data='`));
+      expect(result.value).toContain('&quot;href&quot;:&quot;/widgets&quot;');
+      expect(result.value).toContain('&quot;id&quot;:1');
     }
   });
 

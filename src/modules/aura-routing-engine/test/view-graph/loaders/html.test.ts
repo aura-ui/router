@@ -11,6 +11,6 @@ describe('HtmlLoader', () => {
         signal: new AbortController().signal,
         route: { href: '/x', pattern: '/x' },
       }),
-    ).resolves.toEqual({ kind: 'html', html: '<p>inline</p>' });
+    ).resolves.toEqual({ kind: 'html', value: '<p>inline</p>' });
   });
 });

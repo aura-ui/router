@@ -1,5 +1,5 @@
 import { escapeHtml } from '../../../../aura-utils/misc';
-import type { ViewLoadResult, ViewLoadContext } from '../types';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
 import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
 import { Loader } from '../loader';
 
@@ -10,7 +10,7 @@ export class IframeLoader extends Loader {
   load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     return Promise.resolve({
       kind: 'markup',
-      markup: `<iframe src="${escapeHtml(ctx.content)}" loading="lazy"></iframe>`,
+      value: `<iframe src="${escapeHtml(ctx.content)}" loading="lazy"></iframe>`,
     });
   }
 }

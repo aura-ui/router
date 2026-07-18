@@ -6,6 +6,17 @@ export type ViewPayload = Node | string;
 /** `layout` — template slot; `view` — route content from `view` attr. */
 export type ViewKind = 'layout' | 'view';
 
+/**
+ * Loader result: tagged `{ kind, value }`.
+ * - `html` — document / partial HTML string
+ * - `markup` — synthesized element markup string
+ * - `fragment` — mount-ready DOM fragment
+ */
+export type ViewLoadResult =
+  | { readonly kind: 'html'; readonly value: string }
+  | { readonly kind: 'markup'; readonly value: string }
+  | { readonly kind: 'fragment'; readonly value: DocumentFragment };
+
 /** Resolved load target built from route attrs and {@link MatchedRouteInfo.resolvedView}. */
 export type ViewDescriptor = {
   readonly kind: ViewKind;
@@ -45,18 +56,14 @@ export type ViewLoaderEnv = {
   readonly isSSR: boolean;
 };
 
-/** Loader-internal result before {@link ViewGraph} collapses to {@link ViewPayload}. */
-export type ViewLoadResult =
-  | { readonly kind: 'html'; readonly html: string }
-  | { readonly kind: 'fragment'; readonly node: DocumentFragment }
-  | { readonly kind: 'markup'; readonly markup: string };
-
 /**
  * Custom loader body for `registry.register(type, fn)` / `AuraRouter.registerLoader`.
+ * May return {@link ViewLoadResult}, or mount-ready {@link ViewPayload}
+ * (`string` → `html`, `Node` → `fragment` via {@link FnLoader}).
  * @example
  * // <aura-route path="/users/:id" view="badge::status" />
  * registry.register('badge', async (context) =>
  *   `<span class="${context.content}">${context.route.params?.id ?? ''}</span>`,
  * );
  */
-export type LoaderFn = (context: ViewLoadContext) => Promise<ViewPayload | null>;
+export type LoaderFn = (context: ViewLoadContext) => Promise<ViewLoadResult | null>;

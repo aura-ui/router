@@ -12,7 +12,7 @@ class ProbeLoader extends Loader {
   static readonly type = 'template' as const satisfies LoaderId;
 
   load(_ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
-    return Promise.resolve({ kind: 'html', html: 'probe' });
+    return Promise.resolve({ kind: 'html', value: 'probe' });
   }
 }
 
@@ -33,7 +33,7 @@ describe('LoaderRegistry', () => {
       static readonly type = 'html' as const satisfies LoaderId;
 
       load(): Promise<ViewLoadResult | null> {
-        return Promise.resolve({ kind: 'html', html: 'inst' });
+        return Promise.resolve({ kind: 'html', value: 'inst' });
       }
     }
     registry.register(new InstanceLoader(createBrowserEnv()));
@@ -43,7 +43,7 @@ describe('LoaderRegistry', () => {
       signal: new AbortController().signal,
       route: { href: '/x', pattern: '/x' },
     });
-    expect(result).toEqual({ kind: 'html', html: 'inst' });
+    expect(result).toEqual({ kind: 'html', value: 'inst' });
   });
 
   it('registers a loader class', async () => {
@@ -55,7 +55,7 @@ describe('LoaderRegistry', () => {
       signal: new AbortController().signal,
       route: { href: '/x', pattern: '/x' },
     });
-    expect(result).toEqual({ kind: 'html', html: 'probe' });
+    expect(result).toEqual({ kind: 'html', value: 'probe' });
   });
 
   it('registers a loader function', async () => {
@@ -68,7 +68,7 @@ describe('LoaderRegistry', () => {
         signal: new AbortController().signal,
         route: { href: '/x', pattern: '/x' },
       }),
-    ).resolves.toEqual({ kind: 'html', html: 'fn' });
+    ).resolves.toEqual({ kind: 'html', value: 'fn' });
   });
 
   it('register(id, fn) without options does not throw', () => {

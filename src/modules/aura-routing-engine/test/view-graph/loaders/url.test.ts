@@ -21,7 +21,7 @@ describe('UrlLoader', () => {
         signal: new AbortController().signal,
         route: { href: '/page', pattern: '/page' },
       }),
-    ).resolves.toEqual({ kind: 'html', html: '<div id="root">full</div>' });
+    ).resolves.toEqual({ kind: 'html', value: '<div id="root">full</div>' });
 
     expect(fetchText).toHaveBeenCalledWith('http://test/page.html', expect.any(AbortSignal));
   });
@@ -40,6 +40,6 @@ describe('UrlLoader', () => {
         signal: new AbortController().signal,
         route: { href: '/page', pattern: '/page' },
       }),
-    ).resolves.toEqual({ kind: 'html', html: '<span>part</span>' });
+    ).resolves.toEqual({ kind: 'html', value: '<span>part</span>' });
   });
 });

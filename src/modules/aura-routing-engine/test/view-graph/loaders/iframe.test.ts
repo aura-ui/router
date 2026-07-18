@@ -13,7 +13,7 @@ describe('IframeLoader', () => {
       }),
     ).resolves.toEqual({
       kind: 'markup',
-      markup: '<iframe src="https://example.com/app?x=&quot;1&quot;" loading="lazy"></iframe>',
+      value: '<iframe src="https://example.com/app?x=&quot;1&quot;" loading="lazy"></iframe>',
     });
   });
 });

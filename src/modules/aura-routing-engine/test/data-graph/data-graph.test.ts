@@ -618,6 +618,233 @@ describe('DataGraph', () => {
     expect(loads).toBe(1);
     expect(data!.get(route.dataKey!)).toEqual({ id: 3 });
   });
+
+  it('configure merges default cache options for new graphs', () => {
+    const graphProto = DataGraph as unknown as { defaultCacheOptions: Record<string, unknown> };
+    const prev = { ...graphProto.defaultCacheOptions };
+    try {
+      DataGraph.configure({ max: 7, staleTime: 12_000 });
+      const graph = new DataGraph(new HandoffCache(), { hooks: hookRegistry });
+      expect(graph).toBeInstanceOf(DataGraph);
+      graph.destroy();
+    } finally {
+      graphProto.defaultCacheOptions = prev;
+    }
+  });
+
+  it('skips enter routes without dataKey', async () => {
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => {
+        throw new Error('should not run');
+      },
+    });
+
+    const route = matchedRoute('/no-key');
+    delete route.dataKey;
+
+    const { error, data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
+    expect(error).toBeUndefined();
+    expect(data!.size).toBe(0);
+  });
+
+  it('soft-skips routes with no load hooks', async () => {
+    const route = matchedRoute('/static', null);
+    const { error, data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
+
+    expect(error).toBeUndefined();
+    expect(data!.size).toBe(1);
+    expect(data!.get(route.dataKey!)).toBeUndefined();
+  });
+
+  it('warns on unknown hook names and still settles', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const route = matchedRoute('/missing', ['unknown-hook']);
+      const { error, data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
+
+      expect(error).toBeUndefined();
+      expect(data!.get(route.dataKey!)).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('Unknown hook "unknown-hook"'),
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('aggregates multiple load hooks on one route into a name→value map', async () => {
+    hookRegistry.register({
+      name: 'a',
+      version: '1.0.0',
+      fn: async () => 1,
+    });
+    hookRegistry.register({
+      name: 'b',
+      version: '1.0.0',
+      fn: async () => ({ ok: true }),
+    });
+
+    const route = matchedRoute('/multi', ['a', 'b']);
+    const { data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
+
+    expect(data!.get(route.dataKey!)).toEqual({ a: 1, b: { ok: true } });
+  });
+
+  it('cancels sibling waiters when one enter route fails', async () => {
+    let releaseSibling!: () => void;
+    const siblingGate = new Promise<void>((resolve) => {
+      releaseSibling = resolve;
+    });
+
+    hookRegistry.register({
+      name: 'fast-fail',
+      version: '1.0.0',
+      fn: async () => {
+        throw new Error('boom');
+      },
+    });
+    hookRegistry.register({
+      name: 'slow',
+      version: '1.0.0',
+      fn: async () => {
+        await siblingGate;
+        return { ok: true };
+      },
+    });
+
+    const failing = matchedRoute('/fail', ['fast-fail']);
+    const slow = matchedRoute('/slow', ['slow']);
+    failing.route.cache = NO_CACHE;
+    slow.route.cache = NO_CACHE;
+
+    const loadPromise = dataGraph.load(
+      [failing, slow],
+      navOptions(hookRegistry, [failing, slow]),
+    );
+    await Promise.resolve();
+    releaseSibling();
+
+    const { error, data } = await loadPromise;
+    expect(error).toMatchObject({ status: 'error' });
+    expect(data).toBeUndefined();
+  });
+
+  it('returns cancelled when transaction goes stale after shared load settles', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let stale = false;
+
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => {
+        await gate;
+        return { id: 9 };
+      },
+    });
+
+    const route = matchedRoute('/stale');
+    route.route.cache = NO_CACHE;
+    const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
+    const transaction = new NavigationTransaction(
+      1,
+      0,
+      {
+        from: null,
+        to: route,
+        action: 'push',
+        href: route.href,
+        hash: '',
+        options: { replace: false, syncHistory: true },
+      },
+      () => stale,
+      engine,
+    );
+    transaction.transitionPlan = finalizeTransitionPlan({
+      enterRoutes: [route],
+      exitRoutes: [],
+      lca: null,
+      update: false,
+    });
+
+    const pending = dataGraph.load([route], { transaction, mode: 'navigation' });
+    await Promise.resolve();
+    stale = true;
+    release();
+
+    await expect(pending).resolves.toEqual({ error: { status: 'cancelled' } });
+  });
+
+  it('surfaces terminal outcomes from the shared load factory', async () => {
+    const spy = jest
+      .spyOn(DataGraph.prototype as unknown as { callLoadHooks: () => Promise<unknown> }, 'callLoadHooks')
+      .mockResolvedValue({ error: { status: 'error', error: new Error('terminal') } });
+
+    try {
+      const route = matchedRoute('/terminal');
+      route.route.cache = NO_CACHE;
+      const { error, data } = await dataGraph.load([route], navOptions(hookRegistry, [route]));
+
+      expect(data).toBeUndefined();
+      expect(error).toMatchObject({ status: 'error' });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('prefetch soft-skips when transaction goes stale after settle', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let stale = false;
+
+    hookRegistry.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => {
+        await gate;
+        return { warm: true };
+      },
+    });
+
+    const route = matchedRoute('/prefetch-stale');
+    route.route.cache = NO_CACHE;
+    const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
+    const transaction = new NavigationTransaction(
+      1,
+      0,
+      {
+        from: null,
+        to: route,
+        action: 'push',
+        href: route.href,
+        hash: '',
+        options: { replace: false, syncHistory: true },
+      },
+      () => stale,
+      engine,
+    );
+    transaction.transitionPlan = finalizeTransitionPlan({
+      enterRoutes: [route],
+      exitRoutes: [],
+      lca: null,
+      update: false,
+    });
+
+    const pending = dataGraph.prefetch([route], { transaction, mode: 'prefetch' });
+    await Promise.resolve();
+    stale = true;
+    release();
+
+    const result = await pending;
+    expect(result.error).toBeUndefined();
+    expect(result.data?.get(route.dataKey!)).toBeUndefined();
+  });
 });
 
 function onAbortOnce(signal: AbortSignal, callback: () => void): void {

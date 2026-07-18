@@ -56,20 +56,22 @@ type WorkEntry = {
 /**
  * Per-key shared work {@link AbortSignal} + waiter refcount for prepare handoff.
  *
- * **Algorithm:** Prefetch and navigation use different interest (tx) signals. The load
- * factory must follow {@link HandoffWaiter.workSignal} so that:
- * 1. Prefetch cancel while navigation still {@link hold}s the key → speculative
- *    {@link HandoffWaiter.release | release} only; work keeps running.
- * 2. Prefetch cancel before navigation → speculative-only idle keeps the generation so a
- *    later {@link hold} can rejoin the same in-flight work.
- * 3. After `'navigation'` was seen, when **every** hold is gone (`refs === 0`) → abort
- *    that key’s generation (orphan / superseded prepare). A speculative waiter releasing
- *    last still aborts if navigation was seen earlier.
+ * **Model**
+ * - `interest` (tx) — «мне ещё нужен результат»
+ * - {@link HandoffWaiter.workSignal} — «общий load ещё жив»
+ * - {@link hold} / {@link HandoffWaiter.release | release} — refcount интереса к `workSignal`
  *
- * Abort is per key generation, not the whole {@link HandoffCache} (except {@link destroy}).
- * Concurrent {@link hold}s share one generation until it aborts.
+ * Cancel interest ≠ abort work. Abort work = последний `release` после того, как на key
+ * побывал `'navigation'` (не «last navigation release» — speculative может уйти последним).
  *
- * Owned by {@link HandoffCache}. Work-signal lifetime only; settled values live in the cache.
+ * | # | Ситуация | Shared |
+ * |---|----------|--------|
+ * | 1 | Prefetch ушёл, nav ещё держит | жив |
+ * | 2 | Prefetch ушёл, nav ещё не пришёл | жив (rejoin) |
+ * | 3 | Все ушли, `'navigation'` уже был | abort этого key |
+ *
+ * Abort — generation одного key, не весь {@link HandoffCache} (кроме {@link destroy}).
+ * Owned by {@link HandoffCache}; settled values — в cache, не здесь.
  */
 export class HandoffWorkRegistry {
   /**

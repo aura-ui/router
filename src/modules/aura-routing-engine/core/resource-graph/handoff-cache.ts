@@ -43,9 +43,7 @@ export type HandoffCacheOptions = ResolvableCachePolicy & {
  * Thin specialization of {@link AuraResolvableCache}: default TTL, no SWR.
  * Long-lived route revisit stays behind `cache.data` / `cache.view`.
  *
- * Work-signal lifetime / abort policy: {@link HandoffWorkRegistry}
- * (prefetch cancel must not kill shared work still needed for navigation; last hold after
- * navigation interest may abort that key’s generation).
+ * Work-signal policy: {@link HandoffWorkRegistry} (короткая модель interest / workSignal / hold).
  *
  * Created by {@link AuraRoutingEngine}; DataGraph / ViewGraph share one instance.
  */

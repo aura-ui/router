@@ -20,7 +20,10 @@ export type DataSnapshot = ReadonlyMap<string, unknown>;
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
-/** Success → `data`, stop → `error`. Public batch uses {@link DataSnapshot}; per-route uses payload. */
+/**
+ * `{ data }` ok · `{ error }` navigation stop · `{}` soft skip (no hooks / prefetch).
+ * {@link DataGraph.load} drops partial `data` on error; {@link DataGraph.prefetch} keeps it.
+ */
 type LoadResult<T = unknown> = {
   data?: T;
   error?: TerminalOutcome;
@@ -33,10 +36,7 @@ export type DataGraphOptions = Pick<CacheStoreOptions<unknown>, 'max' | 'staleTi
 export type LoadHookMode = 'navigation' | 'prefetch';
 
 export type DataGraphLoadOptions = {
-  /**
-   * Full active branch (root → leaf) for snapshot lookup.
-   * Includes LCA parents outside {@link load} enterRoutes (cache hits without re-fetch).
-   */
+  /** Full active branch (root → leaf), including LCA parents outside enterRoutes. */
   branch?: readonly MatchedRouteInfo[];
   transaction: NavigationTransaction;
   mode: LoadHookMode;
@@ -45,18 +45,18 @@ export type DataGraphLoadOptions = {
 /** @deprecated Use {@link DataGraphLoadOptions}. */
 export type DataGraphPrefetchOptions = DataGraphLoadOptions;
 
-/** Per-enter deferred payload — children join via `ctx.parent()`. */
+/** Deferred payload for one enter route — children await via `ctx.parent()`. */
 type PayloadJoin = {
   promise: Promise<unknown>;
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
 };
 
-/** Inputs for loading a single enter-route within a parallel batch. */
+/** Shared inputs for one enter-route inside a parallel batch. */
 type EnterRouteLoad = {
   match: MatchedRouteInfo;
   transaction: NavigationTransaction;
-  /** Supersede / sibling terminal — not the shared handoff factory. */
+  /** Detach this waiter only (`tx` ∪ sibling abort) — not the handoff factory. */
   interestSignal: AbortSignal;
   siblingAbort: AbortController;
   mode: LoadHookMode;
@@ -74,26 +74,18 @@ class DataGraphTerminalError extends Error {
   }
 }
 
-/**
- * Shared prepare work is not tied to a caller transaction.
- * Caller abort detaches the waiter via {@link awaitUntilAbort}; underlying load keeps running
- * for handoff join (speculative → navigation), same contract as `import::`.
- */
+/** Never aborted — shared handoff load must outlive caller interest. */
 const SHARED_HANDOFF_SIGNAL = new AbortController().signal;
 
 /**
- * Coordinator for route `load` hooks: parallel branch loads, SWR cache, prefetch intent.
- * View/HTML caching stays in `core/view-graph/`.
- *
- * Child hooks may opt into parent data via `ctx.parent()` (promise join); default stays parallel.
+ * Route `load` hooks: parallel enter loads, SWR cache, prefetch handoff.
+ * View/HTML stays in `core/view-graph/`. Child may `await ctx.parent()`; default is parallel.
  */
 export class DataGraph {
   private static defaultOptions: DataGraphOptions = {};
 
   private readonly cache: AuraResolvableCache<unknown>;
-  /** Engine hook registry; prefetch uses this (no navigation runtime). */
   private readonly hooks: HookRegistry;
-  /** Short-TTL handoff between speculative prepare and navigation (shared Promise join). */
   private readonly sharedBuffer: HandoffCache;
 
   static configure(options: DataGraphOptions = {}): void {
@@ -112,10 +104,7 @@ export class DataGraph {
     });
   }
 
-  /**
-   * Blocking navigation load — after history commit, before render.
-   * @param enterRoutes Routes entering this transition (LCA delta); load hooks run only here.
-   */
+  /** Navigation load. On error → `{ error }` only (no partial sibling data). */
   async load(
     enterRoutes: readonly MatchedRouteInfo[],
     options: DataGraphLoadOptions,
@@ -126,10 +115,10 @@ export class DataGraph {
       options.transaction,
       options.mode,
     );
-    // Navigation callers treat error as terminal — omit partial batch data.
     return error ? { error } : { data };
   }
 
+  /** Prefetch warmup. Keeps partial `data`; never fails the caller. */
   async prefetch(
     enterRoutes: readonly MatchedRouteInfo[],
     options: DataGraphLoadOptions,
@@ -142,25 +131,18 @@ export class DataGraph {
     );
   }
 
-  /**
-   * Load all enter routes in parallel.
-   * Caller/sibling abort detaches waiters only — handoff work keeps running.
-   * `ctx.parent()` joins the nearest ancestor shared payload (or cache for LCA parents outside enter).
-   */
+  /** Parallel enter loads. Abort detaches waiters only — handoff keeps running. */
   private async loadEnterRoutes(
     enterRoutes: readonly MatchedRouteInfo[],
     branch: readonly MatchedRouteInfo[],
     transaction: NavigationTransaction,
     mode: LoadHookMode,
   ): Promise<LoadResult<Map<string, unknown>>> {
-    if (enterRoutes.length === 0) return { data: new Map() };
-
     const siblingAbort = new AbortController();
     const interestSignal = AbortSignal.any([transaction.signal, siblingAbort.signal]);
     const joins = createPayloadJoinTable(enterRoutes);
     const result = new Map<string, unknown>();
-    let terminalError: TerminalOutcome | undefined;
-    let terminalIndex = -1;
+    const errors: TerminalOutcome[] = [];
 
     await Promise.all(
       enterRoutes.map(async (match, index) => {
@@ -181,10 +163,7 @@ export class DataGraph {
         });
 
         if (error) {
-          if (terminalIndex < 0 || index < terminalIndex) {
-            terminalIndex = index;
-            terminalError = error;
-          }
+          errors[index] = error;
           siblingAbort.abort();
           return;
         }
@@ -193,14 +172,11 @@ export class DataGraph {
       }),
     );
 
-    return { error: terminalError, data: result };
+    return { error: errors.find(Boolean), data: result };
   }
 
-  /**
-   * One enter-route: resolve/join shared payload → wait under interest → `onLoad` (navigation).
-   */
   private async loadEnterRoute(request: EnterRouteLoad): Promise<LoadResult> {
-    const { match, join, mode } = request;
+    const { match, transaction, interestSignal, mode, parent, join } = request;
 
     const hookNames = routeLoadHookNames(match);
     if (!hookNames) {
@@ -209,54 +185,38 @@ export class DataGraph {
     }
 
     try {
-      const data = await this.waitSharedPayload(request, hookNames);
+      const shared = this.resolveSharedPayload(match, () =>
+        this.invokeLoadHooks(
+          this.buildLoadHookContext(match, transaction, {
+            transactionSignal: SHARED_HANDOFF_SIGNAL,
+            parent,
+          }),
+          hookNames,
+        ),
+      );
+      // Batch join follows shared settle; waiter follows interestSignal.
+      void shared.then(join.resolve, join.reject);
+      const data = await awaitUntilAbort(shared, interestSignal);
 
+      // Also handled in catch when interest aborts before settle.
       if (!isBatchActive(request)) {
         return mode === 'prefetch' ? {} : { error: { status: 'cancelled' } };
       }
 
       if (mode === 'navigation') {
-        this.notifyOnLoad(request, data);
+        match.route.onLoad(
+          this.buildLoadHookContext(match, transaction, {
+            transactionSignal: transaction.signal,
+            parent,
+            data,
+          }),
+        );
       }
 
       return { data };
     } catch (error) {
       return this.toLoadErrorResult(error, request);
     }
-  }
-
-  /**
-   * Start/join handoff work, publish settle to the batch join table, wait under caller interest.
-   * Parent/sibling joins follow shared settle — not waiter interest.
-   */
-  private waitSharedPayload(
-    request: EnterRouteLoad,
-    hookNames: readonly string[],
-  ): Promise<unknown> {
-    const { match, interestSignal, parent, join } = request;
-
-    const shared = this.resolveSharedPayload(match, () => {
-      const loadCtx = this.buildLoadHookContext(match, request.transaction, {
-        transactionSignal: SHARED_HANDOFF_SIGNAL,
-        parent,
-      });
-      return this.invokeLoadHooks(loadCtx, hookNames);
-    });
-
-    void shared.then(join.resolve, join.reject);
-    return awaitUntilAbort(shared, interestSignal);
-  }
-
-  /** Immutable pipeline step: runs on every navigation accept, including cache hits. */
-  private notifyOnLoad(request: EnterRouteLoad, data: unknown): void {
-    const { match, transaction, parent } = request;
-    match.route.onLoad(
-      this.buildLoadHookContext(match, transaction, {
-        transactionSignal: transaction.signal,
-        parent,
-        data,
-      }),
-    );
   }
 
   private buildLoadHookContext(
@@ -285,23 +245,13 @@ export class DataGraph {
   ): Promise<LoadResult> {
     const { match, transaction, mode } = request;
 
-    if (mode === 'prefetch') {
-      return { data: undefined };
-    }
-    if (error instanceof DataGraphTerminalError) {
-      return { error: error.outcome };
-    }
-    // Covers tx abort/stale and sibling terminal — interestSignal is a subset of this.
-    if (!isBatchActive(request)) {
-      return { error: { status: 'cancelled' } };
-    }
+    if (mode === 'prefetch') return {};
+    if (error instanceof DataGraphTerminalError) return { error: error.outcome };
+    if (!isBatchActive(request)) return { error: { status: 'cancelled' } };
     return { error: await transaction.fail(match, error, 'load') };
   }
 
-  /**
-   * Resolve route payload through handoff (+ optional long `cache.data`).
-   * Factory must not consult caller interest — it is shared across transactions.
-   */
+  /** Handoff (+ optional long `cache.data`). Factory ignores caller interest. */
   private resolveSharedPayload(
     match: MatchedRouteInfo,
     load: () => Promise<LoadResult>,
@@ -317,22 +267,13 @@ export class DataGraph {
       }
 
       const { data, error } = await load();
-      if (error) {
-        throw new DataGraphTerminalError(error);
-      }
+      if (error) throw new DataGraphTerminalError(error);
 
-      if (useLongCache) {
-        this.cache.set(dataKey, data);
-      }
+      if (useLongCache) this.cache.set(dataKey, data);
       return data;
     });
   }
 
-  /**
-   * Invoke named load hooks in parallel; returns `{ data }`.
-   * Does not invoke `onLoad` — caller runs it after the waiter accepts the result.
-   * Thrown loader errors propagate to {@link loadEnterRoute}.
-   */
   private async invokeLoadHooks(
     context: RouteLifecycleContext,
     hookNames: readonly string[],
@@ -350,9 +291,7 @@ export class DataGraph {
       }),
     );
 
-    if (hookNames.length === 1) {
-      return { data: values[0] };
-    }
+    if (hookNames.length === 1) return { data: values[0] };
 
     const data: Record<string, unknown> = {};
     for (let i = 0; i < hookNames.length; i++) {
@@ -361,7 +300,7 @@ export class DataGraph {
     return { data };
   }
 
-  /** Join nearest ancestor load payload (in-batch → handoff → persisted cache). */
+  /** Nearest ancestor payload: in-batch join → handoff → long cache. */
   private joinParentPayload(
     child: MatchedRouteInfo,
     joins: ReadonlyMap<number, PayloadJoin>,
@@ -376,11 +315,6 @@ export class DataGraph {
     const dataKey = parent.dataKey;
     if (!dataKey) return Promise.resolve(undefined);
 
-    return this.joinHandoffOrCache(dataKey);
-  }
-
-  /** Prefer handoff (in-flight or settled); fall back to long cache on miss/failure. */
-  private joinHandoffOrCache(dataKey: string): Promise<unknown> {
     const joined = this.sharedBuffer.join(dataKey);
     if (!joined) return Promise.resolve(this.cache.get(dataKey));
     return joined.catch(() => this.cache.get(dataKey));
@@ -390,10 +324,7 @@ export class DataGraph {
     return invalidateRouterCache(this.cache, options, 'stale');
   }
 
-  /**
-   * Reads cached load-hook payloads for `cache.data` routes on the active branch.
-   * @returns `undefined` when no preserved entries — keeps truthy checks meaningful downstream.
-   */
+  /** Cached `cache.data` payloads on the branch, or `undefined` when empty. */
   snapshot(branch: readonly MatchedRouteInfo[]): DataSnapshot | undefined {
     const data = new Map<string, unknown>();
     for (const match of branch) {
@@ -401,17 +332,14 @@ export class DataGraph {
       const key = match.dataKey;
       if (!key) continue;
       const value = this.cache.get(key);
-      if (value !== undefined) {
-        data.set(key, value);
-      }
+      if (value !== undefined) data.set(key, value);
     }
     return data.size > 0 ? data : undefined;
   }
 
   getData(match: MatchedRouteInfo): unknown {
     const key = match.dataKey;
-    if (!key) return undefined;
-    return this.cache.get(key);
+    return key ? this.cache.get(key) : undefined;
   }
 
   destroy(): void {
@@ -419,19 +347,15 @@ export class DataGraph {
   }
 }
 
-/** Deferred payloads keyed by route uid — children join via `ctx.parent()`. */
 function createPayloadJoinTable(
   enterRoutes: readonly MatchedRouteInfo[],
 ): Map<number, PayloadJoin> {
   const table = new Map<number, PayloadJoin>();
-
   for (const match of enterRoutes) {
     const join = promiseWithResolvers();
-    // Avoid unhandledrejection when no child awaits ctx.parent().
-    void join.promise.catch(() => {});
+    void join.promise.catch(() => {}); // no child may await parent()
     table.set(match.route.uid, join);
   }
-
   return table;
 }
 

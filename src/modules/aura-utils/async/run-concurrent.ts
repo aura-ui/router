@@ -5,7 +5,7 @@
 export async function runConcurrent<T>(
   items: readonly T[],
   concurrency: number,
-  run: (item: T) => Promise<void>,
+  run: (item: T) => Promise<unknown>,
   signal?: AbortSignal,
 ): Promise<void> {
   if (items.length === 0 || signal?.aborted) return;

@@ -163,7 +163,9 @@ export class ViewGraph {
     return runConcurrent(
       ordered,
       concurrency,
-      (match) => this.loadView(match, signal, { mode: 'prefetch' }),
+      async (match) => {
+        await this.loadView(match, signal, { mode: 'prefetch' });
+      },
       signal,
     );
   }

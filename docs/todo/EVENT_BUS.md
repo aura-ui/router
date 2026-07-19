@@ -17,7 +17,7 @@
 
 | # | Тема | Статус | Что дальше |
 |---|------|--------|------------|
-| — | Terminal error callback (`onNavigationError`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | thin-wrapper поверх bus позже |
+| — | Terminal errors | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | bus `navigation:error` → DOM adapter (callback убран) |
 | — | DOM errors (`not-found`, `navigation-error`, `navigation-hook-error`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | см. [NAVIGATION_EVENTS](./NAVIGATION_EVENTS.md) |
 | — | `PrefetchIntentBus` (отдельная ось) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> не смешивать с nav bus |
 | **EB0** | Контракт `EventBus` + `EngineEvent` + unit-тесты | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `core/events/` · типы расширяются по мере emit |
@@ -33,12 +33,12 @@
 | | Сейчас | Цель | Статус |
 |---|--------|------|--------|
 | Успешная навигация | Bus: `start` → … → `finish` · DOM: `navigation-start` → `navigation` | Полный поток + DOM complete | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> bus ✓ · DOM complete ✗ |
-| Ошибки | Bus `navigation:error` / `load:error` + callback + DOM | Thin-wrapper: callback поверх bus | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> bus+callback ✓ · overlay ✗ |
+| Ошибки | Bus `navigation:error` / `load:error` → DOM | Adapter в `onEngineEvent` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | Loads / activate | `load:*`, `node:activate/deactivate` на bus | То же (+ опц. DOM P1) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> bus |
 | Prefetch | `PrefetchIntentBus` (отдельная ось) | Не смешивать с navigation bus | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design |
 | Public DOM (success path) | `navigation-start`, `navigation` (commit) | + complete / cancel / redirect | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> P0 half |
 
-**Почему «~ частично»:** **EB1 закрыт** — in-engine stream полный (`start` → `prepare:*` / `load:*` / `node:*` → `url-aligned` → `commit:*` → `finish` / `cancel` / `redirect` / `error`). Осталось **EB3** (DOM complete/cancel/redirect) и **EB4** (devtools). Callback `onNavigationCommitted` удалён; `onNavigationError` пока параллельно с bus.
+**Почему «~ частично»:** **EB1 закрыт** — in-engine stream полный (`start` → `prepare:*` / `load:*` / `node:*` → `url-aligned` → `commit:*` → `finish` / `cancel` / `redirect` / `error`). Осталось **EB3** (DOM complete/cancel/redirect) и **EB4** (devtools).
 
 ---
 
@@ -66,7 +66,7 @@ Hooks остаются для **логики приложения**; EventBus �
 | Emit `navigation:commit:end` + `node:activate` | `commitNavigation` | View promoted + `prev` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | DOM `navigation-start` | `aura-router.onEngineEvent` ← `url-aligned` | Active links + CustomEvent | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | DOM `navigation` (commit) | `onEngineEvent` ← `commit:end` | Scroll / not-found catch-all / CustomEvent | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `onNavigationError` | `failure/finalize-failure.ts` | Terminal failure (callback || bus) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Terminal errors | bus `navigation:error` → AuraRouter DOM | Config callback убран | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | DOM error CustomEvents | `aura-router/core/navigation-events.ts` | `not-found`, `navigation-error`, `navigation-hook-error` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `PrefetchIntentBus` | `prefetch/intent/bus.ts` | Только prefetch intent | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> ⊘ отдельно |
 | Тесты | `event-bus*.test.ts`, `commit-history.test.ts` | bus + pipeline + terminal | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
@@ -77,7 +77,7 @@ Hooks остаются для **логики приложения**; EventBus �
 |----------------------|--------|
 | In-engine lifecycle stream (EB0–EB2) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | DOM P0: `navigation-complete` / `navigation-cancel` / `navigation-redirect` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> EB3 |
-| `onNavigationError` thin-wrapper поверх bus | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> (сейчас параллельно) |
+| `onNavigationError` config callback | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> убран — только bus |
 | Devtools timeline (dev / opt-in) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> EB4 |
 
 ---
@@ -120,7 +120,7 @@ type EngineEvent =
 
 - Экземпляр на **`AuraRoutingEngine`** (`readonly events = new EventBus()`).
 - Публичный API: `engine.events.subscribe(...)` → unsubscribe; зеркало `AuraRouter.events`.
-- `onNavigationCommitted` **убран** — chrome идёт через bus. `onNavigationError` пока callback параллельно (не thin-wrapper поверх bus).
+- `onNavigationCommitted` / `onNavigationError` **убраны** — chrome и ошибки через bus.
 
 ### Опционально: мост в DOM — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
 
@@ -149,13 +149,13 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | `navigation:finish` | `settle` | `processResult` | Terminal success | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `navigation:cancel` | `settle` | `processResult` | В т.ч. supersede → cancelled; probe `finalizeResolveTerminal` bus не пишет | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `navigation:redirect` | `settle` | `processResult` | | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:error` | `settle` | `processResult` + callback `onNavigationError` | Bus и callback параллельно | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:error` | `settle` | `processResult` / `handleRedirectError` / `finalizeResolveTerminal` | → DOM adapter | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 **Fast path:** `start` → (deactivate) → `url-aligned` → `commit:start` → `commit:end` → (activate) → `finish` — без prepare/load.
 
 **Supersede / abort:** устаревший job получает `navigation:cancel` (не `finish`); новый — свой `navigation:start`.
 
-**Redirect-walk probe (`id: 0`):** `runRedirectCollapse` / `finalizeResolveTerminal` **не** пишут в bus (нет `run()` → нет `start`). Callbacks / history policy остаются.
+**Redirect-walk probe (`id: 0`):** нет `run()` → нет `start` / prepare / commit. Cancel/redirect с probe в bus не пишутся; terminal **error** → `pulse.settle` → `navigation:error` (thin-wrap + DOM).
 
 ---
 
@@ -163,7 +163,7 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 
 | EngineEvent (bus) | DOM event (public) | Статус bus | Статус DOM |
 |-------------------|-------------------|------------|------------|
-| `navigation:error` | `navigation-error` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (через callback) |
+| `navigation:error` | `navigation-error` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (`onEngineEvent`) |
 | — | `navigation-hook-error` | — | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (hook path) |
 | — | `not-found` | — | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> one-off |
 | `navigation:url-aligned` | `navigation-start` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
@@ -173,7 +173,7 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | `navigation:redirect` | `navigation-redirect` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P0 |
 | `load:*` | опционально на router | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P1 |
 
-Рекомендация: **bus — source of truth**; DOM dispatch — один adapter в `aura-router.ts` (уже так для start/commit). Errors пока через callback — перевести на bus emit + тот же adapter.
+Рекомендация: **bus — source of truth**; DOM dispatch — один adapter в `aura-router.ts` (start/commit/error).
 
 ---
 
@@ -196,11 +196,11 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `pulse.settle` в coordinator `processResult` (`finish` / `cancel` / `redirect` / `error`).
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Fast path: `alignUrl` + `commit:*` (без prepare/load).
 
-### EB2 — Public API + callbacks — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (error overlay ✗)
+### EB2 — Public API + callbacks — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `AuraRoutingEngine.events.subscribe()` (+ `AuraRouter.events`).
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Commit chrome через bus (callback `onNavigationCommitted` удалён).
-- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `onNavigationError` → emit `navigation:error` + thin-wrapper (backward compat).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `onNavigationError` config callback убран — только bus `navigation:error`.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Экспорт типов из пакета engine (`EventBus`, `EngineEvent`, …).
 
 ### EB3 — DOM bridge (с P0 NAVIGATION_EVENTS) — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
@@ -243,7 +243,7 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | pipeline / transaction / coordinator | тонкие вызовы `pulse.*` (без object literals) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `src/modules/aura-routing-engine/test/events/event-bus-pipeline.test.ts` | EB1 coverage | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `src/modules/aura-routing-engine/core/prefetch/intent/bus.ts` | образец API | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `src/modules/aura-router/core/aura-router.ts` | `onEngineEvent` adapter | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> start+commit |
+| `src/modules/aura-router/core/aura-router.ts` | `onEngineEvent` adapter | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> start+commit+error |
 | `src/modules/aura-router/core/navigation-events.ts` | DOM bridge | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> errors+start+`navigation` · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> complete/cancel/redirect |
 
 ---
@@ -259,3 +259,5 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | 2026-07-19 | Рефактор: все emit payload в `NavigationPulse`; pipeline/coordinator — только `pulse.*` |
 | 2026-07-19 | `NavigationPulse` перенесён в `core/navigation/` (`events/` = bus + types) |
 | 2026-07-19 | API pulse: `begin` / `loadStart`/`loadEnd` / `alignUrl` / `settle` (+ JSDoc sync) |
+| 2026-07-19 | `onNavigationError` thin-wrap поверх `navigation:error`; DOM error через `onEngineEvent` |
+| 2026-07-19 | `onNavigationError` убран из engine config — prod только bus → AuraRouter DOM |

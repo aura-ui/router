@@ -137,7 +137,7 @@ The engine keeps three related concepts separate:
   `resolveHistoryPolicy()`; load/render errors after early commit preserve the URL.
 
 `commitNavigation()` on the engine is the view-success boundary: staged view is
-promoted, `prev` is updated, scroll/hash and `onNavigationCommitted` run. It does
+promoted, `prev` is updated, and bus `commit:end` (+ hash scroll) runs. It does
 not perform a second `pushState` when history was already committed.
 
 ### Commit-slice invariant (do not break)

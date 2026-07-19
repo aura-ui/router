@@ -322,6 +322,7 @@ export class AuraRoutingEngine implements NavigationHost {
     options: NavigateHistoryOptions,
   ): void {
     const failure = FailedNavigation.redirectError(code, href, this.prev, action);
+    this.pulse.settle(0, failure.toResult());
     this.applyFinalizeEffects(
       finalizePreMatchFailureNavigation(
         failure,
@@ -337,8 +338,8 @@ export class AuraRoutingEngine implements NavigationHost {
 
   /**
    * Terminal outcome from pre-commit redirect resolution (before pipeline run).
-   * Probe txs use `id: 0` and never call {@link NavigationTransaction.run} — bus
-   * stream is skipped (orphan terminal without `start`). Callbacks / history still run.
+   * Probe txs use `id: 0` and never call {@link NavigationTransaction.run}.
+   * Cancel/redirect stay off-bus; error emits `navigation:error`.
    */
   finalizeResolveTerminal(
     result: Exclude<PipelineStepResult, null>,
@@ -355,13 +356,13 @@ export class AuraRoutingEngine implements NavigationHost {
       return;
     }
     if (result.status === 'error') {
+      this.pulse.settle(probe.transactionId, result);
       this.finalizeError(result, probe);
     }
   }
 
   private failureDeps(): CompleteFailureDeps {
     return {
-      onNavigationError: this.config.onNavigationError,
       onNotFound: this.config.onNotFound,
       notFoundHandler: this.notFoundHandler ?? undefined,
     };

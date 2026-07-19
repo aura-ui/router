@@ -46,7 +46,7 @@ export interface FinalizeNavigationEffects {
   setPrev?: MatchedRouteInfo | null;
 }
 
-/** Pre-match failure (NOT_FOUND, redirect cycle/depth): callbacks then history policy. */
+/** Pre-match failure (NOT_FOUND, redirect cycle/depth): finalizeFailure + history policy. */
 export function finalizePreMatchFailureNavigation(
   failure: FailedNavigation,
   action: HistoryAction,

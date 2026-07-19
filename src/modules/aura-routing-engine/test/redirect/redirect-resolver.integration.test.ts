@@ -3,6 +3,7 @@ import {
   FakeHistoryProvider,
 } from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
 import { registerTestHook } from '../helpers/jest/navigation-fixtures';
 import {
   collectRoutesFromDom,
@@ -244,13 +245,10 @@ describe('RedirectResolver integration', () => {
     expect(provider.currentHref).toBe('/');
   });
 
-  it('reports hook redirect cycle via onNavigationError', async () => {
-    const onNavigationError = jest.fn();
+  it('emits navigation:error on hook redirect cycle', async () => {
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(
-      { navigate: jest.fn() },
-      { provider, onNavigationError },
-    );
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const errors = collectNavigationErrors(engine);
 
     registerTestHook(engine.hooksRegistry, 'to-b', () => '/b');
     registerTestHook(engine.hooksRegistry, 'to-a', () => '/a');
@@ -265,12 +263,12 @@ describe('RedirectResolver integration', () => {
 
     await engine.navigateTo('/a', 'push', { replace: false, syncHistory: true });
 
-    expect(onNavigationError).toHaveBeenCalledWith(
+    expect(errors).toEqual([
       expect.objectContaining({
         href: '/a',
         error: expect.objectContaining({ code: 'REDIRECT_CYCLE' }),
       }),
-    );
+    ]);
     expect(provider.currentHref).toBe('/');
   });
 

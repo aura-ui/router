@@ -2,7 +2,6 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { FailedNavigation } from './navigation-failure';
 
 export interface CompleteFailureDeps {
-  onNavigationError?: (failure: FailedNavigation) => void;
   onNotFound?: (failure: FailedNavigation) => void | boolean;
   notFoundHandler?: (href: string) => void;
 }
@@ -12,7 +11,11 @@ export interface CompleteFailureOutcome {
   setPrev?: MatchedRouteInfo | null;
 }
 
-/** Failure callbacks and `prev` hint — history is applied by the engine via {@link ../history/history-policy}. */
+/**
+ * NOT_FOUND callbacks + `prev` hint.
+ * Non-notFound terminal errors are observed via bus `navigation:error`.
+ * History is applied by the engine via {@link ../history/history-policy}.
+ */
 export function finalizeFailure(
   failure: FailedNavigation,
   deps: CompleteFailureDeps,
@@ -22,11 +25,6 @@ export function finalizeFailure(
     if (recoveryAllowed) {
       deps.notFoundHandler?.(failure.href);
     }
-  } else {
-    deps.onNavigationError?.(failure);
-  }
-
-  if (failure.isNotFound) {
     return { setPrev: null };
   }
 

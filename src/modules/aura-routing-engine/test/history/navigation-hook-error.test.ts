@@ -5,6 +5,7 @@ import {
 import type { RouterInstance } from '../../core';
 import { defineRouteHook } from '../../core/hooks/define-hook';
 import { HookRegistry, defaultHookRegistry } from '../../core/hooks/registry';
+import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
 import { createTestRoute } from '../helpers/create-test-route';
 
 describe('onNavigationHookError', () => {
@@ -18,14 +19,13 @@ describe('onNavigationHookError', () => {
     const hookError = new Error('error hook failed');
     const renderError = new Error('render failed');
     const onNavigationHookError = jest.fn();
-    const onNavigationError = jest.fn();
 
     const provider = new FakeHistoryProvider('/');
     const engine = new AuraRoutingEngine(router, {
       provider,
-      onNavigationError,
       onNavigationHookError,
     });
+    const errors = collectNavigationErrors(engine);
 
     engine.hooksRegistry.register(
       defineRouteHook({
@@ -48,13 +48,13 @@ describe('onNavigationHookError', () => {
 
     await engine.navigateTo('/broken', 'push', { replace: false, syncHistory: true });
 
-    expect(onNavigationError).toHaveBeenCalledWith(
+    expect(errors).toEqual([
       expect.objectContaining({
         error: expect.objectContaining({ code: 'RENDER_FAILED', phase: 'render' }),
         href: '/broken',
         viewCommitted: true,
       }),
-    );
+    ]);
     expect(onNavigationHookError).toHaveBeenCalledWith({
       error: hookError,
       phase: 'error',

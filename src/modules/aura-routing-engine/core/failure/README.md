@@ -4,7 +4,7 @@
 `FailedNavigation` snapshots. Import from `core/failure` (barrel).
 
 Terminal **side effects** (app callbacks, `prev`, history) live in
-`navigation/navigation-outcome-handler.ts` (`applyNavigationOutcome`).
+`navigation/navigation-outcome.ts` (`applyNavigationOutcome`).
 Observability is `NavigationPulse` (observe-only).
 
 ## Structure

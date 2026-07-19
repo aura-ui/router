@@ -11,7 +11,7 @@ import type { PipelineStepResult, TransactionResult } from './types';
  * - **Does not:** write history, mutate `prev`, call app callbacks (`onNotFound`, …),
  *   start a new navigation, mount/unmount views, or otherwise apply engine side effects.
  *
- * Terminal side effects live in {@link ./navigation-outcome-handler!applyNavigationOutcome}.
+ * Terminal side effects live in {@link ./navigation-outcome!applyNavigationOutcome}.
  * Call order target: {@link settle} (observe) → apply effects (mutate).
  *
  * Flow: {@link begin} → {@link prepareStart}/{@link prepareEnd} → {@link loadStart}/{@link loadEnd}

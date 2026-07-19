@@ -67,7 +67,7 @@ export type NavigationShortCircuit =
 
 /**
  * Terminal navigation error — structured {@link FailedNavigation} for history
- * policy and terminal apply ({@link ./navigation-outcome-handler!applyNavigationOutcome}).
+ * policy and terminal apply ({@link ./navigation-outcome!applyNavigationOutcome}).
  */
 export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation };
 
@@ -76,7 +76,7 @@ export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation
  *
  * Dispatched by {@link ./navigation-coordinator!NavigationCoordinator} via
  * {@link ./navigation-host!NavigationHost.applyTerminalOutcome}
- * → {@link ./navigation-outcome-handler!applyNavigationOutcome}.
+ * → {@link ./navigation-outcome!applyNavigationOutcome}.
  *
  * - `navigationSucceeded` — full pipeline completed (not the same as view `committed`
  *   or {@link FailedNavigation.viewCommitted}); history URL commit is done by the engine

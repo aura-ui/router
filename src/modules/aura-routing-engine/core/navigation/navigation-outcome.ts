@@ -8,8 +8,11 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from './navigation-transaction';
 import type { TransactionResult } from './types';
 
-/** Context for terminal apply — no bus emits ({@link NavigationPulse} is observe-only). */
-export type NavigationOutcomeApplyContext = {
+/**
+ * Host callbacks / provider for terminal apply.
+ * No bus emits — {@link NavigationPulse} is observe-only.
+ */
+export type ApplyOutcomeContext = {
   provider: HistoryProviderLike;
   onNotFound?: (failure: FailedNavigation) => void | boolean;
   notFoundHandler?: (href: string) => void;
@@ -21,27 +24,32 @@ export type NavigationOutcomeApplyContext = {
   ) => void;
 };
 
-/** Public config shape for NOT_FOUND recovery (subset of apply context). */
-export type CompleteFailureDeps = Pick<
-  NavigationOutcomeApplyContext,
+/** NOT_FOUND recovery callbacks (public config shape). */
+export type NotFoundCallbacks = Pick<
+  ApplyOutcomeContext,
   'onNotFound' | 'notFoundHandler'
 >;
 
+/** @deprecated Use {@link NotFoundCallbacks}. */
+export type CompleteFailureDeps = NotFoundCallbacks;
+
 /**
- * History identity for terminal apply — from a live {@link NavigationTransaction}
- * or ad-hoc fields for pre-match failures (no tx).
+ * Who/where of the navigation being applied — enough for history + redirect
+ * without a live {@link NavigationTransaction} (pre-match uses ad-hoc fields).
  */
-export type OutcomeNav = {
+export type NavigationIdentity = {
   action: HistoryAction;
   href: string;
   fromHref: string | null;
   historyOptions: NavigateHistoryOptions;
-  /** Omit / false for pre-match. */
+  /** Omit / false for pre-match (URL not written yet). */
   historyCommitted?: boolean;
 };
 
-/** Build {@link OutcomeNav} from a transaction. */
-export function outcomeNavFromTx(tx: NavigationTransaction): OutcomeNav {
+/** {@link NavigationIdentity} from a live transaction. */
+export function navigationIdentityFromTx(
+  tx: NavigationTransaction,
+): NavigationIdentity {
   return {
     action: tx.action,
     href: tx.href,
@@ -57,19 +65,20 @@ export function outcomeNavFromTx(tx: NavigationTransaction): OutcomeNav {
  */
 export function applyNavigationOutcome(
   result: TransactionResult,
-  nav: OutcomeNav,
-  ctx: NavigationOutcomeApplyContext,
+  identity: NavigationIdentity,
+  ctx: ApplyOutcomeContext,
 ): void {
   switch (result.status) {
     case 'navigationSucceeded':
       return;
 
     case 'cancelled':
-      applyHistoryIfNeeded({ status: 'cancelled' }, nav, ctx.provider);
+      applyHistoryIfNeeded({ status: 'cancelled' }, identity, ctx.provider);
       return;
 
     case 'redirect': {
-      const replace = result.replace ?? (!!nav.historyCommitted || nav.action === 'pop');
+      const replace =
+        result.replace ?? (!!identity.historyCommitted || identity.action === 'pop');
       ctx.navigateTo(result.url, replace ? 'replace' : 'push', {
         replace,
         syncHistory: true,
@@ -79,7 +88,7 @@ export function applyNavigationOutcome(
 
     case 'error':
       applyFailureEffects(result.failure, ctx);
-      applyHistoryIfNeeded(result, nav, ctx.provider);
+      applyHistoryIfNeeded(result, identity, ctx.provider);
       return;
   }
 }
@@ -87,7 +96,7 @@ export function applyNavigationOutcome(
 /** NOT_FOUND callbacks + `prev`. No history / bus. */
 function applyFailureEffects(
   failure: FailedNavigation,
-  ctx: NavigationOutcomeApplyContext,
+  ctx: ApplyOutcomeContext,
 ): void {
   if (failure.isNotFound) {
     if (ctx.onNotFound?.(failure) !== false) {
@@ -105,18 +114,18 @@ function applyFailureEffects(
 /** Pop always; push/replace only before post-load history commit. */
 function applyHistoryIfNeeded(
   result: TransactionResult,
-  nav: OutcomeNav,
+  identity: NavigationIdentity,
   provider: HistoryProviderLike,
 ): void {
-  if (nav.historyCommitted && nav.action !== 'pop') {
+  if (identity.historyCommitted && identity.action !== 'pop') {
     return;
   }
   applyTransactionHistory(
     result,
-    nav.action,
-    nav.href,
-    nav.fromHref,
-    nav.historyOptions,
+    identity.action,
+    identity.href,
+    identity.fromHref,
+    identity.historyOptions,
     provider,
   );
 }

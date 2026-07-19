@@ -16,7 +16,7 @@
 |----------------|-------------|--------|
 | **NavigationIntentResolver** | hash-only в `navigateTo`; match/noop в coordinator/planner — единого resolver нет | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **NavigationRunManager + Run** | `NavigationCoordinator` + `NavigationTransaction` | <span style="color: #bf8700; font-weight: bold;">~</span> |
-| **Terminal apply** | `applyNavigationOutcome` / `applyPreMatchFailure` · host `applyTerminalOutcome` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| **Terminal apply** | `applyNavigationOutcome` (+ `OutcomeNav`) · host `applyTerminalOutcome` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | **RedirectResolver** | `followRedirectsWithGuardWalk` — `core/redirect/redirect-resolver.ts` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | **ViewCommitOrchestrator** | `view-commit-render` / tracker / rollback — без единого orchestrator | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **NotFoundPipeline** | `not-found-exit-cleanup` + `handleUnmatchedNavigation` на engine | <span style="color: #bf8700; font-weight: bold;">~</span> |

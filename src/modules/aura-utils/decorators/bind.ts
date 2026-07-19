@@ -1,11 +1,13 @@
 import { getPropertyDescriptor } from '../misc/utils';
 
+type BoundMethod = (...args: never[]) => unknown;
+
 /**
  * `@bind` decorator: lazily binds a class prototype method to its instance (`this`).
  *
  * @throws TypeError when applied to a non-method
  */
-export function bind<Fn extends Function>(_target: object,
+export function bind<Fn extends BoundMethod>(_target: object,
                                           methodName: string,
                                           descriptor: TypedPropertyDescriptor<Fn>): TypedPropertyDescriptor<Fn> {
   // Validation check

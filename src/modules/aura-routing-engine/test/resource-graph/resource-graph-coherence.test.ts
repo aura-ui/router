@@ -29,7 +29,6 @@ function prepareTx(
   const to = enterRoutes[enterRoutes.length - 1]!;
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from: null,
       to,

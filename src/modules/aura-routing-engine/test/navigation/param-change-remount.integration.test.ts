@@ -100,7 +100,6 @@ async function runParamRemountNavigation(
 
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from,
       to,
@@ -212,7 +211,6 @@ describe('NavigationTransactionPipeline branch remount options', () => {
 
     const transaction = new NavigationTransaction(
       1,
-      0,
       {
         from: exitRoute,
         to: enterRoute,

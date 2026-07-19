@@ -139,7 +139,6 @@ async function runRenderStep(
 
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from,
       to,

@@ -169,7 +169,6 @@ export function createPairTransaction(options: {
   const engine = createCoordinatorMockHost() as unknown as AuraRoutingEngine;
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from: options.from,
       to: options.to,
@@ -211,7 +210,6 @@ export function createMockTransaction(options: {
 
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from,
       to,

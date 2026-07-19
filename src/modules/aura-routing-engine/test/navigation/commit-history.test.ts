@@ -11,7 +11,6 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
     const to = createMatchedRoute('/to');
     const tx = new NavigationTransaction(
       1,
-      0,
       {
         from,
         to,
@@ -37,7 +36,6 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
     const to = createMatchedRoute('/to');
     const tx = new NavigationTransaction(
       1,
-      0,
       {
         from: createMatchedRoute('/from'),
         to,
@@ -61,7 +59,6 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
     const route = createMatchedRoute('/users/1');
     const tx = new NavigationTransaction(
       1,
-      0,
       {
         from: route,
         to: route,
@@ -85,7 +82,6 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
     const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
     const tx = new NavigationTransaction(
       1,
-      0,
       {
         from: createMatchedRoute('/from'),
         to: createMatchedRoute('/to'),
@@ -110,7 +106,6 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
     const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
     const tx = new NavigationTransaction(
       1,
-      0,
       {
         from: createMatchedRoute('/from'),
         to: createMatchedRoute('/to'),
@@ -136,7 +131,6 @@ describe('AuraRoutingEngine finalize after early history', () => {
     const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
     const tx = new NavigationTransaction(
       1,
-      0,
       {
         from: createMatchedRoute('/from'),
         to: createMatchedRoute('/to'),

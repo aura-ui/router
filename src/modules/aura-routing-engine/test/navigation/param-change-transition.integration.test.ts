@@ -139,7 +139,6 @@ async function runParamRemountNavigation(
 
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from,
       to,
@@ -464,7 +463,6 @@ describe('param-change in-place + transition pipeline order', () => {
 
     const transaction = new NavigationTransaction(
       1,
-      0,
       {
         from: exitRoute,
         to: enterRoute,

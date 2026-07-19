@@ -20,7 +20,6 @@ describe('NavigationTransaction.run fast path selection', () => {
     const to = createMatchedRoute('/b');
     const transaction = new NavigationTransaction(
       1,
-      0,
       {
         from,
         to,
@@ -67,7 +66,6 @@ describe('NavigationTransaction.run fast path selection', () => {
     });
     const transaction = new NavigationTransaction(
       1,
-      0,
       {
         from,
         to,

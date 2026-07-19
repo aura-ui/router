@@ -60,7 +60,7 @@ export class NavigationTransactionPipeline {
     return await this.runSequentially([
       ...(this.transaction.skipBlockingPhases ? [] : [() => this.runGuards()]),
       () => this.runCommitHistory(),
-      () => this.runNavigationPrepare(),
+      () => this.runPrepare(),
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
     ]) ?? { status: 'navigationSucceeded' };
@@ -169,7 +169,7 @@ export class NavigationTransactionPipeline {
     return error ?? null;
   }
 
-  private async runNavigationPrepare(): Promise<PipelineStepResult> {
+  async runPrepare(): Promise<PipelineStepResult> {
     //todo Лишний loadView при DomCache hit
     return this.runSequentially([
       () => this.runLoads(),

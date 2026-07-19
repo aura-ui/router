@@ -236,7 +236,7 @@ describe('NavigationTransactionPipeline branch remount options', () => {
       expect.objectContaining({
         parentSignal: transaction.signal,
         paramChangeRemount: true,
-        preResolvedContent: '<span>view-2</span>',
+        preResolvedView: '<span>view-2</span>',
       }),
     );
   });

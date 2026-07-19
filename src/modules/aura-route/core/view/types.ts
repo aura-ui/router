@@ -17,7 +17,7 @@ export type RenderPass = {
   /**
    * When set, skips {@link ViewResolverPort.loadView} and mounts directly.
    */
-  readonly preResolvedContent?: ViewPayload | null;
+  readonly preResolvedView?: ViewPayload | null;
 };
 
 export interface ViewRenderPlugin {

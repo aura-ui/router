@@ -4,20 +4,18 @@
  * @module view-mount/branch-mount
  */
 import type { ApplyPreResolvedOptions } from '../../../aura-route/core/types';
+import type { DataSnapshot } from '../data-graph';
+import { resolveRouteData } from '../data-graph/route-data';
 import type { ViewPayload } from '../view-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { isRenderError } from './view-commit-render';
 
 export type BranchMountContext = {
   signal: AbortSignal;
-  /**
-   * Navigation cancellation check — prefer `() => !transaction.isActive()`
-   * (abort + supersede), not `signal.aborted` alone.
-   */
+  /** Prefer `() => !transaction.isActive()` (abort + supersede). */
   aborted: () => boolean;
   paramChangeRemount?: boolean;
-  /** Load-hook snapshot for a route (from DataGraph). */
-  dataFor?: (route: MatchedRouteInfo) => unknown | undefined;
+  dataSnapshot?: DataSnapshot;
 };
 
 export type MountEnterBranchResult =
@@ -26,7 +24,7 @@ export type MountEnterBranchResult =
   | { status: 'error'; error: unknown; route: MatchedRouteInfo };
 
 /**
- * Mount all enter routes synchronously using {@link NavigationTransaction.viewSnapshot} payloads.
+ * Mount enter routes synchronously from {@link NavigationTransaction.viewSnapshot}.
  */
 export function mountEnterBranch(
   enterRoutes: readonly MatchedRouteInfo[],
@@ -47,10 +45,12 @@ export function mountEnterBranch(
 
   for (let i = 0; i < enterRoutes.length; i++) {
     const matchedRoute = enterRoutes[i]!;
-    const data = ctx.dataFor?.(matchedRoute);
+    const data = ctx.dataSnapshot
+      ? resolveRouteData(ctx.dataSnapshot, matchedRoute)
+      : undefined;
     const options: ApplyPreResolvedOptions = {
       parentSignal: ctx.signal,
-      preResolvedContent: viewSnapshot[i]!,
+      preResolvedView: viewSnapshot[i]!,
       ...(data !== undefined && { data }),
       ...(ctx.paramChangeRemount ? { paramChangeRemount: true } : {}),
     };

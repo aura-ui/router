@@ -127,7 +127,6 @@ async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteI
 
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from,
       to,

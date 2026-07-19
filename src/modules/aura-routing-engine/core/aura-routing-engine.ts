@@ -405,7 +405,6 @@ export class AuraRoutingEngine implements NavigationHost {
 
       const probe = new NavigationTransaction(
         0,
-        0,
         {
           from: this.prev,
           to: plan.leaf,

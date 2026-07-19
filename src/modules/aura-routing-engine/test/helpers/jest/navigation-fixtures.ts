@@ -105,7 +105,6 @@ export async function runNavigationTransaction(
 ) {
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from,
       to,

@@ -33,7 +33,6 @@ function loadTransaction(
   const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
   const transaction = new NavigationTransaction(
     1,
-    0,
     {
       from: null,
       to,
@@ -752,7 +751,6 @@ describe('DataGraph', () => {
     const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
     const transaction = new NavigationTransaction(
       1,
-      0,
       {
         from: null,
         to: route,
@@ -817,7 +815,6 @@ describe('DataGraph', () => {
     const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
     const transaction = new NavigationTransaction(
       1,
-      0,
       {
         from: null,
         to: route,

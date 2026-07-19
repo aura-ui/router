@@ -81,7 +81,6 @@ describe('NavigationTransaction staged view rollback', () => {
     const engine = createMockEngine();
     return new NavigationTransaction(
       1,
-      0,
       {
         from: null,
         to,
@@ -136,7 +135,6 @@ describe('NavigationTransaction staged view rollback', () => {
     const engine = createMockEngine();
     const transaction = new NavigationTransaction(
       1,
-      0,
       {
         from: null,
         to,

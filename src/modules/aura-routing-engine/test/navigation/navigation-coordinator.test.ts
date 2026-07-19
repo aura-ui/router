@@ -846,7 +846,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(coordinator.isTransactionStale(transaction.transactionId, 0)).toBe(false);
+      expect(coordinator.isTransactionStale(transaction.transactionId)).toBe(false);
 
       expect(transaction.isStale()).toBe(false);
 
@@ -886,7 +886,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(coordinator.isTransactionStale(firstId, 0)).toBe(true);
+      expect(coordinator.isTransactionStale(firstId)).toBe(true);
 
       expect(firstTransaction.isStale()).toBe(true);
 
@@ -926,7 +926,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(coordinator.isTransactionStale(transaction.transactionId, 0)).toBe(true);
+      expect(coordinator.isTransactionStale(transaction.transactionId)).toBe(true);
 
       expect(transaction.isStale()).toBe(true);
 
@@ -998,7 +998,8 @@ describe('NavigationCoordinator', () => {
 
       expect(coordinator.activeTransaction).toBeNull();
 
-      expect(coordinator.isTransactionStale(1, 0)).toBe(true);
+      // Fresh coordinator starts at 0; invalidate fences so prior ids are stale.
+      expect(coordinator.isTransactionStale(0)).toBe(true);
 
     });
 

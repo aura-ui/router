@@ -97,7 +97,6 @@ describe('redirect blocking walk policy', () => {
 
     const transaction = new NavigationTransaction(
       0,
-      0,
       {
         from,
         to,

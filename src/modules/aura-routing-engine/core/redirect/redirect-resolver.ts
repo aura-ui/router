@@ -213,7 +213,6 @@ async function runBlockingWalkProbe(
 ): Promise<BlockingPhasesProbeOutcome> {
   const probe = new NavigationTransaction(
     0,
-    0,
     {
       from: input.from,
       to: target,

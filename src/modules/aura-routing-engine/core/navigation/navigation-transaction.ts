@@ -17,8 +17,8 @@ import type { ViewPayload } from '../view-graph';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 import { NavigationFailureHandler } from './navigation-failure-handler';
 
-/** Returns true when a newer transaction or router generation superseded this one. */
-type IsTransactionStaleCheck = (transactionId: number, routerGenerationId: number) => boolean;
+/** Returns true when a newer transaction or coordinator invalidate superseded this one. */
+type IsTransactionStaleCheck = (transactionId: number) => boolean;
 
 export class NavigationTransaction {
   readonly from: MatchedRouteInfo | null;
@@ -48,7 +48,6 @@ export class NavigationTransaction {
 
   constructor(
     transactionId: number,
-    routerGenerationId: number,
     options: NavigationTransactionOptions,
     isTransactionStale: IsTransactionStaleCheck,
     engine: AuraRoutingEngine,
@@ -64,7 +63,7 @@ export class NavigationTransaction {
 
     this.abortController = new AbortController();
     this.signal = this.abortController.signal;
-    this.isStale = () => isTransactionStale(transactionId, routerGenerationId);
+    this.isStale = () => isTransactionStale(transactionId);
     this.engine = engine;
     this.phaseMode = options.phaseMode ?? 'navigation';
 

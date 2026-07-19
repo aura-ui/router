@@ -27,8 +27,11 @@ export class NavigationCoordinator {
 
   /** Transaction the coordinator actively manages (cancel / supersede). */
   activeTransaction: NavigationTransaction | null;
+  /**
+   * Pipeline epoch: bumped on each {@link run} and on {@link invalidate}.
+   * A transaction is current only while its id equals this value (supersede + invalidate fence).
+   */
   private activeTransactionId: number;
-  private routerGenerationId: number;
   /** Monotonic token — latest navigation attempt wins after async resolve. */
   private navigateGeneration: number;
   /** Aborts in-flight redirect resolution when superseded. */
@@ -40,7 +43,6 @@ export class NavigationCoordinator {
     this.host = host;
     this.activeTransaction = null;
     this.activeTransactionId = 0;
-    this.routerGenerationId = 0;
     this.navigateGeneration = 0;
     this.resolveAbort = null;
   }
@@ -120,9 +122,9 @@ export class NavigationCoordinator {
     }
   }
 
-  /** Returns true when a newer transaction or router generation superseded this one. */
-  isTransactionStale(transactionId: number, routerGenerationId: number): boolean {
-    return this.activeTransactionId !== transactionId || this.routerGenerationId !== routerGenerationId;
+  /** Returns true when a newer transaction or {@link invalidate} superseded this one. */
+  isTransactionStale(transactionId: number): boolean {
+    return this.activeTransactionId !== transactionId;
   }
 
   /** Whether a navigation attempt for this href is still open. */
@@ -137,7 +139,8 @@ export class NavigationCoordinator {
     this.resolveAbort = null;
     this.openNavigations.clear();
     this.navigateGeneration++;
-    this.routerGenerationId++;
+    // Fence: completed/leftover txs (id still equals last run) become stale without a new run.
+    this.activeTransactionId++;
   }
 
   /**
@@ -160,7 +163,6 @@ export class NavigationCoordinator {
     this.activeTransactionId++;
     const next = new NavigationTransaction(
       this.activeTransactionId,
-      this.routerGenerationId,
       options,
       this.isTransactionStale.bind(this),
       this.host.engine,

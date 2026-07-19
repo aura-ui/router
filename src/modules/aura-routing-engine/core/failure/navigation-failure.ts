@@ -6,9 +6,10 @@ import { isViewCommittedForHistory, type ViewCommitSnapshot } from '../view-moun
 import { NavigationError } from './navigation-error';
 
 /**
- * Failed navigation — single object from pipeline or pre-match NOT_FOUND through engine finalization.
+ * Failed navigation — terminal snapshot from pipeline or pre-match NOT_FOUND.
  *
- * Side effects: callbacks and `prev` via {@link finalizeFailure}; history via engine {@link ../history/history-policy}.
+ * Model only. Side effects → {@link ../navigation/navigation-outcome-handler!applyNavigationOutcome}
+ * / {@link ../navigation/navigation-outcome-handler!applyPreMatchFailure}.
  */
 export class FailedNavigation {
   readonly error: NavigationError;

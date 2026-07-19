@@ -1,47 +1,38 @@
 # Failure Layer
 
-`failure/` owns the structured navigation failure model used after match,
-pipeline, render, and content-load errors.
+`failure/` owns the **structured failure model** only — codes, normalization, and
+`FailedNavigation` snapshots. Import from `core/failure` (barrel).
 
-Import from `core/failure` (barrel) rather than deep paths unless you are editing
-files inside this folder.
+Terminal **side effects** (app callbacks, `prev`, history) live in
+`navigation/navigation-outcome-handler.ts` (`applyNavigationOutcome`,
+`applyPreMatchFailure`). Observability is `NavigationPulse` (observe-only).
 
 ## Structure
 
-- `navigation-error.ts` defines stable failure codes, phase attribution, and the
-  single normalization path from `unknown` to `NavigationError`.
-- `navigation-failure.ts` defines `FailedNavigation`, the terminal failure
-  snapshot passed through processor, navigation finalization, callbacks, and
-  history policy.
-- `finalize-failure.ts` runs app failure callbacks and returns the `prev` update
-  hint. It does not write history.
+- `navigation-error.ts` — stable failure codes, phase attribution, `unknown` → `NavigationError`.
+- `navigation-failure.ts` — `FailedNavigation` terminal snapshot for pipeline, history policy, and bus payloads.
 
 ## Ownership Boundaries
 
-`failure/` does not execute route lifecycle callbacks or registered hooks.
-Route lifecycle on failure lives in `navigation/`:
+`failure/` does **not**:
 
-- `navigation-failure-handler.ts` — terminal `error` phase (`onError` + attr hooks)
-  after a pipeline failure and assembled `FailedNavigation`.
-- `not-found-exit-cleanup.ts` — callback-only `unmount` on the previous leaf
-  before pre-match `NOT_FOUND` finalization.
+- run app callbacks (`onNotFound`, …) or mutate `prev`;
+- write history;
+- emit on the EventBus;
+- execute route lifecycle hooks (`error` phase → `navigation/navigation-failure-handler.ts`).
 
-History writes are resolved in `history/` and applied in `navigation/navigation-finalize.ts`.
-This keeps failure callbacks, `prev` updates, and browser history policy separate.
+Route lifecycle on failure:
 
-**Observability is not this layer.** Bus `navigation:error` (and other terminal events)
-are emitted only by `NavigationPulse` (observe-only). `finalizeFailure` must not emit
-on the bus and must not write history — it only runs app callbacks and returns a `prev` hint.
+- `navigation-failure-handler.ts` — terminal `error` phase after pipeline failure;
+- `not-found-exit-cleanup.ts` — callback-only `unmount` before pre-match `NOT_FOUND` apply.
 
-## Recovery Contract
+History policy: `history/history-policy.ts` (`applyTransactionHistory`).
 
-- `NOT_FOUND` calls `onNotFound`; when it does not return `false`, the configured
-  fallback handler may run. The active route snapshot is cleared with
-  `{ setPrev: null }`.
-- Pipeline/render / redirect-cycle errors emit bus `navigation:error`
-  (host / tests subscribe; AuraRouter maps to DOM `navigation-error`).
-- If a target view was committed before the failure, `finalizeFailure` returns
-  `{ setPrev: failure.to }`; otherwise it leaves `prev` unchanged.
+## Recovery (apply layer, not here)
+
+- `NOT_FOUND` → `onNotFound` / fallback / `setPrev(null)` via `applyPreMatchFailure`.
+- Pipeline / redirect-cycle errors → bus `navigation:error` via `NavigationPulse.settle`.
+- Committed view failure → `setPrev(failure.to)` via apply path.
 
 History behavior is derived from `FailedNavigation.error.code` and
 `FailedNavigation.commit` by `resolveErrorHistoryPolicy()`.

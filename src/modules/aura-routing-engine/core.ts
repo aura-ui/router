@@ -7,8 +7,7 @@
  * **Implementation modules not exported from this barrel:**
  * - `route-tree/` — nested tree, branch diff implementation, `TransitionMap`, `buildTransitionPlan`
  * - `aura-routing-route-registry.ts` — route catalog snapshot
- * - `navigation/` — coordinator, transaction, pipeline, history finalize
- * - `navigation/navigation-finalize.ts` — history policy after terminal outcomes
+ * - `navigation/` — coordinator, transaction, pipeline, outcome apply
  * - `view-mount/` — tracker/render impl (types partially exported below)
  */
 
@@ -44,7 +43,7 @@ export type {
   NavigationHookErrorDetail,
   ReportNavigationHookError,
 } from './core/failure';
-export type { CompleteFailureDeps, CompleteFailureOutcome } from './core/failure';
+export type { CompleteFailureDeps } from './core/navigation/navigation-outcome-handler';
 
 export type {
   NavigationFailureCode,
@@ -69,8 +68,13 @@ export type {
   MountEnterBranchResult,
 } from './core/view-mount/branch-mount';
 
-export type { TransactionResult, PipelineStepResult, NavigationErrorResult, NavigationShortCircuit } from './core/navigation/types';
-export type { NavigationCommittedContext } from './core/navigation/navigation-finalize';
+export type {
+  TransactionResult,
+  PipelineStepResult,
+  NavigationErrorResult,
+  NavigationShortCircuit,
+  NavigationCommittedContext,
+} from './core/navigation/types';
 
 // --- History layer (default provider + DI for tests) ---
 

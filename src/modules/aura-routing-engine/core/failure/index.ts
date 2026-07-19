@@ -1,11 +1,4 @@
 export {
-  finalizeFailure,
-} from './finalize-failure';
-export type {
-  CompleteFailureDeps,
-  CompleteFailureOutcome,
-} from './finalize-failure';
-export {
   FAILURE_CODE_BY_PHASE,
   NavigationError,
   createViewLoadError,

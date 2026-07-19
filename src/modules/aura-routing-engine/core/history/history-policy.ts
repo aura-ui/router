@@ -98,3 +98,23 @@ export function applyHistoryPolicy(
       break;
   }
 }
+
+/** Resolve + apply history policy for a terminal {@link TransactionResult}. */
+export function applyTransactionHistory(
+  result: TransactionResult,
+  action: HistoryAction,
+  href: string,
+  fromHref: string | null,
+  options: NavigateHistoryOptions,
+  provider: HistoryProviderLike,
+  policyOptions: ResolveHistoryOptions = {},
+): void {
+  applyHistoryPolicy(
+    resolveHistoryPolicy(result, action, {
+      syncHistory: options.syncHistory,
+      ...policyOptions,
+    }),
+    { href, fromHref, options },
+    provider,
+  );
+}

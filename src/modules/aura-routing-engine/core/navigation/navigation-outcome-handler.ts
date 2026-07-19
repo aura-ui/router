@@ -1,29 +1,29 @@
-import {
-  finalizeFailure,
-  type CompleteFailureDeps,
-  type FailedNavigation,
-} from '../failure';
-import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-import type { HistoryProviderLike } from '../history/history-policy';
-import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { FailedNavigation } from '../failure';
 import {
   applyTransactionHistory,
-  finalizePreMatchFailureNavigation,
-} from './navigation-finalize';
+  type HistoryProviderLike,
+} from '../history/history-policy';
+import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
+import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from './navigation-transaction';
 import type { TransactionResult } from './types';
 
+/** App recovery callbacks for NOT_FOUND (public config shape). */
+export type CompleteFailureDeps = {
+  onNotFound?: (failure: FailedNavigation) => void | boolean;
+  notFoundHandler?: (href: string) => void;
+};
+
 /** Context for terminal apply — no bus emits ({@link NavigationPulse} is observe-only). */
-export interface NavigationOutcomeApplyContext {
+export type NavigationOutcomeApplyContext = CompleteFailureDeps & {
   provider: HistoryProviderLike;
-  failureDeps: CompleteFailureDeps;
   setPrev: (prev: MatchedRouteInfo | null) => void;
   navigateTo: (
     url: string,
     action: HistoryAction,
     options: NavigateHistoryOptions,
   ) => void;
-}
+};
 
 /**
  * Apply terminal side effects for a {@link TransactionResult}.
@@ -40,14 +40,7 @@ export function applyNavigationOutcome(
 
     case 'cancelled':
       if (shouldApplyTerminalHistoryPolicy(tx)) {
-        applyTransactionHistory(
-          { status: 'cancelled' },
-          tx.action,
-          tx.href,
-          tx.from?.href ?? null,
-          tx.historyOptions,
-          ctx.provider,
-        );
+        writeTxHistory({ status: 'cancelled' }, tx, ctx.provider);
       }
       return;
 
@@ -60,23 +53,12 @@ export function applyNavigationOutcome(
       return;
     }
 
-    case 'error': {
-      const outcome = finalizeFailure(result.failure, ctx.failureDeps);
+    case 'error':
+      applyFailureEffects(result.failure, ctx);
       if (shouldApplyTerminalHistoryPolicy(tx)) {
-        applyTransactionHistory(
-          result,
-          tx.action,
-          tx.href,
-          tx.from?.href ?? null,
-          tx.historyOptions,
-          ctx.provider,
-        );
-      }
-      if (outcome.setPrev !== undefined) {
-        ctx.setPrev(outcome.setPrev);
+        writeTxHistory(result, tx, ctx.provider);
       }
       return;
-    }
   }
 }
 
@@ -89,18 +71,48 @@ export function applyPreMatchFailure(
   options: NavigateHistoryOptions,
   ctx: NavigationOutcomeApplyContext,
 ): void {
-  const effects = finalizePreMatchFailureNavigation(
-    failure,
+  applyFailureEffects(failure, ctx);
+  applyTransactionHistory(
+    failure.toResult(),
     action,
     href,
     fromHref,
     options,
     ctx.provider,
-    ctx.failureDeps,
   );
-  if (effects.setPrev !== undefined) {
-    ctx.setPrev(effects.setPrev);
+}
+
+/** NOT_FOUND callbacks + `prev`. No history / bus. */
+function applyFailureEffects(
+  failure: FailedNavigation,
+  ctx: NavigationOutcomeApplyContext,
+): void {
+  if (failure.isNotFound) {
+    if (ctx.onNotFound?.(failure) !== false) {
+      ctx.notFoundHandler?.(failure.href);
+    }
+    ctx.setPrev(null);
+    return;
   }
+
+  if (failure.viewCommitted) {
+    ctx.setPrev(failure.to);
+  }
+}
+
+function writeTxHistory(
+  result: TransactionResult,
+  tx: NavigationTransaction,
+  provider: HistoryProviderLike,
+): void {
+  applyTransactionHistory(
+    result,
+    tx.action,
+    tx.href,
+    tx.from?.href ?? null,
+    tx.historyOptions,
+    provider,
+  );
 }
 
 /** Pop always; push/replace only before post-load history commit. */

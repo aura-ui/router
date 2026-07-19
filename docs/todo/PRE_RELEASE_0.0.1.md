@@ -1,7 +1,7 @@
 # Pre-release: merge в main и npm 0.0.1
 
-> **Статус:** повторный аудит (2026-07-19) · первый аудит 2026-06-30  
-> **Вердикт:** **ещё не готов к publish** — сборка зелёная, ядро сильно продвинулось, но **npm entry / merge в `main` / полностью зелёные тесты** ещё не закрыты  
+> **Статус:** повторный аудит (2026-07-20) · предыдущий 2026-07-19 · первый аудит 2026-06-30  
+> **Вердикт:** **ещё не готов к publish** — сборка, тесты и `npm run check` зелёные, но **npm entry / merge в `main`** ещё не закрыты  
 > **Связь:** [ROADMAP](../../ROADMAP.md) · [ADOPTION_AND_GTM.md](./ADOPTION_AND_GTM.md) · [ROUTE_API_V3.md](./ROUTE_API_V3.md) · [PRE_RELEASE_0.1.0.md](./PRE_RELEASE_0.1.0.md)
 
 Легенда: <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> · <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ частично</span> · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ нет</span>
@@ -10,11 +10,11 @@
 
 ## TL;DR
 
-Ядро зрелее, чем в июньском аудите: **`npm run build` проходит**, тесты **1097 / 1099** (было 557 / 565 с 8 падениями на WIP), CI workflow набросан, есть `CHANGELOG.md` / `LIMITATIONS.md`.
+Ядро зрелее, чем в июньском аудите: **`npm run build` / `npm test` / `npm run check` проходят**, тесты **1099 / 1099**, CI workflow набросан, есть `CHANGELOG.md` / `LIMITATIONS.md`.
 
-**Жёсткие блокеры сейчас:** нет публичного package entry (`exports` / `src/index.ts`), `origin/main` без кода, 2 красных теста (`pipeline-failure`), `npm run check` красный (lint), `coverage/` не в `.gitignore`.
+**Жёсткие блокеры сейчас:** нет публичного package entry (`exports` / `src/index.ts`), `origin/main` без кода, `coverage/` не в `.gitignore`.
 
-Для **0.0.1** по semver pre-release допустим, если пакет **собирается, тесты зелёные, `npm install` работает**. Сборка ✓ · install ✗ · тесты почти ✓.
+Для **0.0.1** по semver pre-release допустим, если пакет **собирается, тесты зелёные, `npm install` работает**. Сборка ✓ · тесты ✓ · check ✓ · install ✗.
 
 ---
 
@@ -22,12 +22,12 @@
 
 | Критерий | Статус | Комментарий |
 |----------|:------:|-------------|
-| `npm run build` | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> | `tsc && vite build` — OK (бывшие 3 TS-ошибки закрыты) |
-| `npm test` | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> | 1097 / 1099; падают 2 в `pipeline-failure.test.ts` |
-| `npm run check` (lint + build) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | ~111 errors + ~378 warnings eslint; build сам по себе зелёный |
+| `npm run build` | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> | `tsc && vite build` — OK |
+| `npm test` | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> | **1099 / 1099**, 146 suites |
+| `npm run check` (lint + build) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> | 0 eslint errors; ~79 warnings (`no-console`, `no-explicit-any`, …) |
 | npm-упаковка (`exports`, entry) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | `main: "index.js"` — файла нет; нет `exports` / `types` / `files` |
 | `origin/main` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | Только `LICENSE`, `README.md`, `TRADEMARKS.md` |
-| Ветка с кодом | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> | `wip` / `wip-error-processing`, не смержено в `main` |
+| Ветка с кодом | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> | `wip-error-processing` (ahead of origin), не смержено в `main` |
 | Working tree | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> | Есть незакоммиченное (CI, docs, coverage, bench reports, …) |
 | npm registry | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> | `@aura-ui-web/router` ещё не опубликован — чистый старт |
 | Документация vs код | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> | README всё ещё target API (`guard`/`ready`); код/demo на shipped lifecycle |
@@ -49,7 +49,7 @@
 
 `npm run build` проходит на текущей ветке.
 
-### 2. Падающие тесты — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ старые 8 ✓ · новые 2 ✗</span>
+### 2. Тесты — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
 **Закрыто (июньский WIP):**
 
@@ -59,13 +59,13 @@
 | `test/content/loader-registry.test.ts` (3) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> |
 | `test/prefetch/prefetch-pipeline.test.ts` (1) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> |
 
-**Открыто (2026-07-19):**
+**Закрыто (2026-07-20):**
 
-| Suite | Причина |
-|-------|---------|
-| `pipeline-failure.test.ts` (2) | `context.viewCommitTracker` — `undefined` в моке при вызове `handlePipelineFailure` |
+| Suite | Статус |
+|-------|--------|
+| `pipeline-failure.test.ts` (2) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> — ранее падало на `viewCommitTracker`; сейчас зелёное |
 
-Итого: **1097 / 1099**. До must-have — починить эти 2 (или дописать мок `viewCommitTracker`).
+Итого: **1099 / 1099**.
 
 ### 3. npm-пакет — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>
 
@@ -82,7 +82,7 @@
 ### 4. Git / main — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>
 
 - `origin/main` — только юридические/маркетинговые файлы, **кода нет**
-- Реализация в `wip` / `wip-error-processing`
+- Реализация в `wip-error-processing` (и родственные `wip*`)
 - В working tree — незакоммиченные артефакты (`coverage/`, `bench/reports/`, …)
 - `coverage/` **не** в `.gitignore` — не тащить в main
 
@@ -103,9 +103,16 @@ README всё ещё описывает target API (`guard`, `ready`, …). Дл
 
 Фазы в процессе — pre-alpha по задумке. Для `0.0.1` ок при пометке **experimental**.
 
-### Lint — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>
+### Lint / `npm run check` — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-~489 problems (`no-explicit-any`, import order и др.) — `npm run check` красный. На runtime не влияет, но gate для релиза лучше закрыть или явно отложить.
+Закрыто (2026-07-20):
+
+- правила: `no-unused-expressions` off; `no-unused-vars` / `no-explicit-any` → warn
+- autofix `import/order`; тестовые моки `require` → `jest.requireActual`
+- ignores: `.vite/**`, `bench/**`, `coverage/**`, `vite.config.ts`, `jest.config.cjs`
+- prod: `no-useless-escape` в `dom.ts`, `Function` → `BoundMethod` в `bind.ts`
+
+Сейчас: **0 errors**, ~79 warnings (`no-console`, `no-explicit-any`, `no-unused-vars`, остатки `import/order`). Warnings не валят `check`.
 
 ### CI — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ файл есть</span>
 
@@ -116,7 +123,8 @@ README всё ещё описывает target API (`guard`, `ready`, …). Дл
 ## Что уже хорошо
 
 - <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> **`npm run build` зелёный**
-- <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> **~1100 тестов** — engine, lifecycle, prefetch, view, hooks, navigation outcome/failure
+- <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> **`npm test` 1099 / 1099** — engine, lifecycle, prefetch, view, hooks, navigation outcome/failure
+- <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> **`npm run check` зелёный** (0 eslint errors)
 - <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> Закрыт июньский WIP по prefetch / loader registry / TS-ошибкам
 - <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> Архитектура и design docs; демо (`index.html`, `public/features/…`)
 - <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> `CHANGELOG.md`, `LIMITATIONS.md`
@@ -131,7 +139,8 @@ README всё ещё описывает target API (`guard`, `ready`, …). Дл
 ### Must-have (без этого не публиковать)
 
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> **Зелёная сборка** — 3 TS-ошибки закрыты; `prefetch` / `RouteInstance` выровнены
-- [ ] <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> **Зелёные тесты** — старые 8 ✓; осталось **2** в `pipeline-failure.test.ts` → цель **1099/1099**
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> **Зелёные тесты** — **1099 / 1099**
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> **`npm run check`** — 0 eslint errors; ~79 warnings оставлены осознанно
 - [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **Entry point** — `src/index.ts` (или аналог), `package.json`: `exports`, `types`, `files`; `prepublishOnly`: `npm run build`
 - [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **Merge wip → main** — без `coverage/`, без черновиков и `__pycache__`
 - [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **Smoke:** `npm pack` → установка tarball в чистый проект → `import { AuraRouter }` + минимальный HTML
@@ -141,7 +150,7 @@ README всё ещё описывает target API (`guard`, `ready`, …). Дл
 - [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **Docs sync** — в README: актуальные attrs (`enter`/`after` vs target `guard`/`ready`)
 - [ ] <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> **CI** — workflow файл есть; закоммитить + гонять на `main` после merge
 - [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **`.gitignore`** — `coverage/` (и по желанию `bench/reports/`, `__pycache__`)
-- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **`npm run check`** — довести lint до зелёного или временно исключить только то, что осознанно откладывается (с записью здесь)
+- [ ] <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> **Lint warnings** — ~79 (`no-console`, `any`, unused); не блокируют check, можно дочистить позже
 
 ### Nice-to-have
 
@@ -154,14 +163,13 @@ README всё ещё описывает target API (`guard`, `ready`, …). Дл
 ## Рекомендуемый порядок работ
 
 ```text
-1. Починить 2 теста pipeline-failure (мок viewCommitTracker)
-2. Настроить package exports + src/index.ts + smoke npm pack
-3. .gitignore coverage/; закоммитить CI
-4. Синхронизировать минимум docs (актуальные attrs) — или явно «target API»
-5. Merge в main, CI зелёный на remote, tag v0.0.1, npm publish
+1. Настроить package exports + src/index.ts + smoke npm pack
+2. .gitignore coverage/; закоммитить CI
+3. Синхронизировать минимум docs (актуальные attrs) — или явно «target API»
+4. Merge в main, CI зелёный на remote, tag v0.0.1, npm publish
 ```
 
-**Оценка:** после entry point + 2 теста — реалистично выйти на **0.0.1 experimental**. Дальнейший polish → [PRE_RELEASE_0.1.0.md](./PRE_RELEASE_0.1.0.md).
+**Оценка:** после entry point + smoke — реалистично выйти на **0.0.1 experimental**. Дальнейший polish → [PRE_RELEASE_0.1.0.md](./PRE_RELEASE_0.1.0.md).
 
 ---
 

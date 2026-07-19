@@ -2,14 +2,33 @@
   "name": "@aura-ui-web/router",
   "version": "0.0.1",
   "description": "SSR-first declarative router for Web Components — from static HTML to client navigation.",
-  "main": "index.js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md",
+    "LIMITATIONS.md"
+  ],
+  "sideEffects": false,
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node scripts/build-lib.mjs",
+    "build:demo": "vite build",
     "preview": "vite preview",
+    "prepublishOnly": "npm run build",
     "test": "jest",
     "bench:cache": "tsx src/modules/aura-cache-store/bench/aura-cache-store.bench.ts",
     "bench:cache:gc": "node --expose-gc node_modules/tsx/dist/cli.mjs src/modules/aura-cache-store/bench/aura-cache-store.bench.ts",

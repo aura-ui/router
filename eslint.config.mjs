@@ -9,11 +9,14 @@ export default [
   {
     ignores: [
       'dist/**',
+      'dist-demo/**',
       'node_modules/**',
       '.vite/**',
       'bench/**',
       'coverage/**',
+      'scripts/**',
       'vite.config.ts',
+      'vite.lib.config.ts',
       'jest.config.cjs',
     ],
   },

@@ -50,6 +50,9 @@ export default defineConfig({
   appType: 'mpa',
   build: {
     target: 'es2022',
+    // Demo site only — library emit is `tsc -p tsconfig.build.json` → `dist/`.
+    outDir: 'dist-demo',
+    emptyOutDir: true,
   },
   plugins: [demoShellFallback()],
 });

@@ -45,7 +45,7 @@
     "strictPropertyInitialization": false
   },
 
-  /* Project Files */
+  /* Project Files — IDE / typecheck. Library emit: `npm run build` → tsconfig.build.json */
   "include": ["src"],
   "exclude": ["src/**/test/**"]
 }

@@ -39,12 +39,12 @@ export class NavigationTransaction {
   readonly engine: AuraRoutingEngine;
 
   transitionPlan!: TransitionMap;
-  dataSnapshot?: DataSnapshot;
-  /** Pre-resolved enter-branch view contents between resolve and apply (transition + atomic). */
-  preResolvedBranchContents?: readonly (ViewPayload | null)[];
   viewCommitTracker: ViewCommitTracker;
   /** Set when {@link AuraRoutingEngine.commitHistoryIfNeeded} wrote the URL for this transaction. */
   historyCommitted = false;
+
+  dataSnapshot?: DataSnapshot;
+  viewSnapshot?: readonly (ViewPayload | null)[];
 
   constructor(
     transactionId: number,

@@ -1,7 +1,7 @@
-import { FnLoader, Loader } from '../../core/view-graph/loader';
-import { createBrowserEnvironment } from '../../core/view-graph/environment';
-import type { ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
 import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
+import { createBrowserEnvironment } from '../../core/view-graph/environment';
+import { FnLoader, Loader } from '../../core/view-graph/loader';
+import type { ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
 
 const env = createBrowserEnvironment();
 

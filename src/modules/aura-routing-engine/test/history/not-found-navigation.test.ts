@@ -4,8 +4,8 @@ import {
 } from '../../core';
 import type { RouterInstance } from '../../core';
 import * as redirectResolver from '../../core/redirect/redirect-resolver';
-import { createTestRoute } from '../helpers/create-test-route';
 import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
+import { createTestRoute } from '../helpers/create-test-route';
 
 describe('AuraRoutingEngine NOT_FOUND', () => {
   const router: RouterInstance = { navigate: jest.fn() };

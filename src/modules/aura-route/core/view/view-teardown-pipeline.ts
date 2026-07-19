@@ -1,3 +1,5 @@
+import type { RouteUnmountOptions } from '../types';
+
 import {
   finalizeLeave,
   promoteStagedView,
@@ -5,9 +7,6 @@ import {
   unmountOnLeave,
   unmountParamChangeOutgoing,
 } from './outlet-adapter';
-
-import type { RouteUnmountOptions } from '../types';
-
 import type { ViewContext } from './view-context';
 
 /** Clears transition inline styles and cancels element animations. */

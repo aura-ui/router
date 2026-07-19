@@ -2,9 +2,9 @@ import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE } from '../../../aura-routing-engine/core';
 import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 import type { AuraRouteInterface } from '../../core/types';
+import { defaultDomCache } from '../../core/view/dom-cache';
 import { ViewContext } from '../../core/view/view-context';
 import { ViewRenderPipelinePhase } from '../../core/view/view-render-pipeline-phase';
-import { defaultDomCache } from '../../core/view/dom-cache';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;

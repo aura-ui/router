@@ -4,8 +4,9 @@ import {
   type NavigationErrorPhase,
 } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { NavigationLifecycleContext, PipelineStepResult } from './types';
+
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
+import type { NavigationLifecycleContext, PipelineStepResult } from './types';
 
 /**
  * Normalize a pipeline throw into {@link NavigationFailure}, run the terminal

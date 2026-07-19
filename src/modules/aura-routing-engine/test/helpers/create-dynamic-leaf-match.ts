@@ -1,8 +1,9 @@
 import type { RouteInstance } from '../../core';
 import { resourceKeys } from '../../core/match/resource-keys';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { computeMatchScore } from '../../core/match/route-score';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
+
 import { createTestRoute } from './create-test-route';
 import { withResolvedView } from './with-resolved-view';
 

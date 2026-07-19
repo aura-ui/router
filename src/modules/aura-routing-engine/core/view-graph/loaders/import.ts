@@ -1,9 +1,9 @@
+import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
 import { Singleflight } from '../../../../aura-utils/async/singleflight';
 import { loadAndRegisterComponent } from '../../../../aura-utils/misc';
-import type { ViewLoadContext, ViewLoadResult } from '../types';
-import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
-import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
+import { componentMarkup } from '../markup';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
 
 const importSingleflight = new Singleflight<string, string>();
 

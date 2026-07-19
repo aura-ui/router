@@ -1,5 +1,5 @@
-import { IframeLoader } from '../../../core/view-graph/loaders/iframe';
 import { createBrowserEnvironment } from '../../../core/view-graph/environment';
+import { IframeLoader } from '../../../core/view-graph/loaders/iframe';
 
 describe('IframeLoader', () => {
   it('returns lazy iframe markup with escaped src', async () => {

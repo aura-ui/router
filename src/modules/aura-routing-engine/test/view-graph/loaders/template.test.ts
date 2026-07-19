@@ -1,5 +1,5 @@
-import { TemplateLoader } from '../../../core/view-graph/loaders/template';
 import { createBrowserEnvironment } from '../../../core/view-graph/environment';
+import { TemplateLoader } from '../../../core/view-graph/loaders/template';
 
 describe('TemplateLoader', () => {
   afterEach(() => {

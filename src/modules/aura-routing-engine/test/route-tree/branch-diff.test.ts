@@ -1,4 +1,5 @@
-import { createTestRoute } from '../helpers/create-test-route';
+import { computeMatchScore } from '../../core/match/route-score';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import {
   buildExitRoutes,
   buildEnterRoutes,
@@ -6,9 +7,8 @@ import {
   findLcaNodes,
 } from '../../core/route-tree/branch-diff';
 import { buildMatchedChain } from '../../core/route-tree/matched-chain';
-import { computeMatchScore } from '../../core/match/route-score';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
+import { createTestRoute } from '../helpers/create-test-route';
 
 function createMatch(node: RouteNode): MatchedRouteInfo {
   return {

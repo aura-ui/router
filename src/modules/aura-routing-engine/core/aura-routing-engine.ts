@@ -1,25 +1,35 @@
-import { isHashOnlyChange, resolveDocumentHrefParts } from './link-active/app-href';
+import { onAbort } from '../../aura-utils/async/on-abort';
 import { splitAppHref } from '../../aura-utils/misc/url';
+
+import {
+  resolveAuraRoutingEngineConfig,
+  type AuraRoutingEngineConfig,
+  type ResolvedAuraRoutingEngineConfig,
+} from './aura-routing-engine-config';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
+import type { DataGraph } from './data-graph';
+import { EventBus } from './events';
 import { NavigationFailure } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
+import { applyTransactionHistory } from './history/history-policy';
 import type {
   HistoryAction,
   NavigateHistoryOptions,
   NavigationProvider,
 } from './history/provider.types';
-import { unmountPrevOnNotFound } from './navigation/unmount-prev-on-not-found';
+import { isHashOnlyChange, resolveDocumentHrefParts } from './link-active/app-href';
 import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
 } from './match/url-matcher';
 import { NavigationCoordinator } from './navigation/navigation-coordinator';
 import type { NavigationHost } from './navigation/navigation-host';
-import { applyTransactionHistory } from './history/history-policy';
 import {
   applyNavigationOutcome,
   navigationIdentityFromTx,
 } from './navigation/navigation-outcome';
+import { NavigationTransaction } from './navigation/navigation-transaction';
+import { unmountPrevOnNotFound } from './navigation/unmount-prev-on-not-found';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
 import {
@@ -30,24 +40,15 @@ import type {
   PrefetchOptions,
   PrefetchPlan,
 } from './prefetch/types';
+import { ResourceGraph } from './resource-graph';
 import type { RouterInstance } from './route/types';
 import { syncChainHref } from './route-tree/matched-chain';
+import { isSameNavigationTarget } from './route-tree/transition-plan';
 import { LinkNavigationTracker } from './user-actions/link-navigation';
 import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
-import type { DataGraph } from './data-graph';
 import type { ViewGraph } from './view-graph';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
-import { NavigationTransaction } from './navigation/navigation-transaction';
-import { isSameNavigationTarget } from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
-import { onAbort } from '../../aura-utils/async/on-abort';
-import { ResourceGraph } from './resource-graph';
-import {
-  resolveAuraRoutingEngineConfig,
-  type AuraRoutingEngineConfig,
-  type ResolvedAuraRoutingEngineConfig,
-} from './aura-routing-engine-config';
-import { EventBus } from './events';
 import { NavigationPulse } from './navigation/navigation-pulse';
 
 export type {

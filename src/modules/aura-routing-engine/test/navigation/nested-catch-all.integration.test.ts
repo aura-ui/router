@@ -1,9 +1,9 @@
 /** @jest-environment jsdom */
 
+import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { registerAuraRouterComponents } from '../../../aura-router/core/aura-router-setup';
-import { AuraRoute } from '../../../aura-route/core/aura-route';
-import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { createDomRoute } from '../helpers/test-route-dom';
 
 const SPLAT_LOADER = 'nested-catch-all-splat';

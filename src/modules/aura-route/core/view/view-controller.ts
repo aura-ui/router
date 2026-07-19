@@ -1,9 +1,9 @@
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo, ViewRenderResult } from '../../../aura-routing-engine/route-api';
 import type { RouteRenderOptions, ApplyPreResolvedOptions, RouteUnmountOptions } from '../types';
-import type { RenderPass, RouteViewConfig, ViewPayload } from './types';
-import { domCacheKey } from './dom-cache';
 
+import { domCacheKey } from './dom-cache';
+import type { RenderPass, RouteViewConfig, ViewPayload } from './types';
 import { ViewContext } from './view-context';
 import { ViewRenderPipeline } from './view-render-pipeline';
 import { ViewTeardownPipeline } from './view-teardown-pipeline';

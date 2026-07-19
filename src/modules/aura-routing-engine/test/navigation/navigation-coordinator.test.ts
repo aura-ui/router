@@ -1,11 +1,8 @@
 import { NavigationFailure } from '../../core/failure';
-
 import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
-
-import type { NavigationTransactionOptions } from '../../core/navigation/types';
-
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-
+import type { NavigationTransactionOptions } from '../../core/navigation/types';
+import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
 import {
 
   createCoordinatorMockHost,
@@ -13,7 +10,6 @@ import {
   createMatchedRoute,
 
 } from '../helpers/create-mock-transaction';
-
 import {
 
   createPushNavOptions,
@@ -21,8 +17,6 @@ import {
   mockDeferredTransactionRun,
 
 } from '../helpers/jest/navigation-fixtures';
-
-import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
 
 
 

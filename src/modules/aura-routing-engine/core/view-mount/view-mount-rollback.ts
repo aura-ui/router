@@ -1,5 +1,6 @@
 import type { RouteInstance } from '../route/types';
 import type { TransitionPlanBase } from '../route-tree/transition-plan';
+
 import type { ViewCommitTracker } from './view-commit-tracker';
 
 /** Unique routes touched by enter/exit branches of one transaction. */

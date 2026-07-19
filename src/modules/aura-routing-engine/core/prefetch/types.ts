@@ -1,10 +1,10 @@
-import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { RouteNode } from '../route-tree/route-node.types';
 import {
   DEFAULT_ROUTER_PREFETCH_MODE,
   LINK_PREFETCH_MODES,
   type PrefetchType,
 } from '../../../aura-route/core/attr/prefetch-attr-parser';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { RouteNode } from '../route-tree/route-node.types';
 
 export { DEFAULT_ROUTER_PREFETCH_MODE, LINK_PREFETCH_MODES };
 export type LinkPrefetchMode = PrefetchType;

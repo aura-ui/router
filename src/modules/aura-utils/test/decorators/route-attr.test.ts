@@ -1,5 +1,5 @@
-import { attr, routeAttr } from '../../decorators';
 import { isOffKeyword } from '../../../aura-route/core/attr/off-keyword';
+import { attr, routeAttr } from '../../decorators';
 
 let cachedParseCalls = 0;
 function parseCachedLabel(value: string | null): string | null {

@@ -10,15 +10,16 @@
  *
  * @module navigation/navigation-transaction-pipeline
  */
-import { isThenable } from '../../../aura-utils/async/is-thenable';
-import { NavigationTransaction } from './navigation-transaction';
-import { PHASES } from './lifecycle-phases';
-import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import { mountEnterBranch } from '../view-mount/branch-mount';
-import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
+import { isThenable } from '../../../aura-utils/async/is-thenable';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { TransitionMap } from '../route-tree/transition-plan';
+import { mountEnterBranch } from '../view-mount/branch-mount';
+import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
+
+import { PHASES } from './lifecycle-phases';
+import { NavigationTransaction } from './navigation-transaction';
+import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import type { PipelinePhaseDefinition, PipelineStepResult } from './types';
 
 /**

@@ -1,21 +1,22 @@
+import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { ViewGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { EventBus } from '../../core/events';
-import { NavigationPulse } from '../../core/navigation/navigation-pulse';
 import { HookRegistry } from '../../core/hooks/registry';
-import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
 import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationHost } from '../../core/navigation/navigation-host';
+import { NavigationPulse } from '../../core/navigation/navigation-pulse';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
+import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
 import {
   finalizeTransitionPlan,
   type TransitionMap,
 } from '../../core/route-tree/transition-plan';
-import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
+
 import { createTestRoute } from './create-test-route';
+import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
 
 export function createMatchedRoute(
   path: string,

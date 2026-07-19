@@ -1,6 +1,9 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE } from '../../../aura-routing-engine/core';
 import type { AuraRouteInterface } from '../../core/types';
+import { ViewContext } from '../../core/view';
+import { ViewTeardownPipeline } from '../../core/view';
+import { defaultDomCache } from '../../core/view/dom-cache';
 import {
   applyMountToSnapshot,
   EMPTY_MOUNT,
@@ -9,9 +12,6 @@ import {
   type MountContext,
   type MountSnapshot,
 } from '../../core/view/outlet-adapter';
-import { ViewContext } from '../../core/view';
-import { ViewTeardownPipeline } from '../../core/view';
-import { defaultDomCache } from '../../core/view/dom-cache';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;

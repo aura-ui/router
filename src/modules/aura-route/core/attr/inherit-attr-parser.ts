@@ -1,5 +1,6 @@
-import { isOffKeyword } from './off-keyword';
 import { parseCommaSeparated } from '../../../aura-utils/misc/format';
+
+import { isOffKeyword } from './off-keyword';
 
 /** Lifecycle hooks: `none`/`off`/`false` → `[]`. */
 export function parseHookList(raw: string | null): string[] | null {

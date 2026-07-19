@@ -1,7 +1,7 @@
 import { bind } from '../../../aura-utils/decorators/bind';
-
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import type { NavigationHandler } from '../history/provider.types';
+
 import { findRouterLink, resolveLinkHref } from './link-resolve';
 
 export interface LinkNavigationTrackerConfig {

@@ -1,7 +1,7 @@
-import type { RouteInstance } from '../../core';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import { isAsyncLoader } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
+import type { RouteInstance } from '../../core';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
 
 const noop = (): void => {};

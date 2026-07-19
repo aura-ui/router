@@ -1,4 +1,5 @@
 import { escapeHtml } from '../../../aura-utils/misc';
+
 import type { ViewLoadContext } from './types';
 
 /** Route + optional load-hook data for `aura-data` on component loaders. */

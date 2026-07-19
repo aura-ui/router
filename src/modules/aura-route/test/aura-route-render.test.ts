@@ -9,8 +9,8 @@
   };
 });
 
-import { AuraRoute } from '../core/aura-route';
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
+import { AuraRoute } from '../core/aura-route';
 
 describe('AuraRoute render validation', () => {
   beforeAll(() => {

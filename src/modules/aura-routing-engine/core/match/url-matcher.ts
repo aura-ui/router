@@ -1,12 +1,14 @@
+import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import { memoize } from '../../../aura-utils/decorators/memoize';
 import { parseSearch } from '../../../aura-utils/misc/url';
-import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
 import { buildActiveChain, getActiveChain } from '../route-tree/matched-chain';
-import { resourceKeys } from './resource-keys';
-import { isStaticRoutePattern } from './route-score';
-import type { AuraRoute } from '../../../aura-route/core/aura-route';
+import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { RouteNode } from '../route-tree/route-node.types';
+
+import { resourceKeys } from './resource-keys';
+import { isStaticRoutePattern } from './route-score';
+
 
 /**
  * Result of matching a URL to a route (leaf + optional nested `chain`).

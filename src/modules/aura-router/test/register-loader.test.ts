@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 
+import { NO_CACHE } from '../../aura-route/core/attr/cache-attr-parser';
 import {
   ViewGraph,
   defaultLoaderRegistry,
@@ -7,10 +8,9 @@ import {
   type LoaderFn,
 } from '../../aura-routing-engine/core';
 import { HandoffCache } from '../../aura-routing-engine/core/resource-graph';
-import { AuraRouter } from '../core/aura-router';
-import { NO_CACHE } from '../../aura-route/core/attr/cache-attr-parser';
-import { withResolvedView } from '../../aura-routing-engine/test/helpers/with-resolved-view';
 import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
+import { withResolvedView } from '../../aura-routing-engine/test/helpers/with-resolved-view';
+import { AuraRouter } from '../core/aura-router';
 
 describe('AuraRouter.registerLoaderLoader', () => {
   it('registers LoaderFn on defaultLoaderRegistry for ViewGraph', async () => {

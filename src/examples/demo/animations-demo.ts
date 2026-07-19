@@ -1,5 +1,5 @@
-import { AuraRoute } from '../../modules/aura-route/core/aura-route';
 import type { TransitionOrderType } from '../../modules/aura-route/core/attr/transition-order-attr-parser';
+import { AuraRoute } from '../../modules/aura-route/core/aura-route';
 
 const STORAGE_KEY = 'demo-animations-transition-order';
 const ORDERS = new Set<TransitionOrderType>(['parallel', 'out-in', 'in-out']);

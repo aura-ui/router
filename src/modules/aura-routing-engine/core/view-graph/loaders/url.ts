@@ -1,7 +1,7 @@
-import { extractHtmlFragment } from '../../../../aura-utils/misc';
-import type { ViewLoadContext, ViewLoadResult } from '../types';
 import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
+import { extractHtmlFragment } from '../../../../aura-utils/misc';
 import { Loader } from '../loader';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
 
 /** `view="partials/page.html"` or `view="url::…"` — fetch; route `extract` attr selects a fragment. */
 export class UrlLoader extends Loader {

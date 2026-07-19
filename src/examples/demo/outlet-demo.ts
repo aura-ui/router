@@ -1,5 +1,5 @@
-import { getDemoScenario } from './demo-scenarios';
 import { installDemoFooter } from './demo-footer';
+import { getDemoScenario } from './demo-scenarios';
 import { installDemoLayoutTemplates } from './layout-templates';
 
 /** Подсветка корневого и вложенных outlet (вызывать после каждой навигации). */

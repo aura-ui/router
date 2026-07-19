@@ -4,8 +4,8 @@ jest.mock('../../../../aura-utils/misc', () => ({
 }));
 
 import { loadAndRegisterComponent } from '../../../../aura-utils/misc';
-import { ImportLoader } from '../../../core/view-graph/loaders/import';
 import { createBrowserEnvironment } from '../../../core/view-graph/environment';
+import { ImportLoader } from '../../../core/view-graph/loaders/import';
 
 const mockedLoad = loadAndRegisterComponent as jest.MockedFunction<typeof loadAndRegisterComponent>;
 

@@ -7,18 +7,18 @@ import {
   type RouteLifecycleContext,
   type ViewRenderResult,
 } from '../../aura-routing-engine/route-api';
-import { parseCacheAttr, type CacheFlags } from './attr/cache-attr-parser';
 import { routeAttr } from '../../aura-utils/decorators';
+import { memoize } from '../../aura-utils/decorators/memoize';
+
+import { parseCacheAttr, type CacheFlags } from './attr/cache-attr-parser';
 import {
   parseHookList,
   parseInheritableNullableString,
 } from './attr/inherit-attr-parser';
-import { isAsyncLoader, parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
-import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
-import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
-import type { MountTargetPort } from './view';
-import { domCacheKey, defaultDomCache } from './view/dom-cache';
-import { RouteViewController } from './view';
+import { parseMountStrategyAttr, type MountStrategy } from './attr/mount-strategy-attr-parser';
+import { parseParamChangeAttr, type ParamChangePolicy } from './attr/param-change-attr-parser';
+import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parser';
+import { parseScrollAttr, type ScrollAttr } from './attr/scroll-attr-parser';
 import {
   NO_TRANSITION,
   parseTransitionShortcutAttr,
@@ -30,12 +30,13 @@ import {
   parseTransitionOrder,
   type TransitionOrderType,
 } from './attr/transition-order-attr-parser';
-import { parseMountStrategyAttr, type MountStrategy } from './attr/mount-strategy-attr-parser';
-import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parser';
-import { parseScrollAttr, type ScrollAttr } from './attr/scroll-attr-parser';
-import { parseParamChangeAttr, type ParamChangePolicy } from './attr/param-change-attr-parser';
-import { memoize } from '../../aura-utils/decorators/memoize';
+import { isAsyncLoader, parseViewAttr, type ViewAttrDescriptor } from './attr/view-attr-parser';
+import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
+import type { AuraRouteInterface, RouteRenderOptions, ApplyPreResolvedOptions } from './types';
 import type { RouteType } from './types';
+import type { MountTargetPort } from './view';
+import { RouteViewController } from './view';
+import { domCacheKey, defaultDomCache } from './view/dom-cache';
 
 export type { RouteRenderOptions, ApplyPreResolvedOptions, AuraRouteInterface, RouteType };
 

@@ -1,15 +1,15 @@
-import { createTestRoute } from '../helpers/create-test-route';
+import { computeMatchScore } from '../../core/match/route-score';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
+import type { RouteNode } from '../../core/route-tree/route-node.types';
 import {
   buildTransitionPlan,
   finalizeTransitionPlan,
   isSameNavigationTarget,
 } from '../../core/route-tree/transition-plan';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
-import { buildMatchedChain, routeMatchKey } from '../../core/route-tree/matched-chain';
-import { computeMatchScore } from '../../core/match/route-score';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { createUsersIdMatch, createUsersIdNode, createNestedUsersIdMatch, createNestedUsersIdSetup } from '../helpers/create-dynamic-leaf-match';
+import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createTestRoute } from '../helpers/create-test-route';
 
 function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
   return {

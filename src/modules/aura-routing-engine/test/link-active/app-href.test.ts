@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 
+import { splitAppHref } from '../../../aura-utils/misc/url';
 import {
   getCurrentAppHref,
   isHashOnlyChange,
@@ -8,7 +9,6 @@ import {
   resolveDocumentHrefParts,
   toDocumentResolutionBase,
 } from '../../core/link-active/app-href';
-import { splitAppHref } from '../../../aura-utils/misc/url';
 
 describe('app-href helpers', () => {
   const base = 'https://example.com/app/settings/';

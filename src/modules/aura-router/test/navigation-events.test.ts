@@ -1,3 +1,5 @@
+import { NavigationFailure, NavigationError } from '../../aura-routing-engine/core';
+import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
 import {
   AURA_ROUTER_LOAD_END,
   AURA_ROUTER_LOAD_ERROR,
@@ -17,8 +19,6 @@ import {
   dispatchNotFound,
   type AuraRouterNavigationErrorEventDetail,
 } from '../core/navigation-events';
-import { NavigationFailure, NavigationError } from '../../aura-routing-engine/core';
-import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
 
 function matchedFailure(
   overrides: Partial<{

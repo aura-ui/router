@@ -1,6 +1,6 @@
-import type { ViewLoadContext, ViewLoadResult } from '../types';
 import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
 import { Loader } from '../loader';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
 
 /** `view="html::…"` — `content` is inline HTML. */
 export class HtmlLoader extends Loader {

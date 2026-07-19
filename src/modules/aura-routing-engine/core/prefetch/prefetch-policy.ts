@@ -4,6 +4,7 @@ import {
   type PrefetchType,
 } from '../../../aura-route/core/attr/prefetch-attr-parser';
 import type { RouteInstance } from '../route/types';
+
 import type { PrefetchConfig, PrefetchMode } from './types';
 
 export { DEFAULT_ROUTER_PREFETCH_MODE };

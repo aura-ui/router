@@ -1,8 +1,9 @@
-import { followDeclarativeRedirects } from '../redirect/redirect-resolver';
 import type { AuraRoutingUrlMatcher, MatchedRouteInfo } from '../match/url-matcher';
-import { buildTransitionPlan } from '../route-tree/transition-plan';
+import { followDeclarativeRedirects } from '../redirect/redirect-resolver';
 import { getActiveChain } from '../route-tree/matched-chain';
 import type { RouteNode } from '../route-tree/route-node.types';
+import { buildTransitionPlan } from '../route-tree/transition-plan';
+
 import { PrefetchPolicy } from './policy';
 import type { PrefetchPlan } from './types';
 

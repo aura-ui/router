@@ -10,6 +10,39 @@
 
 ---
 
+## <span style="background: #cf222e; color: #fff; font-weight: bold; padding: 2px 8px;">ОСТАЛОСЬ</span>
+
+> <span style="color: #cf222e; font-weight: bold; font-size: 1.1em;">Не закрыто. Делать в этом порядке.</span>
+
+| # | Что | Статус | Зачем |
+|---|-----|--------|-------|
+| **0a** | <span style="background: #fff3bf; color: #cf222e; font-weight: bold;">NavigationIntentResolver</span> | <span style="color: #cf222e; font-weight: bold;">✗</span> | единый URL → intent (hash / noop / not-found / run); shared с prefetch |
+| **0b** | <span style="background: #fff3bf; color: #cf222e; font-weight: bold;">NotFoundPipeline</span> (модуль) | <span style="color: #bf8700; font-weight: bold;">~</span> | поведение есть (`unmount` + `handleUnmatched`), **файла** `not-found-pipeline.ts` нет |
+| **1** | <span style="background: #fff3bf; color: #cf222e; font-weight: bold;">NavigationOutcomeHandler.apply()</span> | <span style="color: #bf8700; font-weight: bold;">~</span> | terminal размазан (`finalize*` / `applyRedirect`); единого `apply(outcome)` нет |
+| **2** | RunManager rename/split | <span style="color: #bf8700; font-weight: bold;">~</span> | `NavigationCoordinator` ≈ RunManager; `NavigationTransaction` ≈ Run ✓ |
+| **3** | <span style="background: #fff3bf; color: #cf222e; font-weight: bold;">ViewCommitOrchestrator</span> | <span style="color: #cf222e; font-weight: bold;">✗</span> | stage/promote/commitGate дублируется pipeline ↔ fast-path |
+| **5** | PipelineManifest + `runBlockingOnly` filter | <span style="color: #bf8700; font-weight: bold;">~</span> | `PHASES` есть; единого manifest со `slot` нет |
+| **6a** | <span style="background: #fff3bf; color: #cf222e; font-weight: bold;">NavigationScroll</span> | <span style="color: #cf222e; font-weight: bold;">✗</span> | scroll policy / hash / restore размазаны engine + aura-router |
+| **6b** | <span style="background: #fff3bf; color: #cf222e; font-weight: bold;">LifecycleContextFactory</span> | <span style="color: #cf222e; font-weight: bold;">✗</span> | stub ctx в not-found / fast-path |
+| **7a** | <span style="background: #fff3bf; color: #cf222e; font-weight: bold;">RouterEngineBridge</span> | <span style="color: #cf222e; font-weight: bold;">✗</span> | `ensureEngine()` — длинная callback-матрица |
+| **7b** | EventBus telemetry | <span style="color: #bf8700; font-weight: bold;">~</span> | точечные DOM/callbacks; bus нет · **не раньше** стабилизации Run/Outcome |
+| **опц.** | NavigationFailureService | <span style="color: #cf222e; font-weight: bold;">✗</span> | только если OutcomeHandler не закроет дубли ErrorPhaseHandler |
+
+### <span style="background: #cf222e; color: #fff; font-weight: bold; padding: 2px 6px;">Метрики — ещё красные</span>
+
+- [ ] <span style="color: #cf222e; font-weight: bold;">✗</span> `navigation-intent.test.ts` — hash / noop / not-found / run
+- [ ] <span style="color: #cf222e; font-weight: bold;">✗</span> fast-path и full-path share **ViewCommitOrchestrator**
+- [ ] <span style="color: #cf222e; font-weight: bold;">✗</span> нет прямых terminal finalize вне **OutcomeHandler**
+- [ ] <span style="color: #cf222e; font-weight: bold;">✗</span> `ensureEngine` без business logic (**RouterEngineBridge**)
+
+### <span style="background: #2ea043; color: #fff; font-weight: bold; padding: 2px 6px;">Уже закрыто — не трогать</span>
+
+<span style="color: #2ea043; font-weight: bold;">✓</span> RedirectResolver · Terminal apply (`applyNavigationOutcome`) · Pipeline thenable + dom-cache fast path · thin `navigateTo` · Run + rollback (`NavigationTransaction`)
+
+**Старт остатка:** <span style="background: #ffe066; color: #000; font-weight: bold; padding: 2px 6px;">IntentResolver → OutcomeHandler.apply → ViewCommitOrchestrator</span>
+
+---
+
 ## Статус реализации (сводка)
 
 | Слой (целевой) | Факт в коде | Статус |

@@ -1,7 +1,8 @@
+import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import { resolveDocumentHrefParts } from '../link-active/app-href';
 import { followRedirectsWithGuardWalk } from '../redirect/redirect-resolver';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
-import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
+
 import type { NavigationHost } from './navigation-host';
 import { NavigationTransaction } from './navigation-transaction';
 import type { NavigationTransactionOptions, TransactionResult } from './types';

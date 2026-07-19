@@ -1,5 +1,5 @@
-import { LinkPrefetchIntentTracker } from '../../core/user-actions/link-prefetch-intent';
 import { resolvePrefetchMode } from '../../core/prefetch/prefetch-policy';
+import { LinkPrefetchIntentTracker } from '../../core/user-actions/link-prefetch-intent';
 
 function createTracker(handlers: {
   scheduleIntent: jest.Mock;

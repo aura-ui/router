@@ -1,6 +1,7 @@
-import { PrefetchIntentBus } from './bus';
 import type { LinkPrefetchModeResolver } from '../../user-actions/link-prefetch-intent';
 import { LinkPrefetchIntentTracker } from '../../user-actions/link-prefetch-intent';
+
+import { PrefetchIntentBus } from './bus';
 
 export type LinkIntentSourceConfig = {
   linksSelector?: string;

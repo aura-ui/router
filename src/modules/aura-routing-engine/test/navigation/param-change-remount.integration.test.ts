@@ -2,28 +2,28 @@
   jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
+import { RouteViewController } from '../../../aura-route/core/view/view-controller';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteNode } from '../../core/route-tree/route-node.types';
-import type { ViewGraph } from '../../core/view-graph';
-import { RouteViewController } from '../../../aura-route/core/view/view-controller';
-import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
-import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
-import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { RouteLifecycleContext } from '../../core/route/types';
+import type { RouteNode } from '../../core/route-tree/route-node.types';
+import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
+import type { ViewGraph } from '../../core/view-graph';
 import {
   createUsersIdMatch,
   createUsersIdNode,
 } from '../helpers/create-dynamic-leaf-match';
-import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
 import {
   createMockEngine,
   createViewGraphFromLoadView,
   wireEngineViewGraph,
 } from '../helpers/create-mock-transaction';
-import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
 import { resetHookMocks } from '../helpers/jest/hook-mocks';
+import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
 
 function wireRouteViewController(
   node: RouteNode,

@@ -1,11 +1,12 @@
-import { resolveDocumentHrefParts, type ResolvedDocumentHref } from '../link-active/app-href';
 import { stripTrailingSlash } from '../../../aura-utils/misc/url';
+import { resolveDocumentHrefParts, type ResolvedDocumentHref } from '../link-active/app-href';
+import { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { RouteNode } from '../route-tree/route-node.types';
 import {
   buildTransitionPlan,
   type TransitionMap,
 } from '../route-tree/transition-plan';
-import { NavigationTransaction } from '../navigation/navigation-transaction';
+
 import { lookupNavigationStep } from './match-step';
 import type {
   BlockingPhasesProbeOutcome,

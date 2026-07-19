@@ -1,9 +1,10 @@
-import { resolveDocumentHrefParts } from '../link-active/app-href';
 import { stripTrailingSlash } from '../../../aura-utils/misc/url';
+import { resolveDocumentHrefParts } from '../link-active/app-href';
 import { applyCanonicalIndexFolderHref } from '../match/canonical-index-href';
+import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
 import { resolvePattern } from '../route-tree/resolve-pattern';
 import type { RouteNode } from '../route-tree/route-node.types';
-import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
+
 import type { NavigationMatchStep } from './types';
 
 /**

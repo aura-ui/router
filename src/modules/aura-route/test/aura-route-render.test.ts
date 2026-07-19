@@ -1,5 +1,5 @@
-jest.mock('../../aura-router/core/aura-router', () => {
-  const { AuraOutlet } = require('../../aura-outlet/core/aura-outlet');
+﻿jest.mock('../../aura-router/core/aura-router', () => {
+  const { AuraOutlet } = jest.requireActual('../../aura-outlet/core/aura-outlet');
   return {
     AuraRouter: class {
       static is = 'aura-router';

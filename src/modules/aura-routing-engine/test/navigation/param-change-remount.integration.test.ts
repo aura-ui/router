@@ -1,5 +1,5 @@
-jest.mock('../../core/hooks/registry', () =>
-  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+﻿jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';

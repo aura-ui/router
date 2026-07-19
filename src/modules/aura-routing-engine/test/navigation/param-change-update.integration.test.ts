@@ -1,5 +1,5 @@
-jest.mock('../../core/hooks/registry', () =>
-  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+﻿jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
@@ -21,7 +21,7 @@ function wireRouteViewController(
   outlet: AuraOutlet,
   resolve: () => string,
 ): { resolveCount: () => number } {
-  let passId = 0;
+  const passId = 0;
   let resolveCount = 0;
   const routeRecord = node.route as {
     path: string;

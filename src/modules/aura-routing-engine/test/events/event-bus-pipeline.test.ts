@@ -7,7 +7,7 @@ import { NavigationCoordinator } from '../../core/navigation/navigation-coordina
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import type { EngineEvent } from '../../core/events';
-import { FailedNavigation } from '../../core/failure';
+import { NavigationFailure } from '../../core/failure';
 import { NavigationError } from '../../core/failure/navigation-error';
 import {
   createCoordinatorMockHost,
@@ -165,7 +165,7 @@ describe('EventBus pipeline emits (EB1)', () => {
     runSpy.mockResolvedValueOnce({ status: 'redirect', url: '/next', replace: true });
     await coordinator.run(createPushNavOptions({ from, to, href: '/b' }));
 
-    const failure = FailedNavigation.fromPipeline(
+    const failure = NavigationFailure.fromPipeline(
       new NavigationError({
         code: 'LOAD_FAILED',
         phase: 'load',

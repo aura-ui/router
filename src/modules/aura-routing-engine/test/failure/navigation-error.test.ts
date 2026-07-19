@@ -3,7 +3,7 @@ import {
   createViewLoadError,
   defaultCodeForPhase,
   isNavigationError,
-  normalizeFailure,
+  normalizeNavigationError,
 } from '../../core/failure';
 
 describe('NavigationError', () => {
@@ -29,15 +29,15 @@ describe('NavigationError', () => {
     expect(error.message).toContain('/users');
   });
 
-  it('normalizeFailure returns existing NavigationError', () => {
+  it('normalizeNavigationError returns existing NavigationError', () => {
     const original = createViewLoadError('html', '/a', new Error('x'));
     expect(
-      normalizeFailure(original, { phase: 'render', routePattern: '/a' }),
+      normalizeNavigationError(original, { phase: 'render', routePattern: '/a' }),
     ).toBe(original);
   });
 
-  it('normalizeFailure wraps unknown errors', () => {
-    const normalized = normalizeFailure(new Error('boom'), {
+  it('normalizeNavigationError wraps unknown errors', () => {
+    const normalized = normalizeNavigationError(new Error('boom'), {
       phase: 'guard',
       routePattern: '/login',
     });

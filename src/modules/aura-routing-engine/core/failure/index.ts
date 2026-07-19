@@ -4,15 +4,15 @@ export {
   createViewLoadError,
   defaultCodeForPhase,
   isNavigationError,
-  normalizeFailure,
+  normalizeNavigationError,
 } from './navigation-error';
 export type {
   NavigationErrorInit,
   NavigationErrorPhase,
   NavigationFailureCode,
-  NormalizeFailureContext,
+  NormalizeNavigationErrorContext,
 } from './navigation-error';
-export { FailedNavigation } from './navigation-failure';
+export { NavigationFailure } from './navigation-failure';
 export type {
   NavigationHookErrorDetail,
   ReportNavigationHookError,

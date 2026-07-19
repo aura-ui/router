@@ -17,7 +17,7 @@ import {
   dispatchNotFound,
   type AuraRouterNavigationErrorEventDetail,
 } from '../core/navigation-events';
-import { FailedNavigation, NavigationError } from '../../aura-routing-engine/core';
+import { NavigationFailure, NavigationError } from '../../aura-routing-engine/core';
 import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
 
 function matchedFailure(
@@ -42,7 +42,7 @@ function matchedFailure(
     ? { href: overrides.from, pathname: overrides.from, search: '', hash: '', pattern: overrides.from, route: createTestRoute(overrides.from) }
     : null;
 
-  return FailedNavigation.fromPipeline(
+  return NavigationFailure.fromPipeline(
     new NavigationError({
       code: overrides.code ?? 'RENDER_FAILED',
       phase: overrides.phase ?? 'render',
@@ -85,7 +85,7 @@ describe('navigation-events', () => {
     expect(event.detail.source).toBe('route');
   });
 
-  it('dispatchNavigationError maps FailedNavigation to DOM detail', () => {
+  it('dispatchNavigationError maps NavigationFailure to DOM detail', () => {
     const router = document.createElement('div');
     const listener = jest.fn();
 
@@ -106,7 +106,7 @@ describe('navigation-events', () => {
     router.addEventListener(AURA_ROUTER_NAVIGATION_ERROR, listener);
     dispatchNavigationError(
       router,
-      FailedNavigation.notFound('/missing', null, 'push'),
+      NavigationFailure.notFound('/missing', null, 'push'),
     );
 
     const detail = listener.mock.calls[0][0].detail as AuraRouterNavigationErrorEventDetail;

@@ -38,7 +38,7 @@ export type {
   NavigationErrorPhase,
 } from './core/failure';
 
-export { FailedNavigation } from './core/failure';
+export { NavigationFailure } from './core/failure';
 export type {
   NavigationHookErrorDetail,
   ReportNavigationHookError,
@@ -51,7 +51,7 @@ export type {
 export type {
   NavigationFailureCode,
   NavigationErrorInit,
-  NormalizeFailureContext,
+  NormalizeNavigationErrorContext,
 } from './core/failure';
 
 export {
@@ -59,7 +59,7 @@ export {
   createViewLoadError,
   defaultCodeForPhase,
   isNavigationError,
-  normalizeFailure,
+  normalizeNavigationError,
 } from './core/failure';
 
 export type { ViewCommitSnapshot, ViewCommitState } from './core/view-mount/view-commit-state';

@@ -1,4 +1,4 @@
-import type { FailedNavigation } from '../failure';
+import type { NavigationFailure } from '../failure';
 import {
   applyTransactionHistory,
   type HistoryProviderLike,
@@ -14,7 +14,7 @@ import type { TransactionResult } from './types';
  */
 export type ApplyOutcomeContext = {
   provider: HistoryProviderLike;
-  onNotFound?: (failure: FailedNavigation) => void | boolean;
+  onNotFound?: (failure: NavigationFailure) => void | boolean;
   notFoundHandler?: (href: string) => void;
   setPrev: (prev: MatchedRouteInfo | null) => void;
   navigateTo: (
@@ -95,7 +95,7 @@ export function applyNavigationOutcome(
 
 /** NOT_FOUND callbacks + `prev`. No history / bus. */
 function applyFailureEffects(
-  failure: FailedNavigation,
+  failure: NavigationFailure,
   ctx: ApplyOutcomeContext,
 ): void {
   if (failure.isNotFound) {

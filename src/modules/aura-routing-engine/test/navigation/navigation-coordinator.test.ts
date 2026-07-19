@@ -1,4 +1,4 @@
-﻿import { FailedNavigation } from '../../core/failure';
+import { NavigationFailure } from '../../core/failure';
 
 import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
 
@@ -644,7 +644,7 @@ describe('NavigationCoordinator', () => {
 
         status: 'error' as const,
 
-        failure: FailedNavigation.notFound('/about', home, 'push'),
+        failure: NavigationFailure.notFound('/about', home, 'push'),
 
       };
 

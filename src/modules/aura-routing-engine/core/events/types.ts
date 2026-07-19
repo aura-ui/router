@@ -1,4 +1,4 @@
-import type { FailedNavigation } from '../failure';
+import type { NavigationFailure } from '../failure';
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
@@ -36,7 +36,7 @@ export type EngineEvent =
   | (NavId & { type: 'navigation:finish' })
   | (NavId & { type: 'navigation:cancel'; reason?: string })
   | (NavId & { type: 'navigation:redirect'; url: string; replace: boolean })
-  | (NavId & { type: 'navigation:error'; failure: FailedNavigation })
+  | (NavId & { type: 'navigation:error'; failure: NavigationFailure })
   | (NavId & NodeRef & { type: 'node:activate' })
   | (NavId & NodeRef & { type: 'node:deactivate' })
   | (NavId & NodeRef & { type: 'load:start' })

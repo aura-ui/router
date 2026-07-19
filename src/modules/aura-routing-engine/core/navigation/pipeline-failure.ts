@@ -1,6 +1,6 @@
 import {
-  FailedNavigation,
-  normalizeFailure,
+  NavigationFailure,
+  normalizeNavigationError,
   type NavigationErrorPhase,
 } from '../failure';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -8,7 +8,7 @@ import type { NavigationLifecycleContext, PipelineStepResult } from './types';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 
 /**
- * Normalize a pipeline throw into {@link FailedNavigation}, run the terminal
+ * Normalize a pipeline throw into {@link NavigationFailure}, run the terminal
  * `error` phase, return `{ status: 'error' }`.
  *
  * Side effects after settle → {@link ./navigation-outcome!applyNavigationOutcome}.
@@ -19,11 +19,11 @@ export async function handlePipelineFailure(
   atPhase: NavigationErrorPhase,
   context: NavigationLifecycleContext,
 ): Promise<Extract<PipelineStepResult, { status: 'error' }>> {
-  const normalized = normalizeFailure(error, {
+  const normalized = normalizeNavigationError(error, {
     phase: atPhase,
     routePattern: route.pattern,
   });
-  const failed = FailedNavigation.fromPipeline(
+  const failed = NavigationFailure.fromPipeline(
     normalized,
     context.viewCommitTracker.snapshot,
     context.transaction.from,

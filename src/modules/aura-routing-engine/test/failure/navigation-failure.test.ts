@@ -1,7 +1,7 @@
-import { FailedNavigation, NavigationError } from '../../core/failure';
+import { NavigationFailure, NavigationError } from '../../core/failure';
 import { createTestRoute } from '../helpers/create-test-route';
 
-describe('FailedNavigation', () => {
+describe('NavigationFailure', () => {
   const to = {
     href: '/x',
     pathname: '/x',
@@ -19,7 +19,7 @@ describe('FailedNavigation', () => {
       message: 'fail',
     });
 
-    const committed = FailedNavigation.fromPipeline(
+    const committed = NavigationFailure.fromPipeline(
       error,
       { view: 'committed', href: '/x' },
       null,
@@ -28,7 +28,7 @@ describe('FailedNavigation', () => {
     );
     expect(committed.viewCommitted).toBe(true);
 
-    const staged = FailedNavigation.fromPipeline(
+    const staged = NavigationFailure.fromPipeline(
       error,
       { view: 'staged', href: '/x' },
       null,

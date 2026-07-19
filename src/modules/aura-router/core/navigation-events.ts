@@ -1,5 +1,5 @@
 import type {
-  FailedNavigation,
+  NavigationFailure,
   NavigationErrorPhase,
   NavigationFailureCode,
   NavigationHookErrorDetail,
@@ -66,9 +66,9 @@ export function dispatchNotFound(
   });
 }
 
-/** Maps {@link FailedNavigation} to flat DOM event fields. */
+/** Maps {@link NavigationFailure} to flat DOM event fields. */
 export function toRouterNavigationErrorDetail(
-  failure: FailedNavigation,
+  failure: NavigationFailure,
 ): Omit<AuraRouterNavigationErrorEventDetail, 'router'> {
   return {
     error: failure.error,
@@ -81,10 +81,10 @@ export function toRouterNavigationErrorDetail(
   };
 }
 
-/** Dispatches `navigation-error` from engine {@link FailedNavigation}. */
+/** Dispatches `navigation-error` from engine {@link NavigationFailure}. */
 export function dispatchNavigationError(
   router: HTMLElement,
-  failure: FailedNavigation,
+  failure: NavigationFailure,
 ): void {
   dispatchCustomEvent(router, AURA_ROUTER_NAVIGATION_ERROR, {
     detail: {

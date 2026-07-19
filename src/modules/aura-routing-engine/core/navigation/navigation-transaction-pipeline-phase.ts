@@ -23,7 +23,7 @@ import { PHASES } from './lifecycle-phases';
 import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { NavigationError } from '../failure';
-import type { FailedNavigation } from '../failure/navigation-failure';
+import type { NavigationFailure } from '../failure/navigation-failure';
 
 /** Executes one {@link RoutePhaseDefinition} for a matched route within a transaction. */
 export class NavigationTransactionPipelinePhase {
@@ -93,12 +93,12 @@ export class NavigationTransactionPipelinePhase {
 
   /**
    * Terminal `error` recovery: `onError` + attr `error` hooks.
-   * Caller supplies a normalized error and assembled {@link FailedNavigation}.
+   * Caller supplies a normalized error and assembled {@link NavigationFailure}.
    */
   static async runError(
     route: MatchedRouteInfo,
     normalized: NavigationError,
-    failed: FailedNavigation,
+    failed: NavigationFailure,
     context: NavigationLifecycleContext,
   ): Promise<void> {
     const { phase, runRouteLifecycle } = PHASES.error;

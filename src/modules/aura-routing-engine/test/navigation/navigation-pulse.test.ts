@@ -1,6 +1,6 @@
 import { EventBus } from '../../core/events';
 import type { EngineEvent } from '../../core/events';
-import { FailedNavigation } from '../../core/failure';
+import { NavigationFailure } from '../../core/failure';
 import { NavigationError } from '../../core/failure/navigation-error';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { FakeHistoryProvider } from '../../core/history/fake-provider';
@@ -94,7 +94,7 @@ describe('NavigationPulse', () => {
     const pulse = new NavigationPulse(bus);
     const to = createMatchedRoute('/b');
     const tx = createMockTransaction({ enterRoutes: [to] });
-    const failure = FailedNavigation.fromPipeline(
+    const failure = NavigationFailure.fromPipeline(
       new NavigationError({
         code: 'LOAD_FAILED',
         phase: 'load',
@@ -126,7 +126,7 @@ describe('NavigationPulse', () => {
     pulse.settle(1, { status: 'navigationSucceeded' });
     pulse.settle(2, { status: 'cancelled' });
     pulse.settle(3, { status: 'redirect', url: '/x', replace: true });
-    const failure = FailedNavigation.notFound('/missing', null, 'push');
+    const failure = NavigationFailure.notFound('/missing', null, 'push');
     pulse.settle(4, { status: 'error', failure });
 
     expect(types(seen)).toEqual([

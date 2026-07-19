@@ -18,7 +18,6 @@ type NodeRef = { nodeId: string; pattern: string };
  * Sync navigation / load event stream (EB0–EB1).
  * Prefetch stays on {@link ../prefetch/intent/bus!PrefetchIntentBus}.
  *
- * @see docs/todo/EVENT_BUS.md
  */
 export type EngineEvent =
   | (NavId & NavEndpoints & { type: 'navigation:start' })

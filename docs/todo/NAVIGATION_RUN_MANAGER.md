@@ -1,9 +1,21 @@
 # TODO: Navigation orchestration (Transaction + Coordinator)
 
-> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — runtime-оркестрация и EventBus ✓; OutcomeHandler — осталось · rename / узкие deps ⊘ 
+> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — runtime-оркестрация и EventBus ✓; OutcomeHandler — осталось · rename / узкие deps ⊘  
 > **Сверка с кодом:** 2026-07-19  
 > **Связь:** консолидация слоя orchestration; redirect collapse → [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md); [NAVIGATION_EVENTS](./NAVIGATION_EVENTS.md), [../done/EVENT_BUS.md](../done/EVENT_BUS.md), `NavigationPulse`.  
 > **См. также:** [NAVIGATION_TRANSACTION_MODEL.md](../NAVIGATION_TRANSACTION_MODEL.md), [FUTURE_PROOF_ENGINE.md](../FUTURE_PROOF_ENGINE.md) (Navigation Job), [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md), [ENGINE_CONSOLIDATION.md](./ENGINE_CONSOLIDATION.md)
+
+### Cleanup: observe vs apply (поэтапно)
+
+| # | Шаг | Статус |
+|---|-----|--------|
+| **1** | Зафиксировать контракт: `NavigationPulse` = **observe only** (emit; без history/`prev`/callbacks/navigate) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| **2** | Свести terminal side effects в один `apply(outcome)` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **3** | Упростить `failure/` (модель отдельно от apply side effects) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **4** | Схлопнуть `navigation-finalize.ts` в terminal apply | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **5** | Выровнять все terminal paths: `settle` → apply (в т.ч. NOT_FOUND, resolve cancel/redirect) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+
+**Шаг 1 — зафиксировано в:** `navigation-pulse.ts` · `ARCHITECTURE.md` § Observe vs apply · `failure/README.md` · [../done/EVENT_BUS.md](../done/EVENT_BUS.md) · JSDoc `finalizeResolveTerminal` (gaps).
 
 ### Легенда
 
@@ -293,10 +305,11 @@ Pipeline
 
 ## `NavigationOutcomeHandler` <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
 
-Единая точка terminal-обработки в **engine** (не в run). Run возвращает outcome; handler применяет side effects.
+Единая точка **apply** (side effects) в engine — **не** в Pulse и не в run.  
+Pulse остаётся observe-only (`settle` = emit). OutcomeHandler — следующий cleanup-шаг (#2).
 
-> **Факт:** поведение есть (`finalizeError`, `finalizeCancelled`, `applyRedirect`, `finalizeNotFoundNavigation`, `finalizeResolveTerminal`, `applyTransactionHistory`), но **класса `NavigationOutcomeHandler` и `apply(outcome)` нет**.  
-> Bus-часть terminal уже централизована в `NavigationPulse.settle`.
+> **Факт:** поведение есть (`finalizeError`, `finalizeCancelled`, `applyRedirect`, `finalizePreMatchFailureNavigation`, `finalizeResolveTerminal`, `applyTransactionHistory`), но **класса `NavigationOutcomeHandler` и `apply(outcome)` нет**.  
+> Observe: `NavigationPulse.settle` (контракт ✓). Gaps settle на части pre-pipeline paths — шаг #5.
 
 ### Сейчас в коде <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
 

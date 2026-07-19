@@ -29,6 +29,10 @@ Route lifecycle on failure lives in `navigation/`:
 History writes are resolved in `history/` and applied in `navigation/navigation-finalize.ts`.
 This keeps failure callbacks, `prev` updates, and browser history policy separate.
 
+**Observability is not this layer.** Bus `navigation:error` (and other terminal events)
+are emitted only by `NavigationPulse` (observe-only). `finalizeFailure` must not emit
+on the bus and must not write history — it only runs app callbacks and returns a `prev` hint.
+
 ## Recovery Contract
 
 - `NOT_FOUND` calls `onNotFound`; when it does not return `false`, the configured

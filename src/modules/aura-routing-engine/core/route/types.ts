@@ -121,6 +121,11 @@ export interface RouteInstance extends RouteHookNamesSource {
   readonly hasReady: boolean;
   readonly hasAsyncContent: boolean;
   readonly hasSyncContent: boolean;
+  /**
+   * View loader needs DataGraph payload (`needsData`).
+   * Same meaning as {@link ../../../aura-route/core/aura-route!AuraRoute.viewLoaderNeedsData}.
+   */
+  readonly viewLoaderNeedsData?: boolean;
   onGuard(ctx: RouteLifecycleContext): void;
   onTransitionIn(ctx: RouteLifecycleContext): void;
   onLoad(ctx: RouteLifecycleContext): void;

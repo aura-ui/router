@@ -10,7 +10,7 @@
  *   runs full `runGuards()` per blocking hop (`leave` before `guard`); hook redirect collapses into one `navigateTo`.
  * - **`guard` / `leave` / `load` in full pipeline** — {@link ./navigation/navigation-transaction-pipeline!NavigationTransactionPipeline.runFullPipeline}
  *   when `skipBlockingPhases` is false; load redirect triggers a new `navigateTo` via
- *   {@link ./aura-routing-engine!AuraRoutingEngine.applyRedirect}.
+ *   {@link ./navigation/navigation-outcome-handler!applyNavigationOutcome}.
  * Prefer auth/role redirects in **`guard`**, not **`load`**, for client-first apps.
  *
  * @module guard.types

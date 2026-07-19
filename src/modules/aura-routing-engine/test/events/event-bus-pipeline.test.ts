@@ -146,7 +146,10 @@ describe('EventBus pipeline emits (EB1)', () => {
     );
 
     expect(eventTypes(seen)).toEqual(['navigation:cancel']);
-    expect(host.finalizeCancelled).toHaveBeenCalled();
+    expect(host.applyTerminalOutcome).toHaveBeenCalledWith(
+      { status: 'cancelled' },
+      expect.objectContaining({ href: '/b' }),
+    );
   });
 
   it('coordinator emits redirect and error terminals', async () => {

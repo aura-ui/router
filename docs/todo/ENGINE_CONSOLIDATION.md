@@ -16,7 +16,7 @@
 |----------------|-------------|--------|
 | **NavigationIntentResolver** | hash-only в `navigateTo`; match/noop в coordinator/planner — единого resolver нет | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **NavigationRunManager + Run** | `NavigationCoordinator` + `NavigationTransaction` | <span style="color: #bf8700; font-weight: bold;">~</span> |
-| **NavigationOutcomeHandler** | `finalize*` / `applyRedirect` / `finalizeResolveTerminal` на engine + `navigation-finalize` | <span style="color: #bf8700; font-weight: bold;">~</span> |
+| **Terminal apply** | `applyNavigationOutcome` / `applyPreMatchFailure` · host `applyTerminalOutcome` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | **RedirectResolver** | `followRedirectsWithGuardWalk` — `core/redirect/redirect-resolver.ts` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | **ViewCommitOrchestrator** | `view-commit-render` / tracker / rollback — без единого orchestrator | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **NotFoundPipeline** | `not-found-exit-cleanup` + `handleUnmatchedNavigation` на engine | <span style="color: #bf8700; font-weight: bold;">~</span> |
@@ -33,7 +33,7 @@
 | Фаза | Содержание | Статус |
 |------|------------|--------|
 | **0** | IntentResolver + NotFoundPipeline | <span style="color: #cf222e; font-weight: bold;">✗</span> |
-| **1** | NavigationOutcomeHandler (`apply`) | <span style="color: #bf8700; font-weight: bold;">~</span> поведение · <span style="color: #cf222e; font-weight: bold;">✗</span> класс |
+| **1** | Terminal apply (`applyNavigationOutcome`) | <span style="color: #2ea043; font-weight: bold;">✓</span> функции (без class) |
 | **2** | Run + RunManager (rename/split) | <span style="color: #bf8700; font-weight: bold;">~</span> |
 | **3** | ViewCommitOrchestrator | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **4** | RedirectResolver collapse | <span style="color: #2ea043; font-weight: bold;">✓</span> |

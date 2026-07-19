@@ -35,12 +35,12 @@ Hooks остаются для **логики приложения**; EventBus �
 
 | Механизм | Где | Покрытие |
 |----------|-----|----------|
-| `onNavigationCommitted` | `navigation/commit-gate.ts` → engine config | Один раз после commit gate |
+| `onNavigationCommitted` | `commitHistoryIfNeeded / commitNavigation` → engine config | Один раз после commit gate |
 | `onNavigationError` | `failure/finalize-failure.ts` | Terminal failure |
 | DOM `CustomEvent` | `aura-router/core/navigation-events.ts` | `not-found`, `navigation-error`, `navigation-hook-error` |
 | `PrefetchIntentBus` | `prefetch/intent/bus.ts` | Только prefetch intent, не navigation lifecycle |
 
-**Не покрыто:** `navigation:start`, prepare, commit start/end, finish, cancel, redirect, per-node activate/deactivate, per-load start/end/error. Fast path (`runFastPath`) — тоже без emit.
+**Не покрыто:** `navigation:start`, prepare, commit start/end, finish, cancel, redirect, per-node activate/deactivate, per-load start/end/error. Fast path (`runFastPipeline`) — тоже без emit.
 
 ---
 
@@ -74,7 +74,7 @@ class EventBus {
 }
 ```
 
-`id` — **navigation job id** из `AuraRoutingProcessorJobManager` (тот же, что в `RouteLifecycleContext.jobId`).
+`id` — **navigation job id** из `NavigationCoordinator` (тот же, что в `RouteLifecycleContext.jobId`).
 
 ### Размещение
 
@@ -92,10 +92,10 @@ class EventBus {
 
 | Событие | Где emit | Примечание |
 |---------|----------|------------|
-| `navigation:start` | `AuraRoutingProcessor.run()` после `jobManager.begin()` | Включая from/to/action |
-| `navigation:prepare:start` | `ProcessorPipeline.run()` — вход в guards | Или один блок guards+loads |
+| `navigation:start` | `NavigationTransaction.run()` после `NavigationCoordinator.run() supersede` | Включая from/to/action |
+| `navigation:prepare:start` | `NavigationTransactionPipeline.run()` — вход в guards | Или один блок guards+loads |
 | `navigation:prepare:end` | После `runLoads`, до `runRenderWithTransition` | |
-| `load:start` / `load:end` / `load:error` | `ProcessorPipeline.runLoads()` / `DataGraph` | Per route/node на activate-ветке |
+| `load:start` / `load:end` / `load:error` | `NavigationTransactionPipeline.runLoads()` / `DataGraph` | Per route/node на activate-ветке |
 | `node:deactivate` | По `TransitionMap.exitRoutes` (до/во время left) | Порядок согласовать с lifecycle |
 | `node:activate` | По `TransitionMap.enterRoutes` (enter phase) | |
 | `navigation:commit:start` | `runAfterRender()` — перед `commitEnterViews` | |
@@ -105,7 +105,7 @@ class EventBus {
 | `navigation:redirect` | `finalizeProcessorNavigation` — `status === 'redirect'` | |
 | `navigation:error` | `finalizeFailure` | Дублирует смысл `onNavigationError` |
 
-**Fast path:** те же emit’ы в `runFastPath()` где применимо (`start`, `commit:*`, `node:*`, `finish`), иначе подписчики не увидят Tier 0 навигации.
+**Fast path:** те же emit’ы в `runFastPipeline()` где применимо (`start`, `commit:*`, `node:*`, `finish`), иначе подписчики не увидят Tier 0 навигации.
 
 **Supersede / abort:** не emit’ить `finish` / `commit:end` для устаревшего `jobId`; при отмене — `navigation:cancel` или тихий drop (зафиксировать в контракте).
 
@@ -139,13 +139,13 @@ class EventBus {
 
 ### EB1 — Processor + coordinator
 
-- [ ] `navigation:start` в `AuraRoutingProcessor.run()`.
-- [ ] `navigation:prepare:*` в `ProcessorPipeline`.
+- [ ] `navigation:start` в `NavigationTransaction.run()`.
+- [ ] `navigation:prepare:*` в `NavigationTransactionPipeline`.
 - [ ] `load:*` в `runLoads()` / DataGraph.
 - [ ] `node:activate` / `node:deactivate` по `TransitionMap`.
 - [ ] `navigation:commit:*` в `runAfterRender()` + `applyCommitGate()`.
 - [ ] `navigation:finish` / `cancel` / `redirect` / `error` в coordinator + finalize.
-- [ ] Параллельные emit в `runFastPath()`.
+- [ ] Параллельные emit в `runFastPipeline()`.
 
 ### EB2 — Public API + callbacks
 
@@ -181,10 +181,10 @@ class EventBus {
 
 | Файл | Роль |
 |------|------|
-| `src/modules/aura-routing-engine/core/processor/processor.ts` | `jobManager.begin()` → `navigation:start` |
-| `src/modules/aura-routing-engine/core/processor/processor-pipeline.ts` | guards, loads, commit, after |
-| `src/modules/aura-routing-engine/core/processor/fast-path/run-fast-path.ts` | Tier 0 — те же emit |
-| `src/modules/aura-routing-engine/core/navigation/commit-gate.ts` | `onNavigationCommitted` → `navigation:commit:end` |
+| `src/modules/aura-routing-engine/core/navigation/navigation-coordinator.ts` | `NavigationCoordinator.run() supersede` → `navigation:start` |
+| `src/modules/aura-routing-engine/core/navigation/navigation-transaction-pipeline.ts` | guards, loads, commit, after |
+| `src/modules/aura-routing-engine/core/navigation/…/runFastPipeline` | Tier 0 — те же emit |
+| `src/modules/aura-routing-engine/core/commitHistoryIfNeeded / commitNavigation` | `onNavigationCommitted` → `navigation:commit:end` |
 | `src/modules/aura-routing-engine/core/navigation/coordinator.ts` | terminal outcomes |
 | `src/modules/aura-routing-engine/core/navigation/finalize.ts` | cancel / redirect |
 | `src/modules/aura-routing-engine/core/prefetch/intent/bus.ts` | образец API |

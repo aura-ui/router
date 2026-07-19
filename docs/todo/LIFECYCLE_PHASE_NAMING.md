@@ -249,7 +249,7 @@ error — terminal-ветка при сбое на любом шаге (не в 
 | **Первый вход** (нет `leave`) | нормально — не все фазы обязательны на каждой навигации |
 | **Prefetch** | link intent + prefetch pipeline, не navigation lifecycle |
 | **Supersede / cancel job** | engine (`hookEpoch`, `navigationJob`), не route attr |
-| **Render / history commit** | внутренние шаги `ProcessorPipeline`, не public hook |
+| **Render / history commit** | внутренние шаги `NavigationTransactionPipeline`, не public hook |
 | **Глобальные hooks** | `AURARouter.use()` + inherit attrs на `<aura-router>`, не новые имена фаз |
 
 ### Future (не сейчас — без новых lifecycle attrs до стабилизации)

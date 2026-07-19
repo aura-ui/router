@@ -14,10 +14,10 @@
 
 ```text
 navigateTo(/dashboard)
-  → processor A→dashboard (leave, enter, load, render…)
-  → enter hook: redirect /settings
+  → transaction A→dashboard (leave, guard, load, render…)
+  → guard hook: redirect /settings
   → finalizeNavigation → navigateTo(/settings)   // новая навигация
-    → processor A→settings (снова полный pipeline)
+    → transaction A→settings (снова полный pipeline)
     → enter hook: redirect /login
     → navigateTo(/login)                          // ещё раз
       → processor A→login (полный pipeline)
@@ -50,8 +50,8 @@ AuraRoutingEngine.navigateTo()
   │      match (incl. route-attr redirect) → blocking → redirect? → rematch
   │      повтор до финала / cancel / error / max hops / cycle
   │
-  └─ 2. ProcessorPipeline.run()        ← как сейчас, один раз
-         guards → loads → render → effects
+  └─ 2. NavigationTransactionPipeline.run()        ← как сейчас, один раз
+         guards → history → prepare → render → effects
          для финального matchedRoute
 ```
 
@@ -88,7 +88,7 @@ type ResolveResult =
 resolve(intent, href, options): Promise<ResolveResult>
 ```
 
-### `ProcessorPipeline.runBlockingOnly()` (или флаг `mode: 'resolve' | 'full'`)
+### `NavigationTransactionPipeline.runBlockingOnly()` (или флаг `mode: 'resolve' | 'full'`)
 
 Только pre-commit:
 
@@ -322,7 +322,7 @@ intent.replace = intent.replace || result.replace ?? (action === 'pop')
 Один `job` на всю цепочку resolve + full run:
 
 ```ts
-const job = jobManager.begin()  // один раз в начале navigateTo
+const job = NavigationCoordinator.run() supersede  // один раз в начале navigateTo
 // resolve + full pipeline делят один job и isJobActive
 ```
 
@@ -360,7 +360,7 @@ flowchart TD
   M -->|matched| BO[runBlockingOnly]
   BO -->|redirect sync| RS
   BO -->|cancel / error| FIN[OutcomeHandler]
-  BO -->|blocking OK| FULL[ProcessorPipeline.run full]
+  BO -->|blocking OK| FULL[NavigationTransactionPipeline.run full]
   RS -->|async-redirect| NT2[navigateTo url legacy path]
   FULL --> FIN
   FIN -->|redirect if not collapsed| NT
@@ -396,7 +396,7 @@ flowchart TD
 
 ## Что уже есть (не дублировать)
 
-- ✅ supersede job при новой навигации (`AuraRoutingProcessorJobManager.begin`)
+- ✅ supersede job при новой навигации (`NavigationCoordinator.begin`)
 - ✅ stale hook results после `await` (`isJobActive`)
 - ✅ blocking redirect только в `leave` / `enter` / `load`
 

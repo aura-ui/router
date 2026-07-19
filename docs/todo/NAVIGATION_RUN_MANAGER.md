@@ -14,7 +14,7 @@
 | **`NavigationRun`** | `NavigationTransaction` — `core/navigation/navigation-transaction.ts` | ✅ |
 | **`NavigationRunManager`** | `NavigationCoordinator` — dedupe + supersede + `activeTransaction` | 🔶 (planner внутри, rename нет) |
 | **`NavigationOutcomeHandler`** | `finalizeError` / `finalizeCancelled` / `applyRedirect` / `finalizeNotFoundNavigation` на engine | 🔶 (размазано, класса нет) |
-| **`NavigationPlanner.plan()`** | `NavigationCoordinator.plan()` — `already-active`, `duplicate-pending`, `cancel-pending` | ✅ |
+| **`NavigationCoordinator.plan()`** | `NavigationCoordinator.plan()` — `already-active`, `duplicate-pending`, `cancel-pending` | ✅ |
 | **Rollback scope** | `NavigationTransaction.runWithStagedViewRollback()` + `rollbackUncommittedViews` | ✅ |
 | **`ViewCommitTracker`** | поле `NavigationTransaction.viewCommitTracker` | ✅ |
 | **Pipeline executor** | `NavigationTransactionPipeline` (бывший processor) | ✅ |
@@ -48,12 +48,12 @@
 ```text
 AuraRoutingEngine.navigateTo()
   → NavigationCoordinator.run()
-       NavigationPlanner          // dedupe кликов
-       AuraRoutingProcessor.run()
-         jobManager.begin()       // supersede
+       NavigationCoordinator.plan          // dedupe кликов
+       NavigationTransaction.run()
+         NavigationCoordinator.run() supersede       // supersede
          withCancelledTransactionScope  // rollback view
          ViewCommitTracker
-         ProcessorPipeline
+         NavigationTransactionPipeline
        finalizeProcessorNavigation()    // terminal history / redirect
   commitGate (callback внутри pipeline)  // success history — sync
 ```
@@ -99,7 +99,7 @@ interface NavigationRun {
   status: NavigationRunStatus;
 
   // owned state (сейчас разрозненно)
-  readonly job: AuraRoutingProcessorJob;
+  readonly job: NavigationTransaction;
   readonly transitionPlan: TransitionMap;
   readonly viewCommitTracker: ViewCommitTracker;
 
@@ -141,7 +141,7 @@ start(input): PlanDecision
 
 Перенимает:
 
-- ✅ `NavigationPlanner` — dedupe (`already-active`, `duplicate-pending`, `cancel-pending`) → `coordinator.plan()`;
+- ✅ `NavigationCoordinator.plan` — dedupe (`already-active`, `duplicate-pending`, `cancel-pending`) → `coordinator.plan()`;
 - ✅ abort предыдущего run при новом → `activeTransaction.cancel()` + `transactionId`;
 - ✅ создание и `await activeTransaction.run()` → `NavigationTransaction.run()`.
 
@@ -193,7 +193,7 @@ interface NavigationRunDeps {
   /** Sync после commitStagedView, пока isJobActive — applyCommitGate */
   commitSuccess: (ctx: CommitGateContext) => CommitGateEffects;
 
-  processor: AuraRoutingProcessor;
+  processor: NavigationTransaction;
   router: RouterInstance;
   // …
 }
@@ -222,7 +222,7 @@ new NavigationRun({
 
 | Dep | Что передать | Зачем run | Статус |
 |-----|--------------|-----------|--------|
-| **`processor`** | `AuraRoutingProcessor` → `NavigationTransactionPipeline` | `runBlockingOnly()` / `runFull()` | ✅ pipeline в transaction |
+| **`processor`** | `NavigationTransaction` → `NavigationTransactionPipeline` | `runBlockingOnly()` / `runFull()` | ✅ pipeline в transaction |
 | **`redirectResolver`** | `RedirectResolver` | collapse | ⬜ |
 | **`router`** | `RouterInstance` | hooks | ✅ через `engine.router` |
 | **`telemetry`** | `{ emit(event) }` | emit-only | ⬜ |
@@ -246,7 +246,7 @@ new NavigationRun({
 ```ts
 interface NavigationRunDeps {
   commitSuccess: (ctx: CommitGateContext) => CommitGateEffects;
-  processor: AuraRoutingProcessor;
+  processor: NavigationTransaction;
   redirectResolver?: RedirectResolver;
   router: RouterInstance;
   telemetry?: { emit(event: EngineEvent): void };
@@ -269,7 +269,7 @@ NavigationRun / Manager
   navigation:start, navigation:finish, navigation:cancel,
   navigation:redirect, navigation:error (terminal)
 
-ProcessorPipeline / DataGraph  (тот же telemetry в PipelineContext)
+NavigationTransactionPipeline / DataGraph  (тот же telemetry в PipelineContext)
   navigation:prepare:*, load:*, node:*, navigation:commit:*
 ```
 
@@ -398,8 +398,8 @@ NavigationRunManager  active run, dedupe, supersede                             
 NavigationRun         intent lifecycle: resolve → full → rollback; узкие deps                🔶 NavigationTransaction
 NavigationOutcomeHandler  terminal: history, errors, telemetry, DOM bridge                 🔶 методы engine
 RedirectResolver      loop blocking redirect (коллаборатор run)                              ⬜
-AuraRoutingProcessor  только pipeline body (guards → loads → render → after)                 ✅ NavigationTransactionPipeline
-ProcessorPipeline     порядок шагов; telemetry `{ emit }` в ctx                              🔶 без telemetry
+NavigationTransaction  только pipeline body (guards → history → prepare → render → effects)                 ✅ NavigationTransactionPipeline
+NavigationTransactionPipeline     порядок шагов; telemetry `{ emit }` в ctx                              🔶 без telemetry
 ```
 
 **Не делать:**
@@ -415,10 +415,10 @@ ProcessorPipeline     порядок шагов; telemetry `{ emit }` в ctx    
 
 | As-is (док) | To-be | Факт в коде | Статус |
 |-------------|-------|-------------|--------|
-| `NavigationPlanner` | `NavigationRunManager.plan()` | `NavigationCoordinator.plan()` | ✅ |
+| `NavigationCoordinator.plan` | `NavigationRunManager.plan()` | `NavigationCoordinator.plan()` | ✅ |
 | `NavigationCoordinator.run()` | `RunManager.start()` + `Run.execute()` | coordinator + `NavigationTransaction.run()` | ✅ |
 | `withCancelledTransactionScope` | `NavigationRun` rollback | `runWithStagedViewRollback()` | ✅ |
-| `AuraRoutingProcessorJobManager.begin()` | manager при start-new-run | `activeTransaction.cancel()` + new id | ✅ |
+| `NavigationCoordinator.begin()` | manager при start-new-run | `activeTransaction.cancel()` + new id | ✅ |
 | `ViewCommitTracker` | поле run | `NavigationTransaction.viewCommitTracker` | ✅ |
 | `commitGate` callback | `deps.commitSuccess` | `commitHistoryIfNeeded` + `commitNavigation` | 🔶 |
 | `finalizeProcessorNavigation` | `OutcomeHandler.apply` | engine `finalize*` / `applyRedirect` | 🔶 |

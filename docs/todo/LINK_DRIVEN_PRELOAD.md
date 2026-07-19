@@ -329,7 +329,7 @@ engine/
     data-graph.ts             ← load(), prefetch(), invalidate()
 ```
 
-- `ProcessorPipeline.runLoads` → `dataGraph.load()` — **только navigation**, не prefetch.
+- `NavigationTransactionPipeline.runLoads` → `dataGraph.load()` — **только navigation**, не prefetch.
 - `PrefetchController` → вызывает **оба** sibling на intent.
 
 ### Ответ на вопрос «внутри или отдельно»

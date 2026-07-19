@@ -213,7 +213,7 @@ aura-cache                ⬜ P1 (CACHE_DEVTOOLS)
 Детальный план: **[EVENT_BUS.md](./EVENT_BUS.md)** (контракт `EngineEvent`, точки emit в processor/coordinator, fast path, EB0–EB4).
 
 - ⬜ `core/events/event-bus.ts` + типы `navigation:*` / `load:*` / `node:*`
-- ⬜ Emit в pipeline + `runFastPath()`; supersede не эмитит `finish` для старого job
+- ⬜ Emit в pipeline + `runFastPipeline()`; supersede не эмитит `finish` для старого job
 - ⬜ `engine.events.subscribe()`; callbacks остаются для backward compat
 - ⬜ DOM bridge (пересечение с P0 выше) — bus как source of truth
 - ⬜ DevTools подписчик (zero cost в prod)
@@ -227,6 +227,6 @@ aura-cache                ⬜ P1 (CACHE_DEVTOOLS)
 | `src/modules/aura-router/core/navigation-events.ts` | DOM dispatch (errors, not-found) |
 | `src/modules/aura-router/core/aura-router.ts` | Engine callbacks → events |
 | `src/modules/aura-route/core/view/plugins.ts` | `aura-route-loading` |
-| `src/modules/aura-routing-engine/core/navigation/commit-gate.ts` | `onNavigationCommitted` |
+| `src/modules/aura-routing-engine/core/commitHistoryIfNeeded / commitNavigation` | `onNavigationCommitted` |
 | `src/modules/aura-routing-engine/core/navigation/finalize.ts` | cancel / redirect / error terminal |
 | `src/modules/aura-utils/misc/events.ts` | `dispatchCustomEvent` helper |

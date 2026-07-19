@@ -13,7 +13,6 @@
 import { NavigationTransaction } from './navigation-transaction';
 import { PHASES } from './lifecycle-phases';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import { resolveRouteData } from '../data-graph/route-data';
 import { mountEnterBranch } from '../view-mount/branch-mount';
 import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
@@ -268,39 +267,30 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Atomic render — phase 2: sync mount pre-resolved branch into the DOM.
-   *
-   * Clears `viewSnapshot` after read. Marks the view staged on success.
-   * Missing view snapshot yields `cancelled`.
+   * Atomic render: sync-mount {@link NavigationTransaction.viewSnapshot} into the DOM.
+   * Clears the snapshot after read. Missing snapshot → `cancelled`.
    */
   private commitEnterBranchToDom(): Promise<PipelineStepResult> {
-    const preResolvedContents = this.transaction.viewSnapshot;
+    const viewSnapshot = this.transaction.viewSnapshot;
     this.transaction.viewSnapshot = undefined;
+    if (!viewSnapshot) return Promise.resolve({ status: 'cancelled' });
 
-    if (!preResolvedContents) {
-      return Promise.resolve({ status: 'cancelled' });
-    }
-
-    const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const { signal, dataSnapshot } = this.transaction;
-    const mountResult = mountEnterBranch(enterRoutes, preResolvedContents, {
-      signal,
-      aborted: () => !this.transaction.isActive(),
-      paramChangeRemount: this.transaction.transitionPlan.paramChangeRemount === true,
-      dataFor: dataSnapshot
-        ? (route) => resolveRouteData(dataSnapshot, route)
-        : undefined,
+    const tx = this.transaction;
+    const mountResult = mountEnterBranch(tx.transitionPlan.enterRoutes, viewSnapshot, {
+      signal: tx.signal,
+      aborted: () => !tx.isActive(),
+      paramChangeRemount: tx.transitionPlan.paramChangeRemount === true,
+      dataSnapshot: tx.dataSnapshot,
     });
 
-    if (mountResult.status === 'aborted' || !this.transaction.isActive()) {
+    if (mountResult.status === 'aborted' || !tx.isActive()) {
       return Promise.resolve({ status: 'cancelled' });
     }
-
     if (mountResult.status === 'error') {
       return this.failRender(mountResult.route, mountResult.error);
     }
 
-    this.transaction.viewCommitTracker.markViewStaged();
+    tx.viewCommitTracker.markViewStaged();
     return Promise.resolve(null);
   }
 

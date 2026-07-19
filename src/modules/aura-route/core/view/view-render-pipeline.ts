@@ -24,10 +24,10 @@ export class ViewRenderPipeline {
   syncBranchMount(pass: RenderPass): ViewRenderResult | 'aborted' {
     if (this.ctx.renderSignal.aborted) return 'aborted';
 
-    if (pass.preResolvedContent === undefined) {
+    if (pass.preResolvedView === undefined) {
       return {
         status: 'error',
-        error: new Error('syncBranchMount requires preResolvedContent on pass'),
+        error: new Error('syncBranchMount requires preResolvedView on pass'),
       };
     }
 
@@ -35,7 +35,7 @@ export class ViewRenderPipeline {
       const early = this.tryEarlyExit(pass); // tryCacheRestore ?? trySkipAlreadyMounted
       if (early) return early;
 
-      this.phase.applyResolvedContent(pass, pass.preResolvedContent);
+      this.phase.applyResolvedContent(pass, pass.preResolvedView);
       return { status: 'ok' };
     } catch (error) {
       return this.phase.handleError(pass, error);

@@ -428,7 +428,7 @@ describe('RouteViewController keep-alive integration', () => {
     );
 
     const result = controller.applyPreResolved(matched('/page'), {
-      preResolvedContent: '<span>instant</span>',
+      preResolvedView: '<span>instant</span>',
     });
 
     expect(result).toEqual({ status: 'ok' });
@@ -460,10 +460,10 @@ describe('RouteViewController keep-alive integration', () => {
     );
 
     parent.applyPreResolved(matched('/users', { pattern: '/users' }), {
-      preResolvedContent: layoutShell(),
+      preResolvedView: layoutShell(),
     });
     child.applyPreResolved(matched('/users/1', { pattern: '/users/:id' }), {
-      preResolvedContent: '<span>user-list</span>',
+      preResolvedView: '<span>user-list</span>',
     });
 
     expect(resolve).not.toHaveBeenCalled();

@@ -6,13 +6,13 @@ describe('mountEnterBranch', () => {
     const calls: Array<{ path: string; payload: unknown }> = [];
     const layout = createMatchedRoute('/users', {
       applyPreResolved: (_info, options) => {
-        calls.push({ path: '/users', payload: options?.preResolvedContent });
+        calls.push({ path: '/users', payload: options?.preResolvedView });
         return { status: 'ok' };
       },
     });
     const index = createMatchedRoute('/users/1', {
       applyPreResolved: (_info, options) => {
-        calls.push({ path: '/users/1', payload: options?.preResolvedContent });
+        calls.push({ path: '/users/1', payload: options?.preResolvedView });
         return { status: 'ok' };
       },
     });
@@ -77,12 +77,16 @@ describe('mountEnterBranch', () => {
     expect(revertInFlightView).toHaveBeenCalledTimes(1);
   });
 
-  it('passes load-hook data from resolve context', () => {
-    const layout = createMatchedRoute('/users');
-    const index = createMatchedRoute('/users/1');
+  it('passes load-hook data from dataSnapshot', () => {
+    const layout = createMatchedRoute('/users', { load: ['u'], hasLoad: true });
+    const index = createMatchedRoute('/users/1', { load: ['u'], hasLoad: true });
     const applyPreResolved = jest.fn(() => ({ status: 'ok' as const }));
     layout.route.applyPreResolved = applyPreResolved;
     index.route.applyPreResolved = applyPreResolved;
+    const dataSnapshot = new Map([
+      [layout.dataKey!, { id: '1' }],
+      [index.dataKey!, { id: '1' }],
+    ]);
 
     mountEnterBranch(
       [layout, index],
@@ -90,19 +94,19 @@ describe('mountEnterBranch', () => {
       {
         signal: new AbortController().signal,
         aborted: () => false,
-        dataFor: () => ({ id: '1' }),
+        dataSnapshot,
       },
     );
 
     expect(applyPreResolved).toHaveBeenNthCalledWith(
       1,
       layout,
-      expect.objectContaining({ preResolvedContent: '<layout/>', data: { id: '1' } }),
+      expect.objectContaining({ preResolvedView: '<layout/>', data: { id: '1' } }),
     );
     expect(applyPreResolved).toHaveBeenNthCalledWith(
       2,
       index,
-      expect.objectContaining({ preResolvedContent: '<index/>', data: { id: '1' } }),
+      expect.objectContaining({ preResolvedView: '<index/>', data: { id: '1' } }),
     );
   });
 

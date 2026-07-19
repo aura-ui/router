@@ -53,7 +53,7 @@ export class RouteViewController {
     options: ApplyPreResolvedOptions,
   ): ViewRenderResult | 'aborted' {
     if (options.parentSignal?.aborted) return 'aborted';
-    const pass = this.beginPass(routeInfo, options, options.preResolvedContent);
+    const pass = this.beginPass(routeInfo, options, options.preResolvedView);
     this.ctx.lastCacheKey = pass.domCacheKey;
     return this.renderPipeline.syncBranchMount(pass);
   }
@@ -61,7 +61,7 @@ export class RouteViewController {
   private beginPass(
     routeInfo: MatchedRouteInfo,
     options?: RouteRenderOptions,
-    preResolvedContent?: ViewPayload | null,
+    preResolvedView?: ViewPayload | null,
   ): RenderPass {
     this.ctx.paramChangeRemount = options?.paramChangeRemount === true;
     const route = this.ctx.config.route;
@@ -76,7 +76,7 @@ export class RouteViewController {
         route.transition.order !== null
         || (this.ctx.paramChangeRemount && route.cache.dom),
       ...(options?.data !== undefined && { data: options.data }),
-      ...(preResolvedContent !== undefined && { preResolvedContent }),
+      ...(preResolvedView !== undefined && { preResolvedView }),
     };
   }
 

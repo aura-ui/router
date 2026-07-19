@@ -48,7 +48,7 @@ describe('NavigationTransactionPipeline branch mount data', () => {
     mountEnterBranchSpy.mockRestore();
   });
 
-  it('passes load-hook data from dataSnapshot via branch resolve context', async () => {
+  it('passes dataSnapshot to branch mount', async () => {
     const enterRoute = createMatchedRoute('/to', {
       load: ['fetch'],
       hasLoad: true,
@@ -70,12 +70,8 @@ describe('NavigationTransactionPipeline branch mount data', () => {
     expect(mountEnterBranchSpy).toHaveBeenCalledWith(
       [enterRoute],
       ['<page/>'],
-      expect.objectContaining({
-        dataFor: expect.any(Function),
-      }),
+      expect.objectContaining({ dataSnapshot: snapshot }),
     );
-    const ctx = mountEnterBranchSpy.mock.calls[0]![2]!;
-    expect(ctx.dataFor?.(enterRoute)).toEqual(loadPayload);
     expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 });

@@ -42,8 +42,8 @@ export type RouteRenderOptions = {
 
 /** Options for sync branch-atomic mount ({@link RouteViewController.applyPreResolved}). */
 export type ApplyPreResolvedOptions = RouteRenderOptions & {
-  /** Pre-fetched payload from branch resolve. `null` = empty content route. */
-  preResolvedContent: ViewPayload | null;
+  /** Payload from navigation `viewSnapshot`. `null` = empty view route. */
+  preResolvedView: ViewPayload | null;
 };
 
 export type RouteUnmountOptions = {

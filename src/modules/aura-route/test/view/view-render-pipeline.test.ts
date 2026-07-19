@@ -132,7 +132,7 @@ describe('ViewRenderPipeline', () => {
 
     const result = pipeline.syncBranchMount({
       ...renderPass(),
-      preResolvedContent: '<span>pre-resolved</span>',
+      preResolvedView: '<span>pre-resolved</span>',
     });
 
     expect(result).toEqual({ status: 'ok' });
@@ -141,7 +141,7 @@ describe('ViewRenderPipeline', () => {
     expect(onLoadingStart).not.toHaveBeenCalled();
     expect(onLoadingEnd).not.toHaveBeenCalled();
     expect(onContentResolved).toHaveBeenCalledWith(
-      expect.objectContaining({ preResolvedContent: '<span>pre-resolved</span>' }),
+      expect.objectContaining({ preResolvedView: '<span>pre-resolved</span>' }),
       '<span>pre-resolved</span>',
     );
   });
@@ -153,7 +153,7 @@ describe('ViewRenderPipeline', () => {
 
     pipeline.syncBranchMount({
       ...renderPass(),
-      preResolvedContent: null,
+      preResolvedView: null,
     });
 
     expect(loadView).not.toHaveBeenCalled();
@@ -172,7 +172,7 @@ describe('ViewRenderPipeline', () => {
 
     const result = pipeline.syncBranchMount({
       ...renderPass(),
-      preResolvedContent: '<span>from-branch</span>',
+      preResolvedView: '<span>from-branch</span>',
     });
 
     expect(result).toEqual({ status: 'ok' });
@@ -190,7 +190,7 @@ describe('ViewRenderPipeline', () => {
 
     const result = pipeline.syncBranchMount({
       ...renderPass(),
-      preResolvedContent: '<span>from-branch</span>',
+      preResolvedView: '<span>from-branch</span>',
     });
 
     expect(result).toEqual({ status: 'ok' });

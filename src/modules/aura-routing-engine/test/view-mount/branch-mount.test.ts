@@ -1,4 +1,8 @@
-import { mountEnterBranch } from '../../core/view-mount/branch-mount';
+import {
+  createBranchMountContext,
+  mountEnterBranch,
+} from '../../core/view-mount/branch-mount';
+import type { DataSnapshot } from '../../core/data-graph';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 
 describe('mountEnterBranch', () => {
@@ -106,7 +110,7 @@ describe('mountEnterBranch', () => {
     );
   });
 
-  it('returns error when pre-resolved contents length does not match enter routes', () => {
+  it('returns error when view snapshot length does not match enter routes', () => {
     const route = createMatchedRoute('/page', {
       applyPreResolved: () => ({ status: 'ok' }),
     });
@@ -120,8 +124,45 @@ describe('mountEnterBranch', () => {
     expect(result.status).toBe('error');
     if (result.status === 'error') {
       expect(result.error).toEqual(expect.objectContaining({
-        message: 'Branch mount: expected 1 pre-resolved contents, got 0',
+        message: 'Branch mount: expected 1 view payloads, got 0',
       }));
     }
+  });
+});
+
+describe('createBranchMountContext', () => {
+  it('uses isActive for aborted', () => {
+    let active = true;
+    const ctx = createBranchMountContext({
+      signal: new AbortController().signal,
+      isActive: () => active,
+    });
+
+    expect(ctx.aborted()).toBe(false);
+    active = false;
+    expect(ctx.aborted()).toBe(true);
+  });
+
+  it('exposes load-hook data from snapshot', () => {
+    const route = createMatchedRoute('/users', { load: ['user'], hasLoad: true });
+    const snapshot = new Map([[route.dataKey!, { userId: '42' }]]) as DataSnapshot;
+
+    const ctx = createBranchMountContext({
+      signal: new AbortController().signal,
+      isActive: () => true,
+      dataSnapshot: snapshot,
+    });
+
+    expect(ctx.dataFor?.(route)).toEqual({ userId: '42' });
+  });
+
+  it('forwards paramChangeRemount', () => {
+    const ctx = createBranchMountContext({
+      signal: new AbortController().signal,
+      isActive: () => true,
+      paramChangeRemount: true,
+    });
+
+    expect(ctx.paramChangeRemount).toBe(true);
   });
 });

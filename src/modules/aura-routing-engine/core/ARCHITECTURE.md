@@ -18,7 +18,7 @@ failure handling in `failure/README.md`.
 | `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`. |
 | `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit blocking walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
 | `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
-| `view-mount/` | View staging/commit tracking, fast-path `runViewCommit`, branch resolve/mount (`branch-resolver`, `branch-mount`), staged-view rollback. |
+| `view-mount/` | View staging/commit tracking, fast-path `runViewCommit`, branch mount (`branch-mount`), staged-view rollback. |
 | `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |
 | `view-graph/` | Route view attrs → `ViewGraph` → payload cache → loader payload. |
 | `data-graph/` | Route `load` hooks, SWR cache, prefetch intent, cache invalidation. |
@@ -88,7 +88,7 @@ content, no blocking hooks or `transition-order`.
 
 Full render is always **branch prepare → commit**:
 
-1. `runPrepare()` — `DataGraph.load` then parallel `resolveEnterBranch` (`ViewGraph.loadView`)
+1. `runPrepare()` — `ResourceGraph.load` → `dataSnapshot` / `viewSnapshot`
 2. `commitEnterBranchToDom()` — sync `mountEnterBranch` / `applyPreResolved` (incl. `paramChangeRemount`)
 3. `syncBranchMount` early-exit restores `cache.dom` when present
 ## Ownership Boundaries

@@ -131,8 +131,6 @@ ViewPayload
 |-----|--------|-------------|
 | `ViewLoadPort` | `loadView`, `load`, `prefetch` | prefetch / prepare executor |
 | `ViewResolverPort` | `loadView` | `RouteViewController` |
-| `BranchViewResolver` | `loadView` | branch-atomic resolve |
-
 ---
 
 ## Публичный API
@@ -141,7 +139,7 @@ ViewPayload
 
 | Группа | Символы |
 |--------|---------|
-| Orchestration | `ViewGraph`, `ViewGraphDeps`, `ViewPrefetchOptions`, `RouteViewSource`, `ViewLoadPort`, `ViewResolverPort`, `BranchViewResolver` |
+| Orchestration | `ViewGraph`, `ViewGraphDeps`, `ViewPrefetchOptions`, `RouteViewSource`, `ViewLoadPort`, `ViewResolverPort` |
 | Cache | `ViewPayloadCache`, `viewCacheKey` |
 | Registry | `LoaderRegistry`, `createLoaderRegistry`, `defaultLoaderRegistry`, `Loader`, `LoaderClass`, `LoaderFn` |
 | Types | `ViewPayload`, `ViewLoadResult`, `ViewLoadContext`, `ViewDescriptor`, `ViewKind`, `ViewLoaderEnv`, `FetchText` |

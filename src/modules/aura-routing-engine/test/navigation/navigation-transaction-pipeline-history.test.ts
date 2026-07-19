@@ -4,7 +4,6 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
   require('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import * as branchResolver from '../../core/view-mount/branch-resolver';
 import * as branchMount from '../../core/view-mount/branch-mount';
 import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
 import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
@@ -39,7 +38,6 @@ describe('NavigationTransactionPipeline history commit', () => {
       version: '1.0.0',
       fn: loadHook,
     });
-    jest.spyOn(branchResolver, 'resolveEnterBranch').mockResolvedValue({ status: 'ok', preResolvedContents: [null] });
     jest.spyOn(branchMount, 'mountEnterBranch').mockImplementation(() => {
       order.push('render');
       return { status: 'ok' };

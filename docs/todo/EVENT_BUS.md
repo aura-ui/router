@@ -1,22 +1,44 @@
 # EventBus — внутренний поток событий navigation / load
 
-> **Статус:** <span style="color: #bf8700; font-weight: bold;">~</span> частично · **фаза 7**  
-> **Последнее обновление:** 2026-06-30  
+> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — callbacks + DOM errors ✓ · класс `EventBus` / lifecycle stream ✗  
+> **Сверка с кодом:** 2026-07-19 · **фаза 7**  
 > **Связанные документы:** [FUTURE_PROOF_ENGINE.md §5](../FUTURE_PROOF_ENGINE.md), [IMPLEMENTATION_STEPS.md §фаза 7](../IMPLEMENTATION_STEPS.md), [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) (DOM public API)
+
+### Легенда
+
+| Метка | Значение |
+|-------|----------|
+| <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | в production path / покрыто тестами |
+| <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | каркас / точечный hook есть, не полный stream |
+| <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> | не сделано |
+| <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> | сознательно не в scope / by design |
+
+### Сводка прогресса
+
+| # | Тема | Статус | Что дальше |
+|---|------|--------|------------|
+| — | Terminal callbacks (`onNavigationCommitted` / `onNavigationError`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | thin-wrapper поверх bus позже |
+| — | DOM errors (`not-found`, `navigation-error`, `navigation-hook-error`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | см. [NAVIGATION_EVENTS](./NAVIGATION_EVENTS.md) |
+| — | `PrefetchIntentBus` (отдельная ось) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> не смешивать с nav bus |
+| **EB0** | Контракт `EventBus` + `EngineEvent` + unit-тесты | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | `core/events/` |
+| **EB1** | Emit в processor / coordinator / fast path | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | `navigation:*`, `load:*`, `node:*` |
+| **EB2** | Public API `engine.events.subscribe()` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | + compat callbacks |
+| **EB3** | DOM bridge P0 (`navigation-start` …) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | [NAVIGATION_EVENTS](./NAVIGATION_EVENTS.md) |
+| **EB4** | Devtools timeline (dev / opt-in) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | [CACHE_DEVTOOLS](./CACHE_DEVTOOLS.md) |
 
 ---
 
 ## TL;DR
 
-| | Сейчас | Цель |
-|---|--------|------|
-| Успешная навигация | Только callback `onNavigationCommitted` | Полный поток `navigation:*` по lifecycle |
-| Ошибки | `onNavigationError` + DOM `navigation-error` | То же + `navigation:error` / `load:error` в bus |
-| Loads / activate | Только hooks, без observability | `load:start/end/error`, `node:activate/deactivate` |
-| Prefetch | `PrefetchIntentBus` (отдельная ось) | Не смешивать с navigation bus |
-| Public DOM | `not-found`, `navigation-error`, `navigation-hook-error` | DOM — см. [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) P0; bus — engine + devtools |
+| | Сейчас | Цель | Статус |
+|---|--------|------|--------|
+| Успешная навигация | Только callback `onNavigationCommitted` | Полный поток `navigation:*` по lifecycle | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> callback ✓ · stream ✗ |
+| Ошибки | `onNavigationError` + DOM `navigation-error` | То же + `navigation:error` / `load:error` в bus | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> callbacks/DOM ✓ · bus ✗ |
+| Loads / activate | Только hooks, без observability | `load:start/end/error`, `node:activate/deactivate` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| Prefetch | `PrefetchIntentBus` (отдельная ось) | Не смешивать с navigation bus | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design |
+| Public DOM (success path) | — | `navigation-start` / commit / complete / cancel / redirect | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P0 |
 
-**Почему «~ частично»:** есть **точечные хуки на финале** (commit / error) и **DOM только для ошибок**, но нет **непрерывного event stream** по фазам pipeline — нельзя подписаться на «навигация началась», «loads идут», «commit начался» без погружения в processor.
+**Почему «~ частично»:** есть **точечные хуки на финале** (commit / error) и **DOM только для ошибок**, но нет **класса EventBus** и **непрерывного event stream** по фазам pipeline — нельзя подписаться на «навигация началась», «loads идут», «commit начался» без погружения в processor.
 
 ---
 
@@ -31,20 +53,31 @@ Hooks остаются для **логики приложения**; EventBus �
 
 ---
 
-## Что уже есть
+## Что уже есть — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-| Механизм | Где | Покрытие |
-|----------|-----|----------|
-| `onNavigationCommitted` | `commitHistoryIfNeeded / commitNavigation` → engine config | Один раз после commit gate |
-| `onNavigationError` | `failure/finalize-failure.ts` | Terminal failure |
-| DOM `CustomEvent` | `aura-router/core/navigation-events.ts` | `not-found`, `navigation-error`, `navigation-hook-error` |
-| `PrefetchIntentBus` | `prefetch/intent/bus.ts` | Только prefetch intent, не navigation lifecycle |
+| Механизм | Где | Покрытие | Статус |
+|----------|-----|----------|--------|
+| `onNavigationCommitted` | `commitHistoryIfNeeded / commitNavigation` → engine config | Один раз после commit gate | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `onNavigationError` | `failure/finalize-failure.ts` | Terminal failure | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| DOM `CustomEvent` | `aura-router/core/navigation-events.ts` | `not-found`, `navigation-error`, `navigation-hook-error` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `PrefetchIntentBus` | `prefetch/intent/bus.ts` | Только prefetch intent, не navigation lifecycle | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> ⊘ отдельно |
 
-**Не покрыто:** `navigation:start`, prepare, commit start/end, finish, cancel, redirect, per-node activate/deactivate, per-load start/end/error. Fast path (`runFastPipeline`) — тоже без emit.
+## Что осталось — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+
+| Событие / поверхность | Статус |
+|----------------------|--------|
+| Класс `EventBus` + типы `EngineEvent` (`core/events/`) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `navigation:start` / `prepare:*` / `commit:*` / `finish` / `cancel` / `redirect` / `error` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `node:activate` / `node:deactivate` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `load:start` / `load:end` / `load:error` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| Emit в `runFastPipeline()` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `engine.events.subscribe(...)` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| DOM P0: `navigation-start`, `navigation-commit`, `navigation-complete`, `navigation-cancel`, `navigation-redirect` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| Devtools timeline (dev / opt-in) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
 
 ---
 
-## Целевой контракт
+## Целевой контракт — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
 ### Класс EventBus
 
@@ -88,42 +121,42 @@ class EventBus {
 
 ---
 
-## Точки emit в pipeline
+## Точки emit в pipeline — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ все emit ✗</span>
 
-| Событие | Где emit | Примечание |
-|---------|----------|------------|
-| `navigation:start` | `NavigationTransaction.run()` после `NavigationCoordinator.run() supersede` | Включая from/to/action |
-| `navigation:prepare:start` | `NavigationTransactionPipeline.run()` — вход в guards | Или один блок guards+loads |
-| `navigation:prepare:end` | После `runLoads`, до `runRenderWithTransition` | |
-| `load:start` / `load:end` / `load:error` | `NavigationTransactionPipeline.runLoads()` / `DataGraph` | Per route/node на activate-ветке |
-| `node:deactivate` | По `TransitionMap.exitRoutes` (до/во время left) | Порядок согласовать с lifecycle |
-| `node:activate` | По `TransitionMap.enterRoutes` (enter phase) | |
-| `navigation:commit:start` | `runAfterRender()` — перед `commitEnterViews` | |
-| `navigation:commit:end` | `applyCommitGate()` — после history + prev | Сейчас здесь же `onNavigationCommitted` |
-| `navigation:finish` | `NavigationCoordinator` после успешного finalize | Terminal success |
-| `navigation:cancel` | `finalizeProcessorNavigation` — `status === 'cancelled'` | |
-| `navigation:redirect` | `finalizeProcessorNavigation` — `status === 'redirect'` | |
-| `navigation:error` | `finalizeFailure` | Дублирует смысл `onNavigationError` |
+| Событие | Где emit | Примечание | Статус |
+|---------|----------|------------|--------|
+| `navigation:start` | `NavigationTransaction.run()` после `NavigationCoordinator.run() supersede` | Включая from/to/action | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `navigation:prepare:start` | `NavigationTransactionPipeline.run()` — вход в guards | Или один блок guards+loads | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `navigation:prepare:end` | После `runLoads`, до `runRenderWithTransition` | | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `load:start` / `load:end` / `load:error` | `NavigationTransactionPipeline.runLoads()` / `DataGraph` | Per route/node на activate-ветке | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `node:deactivate` | По `TransitionMap.exitRoutes` (до/во время left) | Порядок согласовать с lifecycle | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `node:activate` | По `TransitionMap.enterRoutes` (enter phase) | | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `navigation:commit:start` | `runAfterRender()` — перед `commitEnterViews` | | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `navigation:commit:end` | `applyCommitGate()` — после history + prev | Сейчас здесь же `onNavigationCommitted` ✓ | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> bus · <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> callback |
+| `navigation:finish` | `NavigationCoordinator` после успешного finalize | Terminal success | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `navigation:cancel` | `finalizeProcessorNavigation` — `status === 'cancelled'` | | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `navigation:redirect` | `finalizeProcessorNavigation` — `status === 'redirect'` | | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `navigation:error` | `finalizeFailure` | Дублирует смысл `onNavigationError` ✓ | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> bus · <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> callback |
 
-**Fast path:** те же emit’ы в `runFastPipeline()` где применимо (`start`, `commit:*`, `node:*`, `finish`), иначе подписчики не увидят Tier 0 навигации.
+**Fast path:** те же emit’ы в `runFastPipeline()` где применимо (`start`, `commit:*`, `node:*`, `finish`) — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>, иначе подписчики не увидят Tier 0 навигации.
 
-**Supersede / abort:** не emit’ить `finish` / `commit:end` для устаревшего `jobId`; при отмене — `navigation:cancel` или тихий drop (зафиксировать в контракте).
+**Supersede / abort:** не emit’ить `finish` / `commit:end` для устаревшего `jobId`; при отмене — `navigation:cancel` или тихий drop (зафиксировать в контракте) — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>.
 
 ---
 
 ## Связь с DOM events (NAVIGATION_EVENTS)
 
-| EngineEvent (bus) | DOM event (public) | Статус DOM |
-|-------------------|-------------------|------------|
-| `navigation:error` | `navigation-error` | ✓ |
-| — | `navigation-hook-error` | ✓ (hook path) |
-| — | `not-found` | ✓ one-off |
-| `navigation:start` | `navigation-start` | ⬜ P0 |
-| `navigation:commit:end` | `navigation-commit` | ⬜ P0 |
-| `navigation:finish` | `navigation-complete` | ⬜ P0 |
-| `navigation:cancel` | `navigation-cancel` | ⬜ P0 |
-| `navigation:redirect` | `navigation-redirect` | ⬜ P0 |
-| `load:*` | опционально на router | ⬜ P1 |
+| EngineEvent (bus) | DOM event (public) | Статус bus | Статус DOM |
+|-------------------|-------------------|------------|------------|
+| `navigation:error` | `navigation-error` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| — | `navigation-hook-error` | — | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (hook path) |
+| — | `not-found` | — | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> one-off |
+| `navigation:start` | `navigation-start` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P0 |
+| `navigation:commit:end` | `navigation-commit` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P0 |
+| `navigation:finish` | `navigation-complete` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P0 |
+| `navigation:cancel` | `navigation-cancel` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P0 |
+| `navigation:redirect` | `navigation-redirect` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P0 |
+| `load:*` | опционально на router | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P1 |
 
 Рекомендация: **bus — source of truth**; DOM dispatch — один adapter в `aura-router.ts` для P0, без дублирования логики в coordinator.
 
@@ -131,64 +164,66 @@ class EventBus {
 
 ## План внедрения
 
-### EB0 — Контракт и spike
+### EB0 — Контракт и spike — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-- [ ] Файл `core/events/event-bus.ts` + `core/events/types.ts` (`EngineEvent`).
-- [ ] Unit-тесты: subscribe / unsubscribe / emit order / destroy.
-- [ ] Решение: bus на engine vs injectable deps (processor, coordinator, DataGraph).
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Файл `core/events/event-bus.ts` + `core/events/types.ts` (`EngineEvent`).
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Unit-тесты: subscribe / unsubscribe / emit order / destroy.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Решение: bus на engine vs injectable deps (processor, coordinator, DataGraph).
 
-### EB1 — Processor + coordinator
+### EB1 — Processor + coordinator — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-- [ ] `navigation:start` в `NavigationTransaction.run()`.
-- [ ] `navigation:prepare:*` в `NavigationTransactionPipeline`.
-- [ ] `load:*` в `runLoads()` / DataGraph.
-- [ ] `node:activate` / `node:deactivate` по `TransitionMap`.
-- [ ] `navigation:commit:*` в `runAfterRender()` + `applyCommitGate()`.
-- [ ] `navigation:finish` / `cancel` / `redirect` / `error` в coordinator + finalize.
-- [ ] Параллельные emit в `runFastPipeline()`.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `navigation:start` в `NavigationTransaction.run()`.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `navigation:prepare:*` в `NavigationTransactionPipeline`.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `load:*` в `runLoads()` / DataGraph.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `node:activate` / `node:deactivate` по `TransitionMap`.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `navigation:commit:*` в `runAfterRender()` + `applyCommitGate()`.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `navigation:finish` / `cancel` / `redirect` / `error` в coordinator + finalize.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Параллельные emit в `runFastPipeline()`.
 
-### EB2 — Public API + callbacks
+### EB2 — Public API + callbacks — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-- [ ] `AuraRoutingEngine.events.subscribe()` (или `onEvent`).
-- [ ] Опционально: существующие `onNavigationCommitted` / `onNavigationError` вызывают те же payload, что bus (backward compat).
-- [ ] Экспорт типов из пакета engine / router.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `AuraRoutingEngine.events.subscribe()` (или `onEvent`).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Существующие `onNavigationCommitted` / `onNavigationError` работают (пока без bus).
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Опционально: callbacks вызывают те же payload, что bus (backward compat overlay).
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Экспорт типов из пакета engine / router.
 
-### EB3 — DOM bridge (с P0 NAVIGATION_EVENTS)
+### EB3 — DOM bridge (с P0 NAVIGATION_EVENTS) — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-- [ ] Adapter: bus → `dispatchNavigationStart`, `dispatchNavigationCommit`, … в `navigation-events.ts`.
-- [ ] Тесты integration: happy path, cancel, redirect, fast path.
-- [ ] `aura-router/README.md` — раздел bus vs DOM.
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DOM errors уже есть (`not-found`, `navigation-error`, `navigation-hook-error`).
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Adapter: bus → `dispatchNavigationStart`, `dispatchNavigationCommit`, … в `navigation-events.ts`.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Тесты integration: happy path, cancel, redirect, fast path.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `aura-router/README.md` — раздел bus vs DOM.
 
-### EB4 — Devtools (zero cost prod)
+### EB4 — Devtools (zero cost prod) — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-- [ ] Подписчик только в dev / opt-in module (см. [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md)).
-- [ ] Timeline: job id, фазы, duration между start → commit → finish.
-- [ ] Опционально: `navigation:view-transition:*` при VT wrapper — [VIEW_TRANSITIONS_API.md](./VIEW_TRANSITIONS_API.md) VT4.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Подписчик только в dev / opt-in module (см. [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md)).
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Timeline: job id, фазы, duration между start → commit → finish.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Опционально: `navigation:view-transition:*` при VT wrapper — [VIEW_TRANSITIONS_API.md](./VIEW_TRANSITIONS_API.md) VT4.
 
 ---
 
-## Критерии готовности
+## Критерии готовности — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ не закрыты</span>
 
-- [ ] Подписчик получает упорядоченный поток на full pipeline: `start` → `prepare:*` → `load:*` (если есть) → `commit:*` → `finish`.
-- [ ] Fast path эмитит эквivalent subset (без лишних prepare/load, если не было фаз).
-- [ ] Superseded job не получает `finish` после нового `navigation:start`.
-- [ ] `PrefetchIntentBus` и navigation `EventBus` не объединены.
-- [ ] Существующие callbacks и DOM error events работают без регрессий.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Подписчик получает упорядоченный поток на full pipeline: `start` → `prepare:*` → `load:*` (если есть) → `commit:*` → `finish`.
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Fast path эмитит эквivalent subset (без лишних prepare/load, если не было фаз).
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Superseded job не получает `finish` после нового `navigation:start`.
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `PrefetchIntentBus` и navigation `EventBus` не объединены (nav bus ещё нет; prefetch bus отдельно).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Существующие callbacks и DOM error events работают без регрессий.
 
 ---
 
 ## Ссылки на код
 
-| Файл | Роль |
-|------|------|
-| `src/modules/aura-routing-engine/core/navigation/navigation-coordinator.ts` | `NavigationCoordinator.run() supersede` → `navigation:start` |
-| `src/modules/aura-routing-engine/core/navigation/navigation-transaction-pipeline.ts` | guards, loads, commit, after |
-| `src/modules/aura-routing-engine/core/navigation/…/runFastPipeline` | Tier 0 — те же emit |
-| `src/modules/aura-routing-engine/core/commitHistoryIfNeeded / commitNavigation` | `onNavigationCommitted` → `navigation:commit:end` |
-| `src/modules/aura-routing-engine/core/navigation/coordinator.ts` | terminal outcomes |
-| `src/modules/aura-routing-engine/core/navigation/finalize.ts` | cancel / redirect |
-| `src/modules/aura-routing-engine/core/prefetch/intent/bus.ts` | образец API |
-| `src/modules/aura-router/core/navigation-events.ts` | DOM bridge (errors + будущий P0) |
+| Файл | Роль | Статус |
+|------|------|--------|
+| `src/modules/aura-routing-engine/core/navigation/navigation-coordinator.ts` | `NavigationCoordinator.run() supersede` → `navigation:start` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> emit |
+| `src/modules/aura-routing-engine/core/navigation/navigation-transaction-pipeline.ts` | guards, loads, commit, after | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> emit |
+| `src/modules/aura-routing-engine/core/navigation/…/runFastPipeline` | Tier 0 — те же emit | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> emit |
+| `src/modules/aura-routing-engine/core/commitHistoryIfNeeded / commitNavigation` | `onNavigationCommitted` → `navigation:commit:end` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> callback · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> bus |
+| `src/modules/aura-routing-engine/core/navigation/coordinator.ts` | terminal outcomes | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> emit |
+| `src/modules/aura-routing-engine/core/navigation/finalize.ts` | cancel / redirect | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> emit |
+| `src/modules/aura-routing-engine/core/prefetch/intent/bus.ts` | образец API | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `src/modules/aura-router/core/navigation-events.ts` | DOM bridge (errors + будущий P0) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> errors · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P0 |
 
 ---
 
@@ -197,3 +232,4 @@ class EventBus {
 | Дата | Изменение |
 |------|-----------|
 | 2026-06-30 | Создан todo: as-is, целевой контракт, точки emit, план EB0–EB4, связь с NAVIGATION_EVENTS |
+| 2026-07-19 | Сверка с кодом: яркие бейджи ✓/~✗; сводка прогресса; отмечено готовое (callbacks/DOM errors/PrefetchIntentBus) vs осталось (EB0–EB4 целиком) |

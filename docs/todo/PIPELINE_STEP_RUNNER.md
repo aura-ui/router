@@ -1,8 +1,32 @@
 # TODO: Pipeline — sync/async шаги, fast path, step runner
 
-> **Статус:** план / архитектура (не реализовано)  
+> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — Tier 0 + sync commit/cache ✓ · thenable runner · Tier 1 ✗  
+> **Сверка с кодом:** 2026-07-19  
 > **Связь:** оптимизация `NavigationTransactionPipeline` без смены семантики cancel/supersede.  
-> **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) (`runBlockingOnly`), fast path as-is: `canUseFastPath / runFastPipeline`
+> **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md) (blocking walk ✓ · полный `runBlockingOnly` ⊘), fast path as-is: `canUseFastPath` / `runFastPipeline`
+
+### Легенда
+
+| Метка | Значение |
+|-------|----------|
+| <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | в production path / покрыто тестами |
+| <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | каркас / точечно есть, не полный scope документа |
+| <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> | не сделано |
+| <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> | сознательно не в scope / by design |
+
+### Сводка прогресса
+
+| # | Тема | Статус | Что дальше |
+|---|------|--------|------------|
+| — | Tier 0 fast path (`canUseFastPath` + `runFastPipeline`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | shipped |
+| — | Sync commit slice / `tryCacheRestore` / keep-alive ветки | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | invariant беречь |
+| — | Redirect blocking walk (вместо полного `runBlockingOnly`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | [REDIRECT_CHAIN_COLLAPSE](../done/REDIRECT_CHAIN_COLLAPSE.md) |
+| **F1** | Thenable-aware `runUntilTerminal` / `runSequentially` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | `StepResult \| Promise`, `isThenable` |
+| **F2** | Fast path Tier 1 (cache hit + sync hooks) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | predicate + укороченный run |
+| **F3** | Документировать commit-slice invariant | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | JSDoc / ARCHITECTURE cross-link |
+| — | Generator / trampoline driver | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | overkill до профиля |
+| — | Enum `sync \| async` на шагах | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | хрупко |
+| — | Полный `runBlockingOnly` mode | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | не планируется (есть guard walk) |
 
 ---
 
@@ -13,13 +37,15 @@ Pipeline — набор шагов (`guards → loads → renderWithTransition �
 As-is все шаги типизированы как `Promise`:
 
 ```ts
-type PipelineStep = (ctx: PipelineContext) => Promise<PipelineOutcome>;
+type PipelineStep = () => Promise<PipelineStepResult>;
 ```
 
-`runUntilTerminal` всегда `await step()` — даже когда тело шага завершилось синхронно.
+`runSequentially` всегда `await step()` — даже когда тело шага завершилось синхронно.
+
+<span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Thenable runner ещё **не** внедрён (`PipelineStep` остаётся `() => Promise<…>`).
 
 **Вопрос:** нужно ли pipeline «знать» sync vs async и вызывать шаги по-разному?  
-**Ответ:** статические метки на шагах — **хрупко**; runtime thenable + fast path tiers — **практично**. Generator/trampoline — **overkill на текущем этапе** (см. §5).
+**Ответ:** статические метки на шагах — **хрупко** <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>; runtime thenable + fast path tiers — **практично**. Generator/trampoline — **overkill на текущем этапе** <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> (см. § Generator).
 
 ---
 
@@ -32,18 +58,18 @@ type PipelineStep = (ctx: PipelineContext) => Promise<PipelineOutcome>;
 | Gap ломает атомарность **всего** run | **Нет** — supersede **использует** окна между await |
 | Gap ломает атомарность **commit** | Только если между view commit и history commit вставить await |
 
-### Commit slice (invariant — не ломать)
+### Commit slice (invariant — не ломать) <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> в коде · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> явная дока (F3)
 
 ```text
 commitEnterViews()   // sync
 commitGate()         // sync, сразу после — без await между
 ```
 
-Сейчас в `runAfterRender` это соблюдено. Для transition-пути gap **между** `markViewStaged` и `commitGate` **ожидаем** — там transition hooks; supersede + `revertInFlightView`.
+Сейчас в `runAfterRender` / `commitNavigation` это соблюдено. Для transition-пути gap **между** `markViewStaged` и commit **ожидаем** — там transition hooks; supersede + `revertInFlightView`.
 
 ---
 
-## Почему не статические метки «шаг sync / async»
+## Почему не статические метки «шаг sync / async» <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>
 
 | Причина | Пример |
 |---------|--------|
@@ -58,7 +84,7 @@ commitGate()         // sync, сразу после — без await между
 
 ## Рекомендуемый подход
 
-### 1. Thenable-aware runner (фаза 1)
+### 1. Thenable-aware runner (фаза 1) <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
 Шаг возвращает sync или Promise; runner различает в runtime:
 
@@ -85,37 +111,38 @@ async function runUntilTerminal(steps: PipelineStep[], ctx: PipelineContext) {
 
 ### 2. Fast path tiers (фаза 2) — основной perf-рычаг
 
-As-is **Tier 0** (`canUseFastPath`): flat nav без hooks, transitions, async content.
+| Tier | Условие | Поведение | Статус |
+|------|---------|-----------|--------|
+| **0** | flat nav без hooks, transitions, async content | bypass lifecycle pipeline | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `canUseFastPath` + `runFastPipeline` |
+| **1** | load cache hit + sync blocking hooks + render cache/keep-alive | укороченный run до commit slice | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **2** | полный pipeline | default | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `runFullPipeline` |
 
-Расширение:
+Критерий Tier 1: **«этот run гарантированно без await до commit?»** — проверка перед стартом, не enum на каждый шаг.
 
-| Tier | Условие | Поведение |
-|------|---------|-----------|
-| **0** | как сейчас | bypass lifecycle pipeline |
-| **1** | load cache hit + sync blocking hooks + render cache/keep-alive | укороченный run до commit slice |
-| **2** | полный pipeline | default |
-
-Критерий: **«этот run гарантированно без await до commit?»** — проверка перед стартом, не enum на каждый шаг.
-
-**Load cache hit ≠ skip pipeline:** `onLoad` и DataGraph policy могут требовать прогона даже при cache hit (as-is комментарий в `data-graph.ts`).
+**Load cache hit ≠ skip pipeline:** `onLoad` и DataGraph policy могут требовать прогона даже при cache hit (as-is комментарий в `data-graph.ts` / pipeline).
 
 ### 3. `runBlockingOnly` mode (фаза 3, с redirect collapse)
 
-Отдельный режим pipeline без render — см. [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md). Не смешивать с sync-оптимизацией full run.
+| Вариант | Статус |
+|---------|--------|
+| Blocking walk `leave`→`guard` + declarative collapse | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `followRedirectsWithGuardWalk` / `runRedirectCollapse` |
+| Полный pipeline-mode `runBlockingOnly` (loads без render) | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> не планируется — см. [REDIRECT_CHAIN_COLLAPSE](../done/REDIRECT_CHAIN_COLLAPSE.md) |
+
+Не смешивать с sync-оптимизацией full run.
 
 ---
 
-## As-is sync-ветки (уже есть)
+## As-is sync-ветки (уже есть) <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-| Место | Sync-поведение |
-|-------|----------------|
-| `view-controller.tryCacheRestore` | mount из cache без fetch |
-| `commitEnterViews` + `commitGate` | sync commit slice |
-| `runFastPipeline` | bypass guards/loads/transitions для Tier 0 |
+| Место | Sync-поведение | Статус |
+|-------|----------------|--------|
+| DomCache / branch mount restore | mount из cache без fetch | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| view commit → `commitNavigation` | sync commit slice | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `runFastPipeline` | bypass guards/loads/transitions для Tier 0 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 ---
 
-## Generator / trampoline стиль
+## Generator / trampoline стиль <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span>
 
 ### Идея
 
@@ -202,44 +229,45 @@ Trampoline / generator дают:
 
 ## Шаги внедрения
 
-### Фаза 1 — Thenable runner
+### Фаза 1 — Thenable runner <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-1. `StepResult = PipelineOutcome | Promise<PipelineOutcome>`.
-2. `isThenable` + обновить `runUntilTerminal`.
-3. По возможности — lifecycle `runPhaseStep` возвращает sync при sync hooks.
-4. **Критерий:** тесты pipeline без регрессий; sync guard cancel без лишних ticks (опционально assert через instrumentation).
-
-**Файлы:**
-
-| Файл | Изменение |
-|------|-----------|
-| `core/navigation/navigation-transaction-pipeline.ts` | thenable `runUntilTerminal` |
-| `core/processor/step-runner.ts` | опционально вынести runner |
-
-### Фаза 2 — Fast path Tier 1
-
-1. `canUseFastPathTier1(plan, ctx, dataGraph, routes)` — cache peek + hook capability flags.
-2. `runFastPipelineTier1` или расширить `runFastPipeline`.
-3. **Критерий:** keep-alive / load cache hit nav быстрее full pipeline, semantics 1:1.
+1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `StepResult = PipelineOutcome | Promise<PipelineOutcome>`.
+2. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `isThenable` + обновить `runSequentially` / `runUntilTerminal`.
+3. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> По возможности — lifecycle `runPhaseStep` возвращает sync при sync hooks.
+4. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **Критерий:** тесты pipeline без регрессий; sync guard cancel без лишних ticks (опционально assert через instrumentation).
 
 **Файлы:**
 
-| Файл | Изменение |
-|------|-----------|
-| `core/route-tree/can-use-fast-path.ts` | Tier 1 predicate |
-| `core/navigation/…/runFastPipeline` | Tier 1 body |
-| `core/data-graph/data-graph.ts` | опционально `peekCached(key)` |
+| Файл | Изменение | Статус |
+|------|-----------|--------|
+| `core/navigation/navigation-transaction-pipeline.ts` | thenable `runSequentially` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `core/processor/step-runner.ts` | опционально вынести runner | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
 
-### Фаза 3 — Документировать invariants
+### Фаза 2 — Fast path Tier 1 <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-1. Commit slice invariant в `processor-pipeline` JSDoc или ARCHITECTURE.
-2. Cross-link из [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md).
+1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `canUseFastPathTier1(plan, ctx, dataGraph, routes)` — cache peek + hook capability flags.
+2. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `runFastPipelineTier1` или расширить `runFastPipeline`.
+3. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **Критерий:** keep-alive / load cache hit nav быстрее full pipeline, semantics 1:1.
 
-### Не делать (пока)
+**Файлы:**
+
+| Файл | Изменение | Статус |
+|------|-----------|--------|
+| `core/route-tree/can-use-fast-path.ts` | Tier 0 ✓ · Tier 1 predicate | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Tier 0 only |
+| `core/navigation/…/runFastPipeline` | Tier 0 ✓ · Tier 1 body | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Tier 0 only |
+| `core/data-graph/data-graph.ts` | опционально `peekCached(key)` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+
+### Фаза 3 — Документировать invariants <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+
+1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Commit slice invariant в pipeline JSDoc или ARCHITECTURE.
+2. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Cross-link из [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md).
+
+### Не делать (пока) <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>
 
 - Enum `sync | async` на `MAIN_PIPELINE`.
 - Generator/trampoline driver без perf evidence.
 - Skip `onLoad` на cache hit без явного product decision.
+- Полный `runBlockingOnly` как отдельный mode pipeline (закрыто guard-walk в redirect collapse).
 
 ---
 
@@ -248,31 +276,35 @@ Trampoline / generator дают:
 ```mermaid
 flowchart TD
   START[processor.run] --> FP0{Tier 0 fast path?}
-  FP0 -->|yes| FAST0[runFastPipeline]
+  FP0 -->|yes ✓| FAST0[runFastPipeline]
   FP0 -->|no| FP1{Tier 1 fast path?}
-  FP1 -->|yes| FAST1[runFastPipelineTier1]
-  FP1 -->|no| FULL[runUntilTerminal thenable]
+  FP1 -->|yes ✗| FAST1[runFastPipelineTier1]
+  FP1 -->|no| FULL[runUntilTerminal thenable ✗]
   FULL --> SYNC{step returns thenable?}
   SYNC -->|no| NEXT[next step sync]
   SYNC -->|yes| AWAIT[await once]
   AWAIT --> NEXT
-  NEXT --> COMMIT[commit slice sync]
+  NEXT --> COMMIT[commit slice sync ✓]
 ```
 
 ---
 
 ## Итог
 
-- **Статические sync/async метки на шагах** — не primary design (hooks и cache runtime-dependent).
-- **Thenable runner** — да, дёшево, полезно.
-- **Fast path tiers** — главный perf-рычаг, уже начат Tier 0.
-- **Generator/trampoline** — мощный паттерн для «длинных sync-цепочек с редким suspend»; для Aura router с 4–6 macro-шагами и user async hooks — **overkill** до появления профиля или streaming/incremental commit.
-- **Атомарность** — беречь **commit slice**, не пытаться убрать все gaps между фазами (supersede).
+| Решение | Статус |
+|---------|--------|
+| Статические sync/async метки на шагах | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> не primary design |
+| Thenable runner | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> дёшево, полезно — **следующий шаг** |
+| Fast path Tier 0 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> shipped |
+| Fast path Tier 1 | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> главный оставшийся perf-рычаг |
+| Generator/trampoline | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> overkill до профиля / streaming |
+| Commit slice атомарность | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> в коде · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> дока (F3) |
 
 ---
 
 ## Связанные документы
 
 - [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md) — run lifecycle, rollback
-- [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) — blocking-only pipeline mode
+- [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md) — blocking walk ✓ · полный `runBlockingOnly` ⊘
 - [INCREMENTAL_RENDER.md](./INCREMENTAL_RENDER.md) — возможный future consumer trampoline-подхода
+)

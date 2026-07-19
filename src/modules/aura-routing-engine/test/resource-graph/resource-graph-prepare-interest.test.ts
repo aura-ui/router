@@ -6,11 +6,13 @@ import type { ViewGraph } from '../../core/view-graph';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 
 function createResources(handoff: HandoffCache): ResourceGraph {
-  return new ResourceGraph(
-    { loadView: jest.fn() } as unknown as ViewGraph,
-    new DataGraph(handoff, { hooks: new HookRegistry() }),
-    handoff,
-  );
+  const hooks = new HookRegistry();
+  return new ResourceGraph({
+    hooks,
+    viewGraph: { loadView: jest.fn() } as unknown as ViewGraph,
+    dataGraph: new DataGraph(handoff, { hooks }),
+    sharedBuffer: handoff,
+  });
 }
 
 describe('ResourceGraph pinSharedBufferFor', () => {

@@ -78,15 +78,16 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     viewGraph = options.viewRegistry
       ? new ViewGraph(handoff, { registry: options.viewRegistry })
       : createMockViewGraph();
-    resourceGraph = new ResourceGraph(viewGraph, dataGraph, handoff);
-    engine = {
-      ...createMockEngine(),
-      hooksRegistry: hooks,
-      sharedBuffer: handoff,
-      dataGraph,
+    resourceGraph = new ResourceGraph({
+      hooks,
       viewGraph,
-      resourceGraph,
-    } as AuraRoutingEngine;
+      dataGraph,
+      sharedBuffer: handoff,
+    });
+    const base = createMockEngine();
+    base.resourceGraph = resourceGraph;
+    (base as { hooksRegistry: HookRegistry }).hooksRegistry = hooks;
+    engine = base;
   }
 
   beforeEach(() => {
@@ -95,8 +96,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
   });
 
   afterEach(() => {
-    dataGraph.destroy();
-    handoff.destroy();
+    resourceGraph.destroy();
     jest.useRealTimers();
   });
 
@@ -380,7 +380,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     });
     const branch = [route];
 
-    expect(engine.sharedBuffer).toBe(handoff);
+    expect(engine.resourceGraph.sharedBuffer).toBe(handoff);
     expect(engine.resourceGraph).toBe(resourceGraph);
 
     const prefetchTx = prepareTx(branch, engine, 'prefetch');
@@ -392,7 +392,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(handoff.get(route.dataKey!)).toEqual({ id: 7 });
 
     const updateTx = prepareTx(branch, engine, 'navigation', true);
-    expect(updateTx.engine.sharedBuffer).toBe(handoff);
+    expect(updateTx.engine.resourceGraph.sharedBuffer).toBe(handoff);
     const result = await new NavigationTransactionPipeline(updateTx).runUpdate();
 
     expect(result).toEqual({ status: 'navigationSucceeded' });

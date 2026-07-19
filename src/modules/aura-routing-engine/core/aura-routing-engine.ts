@@ -7,6 +7,7 @@ import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import {
   ViewGraph,
+  type LoaderRegistry,
   type ViewGraphCacheOptions,
 } from './view-graph';
 import {
@@ -47,13 +48,13 @@ import type { RouterInstance } from './route/types';
 import { syncChainHref } from './route-tree/matched-chain';
 import { LinkNavigationTracker } from './user-actions/link-navigation';
 import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
-import { DataGraph } from './data-graph';
+import type { DataGraph } from './data-graph';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import { onAbort } from '../../aura-utils/async/on-abort';
-import { HandoffCache, ResourceGraph } from './resource-graph';
+import { ResourceGraph } from './resource-graph';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
@@ -81,11 +82,13 @@ export interface AuraRoutingEngineConfig {
   /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
   provider?: NavigationProvider;
   /**
-   * Override engine-owned {@link ViewGraph} (tests / custom registry).
-   * Production path: omit — engine creates ViewGraph with its payload cache.
+   * Override {@link ResourceGraph}-owned {@link ViewGraph} (advanced tests).
+   * Prefer {@link viewRegistry} — injected graphs must share ResourceGraph’s handoff.
    */
   viewGraph?: ViewGraph;
-  /** Options for the engine-created `cache.view` store (ignored when `viewGraph` is passed). */
+  /** Custom loader registry for the ResourceGraph-created {@link ViewGraph}. */
+  viewRegistry?: LoaderRegistry;
+  /** Options for the created `cache.view` store (ignored when `viewGraph` is passed). */
   viewCache?: ViewGraphCacheOptions;
   /** Link-driven prefetch; `false` disables. */
   prefetch?: false | PrefetchConfig;
@@ -102,15 +105,23 @@ export class AuraRoutingEngine implements NavigationHost {
   readonly router: RouterInstance;
 
   private notFoundHandler: NotFoundFallbackHandler | null = null;
-  readonly viewGraph: ViewGraph;
   private prefetchPipeline?: PrefetchPipeline;
   private readonly linkNavigation: LinkNavigationTracker;
   readonly hooksRegistry: HookRegistry;
-  readonly dataGraph: DataGraph;
-  readonly sharedBuffer: HandoffCache;
+  /** Prepare composition root — owns handoff, data, and view graphs. */
   readonly resourceGraph: ResourceGraph;
 
   private readonly navigationCoordinator: NavigationCoordinator;
+
+  /** Facade to {@link ResourceGraph.viewGraph} (AuraRouter / branch resolve). */
+  get viewGraph(): ViewGraph {
+    return this.resourceGraph.viewGraph;
+  }
+
+  /** Facade to {@link ResourceGraph.dataGraph} (invalidate / tests). */
+  get dataGraph(): DataGraph {
+    return this.resourceGraph.dataGraph;
+  }
 
   /** {@link NavigationHost.engine} — probe transactions and pipeline need `this`. */
   get engine(): AuraRoutingEngine {
@@ -126,13 +137,12 @@ export class AuraRoutingEngine implements NavigationHost {
 
     this.hooksRegistry = defaultHookRegistry;
 
-    this.sharedBuffer = new HandoffCache({});
-
-    this.dataGraph = new DataGraph(this.sharedBuffer, { hooks: this.hooksRegistry });
-
-    this.viewGraph = config.viewGraph ?? new ViewGraph(this.sharedBuffer, { cache: config.viewCache });
-
-    this.resourceGraph = new ResourceGraph(this.viewGraph, this.dataGraph, this.sharedBuffer);
+    this.resourceGraph = new ResourceGraph({
+      hooks: this.hooksRegistry,
+      viewGraph: config.viewGraph,
+      viewRegistry: config.viewRegistry,
+      viewCacheOptions: config.viewCache,
+    });
 
     this.provider = config.provider ?? new BrowserHistoryProvider();
 
@@ -169,21 +179,21 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
   /**
-   * Invalidates load-hook cache entries in {@link DataGraph}.
+   * Invalidates load-hook cache entries via {@link ResourceGraph.invalidateData}.
    * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
    */
   invalidateData(options: RouterInvalidateOptions = {}): number {
-    const count = this.dataGraph.invalidate(options);
+    const count = this.resourceGraph.invalidateData(options);
     this.resetPrefetchRecords(options);
     return count;
   }
 
   /**
-   * Invalidates view-loader payload cache in {@link ViewGraph}.
+   * Invalidates view-loader payload cache via {@link ResourceGraph.invalidateView}.
    * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
    */
   invalidateView(options: RouterInvalidateOptions = {}): number {
-    const count = this.viewGraph.invalidate(options);
+    const count = this.resourceGraph.invalidateView(options);
     this.resetPrefetchRecords(options);
     return count;
   }
@@ -236,10 +246,7 @@ export class AuraRoutingEngine implements NavigationHost {
     this.registry.clear();
     this.prev = null;
     this.navigationCoordinator.invalidate();
-    // Abort shared prepare work first so in-flight loaders see workSignal abort.
-    this.sharedBuffer.destroy();
-    this.dataGraph.destroy();
-    this.viewGraph.destroy();
+    this.resourceGraph.destroy();
   }
 
   /**

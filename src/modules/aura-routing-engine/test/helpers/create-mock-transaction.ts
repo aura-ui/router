@@ -47,6 +47,8 @@ export function createViewGraphFromLoadView(
 ): ViewGraph {
   return {
     loadView,
+    destroy: jest.fn(),
+    invalidate: jest.fn().mockReturnValue(0),
     load: jest.fn(async (matches: readonly MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {
       const results = await Promise.all(
         matches.map((match) => loadView(match, signal, options as never)),
@@ -68,35 +70,55 @@ export function createMockViewGraph(): ViewGraph {
   );
 }
 
-/** Point engine.viewGraph + resourceGraph at the same ViewGraph instance. */
+function createTestResourceGraph(options: {
+  hooks: HookRegistry;
+  viewGraph?: ViewGraph;
+  dataGraph?: DataGraph;
+  sharedBuffer?: HandoffCache;
+}): ResourceGraph {
+  const sharedBuffer = options.sharedBuffer ?? new HandoffCache();
+  const dataGraph =
+    options.dataGraph ?? new DataGraph(sharedBuffer, { hooks: options.hooks });
+  const viewGraph = options.viewGraph ?? createMockViewGraph();
+  return new ResourceGraph({
+    hooks: options.hooks,
+    sharedBuffer,
+    dataGraph,
+    viewGraph,
+  });
+}
+
+/** Point engine.resourceGraph at a ResourceGraph that uses the given ViewGraph. */
 export function wireEngineViewGraph(
   engine: AuraRoutingEngine,
   viewGraph: ViewGraph,
 ): void {
-  engine.viewGraph = viewGraph;
-  engine.resourceGraph = new ResourceGraph(
+  const { dataGraph, sharedBuffer } = engine.resourceGraph;
+  (engine as { resourceGraph: ResourceGraph }).resourceGraph = new ResourceGraph({
+    hooks: engine.hooksRegistry,
     viewGraph,
-    engine.dataGraph,
-    engine.sharedBuffer,
-  );
+    dataGraph,
+    sharedBuffer,
+  });
 }
 
 export function createMockEngine(): AuraRoutingEngine {
   const hookRegistry = new HookRegistry();
-  const sharedBuffer = new HandoffCache();
-  const dataGraph = new DataGraph(sharedBuffer, { hooks: hookRegistry });
-  const viewGraph = createMockViewGraph();
-  return {
+  const engine = {
     commitHistoryIfNeeded: jest.fn(),
     commitNavigation: jest.fn(),
     finalizeCancelled: jest.fn(),
-    sharedBuffer,
-    dataGraph,
-    viewGraph,
-    resourceGraph: new ResourceGraph(viewGraph, dataGraph, sharedBuffer),
+    resourceGraph: createTestResourceGraph({ hooks: hookRegistry }),
+    get dataGraph() {
+      return this.resourceGraph.dataGraph;
+    },
+    get viewGraph() {
+      return this.resourceGraph.viewGraph;
+    },
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
-  } as unknown as AuraRoutingEngine;
+  };
+  return engine as unknown as AuraRoutingEngine;
 }
 
 export function createCoordinatorMockHost(): NavigationHost & {
@@ -105,9 +127,6 @@ export function createCoordinatorMockHost(): NavigationHost & {
   finalizeError: jest.Mock;
 } {
   const hookRegistry = new HookRegistry();
-  const sharedBuffer = new HandoffCache();
-  const dataGraph = new DataGraph(sharedBuffer, { hooks: hookRegistry });
-  const viewGraph = createMockViewGraph();
   const host = {
     isRunning: true,
     matcher: { matchPath: jest.fn(), buildMatchedRouteInfo: jest.fn() },
@@ -121,10 +140,13 @@ export function createCoordinatorMockHost(): NavigationHost & {
     finalizeCancelled: jest.fn(),
     applyRedirect: jest.fn(),
     finalizeError: jest.fn(),
-    sharedBuffer,
-    dataGraph,
-    viewGraph,
-    resourceGraph: new ResourceGraph(viewGraph, dataGraph, sharedBuffer),
+    resourceGraph: createTestResourceGraph({ hooks: hookRegistry }),
+    get dataGraph() {
+      return this.resourceGraph.dataGraph;
+    },
+    get viewGraph() {
+      return this.resourceGraph.viewGraph;
+    },
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
     reportNavigationHookError: jest.fn(),

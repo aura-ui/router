@@ -5,7 +5,10 @@ import type { PipelineStepResult, TransactionResult } from './types';
 
 /**
  * Single place for navigation / load bus emits.
- * Pipeline and coordinator call short methods; payload shape lives here only.
+ * Pipeline and coordinator call short phase methods; payload shape lives here only.
+ *
+ * Flow: {@link begin} → {@link prepareStart}/{@link prepareEnd} → {@link loadStart}/{@link loadEnd}
+ * → {@link alignUrl} → {@link commitStart}/{@link commitEnd} → {@link settle}.
  *
  * @see docs/todo/EVENT_BUS.md
  */
@@ -16,8 +19,8 @@ export class NavigationPulse {
     this.bus = bus;
   }
 
-  /** `navigation:start` + `node:deactivate` for exit routes. */
-  start(tx: NavigationTransaction): void {
+  /** Emits `navigation:start` + `node:deactivate` for exit routes. */
+  begin(tx: NavigationTransaction): void {
     const id = tx.transactionId;
     this.bus.emit({
       type: 'navigation:start',
@@ -36,15 +39,18 @@ export class NavigationPulse {
     }
   }
 
+  /** Emits `navigation:prepare:start`. */
   prepareStart(tx: NavigationTransaction): void {
     this.bus.emit({ type: 'navigation:prepare:start', id: tx.transactionId });
   }
 
+  /** Emits `navigation:prepare:end`. */
   prepareEnd(tx: NavigationTransaction): void {
     this.bus.emit({ type: 'navigation:prepare:end', id: tx.transactionId });
   }
 
-  loadBegin(tx: NavigationTransaction, routes: readonly MatchedRouteInfo[]): void {
+  /** Emits `load:start` per route. */
+  loadStart(tx: NavigationTransaction, routes: readonly MatchedRouteInfo[]): void {
     const id = tx.transactionId;
     for (const route of routes) {
       this.bus.emit({
@@ -56,8 +62,11 @@ export class NavigationPulse {
     }
   }
 
-  /** After `resourceGraph.load`: `load:end*` or `load:error` (error status only). */
-  loadSettle(
+  /**
+   * After `resourceGraph.load`: emits `load:end` on success, `load:error` when
+   * `error.status === 'error'`; no-op when cancelled / other non-error status.
+   */
+  loadEnd(
     tx: NavigationTransaction,
     routes: readonly MatchedRouteInfo[],
     error: PipelineStepResult | undefined,
@@ -88,10 +97,10 @@ export class NavigationPulse {
   }
 
   /**
-   * `navigation:url-aligned` when the address bar already matches the target
-   * (`historyCommitted` write, or `system` / `pop`).
+   * Emits `navigation:url-aligned` when the address bar already matches the target
+   * (`historyCommitted` write, or `system` / `pop`). Otherwise no-op.
    */
-  urlAligned(tx: NavigationTransaction): void {
+  alignUrl(tx: NavigationTransaction): void {
     const { from, to, action, hash, historyCommitted, transactionId } = tx;
     if (!historyCommitted && action !== 'system' && action !== 'pop') return;
 
@@ -106,11 +115,12 @@ export class NavigationPulse {
     });
   }
 
+  /** Emits `navigation:commit:start`. */
   commitStart(tx: NavigationTransaction): void {
     this.bus.emit({ type: 'navigation:commit:start', id: tx.transactionId });
   }
 
-  /** `navigation:commit:end` + `node:activate` for enter routes. */
+  /** Emits `navigation:commit:end` + `node:activate` for enter routes. */
   commitEnd(tx: NavigationTransaction): void {
     const { from, to, action, hash, transactionId, transitionPlan } = tx;
     this.bus.emit({
@@ -131,8 +141,11 @@ export class NavigationPulse {
     }
   }
 
-  /** Terminal outcome after pipeline / redirect-walk settle. */
-  terminal(id: number, result: TransactionResult): void {
+  /**
+   * Maps terminal {@link TransactionResult} after pipeline / redirect-walk settle:
+   * `navigation:finish` | `navigation:cancel` | `navigation:redirect` | `navigation:error`.
+   */
+  settle(id: number, result: TransactionResult): void {
     switch (result.status) {
       case 'navigationSucceeded':
         this.bus.emit({ type: 'navigation:finish', id });

@@ -82,7 +82,10 @@ export class AuraRoutingEngine implements NavigationHost {
    * Prefetch intents stay on {@link PrefetchIntentBus}.
    */
   readonly events = new EventBus();
-  /** All navigation bus emits — see {@link NavigationPulse}. */
+  /**
+   * Navigation / load bus facade — sole emit site for lifecycle events.
+   * @see {@link NavigationPulse}
+   */
   readonly pulse = new NavigationPulse(this.events);
 
   private readonly navigationCoordinator: NavigationCoordinator;
@@ -450,7 +453,7 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
 
-  // ── Navigation pulse (pipeline → engine.events) ──
+  // ── History / commit (side effects + {@link NavigationPulse}) ──
 
   /**
    * Write address bar when policy requires (`push` / `replace` + `syncHistory`).
@@ -477,14 +480,15 @@ export class AuraRoutingEngine implements NavigationHost {
 
   /**
    * Address bar matches navigation target (`historyCommitted` write, or `system` / `pop`).
-   * Emits `navigation:url-aligned` via {@link NavigationPulse.urlAligned}.
+   * Delegates to {@link NavigationPulse.alignUrl} (`navigation:url-aligned`).
    */
   notifyUrlAligned(transition: NavigationTransaction): void {
-    this.pulse.urlAligned(transition);
+    this.pulse.alignUrl(transition);
   }
 
   /**
-   * View promoted: bus commit pulse, update `prev`, optional hash scroll.
+   * View promoted: {@link NavigationPulse.commitEnd} (`commit:end` + `node:activate`),
+   * then update `prev` and optional hash scroll.
    */
   commitNavigation(transition: NavigationTransaction): void {
     this.pulse.commitEnd(transition);

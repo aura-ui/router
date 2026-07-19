@@ -95,9 +95,12 @@ export class NavigationTransaction {
     this.viewCommitTracker.markViewCommitted();
   }
 
+  /**
+   * Build transition plan, {@link NavigationPulse.begin}, then full / update / fast pipeline.
+   */
   async run(): Promise<TransactionResult> {
     this.transitionPlan = buildTransitionPlan(this.from, this.to);
-    this.engine.pulse.start(this);
+    this.engine.pulse.begin(this);
 
     return this.runWithStagedViewRollback(() => {
       const pipeline = new NavigationTransactionPipeline(this);

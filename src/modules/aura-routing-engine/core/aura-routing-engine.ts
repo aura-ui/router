@@ -229,7 +229,8 @@ export class AuraRoutingEngine implements NavigationHost {
    *
    * **Порядок history commit (push/replace, `syncHistory: true`):**
    * 1. `runGuards` — leave + guard (после redirect collapse в coordinator).
-   * 2. `commitHistoryIfNeeded` — `pushState` / `replaceState` (до load/render).
+   * 2. `commitHistoryIfNeeded` — URL write (если нужно) + chrome sync
+   *    (active links / navigation-start) до load/render.
    * 3. `runLoads` — DataGraph / load hooks.
    * 4. render → `commitNavigation` (prev + callbacks, без повторного pushState).
    *
@@ -443,11 +444,26 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
 
-  /** Post-load address-bar write (`pushState` / `replaceState`). Idempotent per transaction. */
+  /**
+   * Post-guard history step: write URL when needed, then sync chrome UI.
+   *
+   * - `push` / `replace` + `syncHistory` — `pushState` / `replaceState`, then notify
+   * - `system` / `pop` — browser already owns the URL; notify only (active links /
+   *   `navigation-start` before loads/transitions)
+   *
+   * Idempotent for writes via {@link NavigationTransaction.historyCommitted}.
+   * Pipeline calls once per transaction.
+   */
   commitHistoryIfNeeded(transition: NavigationTransaction): void {
     if (transition.historyCommitted) return;
 
     const { from, to, href, action, hash, historyOptions } = transition;
+
+    if (!historyOptions.syncHistory && (action === 'system' || action === 'pop')) {
+      this.config.onNavigationHistoryCommitted?.({ from, to, action, hash });
+      return;
+    }
+
     if (!historyOptions.syncHistory || (action !== 'push' && action !== 'replace')) return;
     if (from && isSameNavigationTarget(from, to)) return;
 

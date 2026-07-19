@@ -1,6 +1,6 @@
 # EventBus — внутренний поток событий navigation / load
 
-> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — EB0–EB3 + DOM load ✓ · осталось EB4  
+> **Статус:** <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> — runtime-контракт (EB0–EB3 + DOM load) закрыт · **EB4 (devtools) ⊘ не срочно**  
 > **Сверка с кодом:** 2026-07-19 · **фаза 7**  
 > **Связанные документы:** [FUTURE_PROOF_ENGINE.md §5](../FUTURE_PROOF_ENGINE.md), [IMPLEMENTATION_STEPS.md §фаза 7](../IMPLEMENTATION_STEPS.md), [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) (DOM public API), [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md)
 
@@ -24,7 +24,8 @@
 | **EB1** | Emit в processor / coordinator / fast path | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | full + update + fast · terminal в `processResult` / `finalizeResolveTerminal` |
 | **EB2** | Public API `engine.events.subscribe()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | + `router.events` · exports из пакета |
 | **EB3** | DOM bridge P0 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | start / commit / complete / cancel / redirect / error |
-| **EB4** | Devtools timeline (dev / opt-in) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | [CACHE_DEVTOOLS](./CACHE_DEVTOOLS.md) |
+| — | DOM P1 `load:*` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `load-start` / `load-end` / `load-error` |
+| **EB4** | Devtools timeline (dev / opt-in) | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | не блокер runtime; см. [CACHE_DEVTOOLS](./CACHE_DEVTOOLS.md) |
 
 ---
 
@@ -38,7 +39,7 @@
 | Prefetch | `PrefetchIntentBus` (отдельная ось) | Не смешивать с navigation bus | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design |
 | Public DOM (P0 lifecycle) | start / commit / complete / cancel / redirect / error | — | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
-**Почему «~ частично»:** nav bus + DOM P0/P1 load закрыты. Осталось — **EB4** (devtools); см. [§ Что осталось](#что-осталось--осталось).
+**Итог:** runtime EventBus **готов** (bus + DOM P0/P1 load). **EB4 (devtools) отложен** — не срочно, не блокер навигации.
 
 ---
 
@@ -72,21 +73,22 @@ Hooks остаются для **логики приложения**; EventBus �
 | Тесты | `event-bus*.test.ts`, `commit-history.test.ts`, `dom-bus-order.integration.test.ts` | bus + pipeline + DOM order | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `NavigationPulse` | `core/navigation/navigation-pulse.ts` | sole emit site | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
-## Что осталось — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+## Отложено — <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ НЕ СРОЧНО</span>
+
+Runtime-контракт закрыт. Ниже — только follow-up, не блокирует prod / фазу 7.
 
 | # | Тема | Статус | Заметки |
 |---|------|--------|---------|
-| **EB4** | Devtools timeline (dev / opt-in) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | Подписчик на bus → timeline (job id, фазы, duration). См. [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md) |
-| **EB4** | `navigation:view-transition:*` (опц.) | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Только если появится VT wrapper — [VIEW_TRANSITIONS_API.md](./VIEW_TRANSITIONS_API.md) VT4 |
-| **DOM P1** | `load:start` / `load:end` / `load:error` → DOM | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `load-start` / `load-end` / `load-error` |
-| **DOM P1** | `node:activate` / `node:deactivate` → DOM | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Опц.; см. NAVIGATION_EVENTS P2 `route-activate` |
-| — | Живой pipeline → `navigation:redirect` DOM | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Adapter ✓; на client redirect walk **collapse** до `run()`, поэтому terminal `redirect` в prod почти не эмитится (покрыто synthetic emit в integration) |
+| **EB4** | Devtools timeline (dev / opt-in) | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Не срочно. Подписчик на bus → timeline (job id, фазы, duration). См. [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md) |
+| **EB4** | `navigation:view-transition:*` | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Только если появится VT wrapper — [VIEW_TRANSITIONS_API.md](./VIEW_TRANSITIONS_API.md) VT4 |
+| **DOM** | `node:activate` / `node:deactivate` → DOM | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Опц.; см. NAVIGATION_EVENTS P2 `route-activate` |
+| — | Живой pipeline → `navigation:redirect` DOM | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Adapter ✓; client redirect walk **collapse** до `run()` (synthetic emit в integration) |
 
-**Закрыто (не в остатке):** EB0–EB3, DOM P0 lifecycle, DOM P1 `load:*`, callbacks убраны.
+**Сделано:** EB0–EB3 · DOM P0 lifecycle · DOM P1 `load:*` · callbacks убраны · integration-тесты.
 
 ---
 
-## Целевой контракт — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ bus ✓ · DOM P0 ✓</span>
+## Целевой контракт — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ bus ✓ · DOM P0+load ✓</span>
 
 ### Класс EventBus — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
@@ -218,15 +220,17 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Integration: happy / cancel / redirect / fast — `test/dom-bus-order.integration.test.ts`.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `aura-router/README.md` — раздел bus vs DOM.
 
-### EB4 — Devtools (zero cost prod) — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+### EB4 — Devtools (zero cost prod) — <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО · не срочно</span>
 
-- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Подписчик только в dev / opt-in module (см. [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md)).
-- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Timeline: job id, фазы, duration между start → commit → finish.
-- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Опционально: `navigation:view-transition:*` при VT wrapper — [VIEW_TRANSITIONS_API.md](./VIEW_TRANSITIONS_API.md) VT4.
+Не блокер runtime / фазы 7. Делать позже при необходимости observability UI.
+
+- [ ] <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> Подписчик только в dev / opt-in module (см. [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md)).
+- [ ] <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> Timeline: job id, фазы, duration между start → commit → finish.
+- [ ] <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> Опционально: `navigation:view-transition:*` при VT wrapper — [VIEW_TRANSITIONS_API.md](./VIEW_TRANSITIONS_API.md) VT4.
 
 ---
 
-## Критерии готовности — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ bus+DOM P0 ✓ · EB4 ✗</span>
+## Критерии готовности — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ runtime ✓</span> · EB4 <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>
 
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Подписчик получает упорядоченный поток на full pipeline: `start` → `prepare:*` → `load:*` → `commit:*` → `finish`.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Happy-path pulse: `url-aligned` → `commit:end` (full + fast + update).
@@ -235,8 +239,8 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `PrefetchIntentBus` и navigation `EventBus` не объединены.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DOM errors + P0 lifecycle через bus adapter.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Integration DOM+bus order (happy / cancel / redirect / fast).
-- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Devtools timeline (EB4).
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DOM P1: `load:*` → `load-start` / `load-end` / `load-error`.
+- [ ] <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> Devtools timeline (EB4) — отложено, не срочно.
 
 ---
 
@@ -273,3 +277,4 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | 2026-07-19 | EB3 integration: `dom-bus-order.integration.test.ts` (happy/cancel/redirect/fast) |
 | 2026-07-19 | Сверка doc: остаток = **EB4** + опц. **DOM P1 `load:*`**; EB3/P0 ✓; убраны устаревшие ✗ |
 | 2026-07-19 | DOM P1: `load-start` / `load-end` / `load-error` через `onEngineEvent` |
+| 2026-07-19 | Статус doc → **✓ ГОТОВО** (runtime); EB4 → **⊘ не срочно** |

@@ -1,8 +1,8 @@
-# TODO: NavigationRun + NavigationRunManager
+# TODO: Navigation orchestration (Transaction + Coordinator)
 
-> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — ядро orchestration в коде под другими именами; rename + OutcomeHandler + узкие deps + EventBus — осталось  
+> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — runtime-оркестрация и EventBus ✓; OutcomeHandler — осталось · rename / узкие deps ⊘ 
 > **Сверка с кодом:** 2026-07-19  
-> **Связь:** консолидация слоя orchestration; redirect collapse → [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md); [NAVIGATION_EVENTS](./NAVIGATION_EVENTS.md), [EVENT_BUS](./EVENT_BUS.md), devtools timeline.  
+> **Связь:** консолидация слоя orchestration; redirect collapse → [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md); [NAVIGATION_EVENTS](./NAVIGATION_EVENTS.md), [../done/EVENT_BUS.md](../done/EVENT_BUS.md), `NavigationPulse`.  
 > **См. также:** [NAVIGATION_TRANSACTION_MODEL.md](../NAVIGATION_TRANSACTION_MODEL.md), [FUTURE_PROOF_ENGINE.md](../FUTURE_PROOF_ENGINE.md) (Navigation Job), [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md), [ENGINE_CONSOLIDATION.md](./ENGINE_CONSOLIDATION.md)
 
 ### Легенда
@@ -27,17 +27,17 @@
 | 5 | **Redirect chain collapse** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `followRedirectsWithGuardWalk` до `coordinator.run` |
 | 6 | **Success history commit** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `commitHistoryIfNeeded` + `commitNavigation` |
 | 7 | **Terminal finalize (error/cancel/redirect/404)** | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | методы engine + `navigation-finalize.ts`; класса `apply()` нет |
-| 8 | **DOM nav events** | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | `navigation-start`, `navigation`, errors, `not-found` ✓ · cancel ✗ · EventBus ✗ |
-| 9 | **Rename → `NavigationRun` / `RunManager`** | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | опционально; семантика уже в Coordinator/Transaction |
+| 8 | **DOM nav events** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | start / commit / complete / cancel / redirect / errors / `not-found` — bus → aura-router |
+| 9 | **Rename → `NavigationRun` / `RunManager`** | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | **не делаем** — остаются `NavigationCoordinator` + `NavigationTransaction` |
 | 10 | **`NavigationOutcomeHandler.apply()`** | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | consolidate `finalize*` в один handler |
-| 11 | **Узкие deps (`commitSuccess` closure)** | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | transaction держит `engine` целиком |
+| 11 | **Узкие deps (`commitSuccess` closure)** | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | **не делаем** — остаётся `tx.engine` без прослоек |
 | 12 | **Явный run status `pending\|resolved\|rejected`** | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | косвенно: abort + `TransactionResult` |
-| 13 | **EventBus / `telemetry: { emit }`** | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | см. [EVENT_BUS](./EVENT_BUS.md) |
-| 14 | **Ring buffer прошлых run** | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | опционально для devtools |
+| 13 | **EventBus / `NavigationPulse`** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `engine.events` + `engine.pulse`; см. [../done/EVENT_BUS.md](../done/EVENT_BUS.md) |
+| 14 | **Ring buffer прошлых run** | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | EB4 / devtools — не блокер; см. [CACHE_DEVTOOLS](./CACHE_DEVTOOLS.md) |
 | 15 | **`NavigationIntent` тип** | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | не планируется; `RedirectionContext` + resolve |
 | 16 | **Отдельный класс `RedirectResolver` / `runBlockingOnly`** | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | логика в `redirect/` + guard walk |
 
-**Вердикт:** док **актуален как backlog формы/API**, не как «ничего нет». Runtime-ядро (run + manager-семантика + collapse + pipeline) — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span>. Осталось в основном **консолидация terminal-слоя и observability**.
+**Вердикт:** док **актуален как backlog консолидации API**, не как «ничего нет». Runtime-ядро (Transaction + Coordinator + collapse + pipeline + EventBus) — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span>. Осталось в основном **OutcomeHandler**. Rename и узкие deps (`commitSuccess`) — <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>.
 
 ---
 
@@ -46,21 +46,20 @@
 | Целевой модуль (док) | Факт в коде | Статус |
 |----------------------|-------------|--------|
 | **`NavigationRun`** | `NavigationTransaction` — `core/navigation/navigation-transaction.ts` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| **`NavigationRunManager`** | `NavigationCoordinator` — dedupe + supersede + `activeTransaction` + resolve | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> (rename нет) |
+| **`NavigationRunManager`** (имя из старого плана) | `NavigationCoordinator` — dedupe + supersede + `activeTransaction` + resolve | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> семантика · <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> rename |
 | **`NavigationOutcomeHandler`** | `finalizeError` / `finalizeCancelled` / `applyRedirect` / `finalizeNotFoundNavigation` / `finalizeResolveTerminal` на engine | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> (класса нет) |
 | **`NavigationCoordinator.plan()`** | `already-active`, `cancel-pending` → `run` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | **Rollback scope** | `runWithStagedViewRollback()` + `rollbackUncommittedViews` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | **`ViewCommitTracker`** | поле `NavigationTransaction.viewCommitTracker` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | **Pipeline executor** | `NavigationTransactionPipeline` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | **Redirect collapse** | `followRedirectsWithGuardWalk` в `coordinator.navigate()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| **`commitSuccess` closure deps** | `engine.commitHistoryIfNeeded` + `commitNavigation` (engine ref в transaction) | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
+| **`commitSuccess` closure deps** | прямой `tx.engine` (`commitHistoryIfNeeded` / `commitNavigation`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design · <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> узкий deps |
 | **`NavigationRunOutcome`** | `TransactionResult` + short-circuit / error types | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
 | **`NavigationIntent`** | — | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> |
 | **Класс `RedirectResolver` / `resolveBlocking()` как фаза run** | функции в `redirect/`; resolve **до** pipeline в coordinator | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> поведение · <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> форма из старого плана |
-| **Ring buffer прошлых run** | — | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
-| **EventBus / `telemetry: { emit }`** | — | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
-| **DOM `navigation-start` / `navigation`** | aura-router callbacks | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| **DOM cancel / redirect events** | — | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **EventBus + `NavigationPulse`** | `engine.events` / `engine.pulse`; emit из pipeline + `processResult` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| **Ring buffer прошлых run** | — | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> (EB4) |
+| **DOM P0 lifecycle** | start / commit / complete / cancel / redirect / errors | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | **State machine `pending\|resolved\|rejected`** | abort + `TransactionResult` | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
 
 ### Фазы внедрения
@@ -69,9 +68,9 @@
 |------|--------|
 | **1 — Extract `NavigationRun`** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> как `NavigationTransaction` |
 | **1b — `NavigationOutcomeHandler`** | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> terminal есть; единый `apply()` — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
-| **2 — `NavigationRunManager`** | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> как `NavigationCoordinator`; rename — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **2 — orchestration (`NavigationCoordinator`)** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> · rename в RunManager — <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> |
 | **3 — Redirect collapse** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> → [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md) |
-| **4 — Observability** | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> DOM start/commit/errors ✓ · EventBus / ring buffer / cancel — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **4 — Observability** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> EventBus + DOM P0 · ring buffer ⊘ EB4 |
 
 ---
 
@@ -101,28 +100,33 @@ AuraRoutingEngine.navigateTo()
   → match / not-found / fast-path (engine)
   → NavigationCoordinator.navigate()           ✓ dedupe attempt + followRedirectsWithGuardWalk
        plan → NavigationTransaction.run()      ✓ job + tracker + rollback
+         NavigationPulse.begin / phase emits   ✓ via engine.pulse
          NavigationTransactionPipeline         ✓ guards → loads → render → ready
          commitHistoryIfNeeded / commitNavigation  ~ success history на engine
-  → processResult → finalize* / applyRedirect  ~ terminal — методы engine, не OutcomeHandler
+  → processResult → pulse.settle → finalize* / applyRedirect  ~ terminal — методы engine, не OutcomeHandler
 ```
 
-**Что уже закрыто:** <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> rollback · dedupe/supersede · transaction object · redirect collapse · success history · DOM start/commit/errors.
+**Что уже закрыто:** <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> rollback · dedupe/supersede · transaction object · redirect collapse · success history · EventBus/`NavigationPulse` · DOM P0 (start/commit/complete/cancel/redirect/errors).
 
 **Что ещё болит:**
 
 - <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Terminal side effects размазаны по `AuraRoutingEngine` — нет `NavigationOutcomeHandler.apply()`.
-- <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `NavigationTransaction` держит `engine` целиком — нет узкого `NavigationRunDeps` / `commitSuccess` closure.
-- <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Observability — нет ring buffer, EventBus, DOM `navigation-cancel`.
 - <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Явный run status (`pending | resolved | rejected`) — только косвенно через abort + `TransactionResult`.
+
+**By design (не делаем):**
+
+- <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> Узкий `NavigationRunDeps` / `commitSuccess` — остаётся прямой `tx.engine` (без прослоек при разборе кода).
 
 ---
 
 ## Предлагаемая модель
 
-> **Именование:** `NavigationRun` + `NavigationRunManager`, не `ProcessorTask` — task шире pipeline (history, dedupe, intent); processor остаётся executor pipeline.  
-> **Практика:** rename опционален — семантика уже в `NavigationTransaction` + `NavigationCoordinator`.
+> **Именование (финальное):** `NavigationTransaction` + `NavigationCoordinator`.  
+> Ярлыки Run / RunManager ниже — только исторический маппинг из старого плана; **rename не делаем**.
 
-### `NavigationRun` — одна навигационная транзакция <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (как `NavigationTransaction`)
+### `NavigationTransaction` — одна навигационная транзакция <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span>
+
+> Старый план-ярлык: `NavigationRun`.
 
 Единица жизненного цикла **одного intent** (один клик / один `navigateTo`):
 
@@ -147,97 +151,88 @@ interface NavigationRun {
 
 ```text
 1. resolveBlocking()    // ✓ сделано ДО run: followRedirectsWithGuardWalk в coordinator.navigate
-2. executeFull()        // ✓ processor / pipeline
-3. map TransactionResult → outcome → OutcomeHandler   // ~ finalize* на engine
+2. executeFull()        // ✓ processor / pipeline (+ NavigationPulse phase emits)
+3. map TransactionResult → outcome → OutcomeHandler   // ~ pulse.settle + finalize* на engine
 ```
 
 **Rollback:** <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `NavigationTransaction.runWithStagedViewRollback`.
 
-**History и атомарность:** <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> success через engine; terminal — методы engine. Узкий `NavigationRunDeps` — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>.
+**History и атомарность:** <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> success через engine; terminal — методы engine. Узкий `NavigationRunDeps` — <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> (остаётся `tx.engine`).
 
 | Путь | Когда history | Статус |
 |------|----------------|--------|
 | success | sync `commitHistoryIfNeeded` + `commitNavigation` в pipeline | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | cancelled / error | engine `finalizeCancelled` / `finalizeError` + `applyTransactionHistory` | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
-| supersede | view rollback; history для run не commit'ился | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| supersede | view rollback; history для run не commit'ился; bus `navigation:cancel` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | redirect (legacy post-resolve) | `applyRedirect` → новый navigate | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | redirect (collapse) | один commit после full run на leaf | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
-### `NavigationRunManager` — orchestration <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> (как `NavigationCoordinator`)
+### `NavigationCoordinator` — orchestration <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span>
 
-**Не очередь / stack.** Семантика **latest-wins + supersede** (как сейчас):
+> Бывший план-ярлык `NavigationRunManager` — **не вводим**. Имя в коде: `NavigationCoordinator`.
+
+**Не очередь / stack.** Семантика **latest-wins + supersede**:
 
 ```text
-activeRun: NavigationRun | null
+activeTransaction: NavigationTransaction | null
 
-start(input): PlanDecision
-  noop | cancel-pending | start-new-run
+plan(input): PlanDecision
+  noop | cancel-pending | run
 ```
 
-Перенимает:
+Делает:
 
 - <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `plan` — dedupe;
-- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> abort предыдущего run;
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> abort предыдущего transaction;
 - <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `followRedirectsWithGuardWalk` + `await activeTransaction.run()`;
-- <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> файл/имя `navigation-run-manager.ts` (опциональный rename).
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `processResult` → `pulse.settle` + host finalize.
 
 ```text
 Engine.navigateTo()
   → match / not-found / fast-path
-  → NavigationCoordinator.navigate()          // ≈ RunManager.start
+  → NavigationCoordinator.navigate()
        followRedirectsWithGuardWalk
-       plan → NavigationTransaction.run()     // ≈ Run.execute
-  → processResult → host.finalize*            // ≈ OutcomeHandler.apply (ещё не класс)
+       plan → NavigationTransaction.run()
+  → processResult → pulse.settle → host.finalize*   // ≈ OutcomeHandler.apply (ещё не класс)
 ```
 
-### Опционально: ring buffer прошлых run <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>
+### Опционально: ring buffer прошлых run <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>
 
-Для runtime **не обязателен**. Полезен для observability (10–20 записей):
+Для runtime **не обязателен**. Полезен для observability (10–20 записей) — часть EB4 / [CACHE_DEVTOOLS](./CACHE_DEVTOOLS.md):
 
 | Use case |
 |----------|
 | DevTools timeline |
 | Debug supersede / rollback |
-| `navigation-cancel` и связь `abortedByRunId` |
+| Связь cancel ↔ `abortedByRunId` |
 
 Хранить метаданные, не DOM: `{ id, href, from, status, phases, durationMs, abortedBy? }`.
 
 ---
 
-## Deps (`NavigationRun`) <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
+## Deps (`NavigationTransaction`) <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design
 
-`NavigationRun` — **внутренний** класс engine (private API). Достаточно **узкого `NavigationRunDeps`**.
+`NavigationTransaction` — **внутренний** класс engine (private API).
 
-> **Факт:** `NavigationTransaction` держит `engine: AuraRoutingEngine` целиком — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> узкий deps ещё не введён.
+> **Решение:** держим `engine: AuraRoutingEngine` целиком. Узкий `NavigationRunDeps` / `commitSuccess` closure — <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> **не вводим** (лишняя прослойка при разборе кода).  
+> Emit — через `engine.pulse` / `engine.events`.
 
-### History — функция в deps, не provider целиком <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
+### History
 
-> <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Поведение: `commitHistoryIfNeeded` + `commitNavigation` на engine, вызываются из pipeline.  
-> <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Форма: closure `commitSuccess` в deps вместо прямого `engine` ref.
-
-```ts
-interface NavigationRunDeps {
-  commitSuccess: (ctx: CommitGateContext) => CommitGateEffects;
-  processor: NavigationTransaction;
-  router: RouterInstance;
-  telemetry?: { emit(event: EngineEvent): void };
-  reportHookError?: ReportNavigationHookError;
-}
-```
+> <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `tx.engine.commitHistoryIfNeeded` + `commitNavigation` из pipeline — прямой вызов, без deps-порта.
 
 **Terminal history** — <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> в engine-методах + `navigation-finalize.ts`; <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> единый `NavigationOutcomeHandler`.
 
-### Остальные deps
+### Что transaction берёт через `engine`
 
-| Dep | Что передать | Зачем | Статус |
-|-----|--------------|-------|--------|
-| **`processor` / pipeline** | `NavigationTransactionPipeline` | full run | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| **redirect resolve** | `followRedirectsWithGuardWalk` | collapse | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (в coordinator, не deps run) |
-| **`router`** | `RouterInstance` | hooks | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> через engine |
-| **`telemetry`** | `{ emit(event) }` | emit-only | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
-| **`reportHookError`** | callback | hook-error | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Через `tx.engine` | Зачем | Статус |
+|-------------------|-------|--------|
+| `commitHistoryIfNeeded` / `commitNavigation` / `notifyUrlAligned` | history + commit | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `pulse` / `events` | telemetry | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `resourceGraph` / `viewGraph` | loads / fast path | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `router` / `hooksRegistry` / `reportNavigationHookError` | hooks | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
-### Вне deps run (engine / manager)
+### Вне transaction (engine / coordinator)
 
 | Concern | Где | Статус |
 |---------|-----|--------|
@@ -245,37 +240,54 @@ interface NavigationRunDeps {
 | `NavigationProvider` | Engine | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | Dedupe | Coordinator `plan()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | Prefetch | Engine | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| DOM CustomEvent | AuraRouter bridge | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> start/commit/errors ✓ · cancel ✗ |
+| EventBus + DOM CustomEvent | `engine.events` → aura-router `onEngineEvent` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 ---
 
-## EventBus и telemetry <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>
+## EventBus и telemetry <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-**Уместно** передать в run `{ emit }`, не `EventBus` целиком.
+> Полный контракт: [../done/EVENT_BUS.md](../done/EVENT_BUS.md).  
+> Emit-порт в коде — **`NavigationPulse`** (`engine.pulse`), не отдельный `{ emit }` в deps transaction.
 
-> **Факт:** EventBus и `telemetry: { emit }` в engine/run/pipeline **не подключены**.  
-> **DOM уже есть:** `navigation-start`, `navigation` (commit), `navigation-error`, `navigation-hook-error`, `not-found` — через callbacks engine → aura-router (не через bus).
-
-### Кто что emit'ит (цель)
+### Как устроено
 
 ```text
-NavigationRun / Manager
-  navigation:start, navigation:finish, navigation:cancel,
-  navigation:redirect, navigation:error (terminal)
-
-NavigationTransactionPipeline / DataGraph  (тот же telemetry в PipelineContext)
-  navigation:prepare:*, load:*, node:*, navigation:commit:*
+AuraRoutingEngine
+  events: EventBus
+  pulse: NavigationPulse(events)
+       ↓
+NavigationTransaction / Pipeline / Coordinator.processResult
+  pulse.begin | prepare* | load* | alignUrl | commit* | settle
+       ↓
+aura-router.onEngineEvent → CustomEvent (DOM P0 + load:*)
 ```
 
-### DOM и legacy callbacks
+### Кто что emit'ит
 
 ```text
-Engine EventBus                          ✗ нет
-  → AuraRouter bridge (subscribe once)
-      → CustomEvent(...)
+NavigationPulse (единая точка payload shape)
+  navigation:start / finish / cancel / redirect / error
+  navigation:prepare:*, load:*, commit:*, url-aligned, node:*
 
-Сейчас: engine callbacks → dispatch* в aura-router   ~ без bus
+Coordinator.processResult
+  → pulse.settle(TransactionResult)   // terminal bus events
+
+Pipeline
+  → pulse phase methods вокруг guards / loads / commit slice
 ```
+
+### DOM bridge (aura-router)
+
+| Bus | DOM | Статус |
+|-----|-----|--------|
+| `navigation:start` / url-aligned | `navigation-start` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `commit:end` | `navigation` (commit) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:finish` | `navigation-complete` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:cancel` | `navigation-cancel` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:redirect` | `navigation-redirect` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:error` | `navigation-error` (+ hook / not-found) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+
+**Supersede:** устаревший job → `navigation:cancel` (не `finish`); новый — свой `navigation:start`.
 
 ---
 
@@ -283,7 +295,8 @@ Engine EventBus                          ✗ нет
 
 Единая точка terminal-обработки в **engine** (не в run). Run возвращает outcome; handler применяет side effects.
 
-> **Факт:** поведение есть (`finalizeError`, `finalizeCancelled`, `applyRedirect`, `finalizeNotFoundNavigation`, `finalizeResolveTerminal`, `applyTransactionHistory`), но **класса `NavigationOutcomeHandler` и `apply(outcome)` нет**.
+> **Факт:** поведение есть (`finalizeError`, `finalizeCancelled`, `applyRedirect`, `finalizeNotFoundNavigation`, `finalizeResolveTerminal`, `applyTransactionHistory`), но **класса `NavigationOutcomeHandler` и `apply(outcome)` нет**.  
+> Bus-часть terminal уже централизована в `NavigationPulse.settle`.
 
 ### Сейчас в коде <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
 
@@ -291,10 +304,11 @@ Engine EventBus                          ✗ нет
 NavigationFailureHandler      → ✓ per-route error hook phase
 finalizeFailure               → ✓ failure/*
 NavigationTransaction.run     → ✓ TransactionResult
-NavigationCoordinator.processResult → ✓ dispatch к engine finalizers
-engine.finalize* / applyRedirect    → ~ terminal (не один handler)
+NavigationCoordinator.processResult
+  → pulse.settle              → ✓ terminal bus events
+  → host.finalize* / applyRedirect  → ~ side effects (не один handler)
 navigation-finalize.ts        → ✓ applyTransactionHistory, finalizeNotFoundNavigation
-aura-router                   → ✓ dispatchNavigationError / Start / Committed
+aura-router                   → ✓ onEngineEvent → DOM P0
 ```
 
 ### To-be <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>
@@ -322,13 +336,14 @@ Match null / unmatched — `finalizeNotFoundNavigation` / `handleUnmatchedNaviga
 ```text
 AuraRouter
   └─ AuraRoutingEngine                                    ✓
-       EventBus (instance)                                ✗
+       EventBus + NavigationPulse                         ✓
        NavigationOutcomeHandler                           ~ finalize* на engine
        NavigationProvider                                 ✓
-       NavigationCoordinator (= RunManager)               ~
+       NavigationCoordinator                              ✓
          followRedirectsWithGuardWalk                     ✓
-         └─ NavigationTransaction (= Run)                 ✓
-              deps: engine ref (не узкий closure)         ~
+         processResult → pulse.settle + finalize*         ~
+         └─ NavigationTransaction                         ✓
+              engine ref (by design, без deps-прослойки)  ✓
               run() → TransactionResult                   ✓
        outcomeHandler.apply(outcome)                      ~ processResult → finalize*
 ```
@@ -340,29 +355,29 @@ AuraRouter
 | Этап | Польза | Статус |
 |------|--------|--------|
 | **1. Extract NavigationRun** | Один объект = job + tracker + rollback | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `NavigationTransaction` |
-| **2. NavigationRunManager** | Dedupe + supersede (+ resolve) в одном месте | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> `NavigationCoordinator` |
+| **2. NavigationCoordinator** | Dedupe + supersede (+ resolve) в одном месте | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | **2b. NavigationOutcomeHandler** | Terminal — одна точка | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> / `apply()` <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
 | **3. Redirect collapse** | Один intent → один full run на leaf | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| **4. Run history (ring buffer)** | Devtools, supersede debug | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
-| **4b. telemetry `{ emit }`** | EventBus в run + pipeline | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **4. EventBus / NavigationPulse** | Observability runtime | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| **4b. Run history (ring buffer)** | Devtools timeline | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> EB4 |
 
 ---
 
 ## Границы ответственности (целевые)
 
 ```text
-AuraRoutingEngine     I/O: match, provider, prev, links, registry, OutcomeHandler, EventBus
-                      ✓ без OutcomeHandler/EventBus классов
-NavigationRunManager  active run, dedupe, supersede, redirect resolve
-                      ~ NavigationCoordinator
-NavigationRun         intent lifecycle: full + rollback; узкие deps
-                      ~ NavigationTransaction (deps широкие)
-NavigationOutcomeHandler  terminal: history, errors, telemetry, DOM bridge
+AuraRoutingEngine     I/O: match, provider, prev, links, registry, OutcomeHandler, EventBus/Pulse
+                      ✓ EventBus/Pulse · ~ без OutcomeHandler класса
+NavigationCoordinator  active transaction, dedupe, supersede, redirect resolve
+                      ✓
+NavigationTransaction  intent lifecycle: full + rollback; `tx.engine` by design
+                      ✓
+NavigationOutcomeHandler  terminal: history, errors (bus уже в Pulse.settle)
                       ~ методы engine
 Redirect resolve      followRedirectsWithGuardWalk
                       ✓
-NavigationTransactionPipeline  порядок шагов; telemetry { emit } в ctx
-                      ✓ pipeline · ✗ telemetry
+NavigationTransactionPipeline  порядок шагов; pulse phase emits
+                      ✓
 ```
 
 **Не делать:**
@@ -378,12 +393,13 @@ NavigationTransactionPipeline  порядок шагов; telemetry { emit } в 
 
 | As-is (док) | To-be | Факт в коде | Статус |
 |-------------|-------|-------------|--------|
-| `NavigationCoordinator.plan` | `NavigationRunManager.plan()` | `NavigationCoordinator.plan()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `NavigationCoordinator.run()` | `RunManager.start()` + `Run.execute()` | coordinator + `NavigationTransaction.run()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `withCancelledTransactionScope` | `NavigationRun` rollback | `runWithStagedViewRollback()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `NavigationCoordinator.plan` | (без rename) | `NavigationCoordinator.plan()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `NavigationCoordinator.run()` / `navigate()` | (без rename) | coordinator + `NavigationTransaction.run()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `withCancelledTransactionScope` | transaction rollback | `runWithStagedViewRollback()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `ViewCommitTracker` | поле run | `NavigationTransaction.viewCommitTracker` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `commitGate` callback | `deps.commitSuccess` | `commitHistoryIfNeeded` + `commitNavigation` | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
-| `finalize*` | `OutcomeHandler.apply` | engine methods | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
+| `commitGate` callback | (без deps-порта) | `tx.engine.commitHistoryIfNeeded` + `commitNavigation` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> · <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> `commitSuccess` |
+| `finalize*` | `OutcomeHandler.apply` | engine methods + `pulse.settle` | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
+| `telemetry: { emit }` | emit-port | `NavigationPulse` на engine | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | Redirect resolve внутри run | resolve → full | resolve в `coordinator.navigate` до run | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `NavigationIntent` | `run.intent` | — | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> |
 
@@ -394,8 +410,8 @@ NavigationTransactionPipeline  порядок шагов; telemetry { emit } в 
 ### Фаза 1b — `NavigationOutcomeHandler` <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
 
 1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `NavigationOutcomeHandler` — consolidate terminal в один `apply()`.
-2. <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Coordinator/engine вызывает terminal через engine-методы.
-3. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> **Критерий поведения:** error / cancel / redirect / not-found — 1:1 (тесты coordinator / finalize / commit-history).
+2. <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Coordinator/engine вызывает terminal через engine-методы; bus уже через `pulse.settle`.
+3. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> **Критерий поведения:** error / cancel / redirect / not-found — 1:1 (тесты coordinator / finalize / commit-history / event-bus).
 
 | Файл | Изменение | Статус |
 |------|-----------|--------|
@@ -411,10 +427,10 @@ NavigationTransactionPipeline  порядок шагов; telemetry { emit } в 
 | `core/navigation/navigation-coordinator.ts` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | processor `transaction-scope` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> заменён rollback в transaction |
 
-### Фаза 2 — `NavigationRunManager` <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
+### Фаза 2 — `NavigationCoordinator` <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Новый `navigation-run-manager.ts` (опциональный rename/split).
-2. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Dedupe + active run + supersede + redirect resolve — в `NavigationCoordinator`.
+1. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Dedupe + active transaction + supersede + redirect resolve — в `NavigationCoordinator`.
+2. <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> Rename в `NavigationRunManager` / `navigation-run-manager.ts` — **не делаем**.
 3. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> **Критерий:** `navigation-coordinator.test.ts`, dedupe/supersede без регрессий.
 
 ### Фаза 3 — Redirect collapse <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
@@ -423,12 +439,12 @@ NavigationTransactionPipeline  порядок шагов; telemetry { emit } в 
 `followRedirectsWithGuardWalk` · один `coordinator.run` на leaf · один history commit.  
 Отдельный `runBlockingOnly` / класс `RedirectResolver` / `NavigationIntent` — <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>.
 
-### Фаза 4 — Observability <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
+### Фаза 4 — Observability <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Ring buffer в manager.
-2. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `telemetry: { emit }` из EventBus.
-3. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> AuraRouter: `navigation-start`, `navigation`, errors, `not-found`.
-4. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> DOM cancel / redirect; supersede без ложного `finish`.
+1. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `EventBus` + `NavigationPulse` (EB0–EB3).
+2. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> AuraRouter DOM P0: start / commit / complete / cancel / redirect / errors.
+3. <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> Ring buffer — EB4 / [CACHE_DEVTOOLS](./CACHE_DEVTOOLS.md), не блокер.
+4. Подробности — [../done/EVENT_BUS.md](../done/EVENT_BUS.md).
 
 ---
 
@@ -436,22 +452,22 @@ NavigationTransactionPipeline  порядок шагов; telemetry { emit } в 
 
 ```mermaid
 stateDiagram-v2
-  [*] --> pending: manager.start()
-  pending --> resolved: executeFull OK + committed
+  [*] --> pending: coordinator.navigate()
+  pending --> resolved: pipeline OK + committed
   pending --> rejected: cancelled | error | superseded
   rejected --> [*]: rollback if !viewCommitted
   resolved --> [*]
 ```
 
-Явного поля `status` на transaction — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> (есть `TransactionResult` + abort).
+Явного поля `status` на transaction — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> (есть `TransactionResult` + abort + `pulse.settle`).
 
 ---
 
 ## Связанные документы
 
 - [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md) — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> collapse
-- [EVENT_BUS.md](./EVENT_BUS.md) — EventBus, telemetry port
-- [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) — DOM public API
+- [../done/EVENT_BUS.md](../done/EVENT_BUS.md) — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> EventBus, `NavigationPulse`, DOM P0
+- [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) — DOM public API (аудит может отставать от кода)
 - [NAVIGATION_TRANSACTION_MODEL.md](../NAVIGATION_TRANSACTION_MODEL.md) — политика redirect / cancel
 - [FUTURE_PROOF_ENGINE.md](../FUTURE_PROOF_ENGINE.md) — Navigation Job
 - [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md) — thenable runner / fast path
@@ -463,19 +479,17 @@ stateDiagram-v2
 
 | Концепт | Статус |
 |---------|--------|
-| **NavigationRun** (`NavigationTransaction`) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| **Dedupe / supersede / active** (`NavigationCoordinator`) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| **NavigationTransaction** (бывш. Run) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| **NavigationCoordinator** (бывш. RunManager) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
 | **Redirect collapse** | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
-| **Rename Run / RunManager** | <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> (опционально) |
+| **EventBus / NavigationPulse / DOM P0** | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> |
+| **Rename Run / RunManager** | <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> — остаётся Coordinator / Transaction |
 | **NavigationOutcomeHandler.apply()** | <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> |
-| **Узкие deps (`commitSuccess`)** | <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> |
-| **EventBus / ring buffer / cancel event** | <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> |
+| **Узкие deps (`commitSuccess`)** | <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> — остаётся `tx.engine` |
+| **Ring buffer прошлых run** | <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> (EB4) |
 | **`NavigationIntent` / класс `RedirectResolver`** | <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> |
 
 **Следующие шаги (по приоритету):**  
 1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `NavigationOutcomeHandler.apply()`  
-2. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> узкие deps (`commitSuccess`)  
-3. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> EventBus / telemetry (опционально ring buffer)  
-4. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> rename Run/Manager — только если мешают текущие имена  
 
-Польза runtime уже получена (transaction + coordinator + collapse); полная выгода документа — когда OutcomeHandler и observability закроют оставшийся indirection.
+Польза runtime уже получена (transaction + coordinator + collapse + EventBus); из консолидации остаётся в основном OutcomeHandler.

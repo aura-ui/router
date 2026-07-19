@@ -1,10 +1,33 @@
 # Content cache + prefetch (view loaders)
 
-> **Статус:** **реализовано (v1)** — `ViewGraph` + `ViewPayloadCache` на router, prefetch через общий pipeline.  
-> **Сверка с кодом:** 2026-07-13  
-> **Осталось:** parity params в ключе, единый `router.invalidate()` для content, navigation SWR по умолчанию, product-тесты.  
-> **Связь:** [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) · [P1-2](../comparison/FEATURE_PARITY_ROADMAP.md) · [FUTURE_PROOF_ENGINE.md §3](../FUTURE_PROOF_ENGINE.md) · [CACHE_STORE_COMPARISON.md](../comparison/CACHE_STORE_COMPARISON.md) · [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md)  
+> **Статус:** <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО (v1)</span> — `ViewGraph` + `ViewPayloadCache` на router, prefetch через общий pipeline.  
+> **Сверка с кодом:** 2026-07-19  
+> **Осталось:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> parity params · <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗</span> единый `router.invalidate()` · <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗</span> navigation SWR default · <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> product-тесты  
+> **Связь:** [../done/LINK_DRIVEN_PRELOAD.md](../done/LINK_DRIVEN_PRELOAD.md) · [P1-2](../comparison/FEATURE_PARITY_ROADMAP.md) · [FUTURE_PROOF_ENGINE.md §3](../FUTURE_PROOF_ENGINE.md) · [CACHE_STORE_COMPARISON.md](../comparison/CACHE_STORE_COMPARISON.md) · [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md)  
 > **Не путать с:** [DATAGRAPH.md](./DATAGRAPH.md) — кэш данных `load` hooks (JSON, store)
+
+### Легенда
+
+| Метка | Значение |
+|-------|----------|
+| <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | в production path / покрыто тестами |
+| <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | каркас есть, не до конца |
+| <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> | не сделано |
+| <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> | сознательно не в scope |
+
+### Сводка прогресса
+
+| Блок | Статус | Что дальше |
+|------|--------|------------|
+| ViewGraph + ViewPayloadCache | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | закрыт |
+| Prefetch (`ViewPrefetchExecutor`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | общий pipeline с DataGraph |
+| Cache key (pathname/query/loader) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | — |
+| Path params в ключе | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | parity с `buildRouteDataKey` |
+| `invalidateView()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | — |
+| Единый `router.invalidate()` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | scope content/data |
+| Navigation SWR (view default) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | opt-in `viewCache.staleTime` уже есть |
+| Тесты core | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | hit/miss/dedupe/invalidate/prefetch |
+| Product / edge tests | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | SWR nav · `/users/1` vs `/users/2` |
 
 ---
 
@@ -31,7 +54,7 @@ Router-level **`ViewPayloadCache`** даёт:
 | Фаза | `runLoads` (pre-commit) | prefetch intent + `render` |
 | Потребитель | hooks, `ctx.data`, логика | outlet / DOM |
 | Store | `AuraResolvableCache` в DataGraph | `AuraResolvableCache` в ViewPayloadCache |
-| SWR | `staleTime` + `gcTime` (default 30s) | dedupe + LRU; prefetch skip via `staleTimeMs` в prefetch policy; **navigation SWR для view — не по умолчанию** |
+| SWR | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `staleTime` + `gcTime` (default 30s) | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> dedupe + LRU; prefetch skip via `staleTimeMs`; **navigation SWR для view — не по умолчанию** |
 
 ```text
 hover /users:
@@ -99,11 +122,14 @@ SWR для view можно включить глобально: `AuraRouter.conf
 - `d:{json}` — опционально, когда loader получает `data` из load hooks.
 - `{kind}:{loader}:{content}` — из `ViewDescriptor`; `::{extract}` для `url` + attr `extract`.
 
-**Params — частично:**
+**Params:**
 
-- ✓ разные `:id` при нормальной навигации → разные ключи через pathname.
-- ✓ fallback `matchKey|params` когда pathname отсутствует (тесты в `cache-key.test.ts`).
-- ✗ явный сегмент path params при совпадении pathname (edge case); parity формата с `buildRouteDataKey` в DataGraph.
+| Кейс | Статус |
+|------|--------|
+| разные `:id` при нормальной навигации → разные ключи через pathname | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| fallback `matchKey\|params` когда pathname отсутствует | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| явный сегмент path params при совпадении pathname (edge) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| parity формата с `buildRouteDataKey` (DataGraph) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
 
 ### API (как в коде)
 
@@ -189,7 +215,7 @@ Layout (`layout="..."`) → descriptor `{ kind: 'layout', loader: 'template', ca
 
 ## invalidate
 
-**Сделано (отдельный API):**
+**Сделано** <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> (отдельный API):
 
 ```typescript
 router.invalidateView({ key?, path?, match?, policy?: 'stale' | 'remove' })
@@ -199,7 +225,7 @@ viewGraph.invalidate(options)  // тот же RouterInvalidateOptions
 - Scope: `key`, `path`, `match`; policy `stale` (default) | `remove`.
 - Общая логика: `invalidate-router-cache.ts` (симметрично `DataGraph.invalidate`).
 
-**Не сделано:**
+**Не сделано** <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗</span>:
 
 ```typescript
 router.invalidate({ content: true })  // или единый invalidate data + view
@@ -212,20 +238,20 @@ router.invalidate({ content: true })  // или единый invalidate data + v
 
 ## Критерии готовности
 
-> **Легенда:** <span style="color: #2ea043; font-weight: bold;">✓</span> готово · <span style="color: #d97706; font-weight: bold;">~</span> частично · <span style="color: #cf222e; font-weight: bold;">✗</span> не сделано
+> **Легенда:** <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> готово · <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> частично · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> не сделано
 
-- <span style="color: #2ea043; font-weight: bold;">✓</span> Engine-level cache для view loaders (`ViewGraph` + `ViewPayloadCache`)
-- <span style="color: #2ea043; font-weight: bold;">✓</span> Ключ: pathname/pattern + query + kind:loader:content (+ extract, + data)
-- <span style="color: #d97706; font-weight: bold;">~</span> Ключ: **path params** — через pathname и fallback `matchKey|params`; edge cases + parity с DataGraph
-- <span style="color: #2ea043; font-weight: bold;">✓</span> In-flight dedupe (`AuraResolvableCache.resolve`)
-- <span style="color: #2ea043; font-weight: bold;">✓</span> LRU (`max`), `gcTime` через `AuraRouter.configure({ viewCache })`
-- <span style="color: #2ea043; font-weight: bold;">✓</span> Prefetch (общий pipeline, `ViewPrefetchExecutor`)
-- <span style="color: #2ea043; font-weight: bold;">✓</span> Cache hit на navigation render (`cache="view"` / `screen`)
-- <span style="color: #2ea043; font-weight: bold;">✓</span> Общий prefetch триггер с DataGraph (href → match → data + view resources)
-- <span style="color: #d97706; font-weight: bold;">~</span> Invalidate content — `invalidateView()` есть; нет в `router.invalidate()`
-- <span style="color: #cf222e; font-weight: bold;">✗</span> Navigation SWR для view по умолчанию (`staleTime` + revalidate on navigate)
-- <span style="color: #2ea043; font-weight: bold;">✓</span> Тесты: hit, miss, dedupe, query in key, invalidate, prefetch wiring
-- <span style="color: #d97706; font-weight: bold;">~</span> Тесты: abort на prefetch (pipeline-level); нет view SWR и явного `/users/1` vs `/users/2` key test
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Engine-level cache для view loaders (`ViewGraph` + `ViewPayloadCache`)
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Ключ: pathname/pattern + query + kind:loader:content (+ extract, + data)
+- <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Ключ: **path params** — через pathname и fallback `matchKey\|params`; edge cases + parity с DataGraph
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> In-flight dedupe (`AuraResolvableCache.resolve`)
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> LRU (`max`), `gcTime` через `AuraRouter.configure({ viewCache })`
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Prefetch (общий pipeline, `ViewPrefetchExecutor`)
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Cache hit на navigation render (`cache="view"` / `screen`)
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Общий prefetch триггер с DataGraph (href → match → data + view resources)
+- <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Invalidate content — `invalidateView()` есть; нет в `router.invalidate()`
+- <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Navigation SWR для view по умолчанию (`staleTime` + revalidate on navigate)
+- <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Тесты: hit, miss, dedupe, query in key, invalidate, prefetch wiring
+- <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Тесты: abort на prefetch (pipeline-level); нет view SWR и явного `/users/1` vs `/users/2` key test
 
 **Тесты:**
 
@@ -240,11 +266,11 @@ router.invalidate({ content: true })  // или единый invalidate data + v
 
 ## Open questions
 
-1. ~~**Один CacheStore с DataGraph**~~ — **решено v1:** общий `aura-cache-store`, отдельные инстансы.
-2. ~~**DocumentFragment vs string**~~ — **решено:** кэшируем только `string`; fragment всегда fresh load.
-3. **component-src** — кэш module namespace / custom element registry отдельно от HTML?
-4. **`cache` / per-route TTL** — связать attr route с `staleTime`/`gcTime` ViewPayloadCache или только global configure?
-5. **Params в ключе** — сериализация как в DataGraph (`buildRouteDataKey`) или оставить pathname-embedded?
+1. ~~**Один CacheStore с DataGraph**~~ — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> решено v1: общий `aura-cache-store`, отдельные инстансы.
+2. ~~**DocumentFragment vs string**~~ — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> решено: кэшируем только `string`; fragment всегда fresh load.
+3. **component-src** — кэш module namespace / custom element registry отдельно от HTML? <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>
+4. **`cache` / per-route TTL** — связать attr route с `staleTime`/`gcTime` ViewPayloadCache или только global configure? <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>
+5. **Params в ключе** — сериализация как в DataGraph (`buildRouteDataKey`) или оставить pathname-embedded? <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
 
 ---
 

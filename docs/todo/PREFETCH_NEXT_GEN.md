@@ -1,9 +1,30 @@
 # TODO: Prefetch следующего поколения (ISNR)
 
-> **Статус:** дизайн / стратегия (не реализовано)  
-> **Дата:** 2026-06-27 00:31  
+> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ В ПРОЦЕССЕ</span> — Foundation ✓ · топ-3 SSR ~ · полный ISNR ✗  
+> **Сверка с кодом:** 2026-07-19  
+> **Дата дизайна:** 2026-06-27 00:31  
 > **Контекст:** отчёт по задаче «оценить мировые роутеры по prefetch → спроектировать next gen с заделом на будущее»  
-> **Связь:** [../PREFETCH_ARCHITECTURE.md](../PREFETCH_ARCHITECTURE.md) · [../comparison/PREFETCH_INDUSTRY_COMPARISON.md](../comparison/PREFETCH_INDUSTRY_COMPARISON.md) · [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) · [DATAGRAPH.md](./DATAGRAPH.md)
+> **Связь:** [../PREFETCH_ARCHITECTURE.md](../PREFETCH_ARCHITECTURE.md) · [../comparison/PREFETCH_INDUSTRY_COMPARISON.md](../comparison/PREFETCH_INDUSTRY_COMPARISON.md) · [../done/LINK_DRIVEN_PRELOAD.md](../done/LINK_DRIVEN_PRELOAD.md) · [DATAGRAPH.md](./DATAGRAPH.md) · [../done/RESOURCE_GRAPH_HANDOFF.md](../done/RESOURCE_GRAPH_HANDOFF.md)
+
+### Легенда
+
+| Метка | Значение |
+|-------|----------|
+| <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | в production path / покрыто тестами |
+| <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | каркас / mode есть, не до конца |
+| <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> | не сделано |
+| <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> | сознательно не в scope |
+
+### Сводка прогресса
+
+| Блок | Статус | Что дальше |
+|------|--------|------------|
+| **Foundation sprint** (F1–F7) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | закрыт |
+| **Топ-3 SSR** (LCA / confidence / planner) | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | pointerdown · viewport source · readiness N/M |
+| **Phase A** parity | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | A3 viewport · A4 SWR view по умолчанию |
+| **Phase B** delta + tiers | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | B3 budget · B4/B5 policy snapshot · queue |
+| **Phase C** full ISNR | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | tags · Speculation executor · devtools · safety |
+| ResourceGraph handoff | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | остались D1–D2 work-items — [RESOURCE_GRAPH_HANDOFF](../done/RESOURCE_GRAPH_HANDOFF.md) |
 
 ---
 
@@ -11,116 +32,101 @@
 
 **Следующее поколение prefetch — не «быстрее hover», а intent-driven планировщик ресурсов навигации** с LCA-delta, единым cache graph, confidence/budget и native speculation — при **одном pipeline** с render.
 
-У Aura уже есть правильный скелет (`PrefetchPipeline`, executors, plan resolver, **~8/10** по оркестрации). Эволюция, не переписывание:
+У Aura уже есть рабочий скелет **и Foundation**: `PrefetchPipeline` + `PrefetchPlan.enterRoutes` + `DefaultPrefetchResourcePlanner` + `ResourceGraph.load` (prefetch ⇄ navigation). Эволюция, не переписывание:
 
-1. **Phase A** — parity с лидерами (DataGraph, viewport, SWR, v1 cache)
-2. **Phase B** — LCA-delta + confidence scheduler + network budget
-3. **Phase C** — unified Resource Graph, Speculation Rules, tag invalidation, devtools
+1. **Phase A** — <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> DataGraph/ViewGraph ✓ · viewport ✗ · SWR ~
+2. **Phase B** — <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> LCA ✓ · confidence tiers ✓ · budget / queue ✗
+3. **Phase C** — <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> tags · Speculation executor · devtools (planner stub уже ✓)
 
 Условное имя целевой модели: **Intent-Scheduled Navigation Resources (ISNR)**.  
 **Почему graph:** §[3. Зачем unified graph](#3-зачем-unified-graph-почему-а-не-только-как).  
 **Что не требует ISNR:** §[3.1. ISNR vs v1 — честная граница](#31-isnr-vs-v1--честная-граница).  
 **Уже есть в `aura-cache-store`:** §[3.2. Что покрывает AuraResolvableCache](#32-что-покрывает-auraresolvablecache).
 
-**Ближайший спринт (мин. архитектура, не полный ISNR):** §[Foundation sprint](#foundation-sprint-ближайший-спринт).
+**Foundation sprint:** <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ЗАКРЫТ</span> — §[Foundation sprint](#foundation-sprint-ближайший-спринт).
 
-**Что делать первым после parity:** §[Топ-3 приоритета (SSR)](#топ-3-приоритета-ssr-post-parity).
+**Топ-3 SSR post-parity:** §[Топ-3 приоритета (SSR)](#топ-3-приоритета-ssr-post-parity).
 
 ---
 
 ## Foundation sprint (ближайший спринт)
 
-> **Решение:** полный ISNR (Phase C) **не строим сейчас**; **тонкий orchestration-слой закладываем** — иначе при появлении DataGraph придётся ломать executors.  
-> **Storage не трогаем:** `AuraResolvableCache` + `DataCache` уже покрывают кеш; graph — позже, по триггерам из §[3.1](#31-isnr-vs-v1--честная-граница).
+> **Статус спринта:** <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (2026-07)  
+> **Решение (историческое):** полный ISNR (Phase C) **не строили сразу**; тонкий orchestration-слой заложили.  
+> **Как вышло:** `DefaultPrefetchResourcePlanner.planResources` + `ResourceGraph` / `HandoffCache` вместо silo `ContentPrefetchExecutor` + отдельного prefetch-store.
 
 ### Цель спринта
 
 Зафиксировать форму API и сразу получить **document-first moat** (LCA-delta + tap-gate), без Phase C.
 
 ```text
-intent → PrefetchPlan (+ enterRoutes)
-      → resolveResources(plan, ctx)     // stub: только content[]
-      → executors[kind].run(...)
-      → DataCache.resolve()        // AuraResolvableCache, prefetch = render
+intent → PrefetchPlan (+ enterRoutes)          ✓
+      → planResources(plan, ctx)               ✓  (было resolveResources stub)
+      → ResourceGraph.load(enterRoutes, …)     ✓  (prefetch = navigation path)
+      → HandoffCache / ViewGraph / DataGraph   ✓
 ```
 
 ### Делать в спринте
 
-| # | Задача | Где | Зачем |
-|---|--------|-----|-------|
-| F1 | `enterRoutes` в `PrefetchPlan` | `prefetch/plan.ts`, `types.ts` | `currentHref` + `buildTransitionPlan`; симметрия с navigation |
-| F2 | LCA-delta в prefetch | `ContentPrefetchExecutor` | `prefetchBranch(enterRoutes)` вместо `plan.chain` |
-| F3 | `confidence` в `PrefetchRunContext` | `prefetch/types.ts` | default `1.0`; задел под tiers |
-| F4 | Tap-gate для `html-src` | `resolveResources` или content executor | `mode: intent` / низкий confidence → skip content; `tap` / `manual` → fetch |
-| F5 | `resolveResources()` stub | `prefetch/resolve-resources.ts` (новый) | возвращает `{ kind: 'content', targets: enterRoutes }`; executors вызывают его, не loader напрямую |
-| F6 | Проверить shared cache | `ContentLoadService` | prefetch и render — один `DataCache`, без отдельного prefetch-store |
-| F7 | Тесты | `test/prefetch/` | nested sibling: только leaf partial; intent не грузит html-src; tap грузит; click = cache hit |
+| # | Задача | Где | Статус | Зачем |
+|---|--------|-----|--------|-------|
+| F1 | `enterRoutes` в `PrefetchPlan` | `prefetch/plan.ts`, `types.ts` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `currentHref` + `buildTransitionPlan`; симметрия с navigation |
+| F2 | LCA-delta в prefetch | `PrefetchPlanResolver` → `enterRoutes` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | delta вместо full `plan.chain` |
+| F3 | `confidence` в plan context | `policy.confidenceFor` → `PrefetchPlanContext` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | tiers по mode |
+| F4 | Tap-gate для view / `html-src` | `shouldPrefetchView` (≥ 0.8) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | intent → skip view; tap / manual → fetch |
+| F5 | planner API | `prefetch/resources.ts` (`planResources`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `view` + `data` kinds (шире исходного content-only stub) |
+| F6 | shared prefetch ⇄ render | `ResourceGraph` + `HandoffCache` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | один prepare path, без отдельного prefetch-store |
+| F7 | Тесты | `test/prefetch/` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | LCA nested · low-confidence skip · tap view · coherence |
 
 ```typescript
-// F5 — черновик API (content-only stub)
-type NavigationResource = { kind: 'content' | 'data' | 'chunk'; targets: MatchedRouteInfo[] };
-
-function resolveResources(
-  plan: PrefetchPlan,
-  ctx: PrefetchRunContext,
-): NavigationResource[] {
-  const routes = plan.enterRoutes;
-  const resources: NavigationResource[] = [];
-
-  const allowContent =
-    ctx.confidence >= 0.8 || ctx.mode === 'tap' || ctx.mode === 'manual';
-
-  if (allowContent && routes.length) {
-    resources.push({ kind: 'content', targets: routes });
-  }
-  // kind: 'data' — добавить, когда DataGraph (Phase A), без смены сигнатуры
-
-  return resources;
-}
+// F5 — реализовано как DefaultPrefetchResourcePlanner.planResources
+// kinds: 'view' | 'data' (не content/chunk); confidence gates в PrefetchPolicy
+planResources(plan, { mode, confidence }): PrefetchResource[]
 ```
 
 ### Сознательно не в этом спринте
 
-| Не делать | Почему |
-|-----------|--------|
-| Cache Graph / `TagIndex` | `aura-cache-store` + dispatcher позже |
-| Полный confidence scheduler | достаточно F3 + F4 |
-| `NetworkBudget` | hygiene, не moat |
-| `DataPrefetchExecutor` реальный | пока редкий `load` — Phase A |
-| `CodePrefetchExecutor` | редкий `component-src` |
-| Speculation Rules executor | после partial + policy |
-| Devtools panel | события можно позже |
+| Не делать | Статус сейчас | Почему откладывали |
+|-----------|---------------|-------------------|
+| Cache Graph / `TagIndex` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | `aura-cache-store` + dispatcher позже |
+| Полный confidence scheduler / queue | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | хватило F3 + F4 |
+| `NetworkBudget` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | hygiene, не moat |
+| Data prefetch реальный | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | через ResourceGraph → DataGraph |
+| `CodePrefetchExecutor` | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | bundler / `import::` |
+| Speculation Rules executor | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | есть `SpeculationPrefetchPort.hint` |
+| Devtools panel | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | события можно позже |
 
 ### Порядок внутри спринта
 
 ```text
-F1 enterRoutes → F5 resolveResources stub → F2 LCA в executor
-→ F3 confidence → F4 tap-gate → F6 audit cache → F7 tests
+F1 → F5 → F2 → F3 → F4 → F6 → F7   ✓ всё пройдено
 ```
 
 ### Критерий готовности
 
-- [ ] `/settings/profile` → `/settings/security`: prefetch **только** `security.html`, не layout/parent
-- [ ] hover (`intent`) на `html-src` ссылке: **нет** fetch partial
-- [ ] `pointerdown` / `tap` / `router.prefetch()`: partial в cache
-- [ ] click после tap-prefetch: **0** duplicate fetch в network
-- [ ] `resolveResources()` — единая точка; добавление `kind: 'data'` не ломает executors
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `/settings/profile` → `/settings/security`: prefetch **только** enter-delta (`plan-lca.test.ts`)
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> hover (`intent`): **нет** view fetch (`low-confidence` / planner)
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `tap` / `router.prefetch()` (`manual`): view в plan → speculative prepare
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> click после prefetch: handoff join, без duplicate (`resource-graph-coherence`)
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `planResources()` — единая точка; `kind: 'data'` уже рядом с `view`
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `pointerdown` на desktop → эскалация в `tap` (см. [PREFETCH_MODE_POLICY](./PREFETCH_MODE_POLICY.md))
 
 ### Связь с Phase A / B / C
 
 | Foundation | Переносит вперёд | Остаётся в roadmap |
 |------------|------------------|-------------------|
-| F1, F2 | B1 LCA-delta | — |
-| F3, F4 | часть B2 confidence | полный scheduler, viewport tiers |
-| F5 | заготовка C1 | graph, tags, readiness `N/M` |
-| F6 | A2 shared content load | — |
-| — | — | A1 DataGraph, A3 viewport, A4 SWR navigation |
+| F1, F2 → B1 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> LCA-delta | — |
+| F3, F4 → часть B2 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> tiers | полный scheduler, viewport IO, pointerdown |
+| F5 → заготовка C1 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> planner | tags, readiness `N/M`, Speculation executor |
+| F6 → A2 / handoff | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | — |
+| — | A1 DataGraph <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | A3 viewport <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span>, A4 SWR view default <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
 
 ---
 
 ## Топ-3 приоритета (SSR, post-parity)
 
-> **Предпосылка:** DataGraph, viewport, SWR, v1 cache — **считаем реализованными** (parity ~7.5/10).  
+> **Статус блока:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — #1 ✓ · #2 ~ · #3 ~  
+> **Предпосылка (обновлено 2026-07):** DataGraph ✓ · ViewGraph/handoff ✓ · viewport ✗ · SWR view default ~.  
 > **Контекст:** Aura — SSR / MPA→SPA / `html-src` partials; малоизвестный продукт → нужен **измеримый moat**, не ещё три parity-фичи.
 
 Цель: вырваться вперёд по prefetch относительно TanStack / Remix / SvelteKit — у них сильный **data-first** preload; у Aura — **document-first** под server HTML fragments.
@@ -131,7 +137,7 @@ F1 enterRoutes → F5 resolveResources stub → F2 LCA в executor
 
 ---
 
-### 1. LCA-delta prefetch — только `enterRoutes`, leaf `html-src`
+### 1. LCA-delta prefetch — только `enterRoutes`, leaf `html-src` — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
 | | Конкуренты | Aura (цель) |
 |--|------------|-------------|
@@ -151,16 +157,18 @@ F1 enterRoutes → F5 resolveResources stub → F2 LCA в executor
 - Демо: соседние nested-ссылки на SSR-сайте — один маленький partial, не весь route.
 - React-роутеры оптимизируют JSON; **server HTML fragment** — редкость.
 
-**Roadmap:** B1 + §nested [CONTENT_CACHE.md](./CONTENT_CACHE.md).
+**Код:** `PrefetchPlanResolver` + `buildTransitionPlan` → `plan.enterRoutes`; тесты `plan-lca.test.ts`.
+
+**Roadmap:** B1 ✓ + §nested [CONTENT_CACHE.md](./CONTENT_CACHE.md).
 
 ```typescript
-// вместо prefetchBranch(getActiveChain(leaf))
-prefetchEnterRoutes(lcaDelta(plan, currentChain));
+// реализовано: PrefetchPlan.enterRoutes = transition.enterRoutes
+const transition = buildTransitionPlan(from, target);
 ```
 
 ---
 
-### 2. Confidence-tiered prefetch — data на hover, document на tap
+### 2. Confidence-tiered prefetch — data на hover, document на tap — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
 
 | Confidence | Сигнал | Что prefetch |
 |------------|--------|----------------|
@@ -177,11 +185,14 @@ prefetchEnterRoutes(lcaDelta(plan, currentChain));
 
 **Маркетинг:** *«на hover — данные, server HTML — только когда вы почти кликнули»*.
 
+**Сделано:** `PrefetchPolicy.confidenceFor` · `shouldPrefetchView` / `shouldPrefetchData` · planner фильтрует kinds.  
+**Осталось:** <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `pointerdown` → `tap` на desktop · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> viewport IO source · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> priority queue / preemption.
+
 **Roadmap:** B2 — confidence в `PrefetchRunStore` / scheduler → фильтр `ResourceSet` по `kind`.
 
 ---
 
-### 3. Unified `resolveResources()` — document-first resource graph
+### 3. Unified `resolveResources()` — document-first resource graph — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
 
 Единый API, чтобы #1 и #2 не разъехались между executors:
 
@@ -207,6 +218,9 @@ resolveResources(plan, { purpose: 'prefetch' | 'render', confidence, signal })
 - Aura: **document-first** — prefetch зеркалит выдачу сервера (fragment + hydrate).
 - Prefetch и navigation — **один** resolver; tiered + LCA-delta без drift.
 
+**Сделано:** `DefaultPrefetchResourcePlanner` + `ResourceGraph.load` (prefetch ⇄ navigation).  
+**Осталось:** <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> tags / readiness `N/M` · <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> D1–D2 work-items/executors — [RESOURCE_GRAPH_HANDOFF](../done/RESOURCE_GRAPH_HANDOFF.md).
+
 **Roadmap:** C1 (первый пункт Phase C, до Speculation Rules и devtools).
 
 ---
@@ -214,9 +228,9 @@ resolveResources(plan, { purpose: 'prefetch' | 'render', confidence, signal })
 ### Порядок работ
 
 ```text
-1. LCA-delta (prefetchEnterRoutes)   → быстрый выигрыш, демо
-2. Confidence tiers                  → уникальная SSR-политика
-3. resolveResources (document-first) → платформа, не костыли
+1. LCA-delta (prefetchEnterRoutes)   ✓ ГОТОВО
+2. Confidence tiers                  ~ mode gates ✓ · pointerdown/viewport/queue ✗
+3. resolveResources (document-first) ~ planner+RG ✓ · tags/readiness ✗
 ```
 
 После топ-3: Speculation Rules на `html-src` URL, devtools с «document partial hit» — история, которую data-first роутеры не копируют без смены модели.
@@ -648,27 +662,28 @@ resolveResources(plan, { purpose: 'render' | 'prefetch', signal, confidence })
 | ≥ 0.8 | full enter-branch content |
 | ≥ 0.95 | Speculation Rules prefetch/prerender (если policy разрешает) |
 
-Сейчас: debounce → full `prefetchBranch`. Next gen: **tiered prefetch**.
+<span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Сейчас: debounce + **tiered** `planResources` по confidence.  
+<span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Next gen: полный scheduler (queue, dwell, preemption).
 
-### 4.3. LCA-delta prefetch (не вся ветка)
+### 4.3. LCA-delta prefetch (не вся ветка) — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-**Сейчас:**
+**Было (до Foundation):**
 
 ```typescript
 prefetchBranch(getActiveChain(leaf))  // вся ветка root → leaf
 ```
 
-**Next gen:**
+**Сейчас (= next gen цель):**
 
 ```text
 from = currentRoute.chain
 to   = target.chain
 lca  = lowestCommonAncestor(from, to)
-delta = to.slice(lcaIndex + 1)   // только enterRoutes
-reuse = shared prefix из RouteDomCache / DataCache
+delta = to.slice(lcaIndex + 1)   // только enterRoutes → PrefetchPlan.enterRoutes
+reuse = shared prefix через ResourceGraph handoff / caches
 ```
 
-Симметрия с `buildTransitionPlan` (engine уже считает LCA). Prefetch = **тот же diff**, что navigation.
+Симметрия с `buildTransitionPlan`. Prefetch = **тот же diff**, что navigation.
 
 ### 4.4. Единый Cache Graph + tags
 
@@ -823,39 +838,40 @@ flowchart TB
 
 ## 7. План внедрения для Aura
 
-> **Старт:** §[Foundation sprint](#foundation-sprint-ближайший-спринт) — мин. архитектура + LCA + tap-gate **до** полного Phase A/B/C.
+> **Foundation:** <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ЗАКРЫТ</span> — §[Foundation sprint](#foundation-sprint-ближайший-спринт).  
+> **Сейчас:** добить Phase A/B gaps, затем Phase C (tags / Speculation / devtools).
 
-### Phase A — parity (6.5 → 7.5)
+### Phase A — parity (6.5 → 7.5) — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
 
-| # | Задача | Документ |
-|---|--------|----------|
-| A1 | DataGraph + реальный `DataPrefetchExecutor` | [DATAGRAPH.md](./DATAGRAPH.md) |
-| A2 | v1 render → `router.contentLoad` | [PREFETCH_ARCHITECTURE.md](../PREFETCH_ARCHITECTURE.md) |
-| A3 | `ViewportIntentSource` | [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) |
-| A4 | SWR on navigation (stale + revalidate) | [CONTENT_CACHE.md](./CONTENT_CACHE.md) |
+| # | Задача | Статус | Документ |
+|---|--------|--------|----------|
+| A1 | DataGraph + data prefetch | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | [DATAGRAPH.md](./DATAGRAPH.md) (через ResourceGraph, не silo executor) |
+| A2 | shared view load prefetch ⇄ render | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | [PREFETCH_ARCHITECTURE.md](../PREFETCH_ARCHITECTURE.md) · ViewGraph + handoff |
+| A3 | `ViewportIntentSource` (IntersectionObserver) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | [../done/LINK_DRIVEN_PRELOAD.md](../done/LINK_DRIVEN_PRELOAD.md) — mode есть, source нет |
+| A4 | SWR on navigation (stale + revalidate) | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | [CONTENT_CACHE.md](./CONTENT_CACHE.md) — opt-in `cache.*`; view SWR не default |
 
-### Phase B — delta + tiers (7.5 → 8.5)
+### Phase B — delta + tiers (7.5 → 8.5) — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
 
-> **SSR post-parity:** приоритет B1 → B2, затем C1 — см. [Топ-3 приоритета (SSR)](#топ-3-приоритета-ssr-post-parity).
+> **SSR post-parity:** B1 ✓ → B2 ~ → C1 ~ — см. [Топ-3 приоритета (SSR)](#топ-3-приоритета-ssr-post-parity).
 
-| # | Задача |
-|---|--------|
-| B1 | LCA-delta prefetch (`enterRoutes` only) |
-| B2 | Confidence scheduler поверх `PrefetchRunStore` |
-| B3 | Network budget в pipeline |
-| B4 | `patchRouteContent` / attr sync | [ROUTE_CONTENT_SNAPSHOT_PATCH.md](./ROUTE_CONTENT_SNAPSHOT_PATCH.md) |
-| B5 | `prefetchPolicy` в `RouteNode` snapshot |
+| # | Задача | Статус |
+|---|--------|--------|
+| B1 | LCA-delta prefetch (`enterRoutes` only) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| B2 | Confidence scheduler поверх `PrefetchRunStore` | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> tiers ✓ · queue / pointerdown ✗ |
+| B3 | Network budget в pipeline | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> (save-data skip уже есть) |
+| B4 | `patchRouteContent` / attr sync | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| B5 | `prefetchPolicy` в `RouteNode` snapshot | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> cascade link→route→router ✓ · snapshot field ~ |
 
-### Phase C — next gen (8.5 → 9+)
+### Phase C — next gen (8.5 → 9+) — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> (ядро planner/RG уже есть)
 
-| # | Задача |
-|---|--------|
-| C1 | Unified `resolveResources()` API |
-| C2 | Tag invalidation cross content/data |
-| C3 | Speculation Rules executor (не только `hint`) |
-| C4 | `CodePrefetchExecutor` для `component-src` |
-| C5 | Devtools + prefetch analytics |
-| C6 | Safety layer (auth, side-effects) |
+| # | Задача | Статус |
+|---|--------|--------|
+| C1 | Unified `resolveResources()` / planner API | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> `planResources` + RG ✓ · tags / N/M ✗ |
+| C2 | Tag invalidation cross content/data | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| C3 | Speculation Rules executor (не только `hint`) | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> port `hint` ✓ · executor ✗ |
+| C4 | `CodePrefetchExecutor` для `component-src` | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> bundler / `import::` |
+| C5 | Devtools + prefetch analytics | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| C6 | Safety layer (auth, side-effects) | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> save-data ✓ · auth/side-effect skip ✗ |
 
 ---
 
@@ -901,36 +917,39 @@ flowchart TB
 
 ## 11. Чеклист (сводный)
 
-### Foundation sprint (сейчас)
+### Foundation sprint — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ЗАКРЫТ</span>
 
-- [ ] F1 `PrefetchPlan.enterRoutes`
-- [ ] F2 LCA-delta в `ContentPrefetchExecutor`
-- [ ] F3 `PrefetchRunContext.confidence`
-- [ ] F4 tap-gate (`html-src` не на hover)
-- [ ] F5 `resolveResources()` content-only stub
-- [ ] F6 shared `DataCache` prefetch + render
-- [ ] F7 тесты nested / intent / tap / hit
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> F1 `PrefetchPlan.enterRoutes`
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> F2 LCA-delta (`PrefetchPlanResolver` + `buildTransitionPlan`)
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> F3 `confidence` (`PrefetchPlanContext` / `confidenceFor`)
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> F4 tap-gate (view не на hover / intent)
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> F5 `planResources()` (`view` + `data`)
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> F6 shared prepare: ResourceGraph + HandoffCache
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> F7 тесты nested / intent / tap / handoff hit
 
-### Phase A
-- [ ] `DataPrefetchExecutor` реальный
-- [ ] v1 → shared `ContentLoadService`
-- [ ] `ViewportIntentSource`
-- [ ] SWR на navigation
+### Phase A — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span>
 
-### Phase B
-- [ ] `prefetchEnterRoutes(delta)` — *частично в Foundation F1–F2*
-- [ ] Confidence в `handleIntent` — *частично в Foundation F3–F4*
-- [ ] `NetworkBudget` в `PrefetchPipelineDeps`
-- [ ] `patchRouteContent`
-- [ ] `RouteNode.prefetchPolicy`
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DataGraph + data prefetch (через ResourceGraph)
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> shared ViewGraph / handoff prefetch ⇄ render
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `ViewportIntentSource`
+- [ ] <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> SWR на navigation (data ✓ opt-in · view default ✗)
 
-### Phase C
-- [ ] `resolveResources()` unified API — *stub в Foundation F5; расширить data/chunk*
-- [ ] `invalidate({ tag })`
-- [ ] `SpeculationRulesExecutor`
-- [ ] `CodePrefetchExecutor`
-- [ ] `aura-router:prefetch` events + devtools
-- [ ] Safety preflight в policy
+### Phase B — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span>
+
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `prefetchEnterRoutes(delta)` / `plan.enterRoutes`
+- [ ] <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Confidence tiers ✓ · scheduler/queue / `pointerdown` ✗
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `NetworkBudget` в `PrefetchPipelineDeps`
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `patchRouteContent`
+- [ ] <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> `RouteNode.prefetchPolicy` snapshot
+
+### Phase C — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗</span> (кроме planner/RG ядра)
+
+- [ ] <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> `planResources()` ✓ · tags / readiness `N/M` ✗
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `invalidate({ tag })`
+- [ ] <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> `SpeculationPrefetchPort.hint` ✓ · `SpeculationRulesExecutor` ✗
+- [ ] <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> `CodePrefetchExecutor` (не в scope)
+- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `aura-router:prefetch` events + devtools
+- [ ] <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> Safety: save-data ✓ · auth / side-effects ✗
 
 ---
 
@@ -938,6 +957,8 @@ flowchart TB
 
 - [../PREFETCH_ARCHITECTURE.md](../PREFETCH_ARCHITECTURE.md) — реализовано сегодня
 - [../comparison/PREFETCH_INDUSTRY_COMPARISON.md](../comparison/PREFETCH_INDUSTRY_COMPARISON.md) — оценка vs индустрия
-- [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) — принятая стратегия
+- [../done/LINK_DRIVEN_PRELOAD.md](../done/LINK_DRIVEN_PRELOAD.md) — принятая стратегия (core ✓)
+- [../done/RESOURCE_GRAPH_HANDOFF.md](../done/RESOURCE_GRAPH_HANDOFF.md) — handoff prefetch → navigation
 - [../comparison/FEATURE_PARITY_ROADMAP.md](../comparison/FEATURE_PARITY_ROADMAP.md) — P1-2 prefetch
 - [OUT_IN_PREFETCH.md](./OUT_IN_PREFETCH.md) — prefetch + transitions
+- [PREFETCH_MODE_POLICY.md](./PREFETCH_MODE_POLICY.md) — pointerdown / mode escalation gaps

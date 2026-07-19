@@ -1,565 +1,346 @@
 # DataGraph: что ещё не доделано
 
-> **Проверено по коду:** 2026-07-06  
-> **Базовая версия (v1)** уже в `src/modules/aura-routing-engine/core/data-graph/`  
-> **См. также:** [DATAGRAPH.md](./DATAGRAPH.md) · [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) · [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md)
+> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — v1 + ResourceGraph + `parent()` + `invalidate` ✓ · defer / shouldRevalidate / UI-on-stale ✗  
+> **Сверка с кодом:** 2026-07-19  
+> **База:** `core/data-graph/` · owner prepare [`ResourceGraph`](../../src/modules/aura-routing-engine/core/resource-graph/resource-graph.ts)  
+> **См. также:** [../done/DATAGRAPH.md](../done/DATAGRAPH.md) · [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) · [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md) · [../done/RESOURCE_GRAPH_HANDOFF.md](../done/RESOURCE_GRAPH_HANDOFF.md)
+
+### Легенда
+
+| Метка | Значение |
+|-------|----------|
+| <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> | в production path / покрыто тестами |
+| <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> | каркас / opt-in есть, не полный product |
+| <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span> | не сделано |
+| <span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">⊘ ОТЛОЖЕНО</span> | сознательно не в scope / by design |
+
+### Сводка прогресса
+
+| # | Тема | Статус | Что дальше |
+|---|------|--------|------------|
+| — | DataGraph v1 + ResourceGraph prepare | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | — |
+| — | Prefetch ↔ nav handoff | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | [RESOURCE_GRAPH_HANDOFF](../done/RESOURCE_GRAPH_HANDOFF.md) |
+| — | Parallel loads + `ctx.parent()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | [LOAD_DAG](./DATAGRAPH_LOAD_DAG.md) |
+| 1 | blocking / defer / revalidate modes | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | blocking ✓ · defer ✗ · per-route policy ✗ |
+| 2 | Reenter / same-URL load policy | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | noop / update есть · `reenter-load` attr ✗ |
+| 3 | `shouldRevalidate` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | per-navigation fn |
+| 4 | `cache="data"` default | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | opt-in + inherit с router ✓ · default-on ✗ |
+| 5 | Per-route TTL | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | global `configure({ dataCache })` ✓ |
+| 6 | `router.invalidate()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | + `data-invalidated` · unified data+view ✗ |
+| 7 | UI на фоновый refresh | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | нет re-render / `data:revalidated` |
+| 8 | `cause` в hook ctx | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | enter vs prefetch |
+| 9 | View/HTML SWR | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | [CONTENT_CACHE](./CONTENT_CACHE.md) |
+| 10 | Load/cache events | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | `data-invalidated` ✓ · hit/miss/load ✗ |
+| 11c / 12 | `ctx.parent()` / parent→child | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | opt-in; engine-forced ⊘ |
 
 ---
 
 ## О чём этот документ
 
-**DataGraph** — это слой роутера, который отвечает на вопрос: *какие данные подтянуть с сервера перед показом страницы, что взять из кэша и что не трогать при переходе между вложенными маршрутами*.
+**DataGraph** — слой: *какие данные подтянуть перед показом, что из кэша, что не трогать при nested nav*.
 
-Хуки `load` на `<aura-route>` — сами запросы (fetch user, список заказов).  
-DataGraph — диспетчер: *когда* их вызывать, *что* запомнить, *что* переиспользовать.
+Хуки `load` — сами запросы. DataGraph (+ ResourceGraph) — *когда* вызывать, *что* запомнить, *что* переиспользовать.
 
-Здесь — пробелы, которые **ещё видны в коде**. Для каждого пункта: что сейчас, зачем это нужно приложению, что должно получиться в итоге.
-
----
-
-## Что уже работает
-
-Кратко, без деталей реализации:
-
-| Уже есть | Простыми словами |
-|----------|------------------|
-| `DataGraph.load()` | Перед отрисовкой страницы роутер сам вызывает нужные `load`-хуки |
-| `DataGraph.prefetch()` | При наведении на ссылку можно заранее подгрузить данные |
-| Кэш с «устареванием» | Повторный заход в течение ~30 сек не бьёт в сеть (если включено сохранение — см. п. 4) |
-| Вложенные маршруты | При смене только дочерней страницы родительский layout не перезагружается заново |
-| Снимок данных на переход | Результат загрузок собирается в одну структуру и передаётся в render |
-| Сброс кэша (внутри engine) | `invalidate` / `invalidateAll` на объекте DataGraph |
-| Тесты | `test/data-graph/data-graph.test.ts` |
-
-Этого хватает для первой версии. Ниже — что мешает назвать слой «зрелым» в продакшене.
+Ниже — пробелы и **закрытые** пункты (яркий ✓). Для открытых: что сейчас, зачем, целевое.
 
 ---
 
-## 1. Разные режимы загрузки для разных маршрутов
+## Что уже работает — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ v1</span>
+
+| Уже есть | Простыми словами | Статус |
+|----------|------------------|--------|
+| `ResourceGraph.load` | Единый вход prepare (nav + prefetch) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Resource waves | data ‖ independent view → viewWithData | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Handoff (~30s) | hover→click join без второго fetch | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `DataGraph.load` | Blocking enter loads до render | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Parallel + `ctx.parent()` | Default parallel; join opt-in | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| LCA / nested | Parent вне enter — из cache/handoff | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Long `cache.data` | Opt-in `cache="data"` / inherit с router | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `router.invalidate()` | Публичный API + `data-invalidated` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `configure({ dataCache })` | Global staleTime / gcTime / max | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Snapshot → render | `transaction.dataSnapshot` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Тесты | `data-graph.test.ts`, `resource-graph*.test.ts`, `invalidate.test.ts` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+
+> **Нюанс SWR:** `AuraResolvableCache.resolve()` умеет stale→фон. Navigation path DataGraph сейчас читает long cache через `get`/`set` (hit до GC / invalidate), не полный age-based quiet refetch. Handoff — TTL join без SWR. Подробнее — [DATA_SWR_PARITY](./DATA_SWR_PARITY.md).
+
+---
+
+## 1. Разные режимы загрузки — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
+
+### Статус по режимам
+
+| Режим | Статус | Сейчас |
+|-------|--------|--------|
+| **blocking** | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | Все enter `load` ждут до render |
+| **defer** | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | Нет load после commit / skeleton |
+| **revalidate** (per-route policy) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | Нет выбора «на этом узле только кэш» |
+| Long cache hit | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | при `cache="data"` — `get` без сети |
+| UI после фонового refresh | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | п. 7 |
 
 ### Сейчас в коде
 
-Любой `load` на этапе навигации — **обязательный и блокирующий**: роутер ждёт `DataGraph.load()`, и только потом рисует страницу. Отдельной **настройки на маршруте** «жди / отложи / только обнови кэш» нет.
+Любой navigation `load` — **blocking**: `runLoads` → `ResourceGraph.load` → await data (+ view plan) → потом render. Per-route «жди / отложи / только обнови» — нет.
 
-**Не путать с кэшем `aura-cache-store`:** механизм «отдай старое → пометь протухшим → догрузи в фоне» (SWR) **уже есть** и DataGraph им пользуется — через `AuraResolvableCache` + `staleTime` (по умолчанию 30 с), но **только** если на маршруте `cache="data"` (см. п. 4). Это инфраструктура кэша, а не выбор режима per route.
+| Что | Статус |
+|-----|--------|
+| Blocking enter loads | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Handoff / prefetch warmup | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Режим **defer** | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| Per-route blocking vs revalidate | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `shouldRevalidate` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> (п. 3) |
+| UI после фона | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> (п. 7) |
 
-| Что | Есть в коде? |
-|-----|--------------|
-| SWR: stale → сразу старое + фоновый fetch | ✓ `aura-cache-store`, в DataGraph при `cache="data"` |
-| Режим **defer** — load **после** показа страницы | ✗ |
-| На маршруте A — blocking, на B — только revalidate | ✗ один pipeline для всех |
-| `shouldRevalidate` — обновлять ли при *этом* переходе | ✗ (п. 3) |
-| UI обновляется после фонового fetch | ✗ (п. 7) |
+### Зачем
 
-### Зачем это нужно
-
-На реальном сайте не все данные одинаково важны — и не все должны вести себя как «единственный blocking load»:
-
-| Режим | Человеческий смысл | Пример | Сейчас |
-|-------|-------------------|--------|--------|
-| **blocking** (ждём) | Без этих данных страницу показывать нельзя | Права доступа, редирект на логин | ✓ так работают все `load` |
-| **defer** (потом) | Сначала показать каркас, данные догрузить **после** commit | Тяжёлый сайдбар, аналитика | ✗ |
-| **revalidate** (политика на маршруте) | При этом переходе: не ждать сеть, взять кэш и при необходимости обновить | Список при Back | частично: SWR по TTL, без выбора per route и без обновления UI |
-
-SWR в кэше и политика **revalidate на маршруте** — разные уровни:
+| Режим | Смысл | Пример | Статус |
+|-------|-------|--------|--------|
+| **blocking** | Без данных нельзя показать | Права, редирект | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| **defer** | Каркас сразу, данные после commit | Тяжёлый сайдбар | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **revalidate** | Политика на узле: кэш + фон | Список при Back | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
 
 ```text
-aura-cache-store     = КАК хранить (fresh / stale / фоновый refetch)
-политика на маршруте = КОГДА применять это к данным этого узла (ждать / отложить / только кэш)
+aura-cache-store / handoff  = КАК хранить / join
+политика на маршруте        = КОГДА ждать / отложить / только кэш   ← пробел
 ```
 
-Сейчас даже «тяжёлый» `load` на layout **тормозит весь переход**, хотя дочерняя страница могла бы уже показать skeleton — это про **defer**, а не про отсутствие SWR в store.
+> **Defer:** load неблокирующий → skeleton → подстановка (нужен п. 7). Не путать с handoff prefetch.
 
-> **Defer коротко:** `load` запускается **неблокирующе** — страница рисуется сразу (skeleton / `loadingTemplate`), навигация не ждёт сеть. Когда `load` готов → данные **подставляются** в UI (нужен п. 7). Это не SWR: при первом визите кэша ещё нет, просто «сначала каркас, потом контент». SWR — про уже сохранённые данные (stale → старое + фон).
-
-### Как должно быть
-
-Переход `/settings/profile` → `/settings/security`:
-
-- layout `/settings` — не трогаем (уже на экране);
-- `security` — ждём его данные до показа;
-- опционально: что-то на layout грузим **после** появления страницы.
-
-Роутер должен уметь задавать режим **для каждого узла дерева**, а не один на всех.
-
-### Prefetch и defer — не конкуренты
-
-Кажется, что `defer` ломает идею «prefetch оркестрирует все загрузки через `Promise.all` и ждёт». На практике **prefetch уже не оркестратор клика** — это разные контуры.
-
-**Сейчас в коде три момента, не один:**
+### Prefetch vs defer — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> контуры разведены
 
 | Когда | Кто | Как |
 |-------|-----|-----|
-| Hover / intent | `PrefetchPipeline` → `PrefetchResourceScheduler` | `Promise.all` data + content — **прогрев кэша**, без guards, ошибки тихие |
-| Клик, данные | `NavigationTransactionPipeline` → `DataGraph.load()` | `Promise.all` sibling `load`, но **ждём до render** |
-| Клик, разметка | `render()` → `ContentLoadService` | **во время render**, не в том же `await`, что DataGraph |
-
-Конфликт с `defer` был бы только если свести навигацию к одной схеме:
+| Hover / intent | PrefetchPipeline → `ResourceGraph.load` (`phaseMode: 'prefetch'`) | warmup + handoff, без guards |
+| Клик, prepare | Pipeline → `ResourceGraph.load` (`navigation`) | await data ‖ view → viewWithData → render |
+| Defer после commit | — | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
 
 ```text
-клик → await Promise.all(всё: data + content + …) → показать страницу
+prefetch  = раньше (hover → handoff/cache)
+blocking  = ждать до commit          ✓
+defer     = позже (commit → skeleton) ✗
 ```
-
-Тогда «не жди load, покажи каркас» — действительно обход. Но navigation **уже не так**: data до render, content в render, prefetch — отдельно до клика.
-
-**Роли:**
-
-```text
-prefetch  = сдвинуть работу РАНЬШЕ (hover → кэш)
-blocking  = ждать до commit (критичные load)
-defer     = сдвинуть работу ПОЗЖЕ (commit → skeleton → подстановка)
-SWR       = не ждать сеть, если в кэше уже есть stale
-```
-
-Prefetch **не заменяет** navigation pipeline — уменьшает работу на клике (cache hit). Defer **не обходит** prefetch — при удачном prefetch deferred load может сразу взять кэш.
-
-**Как не раздувать код:** не тащить `defer` в `PrefetchPipeline`. Общие **исполнители** (`DataGraph`, `ContentLoadService`) и **кэши**; разные **планировщики**:
-
-- prefetch scheduler — parallel, best-effort, intent;
-- navigation scheduler — tiers: `await blocking` / `schedule deferred` / cache+revalidate.
-
-Один `Promise.all` на всё при клике — плохая модель. Нужен tiered scheduler: что блокирует commit, что стартует после него.
 
 ---
 
-## 2. Повторный заход на тот же URL (reenter)
+## 2. Повторный заход на тот же URL (reenter) — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
 
-### Сейчас в коде
+### Сейчас — <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
 
-Если пользователь снова попадает на **тот же адрес** (клик по активной ссылке, обновление без смены path), роутер идёт по короткому пути: вызывает только хуки `reenter` и **не трогает** `load` и данные.
+| Ситуация | Поведение | Статус |
+|----------|-----------|--------|
+| Exact same URL / already-active | Coordinator → `noop` (pipeline не бежит) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (жёстче, чем «только reenter hooks») |
+| Param/query change, тот же leaf | `update` → `runUpdate` / `runLoads` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Политика `reenter-load`: skip / always / if-stale | attr / configure | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
 
-### Зачем это нужно
+Post-commit lifecycle phase в коде — **`update`** (не attr `reenter="…"` как load-policy).
 
-Иногда повторный визит — это «обнови данные»:
-
-- пользователь нажал F5;
-- вернулся Back на ту же страницу;
-- кликнул по уже активному пункту меню.
-
-Сейчас данные **не обновляются**, даже если в кэше они уже устарели. Нельзя сказать маршруту: «при reenter всегда перезапроси» или «перезапроси только если кэш протух».
-
-### Как должно быть
-
-Три режима поведения данных при same-URL / reenter:
+### Цель (ещё нет)
 
 | Режим | Смысл |
 |-------|--------|
-| **skip** | Как сейчас: только `reenter`-хуки, `load` не трогаем |
-| **always** | Снова прогнать `DataGraph.load` на цепочке |
-| **if-stale** | Кэш протух → revalidate в фоне, экран не блокируем |
+| **skip** | Не трогать DataGraph (близко к текущему noop) |
+| **always** | Снова `ResourceGraph.load` |
+| **if-stale** | Протух → refetch (нужна реальная stale-семантика + п. 7) |
 
-> **В коде пока нет** — ни attr, ни конфига. Ниже — предлагаемая форма API.
-
-#### Где задавать: не на каждый маршрут, а default + override
-
-Как `scroll` и `prefetch`: **дефолт на router, наследование, переопределение на route**. Не «attr на каждый `<aura-route>`», а только там, где поведение отличается.
-
-```html
-<aura-router reenter-load="if-stale">
-  <aura-route path="/dashboard" load="fetch-stats" />
-  <!-- явный override только где нужно -->
-  <aura-route path="/profile" reenter-load="always" load="fetch-profile" />
-</aura-router>
-```
-
-Глобальный дефолт можно задать и из конфига (рабочее имя):
-
-```ts
-AuraRouter.configure({
-  dataGraph: { reenterLoad: 'if-stale', staleTime: 30_000 },
-});
-```
-
-Attr на маршруте **перебивает** default с router — тот же паттерн, что у `scroll` / `prefetch`.
-
-Большинство маршрутов живут на `skip` или `if-stale` с router и **ничего не дублируют**.
-
-#### Отдельно от attr `reenter="…"`
-
-Сейчас `reenter` — **имена post-commit хуков** (`reenter="sync"`). Политика load — **другая ось**:
-
-| | `reenter` (есть) | `reenter-load` (предложение) |
-|--|------------------|------------------------------|
-| Вопрос | какие хуки вызвать после commit? | трогать ли DataGraph / кэш? |
-| Пример | аналитика, sync scroll | обновить список на F5 |
-
-Смешивать в одном attr неудобно — лучше два наследуемых поля.
-
-#### Когда attr мало — `shouldRevalidate` (п. 3)
-
-Для логики «после POST — обнови, при Back — нет» одного attr на маршрут не хватит. Второй уровень — **функция на переход** (как в RR7), не обязательно HTML-attr:
-
-```ts
-shouldRevalidate({ from, to, action }) { ... }
-```
-
-Приоритет решений:
-
-```text
-1. shouldRevalidate(from, to)  — если задан, решает он
-2. reenter-load на leaf/route   — для same-URL / reenter shortcut
-3. default с router / configure — обычно skip
-```
-
-Связано с пунктами 3 и 7 ниже.
+Предложение API: default на router + override на route (`reenter-load`), отдельно от lifecycle hooks. Приоритет с `shouldRevalidate` — см. п. 3.
 
 ---
 
-## 3. Решение «обновлять ли данные при этом переходе» (`shouldRevalidate`)
+## 3. `shouldRevalidate` — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-### Сейчас в коде
+### Сейчас
 
-Такой настройки **нет**. Роутер решает сам:
+Такой функции **нет**. Решение: enter → load; иначе long-cache `get` / handoff / сеть.
 
-- новый маршрут в цепочке входа → вызвать `load`;
-- иначе → посмотреть в кэш и общий таймер «свежести» (30 секунд по умолчанию).
+Императивно после мутации — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `router.invalidate()` (п. 6). Это **не** замена `shouldRevalidate(from, to)`.
 
-Нельзя сказать: «при этом конкретном переходе данные точно устарели — забудь кэш».
+### Зачем
 
-### Зачем это нужно
+Таймер / invalidate не покрывают «при Back — нет, после POST — да, при смене query — да».
 
-Таймер не покрывает бизнес-ситуации:
+| | Вопрос | Статус |
+|--|--------|--------|
+| `cache="data"` | кэшировать ли | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| prefetch | греть до клика | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `reenter-load` (п. 2) | same-URL | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| **`shouldRevalidate`** | этот переход from→to | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `router.invalidate()` | императивно испортить кэш | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
-```text
-Пользователь создал новую запись → вернулся к списку
-Кэш ещё «свежий» по времени → новой записи в списке нет
-```
-
-Нужен явный сигнал: *после мутации*, *при Back*, *при смене только query* — обновлять или нет. В других роутерах это как раз `shouldRevalidate`.
-
-**Не путать с другими настройками:**
-
-| | Вопрос |
-|--|--------|
-| `cache="data"` | запоминать ли результат `load` в кэш вообще |
-| `prefetch` | греть ли кэш **до клика** (hover / tap) |
-| `reenter-load` (п. 2) | что делать с данными при **том же URL** |
-| **`shouldRevalidate`** | при **этом** переходе `from → to` снова fetch или взять кэш |
-
-Без `cache="data"` кэша нет — hook и так дергается каждый раз; это не «shouldRevalidate всегда true», а **кэширование выключено**.
-
-### Как должно быть
-
-Перед `cache.resolve` / fetch: «на этом переходе доверяем кэшу?»  
-Если «нет» и кэш есть — fetch, даже если TTL ещё не истёк.  
-Если «да» и кэш fresh — сеть не трогаем.
-
-### Как это обычно делают
-
-`shouldRevalidate` — **в первую очередь программный API**, не HTML-attr как `scroll` или `cache`. В разметке не выразить логику «после POST — да, при Back — нет».
-
-#### 1. Функция на переход (основной вариант)
+### Цель
 
 ```ts
-hookRegistry.register({
-  name: 'fetch-users',
-  fn: fetchUsers,
-  shouldRevalidate: ({ from, to, action }) => {
-    if (action === 'pop') return false;
-    if (to.query.tab !== from?.query.tab) return true;
-    return false;
-  },
-});
+shouldRevalidate: ({ from, to, action }) => { … }
 ```
 
-Тот же смысл можно дать через callback на route или опции в конфиге engine — решение зависит от `from`, `to`, `action`.
+Иерархия (предложение):
 
-#### 2. Императивно после мутации (второй кирпич)
+```text
+router.invalidate()      — ✓ есть
+shouldRevalidate(fn)     — ✗
+reenter-load (attr)      — ✗ (п. 2)
+cache="data"             — ✓
+```
+
+---
+
+## 4. `cache="data"` только opt-in — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
+
+| Что | Статус |
+|-----|--------|
+| Opt-in `cache="data"` / `cache="all"` на route | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Inherit с `<aura-router cache="data">` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Default-on для всех routes с `load` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> / продуктовый вопрос |
+| Документация + nested examples | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
+
+Без флага — каждый enter бьёт в hook (handoff всё ещё может join in-flight).  
+С флагом / inherit — long cache + LCA reuse.
+
+Открытый вопрос: оставить opt-in или default-on.
+
+---
+
+## 5. Свой TTL на маршрут — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+
+| Что | Статус |
+|-----|--------|
+| Global `AuraRouter.configure({ dataCache: { staleTime, gcTime, max } })` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Defaults engine (~30s / ~5m) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Per-route / router attr `stale-time` / `gc-time` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+
+Цель: наследуемые attr (как scroll/prefetch) + override на leaf. Имеет смысл только с `cache="data"`.
+
+---
+
+## 6. `router.invalidate()` — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
+
+| Что | Статус |
+|-----|--------|
+| `router.invalidate(options?)` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Событие `data-invalidated` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Path prefix / policy `stale` \| `remove` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `router.invalidateView()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> отдельный API |
+| Unified invalidate data+view одним вызовом | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| Demo: mutate → invalidate | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> DX |
 
 ```ts
 await api.createUser(data);
-router.invalidate('/users'); // или invalidateMatch(...)
+router.invalidate({ path: '/users', policy: 'remove' });
 router.navigate('/users');
 ```
 
-Это не `shouldRevalidate`, а «кэш испорчен — при следующем заходе не доверяй». Для CRUD часто проще, чем функция на каждый кейс. См. п. 6 (`router.invalidate()`).
+> Для гарантированного refetch на следующем load предпочтителен `policy: 'remove'` (default `stale` + текущий `get()` path).
 
-#### 3. Простые статические кейсы — attr (опционально, не замена)
+Тесты: `aura-router/test/invalidate.test.ts`.
 
-Для same-URL / reenter — узкий декларативный режим `reenter-load` (п. 2): `always` | `if-stale` | `skip`.  
-Полноценный `shouldRevalidate` в attr **не выразить** без костылей.
+---
 
-#### Не делать: «повесить attr и снять»
+## 7. UI не реагирует на фоновое обновление — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-Принудительное обновление через временный атрибут в DOM — хрупко, гонки, неочевидно.  
-Один раз обновить → `router.invalidate()`, не разметка.
+Даже когда кэш/фоновый fetch обновит память — **committed outlet не перерисовывается**.
 
-#### Иерархия в Aura (предложение)
+Нужно для полноценного SWR, для будущего **defer**, частично после invalidate + silent refetch.
+
+Варианты: re-render outlet · событие `data:revalidated` · внешний reactive store.
 
 ```text
-router.invalidate()      — после мутации, императивно
-shouldRevalidate(fn)     — сложная логика на переход
-reenter-load (attr)      — простой same-URL кейс (п. 2)
-cache="data"          — кэшировать ли вообще (п. 4)
+п. 1  = КОГДА грузить
+п. 7  = ЧТО с UI, когда данные уже другие   ← ✗
 ```
 
-> **В коде пока нет** ни функции, ни публичного `router.invalidate()`.
+---
+
+## 8. `cause` в контексте хука — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+
+Engine различает `phaseMode: 'navigation' | 'prefetch'`, но в `RouteLifecycleContext` хука **нет** явного `cause`.
+
+Цель: `cause: 'enter' | 'prefetch' | 'revalidate'` — разное поведение (лёгкий prefetch vs полный enter + redirect).
 
 ---
 
-## 4. Кэш данных только если явно включить `cache="data"`
+## 9. View/HTML кэш без «устаревания» — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
 
-### Сейчас в коде
+| Кэш | Статус |
+|-----|--------|
+| DataGraph long cache (opt-in) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| ViewGraph / ViewPayloadCache + handoff | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> v1 |
+| View SWR default (stale + quiet refetch) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| Opt-in `configure({ viewCache: { staleTime } })` | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> |
 
-Данные из `load` **запоминаются** только у маршрутов с `cache="data"` или `cache="all"`.  
-По умолчанию атрибут не стоит → кэша нет: хук вызывается **каждый раз**, старые данные не подставляются.
-
-### Зачем это важно
-
-С одной стороны, это безопасно: без лишних настроек нет «залипших» данных.  
-С другой — для вложенных layout приходится **вручную** вешать `cache="data"` на каждый родительский маршрут, иначе не сработает сценарий «родитель живёт — его данные не перезапрашиваем».
-
-### Как должно быть (минимум)
-
-- Чётко описать в доке: без `cache="data"` кэша нет.
-- Показать пример nested layout с этим атрибутом.
-- Опционально: наследуемый default на `<aura-router cache="data">`, чтобы не дублировать на каждом layout.
-
-Открытый продуктовый вопрос: оставить opt-in или включать кэш по умолчанию для всех маршрутов с `load`.
+Подробнее: [CONTENT_CACHE.md](./CONTENT_CACHE.md).
 
 ---
 
-## 5. Свой срок жизни кэша для каждого маршрута
+## 10. События загрузки / кэша — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
 
-### Сейчас в коде
+| Событие | Статус |
+|---------|--------|
+| `data-invalidated` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Navigation error events | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (др. контур) |
+| load start / end / cache hit\|miss\|stale | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| Devtools panel | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
 
-Один таймер на всё приложение: ~30 сек «свежо», ~5 мин до выброса из памяти. Задать его можно только при создании `DataGraph` внутри engine; `<aura-router>` этого не экспонирует.
-
-### Зачем это нужно
-
-Разные страницы — разная «скорость устаревания»:
-
-- профиль — можно кэшировать минуты;
-- уведомления — секунды;
-- аудит-лог — всегда свежий запрос.
-
-Сейчас приходится выбирать один компромисс на весь сайт.
-
-### Как должно быть
-
-**В основном — наследуемые attr** (как `scroll` / `prefetch`): default на router, override на route только где TTL другой. Не обязательно вешать на каждый `<aura-route>`.
-
-```html
-<aura-router stale-time="30000" gc-time="300000">
-  <aura-route path="/notifications" stale-time="10000" load="fetch-notifs" cache="data" />
-  <aura-route path="/profile" stale-time="300000" load="fetch-profile" cache="data" />
-</aura-router>
-```
-
-| Уровень | Роль |
-|---------|------|
-| `<aura-router stale-time="…" gc-time="…">` | дефолт для приложения |
-| `<aura-route stale-time="…">` | override для ветки (inherit вниз) |
-| `AuraRouter.configure({ dataGraph: { staleTime, gcTime } })` | то же из JS |
-
-При `DataGraph.ensureNavigationLoad` → `cache.resolve` берёт TTL **с маршрута**, если задан; иначе — с router / ctor `DataGraph`.
-
-Рабочие имена attr: `stale-time`, `gc-time` (мс, kebab-case как у остальных attr).
-
-**Условие:** имеет смысл только вместе с **`cache="data"`** (п. 4) — без кэша load-данных TTL не к чему применять.
-
-Для programmatic routes TTL можно задать в объекте route / конфиге — attr удобнее для разметки `<aura-route>`.
-
-> **В коде пока нет** — сейчас один `staleTime` / `gcTime` на весь `DataGraph` (30 с / 5 мин по умолчанию).
+См. [EVENT_BUS.md](./EVENT_BUS.md) · [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md).
 
 ---
 
-## 6. Простой способ сбросить кэш с `<aura-router>`
+## 11. Мелочи
 
-### Сейчас в коде
+### 11a. Ключ кэша по URL/хукам — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design
 
-| Что есть | Что делает на самом деле |
-|----------|--------------------------|
-| `dataGraph.invalidate(...)` | Сбрасывает кэш данных — внутри engine |
-| `router.invalidate(...)` | ✅ Публичный API на `<aura-router>` + событие `data-invalidated` |
-| `processor.invalidate()` | Отменяет текущую навигацию — **не** чистит кэш |
+`dataKey` / `viewKey` в `resource-keys.ts` (pattern + params + query). Стабильный «id узла дерева» — не нужен, пока нет A/B на один path.
 
-### Зачем это нужно
+### 11b. Фаза `load` в phase-registry — <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> by design
 
-Типичный сценарий после формы:
+`load` в реестре есть; production path — только DataGraph через `runLoads` / ResourceGraph, не generic lifecycle runner. Путаница при чтении registry — документом, не баг.
 
-```text
-Создали пользователя → нужно сбросить кэш списка → открыть /users
-```
+### 11c. Данные родителя в `load` — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-Разработчик ожидает один понятный вызов на роутере. Сейчас — либо копаться во внутренностях, либо ждать истечения таймера.
+`await ctx.parent()` — opt-in join (nearest ancestor / LCA / handoff). Default parallel — by design.
 
-### Как должно быть
+→ [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md)
 
-`router.invalidate()` или `router.invalidate('/users')` — публичный API, который чистит кэш DataGraph. Плюс пример в demo.
+### 11d. Быстрый путь без load — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design
+
+Tier-0 / `canUseFastPath` → `runFastPipeline` без `runLoads`. Появился `load` — fast path сам отключается.
 
 ---
 
-## 7. Фоновое обновление не меняет то, что уже на экране
+## 12. Parent→child load — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-### Сейчас в коде
+Принятая модель: **parallel default + opt-in `ctx.parent()`** (SvelteKit-style).  
+Engine-forced «child всегда ждёт parent» — <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>.
 
-Если данные в кэше **устарели по времени**, роутер:
-
-1. сразу отдаёт старые (чтобы не ждать сеть);
-2. тихо запрашивает новые в фоне;
-3. кладёт новые в память.
-
-Но **страница на экране не перерисовывается**. Пользователь продолжает видеть старый список, пока сам не уйдёт и не вернётся.
-
-### Зачем это нужно
-
-Идея «stale-while-revalidate» (покажи старое → обнови тихо) работает только если UI **реагирует** на приход новых данных. Иначе фоновый запрос бесполезен для пользователя — обновилась только память роутера.
-
-### Не путать с п. 1 (политика `revalidate`)
-
-Связаны, но **разные уровни**:
-
-| | П. 1 | П. 7 |
-|--|------|------|
-| Вопрос | **когда** грузить и ждать ли commit? | **как** UI узнаёт, что данные уже другие? |
-| Пример | `revalidate` / `defer` / `blocking` на маршруте | fetch в фоне завершился → обновить outlet |
-| Слой | navigation scheduler, политика | reactive / re-render после commit |
-
-```text
-п. 1 (revalidate):  «отдай stale → запусти fetch в фоне»   ✓ aura-cache + DataGraph
-п. 7:               «fetch завершился → обнови экран»      ✗
-```
-
-П. 1 без п. 7 — revalidate **работает в кэше**, но пользователь **не видит** новые данные на той же странице.
-
-П. 7 нужен не только для SWR / `revalidate`, но и для **`defer`** (load догнал → подставить в skeleton) и частично после **`router.invalidate()`** + фоновый refetch.
-
-```text
-п. 1  = КОГДА и КАК грузить (политика)
-п. 7  = ЧТО делать с UI, когда данные уже пришли
-```
-
-### Как должно быть (варианты)
-
-- Перерисовать outlet, когда фоновый запрос завершился;
-- Или событие `data:revalidated`, на которое подписывается приложение;
-- Или данные живут в store с реактивностью, а роутер только инвалидирует кэш.
-
-Без этого пункта SWR в DataGraph — наполовину.
+→ [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md)
 
 ---
 
-## 8. Хук не знает, откуда его вызвали: клик или prefetch
+## Сводка: приоритеты остатка
 
-### Сейчас в коде
-
-При наведении на ссылку (prefetch) и при реальном переходе хук `load` получает **почти одинаковый** контекст. Явного поля «это предзагрузка» или «это вход на страницу» нет.
-
-Отличить prefetch можно только по косвенным признакам (например, `jobId === 0`) — это ненадёжно и нигде не задокументировано.
-
-### Зачем это нужно
-
-Один и тот же хук часто ведёт себя по-разному:
-
-- **prefetch** — лёгкий запрос, без редиректов, ошибки не страшны;
-- **enter** — полный запрос, можно редиректить, писать в аналитику.
-
-### Как должно быть
-
-В контексте хука явное поле, например `cause: 'enter' | 'prefetch' | 'revalidate'`.
-
----
-
-## 9. Отдельный кэш для HTML-шаблонов (view) без «устаревания»
-
-### Сейчас в коде
-
-Два независимых кэша:
-
-| Кэш | Что хранит | Поведение при повторном заходе |
-|-----|------------|-------------------------------|
-| **DataGraph** | JSON из `load`-хуков | Свежие 30 сек, потом stale + фоновый запрос |
-| **DataCache** | HTML из `html-src` и т.п. | Попал в кэш — лежит **вечно**, пока не выкинешь вручную |
-
-`AuraRouter.configure({ viewCache: ... })` настраивает loader-payload cache (`ViewPayloadCache`), не DataGraph. Load hooks — `dataCache`.
-
-### Зачем это нужно
-
-Страница с `cache="screen"` и `html-src` после первого визита всегда показывает **тот же HTML**, даже если на сервере partial уже другой. Для данных это уже почти решено; для разметки — нет.
-
-### Как должно быть
-
-Та же логика «покажи старое → обнови в фоне» для view-кэша (или общий сброс через `router.invalidate`). Подробнее: [CONTENT_CACHE.md](./CONTENT_CACHE.md).
-
----
-
-## 10. Нет событий «загрузка началась / закончилась / из кэша»
-
-### Сейчас в коде
-
-Снаружи видно только «навигация завершилась» или «ошибка навигации». Нет потока событий вроде:
-
-- начали грузить данные маршрута X;
-- взяли из кэша (свежие / устаревшие / промах);
-- ошибка загрузки;
-- фоновое обновление завершилось.
-
-### Зачем это нужно
-
-- **Индикатор загрузки** на весь сайт без влезания в engine;
-- **Отладка** — почему страница не обновилась;
-- **Аналитика** — сколько раз били в сеть vs кэш;
-- **Тесты** — «навели → кликнули → второго запроса не было».
-
-### Как должно быть
-
-Набор событий на роутере или внутренний EventBus (см. [EVENT_BUS.md](./EVENT_BUS.md), [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md)).
-
----
-
-## 11. Мелочи (не срочно, но полезно знать)
-
-### 11a. Ключ кэша — по URL и хукам, не по «id узла дерева»
-
-Данные в кэше привязаны к пути, параметрам и имени хука. Обычно хватает. Если появятся два разных маршрута на один path или A/B-версии — может понадобиться стабильный id узла.
-
-### 11b. Фаза `load` в реестре фаз — декоративная
-
-В коде `load`-хуки вызывает только DataGraph, а не общий lifecycle-runner. Дублирования нет, но при чтении `phase-registry.ts` легко подумать, что load идёт тем же путём, что `enter`/`leave`.
-
-### 11c. Внутри `load`-хука нет `ctx.data` от родителя
-
-Данные родительского маршрута попадают в контекст **после** загрузки — в render и post-хуках. Если дочерний `load` должен использовать результат родительского в том же проходе — сейчас только через внешний store, не через graph.
-
-**Подробно:** порядок parent→child, parallel siblings vs DAG, сценарии и план — [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md).
-
-### 11d. «Быстрый путь» без загрузки данных
-
-Для простых плоских переходов без хуков роутер вообще не вызывает `load` — так задумано. Как только на маршруте появится `load`, быстрый путь отключится сам.
-
----
-
-## Сводка: что важнее всего
-
-| # | Тема | Насколько срочно | Мешает нормальной работе nested + data? |
-|---|------|-------------------|----------------------------------------|
-| 1 | Режимы blocking / defer / revalidate | высокий | частично |
-| 2 | Данные при повторном заходе на тот же URL | высокий | да |
-| 3 | `shouldRevalidate` | высокий | да |
-| 4 | `cache="data"` по умолчанию выключен | высокий (удобство) | да |
-| 5 | Свой TTL на маршрут | средний | нет |
-| 6 | `router.invalidate()` | высокий | да |
-| 7 | UI реагирует на фоновое обновление | высокий | да |
-| 8 | `cause` в контексте хука | средний | нет |
-| 9 | SWR для HTML-кэша | средний | нет (другой слой) |
-| 10 | События загрузки и кэша | средний | нет |
-| 11 | Мелочи из §11 | низкий | нет |
-| 12 | **DAG load dependencies** (parent→child, wave scheduling) | средний–высокий | да (nested data-heavy) |
-
-П. 12 — полное описание: [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md).
+| # | Тема | Статус | Срочность | Nested + data? |
+|---|------|--------|-----------|----------------|
+| 1 | defer / per-route load policy | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | высокий | частично |
+| 2 | `reenter-load` policy | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | высокий | да |
+| 3 | `shouldRevalidate` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | высокий | да |
+| 4 | `cache="data"` default-on | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | средний (DX) | удобство |
+| 5 | Per-route TTL | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | средний | нет |
+| 6 | `router.invalidate()` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | — | закрыто |
+| 7 | UI на stale/фоновый refresh | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | высокий | да |
+| 8 | `cause` в ctx | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | средний | нет |
+| 9 | View SWR default | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | средний | другой слой |
+| 10 | Load/cache events | <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span> | средний | нет |
+| 11c / 12 | `parent()` / load join | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | — | закрыто |
 
 ---
 
 ## Когда можно сказать «data graph готов»
 
-- [ ] Смена дочерней страницы при живом layout: родитель не дергает сеть, дочерняя грузится, оба набора данных доступны render
-- [ ] После создания/изменения записи — один вызов `router.invalidate()`, следующий переход показывает актуальное
-- [ ] Устаревшие данные не блокируют показ страницы, но экран **обновляется**, когда пришли свежие
-- [ ] У маршрута можно задать свой TTL и правило «обновлять ли при этом переходе»
-- [ ] Повторный заход на тот же URL и Back — предсказуемое поведение с данными
-- [ ] По желанию: тяжёлые вторичные данные грузятся после появления страницы
-- [ ] В devtools или событиях видно: кэш / сеть / stale / miss
+- [x] Nested: parent из cache/handoff, child грузится, snapshot в render — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span>
+- [x] После мутации — `router.invalidate()`, следующий переход актуален — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> (API; demo DX ~)
+- [x] Child может явно ждать parent через `ctx.parent()` — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span>
+- [ ] Устаревшие данные не блокируют показ **и** экран обновляется при свежих — нужен п. 7 (+ честный stale path)
+- [ ] Per-route TTL + `shouldRevalidate` на переход
+- [ ] Same-URL / Back — формальная политика `reenter-load`
+- [ ] Опционально: defer вторичных loads после commit
+- [ ] Devtools / hit·miss·stale events
 
 ---
 
@@ -567,8 +348,9 @@ cache="data"          — кэшировать ли вообще (п. 4)
 
 | Документ | О чём |
 |----------|-------|
-| [DATAGRAPH.md](./DATAGRAPH.md) | Как устроен v1 сейчас |
-| [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) | Сравнение с TanStack / RR7, оценки по срокам |
-| [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md) | DAG зависимостей load: parent→child, wave scheduling |
-| [CONTENT_CACHE.md](./CONTENT_CACHE.md) | Кэш HTML и шаблонов |
-| [FUTURE_PROOF_ENGINE.md](../FUTURE_PROOF_ENGINE.md) | Data graph в общей картине engine |
+| [DATAGRAPH.md](../done/DATAGRAPH.md) | As-is v1 |
+| [RESOURCE_GRAPH_HANDOFF.md](../done/RESOURCE_GRAPH_HANDOFF.md) | Prepare owner + handoff |
+| [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) | Parity vs TanStack / RR7 |
+| [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md) | parallel + opt-in `parent()` |
+| [CONTENT_CACHE.md](./CONTENT_CACHE.md) | View track |
+| [FUTURE_PROOF_ENGINE.md](../FUTURE_PROOF_ENGINE.md) | Data graph в картине engine |

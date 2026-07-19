@@ -1,28 +1,31 @@
 # Optimistic URL — политика history vs view
 
-> **Статус:** <span style="color: #2ea043; font-weight: bold;">✅ resolve-first as-is</span> (сверка с кодом: 2026-07-13).  
-> **As-is:** resolve-first optimistic — history **после** guards (post redirect collapse), **до** load/render (`commitHistoryIfNeeded`).  
+> **Статус:** <span style="color: #2ea043; font-weight: bold;">✅ ENGINE DONE</span> — resolve-first optimistic в коде (сверка: 2026-07-19).  
+> **As-is:** history **после** guards (post redirect collapse), **до** load/render — `commitHistoryIfNeeded`.  
 > **Product policy:** rollback URL при load/render error **не делаем** — URL остаётся на target.  
-> **RFC открыт:** demo/integration, stage-until-commit alternative, tiered declarative-only write.  
+> **RFC открыт (не engine-core):** demo shell, integration/e2e, stage-until-commit alternative, tiered declarative-only write.  
 > **Связь:** [MAIN_PIPELINE.md](../MAIN_PIPELINE.md) · [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) · [OUTLET_AND_RENDER.md](./OUTLET_AND_RENDER.md) · [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) · [REPLACE_SUPERSEDE_ROLLBACK.md](./REPLACE_SUPERSEDE_ROLLBACK.md)
 
-> **Сверка с кодом:** 2026-07-13 · <span style="color: #2ea043; font-weight: bold;">✅</span> готово · <span style="color: #cf222e; font-weight: bold;">⬜</span> осталось · <span style="color: #bf8700; font-weight: bold;">🟡</span> частично
+> **Сверка с кодом:** 2026-07-19 · <span style="color: #2ea043; font-weight: bold;">✅</span> готово · <span style="color: #cf222e; font-weight: bold;">⬜</span> осталось · <span style="color: #bf8700; font-weight: bold;">🟡</span> частично
 
-### Сводка (2026-07-13)
+### <span style="color: #2ea043; font-weight: bold;">✅ Сделано (engine)</span>
+
+- <span style="color: #2ea043; font-weight: bold;">✅ Resolve-first history</span> — `commitHistoryIfNeeded` после guards, **до** load/render (full / fast / update path).
+- <span style="color: #2ea043; font-weight: bold;">✅ Один write на финал</span> — `pushState`/`replaceState` по схлопнутому `chain.target.href`; collapse до первого write.
+- <span style="color: #2ea043; font-weight: bold;">✅ Split commit</span> — `commitNavigation` только `prev` + scroll + callbacks, **без** повторного `pushState`.
+- <span style="color: #2ea043; font-weight: bold;">✅ Events</span> — `navigation-start` после history commit; `navigation` после view commit.
+- <span style="color: #2ea043; font-weight: bold;">✅ Active links</span> — `syncActiveLinks` на `onNavigationHistoryCommitted` (до render).
+- <span style="color: #2ea043; font-weight: bold;">✅ No rollback</span> — load/render error / cancel после early commit → URL остаётся на target (`shouldApplyTerminalHistoryPolicy`).
+- <span style="color: #2ea043; font-weight: bold;">✅ Nested param</span> — User 1→2: URL/`navigation-start` не зависят от root-outlet DOM.
+- <span style="color: #2ea043; font-weight: bold;">✅ Unit coverage</span> — pipeline order, guard skip, fast/update, preserve URL, nested param-change.
+
+### <span style="color: #bf8700; font-weight: bold;">🟡 / ⬜ Осталось (вне engine-core)</span>
 
 | Область | Статус |
 |---------|--------|
-| Resolve-first `commitHistoryIfNeeded` (после guards, до load/render) | <span style="color: #2ea043; font-weight: bold;">✅</span> |
-| `commitNavigation` без повторного `pushState` | <span style="color: #2ea043; font-weight: bold;">✅</span> |
-| `navigation-start` / `navigation` на `<aura-router>` | <span style="color: #2ea043; font-weight: bold;">✅</span> |
-| `syncActiveLinks` на history commit (`onNavigationHistoryCommitted`) | <span style="color: #2ea043; font-weight: bold;">✅</span> |
-| Unit: порядок pipeline, skip guard, fast/update path | <span style="color: #2ea043; font-weight: bold;">✅</span> |
-| Preserve URL при cancel/error после early commit (без rollback) | <span style="color: #2ea043; font-weight: bold;">✅</span> (product policy + test) |
-| Rollback URL при load/render error | <span style="color: #2ea043; font-weight: bold;">✅</span> **не делаем** (осознанное решение) |
-| Redirect collapse до первого history write | <span style="color: #2ea043; font-weight: bold;">✅</span> |
 | Naive click-optimistic (`pushState` по кликнутому href) | <span style="color: #cf222e; font-weight: bold;">⬜</span> · **не рекомендуется** (§ collapse) |
-| Stage-until-commit default | <span style="color: #cf222e; font-weight: bold;">⬜</span> |
-| Demo shell на `navigation-start` (без click-workaround) | <span style="color: #bf8700; font-weight: bold;">🟡</span> |
+| Stage-until-commit default | <span style="color: #cf222e; font-weight: bold;">⬜</span> · альтернатива, не выбрана |
+| Demo shell на `navigation-start` (без click-workaround) | <span style="color: #bf8700; font-weight: bold;">🟡</span> · сейчас `navigation` + microtask |
 | Integration / e2e | <span style="color: #cf222e; font-weight: bold;">⬜</span> |
 | [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) as-is семантика | <span style="color: #cf222e; font-weight: bold;">⬜</span> |
 | [POP_NAVIGATION.md](../POP_NAVIGATION.md) asymmetry | <span style="color: #cf222e; font-weight: bold;">⬜</span> |
@@ -90,7 +93,7 @@
 
 ---
 
-## As-is в коде (2026-07-13)
+## As-is в коде (2026-07-19)
 
 ### Порядок pipeline
 

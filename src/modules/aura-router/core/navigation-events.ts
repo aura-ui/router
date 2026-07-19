@@ -171,3 +171,69 @@ export function dispatchNavigationCommitted(
     detail: { ...detail, router },
   });
 }
+
+/** CustomEvent name: `navigation-complete` — terminal success (`navigation:finish`). */
+export const AURA_ROUTER_NAVIGATION_COMPLETE = 'navigation-complete';
+
+export interface AuraRouterNavigationCompleteEventDetail {
+  id: number;
+  router: HTMLElement;
+}
+
+export type AuraRouterNavigationCompleteEvent =
+  CustomEvent<AuraRouterNavigationCompleteEventDetail>;
+
+/** CustomEvent name: `navigation-cancel` — terminal cancel / supersede. */
+export const AURA_ROUTER_NAVIGATION_CANCEL = 'navigation-cancel';
+
+export interface AuraRouterNavigationCancelEventDetail {
+  id: number;
+  router: HTMLElement;
+  reason?: string;
+}
+
+export type AuraRouterNavigationCancelEvent =
+  CustomEvent<AuraRouterNavigationCancelEventDetail>;
+
+/** CustomEvent name: `navigation-redirect` — terminal redirect. */
+export const AURA_ROUTER_NAVIGATION_REDIRECT = 'navigation-redirect';
+
+export interface AuraRouterNavigationRedirectEventDetail {
+  id: number;
+  url: string;
+  replace: boolean;
+  router: HTMLElement;
+}
+
+export type AuraRouterNavigationRedirectEvent =
+  CustomEvent<AuraRouterNavigationRedirectEventDetail>;
+
+/** Dispatches `navigation-complete` from bus `navigation:finish`. */
+export function dispatchNavigationComplete(router: HTMLElement, id: number): void {
+  dispatchCustomEvent(router, AURA_ROUTER_NAVIGATION_COMPLETE, {
+    detail: { id, router } satisfies AuraRouterNavigationCompleteEventDetail,
+  });
+}
+
+/** Dispatches `navigation-cancel` from bus `navigation:cancel`. */
+export function dispatchNavigationCancel(
+  router: HTMLElement,
+  id: number,
+  reason?: string,
+): void {
+  dispatchCustomEvent(router, AURA_ROUTER_NAVIGATION_CANCEL, {
+    detail: { id, router, reason } satisfies AuraRouterNavigationCancelEventDetail,
+  });
+}
+
+/** Dispatches `navigation-redirect` from bus `navigation:redirect`. */
+export function dispatchNavigationRedirect(
+  router: HTMLElement,
+  id: number,
+  url: string,
+  replace: boolean,
+): void {
+  dispatchCustomEvent(router, AURA_ROUTER_NAVIGATION_REDIRECT, {
+    detail: { id, url, replace, router } satisfies AuraRouterNavigationRedirectEventDetail,
+  });
+}

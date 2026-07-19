@@ -57,11 +57,23 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 - `AURA_ROUTER_NOT_FOUND` — имя события `'not-found'`.
 - `AURA_ROUTER_NAVIGATION_ERROR` — `'navigation-error'` (поле `code` — стабильный код ошибки).
 - `AURA_ROUTER_NAVIGATION_HOOK_ERROR` — `'navigation-hook-error'` (падение `error="…"` hook).
+- `AURA_ROUTER_NAVIGATION_START` / `AURA_ROUTER_NAVIGATION` — start / commit.
+- `AURA_ROUTER_NAVIGATION_COMPLETE` / `CANCEL` / `REDIRECT` — terminal outcomes.
 - Типы: `NotFoundHandler`, `NavigationFailureCode`, `AuraRouterNavigationErrorEventDetail`, …
 
-## События ошибок навигации
+## События навигации
+
+Публичные DOM events — thin adapter над engine bus (`router.events`).
 
 ```ts
+router.addEventListener('navigation-start', (event) => { /* url aligned */ });
+router.addEventListener('navigation', (event) => { /* view committed */ });
+router.addEventListener('navigation-complete', (event) => { /* finish */ });
+router.addEventListener('navigation-cancel', (event) => { /* cancelled / supersede */ });
+router.addEventListener('navigation-redirect', (event) => {
+  const { url, replace } = event.detail;
+});
+
 router.addEventListener('navigation-error', (event) => {
   const { error, code, phase, viewCommitted } = event.detail;
   // code: 'RENDER_FAILED' | 'LOAD_FAILED' | 'NOT_FOUND' | …
@@ -72,8 +84,6 @@ router.addEventListener('navigation-hook-error', (event) => {
   // parent — исходная navigation failure, которую обрабатывал error hook
 });
 ```
-
-`router.addEventListener('navigation-error', …)` — единственный способ подписки на ошибки навигации.
 
 ## Обработка 404
 

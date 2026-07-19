@@ -19,12 +19,12 @@ Observability is `NavigationPulse` (observe-only).
 - run app callbacks (`onNotFound`, …) or mutate `prev`;
 - write history;
 - emit on the EventBus;
-- execute route lifecycle hooks (`error` phase → `navigation/navigation-failure-handler.ts`).
+- execute route lifecycle hooks (`error` phase → `navigation/pipeline-failure.ts`).
 
 Route lifecycle on failure:
 
-- `navigation-failure-handler.ts` — terminal `error` phase after pipeline failure;
-- `not-found-exit-cleanup.ts` — callback-only `unmount` before pre-match `NOT_FOUND` apply.
+- `pipeline-failure.ts` — terminal `error` phase after pipeline failure;
+- `unmount-prev-on-not-found.ts` — callback-only `unmount` before pre-match `NOT_FOUND` apply.
 
 History policy: `history/history-policy.ts` (`applyTransactionHistory`).
 

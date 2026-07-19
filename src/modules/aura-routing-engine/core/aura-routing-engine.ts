@@ -1,15 +1,7 @@
-import {
-  isHashOnlyChange,
-  resolveDocumentHrefParts,
-} from './link-active/app-href';
+import { isHashOnlyChange, resolveDocumentHrefParts } from './link-active/app-href';
 import { splitAppHref } from '../../aura-utils/misc/url';
-
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import {
-  FailedNavigation,
-  type CompleteFailureDeps,
-  finalizeFailure,
-} from './failure';
+import { FailedNavigation, type CompleteFailureDeps, finalizeFailure } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
   HistoryAction,
@@ -54,6 +46,7 @@ import {
   type AuraRoutingEngineConfig,
   type ResolvedAuraRoutingEngineConfig,
 } from './aura-routing-engine-config';
+import { EventBus } from './events';
 
 export type {
   AuraRoutingEngineConfig,
@@ -63,7 +56,6 @@ export {
   ENGINE_DEFAULTS,
   resolveAuraRoutingEngineConfig,
 } from './aura-routing-engine-config';
-
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
 
@@ -83,6 +75,12 @@ export class AuraRoutingEngine implements NavigationHost {
   readonly hooksRegistry: HookRegistry;
   /** Prepare composition root — owns handoff, data, and view graphs. */
   readonly resourceGraph: ResourceGraph;
+
+  /**
+   * Sync navigation / load event stream (observability + host chrome).
+   * Prefetch intents stay on {@link PrefetchIntentBus}.
+   */
+  readonly events = new EventBus();
 
   private readonly navigationCoordinator: NavigationCoordinator;
 
@@ -222,6 +220,7 @@ export class AuraRoutingEngine implements NavigationHost {
     this.prev = null;
     this.navigationCoordinator.invalidate();
     this.resourceGraph.destroy();
+    this.events.destroy();
   }
 
   /**
@@ -229,10 +228,10 @@ export class AuraRoutingEngine implements NavigationHost {
    *
    * **Порядок history commit (push/replace, `syncHistory: true`):**
    * 1. `runGuards` — leave + guard (после redirect collapse в coordinator).
-   * 2. `commitHistoryIfNeeded` — URL write (если нужно) + chrome sync
-   *    (active links / navigation-start) до load/render.
+   * 2. `commitHistoryIfNeeded` → `notifyUrlAligned` — write URL (если нужно),
+   *    затем chrome sync (active links / navigation-start) до load/render.
    * 3. `runLoads` — DataGraph / load hooks.
-   * 4. render → `commitNavigation` (prev + callbacks, без повторного pushState).
+   * 4. render → `commitNavigation` (prev + late chrome sync, без повторного pushState).
    *
    * **Отмена до history commit:** URL не менялся (guard cancel / redirect).
    * **Load/render error после history commit (push/replace):** URL остаётся на target, rollback не делается (product policy).
@@ -444,26 +443,16 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
 
+  // ── Navigation pulse (pipeline → engine.events) ──
+
   /**
-   * Post-guard history step: write URL when needed, then sync chrome UI.
-   *
-   * - `push` / `replace` + `syncHistory` — `pushState` / `replaceState`, then notify
-   * - `system` / `pop` — browser already owns the URL; notify only (active links /
-   *   `navigation-start` before loads/transitions)
-   *
-   * Idempotent for writes via {@link NavigationTransaction.historyCommitted}.
-   * Pipeline calls once per transaction.
+   * Write address bar when policy requires (`push` / `replace` + `syncHistory`).
+   * Call {@link notifyUrlAligned} after this. Idempotent via `historyCommitted`.
    */
   commitHistoryIfNeeded(transition: NavigationTransaction): void {
     if (transition.historyCommitted) return;
 
-    const { from, to, href, action, hash, historyOptions } = transition;
-
-    if (!historyOptions.syncHistory && (action === 'system' || action === 'pop')) {
-      this.config.onNavigationHistoryCommitted?.({ from, to, action, hash });
-      return;
-    }
-
+    const { from, to, href, action, historyOptions } = transition;
     if (!historyOptions.syncHistory || (action !== 'push' && action !== 'replace')) return;
     if (from && isSameNavigationTarget(from, to)) return;
 
@@ -477,13 +466,40 @@ export class AuraRoutingEngine implements NavigationHost {
     );
 
     transition.historyCommitted = true;
-    this.config.onNavigationHistoryCommitted?.({ from, to, action, hash });
   }
 
-  /** After view commit: `prev`, scroll, `onNavigationCommitted` (URL already written). */
+  /**
+   * Address bar matches navigation target (`historyCommitted` write, or `system` / `pop`).
+   * Emits `navigation:url-aligned`.
+   */
+  notifyUrlAligned(transition: NavigationTransaction): void {
+    const { from, to, action, hash, historyCommitted, transactionId } = transition;
+    if (!historyCommitted && action !== 'system' && action !== 'pop') return;
+
+    this.events.emit({
+      type: 'navigation:url-aligned',
+      id: transactionId,
+      from,
+      to,
+      action,
+      hash,
+      source: historyCommitted ? 'write' : 'browser',
+    });
+  }
+
+  /**
+   * View promoted: emit `navigation:commit:end`, update `prev`, optional hash scroll.
+   */
   commitNavigation(transition: NavigationTransaction): void {
-    const { from, to, action, hash } = transition;
-    this.config.onNavigationCommitted?.({ from, to, action, hash });
+    const { from, to, action, hash, transactionId } = transition;
+    this.events.emit({
+      type: 'navigation:commit:end',
+      id: transactionId,
+      from,
+      to,
+      action,
+      hash,
+    });
     if (hash) this.scrollToHash?.(hash);
     this.prev = to;
   }

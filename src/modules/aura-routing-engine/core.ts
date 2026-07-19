@@ -26,6 +26,14 @@ export {
   resolveAuraRoutingEngineConfig,
 } from './core/aura-routing-engine';
 
+export { EventBus } from './core/events';
+export type {
+  EngineEvent,
+  EngineEventListener,
+  EngineEventType,
+  UrlAlignedSource,
+} from './core/events';
+
 export type {
   NavigationErrorPhase,
 } from './core/failure';

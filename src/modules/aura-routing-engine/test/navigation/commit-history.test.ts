@@ -4,13 +4,11 @@ import { NavigationTransaction } from '../../core/navigation/navigation-transact
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 
 describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
-  it('writes URL once for push navigation and notifies chrome', () => {
-    const onNavigationHistoryCommitted = jest.fn();
+  it('writes URL once for push navigation without emitting url-aligned', () => {
+    const onEvent = jest.fn();
     const provider = new FakeHistoryProvider('/from');
-    const engine = new AuraRoutingEngine(
-      { navigate: jest.fn() },
-      { provider, onNavigationHistoryCommitted },
-    );
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    engine.events.subscribe(onEvent);
     const from = createMatchedRoute('/from');
     const to = createMatchedRoute('/to');
     const tx = new NavigationTransaction(
@@ -32,22 +30,12 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
 
     expect(provider.currentHref).toBe('/to');
     expect(tx.historyCommitted).toBe(true);
-    expect(onNavigationHistoryCommitted).toHaveBeenCalledTimes(1);
-    expect(onNavigationHistoryCommitted).toHaveBeenCalledWith({
-      from,
-      to,
-      action: 'push',
-      hash: '',
-    });
+    expect(onEvent).not.toHaveBeenCalled();
   });
 
-  it('skips history write for pop but notifies chrome', () => {
-    const onNavigationHistoryCommitted = jest.fn();
+  it('skips history write for pop navigation', () => {
     const provider = new FakeHistoryProvider('/from');
-    const engine = new AuraRoutingEngine(
-      { navigate: jest.fn() },
-      { provider, onNavigationHistoryCommitted },
-    );
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
     const to = createMatchedRoute('/to');
     const tx = new NavigationTransaction(
       1,
@@ -67,51 +55,11 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
 
     expect(provider.currentHref).toBe('/from');
     expect(tx.historyCommitted).toBe(false);
-    expect(onNavigationHistoryCommitted).toHaveBeenCalledTimes(1);
-    expect(onNavigationHistoryCommitted).toHaveBeenCalledWith({
-      from: tx.from,
-      to,
-      action: 'pop',
-      hash: '',
-    });
-  });
-
-  it('notifies chrome on system boot without writing history', () => {
-    const onNavigationHistoryCommitted = jest.fn();
-    const provider = new FakeHistoryProvider('/features/animations/b');
-    const engine = new AuraRoutingEngine(
-      { navigate: jest.fn() },
-      { provider, onNavigationHistoryCommitted },
-    );
-    const to = createMatchedRoute('/features/animations/b');
-    const tx = new NavigationTransaction(
-      1,
-      {
-        from: null,
-        to,
-        action: 'system',
-        href: '/features/animations/b',
-        hash: '',
-        options: { replace: true, syncHistory: false },
-      },
-      () => false,
-      engine,
-    );
-
-    engine.commitHistoryIfNeeded(tx);
-
-    expect(provider.currentHref).toBe('/features/animations/b');
-    expect(tx.historyCommitted).toBe(false);
-    expect(onNavigationHistoryCommitted).toHaveBeenCalledTimes(1);
   });
 
   it('skips history when from and to are the same navigation target', () => {
-    const onNavigationHistoryCommitted = jest.fn();
     const provider = new FakeHistoryProvider('/users/1');
-    const engine = new AuraRoutingEngine(
-      { navigate: jest.fn() },
-      { provider, onNavigationHistoryCommitted },
-    );
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
     const route = createMatchedRoute('/users/1');
     const tx = new NavigationTransaction(
       1,
@@ -131,7 +79,6 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
 
     expect(provider.currentHref).toBe('/users/1');
     expect(tx.historyCommitted).toBe(false);
-    expect(onNavigationHistoryCommitted).not.toHaveBeenCalled();
   });
 
   it('writes URL for replace navigation', () => {
@@ -158,13 +105,9 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
     expect(tx.historyCommitted).toBe(true);
   });
 
-  it('skips history and chrome notify when syncHistory is false on push', () => {
-    const onNavigationHistoryCommitted = jest.fn();
+  it('skips history when syncHistory is false', () => {
     const provider = new FakeHistoryProvider('/from');
-    const engine = new AuraRoutingEngine(
-      { navigate: jest.fn() },
-      { provider, onNavigationHistoryCommitted },
-    );
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
     const tx = new NavigationTransaction(
       1,
       {
@@ -183,7 +126,137 @@ describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
 
     expect(provider.currentHref).toBe('/from');
     expect(tx.historyCommitted).toBe(false);
-    expect(onNavigationHistoryCommitted).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuraRoutingEngine.notifyUrlAligned', () => {
+  it('emits url-aligned after history write', () => {
+    const onEvent = jest.fn();
+    const provider = new FakeHistoryProvider('/from');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    engine.events.subscribe(onEvent);
+    const from = createMatchedRoute('/from');
+    const to = createMatchedRoute('/to');
+    const tx = new NavigationTransaction(
+      1,
+      {
+        from,
+        to,
+        action: 'push',
+        href: '/to',
+        hash: '',
+        options: { replace: false, syncHistory: true },
+      },
+      () => false,
+      engine,
+    );
+
+    engine.commitHistoryIfNeeded(tx);
+    engine.notifyUrlAligned(tx);
+
+    expect(onEvent).toHaveBeenCalledWith({
+      type: 'navigation:url-aligned',
+      id: 1,
+      from,
+      to,
+      action: 'push',
+      hash: '',
+      source: 'write',
+    });
+  });
+
+  it('emits url-aligned for pop without writing history', () => {
+    const onEvent = jest.fn();
+    const provider = new FakeHistoryProvider('/from');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    engine.events.subscribe(onEvent);
+    const to = createMatchedRoute('/to');
+    const tx = new NavigationTransaction(
+      1,
+      {
+        from: createMatchedRoute('/from'),
+        to,
+        action: 'pop',
+        href: '/to',
+        hash: '',
+        options: { replace: true, syncHistory: false },
+      },
+      () => false,
+      engine,
+    );
+
+    engine.commitHistoryIfNeeded(tx);
+    engine.notifyUrlAligned(tx);
+
+    expect(provider.currentHref).toBe('/from');
+    expect(tx.historyCommitted).toBe(false);
+    expect(onEvent).toHaveBeenCalledWith({
+      type: 'navigation:url-aligned',
+      id: 1,
+      from: tx.from,
+      to,
+      action: 'pop',
+      hash: '',
+      source: 'browser',
+    });
+  });
+
+  it('emits url-aligned with browser source on system boot', () => {
+    const onEvent = jest.fn();
+    const provider = new FakeHistoryProvider('/features/animations/b');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    engine.events.subscribe(onEvent);
+    const to = createMatchedRoute('/features/animations/b');
+    const tx = new NavigationTransaction(
+      1,
+      {
+        from: null,
+        to,
+        action: 'system',
+        href: '/features/animations/b',
+        hash: '',
+        options: { replace: true, syncHistory: false },
+      },
+      () => false,
+      engine,
+    );
+
+    engine.commitHistoryIfNeeded(tx);
+    engine.notifyUrlAligned(tx);
+
+    expect(tx.historyCommitted).toBe(false);
+    expect(onEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'navigation:url-aligned',
+        source: 'browser',
+        action: 'system',
+      }),
+    );
+  });
+
+  it('does not emit when push did not write history', () => {
+    const onEvent = jest.fn();
+    const provider = new FakeHistoryProvider('/from');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    engine.events.subscribe(onEvent);
+    const tx = new NavigationTransaction(
+      1,
+      {
+        from: createMatchedRoute('/from'),
+        to: createMatchedRoute('/to'),
+        action: 'push',
+        href: '/to',
+        hash: '',
+        options: { replace: false, syncHistory: false },
+      },
+      () => false,
+      engine,
+    );
+
+    engine.commitHistoryIfNeeded(tx);
+    engine.notifyUrlAligned(tx);
+
+    expect(onEvent).not.toHaveBeenCalled();
   });
 });
 

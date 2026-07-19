@@ -1,7 +1,6 @@
 import type { DataGraphCacheOptions } from './data-graph';
 import type { FailedNavigation, NavigationHookErrorDetail } from './failure';
 import type { NavigationProvider } from './history/provider.types';
-import type { NavigationCommittedContext } from './navigation/navigation-finalize';
 import type { PrefetchConfig } from './prefetch/types';
 import type { HandoffCacheOptions } from './resource-graph/handoff-cache';
 import type { ViewGraph, LoaderRegistry, ViewGraphCacheOptions } from './view-graph';
@@ -47,12 +46,6 @@ export interface AuraRoutingEngineConfig {
   linksSelector?: string;
   /** Default: `false`. */
   hash?: boolean;
-  /**
-   * Address bar matches navigation target (after history write, or browser-owned
-   * `system` / `pop`). Used for active links / `navigation-start` — before transitions.
-   */
-  onNavigationHistoryCommitted?: (ctx: NavigationCommittedContext) => void;
-  onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
   onAnchorNavigation?: (href: string) => void;
   onNavigationError?: (failure: FailedNavigation) => void;
   onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;

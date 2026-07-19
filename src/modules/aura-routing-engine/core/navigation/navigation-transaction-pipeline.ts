@@ -141,11 +141,15 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * History step: URL write (when needed) + chrome sync (active links).
-   * See {@link AuraRoutingEngine.commitHistoryIfNeeded}.
+   * History pulse: write URL (when needed), then notify URL-aligned chrome sync.
+   *
+   * {@link AuraRoutingEngine.commitHistoryIfNeeded} →
+   * {@link AuraRoutingEngine.notifyUrlAligned}
    */
   private commitHistory(): PipelineStepResult {
-    this.transaction.engine.commitHistoryIfNeeded(this.transaction);
+    const tx = this.transaction;
+    tx.engine.commitHistoryIfNeeded(tx);
+    tx.engine.notifyUrlAligned(tx);
     return null;
   }
 

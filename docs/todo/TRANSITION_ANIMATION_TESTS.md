@@ -198,7 +198,7 @@ Smoke: navigation с transition attr, нет console errors, финальный 
 | Компонент | Путь |
 |-----------|------|
 | Transition pipeline | `aura-routing-engine/core/navigation/navigation-transaction-pipeline.ts` → `runRenderWithTransition` |
-| Phase registry | `aura-routing-engine/core/lifecycle/phase-registry.ts` → `transitionOut`, `transitionIn` |
+| Phase registry | `aura-routing-engine/core/navigation/lifecycle-phases.ts` → `transitionOut`, `transitionIn` |
 | Hook runner | `aura-routing-engine/core/hooks/registry.ts` → `runPhaseHooks` |
 | Staged mount flag | `aura-route/core/view/render-pass.ts` → `useStagedMount` |
 | Presentation reset | `aura-route/core/view/view-controller.ts` → `resetViewRootPresentation` |

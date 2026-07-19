@@ -2,7 +2,7 @@
 
 > **Статус:** задокументировано, не реализовано  
 > **Код:** `outlet.ts` (`rollbackStaged`, `mergeMount`), `view-controller.ts` (`revertInFlightView`), `view-rollback.ts`  
-> **См. также:** commit gate в `commit-gate.ts`, `NavigationPlanner` (`cancel-pending`)
+> **См. также:** commit gate в `commitHistoryIfNeeded / commitNavigation`, `NavigationCoordinator.plan` (`cancel-pending`)
 
 ---
 
@@ -151,7 +151,7 @@ job:         нет активного
 
 ```text
 planner:     plan = run → markPending('/gallery')
-processor:   jobManager.begin() → job #1
+processor:   NavigationCoordinator.run() supersede → job #1
 transaction: from = about, to = gallery
 pipeline:    leave → enter → load → render (начало)
 ```
@@ -405,7 +405,7 @@ Gap на replace — **осознанный tradeoff** ради replace + patch.
 ## Что не ломается сейчас
 
 - Demo с fade/slide (`data-crossfade`) — stage + revert
-- `NavigationPlanner` + `cancel-pending` (active link abort job)
+- `NavigationCoordinator.plan` + `cancel-pending` (active link abort job)
 - Commit gate — history/prev только после победы job
 - Abort во время async load на replace routes (DOM не менялся)
 
@@ -559,5 +559,5 @@ Snapshot закрывает дыру **между render и gate** для replac
 
 - `useStagedMount` только при transition — `resolveStageStrategy` + `render-pass.ts`
 - Commit gate — history + `prev` в `applyCommitGate`; DOM promote через `commitEnterViews` для stage
-- `NavigationPlanner` — `cancel-pending` abort job (но без DOM restore на replace)
+- `NavigationCoordinator.plan` — `cancel-pending` abort job (но без DOM restore на replace)
 - TODO-комментарий в коде: блок над `rollbackStaged` в `outlet.ts`

@@ -12,7 +12,7 @@
 | Recovery | `aura-route/core/view/view-controller.ts`, `aura-route/core/view/payloads.ts`, `aura-router/core/aura-router-not-found-controller.ts` |
 | Reporting | `aura-router/core/navigation-events.ts` (DOM), engine callbacks в `aura-router/core/aura-router.ts` |
 | History | `aura-routing-engine/core/history/history-policy.ts`, `navigation/finalize.ts` |
-| Pipeline | `aura-routing-engine/core/processor/processor-pipeline.ts` |
+| Pipeline | `aura-routing-engine/core/navigation/navigation-transaction-pipeline.ts` |
 
 **Связанные файлы:**
 
@@ -77,7 +77,7 @@ Sketch описывал `NavigationOutcome` и `NavigationFailure`. В runtime �
 | `NavigationFailure` | `FailedNavigation` |
 | `CommitSnapshot` | `ViewCommitSnapshot` (`view-mount/view-commit-state.ts`) |
 | `CommitTracker` | `ViewCommitTracker` (`view-mount/view-commit-tracker.ts`) |
-| `PHASE_SPEC` | `PHASES` (`lifecycle/phase-registry.ts`) |
+| `PHASE_SPEC` | `PHASES` (`navigation/lifecycle-phases.ts`) |
 | `runPhase()` | `runPhaseStep()` (`lifecycle/execution/phase-step.ts`) |
 
 ### ViewCommitSnapshot
@@ -132,7 +132,7 @@ applyHistoryPolicy(policy, ctx, provider)
 
 ## Phase spec — единый source of truth
 
-`PHASES` в `lifecycle/phase-registry.ts` заменяет `LIFECYCLE_STEPS` + `NAVIGATION_PHASES` + `failOnLifecycleError`.
+`PHASES` в `navigation/lifecycle-phases.ts` заменяет `LIFECYCLE_STEPS` + `NAVIGATION_PHASES` + `failOnLifecycleError`.
 
 | Phase | hookPolicy | onThrow (`errorPolicy`) |
 |-------|------------|-------------------------|
@@ -234,7 +234,7 @@ Bridge-адаптеры `toLegacyTransactionResult` / `fromLegacyTransactionResu
 - [x] `onThrow: 'failure' | 'log' | 'propagate'`
 - [x] Post-commit `left`/`after`: `onThrow: 'log'`, без rethrow
 
-**Код:** `lifecycle/phase-registry.ts`, `lifecycle/execution/phase-step.ts`, `lifecycle/execution/phase-executor.ts`
+**Код:** `navigation/lifecycle-phases.ts`, `lifecycle/execution/phase-step.ts`, `lifecycle/execution/phase-executor.ts`
 
 ---
 

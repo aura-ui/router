@@ -48,8 +48,8 @@ guards → loads → runRenderWithTransition → after
 
 | Компонент | Путь |
 |-----------|------|
-| Staged render + promote | `processor/processor-pipeline.ts` → `runRender()` / `commitEnterViews()` |
-| Commit gate | `navigation/commit-gate.ts` → `applyCommitGate()` |
+| Staged render + promote | `navigation/navigation-transaction-pipeline.ts` → `runRender()` / `commitEnterViews()` |
+| Commit gate | `commitHistoryIfNeeded / commitNavigation` → `applyCommitGate()` |
 | Transition policy (`out-in` / `in-out` / `parallel`) | `processor-pipeline.ts` → `RENDER_ORDER_STEPS` |
 | Route attrs `transition`, `transition-order` | `aura-route/core/attr/transition-attr-parser.ts` |
 
@@ -97,7 +97,7 @@ async function commitWithOptionalViewTransition(): Promise<void> {
 
 ### Где вешать wrapper
 
-Предпочтительная точка — **один вызов** вокруг пары `commitEnterViews` + `commitGate` в `runAfterRender()` (и аналог в `runFastPath()`, если fast path должен поддерживать VT).
+Предпочтительная точка — **один вызов** вокруг пары `commitEnterViews` + `commitGate` в `runAfterRender()` (и аналог в `runFastPipeline()`, если fast path должен поддерживать VT).
 
 Не дублировать VT на каждый nested outlet: один transition на navigation commit, если не задана политика per-outlet (см. открытые вопросы).
 
@@ -144,7 +144,7 @@ async function commitWithOptionalViewTransition(): Promise<void> {
 
 - [ ] `view-transition.ts` (или `navigation/view-transition-commit.ts`): `commitWithViewTransition(commitFn, options)`.
 - [ ] Feature detect + fallback.
-- [ ] Интеграция в `ProcessorPipeline.runAfterRender()`.
+- [ ] Интеграция в `NavigationTransactionPipeline.runAfterRender()`.
 - [ ] `prefers-reduced-motion: reduce` → skip VT.
 
 ### VT2 — Публичный API

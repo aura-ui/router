@@ -557,5 +557,5 @@ leave | guard | load | ready
 - `view` parser: `src/modules/aura-route/core/attr/view-attr-parser.ts`
 - Descriptor pipeline: `src/modules/aura-routing-engine/core/view-graph/view-graph.ts` (`buildViewDescriptor`)
 - Loaders: `src/modules/aura-routing-engine/core/view-graph/loaders/`
-- Lifecycle phases: `src/modules/aura-routing-engine/core/lifecycle/phase-registry.ts`
+- Lifecycle phases: `src/modules/aura-routing-engine/core/navigation/lifecycle-phases.ts`
 - Ранние идеи: `docs/scratch/aura-route-design-notes.js`, `aura-route-markup-examples.txt`

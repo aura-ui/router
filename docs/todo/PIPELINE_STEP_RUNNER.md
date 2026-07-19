@@ -1,8 +1,8 @@
 # TODO: Pipeline — sync/async шаги, fast path, step runner
 
 > **Статус:** план / архитектура (не реализовано)  
-> **Связь:** оптимизация `ProcessorPipeline` без смены семантики cancel/supersede.  
-> **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) (`runBlockingOnly`), fast path as-is: `processor/fast-path/`
+> **Связь:** оптимизация `NavigationTransactionPipeline` без смены семантики cancel/supersede.  
+> **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) (`runBlockingOnly`), fast path as-is: `canUseFastPath / runFastPipeline`
 
 ---
 
@@ -111,7 +111,7 @@ As-is **Tier 0** (`canUseFastPath`): flat nav без hooks, transitions, async c
 |-------|----------------|
 | `view-controller.tryCacheRestore` | mount из cache без fetch |
 | `commitEnterViews` + `commitGate` | sync commit slice |
-| `runFastPath` | bypass guards/loads/transitions для Tier 0 |
+| `runFastPipeline` | bypass guards/loads/transitions для Tier 0 |
 
 ---
 
@@ -213,21 +213,21 @@ Trampoline / generator дают:
 
 | Файл | Изменение |
 |------|-----------|
-| `core/processor/processor-pipeline.ts` | thenable `runUntilTerminal` |
+| `core/navigation/navigation-transaction-pipeline.ts` | thenable `runUntilTerminal` |
 | `core/processor/step-runner.ts` | опционально вынести runner |
 
 ### Фаза 2 — Fast path Tier 1
 
 1. `canUseFastPathTier1(plan, ctx, dataGraph, routes)` — cache peek + hook capability flags.
-2. `runFastPathTier1` или расширить `runFastPath`.
+2. `runFastPipelineTier1` или расширить `runFastPipeline`.
 3. **Критерий:** keep-alive / load cache hit nav быстрее full pipeline, semantics 1:1.
 
 **Файлы:**
 
 | Файл | Изменение |
 |------|-----------|
-| `core/processor/fast-path/can-use-fast-path.ts` | Tier 1 predicate |
-| `core/processor/fast-path/run-fast-path.ts` | Tier 1 body |
+| `core/route-tree/can-use-fast-path.ts` | Tier 1 predicate |
+| `core/navigation/…/runFastPipeline` | Tier 1 body |
 | `core/data-graph/data-graph.ts` | опционально `peekCached(key)` |
 
 ### Фаза 3 — Документировать invariants
@@ -248,9 +248,9 @@ Trampoline / generator дают:
 ```mermaid
 flowchart TD
   START[processor.run] --> FP0{Tier 0 fast path?}
-  FP0 -->|yes| FAST0[runFastPath]
+  FP0 -->|yes| FAST0[runFastPipeline]
   FP0 -->|no| FP1{Tier 1 fast path?}
-  FP1 -->|yes| FAST1[runFastPathTier1]
+  FP1 -->|yes| FAST1[runFastPipelineTier1]
   FP1 -->|no| FULL[runUntilTerminal thenable]
   FULL --> SYNC{step returns thenable?}
   SYNC -->|no| NEXT[next step sync]

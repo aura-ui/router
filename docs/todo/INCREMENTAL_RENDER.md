@@ -35,7 +35,7 @@ Aura-ui-router **не теряет** транзакционную модель (
 2. **Commit point** — единственное место, где Renderer меняет видимый UI целевого outlet.
 3. **`AURARoute`** — view-адаптер: phase attrs, loaders, outlet; не orchestrator.
 4. **Lit — опциональный backend**, не hard dependency пакета (vanilla WC first).
-5. **Fast path** — если нет blocking hooks/load, пропускать лишние фазы. **Реализовано:** [IMPLEMENTATION_STEPS.md §5b](./IMPLEMENTATION_STEPS.md#фаза-5b--fast-path--span-stylecolor-2ea043-font-weight-boldspan-готово) (`AuraRoutingProcessor`, не coordinator).
+5. **Fast path** — если нет blocking hooks/load, пропускать лишние фазы. **Реализовано:** [IMPLEMENTATION_STEPS.md §5b](./IMPLEMENTATION_STEPS.md#фаза-5b--fast-path--span-stylecolor-2ea043-font-weight-boldspan-готово) (`NavigationTransaction`, не coordinator).
 
 ---
 
@@ -134,7 +134,7 @@ export interface RouteRenderer {
 ## R2 — Route capabilities + fast path
 
 > **Частично реализовано:** [IMPLEMENTATION_STEPS.md §5b](./IMPLEMENTATION_STEPS.md#фаза-5b--fast-path--span-stylecolor-2ea043-font-weight-boldspan-готово).  
-> Fast path живёт в **`AuraRoutingProcessor`** (`canUseFastPath()` + `runFastPath()`), не в coordinator.
+> Fast path живёт в **`NavigationTransaction`** (`canUseFastPath()` + `runFastPipeline()`), не в coordinator.
 
 ### Зачем
 
@@ -154,7 +154,7 @@ type RouteCapabilities = {
 };
 ```
 
-2. **`AuraRoutingProcessor.runFastPath()`** (ветка в `run()`):
+2. **`NavigationTransaction.runFastPipeline()`** (ветка в `run()`):
 
 ```text
 if (plan.isSimple && !fromRoute?.capabilities.hasLeave && !toRoute.capabilities.hasEnter
@@ -257,7 +257,7 @@ class LitRouteHost extends LitElement {
 |------------|-------------------------|
 | `Routes.goto()` → state → `requestUpdate()` | `coordinator.run()` → prepare → `commit()` → `requestUpdate()` |
 | только `enter()` guard | полный lifecycle + optional fast path |
-| нет stale job | NavigationJob + routerGeneration |
+| нет stale job | NavigationJob + attempt/tx ids |
 
 ### Критерий готовности
 
@@ -317,7 +317,7 @@ class LitRouteHost extends LitElement {
 
 ### R2
 - [x] Route capabilities bitmask
-- [x] Processor fast path (`canUseFastPath` + `runFastPath`)
+- [x] Processor fast path (`canUseFastPath` + `runFastPipeline`)
 - [ ] Production: no console.log in phase callbacks
 
 ### R3

@@ -91,7 +91,7 @@ aura-cache-store     = КАК хранить (fresh / stale / фоновый ref
 | Когда | Кто | Как |
 |-------|-----|-----|
 | Hover / intent | `PrefetchPipeline` → `PrefetchResourceScheduler` | `Promise.all` data + content — **прогрев кэша**, без guards, ошибки тихие |
-| Клик, данные | `ProcessorPipeline` → `DataGraph.load()` | `Promise.all` sibling `load`, но **ждём до render** |
+| Клик, данные | `NavigationTransactionPipeline` → `DataGraph.load()` | `Promise.all` sibling `load`, но **ждём до render** |
 | Клик, разметка | `render()` → `ContentLoadService` | **во время render**, не в том же `await`, что DataGraph |
 
 Конфликт с `defer` был бы только если свести навигацию к одной схеме:

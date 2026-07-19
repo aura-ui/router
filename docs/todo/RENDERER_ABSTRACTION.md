@@ -35,7 +35,7 @@
 | **`ViewHandle`** | `aura-outlet/core/aura-outlet.ts` | `viewRoot`, `destroy()`, `detach()`, `findChildOutlet()` |
 | **`RouteViewController` v1** | `aura-route/core/view/view-controller.ts` | Staged/active handles, `commitStagedView()`, keep-alive |
 | **`outlet.ts`** | `aura-route/core/view/outlet.ts` | `mountContent()` → handle; `unmountHandle()` → destroy/detach |
-| **Staged commit** | `ProcessorPipeline.runAfterRender()` | DOM promote до commit gate — готово к обёртке VT |
+| **Staged commit** | `NavigationTransactionPipeline.runAfterRender()` | DOM promote до commit gate — готово к обёртке VT |
 
 View-слой (outlet + handles) — **фундамент** для engine Renderer. Не нужно переписывать с нуля.
 
@@ -116,7 +116,7 @@ const domRenderer: Renderer = {
 
 - [ ] На `exitRoutes` / фазе `left`: engine вызывает `renderer.dispose(handle)` по registry `Map<nodeId, ViewHandle>`.
 - [ ] `AuraRoute.onLeft()` — только route-local cleanup (hooks, attrs), не DOM teardown.
-- [ ] Fast path (`runFastPath`) — тот же контракт dispose.
+- [ ] Fast path (`runFastPipeline`) — тот же контракт dispose.
 
 ### R3 — Связка с DataGraph
 

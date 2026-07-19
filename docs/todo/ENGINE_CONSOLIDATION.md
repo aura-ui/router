@@ -1,7 +1,8 @@
 # TODO: консолидация архитектуры routing engine
 
-> **Статус:** план / архитектура (не реализовано)  
-> **Цель:** схлопать размазанную ответственность `navigateTo()` в явные модули с понятными границами; улучшить читаемость и поддерживаемость без big-bang rewrite.  
+> **Статус:** план / архитектура — **частично superseded** (coordinator + pipeline + redirect resolver уже в коде)  
+> **Актуальный as-is:** [MAIN_PIPELINE.md](../MAIN_PIPELINE.md), [ROUTING_ENGINE.md](../ROUTING_ENGINE.md)  
+> **Цель (остаток):** дальше схлопать границы модулей без big-bang rewrite.  
 > **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md), [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md), [EVENT_BUS.md](./EVENT_BUS.md)
 
 ---
@@ -33,10 +34,10 @@ AuraRoutingEngine.navigateTo()
   ├─ resolveNavigationTarget + registry
   ├─ NOT_FOUND: not-found-exit-cleanup → finalizeNotFound → finalizeFailure
   └─ matched: NavigationCoordinator
-       ├─ NavigationPlanner (+ reenter-work)
-       ├─ AuraRoutingProcessor
-       │    ├─ jobManager, transaction-scope, ViewCommitTracker
-       │    ├─ runFastPath  ║  ProcessorPipeline
+       ├─ NavigationCoordinator.plan (+ reenter-work)
+       ├─ NavigationTransaction
+       │    ├─ activeTransaction, ViewCommitTracker, rollback
+       │    ├─ runFastPipeline  ║  NavigationTransactionPipeline
        │    └─ PHASES vs MAIN_PIPELINE (два registry)
        ├─ applyCommitGate (success history, scroll hash)
        └─ finalizeProcessorNavigation (cancel/error/redirect)
@@ -50,7 +51,7 @@ AuraRouter.ensureEngine()
 - transaction state (job, view tracker, pending href, `prev`)
 - history commit timing (success sync vs terminal async)
 - view commit (pipeline / fast-path / rollback — три копии)
-- scroll (engine + commit-gate + aura-router)
+- scroll (engine + commitHistory/commitNavigation + aura-router)
 - failure (error-phase-handler, failure/*, engine, DOM)
 - match (navigateTo + prefetch plan)
 
@@ -70,7 +71,7 @@ navigateTo(href)
          │
          ├─ NavigationRun.execute()
          │     RedirectResolver.resolve()     // collapse, optional
-         │     ProcessorPipeline / FastPath
+         │     NavigationTransactionPipeline / FastPath
          │     ViewCommitOrchestrator           // stage → promote → commitGate
          │
          └─ NavigationOutcomeHandler.apply(outcome)
@@ -188,7 +189,7 @@ handleNotFound(input: { href; prev; action }): NavigationRunOutcome
 
 ### 4. `PipelineManifest`
 
-**Проблема:** порядок шагов в `processor-pipeline.ts`, policy в `lifecycle/phase-registry.ts`.
+**Проблема:** порядок шагов в `processor-pipeline.ts`, policy в `navigation/lifecycle-phases.ts`.
 
 **Модуль:** расширить `phase-registry.ts` или `core/processor/pipeline-manifest.ts`
 
@@ -221,7 +222,7 @@ handleNavigationScroll(ctx: NavigationCommittedContext, policy: ScrollPolicy): v
 
 **Поглощает:**
 
-- `scrollToHash` из engine / commit-gate
+- `scrollToHash` из engine / commit path
 - `ScrollRestoration` logic (aura-router → engine или subscribe)
 
 **Критерий:** commit gate вызывает один scroll handler; router без дублирования policy.
@@ -332,8 +333,8 @@ createRouterEngineCallbacks(host: AuraRouter): AuraRoutingEngineConfig
 | Файл | Действие |
 |------|----------|
 | `core/view-mount/view-commit-orchestrator.ts` | новый |
-| `core/processor/processor-pipeline.ts` | delegate render/commit |
-| `core/processor/fast-path/run-fast-path.ts` | delegate |
+| `core/navigation/navigation-transaction-pipeline.ts` | delegate render/commit |
+| `core/navigation/…/runFastPipeline` | delegate |
 | `core/view-mount/view-commit-render.ts` | adapter inside orchestrator |
 
 **Критерий:** нет дублирования promote+commitGate между pipeline и fast-path.
@@ -351,7 +352,7 @@ createRouterEngineCallbacks(host: AuraRouter): AuraRoutingEngineConfig
 | Файл | Действие |
 |------|----------|
 | `core/processor/pipeline-manifest.ts` | новый (или extend phase-registry) |
-| `core/processor/processor-pipeline.ts` | iterate manifest |
+| `core/navigation/navigation-transaction-pipeline.ts` | iterate manifest |
 
 **Критерий:** `runBlockingOnly` без дублирования step list.
 
@@ -381,7 +382,7 @@ createRouterEngineCallbacks(host: AuraRouter): AuraRoutingEngineConfig
 | As-is | To-be |
 |-------|-------|
 | `engine.navigateTo` match/hash branches | `NavigationIntentResolver` |
-| `NavigationPlanner` | `RunManager.plan` (+ intent noop) |
+| `NavigationCoordinator.plan` | `RunManager.plan` (+ intent noop) |
 | `NavigationCoordinator` | `RunManager` + `NavigationRun` |
 | `withCancelledTransactionScope` | `NavigationRun.rollback` |
 | `finalize*` + `finalizeFailure` | `NavigationOutcomeHandler` |

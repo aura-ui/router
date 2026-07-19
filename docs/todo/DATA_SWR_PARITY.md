@@ -43,7 +43,7 @@ missing → await fetch → записать в кэш → отдать
 
 ### DataGraph v1 — <span style="color:#16a34a">в коде</span>
 
-- Вызов в `ProcessorPipeline.runLoads()` после guards, до render
+- Вызов в `NavigationTransactionPipeline.runLoads()` после guards, до render
 - Parallel sibling loads + sibling abort на redirect/cancel
 - `AuraResolvableCache` с `staleTime` (default 30s), `gcTime`
 - LCA snapshot: parent вне `enterRoutes` → данные из кэша без повторного hook fetch

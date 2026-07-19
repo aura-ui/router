@@ -8,7 +8,7 @@
 
 ## Проблема
 
-Текущий `out-in` в `ProcessorPipeline`:
+Текущий `out-in` в `NavigationTransactionPipeline`:
 
 ```text
 transitionOut → render → transitionIn → finalizeStage → left → entered
@@ -156,7 +156,7 @@ private revealEnterStages(ctx: PipelineContext): void {
 
 ```mermaid
 sequenceDiagram
-  participant P as ProcessorPipeline
+  participant P as NavigationTransactionPipeline
   participant Old as exit route
   participant New as enter route
   participant O as AuraOutlet
@@ -334,7 +334,7 @@ data-transition="parallel"
 ```text
 aura-routing-engine/
   core/transition/policy.ts
-  core/processor/processor-pipeline.ts
+  core/navigation/navigation-transaction-pipeline.ts
   test/processor/processor-pipeline.test.ts
 
 aura-outlet/

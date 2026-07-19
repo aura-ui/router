@@ -1,6 +1,11 @@
+import {
+  defaultDomCache,
+  domCacheKey,
+  RouteDomCache,
+} from '../../../aura-route/core/view/dom-cache';
 import type { RouteInstance } from '../../core';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
+import { buildTransitionPlan, canUseDomCacheFastPath } from '../../core/route-tree/transition-plan';
 import { createTestRoute } from '../helpers/create-test-route';
 import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
 
@@ -129,5 +134,54 @@ describe('TransitionMap.canUseFastPath', () => {
 
     expect(plan.canUseFastPath).toBe(false);
     expect(plan.transitionOrder).toBe('parallel');
+  });
+});
+
+describe('canUseDomCacheFastPath', () => {
+  beforeEach(() => {
+    RouteDomCache.configure({ max: 5, gcTime: Infinity, gcSweepInterval: false });
+  });
+
+  it('allows flat async view when cache.dom already has the entry', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { loader: 'url', content: 'about.html' },
+      cache: { dom: true, view: false, data: true },
+    });
+    defaultDomCache.put(domCacheKey(to, to.route.path), document.createElement('div'));
+
+    const plan = buildTransitionPlan(from, to);
+    expect(plan.canUseFastPath).toBe(false);
+    expect(canUseDomCacheFastPath(plan)).toBe(true);
+  });
+
+  it('blocks when dom cache misses', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { loader: 'url', content: 'about.html' },
+      cache: { dom: true, view: false, data: true },
+    });
+
+    expect(canUseDomCacheFastPath(buildTransitionPlan(from, to))).toBe(false);
+  });
+
+  it('blocks when cache.dom is disabled even if store has a key', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { loader: 'url', content: 'about.html' },
+      cache: { dom: false, view: false, data: true },
+    });
+    defaultDomCache.put(domCacheKey(to, to.route.path), document.createElement('div'));
+
+    expect(canUseDomCacheFastPath(buildTransitionPlan(from, to))).toBe(false);
+  });
+
+  it('is false when Tier 0 already applies', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b');
+    const plan = buildTransitionPlan(from, to);
+
+    expect(plan.canUseFastPath).toBe(true);
+    expect(canUseDomCacheFastPath(plan)).toBe(false);
   });
 });

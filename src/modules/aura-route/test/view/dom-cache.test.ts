@@ -5,6 +5,17 @@ describe('RouteDomCache', () => {
     RouteDomCache.configure({ max: 5, gcTime: Infinity, gcSweepInterval: false });
   });
 
+  it('has probes without removing the entry', () => {
+    const cache = new RouteDomCache();
+    const root = document.createElement('div');
+
+    expect(cache.has('a')).toBe(false);
+    cache.put('a', root);
+    expect(cache.has('a')).toBe(true);
+    expect(cache.extract('a')).toBe(root);
+    expect(cache.has('a')).toBe(false);
+  });
+
   it('extract removes entry from store', () => {
     const cache = new RouteDomCache();
     const root = document.createElement('div');

@@ -25,6 +25,7 @@ function matched(pathname: string, overrides: Partial<MatchedRouteInfo> = {}): M
 
 function createMockViewCache(stash = new Map<string, Element>()): DomCachePort {
   return {
+    has: (key) => stash.has(key),
     extract: (key) => {
       const root = stash.get(key);
       if (root) stash.delete(key);

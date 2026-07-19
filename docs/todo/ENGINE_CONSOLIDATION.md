@@ -40,7 +40,7 @@
 | **5** | PipelineManifest + `runBlockingOnly` filter | <span style="color: #bf8700; font-weight: bold;">~</span> PHASES · <span style="color: #cf222e; font-weight: bold;">✗</span> единый manifest |
 | **6** | NavigationScroll + LifecycleContextFactory | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **7** | RouterEngineBridge + EventBus | <span style="color: #cf222e; font-weight: bold;">✗</span> / <span style="color: #bf8700; font-weight: bold;">~</span> |
-| **8** | Pipeline thenable runner (Tier 1) | <span style="color: #bf8700; font-weight: bold;">~</span> thenable ✓ · Tier 1 ✗ |
+| **8** | Pipeline thenable + dom-cache fast path | <span style="color: #2ea043; font-weight: bold;">✓</span> thenable + `canUseDomCacheFastPath` |
 
 ---
 
@@ -140,7 +140,7 @@ AuraRouter: RouterEngineBridge → AuraRoutingEngineConfig   ✗
 |----------|------|-------------|
 | [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md) | Run, Manager, OutcomeHandler, deps, telemetry | <span style="color: #bf8700; font-weight: bold;">~</span> |
 | [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) | RedirectResolver, redirect sources, collapse | <span style="color: #2ea043; font-weight: bold;">✓</span> guard/leave + declarative |
-| [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md) | thenable runner, fast path tiers | <span style="color: #bf8700; font-weight: bold;">~</span> thenable ✓ · Tier 1 ✗ |
+| [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md) | thenable runner, fast path tiers | <span style="color: #2ea043; font-weight: bold;">✓</span> thenable + `canUseDomCacheFastPath` |
 | [EVENT_BUS.md](./EVENT_BUS.md) | observability bus | <span style="color: #bf8700; font-weight: bold;">~</span> |
 | [INCREMENTAL_RENDER.md](./INCREMENTAL_RENDER.md) | Renderer / patch (потребитель ViewCommitOrchestrator) | см. док |
 
@@ -335,7 +335,7 @@ createRouterEngineCallbacks(host: AuraRouter): AuraRoutingEngineConfig
 Фаза 5  PipelineManifest + runBlockingOnly filter            ~
 Фаза 6  NavigationScroll + LifecycleContextFactory           ✗
 Фаза 7  RouterEngineBridge + EventBus telemetry              ✗ / ~
-Фаза 8  Pipeline thenable runner + fast path Tier 1          ~ thenable ✓ · Tier 1 ✗
+Фаза 8  Pipeline thenable + canUseDomCacheFastPath           ✓
 ```
 
 Каждая фаза: поведение 1:1, тесты зелёные, старый код deprecated → удаление.
@@ -486,7 +486,7 @@ createRouterEngineCallbacks(host: AuraRouter): AuraRoutingEngineConfig
 
 - [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md) — <span style="color: #bf8700; font-weight: bold;">~</span>
 - [REDIRECT_CHAIN_COLLAPSE.md](./REDIRECT_CHAIN_COLLAPSE.md) — <span style="color: #2ea043; font-weight: bold;">✓</span>
-- [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md) — <span style="color: #bf8700; font-weight: bold;">~</span> thenable ✓ · Tier 1 ✗
+- [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md) — <span style="color: #2ea043; font-weight: bold;">✓</span> thenable + `canUseDomCacheFastPath`
 - [EVENT_BUS.md](./EVENT_BUS.md) — <span style="color: #bf8700; font-weight: bold;">~</span>
 - [INCREMENTAL_RENDER.md](./INCREMENTAL_RENDER.md)
 - [NAVIGATION_TRANSACTION_MODEL.md](../NAVIGATION_TRANSACTION_MODEL.md)

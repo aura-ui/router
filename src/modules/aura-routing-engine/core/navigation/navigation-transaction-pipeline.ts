@@ -61,19 +61,26 @@ export class NavigationTransactionPipeline {
     this.transaction = transaction;
   }
 
+  private get pulse() {
+    return this.transaction.engine.pulse;
+  }
+
   /**
    * Standard navigation pipeline.
    *
-   * Order: `leave` → `guard` → history commit → {@link runLoads} → render (with transitions) →
-   * {@link runAfterRender}.
+   * Order: prepare (`leave` → `guard` → history → loads) → render → {@link runAfterRender}.
+   * Fast path skips prepare markers. `prepare:end` runs only if prepare steps all return `null`.
    *
    * @returns first terminal step result (`error`, `redirect`, `cancelled`), or `navigationSucceeded` when all steps return `null`
    */
   async runFullPipeline(): Promise<PipelineStepResult> {
+    const tx = this.transaction;
     return await this.runSequentially([
-      ...(this.transaction.skipBlockingPhases ? [] : [() => this.runGuards()]),
+      () => (this.pulse.prepareStart(tx), null),
+      ...(tx.skipBlockingPhases ? [] : [() => this.runGuards()]),
       () => this.commitHistory(),
       () => this.runLoads(), //NOTE: here can be not needed view load, even with cache.dom - it is design desition
+      () => (this.pulse.prepareEnd(tx), null),
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
     ]) ?? { status: 'navigationSucceeded' };
@@ -125,23 +132,27 @@ export class NavigationTransactionPipeline {
    * @returns terminal result from loads/update (`error`, `redirect`, `cancelled`), or `navigationSucceeded`
    */
   async runUpdate(): Promise<PipelineStepResult> {
+    const tx = this.transaction;
     const stepResult = await this.runSequentially([
+      () => (this.pulse.prepareStart(tx), null),
       () => this.commitHistory(),
       () => this.runLoads(),
+      () => (this.pulse.prepareEnd(tx), null),
       () => this.runLifecyclePhase(PHASES.update),
     ]);
     if (stepResult) return stepResult;
 
-    if (!this.transaction.isActive()) {
+    if (!tx.isActive()) {
       return { status: 'cancelled' };
     }
 
-    this.transaction.commitNavigation();
+    this.pulse.commitStart(tx);
+    tx.commitNavigation();
     return { status: 'navigationSucceeded' };
   }
 
   /**
-   * History pulse: write URL (when needed), then notify URL-aligned chrome sync.
+   * History: write URL (when needed), then URL-aligned chrome sync.
    *
    * {@link AuraRoutingEngine.commitHistoryIfNeeded} →
    * {@link AuraRoutingEngine.notifyUrlAligned}
@@ -175,13 +186,15 @@ export class NavigationTransactionPipeline {
    * `activeChain` is the full target branch (`to.chain`) when present, otherwise enter routes.
    */
   async runLoads(): Promise<PipelineStepResult> {
-    const { to, transitionPlan } = this.transaction;
-    const enterRoutes = transitionPlan.enterRoutes;
-    const branch = to.chain ?? enterRoutes;
-    const resourceGraph = this.transaction.engine.resourceGraph;
-    const { error, data, view } = await resourceGraph.load(enterRoutes, { branch, transaction: this.transaction });
-    data && (this.transaction.dataSnapshot = data);
-    view && (this.transaction.viewSnapshot = view);
+    const tx = this.transaction;
+    const enterRoutes = tx.transitionPlan.enterRoutes;
+    const branch = tx.to.chain ?? enterRoutes;
+
+    this.pulse.loadBegin(tx, enterRoutes);
+    const { error, data, view } = await tx.engine.resourceGraph.load(enterRoutes, { branch, transaction: tx });
+    data && (tx.dataSnapshot = data);
+    view && (tx.viewSnapshot = view);
+    this.pulse.loadSettle(tx, enterRoutes, error, tx.to);
     return error ?? null;
   }
 
@@ -330,6 +343,7 @@ export class NavigationTransactionPipeline {
     }
 
     // Commit slice — must stay sync (no await between promote and view-success gate).
+    this.pulse.commitStart(this.transaction);
     for (const matchedRoute of this.transaction.transitionPlan.enterRoutes) {
       matchedRoute.route.commitStagedView?.();
     }

@@ -1,6 +1,8 @@
 import type { ViewGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
+import { EventBus } from '../../core/events';
+import { NavigationPulse } from '../../core/navigation/navigation-pulse';
 import { HookRegistry } from '../../core/hooks/registry';
 import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
 import { resourceKeys } from '../../core/match/resource-keys';
@@ -105,7 +107,10 @@ export function wireEngineViewGraph(
 
 export function createMockEngine(): AuraRoutingEngine {
   const hookRegistry = new HookRegistry();
+  const events = new EventBus();
   const engine = {
+    events,
+    pulse: new NavigationPulse(events),
     commitHistoryIfNeeded: jest.fn(),
     notifyUrlAligned: jest.fn(),
     commitNavigation: jest.fn(),
@@ -129,8 +134,11 @@ export function createCoordinatorMockHost(): NavigationHost & {
   finalizeError: jest.Mock;
 } {
   const hookRegistry = new HookRegistry();
+  const events = new EventBus();
   const host = {
     isRunning: true,
+    events,
+    pulse: new NavigationPulse(events),
     matcher: { matchPath: jest.fn(), buildMatchedRouteInfo: jest.fn() },
     getCommittedRoute: jest.fn().mockReturnValue(null),
     getMatchableNodes: jest.fn().mockReturnValue([]),

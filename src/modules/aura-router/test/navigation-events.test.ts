@@ -1,7 +1,13 @@
 import {
+  AURA_ROUTER_NAVIGATION_CANCEL,
+  AURA_ROUTER_NAVIGATION_COMPLETE,
   AURA_ROUTER_NAVIGATION_ERROR,
+  AURA_ROUTER_NAVIGATION_REDIRECT,
   AURA_ROUTER_NOT_FOUND,
+  dispatchNavigationCancel,
+  dispatchNavigationComplete,
   dispatchNavigationError,
+  dispatchNavigationRedirect,
   dispatchNotFound,
   type AuraRouterNavigationErrorEventDetail,
 } from '../core/navigation-events';
@@ -110,6 +116,45 @@ describe('navigation-events', () => {
       phase: 'guard',
       viewCommitted: false,
       code: 'GUARD_THROW',
+    });
+  });
+
+  it('dispatchNavigationComplete forwards id', () => {
+    const router = document.createElement('div');
+    const listener = jest.fn();
+
+    router.addEventListener(AURA_ROUTER_NAVIGATION_COMPLETE, listener);
+    dispatchNavigationComplete(router, 7);
+
+    expect(listener.mock.calls[0][0].detail).toEqual({ id: 7, router });
+  });
+
+  it('dispatchNavigationCancel forwards id and optional reason', () => {
+    const router = document.createElement('div');
+    const listener = jest.fn();
+
+    router.addEventListener(AURA_ROUTER_NAVIGATION_CANCEL, listener);
+    dispatchNavigationCancel(router, 3, 'superseded');
+
+    expect(listener.mock.calls[0][0].detail).toEqual({
+      id: 3,
+      router,
+      reason: 'superseded',
+    });
+  });
+
+  it('dispatchNavigationRedirect forwards id, url, replace', () => {
+    const router = document.createElement('div');
+    const listener = jest.fn();
+
+    router.addEventListener(AURA_ROUTER_NAVIGATION_REDIRECT, listener);
+    dispatchNavigationRedirect(router, 2, '/login', true);
+
+    expect(listener.mock.calls[0][0].detail).toEqual({
+      id: 2,
+      url: '/login',
+      replace: true,
+      router,
     });
   });
 });

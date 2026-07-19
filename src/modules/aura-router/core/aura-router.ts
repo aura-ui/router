@@ -34,6 +34,9 @@ import {
   dispatchNavigationError,
   dispatchNavigationHookError,
   dispatchNavigationCommitted,
+  dispatchNavigationComplete,
+  dispatchNavigationCancel,
+  dispatchNavigationRedirect,
   dispatchNavigationStart,
   dispatchNotFound,
   dispatchDataInvalidated,
@@ -75,9 +78,18 @@ export {
 export {
   AURA_ROUTER_NAVIGATION,
   AURA_ROUTER_NAVIGATION_START,
+  AURA_ROUTER_NAVIGATION_COMPLETE,
+  AURA_ROUTER_NAVIGATION_CANCEL,
+  AURA_ROUTER_NAVIGATION_REDIRECT,
   type AuraRouterNavigationEventDetail,
   type AuraRouterNavigationEvent,
   type AuraRouterNavigationStartEvent,
+  type AuraRouterNavigationCompleteEventDetail,
+  type AuraRouterNavigationCompleteEvent,
+  type AuraRouterNavigationCancelEventDetail,
+  type AuraRouterNavigationCancelEvent,
+  type AuraRouterNavigationRedirectEventDetail,
+  type AuraRouterNavigationRedirectEvent,
 } from './navigation-events';
 
 export {
@@ -245,7 +257,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
    * Host chrome adapter over the engine event stream.
    * Early: `url-aligned` → active links / `navigation-start`.
    * Late: `commit:end` → scroll, not-found, active links again, DOM `navigation`.
-   * Errors: `navigation:error` → DOM `navigation-error`.
+   * Terminal: `finish` / `cancel` / `redirect` / `error` → DOM counterparts.
    */
   private onEngineEvent(event: EngineEvent): void {
     if (event.type === 'navigation:url-aligned') {
@@ -255,14 +267,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         pathname: event.to.pathname,
       });
       this.syncNavState(event.to);
-      return;
-    }
-
-    if (event.type === 'navigation:error') {
-      if (event.failure.viewCommitted) {
-        this.notFound.hide();
-      }
-      dispatchNavigationError(this, event.failure);
       return;
     }
 
@@ -283,6 +287,29 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         pathname: event.to.pathname,
       });
       this.syncNavState(event.to);
+      return;
+    }
+
+    if (event.type === 'navigation:finish') {
+      dispatchNavigationComplete(this, event.id);
+      return;
+    }
+
+    if (event.type === 'navigation:cancel') {
+      dispatchNavigationCancel(this, event.id, event.reason);
+      return;
+    }
+
+    if (event.type === 'navigation:redirect') {
+      dispatchNavigationRedirect(this, event.id, event.url, event.replace);
+      return;
+    }
+
+    if (event.type === 'navigation:error') {
+      if (event.failure.viewCommitted) {
+        this.notFound.hide();
+      }
+      dispatchNavigationError(this, event.failure);
     }
   }
 

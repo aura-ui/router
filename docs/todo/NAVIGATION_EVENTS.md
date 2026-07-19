@@ -142,11 +142,11 @@ interface NavigationEventDetailBase {
 not-found                 ✓
 navigation-error          ✓
 navigation-hook-error     ✓
-navigation-start          ⬜ P0
-navigation-commit         ⬜ P0
-navigation-complete       ⬜ P0
-navigation-cancel         ⬜ P0
-navigation-redirect       ⬜ P0
+navigation-start          ✓  (bus url-aligned)
+navigation               ✓  (bus commit:end; не имя navigation-commit)
+navigation-complete       ✓
+navigation-cancel         ✓
+navigation-redirect       ✓
 ```
 
 **На `<aura-route>` (опционально):**

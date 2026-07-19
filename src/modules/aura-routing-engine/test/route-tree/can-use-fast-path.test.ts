@@ -243,4 +243,19 @@ describe('canUseViewCacheFastPath', () => {
       canUseViewCacheFastPath(plan, { hasCachedView: () => true }),
     ).toBe(false);
   });
+
+  it('blocks when view loader needs data', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { loader: 'component', content: 'x-user-card' },
+      cache: { dom: false, view: true, data: true },
+    });
+
+    expect(to.route.viewLoaderNeedsData).toBe(true);
+    expect(
+      canUseViewCacheFastPath(buildTransitionPlan(from, to), {
+        hasCachedView: () => true,
+      }),
+    ).toBe(false);
+  });
 });

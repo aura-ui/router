@@ -55,12 +55,17 @@ export interface TransitionMap extends TransitionPlanBase {
   /** `hasExitLeave || hasEnterGuard` — blocking leave→guard probe needed. */
   readonly needsBlockingWalk: boolean;
   /**
-   * Structural Tier-0 shape: one enter leaf, at most one exit, not update/remount.
+   * Structural fast-path shape: one enter leaf, at most one exit, not update/remount.
+   * Shared by sync ({@link canUseFastPath}) and cache ({@link ./can-use-fast-path}) predicates.
    */
   readonly isFlatSingleEnter: boolean;
   /**
-   * Tier-0 eligibility: {@link isFlatSingleEnter} plus sync inline content and no blocking
-   * leave/guard/ready/transition hooks on the enter/exit leaves.
+   * Sync fast-path eligibility: {@link isFlatSingleEnter} plus sync inline content and
+   * {@link ./can-use-fast-path!hasFastPathLifecycleGates} on the enter/exit leaves.
+   *
+   * Dom/view cache hits use the same pipeline body via
+   * {@link ./can-use-fast-path!canUseDomCacheFastPath} /
+   * {@link ./can-use-fast-path!canUseViewCacheFastPath}.
    */
   readonly canUseFastPath: boolean;
 }

@@ -216,6 +216,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return this.view?.loader === 'html';
   }
 
+  /**
+   * Whether the view loader declares `needsData` (DataGraph payload in the cache key).
+   * `undefined` when there is no view loader.
+   */
   get viewLoaderNeedsData() {
     if (!this.view?.loader) return undefined;
     const loader = AuraRouter.getLoader(this.view?.loader);

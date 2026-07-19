@@ -114,6 +114,14 @@ export function createTestRoute(
         return r.view?.loader === 'html';
       },
     },
+    viewLoaderNeedsData: {
+      get(): boolean | undefined {
+        const loader = route.view?.loader;
+        if (!loader) return undefined;
+        // Built-ins that set `static needsData = true` (see view-graph loaders).
+        return loader === 'component' || loader === 'import';
+      },
+    },
   });
 
   return route;

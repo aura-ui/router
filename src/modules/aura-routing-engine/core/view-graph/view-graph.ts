@@ -230,7 +230,9 @@ export class ViewGraph {
 
   /**
    * Read-only probe: long payload entry exists for `match.viewKey`.
-   * Caller decides policy (`cache.view`, layout, …) — this only checks the store.
+   * No LRU promote, no checkout. Caller decides policy (`cache.view`, layout, …).
+   *
+   * Used by {@link ../route-tree/can-use-fast-path!canUseViewCacheFastPath}.
    */
   hasCachedView(match: MatchedRouteInfo): boolean {
     const key = resolveViewCacheKey(match);

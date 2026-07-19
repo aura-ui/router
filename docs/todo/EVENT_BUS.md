@@ -1,8 +1,8 @@
 # EventBus — внутренний поток событий navigation / load
 
-> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — EB0–EB3 ✓ · EB4 (devtools) ✗  
-> **Сверка с кодом:** 2026-07-19 · **фаза 7** (EB1 processor + coordinator)  
-> **Связанные документы:** [FUTURE_PROOF_ENGINE.md §5](../FUTURE_PROOF_ENGINE.md), [IMPLEMENTATION_STEPS.md §фаза 7](../IMPLEMENTATION_STEPS.md), [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) (DOM public API)
+> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — EB0–EB3 + DOM load ✓ · осталось EB4  
+> **Сверка с кодом:** 2026-07-19 · **фаза 7**  
+> **Связанные документы:** [FUTURE_PROOF_ENGINE.md §5](../FUTURE_PROOF_ENGINE.md), [IMPLEMENTATION_STEPS.md §фаза 7](../IMPLEMENTATION_STEPS.md), [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) (DOM public API), [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md)
 
 ### Легенда
 
@@ -33,12 +33,12 @@
 | | Сейчас | Цель | Статус |
 |---|--------|------|--------|
 | Успешная навигация | Bus: `start` → … → `finish` · DOM: start → commit → complete | Полный P0 DOM | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| Ошибки | Bus `navigation:error` / `load:error` → DOM | Adapter в `onEngineEvent` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| Loads / activate | `load:*`, `node:activate/deactivate` на bus | То же (+ опц. DOM P1) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> bus |
+| Ошибки | Bus `navigation:error` → DOM `navigation-error` | Adapter в `onEngineEvent` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Loads / activate | `load:*` → DOM; `node:*` на bus | `node:*` DOM опц. | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> bus+load DOM · <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> node DOM |
 | Prefetch | `PrefetchIntentBus` (отдельная ось) | Не смешивать с navigation bus | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design |
 | Public DOM (P0 lifecycle) | start / commit / complete / cancel / redirect / error | — | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
-**Почему «~ частично»:** EB0–EB3 закрыты. Осталось **EB4** (devtools).
+**Почему «~ частично»:** nav bus + DOM P0/P1 load закрыты. Осталось — **EB4** (devtools); см. [§ Что осталось](#что-осталось--осталось).
 
 ---
 
@@ -69,20 +69,24 @@ Hooks остаются для **логики приложения**; EventBus �
 | Terminal errors | bus `navigation:error` → AuraRouter DOM | Config callback убран | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | DOM error CustomEvents | `aura-router/core/navigation-events.ts` | `not-found`, `navigation-error`, `navigation-hook-error` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `PrefetchIntentBus` | `prefetch/intent/bus.ts` | Только prefetch intent | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> ⊘ отдельно |
-| Тесты | `event-bus*.test.ts`, `commit-history.test.ts` | bus + pipeline + terminal | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Тесты | `event-bus*.test.ts`, `commit-history.test.ts`, `dom-bus-order.integration.test.ts` | bus + pipeline + DOM order | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `NavigationPulse` | `core/navigation/navigation-pulse.ts` | sole emit site | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 ## Что осталось — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
-| Событие / поверхность | Статус |
-|----------------------|--------|
-| In-engine lifecycle stream (EB0–EB2) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| DOM P0: `navigation-complete` / `navigation-cancel` / `navigation-redirect` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> EB3 |
-| `onNavigationError` config callback | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> убран — только bus |
-| Devtools timeline (dev / opt-in) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> EB4 |
+| # | Тема | Статус | Заметки |
+|---|------|--------|---------|
+| **EB4** | Devtools timeline (dev / opt-in) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | Подписчик на bus → timeline (job id, фазы, duration). См. [CACHE_DEVTOOLS.md](./CACHE_DEVTOOLS.md) |
+| **EB4** | `navigation:view-transition:*` (опц.) | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Только если появится VT wrapper — [VIEW_TRANSITIONS_API.md](./VIEW_TRANSITIONS_API.md) VT4 |
+| **DOM P1** | `load:start` / `load:end` / `load:error` → DOM | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `load-start` / `load-end` / `load-error` |
+| **DOM P1** | `node:activate` / `node:deactivate` → DOM | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Опц.; см. NAVIGATION_EVENTS P2 `route-activate` |
+| — | Живой pipeline → `navigation:redirect` DOM | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | Adapter ✓; на client redirect walk **collapse** до `run()`, поэтому terminal `redirect` в prod почти не эмитится (покрыто synthetic emit в integration) |
+
+**Закрыто (не в остатке):** EB0–EB3, DOM P0 lifecycle, DOM P1 `load:*`, callbacks убраны.
 
 ---
 
-## Целевой контракт — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ bus ✓</span> · DOM <span style="background:#f59e0b;color:#111;padding:2px 6px;border-radius:4px;font-weight:700">~</span>
+## Целевой контракт — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ bus ✓ · DOM P0 ✓</span>
 
 ### Класс EventBus — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
@@ -122,7 +126,7 @@ type EngineEvent =
 - Публичный API: `engine.events.subscribe(...)` → unsubscribe; зеркало `AuraRouter.events`.
 - `onNavigationCommitted` / `onNavigationError` **убраны** — chrome и ошибки через bus.
 
-### Опционально: мост в DOM — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span>
+### Мост в DOM (P0) — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
 In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 
@@ -131,6 +135,9 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | `navigation:url-aligned` | `navigation-start` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `navigation:commit:end` | `navigation` (не `navigation-commit`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `navigation:finish` / cancel / redirect | `navigation-complete` / cancel / redirect | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:error` | `navigation-error` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `load:start` / `end` / `error` | `load-start` / `load-end` / `load-error` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `node:*` | — | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> опц. |
 
 ---
 
@@ -155,7 +162,7 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 
 **Supersede / abort:** устаревший job получает `navigation:cancel` (не `finish`); новый — свой `navigation:start`.
 
-**Redirect-walk probe (`id: 0`):** нет `run()` → нет `start` / prepare / commit. Cancel/redirect с probe в bus не пишутся; terminal **error** → `pulse.settle` → `navigation:error` (thin-wrap + DOM).
+**Redirect-walk probe (`id: 0`):** нет `run()` → нет `start` / prepare / commit. Cancel/redirect с probe в bus не пишутся; terminal **error** → `pulse.settle` → `navigation:error` → DOM.
 
 ---
 
@@ -171,7 +178,7 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | `navigation:finish` | `navigation-complete` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `navigation:cancel` | `navigation-cancel` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `navigation:redirect` | `navigation-redirect` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `load:*` | опционально на router | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> P1 |
+| `load:start` / `load:end` / `load:error` | `load-start` / `load-end` / `load-error` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 Рекомендация: **bus — source of truth**; DOM dispatch — один adapter в `aura-router.ts` (start/commit/finish/cancel/redirect/error).
 
@@ -219,17 +226,17 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 
 ---
 
-## Критерии готовности — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ bus ✓ · DOM/devtools ✗</span>
+## Критерии готовности — <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ bus+DOM P0 ✓ · EB4 ✗</span>
 
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Подписчик получает упорядоченный поток на full pipeline: `start` → `prepare:*` → `load:*` → `commit:*` → `finish`.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Happy-path pulse: `url-aligned` → `commit:end` (full + fast + update).
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Fast path: subset без prepare/load + terminal `finish` / `cancel`.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Superseded job получает `cancel`, не `finish` (новый — свой `start`).
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `PrefetchIntentBus` и navigation `EventBus` не объединены.
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Существующие error callbacks и DOM error events работают без регрессий.
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DOM success: `navigation-start` + `navigation` через bus adapter.
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DOM P0: complete / cancel / redirect (EB3).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DOM errors + P0 lifecycle через bus adapter.
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Integration DOM+bus order (happy / cancel / redirect / fast).
 - [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Devtools timeline (EB4).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DOM P1: `load:*` → `load-start` / `load-end` / `load-error`.
 
 ---
 
@@ -245,6 +252,7 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | `src/modules/aura-routing-engine/core/prefetch/intent/bus.ts` | образец API | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `src/modules/aura-router/core/aura-router.ts` | `onEngineEvent` adapter | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> start+commit+finish/cancel/redirect+error |
 | `src/modules/aura-router/core/navigation-events.ts` | DOM bridge | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> P0 lifecycle |
+| `src/modules/aura-router/test/dom-bus-order.integration.test.ts` | EB3 DOM+bus order | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 ---
 
@@ -263,3 +271,5 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | 2026-07-19 | `onNavigationError` убран из engine config — prod только bus → AuraRouter DOM |
 | 2026-07-19 | EB3: DOM `navigation-complete` / `cancel` / `redirect` через `onEngineEvent` |
 | 2026-07-19 | EB3 integration: `dom-bus-order.integration.test.ts` (happy/cancel/redirect/fast) |
+| 2026-07-19 | Сверка doc: остаток = **EB4** + опц. **DOM P1 `load:*`**; EB3/P0 ✓; убраны устаревшие ✗ |
+| 2026-07-19 | DOM P1: `load-start` / `load-end` / `load-error` через `onEngineEvent` |

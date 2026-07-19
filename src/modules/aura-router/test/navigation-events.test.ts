@@ -1,9 +1,15 @@
 import {
+  AURA_ROUTER_LOAD_END,
+  AURA_ROUTER_LOAD_ERROR,
+  AURA_ROUTER_LOAD_START,
   AURA_ROUTER_NAVIGATION_CANCEL,
   AURA_ROUTER_NAVIGATION_COMPLETE,
   AURA_ROUTER_NAVIGATION_ERROR,
   AURA_ROUTER_NAVIGATION_REDIRECT,
   AURA_ROUTER_NOT_FOUND,
+  dispatchLoadEnd,
+  dispatchLoadError,
+  dispatchLoadStart,
   dispatchNavigationCancel,
   dispatchNavigationComplete,
   dispatchNavigationError,
@@ -154,6 +160,47 @@ describe('navigation-events', () => {
       id: 2,
       url: '/login',
       replace: true,
+      router,
+    });
+  });
+
+  it('dispatchLoadStart / End forward id, nodeId, pattern', () => {
+    const router = document.createElement('div');
+    const start = jest.fn();
+    const end = jest.fn();
+
+    router.addEventListener(AURA_ROUTER_LOAD_START, start);
+    router.addEventListener(AURA_ROUTER_LOAD_END, end);
+    dispatchLoadStart(router, 1, '/about', '/about');
+    dispatchLoadEnd(router, 1, '/about', '/about');
+
+    expect(start.mock.calls[0]![0].detail).toEqual({
+      id: 1,
+      nodeId: '/about',
+      pattern: '/about',
+      router,
+    });
+    expect(end.mock.calls[0]![0].detail).toEqual({
+      id: 1,
+      nodeId: '/about',
+      pattern: '/about',
+      router,
+    });
+  });
+
+  it('dispatchLoadError forwards error', () => {
+    const router = document.createElement('div');
+    const listener = jest.fn();
+    const error = new Error('load failed');
+
+    router.addEventListener(AURA_ROUTER_LOAD_ERROR, listener);
+    dispatchLoadError(router, 4, '/x', '/x', error);
+
+    expect(listener.mock.calls[0]![0].detail).toEqual({
+      id: 4,
+      nodeId: '/x',
+      pattern: '/x',
+      error,
       router,
     });
   });

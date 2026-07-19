@@ -1,4 +1,5 @@
 import { bind } from '../../../aura-utils/decorators/bind';
+import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import type { PrefetchMode } from '../prefetch/types';
 
 import { findRouterLink, readRouterLinkFromEvent, resolveLinkHref } from './link-resolve';
@@ -29,7 +30,7 @@ export class LinkPrefetchIntentTracker {
 
   constructor(config: LinkPrefetchIntentTrackerConfig) {
     this.handlers = config.handlers;
-    this.linksSelector = config.linksSelector ?? '[data-router-link]';
+    this.linksSelector = config.linksSelector ?? ENGINE_DEFAULTS.linksSelector;
     this.resolveMode = config.resolveMode;
   }
 

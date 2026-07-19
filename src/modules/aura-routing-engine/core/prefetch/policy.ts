@@ -1,3 +1,4 @@
+import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import {
   isHashOnlyChange,
   resolveDocumentHref,
@@ -10,20 +11,27 @@ import type {
   PrefetchSkipReason,
 } from './types';
 
-export const DEFAULT_INTENT_DELAY_MS = 50;
-export const DEFAULT_STALE_TIME_MS = 30_000;
-export const DEFAULT_MAX_AGE_MS = 30_000;
 export const VIEW_PREFETCH_MIN_CONFIDENCE = 0.8;
 export const DATA_PREFETCH_MIN_CONFIDENCE = 0.3;
+
+/** PrefetchConfig with ENGINE_DEFAULTS.prefetch filled in. */
+export type ResolvedPrefetchConfig = PrefetchConfig & {
+  defaultMode: PrefetchMode;
+  intentDelayMs: number;
+  viewportDelayMs: number;
+  tapDelayMs: number;
+  staleTimeMs: number;
+  maxAgeMs: number;
+};
 
 /**
  * Centralized prefetch rules: URL normalization, mode delays, confidence, and skip decisions.
  */
 export class PrefetchPolicy {
-  private readonly config: PrefetchConfig;
+  private readonly config: ResolvedPrefetchConfig;
 
   constructor(config: PrefetchConfig = {}) {
-    this.config = config;
+    this.config = { ...ENGINE_DEFAULTS.prefetch, ...config };
   }
 
   normalizeHref(href: string): string | null {
@@ -38,11 +46,11 @@ export class PrefetchPolicy {
     switch (mode) {
       case 'intent':
       case 'render':
-        return this.config.intentDelayMs ?? DEFAULT_INTENT_DELAY_MS;
+        return this.config.intentDelayMs;
       case 'viewport':
-        return this.config.viewportDelayMs ?? 0;
+        return this.config.viewportDelayMs;
       case 'tap':
-        return this.config.tapDelayMs ?? 0;
+        return this.config.tapDelayMs;
       case 'manual':
       case 'none':
         return 0;
@@ -100,8 +108,10 @@ export class PrefetchPolicy {
       return 'hash-only';
     }
 
-    const staleTime = this.config.staleTimeMs ?? DEFAULT_STALE_TIME_MS;
-    if (lastPrefetchAt !== undefined && Date.now() - lastPrefetchAt < staleTime) {
+    if (
+      lastPrefetchAt !== undefined &&
+      Date.now() - lastPrefetchAt < this.config.staleTimeMs
+    ) {
       return 'same-route-fresh';
     }
 

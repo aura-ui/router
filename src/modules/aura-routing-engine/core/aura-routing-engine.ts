@@ -6,14 +6,8 @@ import { splitAppHref } from '../../aura-utils/misc/url';
 
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import {
-  ViewGraph,
-  type LoaderRegistry,
-  type ViewGraphCacheOptions,
-} from './view-graph';
-import {
   FailedNavigation,
   type CompleteFailureDeps,
-  type NavigationHookErrorDetail,
   finalizeFailure,
 } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
@@ -32,7 +26,6 @@ import type { NavigationHost } from './navigation/navigation-host';
 import {
   applyTransactionHistory,
   finalizePreMatchFailureNavigation,
-  type NavigationCommittedContext,
 } from './navigation/navigation-finalize';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
@@ -49,56 +42,36 @@ import { syncChainHref } from './route-tree/matched-chain';
 import { LinkNavigationTracker } from './user-actions/link-navigation';
 import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
 import type { DataGraph } from './data-graph';
+import type { ViewGraph } from './view-graph';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import { onAbort } from '../../aura-utils/async/on-abort';
 import { ResourceGraph } from './resource-graph';
+import {
+  resolveAuraRoutingEngineConfig,
+  type AuraRoutingEngineConfig,
+  type ResolvedAuraRoutingEngineConfig,
+} from './aura-routing-engine-config';
+
+export type {
+  AuraRoutingEngineConfig,
+  ResolvedAuraRoutingEngineConfig,
+} from './aura-routing-engine-config';
+export {
+  ENGINE_DEFAULTS,
+  resolveAuraRoutingEngineConfig,
+} from './aura-routing-engine-config';
 
 /** Engine fallback recovery when match returns null (no `path="*"` route). */
 export type NotFoundFallbackHandler = (href: string) => void;
-
-export interface AuraRoutingEngineConfig {
-  /** Selector for in-app links to intercept. Default: `'[data-router-link]'`. */
-  linksSelector?: string;
-  /** Use hash-based routing. Default: `false`. */
-  hash?: boolean;
-  /** После `pushState` / `replaceState` (post-guard, до load/render). */
-  onNavigationHistoryCommitted?: (ctx: NavigationCommittedContext) => void;
-  /** После view commit и обновления `prev` (в т.ч. catch-all). */
-  onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
-  /** Hash-only navigation on the same path (`/page` → `/page#tab`); history committed, no render. */
-  onAnchorNavigation?: (href: string) => void;
-  /** Matched-route navigation failure (after processor). */
-  onNavigationError?: (failure: FailedNavigation) => void;
-  /** Error hook (`error="…"`) threw while handling a navigation failure. */
-  onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
-  /**
-   * No route match (`NOT_FOUND`). Return `false` to skip fallback recovery UI.
-   * DOM `not-found` events are typically wired here by {@link AuraRouter}.
-   */
-  onNotFound?: (failure: FailedNavigation) => void | boolean;
-  /** Подмена history-слоя (по умолчанию BrowserHistoryProvider). */
-  provider?: NavigationProvider;
-  /**
-   * Override {@link ResourceGraph}-owned {@link ViewGraph} (advanced tests).
-   * Prefer {@link viewRegistry} — injected graphs must share ResourceGraph’s handoff.
-   */
-  viewGraph?: ViewGraph;
-  /** Custom loader registry for the ResourceGraph-created {@link ViewGraph}. */
-  viewRegistry?: LoaderRegistry;
-  /** Options for the created `cache.view` store (ignored when `viewGraph` is passed). */
-  viewCache?: ViewGraphCacheOptions;
-  /** Link-driven prefetch; `false` disables. */
-  prefetch?: false | PrefetchConfig;
-}
 
 export class AuraRoutingEngine implements NavigationHost {
   private readonly registry = new AuraRoutingRouteRegistry();
   readonly matcher = new AuraRoutingUrlMatcher();
   private readonly provider: NavigationProvider;
-  private readonly config: AuraRoutingEngineConfig;
+  private readonly config: ResolvedAuraRoutingEngineConfig;
 
   public isRunning = false;
   private prev: MatchedRouteInfo | null;
@@ -133,18 +106,20 @@ export class AuraRoutingEngine implements NavigationHost {
     config: AuraRoutingEngineConfig = {},
   ) {
     this.router = router;
-    this.config = config;
+    this.config = resolveAuraRoutingEngineConfig(config);
 
     this.hooksRegistry = defaultHookRegistry;
 
     this.resourceGraph = new ResourceGraph({
       hooks: this.hooksRegistry,
-      viewGraph: config.viewGraph,
-      viewRegistry: config.viewRegistry,
-      viewCacheOptions: config.viewCache,
+      viewGraph: this.config.viewGraph,
+      viewRegistry: this.config.viewRegistry,
+      viewCacheOptions: this.config.viewCache,
+      dataCacheOptions: this.config.dataCache,
+      sharedBufferOptions: this.config.sharedBufferOptions,
     });
 
-    this.provider = config.provider ?? new BrowserHistoryProvider();
+    this.provider = this.config.provider ?? new BrowserHistoryProvider();
 
     this.navigationCoordinator = new NavigationCoordinator(this);
 
@@ -163,11 +138,11 @@ export class AuraRoutingEngine implements NavigationHost {
     this.provider.onNavigation(onNavigation);
 
     this.linkNavigation = new LinkNavigationTracker({
-      linksSelector: config.linksSelector,
+      linksSelector: this.config.linksSelector,
     });
     this.linkNavigation.onNavigation(onNavigation);
 
-    this.initPrefetch(config);
+    this.initPrefetch();
   }
 
   preload(href: string, options?: PrefetchOptions): Promise<void> {
@@ -412,17 +387,15 @@ export class AuraRoutingEngine implements NavigationHost {
     this.notFoundHandler = callback;
   }
 
-  private initPrefetch(config: AuraRoutingEngineConfig): void {
-    if (config.prefetch === false) return;
+  private initPrefetch(): void {
+    if (this.config.prefetch === false) return;
 
     const prefetchConfig: PrefetchConfig = {
-      defaultMode: 'intent',
-      ...config.prefetch,
+      ...this.config.prefetch,
       currentHref: () => this.provider.currentHref,
     };
 
     const prefetchPolicy = new PrefetchPolicy(prefetchConfig);
-
 
     const runSpeculativePrepare = async (
       plan: PrefetchPlan,
@@ -466,7 +439,7 @@ export class AuraRoutingEngine implements NavigationHost {
         runSpeculativePrepare,
       },
       prefetchConfig,
-      { linksSelector: config.linksSelector },
+      { linksSelector: this.config.linksSelector },
     );
   }
 

@@ -1,6 +1,7 @@
 import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
+import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import { createViewLoadError } from '../failure';
 import { invalidateRouterCache } from '../invalidate-router-cache';
 import { viewKey, viewKeyWithData } from '../match/resource-keys';
@@ -17,9 +18,6 @@ import type { PipelineStepResult } from '../navigation/types';
 import type { ResolvedView } from '../route-tree/resolved-view';
 import type { LoaderRegistry } from './registry';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
-
-/** Default `cache.view` payload TTL — 12 hours. */
-const VIEW_CACHE_GC_TIME = 43_200_000;
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
@@ -74,10 +72,6 @@ export type ViewGraphLoadViewsResult = {
 /** Prefetch scheduling fields on {@link ViewLoadOptions}. */
 export type ViewPrefetchOptions = Pick<ViewLoadOptions, 'concurrency' | 'order'>;
 
-const DEFAULT_PREFETCH = {
-  concurrency: 3,
-  order: 'root-first' as const,
-};
 /** Soft skip — prefetch cancel / no descriptor. */
 const SKIP_RESULT: ViewGraphLoadResult = {};
 /** Navigation interest dropped before settle. */
@@ -114,11 +108,10 @@ export class ViewGraph {
   constructor(sharedBuffer: HandoffCache, deps: ViewGraphDeps = {}) {
     this.registry = deps.registry ?? defaultLoaderRegistry;
     this.sharedBuffer = sharedBuffer;
-    const merged = { ...ViewGraph.defaultCacheOptions, ...deps.cache };
     this.cache = new AuraResolvableCache({
-      max: merged.max ?? 50,
-      staleTime: merged.staleTime,
-      gcTime: merged.gcTime ?? VIEW_CACHE_GC_TIME,
+      ...ENGINE_DEFAULTS.viewCache,
+      ...ViewGraph.defaultCacheOptions,
+      ...deps.cache,
       gcSweepInterval: false,
     });
   }
@@ -164,8 +157,8 @@ export class ViewGraph {
     signal: AbortSignal,
     options?: ViewLoadOptions,
   ): Promise<void> {
-    const concurrency = options?.concurrency ?? DEFAULT_PREFETCH.concurrency;
-    const order = options?.order ?? DEFAULT_PREFETCH.order;
+    const concurrency = options?.concurrency ?? 3;
+    const order = options?.order ?? 'root-first';
     const ordered = order === 'leaf-first' ? [...matches].reverse() : matches;
     return runConcurrent(
       ordered,

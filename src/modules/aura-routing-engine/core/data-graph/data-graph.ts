@@ -1,7 +1,7 @@
 import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
-import { DEFAULT_GC_TIME } from '../../../aura-cache-store/core';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { promiseWithResolvers } from '../../../aura-utils/async/promises';
+import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import { resolveHookNames } from '../hooks/resolve-hook-names';
 import { invalidateRouterCache } from '../invalidate-router-cache';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
@@ -19,9 +19,6 @@ import type {
   HandoffWorkRegistry,
 } from '../resource-graph/handoff-work-registry';
 import type { RouteLifecycleContext } from '../route/types';
-
-/** Default `cache.data` payload TTL — cache-store {@link DEFAULT_GC_TIME} (5 minutes). */
-const DATA_CACHE_GC_TIME = DEFAULT_GC_TIME;
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
@@ -123,11 +120,10 @@ export class DataGraph {
   constructor(sharedBuffer: HandoffCache, deps: DataGraphDeps) {
     this.hooks = deps.hooks;
     this.sharedBuffer = sharedBuffer;
-    const merged = { ...DataGraph.defaultCacheOptions, ...deps.cache };
     this.cache = new AuraResolvableCache({
-      max: merged.max,
-      staleTime: merged.staleTime ?? 30_000,
-      gcTime: merged.gcTime ?? DATA_CACHE_GC_TIME,
+      ...ENGINE_DEFAULTS.dataCache,
+      ...DataGraph.defaultCacheOptions,
+      ...deps.cache,
       gcSweepInterval: false,
     });
   }

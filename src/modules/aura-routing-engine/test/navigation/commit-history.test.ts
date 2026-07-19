@@ -261,7 +261,7 @@ describe('AuraRoutingEngine.notifyUrlAligned', () => {
 });
 
 describe('AuraRoutingEngine finalize after early history', () => {
-  it('finalizeCancelled preserves URL on push when history was committed', () => {
+  it('applyTerminalOutcome(cancelled) preserves URL on push when history was committed', () => {
     const provider = new FakeHistoryProvider('/from');
     const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
     const tx = new NavigationTransaction(
@@ -279,7 +279,7 @@ describe('AuraRoutingEngine finalize after early history', () => {
     );
     engine.commitHistoryIfNeeded(tx);
 
-    engine.finalizeCancelled(tx);
+    engine.applyTerminalOutcome({ status: 'cancelled' }, tx);
 
     expect(provider.currentHref).toBe('/to');
   });

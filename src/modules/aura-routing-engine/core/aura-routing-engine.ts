@@ -1,7 +1,7 @@
 import { isHashOnlyChange, resolveDocumentHrefParts } from './link-active/app-href';
 import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import { FailedNavigation, type CompleteFailureDeps, finalizeFailure } from './failure';
+import { FailedNavigation, type CompleteFailureDeps } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
   HistoryAction,
@@ -15,10 +15,11 @@ import {
 } from './match/url-matcher';
 import { NavigationCoordinator } from './navigation/navigation-coordinator';
 import type { NavigationHost } from './navigation/navigation-host';
+import { applyTransactionHistory } from './navigation/navigation-finalize';
 import {
-  applyTransactionHistory,
-  finalizePreMatchFailureNavigation,
-} from './navigation/navigation-finalize';
+  applyNavigationOutcome,
+  applyPreMatchFailure,
+} from './navigation/navigation-outcome-handler';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
 import {
@@ -302,16 +303,13 @@ export class AuraRoutingEngine implements NavigationHost {
       router: this.router,
     });
     const failure = FailedNavigation.notFound(requestedHref, this.prev, action);
-    this.applyFinalizeEffects(
-      finalizePreMatchFailureNavigation(
-        failure,
-        action,
-        requestedHref,
-        this.prev?.href ?? null,
-        options,
-        this.provider,
-        this.failureDeps(),
-      ),
+    applyPreMatchFailure(
+      failure,
+      action,
+      requestedHref,
+      this.prev?.href ?? null,
+      options,
+      this.outcomeContext(),
     );
   }
 
@@ -323,16 +321,13 @@ export class AuraRoutingEngine implements NavigationHost {
   ): void {
     const failure = FailedNavigation.redirectError(code, href, this.prev, action);
     this.pulse.settle(0, failure.toResult());
-    this.applyFinalizeEffects(
-      finalizePreMatchFailureNavigation(
-        failure,
-        action,
-        href,
-        this.prev?.href ?? null,
-        options,
-        this.provider,
-        this.failureDeps(),
-      ),
+    applyPreMatchFailure(
+      failure,
+      action,
+      href,
+      this.prev?.href ?? null,
+      options,
+      this.outcomeContext(),
     );
   }
 
@@ -350,18 +345,10 @@ export class AuraRoutingEngine implements NavigationHost {
   ): void {
     if (!this.isRunning) return;
 
-    if (result.status === 'cancelled') {
-      this.finalizeCancelled(probe);
-      return;
-    }
-    if (result.status === 'redirect') {
-      this.applyRedirect(result, probe);
-      return;
-    }
     if (result.status === 'error') {
       this.pulse.settle(probe.transactionId, result);
-      this.finalizeError(result, probe);
     }
+    this.applyTerminalOutcome(result, probe);
   }
 
   private failureDeps(): CompleteFailureDeps {
@@ -371,10 +358,17 @@ export class AuraRoutingEngine implements NavigationHost {
     };
   }
 
-  private applyFinalizeEffects(effects: { setPrev?: MatchedRouteInfo | null }): void {
-    if (effects.setPrev !== undefined) {
-      this.prev = effects.setPrev;
-    }
+  private outcomeContext() {
+    return {
+      provider: this.provider,
+      failureDeps: this.failureDeps(),
+      setPrev: (prev: MatchedRouteInfo | null) => {
+        this.prev = prev;
+      },
+      navigateTo: (url: string, action: HistoryAction, options: NavigateHistoryOptions) => {
+        void this.navigateTo(url, action, options);
+      },
+    };
   }
 
   /** Hash-only на том же path — без processor. */
@@ -500,52 +494,9 @@ export class AuraRoutingEngine implements NavigationHost {
     this.prev = transition.to;
   }
 
-  applyRedirect(result: Extract<TransactionResult, { status: 'redirect' }>, tx: NavigationTransaction): void {
-    // Guard redirect: history ещё не коммитили. Load redirect после commit: replace по умолчанию.
-    const replace = result.replace ?? (tx.historyCommitted || tx.action === 'pop');
-    void this.navigateTo(result.url, replace ? 'replace' : 'push', {
-      replace,
-      syncHistory: true,
-    });
-  }
-
-  finalizeError(result: Extract<TransactionResult, { status: 'error' }>, tx: NavigationTransaction) {
-    const outcome = finalizeFailure(result.failure, this.failureDeps());
-
-    if (this.shouldApplyTerminalHistoryPolicy(tx)) {
-      applyTransactionHistory(
-        result,
-        tx.action,
-        tx.href,
-        tx.from?.href ?? null,
-        tx.historyOptions,
-        this.provider,
-      );
-    }
-
-    if (outcome.setPrev !== undefined) {
-      this.prev = outcome.setPrev;
-    }
-  }
-
-  finalizeCancelled(tx: NavigationTransaction): void {
-    if (!this.shouldApplyTerminalHistoryPolicy(tx)) {
-      return;
-    }
-
-    applyTransactionHistory(
-      { status: 'cancelled' },
-      tx.action,
-      tx.href,
-      tx.from?.href ?? null,
-      tx.historyOptions,
-      this.provider,
-    );
-  }
-
-  /** Pop always; push/replace only before post-load history commit. */
-  private shouldApplyTerminalHistoryPolicy(tx: NavigationTransaction): boolean {
-    return !tx.historyCommitted || tx.action === 'pop';
+  /** Terminal apply (history / `prev` / redirect). Observe via {@link NavigationPulse.settle}. */
+  applyTerminalOutcome(result: TransactionResult, tx: NavigationTransaction): void {
+    applyNavigationOutcome(result, tx, this.outcomeContext());
   }
 
   reportNavigationHookError(hookError: unknown, parent: FailedNavigation): void {
@@ -555,16 +506,4 @@ export class AuraRoutingEngine implements NavigationHost {
       parent,
     });
   }
-
-  /*
-  applyOutcome(result: TransactionResult, tx: NavigationTransaction): void {
-    switch (result?.status) {
-      case undefined:
-      case 'navigationSucceeded': return;
-      case 'redirect': /!* navigateTo *!/ break;
-      case 'cancelled': /!* history policy *!/ break;
-      case 'error': /!* finalizeFailure + history + prev *!/ break;
-    }
-  }
-*/
 }

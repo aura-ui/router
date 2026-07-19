@@ -225,7 +225,7 @@ export class NavigationCoordinator {
     }
   }
 
-  /** {@link NavigationPulse.settle}, then host finalize / redirect / error. */
+  /** Observe ({@link NavigationPulse.settle}), then apply terminal side effects. */
   private processResult(result: TransactionResult, transaction: NavigationTransaction): void {
     this.host.engine.pulse.settle(transaction.transactionId, result);
 
@@ -236,17 +236,7 @@ export class NavigationCoordinator {
       return;
     }
 
-    if (result.status === 'cancelled') {
-      this.host.finalizeCancelled(transaction);
-      return;
-    }
-    if (result.status === 'redirect') {
-      this.host.applyRedirect(result, transaction);
-      return;
-    }
-    if (result.status === 'error') {
-      this.host.finalizeError(result, transaction);
-    }
+    this.host.applyTerminalOutcome(result, transaction);
   }
 
   private plan(options: NavigationTransactionOptions): NavigationPlan {

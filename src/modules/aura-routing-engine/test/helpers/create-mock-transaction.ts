@@ -114,7 +114,7 @@ export function createMockEngine(): AuraRoutingEngine {
     commitHistoryIfNeeded: jest.fn(),
     notifyUrlAligned: jest.fn(),
     commitNavigation: jest.fn(),
-    finalizeCancelled: jest.fn(),
+    applyTerminalOutcome: jest.fn(),
     resourceGraph: createTestResourceGraph({ hooks: hookRegistry }),
     get dataGraph() {
       return this.resourceGraph.dataGraph;
@@ -129,9 +129,7 @@ export function createMockEngine(): AuraRoutingEngine {
 }
 
 export function createCoordinatorMockHost(): NavigationHost & {
-  finalizeCancelled: jest.Mock;
-  applyRedirect: jest.Mock;
-  finalizeError: jest.Mock;
+  applyTerminalOutcome: jest.Mock;
 } {
   const hookRegistry = new HookRegistry();
   const events = new EventBus();
@@ -147,9 +145,7 @@ export function createCoordinatorMockHost(): NavigationHost & {
     handleUnmatchedNavigation: jest.fn(),
     handleRedirectError: jest.fn(),
     commitNavigation: jest.fn(),
-    finalizeCancelled: jest.fn(),
-    applyRedirect: jest.fn(),
-    finalizeError: jest.fn(),
+    applyTerminalOutcome: jest.fn(),
     resourceGraph: createTestResourceGraph({ hooks: hookRegistry }),
     get dataGraph() {
       return this.resourceGraph.dataGraph;
@@ -164,9 +160,7 @@ export function createCoordinatorMockHost(): NavigationHost & {
   };
   host.engine = host as unknown as AuraRoutingEngine;
   return host as NavigationHost & {
-    finalizeCancelled: jest.Mock;
-    applyRedirect: jest.Mock;
-    finalizeError: jest.Mock;
+    applyTerminalOutcome: jest.Mock;
   };
 }
 

@@ -33,7 +33,7 @@
 | [TRANSITION_ANIMATION_TESTS.md](./TRANSITION_ANIMATION_TESTS.md) | **TODO:** тесты CSS/GSAP/Web Animations — gap vs текущие transition integration (phases + DOM-слои) |
 | [TRANSITION_PRESENTATION_CORE.md](./TRANSITION_PRESENTATION_CORE.md) | **TODO:** общие CSS + presentation-state для crossfade в core (сейчас reference в demo) |
 | [VIEW_TRANSITIONS_API.md](./VIEW_TRANSITIONS_API.md) | View Transitions API (`startViewTransition`) — engine-обёртка, фаза 7 |
-| [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md) | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> Transaction/Coordinator/EventBus ✓ · OutcomeHandler ✗ · узкие deps ⊘ |
+| [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md) | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> Transaction/Coordinator/EventBus/terminal apply ✓ · failure/finalize cleanup · узкие deps ⊘ |
 | [NAVIGATION_EVENTS.md](./NAVIGATION_EVENTS.md) | DOM events: что есть (`not-found`, errors, `navigation-start`/`navigation`) и roadmap (cancel, …) |
 | [OPTIMISTIC_URL.md](./OPTIMISTIC_URL.md) | **✅ engine done** (resolve-first); RFC открыт: demo/e2e, stage-until-commit alternative |
 | [RENDERER_ABSTRACTION.md](./RENDERER_ABSTRACTION.md) | **Фаза 6:** engine-level `Renderer.renderNode()` + централизованный `dispose`; ViewHandle ✓, engine Renderer ✗ |

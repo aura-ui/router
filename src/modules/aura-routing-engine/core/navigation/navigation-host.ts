@@ -40,15 +40,12 @@ export interface NavigationHost {
     options: NavigateHistoryOptions,
   ): void;
 
-  finalizeCancelled(transaction: NavigationTransaction): void;
-
-  applyRedirect(
-    result: Extract<TransactionResult, { status: 'redirect' }>,
-    transaction: NavigationTransaction,
-  ): void;
-
-  finalizeError(
-    result: Extract<TransactionResult, { status: 'error' }>,
+  /**
+   * Apply terminal side effects for a {@link TransactionResult}
+   * (history / `prev` / redirect). Observe via {@link NavigationPulse.settle} separately.
+   */
+  applyTerminalOutcome(
+    result: TransactionResult,
     transaction: NavigationTransaction,
   ): void;
 }

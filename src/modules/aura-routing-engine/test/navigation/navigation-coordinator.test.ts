@@ -1,4 +1,4 @@
-import { FailedNavigation } from '../../core/failure';
+﻿import { FailedNavigation } from '../../core/failure';
 
 import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
 
@@ -76,7 +76,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-  describe('planning — noop', () => {
+  describe('planning вЂ” noop', () => {
 
     it('skips when the committed route is already active', async () => {
 
@@ -172,7 +172,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-  describe('planning — cancel-pending', () => {
+  describe('planning вЂ” cancel-pending', () => {
 
     it('aborts in-flight navigation without starting a new transaction', async () => {
 
@@ -218,7 +218,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.finalizeCancelled).toHaveBeenCalledTimes(1);
+      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(1);
 
       expect(coordinator.hasOpenNavigation('/gallery')).toBe(false);
 
@@ -262,7 +262,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-  describe('planning — run', () => {
+  describe('planning вЂ” run', () => {
 
     it('skips when the committed route declares update hooks', async () => {
 
@@ -356,7 +356,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.finalizeCancelled).toHaveBeenCalledTimes(1);
+      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(1);
 
       expect(coordinator.activeTransaction).toBeNull();
 
@@ -548,17 +548,13 @@ describe('NavigationCoordinator', () => {
 
       expect(coordinator.activeTransaction).toBeNull();
 
-      expect(host.finalizeCancelled).not.toHaveBeenCalled();
-
-      expect(host.applyRedirect).not.toHaveBeenCalled();
-
-      expect(host.finalizeError).not.toHaveBeenCalled();
+      expect(host.applyTerminalOutcome).not.toHaveBeenCalled();
 
     });
 
 
 
-    it('calls finalizeCancelled on cancelled result', async () => {
+    it('calls applyTerminalOutcome on cancelled result', async () => {
 
       const host = createCoordinatorMockHost();
 
@@ -582,9 +578,11 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.finalizeCancelled).toHaveBeenCalledTimes(1);
+      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(1);
 
-      expect(host.finalizeCancelled).toHaveBeenCalledWith(
+      expect(host.applyTerminalOutcome).toHaveBeenCalledWith(
+
+        { status: 'cancelled' },
 
         expect.objectContaining({ href: '/about' }),
 
@@ -596,7 +594,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-    it('calls applyRedirect on redirect result', async () => {
+    it('calls applyTerminalOutcome on redirect result', async () => {
 
       const host = createCoordinatorMockHost();
 
@@ -618,9 +616,9 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.applyRedirect).toHaveBeenCalledTimes(1);
+      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(1);
 
-      expect(host.applyRedirect).toHaveBeenCalledWith(
+      expect(host.applyTerminalOutcome).toHaveBeenCalledWith(
 
         redirect,
 
@@ -632,7 +630,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-    it('calls finalizeError on error result', async () => {
+    it('calls applyTerminalOutcome on error result', async () => {
 
       const host = createCoordinatorMockHost();
 
@@ -660,9 +658,9 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.finalizeError).toHaveBeenCalledTimes(1);
+      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(1);
 
-      expect(host.finalizeError).toHaveBeenCalledWith(
+      expect(host.applyTerminalOutcome).toHaveBeenCalledWith(
 
         error,
 
@@ -694,11 +692,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.finalizeCancelled).not.toHaveBeenCalled();
-
-      expect(host.applyRedirect).not.toHaveBeenCalled();
-
-      expect(host.finalizeError).not.toHaveBeenCalled();
+      expect(host.applyTerminalOutcome).not.toHaveBeenCalled();
 
     });
 
@@ -1083,7 +1077,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.finalizeCancelled).not.toHaveBeenCalled();
+      expect(host.applyTerminalOutcome).not.toHaveBeenCalled();
 
       expect(coordinator.activeTransaction).toBeNull();
 

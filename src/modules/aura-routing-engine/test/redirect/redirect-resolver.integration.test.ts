@@ -36,13 +36,14 @@ describe('RedirectResolver integration', () => {
     engine.replaceRoutes(collectRoutesFromDom(dashboard, login));
     provider.start();
 
-    const applyRedirectSpy = jest.spyOn(engine, 'applyRedirect');
+    const applySpy = jest.spyOn(engine, 'applyTerminalOutcome');
 
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]!.to.pattern).toBe('/login');
-    expect(applyRedirectSpy).not.toHaveBeenCalled();
+    // Collapse runs one leaf pipeline — no post-pipeline redirect apply.
+    expect(applySpy).not.toHaveBeenCalled();
   });
 
   it('runs leave on each blocking walk hop during guard redirect chain', async () => {

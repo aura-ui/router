@@ -13,15 +13,9 @@
 import { NavigationTransaction } from './navigation-transaction';
 import { PHASES } from './lifecycle-phases';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import {
-  createBranchResolveContext,
-  resolveEnterBranch,
-} from '../view-mount/branch-resolver';
+import { createBranchResolveContext } from '../view-mount/branch-resolver';
 import { mountEnterBranch } from '../view-mount/branch-mount';
-import {
-  isRenderError,
-  runViewCommit,
-} from '../view-mount/view-commit-render';
+import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { TransitionMap } from '../route-tree/transition-plan';
@@ -167,18 +161,12 @@ export class NavigationTransactionPipeline {
    */
   async runLoads(): Promise<PipelineStepResult> {
     const { to, transitionPlan } = this.transaction;
-    const branch = to.chain ?? transitionPlan.enterRoutes;
-    const dataGraph = this.transaction.engine.dataGraph;
-    // todo should be executed resource Graph to load all content in parallel - data + html + chunks
-    const { error, data } = await dataGraph.load(
-      this.transaction.transitionPlan.enterRoutes,
-      {
-        branch,
-        transaction: this.transaction,
-        mode: 'navigation',
-      },
-    );
+    const enterRoutes = transitionPlan.enterRoutes;
+    const branch = to.chain ?? enterRoutes;
+    const resourceGraph = this.transaction.engine.resourceGraph;
+    const { error, data, view } = await resourceGraph.load(enterRoutes, { branch, transaction: this.transaction });
     data && (this.transaction.dataSnapshot = data);
+    view && (this.transaction.viewSnapshot = view);
     return error ?? null;
   }
 
@@ -186,7 +174,6 @@ export class NavigationTransactionPipeline {
     //todo Лишний loadView при DomCache hit
     return this.runSequentially([
       () => this.runLoads(),
-      () => this.prepareEnterBranch(),
     ]);
   }
 
@@ -319,46 +306,14 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Atomic render — phase 1: parallel content resolve (no DOM writes).
-   *
-   * Stores resolved payloads on `transaction.preResolvedBranchContents` for
-   * {@link commitEnterBranchToDom}. Render errors trigger {@link failRender}.
-   */
-  private async prepareEnterBranch(): Promise<PipelineStepResult> {
-    const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const resolveContext = createBranchResolveContext({
-      signal: this.transaction.signal,
-      dataSnapshot: this.transaction.dataSnapshot,
-      isActive: () => this.transaction.isActive(),
-      paramChangeRemount: this.transaction.transitionPlan.paramChangeRemount === true,
-    });
-    const resolved = await resolveEnterBranch(
-      enterRoutes,
-      this.transaction.engine.viewGraph,
-      resolveContext,
-    );
-
-    if (resolved.status === 'aborted' || !this.transaction.isActive()) {
-      return { status: 'cancelled' };
-    }
-
-    if (resolved.status === 'error') {
-      return this.failRender(resolved.route, resolved.error);
-    }
-
-    this.transaction.preResolvedBranchContents = resolved.preResolvedContents;
-    return null;
-  }
-
-  /**
    * Atomic render — phase 2: sync mount pre-resolved branch into the DOM.
    *
    * Clears `preResolvedBranchContents` after read. Marks the view staged on success.
    * Missing pre-resolved contents yields `cancelled`.
    */
   private commitEnterBranchToDom(): Promise<PipelineStepResult> {
-    const preResolvedContents = this.transaction.preResolvedBranchContents;
-    this.transaction.preResolvedBranchContents = undefined;
+    const preResolvedContents = this.transaction.viewSnapshot;
+    this.transaction.viewSnapshot = undefined;
 
     if (!preResolvedContents) {
       return Promise.resolve({ status: 'cancelled' });

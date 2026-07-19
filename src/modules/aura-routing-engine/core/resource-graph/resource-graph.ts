@@ -71,51 +71,18 @@ export class ResourceGraph {
     this.sharedBuffer = sharedBuffer;
   }
 
-  /**
-   * Hold handoff generations for `to`’s data + view keys (active chain).
-   * Call on B **before** cancelling A. Returns a handle — only that handle’s `unhold` drops these holds.
-   *
-   * Pins base {@link MatchedRouteInfo.viewKey} (not `viewKeyWithData`) — enough to keep
-   * in-flight independent content / layout alive across supersede. Data-bound keys with
-   * a data suffix are held by {@link ViewGraph} waiters once load starts with payload.
-   */
-  holdSharedBufferFor(to: MatchedRouteInfo): SharedBufferHold {
-    const waiters: HandoffWaiter[] = [];
-    const seen = new Set<string>();
-
-    for (const match of getActiveChain(to)) {
-      for (const key of [match.dataKey, match.viewKey]) {
-        if (!key || seen.has(key)) continue;
-        seen.add(key);
-        waiters.push(this.sharedBuffer.hold(key, 'navigation'));
-      }
-    }
-
-    let released = false;
-
-    return {
-      unhold: () => {
-        if (released) return;
-        released = true;
-        for (const waiter of waiters) {
-          waiter.release();
-        }
-      },
-    };
-  }
-
-  resolve(enterRoutes: readonly MatchedRouteInfo[], context: ResourceGraphRunContext): Promise<ResourceGraphResolveResult> {
+  load(enterRoutes: readonly MatchedRouteInfo[], context: ResourceGraphRunContext): Promise<ResourceGraphResolveResult> {
     this.branch = context.branch;
     this.transaction = context.transaction;
     this.enterRoutes = enterRoutes;
     const plan = this.buildLoadPlan();
-    return this.load(plan);
+    return this.execute(plan);
   }
 
   /**
    * Splits enter routes into data vs independent content buckets.
    */
-  buildLoadPlan(enterRoutes: readonly MatchedRouteInfo[] = this.enterRoutes): ResourceGraphLoadPlan {
+  private buildLoadPlan(enterRoutes: readonly MatchedRouteInfo[] = this.enterRoutes): ResourceGraphLoadPlan {
     const dataRoutes: MatchedRouteInfo[] = [];
     const viewRoutes: MatchedRouteInfo[] = [];
     const viewWithDataRoutes: MatchedRouteInfo[] = [];
@@ -139,7 +106,7 @@ export class ResourceGraph {
     return { dataRoutes, viewRoutes, viewWithDataRoutes };
   }
 
-  private async load(plan: ResourceGraphLoadPlan): Promise<ResourceGraphResolveResult> {
+  private async execute(plan: ResourceGraphLoadPlan): Promise<ResourceGraphResolveResult> {
     const { dataRoutes, viewRoutes, viewWithDataRoutes } = plan;
     const { transaction, enterRoutes } = this;
     const { signal, phaseMode: mode } = transaction;
@@ -177,6 +144,39 @@ export class ResourceGraph {
         if (j >= 0) return viewWithDataResult.data?.[j]?.data ?? null;
         return null;
       }),
+    };
+  }
+
+  /**
+   * Hold handoff generations for `to`’s data + view keys (active chain).
+   * Call on B **before** cancelling A. Returns a handle — only that handle’s `unhold` drops these holds.
+   *
+   * Pins base {@link MatchedRouteInfo.viewKey} (not `viewKeyWithData`) — enough to keep
+   * in-flight independent content / layout alive across supersede. Data-bound keys with
+   * a data suffix are held by {@link ViewGraph} waiters once load starts with payload.
+   */
+  holdSharedBufferFor(to: MatchedRouteInfo): SharedBufferHold {
+    const waiters: HandoffWaiter[] = [];
+    const seen = new Set<string>();
+
+    for (const match of getActiveChain(to)) {
+      for (const key of [match.dataKey, match.viewKey]) {
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        waiters.push(this.sharedBuffer.hold(key, 'navigation'));
+      }
+    }
+
+    let released = false;
+
+    return {
+      unhold: () => {
+        if (released) return;
+        released = true;
+        for (const waiter of waiters) {
+          waiter.release();
+        }
+      },
     };
   }
 }

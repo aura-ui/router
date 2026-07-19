@@ -97,6 +97,7 @@ export class NavigationTransaction {
 
   async run(): Promise<TransactionResult> {
     this.transitionPlan = buildTransitionPlan(this.from, this.to);
+    this.engine.pulse.start(this);
 
     return this.runWithStagedViewRollback(() => {
       const pipeline = new NavigationTransactionPipeline(this);

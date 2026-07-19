@@ -33,6 +33,7 @@ export type {
   EngineEventType,
   UrlAlignedSource,
 } from './core/events';
+export { NavigationPulse } from './core/navigation/navigation-pulse';
 
 export type {
   NavigationErrorPhase,

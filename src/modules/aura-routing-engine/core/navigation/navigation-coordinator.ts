@@ -226,6 +226,8 @@ export class NavigationCoordinator {
   }
 
   private processResult(result: TransactionResult, transaction: NavigationTransaction): void {
+    this.host.engine.pulse.terminal(transaction.transactionId, result);
+
     if (result.status === 'navigationSucceeded') {
       return;
     }

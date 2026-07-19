@@ -47,6 +47,7 @@ import {
   type ResolvedAuraRoutingEngineConfig,
 } from './aura-routing-engine-config';
 import { EventBus } from './events';
+import { NavigationPulse } from './navigation/navigation-pulse';
 
 export type {
   AuraRoutingEngineConfig,
@@ -81,6 +82,8 @@ export class AuraRoutingEngine implements NavigationHost {
    * Prefetch intents stay on {@link PrefetchIntentBus}.
    */
   readonly events = new EventBus();
+  /** All navigation bus emits — see {@link NavigationPulse}. */
+  readonly pulse = new NavigationPulse(this.events);
 
   private readonly navigationCoordinator: NavigationCoordinator;
 
@@ -329,7 +332,11 @@ export class AuraRoutingEngine implements NavigationHost {
     );
   }
 
-  /** Terminal outcome from pre-commit redirect resolution (before pipeline run). */
+  /**
+   * Terminal outcome from pre-commit redirect resolution (before pipeline run).
+   * Probe txs use `id: 0` and never call {@link NavigationTransaction.run} — bus
+   * stream is skipped (orphan terminal without `start`). Callbacks / history still run.
+   */
   finalizeResolveTerminal(
     result: Exclude<PipelineStepResult, null>,
     probe: NavigationTransaction,
@@ -470,38 +477,19 @@ export class AuraRoutingEngine implements NavigationHost {
 
   /**
    * Address bar matches navigation target (`historyCommitted` write, or `system` / `pop`).
-   * Emits `navigation:url-aligned`.
+   * Emits `navigation:url-aligned` via {@link NavigationPulse.urlAligned}.
    */
   notifyUrlAligned(transition: NavigationTransaction): void {
-    const { from, to, action, hash, historyCommitted, transactionId } = transition;
-    if (!historyCommitted && action !== 'system' && action !== 'pop') return;
-
-    this.events.emit({
-      type: 'navigation:url-aligned',
-      id: transactionId,
-      from,
-      to,
-      action,
-      hash,
-      source: historyCommitted ? 'write' : 'browser',
-    });
+    this.pulse.urlAligned(transition);
   }
 
   /**
-   * View promoted: emit `navigation:commit:end`, update `prev`, optional hash scroll.
+   * View promoted: bus commit pulse, update `prev`, optional hash scroll.
    */
   commitNavigation(transition: NavigationTransaction): void {
-    const { from, to, action, hash, transactionId } = transition;
-    this.events.emit({
-      type: 'navigation:commit:end',
-      id: transactionId,
-      from,
-      to,
-      action,
-      hash,
-    });
-    if (hash) this.scrollToHash?.(hash);
-    this.prev = to;
+    this.pulse.commitEnd(transition);
+    if (transition.hash) this.scrollToHash?.(transition.hash);
+    this.prev = transition.to;
   }
 
   applyRedirect(result: Extract<TransactionResult, { status: 'redirect' }>, tx: NavigationTransaction): void {

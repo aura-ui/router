@@ -41,7 +41,7 @@ import type { TransitionMap } from '../route-tree/transition-plan';
 import type { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 
 // --- Shared outcomes ---
-export type NavigationPhaseMode = 'navigation' | 'speculative';
+export type NavigationPhaseMode = 'navigation' | 'prefetch';
 
 /**
  * Early navigation exit without a structured {@link FailedNavigation}.

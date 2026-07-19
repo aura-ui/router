@@ -71,10 +71,6 @@ export class ResourceGraph {
     this.sharedBuffer = sharedBuffer;
   }
 
-  private get isNavigationMode(): boolean {
-    return this.transaction.phaseMode === 'navigation';
-  }
-
   /**
    * Hold handoff generations for `to`’s data + view keys (active chain).
    * Call on B **before** cancelling A. Returns a handle — only that handle’s `unhold` drops these holds.
@@ -113,7 +109,7 @@ export class ResourceGraph {
     this.transaction = context.transaction;
     this.enterRoutes = enterRoutes;
     const plan = this.buildLoadPlan();
-    return this.isNavigationMode ? this.load(plan) : this.prefetch(plan);
+    return this.load(plan);
   }
 
   /**
@@ -146,14 +142,14 @@ export class ResourceGraph {
   private async load(plan: ResourceGraphLoadPlan): Promise<ResourceGraphResolveResult> {
     const { dataRoutes, viewRoutes, viewWithDataRoutes } = plan;
     const { transaction, enterRoutes } = this;
-    const { signal } = transaction;
+    const { signal, phaseMode: mode } = transaction;
 
     const dataPromise: Promise<DataGraphLoadResult> = dataRoutes.length
-      ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction, mode: 'navigation' })
+      ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction, mode })
       : Promise.resolve({});
 
     const contentPromise = this.viewGraph.load(viewRoutes, signal, {
-      mode: 'navigation',
+      mode,
       transaction,
     });
 
@@ -164,11 +160,13 @@ export class ResourceGraph {
 
     const viewWithDataResult = await this.viewGraph.load(viewWithDataRoutes, signal, {
       data: (route: MatchedRouteInfo) => dataResult.data?.get(route.dataKey!),
-      mode: 'navigation',
+      mode,
       transaction,
     });
 
     if (viewWithDataResult.error) return { error: viewWithDataResult.error };
+
+    if (mode === 'prefetch') return {};
 
     return {
       ...(dataResult.data && { data: dataResult.data }),
@@ -180,37 +178,5 @@ export class ResourceGraph {
         return null;
       }),
     };
-  }
-
-  private async prefetch(plan: ResourceGraphLoadPlan): Promise<ResourceGraphResolveResult> {
-    const { dataRoutes, viewRoutes, viewWithDataRoutes } = plan;
-    const { transaction } = this;
-    const { signal } = transaction;
-    let parts: Promise<unknown>[] = [];
-
-    if (dataRoutes.length) {
-      parts.push(this.dataGraph.load(dataRoutes, {
-        branch: this.branch,
-        transaction,
-        mode: 'prefetch',
-      }));
-    }
-
-    if (viewRoutes.length) {
-      parts.push(this.viewGraph.load(viewRoutes, signal, { mode: 'prefetch' }));
-    }
-
-    if (parts.length) {
-      await Promise.all(parts);
-    }
-
-    if (viewWithDataRoutes.length) {
-      // todo check data
-      parts = [];
-      parts.push(this.viewGraph.load(viewWithDataRoutes, signal, { mode: 'prefetch' }));
-      await Promise.all(parts);
-    }
-
-    return {};
   }
 }

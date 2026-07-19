@@ -8,15 +8,11 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from './navigation-transaction';
 import type { TransactionResult } from './types';
 
-/** App recovery callbacks for NOT_FOUND (public config shape). */
-export type CompleteFailureDeps = {
+/** Context for terminal apply — no bus emits ({@link NavigationPulse} is observe-only). */
+export type NavigationOutcomeApplyContext = {
+  provider: HistoryProviderLike;
   onNotFound?: (failure: FailedNavigation) => void | boolean;
   notFoundHandler?: (href: string) => void;
-};
-
-/** Context for terminal apply — no bus emits ({@link NavigationPulse} is observe-only). */
-export type NavigationOutcomeApplyContext = CompleteFailureDeps & {
-  provider: HistoryProviderLike;
   setPrev: (prev: MatchedRouteInfo | null) => void;
   navigateTo: (
     url: string,
@@ -25,13 +21,43 @@ export type NavigationOutcomeApplyContext = CompleteFailureDeps & {
   ) => void;
 };
 
+/** Public config shape for NOT_FOUND recovery (subset of apply context). */
+export type CompleteFailureDeps = Pick<
+  NavigationOutcomeApplyContext,
+  'onNotFound' | 'notFoundHandler'
+>;
+
+/**
+ * History identity for terminal apply — from a live {@link NavigationTransaction}
+ * or ad-hoc fields for pre-match failures (no tx).
+ */
+export type OutcomeNav = {
+  action: HistoryAction;
+  href: string;
+  fromHref: string | null;
+  historyOptions: NavigateHistoryOptions;
+  /** Omit / false for pre-match. */
+  historyCommitted?: boolean;
+};
+
+/** Build {@link OutcomeNav} from a transaction. */
+export function outcomeNavFromTx(tx: NavigationTransaction): OutcomeNav {
+  return {
+    action: tx.action,
+    href: tx.href,
+    fromHref: tx.from?.href ?? null,
+    historyOptions: tx.historyOptions,
+    historyCommitted: tx.historyCommitted,
+  };
+}
+
 /**
  * Apply terminal side effects for a {@link TransactionResult}.
  * Call after {@link NavigationPulse.settle}. `navigationSucceeded` is a no-op.
  */
 export function applyNavigationOutcome(
   result: TransactionResult,
-  tx: NavigationTransaction,
+  nav: OutcomeNav,
   ctx: NavigationOutcomeApplyContext,
 ): void {
   switch (result.status) {
@@ -39,13 +65,11 @@ export function applyNavigationOutcome(
       return;
 
     case 'cancelled':
-      if (shouldApplyTerminalHistoryPolicy(tx)) {
-        writeTxHistory({ status: 'cancelled' }, tx, ctx.provider);
-      }
+      applyHistoryIfNeeded({ status: 'cancelled' }, nav, ctx.provider);
       return;
 
     case 'redirect': {
-      const replace = result.replace ?? (tx.historyCommitted || tx.action === 'pop');
+      const replace = result.replace ?? (!!nav.historyCommitted || nav.action === 'pop');
       ctx.navigateTo(result.url, replace ? 'replace' : 'push', {
         replace,
         syncHistory: true,
@@ -55,31 +79,9 @@ export function applyNavigationOutcome(
 
     case 'error':
       applyFailureEffects(result.failure, ctx);
-      if (shouldApplyTerminalHistoryPolicy(tx)) {
-        writeTxHistory(result, tx, ctx.provider);
-      }
+      applyHistoryIfNeeded(result, nav, ctx.provider);
       return;
   }
-}
-
-/** Pre-match failure (NOT_FOUND, redirect cycle/depth): callbacks + history + `prev`. */
-export function applyPreMatchFailure(
-  failure: FailedNavigation,
-  action: HistoryAction,
-  href: string,
-  fromHref: string | null,
-  options: NavigateHistoryOptions,
-  ctx: NavigationOutcomeApplyContext,
-): void {
-  applyFailureEffects(failure, ctx);
-  applyTransactionHistory(
-    failure.toResult(),
-    action,
-    href,
-    fromHref,
-    options,
-    ctx.provider,
-  );
 }
 
 /** NOT_FOUND callbacks + `prev`. No history / bus. */
@@ -100,22 +102,21 @@ function applyFailureEffects(
   }
 }
 
-function writeTxHistory(
+/** Pop always; push/replace only before post-load history commit. */
+function applyHistoryIfNeeded(
   result: TransactionResult,
-  tx: NavigationTransaction,
+  nav: OutcomeNav,
   provider: HistoryProviderLike,
 ): void {
+  if (nav.historyCommitted && nav.action !== 'pop') {
+    return;
+  }
   applyTransactionHistory(
     result,
-    tx.action,
-    tx.href,
-    tx.from?.href ?? null,
-    tx.historyOptions,
+    nav.action,
+    nav.href,
+    nav.fromHref,
+    nav.historyOptions,
     provider,
   );
-}
-
-/** Pop always; push/replace only before post-load history commit. */
-function shouldApplyTerminalHistoryPolicy(tx: NavigationTransaction): boolean {
-  return !tx.historyCommitted || tx.action === 'pop';
 }

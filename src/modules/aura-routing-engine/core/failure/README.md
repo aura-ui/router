@@ -4,8 +4,8 @@
 `FailedNavigation` snapshots. Import from `core/failure` (barrel).
 
 Terminal **side effects** (app callbacks, `prev`, history) live in
-`navigation/navigation-outcome-handler.ts` (`applyNavigationOutcome`,
-`applyPreMatchFailure`). Observability is `NavigationPulse` (observe-only).
+`navigation/navigation-outcome-handler.ts` (`applyNavigationOutcome`).
+Observability is `NavigationPulse` (observe-only).
 
 ## Structure
 
@@ -30,7 +30,7 @@ History policy: `history/history-policy.ts` (`applyTransactionHistory`).
 
 ## Recovery (apply layer, not here)
 
-- `NOT_FOUND` → `onNotFound` / fallback / `setPrev(null)` via `applyPreMatchFailure`.
+- `NOT_FOUND` → `onNotFound` / fallback / `setPrev(null)` via `applyNavigationOutcome`.
 - Pipeline / redirect-cycle errors → bus `navigation:error` via `NavigationPulse.settle`.
 - Committed view failure → `setPrev(failure.to)` via apply path.
 

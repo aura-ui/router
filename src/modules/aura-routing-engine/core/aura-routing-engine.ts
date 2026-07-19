@@ -18,7 +18,7 @@ import type { NavigationHost } from './navigation/navigation-host';
 import { applyTransactionHistory } from './history/history-policy';
 import {
   applyNavigationOutcome,
-  applyPreMatchFailure,
+  outcomeNavFromTx,
 } from './navigation/navigation-outcome-handler';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
@@ -345,12 +345,14 @@ export class AuraRoutingEngine implements NavigationHost {
     options: NavigateHistoryOptions,
   ): void {
     this.pulse.settle(0, failure.toResult());
-    applyPreMatchFailure(
-      failure,
-      action,
-      href,
-      this.prev?.href ?? null,
-      options,
+    applyNavigationOutcome(
+      failure.toResult(),
+      {
+        action,
+        href,
+        fromHref: this.prev?.href ?? null,
+        historyOptions: options,
+      },
       this.outcomeContext(),
     );
   }
@@ -494,7 +496,7 @@ export class AuraRoutingEngine implements NavigationHost {
 
   /** Terminal apply (history / `prev` / redirect). Observe via {@link NavigationPulse.settle}. */
   applyTerminalOutcome(result: TransactionResult, tx: NavigationTransaction): void {
-    applyNavigationOutcome(result, tx, this.outcomeContext());
+    applyNavigationOutcome(result, outcomeNavFromTx(tx), this.outcomeContext());
   }
 
   reportNavigationHookError(hookError: unknown, parent: FailedNavigation): void {

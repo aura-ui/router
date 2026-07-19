@@ -8,8 +8,7 @@ import { NavigationError } from './navigation-error';
 /**
  * Failed navigation — terminal snapshot from pipeline or pre-match NOT_FOUND.
  *
- * Model only. Side effects → {@link ../navigation/navigation-outcome-handler!applyNavigationOutcome}
- * / {@link ../navigation/navigation-outcome-handler!applyPreMatchFailure}.
+ * Model only. Side effects → {@link ../navigation/navigation-outcome-handler!applyNavigationOutcome}.
  */
 export class FailedNavigation {
   readonly error: NavigationError;

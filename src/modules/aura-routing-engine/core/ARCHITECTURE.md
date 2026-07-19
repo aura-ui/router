@@ -131,7 +131,7 @@ Two axes — do not merge:
 | Axis | Owner | Responsibility |
 | --- | --- | --- |
 | **Observe** | `NavigationPulse` → `EventBus` → aura-router DOM | Emit lifecycle facts only (`start`, phase, `settle` → finish/cancel/redirect/error, loads, …) |
-| **Apply** | `applyNavigationOutcome` / `applyPreMatchFailure` (+ `applyTransactionHistory`) | History policy, `prev`, `onNotFound`, redirect re-navigate |
+| **Apply** | `applyNavigationOutcome` (+ `OutcomeNav`, `applyTransactionHistory`) | History policy, `prev`, `onNotFound`, redirect re-navigate |
 
 `NavigationPulse` **must not** write history, mutate `prev`, invoke app recovery callbacks,
 or start navigation. Terminal call order: `pulse.settle` → apply effects

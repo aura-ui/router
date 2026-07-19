@@ -222,7 +222,6 @@ export class PrefetchPipeline {
     try {
       await this.raceWithAbort(
         this.deps.runSpeculativePrepare(plan, {
-          mode: ctx.mode,
           signal: ctx.signal,
         }),
         ctx.signal,

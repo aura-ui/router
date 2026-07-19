@@ -116,9 +116,6 @@ export type PrefetchPipelineDeps = {
   readonly speculation?: SpeculationPrefetchPort;
   readonly runSpeculativePrepare: (
     plan: PrefetchPlan,
-    ctx: {
-      readonly mode: PrefetchMode;
-      readonly signal: AbortSignal;
-    },
+    ctx: { readonly signal: AbortSignal },
   ) => Promise<void>;
 };

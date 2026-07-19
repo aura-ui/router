@@ -114,9 +114,7 @@ export class NavigationTransaction {
   }
 
   async runSpeculativePrepare(): Promise<void> {
-    if (!this.transitionPlan) {
-      this.transitionPlan = buildTransitionPlan(this.from, this.to);
-    }
+    this.transitionPlan = buildTransitionPlan(this.from, this.to);
     return new NavigationTransactionPipeline(this).runSpeculativePrepare();
   }
 

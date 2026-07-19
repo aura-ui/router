@@ -40,12 +40,10 @@ describe('FailedNavigation', () => {
 
   it('finalizeFailure routes NOT_FOUND to onNotFound and clears prev', () => {
     const onNotFound = jest.fn();
-    const onNavigationError = jest.fn();
     const notFoundHandler = jest.fn();
 
     const outcome = finalizeFailure(FailedNavigation.notFound('/missing', null, 'push'), {
       onNotFound,
-      onNavigationError,
       notFoundHandler,
     });
 
@@ -55,38 +53,29 @@ describe('FailedNavigation', () => {
         error: expect.objectContaining({ code: 'NOT_FOUND' }),
       }),
     );
-    expect(onNavigationError).not.toHaveBeenCalled();
     expect(notFoundHandler).toHaveBeenCalledWith('/missing');
     expect(outcome).toEqual({ setPrev: null });
   });
 
-  it('finalizeFailure routes redirect cycle to onNavigationError and keeps prev', () => {
-    const onNavigationError = jest.fn();
+  it('finalizeFailure skips onNotFound for redirect cycle and keeps prev', () => {
     const onNotFound = jest.fn();
 
     const outcome = finalizeFailure(
       FailedNavigation.redirectError('redirect-cycle', '/a', null, 'push'),
-      { onNavigationError, onNotFound },
+      { onNotFound },
     );
 
-    expect(onNavigationError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        href: '/a',
-        error: expect.objectContaining({ code: 'REDIRECT_CYCLE', phase: 'match' }),
-      }),
-    );
     expect(onNotFound).not.toHaveBeenCalled();
     expect(outcome).toEqual({});
   });
 
-  it('finalizeFailure routes pipeline error to onNavigationError', () => {
+  it('finalizeFailure sets prev for committed pipeline error (callback via bus)', () => {
     const error = new NavigationError({
       code: 'RENDER_FAILED',
       phase: 'render',
       routePattern: '/x',
       message: 'fail',
     });
-    const onNavigationError = jest.fn();
 
     const failed = FailedNavigation.fromPipeline(
       error,
@@ -96,11 +85,8 @@ describe('FailedNavigation', () => {
       'push',
     );
 
-    const outcome = finalizeFailure(failed, {
-      onNavigationError,
-    });
+    const outcome = finalizeFailure(failed, {});
 
-    expect(onNavigationError).toHaveBeenCalledWith(failed);
     expect(outcome).toEqual({ setPrev: to });
   });
 

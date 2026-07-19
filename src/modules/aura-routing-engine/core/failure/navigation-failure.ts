@@ -64,7 +64,7 @@ export class FailedNavigation {
     );
   }
 
-  /** Pre-commit redirect chain failure (cycle or max depth). Routes to {@link onNavigationError}. */
+  /** Pre-commit redirect chain failure (cycle or max depth). Emits `navigation:error`. */
   static redirectError(
     code: RedirectErrorOutcome['code'],
     href: string,

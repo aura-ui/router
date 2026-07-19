@@ -228,12 +228,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           }
           this.syncActiveLinks(href);
         },
-        onNavigationError: (failure) => {
-          if (failure.viewCommitted) {
-            this.notFound.hide();
-          }
-          dispatchNavigationError(this, failure);
-        },
         onNavigationHookError: (detail) => {
           dispatchNavigationHookError(this, detail);
         },
@@ -251,6 +245,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
    * Host chrome adapter over the engine event stream.
    * Early: `url-aligned` → active links / `navigation-start`.
    * Late: `commit:end` → scroll, not-found, active links again, DOM `navigation`.
+   * Errors: `navigation:error` → DOM `navigation-error`.
    */
   private onEngineEvent(event: EngineEvent): void {
     if (event.type === 'navigation:url-aligned') {
@@ -260,6 +255,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         pathname: event.to.pathname,
       });
       this.syncNavState(event.to);
+      return;
+    }
+
+    if (event.type === 'navigation:error') {
+      if (event.failure.viewCommitted) {
+        this.notFound.hide();
+      }
+      dispatchNavigationError(this, event.failure);
       return;
     }
 

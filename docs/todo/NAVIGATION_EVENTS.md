@@ -74,8 +74,9 @@ router.addEventListener('navigation-error', (e) => {
 
 | Механизм | Где | Использование сейчас |
 |----------|-----|----------------------|
-| **`onNavigationCommitted`** | engine → `aura-router.ts` | scroll restoration, `not-found` для catch-all; **DOM event не диспатчится** |
-| **`onNavigationError` / `onNotFound`** | engine callbacks | прокси в DOM только для таблицы выше |
+| **`navigation:commit:end`** | engine bus | AuraRouter `onEngineEvent` → scroll / catch-all / DOM `navigation` |
+| **`onNotFound`** | engine callback | прокси в DOM `not-found` |
+| **`navigation:error`** | engine bus | AuraRouter `onEngineEvent` → DOM `navigation-error` |
 | **Cancel / redirect** | `TransactionResult` `cancelled` / `redirect` | guard `false` или URL — **без события для приложения** |
 | **`PrefetchIntentBus`** | `prefetch/intent/bus.ts` | внутренний fan-out intent |
 | **`prefetch.onError`** | `PrefetchConfig` | callback pipeline, с router не связан |

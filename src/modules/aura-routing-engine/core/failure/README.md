@@ -34,7 +34,8 @@ This keeps failure callbacks, `prev` updates, and browser history policy separat
 - `NOT_FOUND` calls `onNotFound`; when it does not return `false`, the configured
   fallback handler may run. The active route snapshot is cleared with
   `{ setPrev: null }`.
-- Pipeline/render failures call `onNavigationError`.
+- Pipeline/render / redirect-cycle errors emit bus `navigation:error`
+  (host / tests subscribe; AuraRouter maps to DOM `navigation-error`).
 - If a target view was committed before the failure, `finalizeFailure` returns
   `{ setPrev: failure.to }`; otherwise it leaves `prev` unchanged.
 

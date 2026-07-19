@@ -5,6 +5,7 @@ import {
 import type { RouterInstance } from '../../core';
 import { defineRouteHook } from '../../core/hooks/define-hook';
 import { defaultHookRegistry } from '../../core/hooks/registry';
+import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
 import { createTestRoute } from '../helpers/create-test-route';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
@@ -128,13 +129,9 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     const toRoute = createTestRoute('/d', {
       render: jest.fn().mockResolvedValue({ status: 'error', error: renderError }),
     });
-    const onNavigationError = jest.fn();
-
     const provider = new FakeHistoryProvider('/a');
-    const engine = new AuraRoutingEngine(router, {
-      provider,
-      onNavigationError,
-    });
+    const engine = new AuraRoutingEngine(router, { provider });
+    const errors = collectNavigationErrors(engine);
 
     engine.registerRoutes([fromRoute, toRoute]);
     provider.start();
@@ -146,27 +143,24 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
     expect(fromLeft).toHaveBeenCalledTimes(1);
     expect(provider.currentHref).toBe('/d');
-    expect(onNavigationError).toHaveBeenCalledWith(
+    expect(errors).toEqual([
       expect.objectContaining({
         error: expect.objectContaining({ code: 'RENDER_FAILED', phase: 'render' }),
         href: '/d',
         viewCommitted: true,
       }),
-    );
+    ]);
   });
 
-  it('при ошибке до render вызывает onNavigationError без commit URL', async () => {
+  it('при ошибке до render emit navigation:error без commit URL', async () => {
     const fromLeft = jest.fn();
     const enterError = new Error('guard failed');
     const fromRoute = createTestRoute('/a', { onUnmount: fromLeft });
     const toRoute = createTestRoute('/d', { guard: ['guard'] });
-    const onNavigationError = jest.fn();
 
     const provider = new FakeHistoryProvider('/a');
-    const engine = new AuraRoutingEngine(router, {
-      provider,
-      onNavigationError,
-    });
+    const engine = new AuraRoutingEngine(router, { provider });
+    const errors = collectNavigationErrors(engine);
 
     engine.hooksRegistry.register(
       defineRouteHook({
@@ -188,13 +182,13 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
       expect(fromLeft).not.toHaveBeenCalled();
       expect(provider.currentHref).toBe('/a');
-      expect(onNavigationError).toHaveBeenCalledWith(
+      expect(errors).toEqual([
         expect.objectContaining({
           error: expect.objectContaining({ code: 'GUARD_THROW', phase: 'guard' }),
           href: '/d',
           viewCommitted: false,
         }),
-      );
+      ]);
     } finally {
       defaultHookRegistry.unregister('guard');
     }

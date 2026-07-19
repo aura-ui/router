@@ -4,6 +4,7 @@ import {
 } from '../../core';
 import type { RouterInstance } from '../../core';
 import { MAX_REDIRECTION_STEPS } from '../../core/redirect/redirect-resolver';
+import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
 import { createTestRoute } from '../helpers/create-test-route';
 import {
   collectRoutesFromDom,
@@ -13,16 +14,15 @@ import {
 describe('AuraRoutingEngine redirect-error', () => {
   const router: RouterInstance = { navigate: jest.fn() };
 
-  it('reports redirect cycle via onNavigationError and preserves history', async () => {
-    const onNavigationError = jest.fn();
+  it('emits navigation:error on redirect cycle and preserves history', async () => {
     const onNotFound = jest.fn();
 
     const provider = new FakeHistoryProvider('/home');
     const engine = new AuraRoutingEngine(router, {
       provider,
-      onNavigationError,
       onNotFound,
     });
+    const errors = collectNavigationErrors(engine);
     engine.registerRoutes([
       createTestRoute('/home'),
       ...collectRoutesFromDom(
@@ -35,7 +35,7 @@ describe('AuraRoutingEngine redirect-error', () => {
     await engine.navigateTo('/home', 'system', { replace: true, syncHistory: false });
     await engine.navigateTo('/a', 'push', { replace: false, syncHistory: true });
 
-    expect(onNavigationError).toHaveBeenCalledWith(
+    expect(errors).toEqual([
       expect.objectContaining({
         href: '/a',
         error: expect.objectContaining({
@@ -44,14 +44,12 @@ describe('AuraRoutingEngine redirect-error', () => {
           message: 'Redirect cycle detected at /a',
         }),
       }),
-    );
+    ]);
     expect(onNotFound).not.toHaveBeenCalled();
     expect(provider.currentHref).toBe('/home');
   });
 
-  it('reports redirect depth exceeded via onNavigationError', async () => {
-    const onNavigationError = jest.fn();
-
+  it('emits navigation:error on redirect depth exceeded', async () => {
     const routes = Array.from({ length: MAX_REDIRECTION_STEPS + 1 }, (_, index) => {
       const path = `/hop-${index}`;
       const next = `/hop-${index + 1}`;
@@ -59,16 +57,14 @@ describe('AuraRoutingEngine redirect-error', () => {
     });
 
     const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(router, {
-      provider,
-      onNavigationError,
-    });
+    const engine = new AuraRoutingEngine(router, { provider });
+    const errors = collectNavigationErrors(engine);
     engine.replaceRoutes(collectRoutesFromDom(...routes));
     provider.start();
 
     await engine.navigateTo('/hop-0', 'push', { replace: false, syncHistory: true });
 
-    expect(onNavigationError).toHaveBeenCalledWith(
+    expect(errors).toEqual([
       expect.objectContaining({
         href: `/hop-${MAX_REDIRECTION_STEPS}`,
         error: expect.objectContaining({
@@ -76,7 +72,7 @@ describe('AuraRoutingEngine redirect-error', () => {
           phase: 'match',
         }),
       }),
-    );
+    ]);
     expect(provider.currentHref).toBe('/');
   });
 });

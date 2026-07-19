@@ -9,7 +9,6 @@ describe('navigation/navigation-finalize', () => {
   const provider = { commit: jest.fn(), rollback: jest.fn() };
   const failureDeps = {
     onNotFound: jest.fn(),
-    onNavigationError: jest.fn(),
     notFoundHandler: jest.fn(),
   };
 
@@ -42,7 +41,7 @@ describe('navigation/navigation-finalize', () => {
     expect(effects).toEqual({ setPrev: null });
   });
 
-  it('finalizePreMatchFailureNavigation routes redirect errors to onNavigationError', () => {
+  it('finalizePreMatchFailureNavigation skips onNotFound for redirect errors', () => {
     const failure = FailedNavigation.redirectError('redirect-cycle', '/a', null, 'push');
 
     const effects = finalizePreMatchFailureNavigation(
@@ -55,7 +54,6 @@ describe('navigation/navigation-finalize', () => {
       failureDeps,
     );
 
-    expect(failureDeps.onNavigationError).toHaveBeenCalledWith(failure);
     expect(failureDeps.onNotFound).not.toHaveBeenCalled();
     expect(provider.commit).not.toHaveBeenCalled();
     expect(effects).toEqual({});

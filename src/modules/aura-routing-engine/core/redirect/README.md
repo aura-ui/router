@@ -221,7 +221,7 @@ Probe — `NavigationTransaction` с id `0` / `0`, вызывает `runRedirect
 Пример обработки в coordinator:
 
 ```ts
-if (chain.status === 'redirect-error') { host.handleRedirectError(...); /* onNavigationError */ }
+if (chain.status === 'redirect-error') { host.handleRedirectError(...); /* pulse.settle → navigation:error */ }
 if (chain.status === 'terminal') { host.finalizeResolveTerminal(chain.result, chain.probe); }
 if (chain.status === 'unmatched') { host.handleUnmatchedNavigation(chain.href, ...); }
 if (chain.status === 'resolved') {

@@ -52,6 +52,11 @@ export class AuraResolvableCache<T> {
     return this.store.get(key);
   }
 
+  /** Read-only probe — no LRU promote, no load. */
+  has(key: string): boolean {
+    return this.store.has(key);
+  }
+
   /**
    * Join in-flight `resolve` work or a settled store value — never starts a load.
    *

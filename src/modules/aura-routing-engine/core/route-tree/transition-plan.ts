@@ -1,6 +1,5 @@
 import { isSamePathAndSearch } from '../link-active/app-href';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
-import { defaultDomCache, domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouteInstance } from '../route/types';
 import {
@@ -8,6 +7,7 @@ import {
   buildExitRoutes,
   findBranchLcaIndex,
 } from './branch-diff';
+import { hasFastPathLifecycleGates } from './can-use-fast-path';
 import { getActiveChain, getLeafMatch, isSameRouteMatch } from './matched-chain';
 
 /**
@@ -35,6 +35,7 @@ export type TransitionPlanBase = {
  * Branch diff (exit/enter routes) — не {@link TransitionOrderType | view effect order}.
  *
  * Derived fields are filled once by {@link finalizeTransitionPlan}.
+ * Runtime cache fast-path probes: {@link ./can-use-fast-path}.
  */
 export interface TransitionMap extends TransitionPlanBase {
   /** Enter-branch leaf match (`enterRoutes` last); `undefined` when enter is empty. */
@@ -62,28 +63,6 @@ export interface TransitionMap extends TransitionPlanBase {
    * leave/guard/ready/transition hooks on the enter/exit leaves.
    */
   readonly canUseFastPath: boolean;
-}
-
-/**
- * Dom-cache fast path: same lifecycle gates as Tier 0 (`canUseFastPath`), but enter content
- * may be async when `cache.dom` keep-alive already holds the detached view.
- *
- * Uses the same {@link ../navigation/navigation-transaction-pipeline!NavigationTransactionPipeline.runFastPipeline}
- * body — only the eligibility check differs. No DataGraph / load hooks (those stay on full path).
- */
-export function canUseDomCacheFastPath(plan: TransitionMap): boolean {
-  if (plan.canUseFastPath || !plan.isFlatSingleEnter) return false;
-
-  const enter = plan.enterRoute;
-  const exit = plan.exitRoute;
-  const enterMatch = plan.enterMatch;
-  if (!enter || !enterMatch) return false;
-  if (!enter.cache?.dom || enter.hasLoad) return false;
-  if (exit?.hasLeave || enter.hasGuard || enter.hasTransitionIn) return false;
-  if (exit?.hasReady || enter.hasReady) return false;
-  if (enter.transition.order != null || exit?.transition.order != null) return false;
-
-  return defaultDomCache.has(domCacheKey(enterMatch, enter.path));
 }
 
 /**
@@ -214,13 +193,7 @@ export function finalizeTransitionPlan(base: TransitionPlanBase): TransitionMap 
     isFlatSingleEnter
     && !!enterRoute
     && enterRoute.hasSyncContent
-    && !exitRoute?.hasLeave
-    && !enterRoute.hasGuard
-    && !enterRoute.hasTransitionIn
-    && !exitRoute?.hasReady
-    && !enterRoute.hasReady
-    && enterRoute.transition.order == null
-    && exitRoute?.transition.order == null;
+    && hasFastPathLifecycleGates(enterRoute, exitRoute);
 
   return {
     ...base,

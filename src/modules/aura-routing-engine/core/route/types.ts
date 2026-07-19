@@ -114,6 +114,8 @@ export interface RouteInstance extends RouteHookNamesSource {
   readonly hasUpdate: boolean;
   readonly hasLeave: boolean;
   readonly hasLoad: boolean;
+  /** Non-empty `layout` attr — same meaning as {@link ../../../aura-route/core/aura-route!AuraRoute.hasLayout}. */
+  readonly hasLayout: boolean;
   readonly hasViewContent: boolean;
   readonly hasTransitionIn: boolean;
   readonly hasReady: boolean;

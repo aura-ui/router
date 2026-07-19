@@ -3,7 +3,7 @@
 > **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — sync/dom-cache fast path + thenable ✓ · F1b ⊘ · F3 docs ✗  
 > **Сверка с кодом:** 2026-07-19  
 > **Связь:** оптимизация `NavigationTransactionPipeline` без смены семантики cancel/supersede.  
-> **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md) (blocking walk ✓ · полный `runBlockingOnly` ⊘), fast path: `canUseFastPath` / `canUseDomCacheFastPath` → `runFastPipeline`
+> **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md) (blocking walk ✓ · полный `runBlockingOnly` ⊘), fast path: `canUseFastPath` / `canUseDomCacheFastPath` / `canUseViewCacheFastPath` → `runFastPipeline`
 
 ### Легенда
 
@@ -23,7 +23,7 @@
 | — | Redirect blocking walk (вместо полного `runBlockingOnly`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | [REDIRECT_CHAIN_COLLAPSE](../done/REDIRECT_CHAIN_COLLAPSE.md) |
 | **F1** | Thenable-aware `runSequentially` + `isThenable` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | sync steps: `runCommitHistory`, `commitEnterBranchToDom` |
 | **F1b** | Lifecycle sync-return при sync hooks | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | откат: много кода ради копеек |
-| **F2** | Dom-cache fast path (`canUseDomCacheFastPath`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | тот же `runFastPipeline` · без DataGraph |
+| **F2** | Dom/view-cache fast path | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `canUseDomCacheFastPath` · `canUseViewCacheFastPath` |
 | **F3** | Документировать commit-slice invariant | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | JSDoc / ARCHITECTURE cross-link |
 | — | Generator / trampoline driver | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | overkill до профиля |
 | — | Enum `sync \| async` на шагах | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | хрупко |
@@ -257,7 +257,7 @@ Trampoline / generator дают:
 | Файл | Изменение | Статус |
 |------|-----------|--------|
 | `aura-route/.../dom-cache.ts` | `has(key)` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `core/route-tree/transition-plan.ts` | `canUseDomCacheFastPath` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `core/route-tree/can-use-fast-path.ts` | `canUseDomCacheFastPath` / `canUseViewCacheFastPath` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `core/navigation/navigation-transaction.ts` | `canUseFastPath \|\| canUseDomCacheFastPath → runFastPipeline` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `core/data-graph/data-graph.ts` | peekCached | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> не в v1 |
 

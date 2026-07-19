@@ -229,6 +229,16 @@ export class ViewGraph {
   }
 
   /**
+   * Read-only probe: long payload entry exists for `match.viewKey`.
+   * Caller decides policy (`cache.view`, layout, …) — this only checks the store.
+   */
+  hasCachedView(match: MatchedRouteInfo): boolean {
+    const key = resolveViewCacheKey(match);
+    if (!key) return false;
+    return this.cache.has(key);
+  }
+
+  /**
    * Invalidate long `cache.view` entries ({@link RouterInvalidateOptions}, default policy `stale`).
    * Clears the shared prepare handoff buffer so the next load/prefetch cannot reuse stale settles.
    */

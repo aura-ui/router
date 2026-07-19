@@ -63,6 +63,11 @@ export function createTestRoute(
     hasUpdate: { get(): boolean { return !!route.update?.length; } },
     hasLeave: { get(): boolean { return !!route.leave?.length; } },
     hasLoad: { get(): boolean { return !!route.load?.length; } },
+    hasLayout: {
+      get(): boolean {
+        return !!(route as RouteInstance & { layout?: string }).layout?.trim();
+      },
+    },
     hasDataCache: { get(): boolean { return !!route.cache?.data; } },
     hasViewCache: { get(): boolean { return !!route.cache?.view; } },
     hasDomCache: { get(): boolean { return !!route.cache?.dom; } },
@@ -73,8 +78,7 @@ export function createTestRoute(
           view?: ViewAttrDescriptor | null;
           extract?: string | null;
         };
-        const layout = r.layout?.trim();
-        if (layout) return `layout:template:${layout}`;
+        if (route.hasLayout) return `layout:template:${r.layout!.trim()}`;
         const view = r.view;
         if (!view?.loader || !view.content) return null;
         const slot = `view:${view.loader}:${view.content}`;
@@ -83,8 +87,7 @@ export function createTestRoute(
     },
     hasViewContent: {
       get(): boolean {
-        const r = route as RouteInstance & { layout?: string; view?: ViewAttrDescriptor | null };
-        return !!r.layout?.trim() || !!r.view;
+        return route.hasLayout || !!(route as RouteInstance & { view?: ViewAttrDescriptor | null }).view;
       },
     },
     hasTransitionIn: { get(): boolean { return !!route.transition.in?.length; } },
@@ -103,10 +106,9 @@ export function createTestRoute(
       get(): boolean {
         const r = route as RouteInstance & {
           view?: { loader: string } | null;
-          layout?: string;
           loadingTemplate?: string;
         };
-        if (r.layout?.trim()) return false;
+        if (route.hasLayout) return false;
         if (route.hasAsyncContent) return false;
         if (r.loadingTemplate?.trim()) return false;
         return r.view?.loader === 'html';

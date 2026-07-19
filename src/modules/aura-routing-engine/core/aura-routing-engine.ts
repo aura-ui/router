@@ -39,8 +39,9 @@ import {
   DefaultPrefetchResourcePlanner,
 } from './prefetch/resources';
 import type {
-  PrefetchConfig, PrefetchMode,
-  PrefetchOptions, PrefetchPlan,
+  PrefetchConfig,
+  PrefetchOptions,
+  PrefetchPlan,
 } from './prefetch/types';
 import type { RouterInstance } from './route/types';
 import { syncChainHref } from './route-tree/matched-chain';
@@ -49,10 +50,7 @@ import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
 import { DataGraph } from './data-graph';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
 import { NavigationTransaction } from './navigation/navigation-transaction';
-import {
-  buildTransitionPlan,
-  isSameNavigationTarget,
-} from './route-tree/transition-plan';
+import { isSameNavigationTarget } from './route-tree/transition-plan';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import { onAbort } from '../../aura-utils/async/on-abort';
 import { HandoffCache, ResourceGraph } from './resource-graph';
@@ -418,16 +416,15 @@ export class AuraRoutingEngine implements NavigationHost {
 
     const runSpeculativePrepare = async (
       plan: PrefetchPlan,
-      ctx: { mode: PrefetchMode; signal: AbortSignal },
+      ctx: { signal: AbortSignal },
     ): Promise<void> => {
       if (ctx.signal.aborted) return;
 
-      const from = this.prev;
       const probe = new NavigationTransaction(
         0,
         0,
         {
-          from,
+          from: this.prev,
           to: plan.leaf,
           href: plan.href,
           hash: plan.hash,
@@ -441,7 +438,6 @@ export class AuraRoutingEngine implements NavigationHost {
 
       const clearOnAbort = onAbort(ctx.signal, () => probe.cancel());
       try {
-        probe.transitionPlan = buildTransitionPlan(from, plan.leaf);
         await probe.runSpeculativePrepare();
       } finally {
         clearOnAbort();

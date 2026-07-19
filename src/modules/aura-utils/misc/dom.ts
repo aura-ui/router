@@ -17,7 +17,7 @@ export const getTemplate = (id: string) => {
 };
 
 /** `#id` only — no combinators, classes, or pseudo-elements. */
-const SIMPLE_ID_SELECTOR = /^#[^.#\[\]:>,+~\s]+$/;
+const SIMPLE_ID_SELECTOR = /^#[^.#[\]:>,+~\s]+$/;
 
 /**
  * Extracts a DOM subtree from an HTML string as a markup string.

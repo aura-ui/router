@@ -1,7 +1,7 @@
-jest.mock('../../core/hooks/registry', () =>
-  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+﻿jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
 jest.mock('../../core/view-mount/view-commit-render', () =>
-  require('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
+  jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';

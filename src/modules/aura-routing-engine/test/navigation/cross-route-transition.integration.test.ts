@@ -1,5 +1,5 @@
-jest.mock('../../core/hooks/registry', () =>
-  require('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+﻿jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';

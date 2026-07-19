@@ -102,7 +102,7 @@ class DataGraphTerminalError extends Error {
 
 /**
  * Route `load` hooks: parallel enter loads, SWR cache, prefetch handoff.
- * One instance per {@link AuraRoutingEngine} (navigation load, prefetch).
+ * Owned by {@link ResourceGraph} (one per engine): navigation load, prefetch.
  * View/HTML stays in `core/view-graph/`. Child may `await ctx.parent()`; default is parallel.
  *
  * Shared prepare: {@link HandoffCache.hold} → hooks/`workSignal`; interest →

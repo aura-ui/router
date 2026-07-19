@@ -92,7 +92,7 @@ export type RouteViewSource = {
 
 /**
  * View payload coordinator: descriptor → loader → cache → {@link ViewPayload}.
- * One instance per {@link AuraRoutingEngine} (render, branch-resolve, prefetch).
+ * Owned by {@link ResourceGraph} (one per engine): render, branch-resolve, prefetch.
  *
  * Shared prepare: {@link HandoffCache.hold} → loader/`workSignal`; interest →
  * {@link awaitUntilAbort}; `finally` → release.

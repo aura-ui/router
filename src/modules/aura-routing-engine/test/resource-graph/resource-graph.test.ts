@@ -1,4 +1,5 @@
 import type { DataGraph } from '../../core/data-graph';
+import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
@@ -6,7 +7,12 @@ import type { ViewGraph } from '../../core/view-graph';
 import { createTestRoute } from '../helpers/create-test-route';
 
 function createGraph(viewGraph: ViewGraph, dataGraph: DataGraph): ResourceGraph {
-  return new ResourceGraph(viewGraph, dataGraph, new HandoffCache());
+  return new ResourceGraph({
+    hooks: new HookRegistry(),
+    viewGraph,
+    dataGraph,
+    sharedBuffer: new HandoffCache(),
+  });
 }
 
 function matchedRoute(

@@ -10,6 +10,7 @@ export {
   ResourceGraph,
   type SharedBufferHold,
   type ResourceGraphLoadPlan,
+  type ResourceGraphOptions,
   type ResourceGraphResolveResult,
   type ResourceGraphRunContext,
 } from './resource-graph';

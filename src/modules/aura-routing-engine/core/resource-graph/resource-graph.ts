@@ -1,10 +1,22 @@
-import { type DataGraph, type DataGraphLoadResult, type DataSnapshot } from '../data-graph';
+import {
+  DataGraph,
+  type DataGraphCacheOptions,
+  type DataGraphLoadResult,
+  type DataSnapshot,
+} from '../data-graph';
+import type { HookRegistry } from '../hooks/registry';
+import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
 import { getActiveChain } from '../route-tree/matched-chain';
-import type { ViewGraph, ViewPayload } from '../view-graph';
-import { HandoffCache } from './handoff-cache';
+import {
+  ViewGraph,
+  type ViewGraphCacheOptions,
+  type ViewPayload,
+} from '../view-graph';
+import type { LoaderRegistry } from '../view-graph/registry';
+import { HandoffCache, type HandoffCacheOptions } from './handoff-cache';
 import type { HandoffWaiter } from './handoff-work-registry';
 
 export type ResourceGraphRunContext = {
@@ -53,8 +65,40 @@ export type SharedBufferHold = {
   unpin(): void;
 };
 
+/** Wiring for {@link ResourceGraph} — production creates graphs; tests may inject them. */
+export type ResourceGraphOptions = {
+  /** Hook registry for a created {@link DataGraph} (ignored when `dataGraph` is passed). */
+  readonly hooks: HookRegistry;
+  /**
+   * Override {@link ViewGraph} (tests).
+   * Must share {@link sharedBuffer} with {@link dataGraph} — prefer {@link viewRegistry}
+   * for custom loaders so ResourceGraph owns one handoff.
+   */
+  readonly viewGraph?: ViewGraph;
+  /** Loader registry for a created {@link ViewGraph} (ignored when `viewGraph` is passed). */
+  readonly viewRegistry?: LoaderRegistry;
+  /** Options for the created `cache.view` store (ignored when `viewGraph` is passed). */
+  readonly viewCacheOptions?: ViewGraphCacheOptions;
+  /** Inject {@link DataGraph} (tests). */
+  readonly dataGraph?: DataGraph;
+  /** Options for the created `cache.data` store (ignored when `dataGraph` is passed). */
+  readonly dataCacheOptions?: DataGraphCacheOptions;
+  /** Options for the created handoff buffer (ignored when `sharedBuffer` is passed). */
+  readonly sharedBufferOptions?: HandoffCacheOptions;
+
+  /**
+   * Inject {@link HandoffCache} (tests).
+   * Required when injecting {@link viewGraph} / {@link dataGraph} — same instance in all three.
+   */
+  readonly sharedBuffer?: HandoffCache;
+};
+
 /**
- * Owner of prepare: data + view plan, handoff interest across supersede.
+ * Composition root for prepare resources: owns {@link HandoffCache}, {@link DataGraph},
+ * and {@link ViewGraph}; orchestrates plan + parallel load + supersede pin.
+ *
+ * Production: construct with {@link ResourceGraphOptions.hooks} (+ optional cache opts).
+ * Tests: inject `viewGraph` / `dataGraph` / `sharedBuffer` (must share one handoff).
  *
  * Prepare entry: {@link load}. Supersede (only if A is still active):
  * `pinSharedBufferFor(B)` → `cancel(A)` → `B.run()` → `unpin` (`'pin'` kind).
@@ -62,16 +106,22 @@ export type SharedBufferHold = {
 export class ResourceGraph {
   readonly viewGraph: ViewGraph;
   readonly dataGraph: DataGraph;
-  private readonly sharedBuffer: HandoffCache;
+  readonly sharedBuffer: HandoffCache;
 
   private branch!: readonly MatchedRouteInfo[];
   private enterRoutes!: readonly MatchedRouteInfo[];
   private transaction!: NavigationTransaction;
 
-  constructor(viewGraph: ViewGraph, dataGraph: DataGraph, sharedBuffer: HandoffCache) {
-    this.viewGraph = viewGraph;
-    this.dataGraph = dataGraph;
-    this.sharedBuffer = sharedBuffer;
+  constructor(options: ResourceGraphOptions) {
+    this.sharedBuffer = options.sharedBuffer ?? new HandoffCache(options.sharedBufferOptions ?? {});
+    this.dataGraph = options.dataGraph ?? new DataGraph(this.sharedBuffer, {
+      hooks: options.hooks,
+      cache: options.dataCacheOptions,
+    });
+    this.viewGraph = options.viewGraph ?? new ViewGraph(this.sharedBuffer, {
+      cache: options.viewCacheOptions,
+      registry: options.viewRegistry,
+    });
   }
 
   load(enterRoutes: readonly MatchedRouteInfo[], context: ResourceGraphRunContext): Promise<ResourceGraphResolveResult> {
@@ -79,6 +129,32 @@ export class ResourceGraph {
     this.transaction = context.transaction;
     this.enterRoutes = enterRoutes;
     return this.execute(this.buildLoadPlan());
+  }
+
+  /**
+   * Invalidates load-hook cache entries in {@link DataGraph}.
+   * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
+   */
+  invalidateData(options: RouterInvalidateOptions = {}): number {
+    return this.dataGraph.invalidate(options);
+  }
+
+  /**
+   * Invalidates view-loader payload cache in {@link ViewGraph}.
+   * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
+   */
+  invalidateView(options: RouterInvalidateOptions = {}): number {
+    return this.viewGraph.invalidate(options);
+  }
+
+  /**
+   * Abort shared prepare work, then destroy long-lived data/view caches.
+   * Call once from engine teardown.
+   */
+  destroy(): void {
+    this.sharedBuffer.destroy();
+    this.dataGraph.destroy();
+    this.viewGraph.destroy();
   }
 
   /**

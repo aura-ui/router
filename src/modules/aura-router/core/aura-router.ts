@@ -22,6 +22,8 @@ import {
   type RouterInstance,
   type DataGraphCacheOptions,
   type Loader,
+  type EventBus,
+  type EngineEvent,
 } from '../../aura-routing-engine/core';
 import { attr } from '../../aura-utils/decorators';
 
@@ -220,29 +222,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         linksSelector: this.linksSelector,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
-        // Active links: early sync when URL aligns (chrome nav), late sync after
-        // view commit (links that arrived with the new content).
-        onNavigationHistoryCommitted: (ctx) => {
-          dispatchNavigationStart(this, {
-            from: ctx.from?.pathname ?? null,
-            to: ctx.to.href,
-            pathname: ctx.to.pathname,
-          });
-          this.syncNavState(ctx.to);
-        },
-        onNavigationCommitted: (ctx) => {
-          this.notFound.hide();
-          if (isCatchAllRoutePattern(ctx.to.pattern)) {
-            dispatchNotFound(this, ctx.to.href, 'route');
-          }
-          this.scrollRestoration.handleCommit(ctx);
-          dispatchNavigationCommitted(this, {
-            from: ctx.from?.pathname ?? null,
-            to: ctx.to.href,
-            pathname: ctx.to.pathname,
-          });
-          this.syncNavState(ctx.to);
-        },
         onAnchorNavigation: (href) => {
           if (this._trail.length) {
             this._trail = this._trail.map((e) => ({ pattern: e.pattern, href }));
@@ -263,8 +242,45 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       this.engine.setNotFoundHandler((url) => {
         this.notFound.recover(url);
       });
+      this.engine.events.subscribe((event) => this.onEngineEvent(event));
     }
     return this.engine;
+  }
+
+  /**
+   * Host chrome adapter over the engine event stream.
+   * Early: `url-aligned` → active links / `navigation-start`.
+   * Late: `commit:end` → scroll, not-found, active links again, DOM `navigation`.
+   */
+  private onEngineEvent(event: EngineEvent): void {
+    if (event.type === 'navigation:url-aligned') {
+      dispatchNavigationStart(this, {
+        from: event.from?.pathname ?? null,
+        to: event.to.href,
+        pathname: event.to.pathname,
+      });
+      this.syncNavState(event.to);
+      return;
+    }
+
+    if (event.type === 'navigation:commit:end') {
+      this.notFound.hide();
+      if (isCatchAllRoutePattern(event.to.pattern)) {
+        dispatchNotFound(this, event.to.href, 'route');
+      }
+      this.scrollRestoration.handleCommit({
+        from: event.from,
+        to: event.to,
+        action: event.action,
+        hash: event.hash,
+      });
+      dispatchNavigationCommitted(this, {
+        from: event.from?.pathname ?? null,
+        to: event.to.href,
+        pathname: event.to.pathname,
+      });
+      this.syncNavState(event.to);
+    }
   }
 
   refreshRoutes(): void {
@@ -273,7 +289,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   /**
    * Trail + active-link classes for the target href.
-   * Invoked twice per navigation: URL-aligned (history) and after view commit.
+   * Called from {@link onEngineEvent} on `url-aligned` and again on `commit:end`.
    */
   private syncNavState(to: MatchedRouteInfo): void {
     this._trail = toRouteTrail(to.chain ?? [to]);
@@ -287,6 +303,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       prefixActiveClass: this.prefixActiveClass,
       scopeSelector: this.activeLinkScope,
     });
+  }
+
+  /** Engine event stream (`navigation:url-aligned`, `navigation:commit:end`, …). */
+  get events(): EventBus {
+    return this.ensureEngine().events;
   }
 
   navigate(path: string, options: Partial<NavigateHistoryOptions> = {}): void {

@@ -107,6 +107,7 @@ export function createMockEngine(): AuraRoutingEngine {
   const hookRegistry = new HookRegistry();
   const engine = {
     commitHistoryIfNeeded: jest.fn(),
+    notifyUrlAligned: jest.fn(),
     commitNavigation: jest.fn(),
     finalizeCancelled: jest.fn(),
     resourceGraph: createTestResourceGraph({ hooks: hookRegistry }),

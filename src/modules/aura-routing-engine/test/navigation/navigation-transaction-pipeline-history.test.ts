@@ -49,6 +49,7 @@ describe('NavigationTransactionPipeline history commit', () => {
     expect(order.indexOf('load')).toBeGreaterThan(order.indexOf('history'));
     expect(order.indexOf('render')).toBeGreaterThan(order.indexOf('load'));
     expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
+    expect(transaction.engine.notifyUrlAligned).toHaveBeenCalledTimes(1);
 
     jest.restoreAllMocks();
     mockRunViewCommit.mockResolvedValue('ok');
@@ -69,6 +70,7 @@ describe('NavigationTransactionPipeline history commit', () => {
 
     expect(result).toEqual({ status: 'cancelled' });
     expect(transaction.engine.commitHistoryIfNeeded).not.toHaveBeenCalled();
+    expect(transaction.engine.notifyUrlAligned).not.toHaveBeenCalled();
   });
 
   it('keeps history committed when load fails (optimistic URL, no rollback)', async () => {
@@ -87,6 +89,7 @@ describe('NavigationTransactionPipeline history commit', () => {
 
     expect(result.status).toBe('error');
     expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
+    expect(transaction.engine.notifyUrlAligned).toHaveBeenCalledTimes(1);
   });
 
   it('does not commit history when leave cancels', async () => {
@@ -106,6 +109,7 @@ describe('NavigationTransactionPipeline history commit', () => {
 
     expect(result).toEqual({ status: 'cancelled' });
     expect(transaction.engine.commitHistoryIfNeeded).not.toHaveBeenCalled();
+    expect(transaction.engine.notifyUrlAligned).not.toHaveBeenCalled();
   });
 
   it('does not commit history when guard redirects', async () => {
@@ -122,5 +126,6 @@ describe('NavigationTransactionPipeline history commit', () => {
 
     expect(result).toEqual({ status: 'redirect', url: '/login' });
     expect(transaction.engine.commitHistoryIfNeeded).not.toHaveBeenCalled();
+    expect(transaction.engine.notifyUrlAligned).not.toHaveBeenCalled();
   });
 });

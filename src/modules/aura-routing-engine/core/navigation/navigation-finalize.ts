@@ -13,7 +13,7 @@ import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { TransactionResult } from './types';
 
-/** Payload for {@link AuraRoutingEngineConfig.onNavigationCommitted}. */
+/** Snapshot passed to host chrome after view commit (scroll, etc.). */
 export interface NavigationCommittedContext {
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;

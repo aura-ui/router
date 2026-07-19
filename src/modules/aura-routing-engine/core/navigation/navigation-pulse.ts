@@ -4,13 +4,22 @@ import type { NavigationTransaction } from './navigation-transaction';
 import type { PipelineStepResult, TransactionResult } from './types';
 
 /**
- * Single place for navigation / load bus emits.
- * Pipeline and coordinator call short phase methods; payload shape lives here only.
+ * **Observe-only** facade over {@link EventBus}: navigation / load lifecycle emits.
+ *
+ * Contract (do not break):
+ * - **Does:** `bus.emit(...)` with a stable payload shape.
+ * - **Does not:** write history, mutate `prev`, call app callbacks (`onNotFound`, …),
+ *   start a new navigation, mount/unmount views, or otherwise apply engine side effects.
+ *
+ * Terminal side effects (history / `prev` / redirect / failure callbacks) stay on the
+ * engine finalizers today; later they consolidate into one terminal `apply(outcome)`.
+ * Call order target: {@link settle} (observe) → apply effects (mutate).
  *
  * Flow: {@link begin} → {@link prepareStart}/{@link prepareEnd} → {@link loadStart}/{@link loadEnd}
  * → {@link alignUrl} → {@link commitStart}/{@link commitEnd} → {@link settle}.
  *
- * @see docs/todo/EVENT_BUS.md
+ * @see docs/done/EVENT_BUS.md
+ * @see docs/todo/NAVIGATION_RUN_MANAGER.md (cleanup phases)
  */
 export class NavigationPulse {
   private readonly bus: EventBus;
@@ -142,8 +151,10 @@ export class NavigationPulse {
   }
 
   /**
-   * Maps terminal {@link TransactionResult} after pipeline / redirect-walk settle:
-   * `navigation:finish` | `navigation:cancel` | `navigation:redirect` | `navigation:error`.
+   * Terminal **observe** hook: maps {@link TransactionResult} to bus events only
+   * (`navigation:finish` | `cancel` | `redirect` | `error`). No history / `prev` / callbacks.
+   *
+   * Callers apply engine side effects separately (after or around this emit).
    */
   settle(id: number, result: TransactionResult): void {
     switch (result.status) {

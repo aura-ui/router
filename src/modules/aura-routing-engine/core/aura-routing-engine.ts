@@ -339,7 +339,10 @@ export class AuraRoutingEngine implements NavigationHost {
   /**
    * Terminal outcome from pre-commit redirect resolution (before pipeline run).
    * Probe txs use `id: 0` and never call {@link NavigationTransaction.run}.
-   * Cancel/redirect stay off-bus; error emits `navigation:error`.
+   *
+   * Observe vs apply: {@link NavigationPulse} is emit-only. Today only `error` calls
+   * {@link NavigationPulse.settle}; cancel/redirect apply effects without bus emit
+   * (align in a later cleanup step — settle → apply for every terminal path).
    */
   finalizeResolveTerminal(
     result: Exclude<PipelineStepResult, null>,

@@ -10,7 +10,8 @@ failure handling in `failure/README.md`.
 | --- | --- |
 | `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and pre-match `NOT_FOUND`, `commitHistoryIfNeeded`, `commitNavigation`, `invalidateData()`. |
 | `aura-routing-route-registry.ts` | Route catalog snapshot, tree rebuild, `matchableNodes` for matcher. |
-| `navigation/` | Coordinator, transaction, pipeline, phase registry (`lifecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), failure lifecycle (`navigation-failure-handler.ts`, `not-found-exit-cleanup.ts`), history finalize (`navigation-finalize.ts`), outcome types. |
+| `navigation/` | Coordinator, transaction, pipeline, phase registry (`lifecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), **observe-only** `navigation-pulse.ts`, failure lifecycle (`navigation-failure-handler.ts`, `not-found-exit-cleanup.ts`), history finalize (`navigation-finalize.ts`), outcome types. |
+| `events/` | Typed `EventBus` + `EngineEvent`. Emit goes through `NavigationPulse`, not ad-hoc from pipeline. |
 | `route/` | `RouteInstance`, lifecycle phase vocabulary (`RoutePhase`, `RouteLifecycleContext`, …), hook attr props. |
 | `guard.types.ts` | Shared blocking-hook contract: `GuardResult`, `RedirectTarget` (normalized from hook return values). |
 | `hooks/` | Global hook registry, `resolve-hook-names`, `normalizeHookResult`, hook result normalization. |
@@ -122,6 +123,21 @@ cancel or redirect before history commit and render.
 `navigation/navigation-failure-handler.ts` runs the terminal `error` phase after
 pipeline failures. `navigation/not-found-exit-cleanup.ts` runs callback-only
 `unmount` on the previous leaf before pre-match `NOT_FOUND`.
+
+### Observe vs apply (Pulse contract)
+
+Two axes — do not merge:
+
+| Axis | Owner | Responsibility |
+| --- | --- | --- |
+| **Observe** | `NavigationPulse` → `EventBus` → aura-router DOM | Emit lifecycle facts only (`start`, phase, `settle` → finish/cancel/redirect/error, loads, …) |
+| **Apply** | Engine finalizers (`finalize*` / `applyRedirect` / `navigation-finalize.ts`) | History policy, `prev`, `onNotFound`, redirect re-navigate, view scroll |
+
+`NavigationPulse` **must not** write history, mutate `prev`, invoke app recovery callbacks,
+or start navigation. Target call order for terminal paths: `pulse.settle` → apply effects.
+
+Known gaps (later cleanup): pre-match `NOT_FOUND` and resolve-probe cancel/redirect do not
+always call `settle` before apply — see [NAVIGATION_RUN_MANAGER.md](../../../../docs/todo/NAVIGATION_RUN_MANAGER.md).
 
 ## Commit Vocabulary
 

@@ -41,6 +41,17 @@
 
 **Итог:** runtime EventBus **готов** (bus + DOM P0/P1 load). **EB4 (devtools) отложен** — не срочно, не блокер навигации.
 
+### Контракт: Pulse = observe only
+
+`NavigationPulse` — **единственная** точка emit навигационных/load событий. Он **не** пишет history, не меняет `prev`, не вызывает app callbacks и не стартует navigate.
+
+| Ось | Кто | Что |
+|-----|-----|-----|
+| **Observe** | `NavigationPulse` → `EventBus` → DOM bridge | факты lifecycle |
+| **Apply** | engine `finalize*` / history policy | side effects |
+
+Целевой порядок на terminal: `pulse.settle` → apply effects. Пробелы (NOT_FOUND / resolve cancel·redirect без settle) — в cleanup-фазах [NAVIGATION_RUN_MANAGER.md](../todo/NAVIGATION_RUN_MANAGER.md).
+
 ---
 
 ## Зачем

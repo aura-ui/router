@@ -238,10 +238,10 @@ describe('NavigationTransactionPipeline transition + remount order', () => {
       enterRoutes: [enterRoute],
     });
     transaction.transitionPlan.paramChangeRemount = true;
-    // prepare already done — render path only (contents set by runPrepare in full pipeline)
-    // For order assertion use prepare + render:
+    // loads already done — render path only (contents set by runLoads in full pipeline)
+    // For order assertion use loads + render:
     const pipeline = new NavigationTransactionPipeline(transaction);
-    await pipeline.runPrepare();
+    await pipeline.runLoads();
     await pipeline.runRenderWithTransition();
 
     expect(callOrder).toEqual(['transitionOut', 'render', 'transitionIn']);

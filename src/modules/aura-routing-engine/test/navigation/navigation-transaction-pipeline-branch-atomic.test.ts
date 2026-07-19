@@ -15,13 +15,13 @@ import {
 } from '../helpers/jest/pipeline-mocks';
 
 async function prepareThenRender(pipeline: NavigationTransactionPipeline) {
-  const prepareResult = await pipeline.runPrepare();
+  const prepareResult = await pipeline.runLoads();
   if (prepareResult) return prepareResult;
   return pipeline.runRender();
 }
 
 async function prepareThenRenderWithTransition(pipeline: NavigationTransactionPipeline) {
-  const prepareResult = await pipeline.runPrepare();
+  const prepareResult = await pipeline.runLoads();
   if (prepareResult) return prepareResult;
   return pipeline.runRenderWithTransition();
 }
@@ -142,7 +142,7 @@ describe('NavigationTransactionPipeline branch prepare → commit render', () =>
       error: { status: 'cancelled' },
     });
 
-    const outcome = await new NavigationTransactionPipeline(transaction).runPrepare();
+    const outcome = await new NavigationTransactionPipeline(transaction).runLoads();
 
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(mountEnterBranchSpy).not.toHaveBeenCalled();
@@ -252,7 +252,7 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
       'markViewCommittedAfterErrorRecovery',
     );
 
-    const outcome = await new NavigationTransactionPipeline(transaction).runPrepare();
+    const outcome = await new NavigationTransactionPipeline(transaction).runLoads();
 
     // Prepare returns the error; recovery (unmount) is owned by the full pipeline / fail handler.
     expect(outcome?.status).toBe('error');

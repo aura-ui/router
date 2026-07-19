@@ -227,7 +227,7 @@ describe('NavigationTransactionPipeline branch remount options', () => {
     transaction.transitionPlan = buildTransitionPlan(exitRoute, enterRoute);
 
     const pipeline = new NavigationTransactionPipeline(transaction);
-    expect(await pipeline.runPrepare()).toBeNull();
+    expect(await pipeline.runLoads()).toBeNull();
     expect(await pipeline.runRender()).toBeNull();
 
     expect(applyPreResolved).toHaveBeenCalledTimes(1);

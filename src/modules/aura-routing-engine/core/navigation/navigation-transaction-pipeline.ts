@@ -30,10 +30,10 @@ type PipelineStep = () => Promise<PipelineStepResult>;
  * - `null` — step succeeded; run the next step
  * - non-`null` — terminal outcome: `cancelled`, `redirect`, `error`, or (top-level only) `navigationSucceeded`
  *
- * Full path: {@link runPrepare} (`ResourceGraph.load` → `viewSnapshot`) then render as sync
+ * Full path: {@link runLoads} (`ResourceGraph.load` → `viewSnapshot`) then render as sync
  * {@link commitEnterBranchToDom} interleaved with `transition-order`. Param remount uses the same
  * branch commit with `paramChangeRemount` (DomCache restore via `syncBranchMount` early-exit).
- * {@link runFastPipeline} skips prepare/transitions (see {@link TransitionMap.canUseFastPath}).
+ * {@link runFastPipeline} skips loads/transitions (see {@link TransitionMap.canUseFastPath}).
  *
  * @see docs/MAIN_PIPELINE.md
  */
@@ -51,7 +51,7 @@ export class NavigationTransactionPipeline {
   /**
    * Standard navigation pipeline.
    *
-   * Order: `leave` → `guard` → history commit → {@link runPrepare} → render (with transitions) →
+   * Order: `leave` → `guard` → history commit → {@link runLoads} → render (with transitions) →
    * {@link runAfterRender}.
    *
    * @returns first terminal step result (`error`, `redirect`, `cancelled`), or `navigationSucceeded` when all steps return `null`
@@ -60,7 +60,7 @@ export class NavigationTransactionPipeline {
     return await this.runSequentially([
       ...(this.transaction.skipBlockingPhases ? [] : [() => this.runGuards()]),
       () => this.runCommitHistory(),
-      () => this.runPrepare(),
+      () => this.runLoads(), //NOTE: here can be not needed view load, even with cache.dom - it is design desition
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
     ]) ?? { status: 'navigationSucceeded' };
@@ -169,13 +169,6 @@ export class NavigationTransactionPipeline {
     return error ?? null;
   }
 
-  async runPrepare(): Promise<PipelineStepResult> {
-    //todo Лишний loadView при DomCache hit
-    return this.runSequentially([
-      () => this.runLoads(),
-    ]);
-  }
-
   async runSpeculativePrepare(): Promise<void> {
     const { to, transitionPlan, engine } = this.transaction;
     const enterRoutes = transitionPlan.enterRoutes;
@@ -205,7 +198,7 @@ export class NavigationTransactionPipeline {
   /**
    * Commit enter-branch DOM with `transition-order` from the enter leaf.
    *
-   * Content must already be on `transaction.viewSnapshot` ({@link runPrepare}).
+   * Content must already be on `transaction.viewSnapshot` ({@link runLoads}).
    *
    * | transition-order | step sequence |
    * |------------------|---------------|

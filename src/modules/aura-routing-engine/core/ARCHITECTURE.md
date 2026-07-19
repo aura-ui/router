@@ -78,17 +78,17 @@ sequenceDiagram
 | Tier | Entry | Skips | Order (high level) |
 | --- | --- | --- | --- |
 | **Update** | `runUpdate()` | guards, render, unmount, ready | history → loads → `update` → `commitNavigation` |
-| **Fast (Tier 0)** | `runFastPipeline()` | guards, loads/prepare, transitions | history → single `runViewCommit` → after-render |
-| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → history → **prepare** (loads + resolve views) → commit + transitions → after-render |
+| **Fast (Tier 0)** | `runFastPipeline()` | guards, loads, transitions | history → single `runViewCommit` → after-render |
+| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → history → **loads** (`ResourceGraph.load`) → commit + transitions → after-render |
 
 `skipBlockingPhases`: redirect walk already ran `leave` → `guard` — see `redirect/README.md`.
 
 Fast path eligibility: `TransitionMap.canUseFastPath` — flat swap (one exit, one enter), sync inline
 content, no blocking hooks or `transition-order`.
 
-Full render is always **branch prepare → commit**:
+Full render is always **branch loads → commit**:
 
-1. `runPrepare()` — `ResourceGraph.load` → `dataSnapshot` / `viewSnapshot`
+1. `runLoads()` — `ResourceGraph.load` → `dataSnapshot` / `viewSnapshot`
 2. `commitEnterBranchToDom()` — sync `mountEnterBranch` / `applyPreResolved` (incl. `paramChangeRemount`)
 3. `syncBranchMount` early-exit restores `cache.dom` when present
 ## Ownership Boundaries

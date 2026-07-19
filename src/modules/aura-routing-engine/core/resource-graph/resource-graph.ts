@@ -40,21 +40,24 @@ export type ResourceGraphResolveResult = {
 };
 
 /**
- * One supersede hold from {@link ResourceGraph.holdSharedBufferFor}.
- * Unhold only this lease — concurrent A→B→C holds stay independent.
+ * One supersede pin lease from {@link ResourceGraph.pinSharedBufferFor}.
+ *
+ * Drops only this lease’s `'pin'` waiters — concurrent A→B→C leases stay independent.
+ * {@link unpin} never arms sticky `hadNavigation` (pin did not set it). Abort of
+ * {@link HandoffWaiter.workSignal} still follows registry policy: if `'navigation'` was
+ * already sticky on that key and this release drops `refs` to 0, work aborts — that is
+ * prior navigation interest, not the pin kind itself. See {@link HandoffWaiterKind}.
  */
 export type SharedBufferHold = {
-  /** Idempotent. Drops handoff holds taken for this lease only. */
-  unhold(): void;
+  /** Idempotent. Releases `'pin'` holds taken for this lease only. */
+  unpin(): void;
 };
 
 /**
  * Owner of prepare: data + view plan, handoff interest across supersede.
  *
- * Coordinator: `hold = holdSharedBufferFor(B)` → cancel(A) → run(B) → `hold.unhold()`.
- * Does not touch {@link HandoffCache} directly.
- *
- * {@link resolve} is not wired into {@link NavigationTransactionPipeline} yet.
+ * Prepare entry: {@link load}. Supersede (only if A is still active):
+ * `pinSharedBufferFor(B)` → `cancel(A)` → `B.run()` → `unpin` (`'pin'` kind).
  */
 export class ResourceGraph {
   readonly viewGraph: ViewGraph;
@@ -147,14 +150,31 @@ export class ResourceGraph {
   }
 
   /**
-   * Hold handoff generations for `to`’s data + view keys (active chain).
-   * Call on B **before** cancelling A. Returns a handle — only that handle’s `unhold` drops these holds.
+   * Pin handoff work generations for `to`’s data + view keys (active chain) across supersede.
    *
-   * Pins base {@link MatchedRouteInfo.viewKey} (not `viewKeyWithData`) — enough to keep
-   * in-flight independent content / layout alive across supersede. Data-bound keys with
-   * a data suffix are held by {@link ViewGraph} waiters once load starts with payload.
+   * **When:** {@link NavigationCoordinator} calls this only if `activeTransaction` is already
+   * set (A in flight). No active tx → no pin (idle click / first navigation). Order:
+   * `pinSharedBufferFor(B)` → `cancel(A)` → assign B active → `await B.run()` →
+   * `hold.unpin()` in `finally`.
+   *
+   * **Kind `'pin'`** (see {@link HandoffWaiterKind}):
+   * - Increments `refs` so `cancel(A)` cannot abort shared work on **overlapping** keys
+   *   (e.g. LCA parent) before B’s prepare takes a real `'navigation'` / `'prefetch'` hold.
+   * - Does **not** set `hadNavigation`. If B exits before prepare (guard / redirect /
+   *   cancel) while superseding, `unpin` must not fake “navigation prepare came and left”
+   *   and kill prefetch-idle warmup on B’s keys.
+   *
+   * **Lifetime:** supersede window only — not handoff TTL (~30s), not until prefetch settles.
+   * After `unpin`, registry abort policy is unchanged: a real `'navigation'` hold that
+   * later finishes can still abort work.
+   *
+   * Pins base {@link MatchedRouteInfo.viewKey} (not `viewKeyWithData`) — enough for
+   * independent content / layout across supersede. Data-bound view keys with a data
+   * suffix are held by {@link ViewGraph} once load starts with payload.
+   *
+   * @returns Lease — only this handle’s {@link SharedBufferHold.unpin} drops these pin waiters.
    */
-  holdSharedBufferFor(to: MatchedRouteInfo): SharedBufferHold {
+  pinSharedBufferFor(to: MatchedRouteInfo): SharedBufferHold {
     const waiters: HandoffWaiter[] = [];
     const seen = new Set<string>();
 
@@ -162,14 +182,14 @@ export class ResourceGraph {
       for (const key of [match.dataKey, match.viewKey]) {
         if (!key || seen.has(key)) continue;
         seen.add(key);
-        waiters.push(this.sharedBuffer.hold(key, 'navigation'));
+        waiters.push(this.sharedBuffer.hold(key, 'pin'));
       }
     }
 
     let released = false;
 
     return {
-      unhold: () => {
+      unpin: () => {
         if (released) return;
         released = true;
         for (const waiter of waiters) {

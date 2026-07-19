@@ -275,6 +275,21 @@ describe('HandoffCache', () => {
       again.release();
     });
 
+    it('does not abort work when the last waiter is pin-only', () => {
+      handoff = new HandoffCache();
+      const waiter = handoff.hold('k', 'pin');
+      const { workSignal } = waiter;
+
+      waiter.release();
+
+      expect(workSignal.aborted).toBe(false);
+      expect(handoff.waiterCount('k')).toBe(0);
+
+      const again = handoff.hold('k', 'prefetch');
+      expect(again.workSignal).toBe(workSignal);
+      again.release();
+    });
+
     it('aborts work when the last navigation waiter leaves alone', () => {
       handoff = new HandoffCache();
       const waiter = handoff.hold('k', 'navigation');
@@ -342,6 +357,33 @@ describe('HandoffCache', () => {
       handoff.destroy();
       expect(waiter.workSignal.aborted).toBe(true);
       handoff = undefined;
+    });
+
+    it('clear aborts work generations and does not resurrect settled values', async () => {
+      handoff = new HandoffCache();
+      const waiter = handoff.hold('k', 'prefetch');
+      const { workSignal } = waiter;
+
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const pending = handoff.resolve('k', async () => {
+        await gate;
+        return 'stale';
+      });
+
+      handoff.clear();
+      expect(workSignal.aborted).toBe(true);
+      expect(handoff.get('k')).toBeUndefined();
+
+      const next = handoff.resolve('k', async () => 'fresh');
+      release();
+      await expect(pending).resolves.toBe('stale');
+      await expect(next).resolves.toBe('fresh');
+      expect(handoff.get('k')).toBe('fresh');
+
+      waiter.release();
     });
   });
 });

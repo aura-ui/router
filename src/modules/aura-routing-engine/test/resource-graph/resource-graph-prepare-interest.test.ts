@@ -13,8 +13,8 @@ function createResources(handoff: HandoffCache): ResourceGraph {
   );
 }
 
-describe('ResourceGraph shared buffer hold', () => {
-  it('keeps overlapping data handoff work alive until the hold is unheld', () => {
+describe('ResourceGraph pinSharedBufferFor', () => {
+  it('keeps overlapping data handoff work alive until unpin', () => {
     const handoff = new HandoffCache();
     const resources = createResources(handoff);
 
@@ -23,17 +23,17 @@ describe('ResourceGraph shared buffer hold', () => {
     const prior = handoff.hold(key, 'navigation');
     const { workSignal } = prior;
 
-    const hold = resources.holdSharedBufferFor(to);
+    const hold = resources.pinSharedBufferFor(to);
     prior.release();
     expect(workSignal.aborted).toBe(false);
 
-    hold.unhold();
+    hold.unpin();
     expect(workSignal.aborted).toBe(true);
 
     handoff.destroy();
   });
 
-  it('pins viewKey so overlapping view handoff survives until unhold', () => {
+  it('pins viewKey so overlapping view handoff survives until unpin', () => {
     const handoff = new HandoffCache();
     const resources = createResources(handoff);
 
@@ -47,18 +47,18 @@ describe('ResourceGraph shared buffer hold', () => {
     const prior = handoff.hold(to.viewKey!, 'navigation');
     const { workSignal } = prior;
 
-    const hold = resources.holdSharedBufferFor(to);
+    const hold = resources.pinSharedBufferFor(to);
     prior.release();
     expect(workSignal.aborted).toBe(false);
     expect(handoff.waiterCount(to.viewKey!)).toBe(1);
 
-    hold.unhold();
+    hold.unpin();
     expect(workSignal.aborted).toBe(true);
 
     handoff.destroy();
   });
 
-  it('unholding an older hold does not drop a newer supersede hold', () => {
+  it('unpinning an older pin does not drop a newer supersede pin', () => {
     const handoff = new HandoffCache();
     const resources = createResources(handoff);
 
@@ -70,30 +70,124 @@ describe('ResourceGraph shared buffer hold', () => {
     const prior = handoff.hold(routeB.dataKey!, 'navigation');
     const { workSignal } = prior;
 
-    const holdB = resources.holdSharedBufferFor(routeB);
-    const holdC = resources.holdSharedBufferFor(routeC);
+    const holdB = resources.pinSharedBufferFor(routeB);
+    const holdC = resources.pinSharedBufferFor(routeC);
     prior.release();
 
     // B’s run finally must not tear down C.
-    holdB.unhold();
+    holdB.unpin();
     expect(workSignal.aborted).toBe(false);
     expect(handoff.waiterCount(routeB.dataKey!)).toBe(1);
 
-    holdC.unhold();
+    holdC.unpin();
     expect(workSignal.aborted).toBe(true);
 
     handoff.destroy();
   });
 
-  it('hold.unhold is idempotent', () => {
+  it('unpin is idempotent', () => {
     const handoff = new HandoffCache();
     const resources = createResources(handoff);
     const to = createMatchedRoute('/x', { load: ['data'], cache: NO_CACHE });
 
-    const hold = resources.holdSharedBufferFor(to);
-    hold.unhold();
-    expect(() => hold.unhold()).not.toThrow();
+    const hold = resources.pinSharedBufferFor(to);
+    hold.unpin();
+    expect(() => hold.unpin()).not.toThrow();
     expect(handoff.waiterCount(to.dataKey!)).toBe(0);
+
+    handoff.destroy();
+  });
+
+  it('pin alone does not abort prefetch-idle work (early B fail must keep warmup)', () => {
+    const handoff = new HandoffCache();
+    const resources = createResources(handoff);
+    const to = createMatchedRoute('/warmup', { load: ['data'], cache: NO_CACHE });
+    const key = to.dataKey!;
+
+    const prefetch = handoff.hold(key, 'prefetch');
+    const { workSignal } = prefetch;
+    prefetch.release();
+    expect(workSignal.aborted).toBe(false);
+
+    // Supersede pin for B, then B fails before prepare — must not kill prefetch generation.
+    const hold = resources.pinSharedBufferFor(to);
+    hold.unpin();
+
+    expect(workSignal.aborted).toBe(false);
+    const again = handoff.hold(key, 'navigation');
+    expect(again.workSignal).toBe(workSignal);
+    again.release();
+
+    handoff.destroy();
+  });
+
+  it('defers work abort until unpin after navigation prepare releases', () => {
+    const handoff = new HandoffCache();
+    const resources = createResources(handoff);
+    const to = createMatchedRoute('/page', { load: ['data'], cache: NO_CACHE });
+    const key = to.dataKey!;
+
+    // Supersede pin for whole B.run(), then prepare takes a real navigation hold.
+    const pin = resources.pinSharedBufferFor(to);
+    const prepare = handoff.hold(key, 'navigation');
+    const { workSignal } = prepare;
+
+    prepare.release();
+    expect(workSignal.aborted).toBe(false);
+    expect(handoff.waiterCount(key)).toBe(1);
+
+    pin.unpin();
+    expect(workSignal.aborted).toBe(true);
+
+    handoff.destroy();
+  });
+
+  it('pin/unpin keeps in-flight handoff resolve joinable without a second load', async () => {
+    const handoff = new HandoffCache();
+    const resources = createResources(handoff);
+    const to = createMatchedRoute('/warmup', { load: ['data'], cache: NO_CACHE });
+    const key = to.dataKey!;
+
+    let loads = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const prefetch = handoff.hold(key, 'prefetch');
+    const { workSignal } = prefetch;
+
+    const pending = handoff.resolve(key, async () => {
+      loads++;
+      await Promise.race([
+        gate,
+        new Promise<never>((_, reject) => {
+          const onAbort = () => {
+            reject(workSignal.reason ?? new DOMException('Aborted', 'AbortError'));
+          };
+          if (workSignal.aborted) onAbort();
+          else workSignal.addEventListener('abort', onAbort, { once: true });
+        }),
+      ]);
+      return { n: 1 };
+    });
+
+    prefetch.release();
+
+    // Early B fail: pin then unpin — must not abort shared work / force a second resolve.
+    const pin = resources.pinSharedBufferFor(to);
+    pin.unpin();
+    expect(workSignal.aborted).toBe(false);
+
+    const joined = handoff.resolve(key, async () => {
+      loads++;
+      return { n: 2 };
+    });
+    release();
+
+    await expect(pending).resolves.toEqual({ n: 1 });
+    await expect(joined).resolves.toEqual({ n: 1 });
+    expect(loads).toBe(1);
 
     handoff.destroy();
   });

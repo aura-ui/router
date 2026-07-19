@@ -168,9 +168,10 @@ export class NavigationCoordinator {
 
     const resources = this.host.engine.resourceGraph;
 
-    // Hold shared buffer for B before cancelling A (owned handle — safe under A→B→C).
+    // Supersede only: pin B’s keys before cancel(A); unpin in finally (`'pin'` kind).
+    // Skip when no active tx. See ResourceGraph.pinSharedBufferFor / HandoffWaiterKind.
     const sharedBufferHold = this.activeTransaction
-      ? resources.holdSharedBufferFor(options.to)
+      ? resources.pinSharedBufferFor(options.to)
       : null;
 
     if (this.activeTransaction) {
@@ -183,7 +184,7 @@ export class NavigationCoordinator {
       const result = await next.run();
       this.processResult(result, next);
     } finally {
-      sharedBufferHold?.unhold();
+      sharedBufferHold?.unpin();
       if (this.activeTransaction === next) {
         this.activeTransaction = null;
       }

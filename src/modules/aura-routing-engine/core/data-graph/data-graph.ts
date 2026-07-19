@@ -5,7 +5,7 @@ import { promiseWithResolvers } from '../../../aura-utils/async/promises';
 import { resolveHookNames } from '../hooks/resolve-hook-names';
 import { invalidateRouterCache } from '../invalidate-router-cache';
 import { NavigationTransactionPipelinePhase } from '../navigation/navigation-transaction-pipeline-phase';
-import { HandoffCache } from '../resource-graph';
+import { HandoffCache } from '../resource-graph/handoff-cache';
 import { closestRouteWithLoadHooks } from './route-data';
 import type { CacheStoreOptions } from '../../../aura-cache-store/core';
 import type { HookRegistry } from '../hooks/registry';
@@ -13,7 +13,11 @@ import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
-import type { HandoffWaiter, HandoffWaiterKind, HandoffWorkRegistry } from '../resource-graph';
+import type {
+  HandoffWaiter,
+  HandoffWaiterKind,
+  HandoffWorkRegistry,
+} from '../resource-graph/handoff-work-registry';
 import type { RouteLifecycleContext } from '../route/types';
 
 /** Default `cache.data` payload TTL — cache-store {@link DEFAULT_GC_TIME} (5 minutes). */

@@ -14,7 +14,7 @@ type NavigationPlan =
 /** Handle for one open {@link NavigationCoordinator.navigate} attempt. */
 export type NavigationAttempt = {
   readonly href: string;
-  readonly generation: number;
+  readonly id: number;
   readonly signal: AbortSignal;
 };
 
@@ -32,8 +32,11 @@ export class NavigationCoordinator {
    * A transaction is current only while its id equals this value (supersede + invalidate fence).
    */
   private activeTransactionId: number;
-  /** Monotonic token — latest navigation attempt wins after async resolve. */
-  private navigateGeneration: number;
+  /**
+   * Current navigation-attempt id — latest attempt wins after async resolve.
+   * Paired with {@link NavigationAttempt.id} (same role as {@link activeTransactionId} for pipeline txs).
+   */
+  private activeNavigationAttemptId: number;
   /** Aborts in-flight redirect resolution when superseded. */
   private resolveAbort: AbortController | null;
   /** Open {@link navigate} attempts keyed by requested href until {@link settleNavigation}. */
@@ -43,7 +46,7 @@ export class NavigationCoordinator {
     this.host = host;
     this.activeTransaction = null;
     this.activeTransactionId = 0;
-    this.navigateGeneration = 0;
+    this.activeNavigationAttemptId = 0;
     this.resolveAbort = null;
   }
 
@@ -138,7 +141,7 @@ export class NavigationCoordinator {
     this.resolveAbort?.abort();
     this.resolveAbort = null;
     this.openNavigations.clear();
-    this.navigateGeneration++;
+    this.activeNavigationAttemptId++;
     // Fence: completed/leftover txs (id still equals last run) become stale without a new run.
     this.activeTransactionId++;
   }
@@ -194,7 +197,7 @@ export class NavigationCoordinator {
   }
 
   isAttemptCurrent(attempt: NavigationAttempt): boolean {
-    return !attempt.signal.aborted && this.navigateGeneration === attempt.generation;
+    return !attempt.signal.aborted && this.activeNavigationAttemptId === attempt.id;
   }
 
   /** Registers one open navigation attempt; used by {@link navigate} and integration tests. */
@@ -208,7 +211,7 @@ export class NavigationCoordinator {
 
     const attempt: NavigationAttempt = {
       href,
-      generation: ++this.navigateGeneration,
+      id: ++this.activeNavigationAttemptId,
       signal: this.resolveAbort.signal,
     };
     this.openNavigations.set(href, attempt);

@@ -38,7 +38,7 @@
 | Prefetch | `PrefetchIntentBus` (отдельная ось) | Не смешивать с navigation bus | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> by design |
 | Public DOM (P0 lifecycle) | start / commit / complete / cancel / redirect / error | — | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
-**Почему «~ частично»:** EB0–EB3 закрыты. Осталось **EB4** (devtools) и опциональные integration-тесты DOM+bus order.
+**Почему «~ частично»:** EB0–EB3 закрыты. Осталось **EB4** (devtools).
 
 ---
 
@@ -203,12 +203,12 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `onNavigationError` config callback убран — только bus `navigation:error`.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Экспорт типов из пакета engine (`EventBus`, `EngineEvent`, …).
 
-### EB3 — DOM bridge (с P0 NAVIGATION_EVENTS) — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (integration tests ~)
+### EB3 — DOM bridge (с P0 NAVIGATION_EVENTS) — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> DOM errors уже есть (`not-found`, `navigation-error`, `navigation-hook-error`).
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Adapter: bus → start / commit / complete / cancel / redirect / error в `onEngineEvent`.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Unit-тесты `dispatchNavigationComplete` / `Cancel` / `Redirect`.
-- [ ] <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Тесты integration: happy path, cancel, redirect, fast path (DOM + bus order).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Integration: happy / cancel / redirect / fast — `test/dom-bus-order.integration.test.ts`.
 - [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `aura-router/README.md` — раздел bus vs DOM.
 
 ### EB4 — Devtools (zero cost prod) — <span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
@@ -262,3 +262,4 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | 2026-07-19 | `onNavigationError` thin-wrap поверх `navigation:error`; DOM error через `onEngineEvent` |
 | 2026-07-19 | `onNavigationError` убран из engine config — prod только bus → AuraRouter DOM |
 | 2026-07-19 | EB3: DOM `navigation-complete` / `cancel` / `redirect` через `onEngineEvent` |
+| 2026-07-19 | EB3 integration: `dom-bus-order.integration.test.ts` (happy/cancel/redirect/fast) |

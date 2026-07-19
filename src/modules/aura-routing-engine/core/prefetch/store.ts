@@ -1,4 +1,5 @@
-import { DEFAULT_MAX_AGE_MS, PrefetchPolicy } from './policy';
+import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
+import { PrefetchPolicy, type ResolvedPrefetchConfig } from './policy';
 import type { PrefetchConfig, PrefetchMode, PrefetchSkipReason } from './types';
 
 type InflightRun = {
@@ -53,15 +54,15 @@ class IntentScheduler {
 
 /** In-flight runs, stale bookkeeping, and intent timers. */
 export class PrefetchRunStore {
-  private readonly config: PrefetchConfig;
+  private readonly config: ResolvedPrefetchConfig;
   private readonly policy: PrefetchPolicy;
   private readonly scheduler = new IntentScheduler();
   private readonly inflight = new Map<string, InflightRun>();
   private readonly records = new Map<string, PrefetchRecord>();
 
-  constructor(config: PrefetchConfig) {
-    this.config = config;
-    this.policy = new PrefetchPolicy(config);
+  constructor(config: PrefetchConfig = {}) {
+    this.config = { ...ENGINE_DEFAULTS.prefetch, ...config };
+    this.policy = new PrefetchPolicy(this.config);
   }
 
   scheduleIntent(href: string, mode: PrefetchMode, run: () => void): void {
@@ -139,8 +140,7 @@ export class PrefetchRunStore {
   }
 
   private pruneRecords(): void {
-    const maxAge = this.config.maxAgeMs ?? DEFAULT_MAX_AGE_MS;
-    const cutoff = Date.now() - maxAge;
+    const cutoff = Date.now() - this.config.maxAgeMs;
     for (const [href, record] of this.records) {
       if (record.completedAt < cutoff) this.records.delete(href);
     }

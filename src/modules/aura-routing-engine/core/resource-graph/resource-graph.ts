@@ -113,7 +113,7 @@ export class ResourceGraph {
   private transaction!: NavigationTransaction;
 
   constructor(options: ResourceGraphOptions) {
-    this.sharedBuffer = options.sharedBuffer ?? new HandoffCache(options.sharedBufferOptions ?? {});
+    this.sharedBuffer = options.sharedBuffer ?? new HandoffCache(options.sharedBufferOptions);
     this.dataGraph = options.dataGraph ?? new DataGraph(this.sharedBuffer, {
       hooks: options.hooks,
       cache: options.dataCacheOptions,

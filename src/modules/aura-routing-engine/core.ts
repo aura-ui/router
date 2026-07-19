@@ -17,9 +17,14 @@
 export type {
   NotFoundFallbackHandler,
   AuraRoutingEngineConfig,
+  ResolvedAuraRoutingEngineConfig,
 } from './core/aura-routing-engine';
 
-export { AuraRoutingEngine } from './core/aura-routing-engine';
+export {
+  AuraRoutingEngine,
+  ENGINE_DEFAULTS,
+  resolveAuraRoutingEngineConfig,
+} from './core/aura-routing-engine';
 
 export type {
   NavigationErrorPhase,

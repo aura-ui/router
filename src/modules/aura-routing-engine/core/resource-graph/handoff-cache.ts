@@ -3,6 +3,7 @@ import {
   AuraResolvableCache,
   type ResolvableCachePolicy,
 } from '../../../aura-cache-store/core/aura-resolvable-cache';
+import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import {
   HandoffWorkRegistry,
   type HandoffWaiter,
@@ -10,9 +11,6 @@ import {
 } from './handoff-work-registry';
 
 export type { HandoffWaiter, HandoffWaiterKind } from './handoff-work-registry';
-
-/** Default prepare handoff window (prefetch → navigation), milliseconds. */
-export const DEFAULT_HANDOFF_TTL_MS = 30_000;
 
 /**
  * Options for {@link HandoffCache}.
@@ -23,7 +21,7 @@ export const DEFAULT_HANDOFF_TTL_MS = 30_000;
 export type HandoffCacheOptions = {
   /**
    * How long a settled value stays available for a later {@link AuraResolvableCache.resolve}.
-   * Default: {@link DEFAULT_HANDOFF_TTL_MS}.
+   * Default: {@link ENGINE_DEFAULTS.sharedBufferOptions}.ttl.
    */
   readonly ttl?: number;
   /** Max entries (LRU). */
@@ -50,18 +48,24 @@ export type HandoffCacheOptions = {
  *
  * Work-signal policy: {@link HandoffWorkRegistry} (короткая модель interest / workSignal / hold).
  *
- * Created by {@link AuraRoutingEngine}; DataGraph / ViewGraph share one instance.
+ * Owned by {@link ResourceGraph}; DataGraph / ViewGraph share one instance.
  */
 export class HandoffCache extends AuraResolvableCache<unknown> {
   private readonly work = new HandoffWorkRegistry();
 
   constructor(options: HandoffCacheOptions = {}) {
-    const { ttl, max, gcSweepInterval, onRemove, onSettled } = options;
+    const {
+      ttl = ENGINE_DEFAULTS.sharedBufferOptions.ttl,
+      max,
+      gcSweepInterval = false,
+      onRemove,
+      onSettled,
+    } = options;
     super({
       max,
       // No staleTime: fresh until gcTime, then missing (no background revalidate).
-      gcTime: ttl ?? DEFAULT_HANDOFF_TTL_MS,
-      gcSweepInterval: gcSweepInterval ?? false,
+      gcTime: ttl,
+      gcSweepInterval,
       invalidatePolicy: 'remove',
       onRemove,
       // One-shot DOM: mount empties the node; never settle fragments for reuse.

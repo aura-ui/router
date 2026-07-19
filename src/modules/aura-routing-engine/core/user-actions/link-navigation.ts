@@ -1,5 +1,6 @@
 import { bind } from '../../../aura-utils/decorators/bind';
 
+import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import type { NavigationHandler } from '../history/provider.types';
 import { findRouterLink, resolveLinkHref } from './link-resolve';
 
@@ -14,7 +15,7 @@ export class LinkNavigationTracker {
   private readonly linksSelector: string;
 
   constructor(config: LinkNavigationTrackerConfig = {}) {
-    this.linksSelector = config.linksSelector ?? '[data-router-link]';
+    this.linksSelector = config.linksSelector ?? ENGINE_DEFAULTS.linksSelector;
   }
 
   onNavigation(handler: NavigationHandler): void {

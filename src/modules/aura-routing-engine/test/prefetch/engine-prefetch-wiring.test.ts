@@ -1,9 +1,5 @@
 import { AuraRoutingEngine } from '../../core';
-import {
-  ViewGraph,
-  LoaderRegistry,
-} from '../../core/view-graph';
-import { HandoffCache } from '../../core/resource-graph';
+import { LoaderRegistry } from '../../core/view-graph';
 import type { RouterInstance } from '../../core';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
@@ -18,12 +14,10 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return '<span>about</span>';
     });
 
-    const viewGraph = new ViewGraph(new HandoffCache(), { registry });
-
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
 
-    const engine = new AuraRoutingEngine(router, { viewGraph });
+    const engine = new AuraRoutingEngine(router, { viewRegistry: registry });
     engine.replaceRoutes(collectRoutesFromDom(createDomRoute('/'), about) as never);
 
     await engine.prefetch('/about');
@@ -39,13 +33,11 @@ describe('AuraRoutingEngine prefetch wiring', () => {
       return 'x';
     });
 
-    const viewGraph = new ViewGraph(new HandoffCache(), { registry });
-
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');
 
     const engine = new AuraRoutingEngine(router, {
-      viewGraph,
+      viewRegistry: registry,
       prefetch: false,
     });
     engine.replaceRoutes(collectRoutesFromDom(about) as never);

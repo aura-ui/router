@@ -1,5 +1,4 @@
 export {
-  DEFAULT_HANDOFF_TTL_MS,
   HandoffCache,
   type HandoffCacheOptions,
   type HandoffWaiter,

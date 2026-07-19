@@ -1,7 +1,5 @@
-import {
-  DEFAULT_HANDOFF_TTL_MS,
-  HandoffCache,
-} from '../../core/resource-graph/handoff-cache';
+import { ENGINE_DEFAULTS } from '../../core/aura-routing-engine-config';
+import { HandoffCache } from '../../core/resource-graph/handoff-cache';
 
 describe('HandoffCache', () => {
   let handoff: HandoffCache | undefined;
@@ -126,7 +124,7 @@ describe('HandoffCache', () => {
     jest.useRealTimers();
   });
 
-  it('uses DEFAULT_HANDOFF_TTL_MS when ttl is omitted', async () => {
+  it('uses ENGINE_DEFAULTS.sharedBufferOptions.ttl when ttl is omitted', async () => {
     jest.useFakeTimers();
     handoff = new HandoffCache();
     let loads = 0;
@@ -136,7 +134,7 @@ describe('HandoffCache', () => {
       return 'v';
     });
 
-    jest.advanceTimersByTime(DEFAULT_HANDOFF_TTL_MS);
+    jest.advanceTimersByTime(ENGINE_DEFAULTS.sharedBufferOptions.ttl);
     expect(
       await handoff.resolve('k', async () => {
         loads++;

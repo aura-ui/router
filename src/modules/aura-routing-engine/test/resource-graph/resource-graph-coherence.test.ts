@@ -6,8 +6,8 @@ import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import type { NavigationPhaseMode } from '../../core/navigation/types';
+import { ENGINE_DEFAULTS } from '../../core/aura-routing-engine-config';
 import {
-  DEFAULT_HANDOFF_TTL_MS,
   HandoffCache,
   ResourceGraph,
 } from '../../core/resource-graph';
@@ -341,7 +341,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(viewLoads).toBe(1);
     expect(dataGraph.getData(route)).toBeUndefined();
 
-    jest.advanceTimersByTime(DEFAULT_HANDOFF_TTL_MS);
+    jest.advanceTimersByTime(ENGINE_DEFAULTS.sharedBufferOptions.ttl);
     // Still fresh at exactly TTL (gcTime boundary — same as HandoffCache unit test).
     const atTtlTx = prepareTx(branch, engine, 'navigation');
     await resourceGraph.load(branch, { branch, transaction: atTtlTx });

@@ -1,13 +1,11 @@
 import { onAbort } from '../../../aura-utils/async/on-abort';
-import { PrefetchPolicy } from './policy';
+import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
+import { PrefetchPolicy, type ResolvedPrefetchConfig } from './policy';
 import { PrefetchPlanResolver } from './plan';
 import { PrefetchRunStore } from './store';
 import { PrefetchIntentBus } from './intent/bus';
 import { LinkIntentSource } from './intent/link-source';
-import {
-  DEFAULT_ROUTER_PREFETCH_MODE,
-  resolvePrefetchMode,
-} from './prefetch-policy';
+import { resolvePrefetchMode } from './prefetch-policy';
 import type {
   PrefetchConfig,
   PrefetchIntent,
@@ -23,7 +21,7 @@ import type {
  */
 export class PrefetchPipeline {
   private readonly deps: PrefetchPipelineDeps;
-  private readonly config: PrefetchConfig;
+  private readonly config: ResolvedPrefetchConfig;
   private readonly policy: PrefetchPolicy;
   private readonly store: PrefetchRunStore;
   private readonly planResolver: PrefetchPlanResolver;
@@ -37,14 +35,14 @@ export class PrefetchPipeline {
     options: { linksSelector?: string } = {},
   ) {
     this.deps = deps;
-    this.config = config;
-    this.policy = new PrefetchPolicy(config);
-    this.store = new PrefetchRunStore(config);
+    this.config = { ...ENGINE_DEFAULTS.prefetch, ...config };
+    this.policy = new PrefetchPolicy(this.config);
+    this.store = new PrefetchRunStore(this.config);
     this.planResolver = new PrefetchPlanResolver({
       matcher: deps.matcher,
       getMatchableNodes: deps.getMatchableNodes,
       getRegistryGeneration: deps.getRegistryGeneration,
-      currentHref: config.currentHref,
+      currentHref: this.config.currentHref,
     });
 
     this.unsubscribeIntent = this.intentBus.subscribe((intent) => this.handleIntent(intent));
@@ -160,7 +158,7 @@ export class PrefetchPipeline {
     return resolvePrefetchMode({
       anchor,
       route: plan?.leaf.route,
-      routerDefault: this.config.defaultMode ?? DEFAULT_ROUTER_PREFETCH_MODE,
+      routerDefault: this.config.defaultMode,
       touch,
     });
   }

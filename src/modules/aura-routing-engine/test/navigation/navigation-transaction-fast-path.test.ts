@@ -141,4 +141,47 @@ describe('NavigationTransaction.run fast path selection', () => {
     fullSpy.mockRestore();
     loadSpy.mockRestore();
   });
+
+  it('selects runFastPipeline when canUseViewCacheFastPath (cache.view hit)', async () => {
+    const engine = createMockEngine();
+    jest.spyOn(engine.viewGraph, 'hasCachedView').mockReturnValue(true);
+
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { loader: 'url', content: 'about.html' },
+      cache: { dom: false, view: true, data: true },
+    });
+
+    const transaction = new NavigationTransaction(
+      1,
+      {
+        from,
+        to,
+        action: 'push',
+        href: to.href,
+        hash: '',
+        options: DEFAULT_PUSH_NAV_OPTIONS,
+      },
+      () => false,
+      engine,
+    );
+
+    const fastSpy = jest
+      .spyOn(NavigationTransactionPipeline.prototype, 'runFastPipeline')
+      .mockResolvedValue({ status: 'navigationSucceeded' });
+    const fullSpy = jest
+      .spyOn(NavigationTransactionPipeline.prototype, 'runFullPipeline')
+      .mockResolvedValue({ status: 'navigationSucceeded' });
+    const loadSpy = jest.spyOn(engine.resourceGraph, 'load');
+
+    await transaction.run();
+
+    expect(fastSpy).toHaveBeenCalledTimes(1);
+    expect(fullSpy).not.toHaveBeenCalled();
+    expect(loadSpy).not.toHaveBeenCalled();
+
+    fastSpy.mockRestore();
+    fullSpy.mockRestore();
+    loadSpy.mockRestore();
+  });
 });

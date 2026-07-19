@@ -88,6 +88,37 @@ describe('ViewGraph', () => {
     await expect(viewGraph.loadView(route, controller.signal)).resolves.toEqual({ error: { status: 'cancelled' } });
   });
 
+  it('hasCachedView is true after a warm cache.view load', async () => {
+    registry.register('html', async (ctx) => ctx.content);
+    const route = matched('/about', {
+      route: {
+        layout: '',
+        view: { loader: 'html', content: '<p>about</p>' },
+        cache: { dom: false, view: true, data: false },
+      },
+      resolvedView: { loader: 'html', content: '<p>about</p>' },
+    });
+
+    expect(viewGraph.hasCachedView(route)).toBe(false);
+    await viewGraph.loadView(route, new AbortController().signal);
+    expect(viewGraph.hasCachedView(route)).toBe(true);
+  });
+
+  it('hasCachedView is false when cache.view is disabled', async () => {
+    registry.register('html', async (ctx) => ctx.content);
+    const route = matched('/about', {
+      route: {
+        layout: '',
+        view: { loader: 'html', content: '<p>about</p>' },
+        cache: { dom: false, view: false, data: false },
+      },
+      resolvedView: { loader: 'html', content: '<p>about</p>' },
+    });
+
+    await viewGraph.loadView(route, new AbortController().signal);
+    expect(viewGraph.hasCachedView(route)).toBe(false);
+  });
+
   it('caches string payloads when cache.view is enabled', async () => {
     let loads = 0;
     registry.register('html', async () => {

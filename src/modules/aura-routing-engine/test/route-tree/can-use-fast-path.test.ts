@@ -5,7 +5,11 @@ import {
 } from '../../../aura-route/core/view/dom-cache';
 import type { RouteInstance } from '../../core';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { buildTransitionPlan, canUseDomCacheFastPath } from '../../core/route-tree/transition-plan';
+import {
+  canUseDomCacheFastPath,
+  canUseViewCacheFastPath,
+} from '../../core/route-tree/can-use-fast-path';
+import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
 import { createTestRoute } from '../helpers/create-test-route';
 import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
 
@@ -183,5 +187,60 @@ describe('canUseDomCacheFastPath', () => {
 
     expect(plan.canUseFastPath).toBe(true);
     expect(canUseDomCacheFastPath(plan)).toBe(false);
+  });
+});
+
+describe('canUseViewCacheFastPath', () => {
+  it('allows flat async view when ViewGraph reports a warm cache.view hit', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { loader: 'url', content: 'about.html' },
+      cache: { dom: false, view: true, data: true },
+    });
+    const plan = buildTransitionPlan(from, to);
+    const viewGraph = { hasCachedView: jest.fn().mockReturnValue(true) };
+
+    expect(plan.canUseFastPath).toBe(false);
+    expect(canUseViewCacheFastPath(plan, viewGraph)).toBe(true);
+    expect(viewGraph.hasCachedView).toHaveBeenCalledWith(plan.enterMatch);
+  });
+
+  it('blocks when ViewGraph has no cached view', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { loader: 'url', content: 'about.html' },
+      cache: { dom: false, view: true, data: true },
+    });
+
+    expect(
+      canUseViewCacheFastPath(buildTransitionPlan(from, to), {
+        hasCachedView: () => false,
+      }),
+    ).toBe(false);
+  });
+
+  it('blocks when cache.view is disabled', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      view: { loader: 'url', content: 'about.html' },
+      cache: { dom: false, view: false, data: true },
+    });
+
+    expect(
+      canUseViewCacheFastPath(buildTransitionPlan(from, to), {
+        hasCachedView: () => true,
+      }),
+    ).toBe(false);
+  });
+
+  it('is false when Tier 0 already applies', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b');
+    const plan = buildTransitionPlan(from, to);
+
+    expect(plan.canUseFastPath).toBe(true);
+    expect(
+      canUseViewCacheFastPath(plan, { hasCachedView: () => true }),
+    ).toBe(false);
   });
 });

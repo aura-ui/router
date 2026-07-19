@@ -47,6 +47,7 @@ export function createViewGraphFromLoadView(
 ): ViewGraph {
   return {
     loadView,
+    hasCachedView: jest.fn().mockReturnValue(false),
     destroy: jest.fn(),
     invalidate: jest.fn().mockReturnValue(0),
     load: jest.fn(async (matches: readonly MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {

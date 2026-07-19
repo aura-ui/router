@@ -5,7 +5,7 @@
  * points cover the routing tiers:
  *
  * - {@link NavigationTransactionPipeline.runFullPipeline} — standard navigation
- * - {@link NavigationTransactionPipeline.runFastPipeline} — sync / dom-cache fast path (no guards/loads)
+ * - {@link NavigationTransactionPipeline.runFastPipeline} — sync / dom-cache / view-cache fast path (no guards/loads)
  * - {@link NavigationTransactionPipeline.runUpdate} — same route record, param/query change
  *
  * @module navigation/navigation-transaction-pipeline
@@ -71,13 +71,14 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Fast path — view swap only (sync content, or `cache.dom` hit via {@link ../route-tree/transition-plan!canUseDomCacheFastPath}).
+   * Fast path — view swap only (sync content, `cache.dom` hit, or warm `cache.view`).
    *
    * Skips guards, data loads, and transition phases. Commits history synchronously, runs a single
    * {@link runViewCommit} on the sole enter route, then {@link runAfterRender}.
    *
-   * Selected by {@link TransitionMap.canUseFastPath} or
-   * {@link ../route-tree/transition-plan!canUseDomCacheFastPath}.
+   * Selected by {@link TransitionMap.canUseFastPath},
+   * {@link ../route-tree/can-use-fast-path!canUseDomCacheFastPath}, or
+   * {@link ../route-tree/can-use-fast-path!canUseViewCacheFastPath}.
    *
    * @returns `cancelled` on abort/supersede; render errors via {@link failRender}; otherwise {@link runAfterRender} result or `navigationSucceeded`
    */

@@ -1,6 +1,6 @@
 # TODO: Pipeline — sync/async шаги, fast path, step runner
 
-> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — Tier 0 + sync commit/cache ✓ · thenable runner · Tier 1 ✗  
+> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — Tier 0 + thenable runner ✓ · Tier 1 · lifecycle sync-return ✗  
 > **Сверка с кодом:** 2026-07-19  
 > **Связь:** оптимизация `NavigationTransactionPipeline` без смены семантики cancel/supersede.  
 > **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md) (blocking walk ✓ · полный `runBlockingOnly` ⊘), fast path as-is: `canUseFastPath` / `runFastPipeline`
@@ -21,7 +21,8 @@
 | — | Tier 0 fast path (`canUseFastPath` + `runFastPipeline`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | shipped |
 | — | Sync commit slice / `tryCacheRestore` / keep-alive ветки | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | invariant беречь |
 | — | Redirect blocking walk (вместо полного `runBlockingOnly`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | [REDIRECT_CHAIN_COLLAPSE](../done/REDIRECT_CHAIN_COLLAPSE.md) |
-| **F1** | Thenable-aware `runUntilTerminal` / `runSequentially` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | `StepResult \| Promise`, `isThenable` |
+| **F1** | Thenable-aware `runSequentially` + `isThenable` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | sync steps: `runCommitHistory`, `commitEnterBranchToDom` |
+| **F1b** | Lifecycle `runPhaseStep` sync-return при sync hooks | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | опционально |
 | **F2** | Fast path Tier 1 (cache hit + sync hooks) | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | predicate + укороченный run |
 | **F3** | Документировать commit-slice invariant | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | JSDoc / ARCHITECTURE cross-link |
 | — | Generator / trampoline driver | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | overkill до профиля |
@@ -42,7 +43,7 @@ type PipelineStep = () => Promise<PipelineStepResult>;
 
 `runSequentially` всегда `await step()` — даже когда тело шага завершилось синхронно.
 
-<span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Thenable runner ещё **не** внедрён (`PipelineStep` остаётся `() => Promise<…>`).
+<span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Thenable runner внедрён: `PipelineStep = () => PipelineStepResult | Promise<…>`; `isThenable` в `aura-utils/async/is-thenable.ts`; `runSequentially` await только thenable.
 
 **Вопрос:** нужно ли pipeline «знать» sync vs async и вызывать шаги по-разному?  
 **Ответ:** статические метки на шагах — **хрупко** <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>; runtime thenable + fast path tiers — **практично**. Generator/trampoline — **overkill на текущем этапе** <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> (см. § Generator).
@@ -84,7 +85,7 @@ commitGate()         // sync, сразу после — без await между
 
 ## Рекомендуемый подход
 
-### 1. Thenable-aware runner (фаза 1) <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+### 1. Thenable-aware runner (фаза 1) <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
 Шаг возвращает sync или Promise; runner различает в runtime:
 
@@ -229,19 +230,21 @@ Trampoline / generator дают:
 
 ## Шаги внедрения
 
-### Фаза 1 — Thenable runner <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+### Фаза 1 — Thenable runner <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `StepResult = PipelineOutcome | Promise<PipelineOutcome>`.
-2. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> `isThenable` + обновить `runSequentially` / `runUntilTerminal`.
-3. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> По возможности — lifecycle `runPhaseStep` возвращает sync при sync hooks.
-4. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> **Критерий:** тесты pipeline без регрессий; sync guard cancel без лишних ticks (опционально assert через instrumentation).
+1. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `PipelineStep` → `PipelineStepResult | Promise<PipelineStepResult>`.
+2. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `isThenable` (`aura-utils/async/is-thenable.ts`) + thenable `runSequentially`.
+3. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Sync-return: `runCommitHistory`, `commitEnterBranchToDom` (happy path / cancel).
+4. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Lifecycle `runPhaseStep` sync при sync hooks (опционально, F1b).
+5. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> **Критерий:** существующие pipeline-тесты; unit `is-thenable.test.ts`.
 
 **Файлы:**
 
 | Файл | Изменение | Статус |
 |------|-----------|--------|
-| `core/navigation/navigation-transaction-pipeline.ts` | thenable `runSequentially` | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
-| `core/processor/step-runner.ts` | опционально вынести runner | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> |
+| `aura-utils/async/is-thenable.ts` | `isThenable` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `core/navigation/navigation-transaction-pipeline.ts` | thenable `runSequentially` + sync steps | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `core/processor/step-runner.ts` | опционально вынести runner | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> не нужно |
 
 ### Фаза 2 — Fast path Tier 1 <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
 
@@ -279,7 +282,7 @@ flowchart TD
   FP0 -->|yes ✓| FAST0[runFastPipeline]
   FP0 -->|no| FP1{Tier 1 fast path?}
   FP1 -->|yes ✗| FAST1[runFastPipelineTier1]
-  FP1 -->|no| FULL[runUntilTerminal thenable ✗]
+  FP1 -->|no| FULL[runSequentially thenable ✓]
   FULL --> SYNC{step returns thenable?}
   SYNC -->|no| NEXT[next step sync]
   SYNC -->|yes| AWAIT[await once]
@@ -294,7 +297,7 @@ flowchart TD
 | Решение | Статус |
 |---------|--------|
 | Статические sync/async метки на шагах | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> не primary design |
-| Thenable runner | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> дёшево, полезно — **следующий шаг** |
+| Thenable runner | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `runSequentially` + `isThenable` |
 | Fast path Tier 0 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> shipped |
 | Fast path Tier 1 | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> главный оставшийся perf-рычаг |
 | Generator/trampoline | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> overkill до профиля / streaming |

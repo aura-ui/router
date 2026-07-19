@@ -13,8 +13,7 @@
 import { NavigationTransaction } from './navigation-transaction';
 import { PHASES } from './lifecycle-phases';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import { createBranchResolveContext } from '../view-mount/branch-resolver';
-import { mountEnterBranch } from '../view-mount/branch-mount';
+import { createBranchMountContext, mountEnterBranch } from '../view-mount/branch-mount';
 import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -31,9 +30,9 @@ type PipelineStep = () => Promise<PipelineStepResult>;
  * - `null` — step succeeded; run the next step
  * - non-`null` — terminal outcome: `cancelled`, `redirect`, `error`, or (top-level only) `navigationSucceeded`
  *
- * Full path: {@link runPrepare} (`runLoads` → parallel {@link prepareEnterBranch}) then render
- * as sync {@link commitEnterBranchToDom} interleaved with `transition-order`. Param remount uses
- * the same branch commit with `paramChangeRemount` (DomCache restore via `syncBranchMount` early-exit).
+ * Full path: {@link runPrepare} (`ResourceGraph.load` → `viewSnapshot`) then render as sync
+ * {@link commitEnterBranchToDom} interleaved with `transition-order`. Param remount uses the same
+ * branch commit with `paramChangeRemount` (DomCache restore via `syncBranchMount` early-exit).
  * {@link runFastPipeline} skips prepare/transitions (see {@link TransitionMap.canUseFastPath}).
  *
  * @see docs/MAIN_PIPELINE.md
@@ -282,13 +281,13 @@ export class NavigationTransactionPipeline {
     }
 
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const resolveContext = createBranchResolveContext({
+    const mountContext = createBranchMountContext({
       signal: this.transaction.signal,
       dataSnapshot: this.transaction.dataSnapshot,
       isActive: () => this.transaction.isActive(),
       paramChangeRemount: this.transaction.transitionPlan.paramChangeRemount === true,
     });
-    const mountResult = mountEnterBranch(enterRoutes, preResolvedContents, resolveContext);
+    const mountResult = mountEnterBranch(enterRoutes, preResolvedContents, mountContext);
 
     if (mountResult.status === 'aborted' || !this.transaction.isActive()) {
       return Promise.resolve({ status: 'cancelled' });

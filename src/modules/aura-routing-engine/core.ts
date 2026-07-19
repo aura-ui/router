@@ -49,14 +49,15 @@ export {
 export type { ViewCommitSnapshot, ViewCommitState } from './core/view-mount/view-commit-state';
 export { isViewCommittedForHistory } from './core/view-mount/view-commit-state';
 export type { ViewRenderResult } from './core/view-mount/view-commit-render';
-export { resolveEnterBranch, createBranchResolveContext } from './core/view-mount/branch-resolver';
+export {
+  createBranchMountContext,
+  mountEnterBranch,
+} from './core/view-mount/branch-mount';
 export type {
-  BranchResolveContext,
-  BranchResolveResult,
-  BranchResolveTransaction,
-} from './core/view-mount/branch-resolver';
-export { mountEnterBranch } from './core/view-mount/branch-mount';
-export type { MountEnterBranchResult } from './core/view-mount/branch-mount';
+  BranchMountContext,
+  BranchMountTransaction,
+  MountEnterBranchResult,
+} from './core/view-mount/branch-mount';
 
 export type { TransactionResult, PipelineStepResult, NavigationErrorResult, NavigationShortCircuit } from './core/navigation/types';
 export type { NavigationCommittedContext } from './core/navigation/navigation-finalize';
@@ -120,7 +121,6 @@ export type {
   ViewGraphLoadViewsResult,
   ViewLoadPort,
   ViewResolverPort,
-  BranchViewResolver,
   LoaderClass,
   ViewLoaderEnv,
   ViewDescriptor,

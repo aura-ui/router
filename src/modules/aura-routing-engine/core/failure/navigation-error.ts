@@ -1,3 +1,14 @@
+/**
+ * Navigation **error** — the structured *cause* of a failed navigation.
+ *
+ * Pair with {@link ./navigation-failure!NavigationFailure}:
+ * - `NavigationError` = what went wrong (`code`, `phase`, `message`, `cause`)
+ * - `NavigationFailure` = which navigation died (`error` + from/to/commit/action)
+ *
+ * Build via constructors / {@link normalizeNavigationError}; wrap into a terminal
+ * snapshot with `NavigationFailure.fromPipeline` / `.notFound` / `.redirectError`.
+ */
+
 /** Stable codes for recovery, telemetry, and i18n. */
 export type NavigationFailureCode =
   | 'NOT_FOUND'
@@ -56,14 +67,20 @@ export function isNavigationError(error: unknown): error is NavigationError {
   return error instanceof NavigationError;
 }
 
-export interface NormalizeFailureContext {
+export interface NormalizeNavigationErrorContext {
   phase: NavigationErrorPhase;
   routePattern: string;
   defaultCode?: NavigationFailureCode;
 }
 
-/** Single normalization path for pipeline, view, and content layers. */
-export function normalizeFailure(error: unknown, ctx: NormalizeFailureContext): NavigationError {
+/**
+ * Single normalization path for pipeline, view, and content layers.
+ * Always returns a {@link NavigationError} (the cause), never a {@link ./navigation-failure!NavigationFailure}.
+ */
+export function normalizeNavigationError(
+  error: unknown,
+  ctx: NormalizeNavigationErrorContext,
+): NavigationError {
   if (error instanceof NavigationError) {
     return error;
   }

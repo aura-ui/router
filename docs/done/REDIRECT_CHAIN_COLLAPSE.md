@@ -97,7 +97,7 @@ AuraRoutingEngine.navigateTo()
 |-----|-------|--------|
 | `RedirectResolver.resolve()` | `followRedirectsWithGuardWalk` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | sync declarative-only | `followDeclarativeRedirects` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
-| cycle / max hops errors | `redirect-error` → `FailedNavigation.redirectError` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| cycle / max hops errors | `redirect-error` → `NavigationFailure.redirectError` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 
 ### `runBlockingOnly` / resolve mode
 
@@ -226,7 +226,7 @@ flowchart TD
 | `aura-route` attr `redirect` | `@routeAttr redirect` + type `redirect` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> |
 | `runBlockingOnly` / mode | `NavigationTransaction.runRedirectCollapse` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> |
 | `aura-routing-engine` / coordinator | resolve → `run({ skipBlockingPhases })` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation-error.types` cycle/depth | `FailedNavigation.redirectError` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation-error.types` cycle/depth | `NavigationFailure.redirectError` | <span style="background:#2ea043;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> |
 
 Тесты: `test/redirect/declarative-chain.test.ts`, `redirect-resolver.integration.test.ts`, `redirect-probe-phases.test.ts`.
 

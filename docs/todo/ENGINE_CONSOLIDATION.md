@@ -216,7 +216,7 @@ interface ViewCommitOrchestrator {
 **Уже в коде:**
 
 - <span style="color: #2ea043; font-weight: bold;">✓</span> `unmountPrevOnNotFound`
-- <span style="color: #2ea043; font-weight: bold;">✓</span> `FailedNavigation.notFound`
+- <span style="color: #2ea043; font-weight: bold;">✓</span> `NavigationFailure.notFound`
 - <span style="color: #bf8700; font-weight: bold;">~</span> `handleUnmatchedNavigation` на engine (не один pipeline-модуль)
 
 ```ts

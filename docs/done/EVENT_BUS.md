@@ -125,7 +125,7 @@ type EngineEvent =
   | { type: 'navigation:finish'; id }
   | { type: 'navigation:cancel'; id; reason? }
   | { type: 'navigation:redirect'; id; url; replace }
-  | { type: 'navigation:error'; id; failure: FailedNavigation }
+  | { type: 'navigation:error'; id; failure: NavigationFailure }
   | { type: 'node:activate' | 'node:deactivate'; id; nodeId; pattern }  // nodeId === pattern
   | { type: 'load:start' | 'load:end'; id; nodeId; pattern }
   | { type: 'load:error'; id; nodeId; pattern; error: unknown };

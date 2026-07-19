@@ -32,16 +32,16 @@
 
 | Проблема | Симптом | Решение |
 |----------|---------|---------|
-| Два recovery-пути | `resolveError()` в view + `failWithError()` в pipeline | View возвращает `{ status: 'error' }`, pipeline нормализует через `normalizeFailure()` |
+| Два recovery-пути | `resolveError()` в view + `failWithError()` в pipeline | View возвращает `{ status: 'error' }`, pipeline нормализует через `normalizeNavigationError()` |
 | Хрупкий commit | `viewCommitted = (phase === 'render')` | `ViewCommitTracker` → `none` / `staged` / `committed` |
 | Throw как control flow | try/catch на каждой фазе, разная политика для `left` / `after` | `PHASES` + `runPhaseStep()` с `onThrow: 'failure' \| 'log' \| 'propagate'` |
-| 404 вне модели | отдельный bypass в engine без `TransactionResult` | `FailedNavigation.notFound()` + `finalizeNotFoundNavigation()` |
+| 404 вне модели | отдельный bypass в engine без `TransactionResult` | `NavigationFailure.notFound()` + `finalizeNotFoundNavigation()` |
 | Дублирование уведомлений | `onNavigationError` callback + `navigation-error` DOM event | Engine callback → `dispatchNavigationError()` (единственный путь в DOM) |
-| Смешение семантик | cancel / redirect / error / abort — разные исходы, один механизм | `TransactionResult` + `FailedNavigation` + `resolveHistoryPolicy()` |
+| Смешение семантик | cancel / redirect / error / abort — разные исходы, один механизм | `TransactionResult` + `NavigationFailure` + `resolveHistoryPolicy()` |
 
 ### Целевые свойства v2
 
-- **DRY:** один `normalizeFailure`, один `runPhaseStep`, одна history-функция — ✅
+- **DRY:** один `normalizeNavigationError`, один `runPhaseStep`, одна history-функция — ✅
 - **Современные стандарты:** `Error.cause`, стабильные `code`, явный commit snapshot — ✅
 - **Reporting:** прямой DOM dispatch без in-memory bus — ✅
 - **Расширяемость recovery через plug-in `RecoveryStrategy[]`** — ❌ сознательно не делали (см. ниже)
@@ -53,15 +53,15 @@
 ```
 Detection              Recovery                    Reporting
 ─────────              ────────                    ─────────
-FailedNavigation       resolveError() (view)       dispatchNavigationError()
+NavigationFailure       resolveError() (view)       dispatchNavigationError()
 ViewCommitTracker      AuraRouterNotFoundController → not-found
 NavigationError        .recover() (404)            dispatchNavigationHookError()
-normalizeFailure()                                 → navigation-hook-error
+normalizeNavigationError()                                 → navigation-hook-error
 runPhaseStep()
 resolveHistoryPolicy()
 ```
 
-1. **Detection** — `NavigationError`, `FailedNavigation`, `ViewCommitTracker`
+1. **Detection** — `NavigationError`, `NavigationFailure`, `ViewCommitTracker`
 2. **Recovery** — inline: error template в view, fallback UI в not-found controller
 3. **Reporting** — engine callbacks → DOM helpers в `navigation-events.ts`
 
@@ -74,7 +74,7 @@ Sketch описывал `NavigationOutcome` и `NavigationFailure`. В runtime �
 | Sketch | Runtime |
 |--------|---------|
 | `NavigationOutcome` | `TransactionResult` |
-| `NavigationFailure` | `FailedNavigation` |
+| `NavigationFailure` | `NavigationFailure` |
 | `CommitSnapshot` | `ViewCommitSnapshot` (`view-mount/view-commit-state.ts`) |
 | `CommitTracker` | `ViewCommitTracker` (`view-mount/view-commit-tracker.ts`) |
 | `PHASE_SPEC` | `PHASES` (`navigation/lifecycle-phases.ts`) |
@@ -96,7 +96,7 @@ interface ViewCommitSnapshot {
 | после `commitStagedView` | `committed` |
 | render error + error UI | `committed` |
 
-### FailedNavigation
+### NavigationFailure
 
 Терминальный snapshot от pipeline или pre-match NOT_FOUND через engine finalization.
 
@@ -176,10 +176,10 @@ dispatchNotFound(router, url, source)
 
 | Было | Стало |
 |------|-------|
-| `TransactionResult.status: 'error'` | `{ status: 'error', failure: FailedNavigation }` |
+| `TransactionResult.status: 'error'` | `{ status: 'error', failure: NavigationFailure }` |
 | `viewCommitted: boolean` | `failure.commit.view === 'committed'` / `viewCommitTracker.isViewCommitted()` |
-| `notFoundHandler` bypass | `FailedNavigation.notFound()` + recovery controller |
-| `failWithError()` | `normalizeFailure()` + `finalizeFailure()` |
+| `notFoundHandler` bypass | `NavigationFailure.notFound()` + recovery controller |
+| `failWithError()` | `normalizeNavigationError()` + `finalizeFailure()` |
 | `resolveError()` + rethrow | inline recovery, `{ status: 'error' }` |
 | `onNavigationError` + ручной dispatch | engine callback → `dispatchNavigationError()` |
 | `finalizeNavigation` switch | `resolveHistoryPolicy` + `applyHistoryPolicy` |
@@ -215,13 +215,13 @@ Bridge-адаптеры `toLegacyTransactionResult` / `fromLegacyTransactionResu
 
 ---
 
-### Phase 2 — normalizeFailure + без rethrow из view ✅
+### Phase 2 — normalizeNavigationError + без rethrow из view ✅
 
 - [x] Класс `NavigationError` с `Error.cause`
 - [x] Content load бросает `NavigationError`
 - [x] `RouteViewController`: recovery inline, `{ status: 'error' }`
 - [x] Убран path: mount error UI → rethrow → `failWithError`
-- [x] Единый `normalizeFailure(error, ctx)`
+- [x] Единый `normalizeNavigationError(error, ctx)`
 
 **Код:** `failure/navigation-error.ts`, `aura-route/core/view/view-controller.ts`, `aura-route/core/view/payloads.ts`, `view-mount/view-commit-render.ts`
 
@@ -240,7 +240,7 @@ Bridge-адаптеры `toLegacyTransactionResult` / `fromLegacyTransactionResu
 
 ### Phase 4 — NOT_FOUND как failure ✅
 
-- [x] `matchPath null` → `FailedNavigation.notFound()` + `finalizeNotFoundNavigation`
+- [x] `matchPath null` → `NavigationFailure.notFound()` + `finalizeNotFoundNavigation`
 - [x] `dispatchNotFound` / `dispatchNavigationError` / `dispatchNavigationHookError`
 - [x] `AuraRouterNotFoundController.recover()` для fallback UI
 - [x] push/replace коммитит URL (`resolveHistoryPolicy` + `code: NOT_FOUND`)
@@ -265,7 +265,7 @@ Bridge-адаптеры `toLegacyTransactionResult` / `fromLegacyTransactionResu
 
 ## Что не делаем
 
-- `NavigationOutcome` union — достаточно `TransactionResult` + `FailedNavigation`
+- `NavigationOutcome` union — достаточно `TransactionResult` + `NavigationFailure`
 - `RecoveryStrategy[]` plug-in bus — inline recovery проще и покрывает текущие кейсы
 - Bridge-адаптеры `toLegacyTransactionResult` / `fromLegacyTransactionResult`
 - RxJS / EventEmitter / in-memory `NavigationReporter` bus
@@ -279,7 +279,7 @@ Bridge-адаптеры `toLegacyTransactionResult` / `fromLegacyTransactionResu
 
 ```
 navigateTo
-  → match (или FailedNavigation.notFound)
+  → match (или NavigationFailure.notFound)
   → processor.run → TransactionResult
   → on failure: inline recovery (view / not-found controller)
   → engine callbacks → dispatch* (DOM)

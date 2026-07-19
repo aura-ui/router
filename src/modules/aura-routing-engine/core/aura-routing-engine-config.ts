@@ -1,5 +1,5 @@
 import type { DataGraphCacheOptions } from './data-graph';
-import type { FailedNavigation, NavigationHookErrorDetail } from './failure';
+import type { NavigationFailure, NavigationHookErrorDetail } from './failure';
 import type { NavigationProvider } from './history/provider.types';
 import type { PrefetchConfig } from './prefetch/types';
 import type { HandoffCacheOptions } from './resource-graph/handoff-cache';
@@ -49,7 +49,7 @@ export interface AuraRoutingEngineConfig {
   onAnchorNavigation?: (href: string) => void;
   onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
   /** Return `false` to skip fallback recovery UI. */
-  onNotFound?: (failure: FailedNavigation) => void | boolean;
+  onNotFound?: (failure: NavigationFailure) => void | boolean;
   /** Default: BrowserHistoryProvider. */
   provider?: NavigationProvider;
   /** Advanced tests — prefer `viewRegistry`. Must share handoff with data. */

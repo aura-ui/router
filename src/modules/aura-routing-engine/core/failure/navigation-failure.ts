@@ -1,3 +1,13 @@
+/**
+ * Navigation **failure** — terminal snapshot of a navigation that did not succeed.
+ *
+ * Pair with {@link ./navigation-error!NavigationError}:
+ * - `NavigationError` = what went wrong
+ * - `NavigationFailure` = failed attempt (`error` + from/to/commit/action)
+ *
+ * Model only. Side effects → {@link ../navigation/navigation-outcome!applyNavigationOutcome}.
+ */
+
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RedirectErrorOutcome } from '../redirect/types';
@@ -5,12 +15,8 @@ import type { NavigationErrorResult } from '../navigation/types';
 import { isViewCommittedForHistory, type ViewCommitSnapshot } from '../view-mount/view-commit-state';
 import { NavigationError } from './navigation-error';
 
-/**
- * Failed navigation — terminal snapshot from pipeline or pre-match NOT_FOUND.
- *
- * Model only. Side effects → {@link ../navigation/navigation-outcome!applyNavigationOutcome}.
- */
-export class FailedNavigation {
+export class NavigationFailure {
+  /** Structured cause — see {@link NavigationError}. */
   readonly error: NavigationError;
   readonly commit: ViewCommitSnapshot;
   readonly from: MatchedRouteInfo | null;
@@ -49,8 +55,8 @@ export class FailedNavigation {
     href: string,
     from: MatchedRouteInfo | null,
     action: HistoryAction,
-  ): FailedNavigation {
-    return new FailedNavigation(
+  ): NavigationFailure {
+    return new NavigationFailure(
       new NavigationError({
         code: 'NOT_FOUND',
         phase: 'match',
@@ -70,14 +76,14 @@ export class FailedNavigation {
     href: string,
     from: MatchedRouteInfo | null,
     action: HistoryAction,
-  ): FailedNavigation {
+  ): NavigationFailure {
     const failureCode = code === 'redirect-cycle' ? 'REDIRECT_CYCLE' : 'REDIRECT_DEPTH_EXCEEDED';
     const message =
       code === 'redirect-cycle'
         ? `Redirect cycle detected at ${href}`
         : `Redirect depth exceeded at ${href}`;
 
-    return new FailedNavigation(
+    return new NavigationFailure(
       new NavigationError({
         code: failureCode,
         phase: 'match',
@@ -97,8 +103,8 @@ export class FailedNavigation {
     from: MatchedRouteInfo | null,
     to: MatchedRouteInfo,
     action: HistoryAction,
-  ): FailedNavigation {
-    return new FailedNavigation(error, commit, from, to, action);
+  ): NavigationFailure {
+    return new NavigationFailure(error, commit, from, to, action);
   }
 
   toResult(): NavigationErrorResult {
@@ -108,15 +114,15 @@ export class FailedNavigation {
 
 /**
  * Error hook (`error="…"`) threw while handling a navigation failure.
- * `error` — hook failure; `parent` — the failed navigation being handled.
+ * `error` — hook throw; `parent` — the {@link NavigationFailure} being handled.
  */
 export interface NavigationHookErrorDetail {
   error: unknown;
   phase: 'error';
-  parent: FailedNavigation;
+  parent: NavigationFailure;
 }
 
 export type ReportNavigationHookError = (
   hookError: unknown,
-  parent: FailedNavigation,
+  parent: NavigationFailure,
 ) => void;

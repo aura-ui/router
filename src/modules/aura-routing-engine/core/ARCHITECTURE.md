@@ -20,7 +20,7 @@ failure handling in `failure/README.md`.
 | `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit blocking walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
 | `history/` | Browser/fake providers and history policy (`history-policy.ts`, incl. `applyTransactionHistory`). |
 | `view-mount/` | View staging/commit tracking, fast-path `runViewCommit`, branch mount (`branch-mount`), staged-view rollback. |
-| `failure/` | Model only: structured errors (`navigation-error.ts`), snapshots (`navigation-failure.ts`). Apply side effects → `navigation-outcome.ts`. |
+| `failure/` | Model only: `NavigationError` (cause) in `navigation-error.ts`, `NavigationFailure` (terminal snapshot) in `navigation-failure.ts`. Apply side effects → `navigation-outcome.ts`. |
 | `view-graph/` | Route view attrs → `ViewGraph` → payload cache → loader payload. |
 | `data-graph/` | Route `load` hooks, SWR cache, prefetch intent, cache invalidation. |
 | `prefetch/` | `PrefetchPipeline`: intent bus → policy → plan → speculative prepare (`dataGraph` / `viewGraph`). |

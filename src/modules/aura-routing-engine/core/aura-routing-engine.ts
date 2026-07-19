@@ -1,7 +1,7 @@
 import { isHashOnlyChange, resolveDocumentHrefParts } from './link-active/app-href';
 import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import { FailedNavigation } from './failure';
+import { NavigationFailure } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
   HistoryAction,
@@ -303,7 +303,7 @@ export class AuraRoutingEngine implements NavigationHost {
       router: this.router,
     });
     this.settleAndApplyPreMatchFailure(
-      FailedNavigation.notFound(requestedHref, this.prev, action),
+      NavigationFailure.notFound(requestedHref, this.prev, action),
       action,
       requestedHref,
       options,
@@ -317,7 +317,7 @@ export class AuraRoutingEngine implements NavigationHost {
     options: NavigateHistoryOptions,
   ): void {
     this.settleAndApplyPreMatchFailure(
-      FailedNavigation.redirectError(code, href, this.prev, action),
+      NavigationFailure.redirectError(code, href, this.prev, action),
       action,
       href,
       options,
@@ -339,7 +339,7 @@ export class AuraRoutingEngine implements NavigationHost {
 
   /** Observe → apply for pre-match failures (`id: 0`). */
   private settleAndApplyPreMatchFailure(
-    failure: FailedNavigation,
+    failure: NavigationFailure,
     action: HistoryAction,
     href: string,
     options: NavigateHistoryOptions,
@@ -500,7 +500,7 @@ export class AuraRoutingEngine implements NavigationHost {
     applyNavigationOutcome(result, navigationIdentityFromTx(tx), this.applyOutcomeContext());
   }
 
-  reportNavigationHookError(hookError: unknown, parent: FailedNavigation): void {
+  reportNavigationHookError(hookError: unknown, parent: NavigationFailure): void {
     this.config.onNavigationHookError?.({
       error: hookError,
       phase: 'error',

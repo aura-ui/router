@@ -6,7 +6,7 @@
  *
  * Outcomes are modeled at three levels; each layer adds scope:
  *
- * 1. {@link NavigationShortCircuit} — `cancelled` / `redirect` (no {@link FailedNavigation})
+ * 1. {@link NavigationShortCircuit} — `cancelled` / `redirect` (no {@link NavigationFailure})
  * 2. {@link RoutePhaseRunResult} — one route × one lifecycle phase
  *    (`null` | short-circuit | {@link RoutePhaseFailure})
  * 3. {@link PipelineStepResult} — one pipeline step (`null` | terminal {@link TransactionResult})
@@ -25,7 +25,7 @@
  */
 
 import type { DataSnapshot } from '../data-graph';
-import type { FailedNavigation, ReportNavigationHookError } from '../failure';
+import type { NavigationFailure, ReportNavigationHookError } from '../failure';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { HookRegistry } from '../hooks/registry';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -53,7 +53,7 @@ export interface NavigationCommittedContext {
 export type NavigationPhaseMode = 'navigation' | 'prefetch';
 
 /**
- * Early navigation exit without a structured {@link FailedNavigation}.
+ * Early navigation exit without a structured {@link NavigationFailure}.
  *
  * Produced by blocking hooks ({@link ../guard.types!GuardResult} →
  * {@link ./navigation-transaction-pipeline-phase!NavigationTransactionPipelinePhase.resolveBlockingHookOutcome})
@@ -66,10 +66,10 @@ export type NavigationShortCircuit =
 // --- Transaction outcomes ---
 
 /**
- * Terminal navigation error — structured {@link FailedNavigation} for history
+ * Terminal navigation error — structured {@link NavigationFailure} for history
  * policy and terminal apply ({@link ./navigation-outcome!applyNavigationOutcome}).
  */
-export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation };
+export type NavigationErrorResult = { status: 'error'; failure: NavigationFailure };
 
 /**
  * Terminal navigation outcome returned by {@link ./navigation-transaction!NavigationTransaction.run}.
@@ -79,7 +79,7 @@ export type NavigationErrorResult = { status: 'error'; failure: FailedNavigation
  * → {@link ./navigation-outcome!applyNavigationOutcome}.
  *
  * - `navigationSucceeded` — full pipeline completed (not the same as view `committed`
- *   or {@link FailedNavigation.viewCommitted}); history URL commit is done by the engine
+ *   or {@link NavigationFailure.viewCommitted}); history URL commit is done by the engine
  * - {@link NavigationShortCircuit} — guard/load hook or abort stopped navigation
  * - {@link NavigationErrorResult} — normalized failure after {@link ./navigation-transaction!NavigationTransaction.fail}
  */
@@ -223,7 +223,7 @@ export type BlockingHookStepResult = NavigationShortCircuit | null;
  */
 export type RoutePhaseFailure = {
   status: 'phaseFailed';
-  /** Raw error before {@link ../failure!normalizeFailure}. */
+  /** Raw error before {@link ../failure!normalizeNavigationError}. */
   error: unknown;
   /** Route where the throw originated. */
   route: MatchedRouteInfo;

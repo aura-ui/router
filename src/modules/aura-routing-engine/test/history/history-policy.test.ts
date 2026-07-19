@@ -1,4 +1,4 @@
-import { FailedNavigation, NavigationError } from '../../core/failure';
+import { NavigationFailure, NavigationError } from '../../core/failure';
 import {
   applyHistoryPolicy,
   applyTransactionHistory,
@@ -25,7 +25,7 @@ function pipelineErrorResult(
     route: createTestRoute(href),
   };
 
-  return FailedNavigation.fromPipeline(
+  return NavigationFailure.fromPipeline(
     new NavigationError({ code, phase, routePattern: href, message: 'fail' }),
     { view, href },
     null,
@@ -52,19 +52,19 @@ describe('resolveHistoryPolicy', () => {
     ['error pre-render pop', pipelineErrorResult('LOAD_FAILED', 'load', 'none', '/d'), 'pop', 'rollback-source'],
     [
       'error NOT_FOUND push',
-      { status: 'error', failure: FailedNavigation.notFound('/missing', null, 'push') },
+      { status: 'error', failure: NavigationFailure.notFound('/missing', null, 'push') },
       'push',
       'commit-target',
     ],
     [
       'error NOT_FOUND system',
-      { status: 'error', failure: FailedNavigation.notFound('/missing', null, 'system') },
+      { status: 'error', failure: NavigationFailure.notFound('/missing', null, 'system') },
       'system',
       'preserve',
     ],
     [
       'error REDIRECT_CYCLE push',
-      { status: 'error', failure: FailedNavigation.redirectError('redirect-cycle', '/a', null, 'push') },
+      { status: 'error', failure: NavigationFailure.redirectError('redirect-cycle', '/a', null, 'push') },
       'push',
       'preserve',
     ],

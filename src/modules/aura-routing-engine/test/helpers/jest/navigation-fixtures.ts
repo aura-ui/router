@@ -1,5 +1,5 @@
 import { AuraOutlet } from '../../../../aura-outlet/core/aura-outlet';
-import { FailedNavigation, NavigationError } from '../../../core/failure';
+import { NavigationFailure, NavigationError } from '../../../core/failure';
 import { HookRegistry } from '../../../core/hooks/registry';
 import type { NavigationLifecycleContext, NavigationTransactionOptions, TransactionResult } from '../../../core/navigation/types';
 import type { MatchedRouteInfo } from '../../../core/match/url-matcher';
@@ -78,18 +78,18 @@ export function createNavigationLifecycleContext(
   };
 }
 
-export function createFailedNavigation(
+export function createNavigationFailure(
   matchedRoute: MatchedRouteInfo,
   context: NavigationLifecycleContext,
   phase: 'guard' | 'load' | 'render' = 'guard',
-): FailedNavigation {
+): NavigationFailure {
   const error = new NavigationError({
     code: phase === 'load' ? 'LOAD_FAILED' : phase === 'render' ? 'RENDER_FAILED' : 'GUARD_THROW',
     phase,
     routePattern: matchedRoute.pattern,
     message: `${phase} failed`,
   });
-  return FailedNavigation.fromPipeline(
+  return NavigationFailure.fromPipeline(
     error,
     context.viewCommitTracker.snapshot,
     context.transaction.from,

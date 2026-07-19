@@ -43,7 +43,10 @@ export type {
   NavigationHookErrorDetail,
   ReportNavigationHookError,
 } from './core/failure';
-export type { CompleteFailureDeps } from './core/navigation/navigation-outcome-handler';
+export type {
+  NotFoundCallbacks,
+  CompleteFailureDeps,
+} from './core/navigation/navigation-outcome';
 
 export type {
   NavigationFailureCode,

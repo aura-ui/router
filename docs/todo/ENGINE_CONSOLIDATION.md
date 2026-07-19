@@ -16,7 +16,7 @@
 |----------------|-------------|--------|
 | **NavigationIntentResolver** | hash-only в `navigateTo`; match/noop в coordinator/planner — единого resolver нет | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **NavigationRunManager + Run** | `NavigationCoordinator` + `NavigationTransaction` | <span style="color: #bf8700; font-weight: bold;">~</span> |
-| **Terminal apply** | `applyNavigationOutcome` (+ `OutcomeNav`) · host `applyTerminalOutcome` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
+| **Terminal apply** | `applyNavigationOutcome` (+ `NavigationIdentity`) · host `applyTerminalOutcome` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | **RedirectResolver** | `followRedirectsWithGuardWalk` — `core/redirect/redirect-resolver.ts` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | **ViewCommitOrchestrator** | `view-commit-render` / tracker / rollback — без единого orchestrator | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **NotFoundPipeline** | `not-found-exit-cleanup` + `handleUnmatchedNavigation` на engine | <span style="color: #bf8700; font-weight: bold;">~</span> |
@@ -362,7 +362,7 @@ createRouterEngineCallbacks(host: AuraRouter): AuraRoutingEngineConfig
 
 | Файл | Действие | Статус |
 |------|----------|--------|
-| `core/navigation/navigation-outcome-handler.ts` | новый `apply()` | <span style="color: #cf222e; font-weight: bold;">✗</span> |
+| `core/navigation/navigation-outcome.ts` | новый `apply()` | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | `core/navigation/navigation-finalize.ts` | thin / deprecated | <span style="color: #bf8700; font-weight: bold;">~</span> живой модуль |
 | `core/failure/finalize-failure.ts` | логика → handler | <span style="color: #bf8700; font-weight: bold;">~</span> |
 

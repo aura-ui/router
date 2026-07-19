@@ -35,6 +35,11 @@ export class AuraResolvableCache<T> {
   private readonly singleflight = new Singleflight<string, unknown>();
   private readonly write: ResolvableCachePolicy['write'];
   private readonly onSettled: ResolvableCachePolicy['onSettled'];
+  /**
+   * Bumped on {@link clear} / {@link destroy} so in-flight loads started before the bump
+   * cannot {@link commit} into a cleared store (orphan singleflight after map clear).
+   */
+  private epoch = 0;
 
   constructor(options: ResolvableCacheOptions<T> = {}) {
     const { write, onSettled, ...storeOptions } = options;
@@ -72,6 +77,7 @@ export class AuraResolvableCache<T> {
   }
 
   clear(): void {
+    this.epoch++;
     this.store.clear();
     this.singleflight.clear();
   }
@@ -92,6 +98,7 @@ export class AuraResolvableCache<T> {
   }
 
   destroy(): void {
+    this.epoch++;
     this.store.destroy();
     this.singleflight.clear();
   }
@@ -121,9 +128,11 @@ export class AuraResolvableCache<T> {
   }
 
   private runLoad<R>(key: string, load: () => Promise<R>): Promise<R> {
+    const epoch = this.epoch;
     return this.singleflight.do(key, () =>
       load().then((value) => {
-        this.commit(key, value);
+        // Dropped from singleflight map by clear/destroy — do not resurrect the store.
+        if (epoch === this.epoch) this.commit(key, value);
         return value;
       }),
     ) as Promise<R>;

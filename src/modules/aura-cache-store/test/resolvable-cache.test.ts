@@ -103,6 +103,29 @@ describe('ResolvableCache', () => {
     expect(value).toBe('ok');
   });
 
+  it('clear drops in-flight singleflight without resurrecting store on late settle', async () => {
+    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const pending = cache.resolve('k', async () => {
+      await gate;
+      return 'stale';
+    });
+
+    cache.clear();
+    expect(cache.get('k')).toBeUndefined();
+
+    const next = cache.resolve('k', async () => 'fresh');
+    release();
+
+    await expect(pending).resolves.toBe('stale');
+    await expect(next).resolves.toBe('fresh');
+    expect(cache.get('k')).toBe('fresh');
+  });
+
   it('evicts least recently used entry when max exceeded', async () => {
     cache = new AuraResolvableCache({ max: 2, gcTime: Infinity, gcSweepInterval: false });
 

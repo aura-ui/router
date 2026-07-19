@@ -424,19 +424,19 @@ describe('NavigationCoordinator', () => {
 
       const resources = host.engine.resourceGraph;
 
-      const originalHold = resources.holdSharedBufferFor.bind(resources);
+      const originalHold = resources.pinSharedBufferFor.bind(resources);
 
-      jest.spyOn(resources, 'holdSharedBufferFor').mockImplementation((to) => {
+      jest.spyOn(resources, 'pinSharedBufferFor').mockImplementation((to) => {
 
-        events.push('holdSharedBufferFor');
+        events.push('pinSharedBufferFor');
 
         const hold = originalHold(to);
 
-        const originalUnhold = hold.unhold.bind(hold);
+        const originalUnhold = hold.unpin.bind(hold);
 
-        hold.unhold = () => {
+        hold.unpin = () => {
 
-          events.push('unhold');
+          events.push('unpin');
 
           return originalUnhold();
 
@@ -478,9 +478,9 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(events.indexOf('holdSharedBufferFor')).toBeGreaterThanOrEqual(0);
+      expect(events.indexOf('pinSharedBufferFor')).toBeGreaterThanOrEqual(0);
 
-      expect(events.indexOf('cancel')).toBeGreaterThan(events.indexOf('holdSharedBufferFor'));
+      expect(events.indexOf('cancel')).toBeGreaterThan(events.indexOf('pinSharedBufferFor'));
 
 
 
@@ -494,8 +494,26 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(events).toContain('unhold');
+      expect(events).toContain('unpin');
 
+    });
+
+    it('does not pinSharedBufferFor on the first navigation', async () => {
+      const host = createCoordinatorMockHost();
+      const coordinator = new NavigationCoordinator(host);
+      const pinSpy = jest.spyOn(host.engine.resourceGraph, 'pinSharedBufferFor');
+      const { resolveAt } = mockDeferredTransactionRun();
+
+      const nav = coordinator.run(
+        navOptions({ from: null, to: createMatchedRoute('/a'), href: '/a' }),
+      );
+
+      expect(pinSpy).not.toHaveBeenCalled();
+
+      resolveAt(0, { status: 'navigationSucceeded' });
+      await nav;
+
+      expect(pinSpy).not.toHaveBeenCalled();
     });
 
   });

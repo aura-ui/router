@@ -1,13 +1,48 @@
 /**
  * Interest kind for a {@link HandoffWaiter} on a handoff key.
- * Same literals as DataGraph `LoadHookMode` — pass mode straight into {@link hold}.
  *
- * - `'prefetch'` — hover / intent probe. If only this kind was seen, idle release
- *   keeps the work generation alive so a later hold can rejoin.
- * - `'navigation'` — navigation prepare. Sticky for the generation: when the last
- *   waiter releases after this was seen, work is aborted.
+ * Abort policy depends only on sticky `hadNavigation` (set solely by `'navigation'`).
+ * `'prefetch'` and `'pin'` both increment `refs` without that flag — same abort polarity,
+ * different roles (see below). There is no `if (kind === 'pin')` branch: pin is “not
+ * navigation” for sticky abort, not a separate code path.
+ *
+ * - `'prefetch'` — hover / intent probe (DataGraph / ViewGraph with `mode: 'prefetch'`).
+ *   Idle release keeps the work generation alive so a later hold can rejoin.
+ * - `'navigation'` — real navigation prepare hold. Sticky: when the last waiter releases
+ *   after this was seen, {@link HandoffWaiter.workSignal} is aborted. Intentional:
+ *   prepare came and left.
+ * - `'pin'` — short supersede bridge only ({@link ResourceGraph.pinSharedBufferFor}).
+ *   Used only when an `activeTransaction` already exists. Order:
+ *   hold B’s keys → `cancel(A)` → `B.run()` → {@link SharedBufferHold.unpin} in `finally`.
+ *   Means “keep `refs` across cancel(A)”, **not** “navigation prepare ran”.
+ *
+ * ### Why `'pin'` is not `'navigation'`
+ *
+ * Releasing a pin (`unpin`) must drop the coordinator’s refcount — that is always correct.
+ * Pin must **not** set `hadNavigation`, or early B exit is mistaken for “a navigation
+ * prepare visited this key and everyone left” and aborts shared work.
+ *
+ * Pin is **not** taken on every click — only while superseding an in-flight navigation.
+ * Idle page + click `/b` has no pin; prefetch-idle on `/b` is already safe without it.
+ *
+ * **Bad (pin wrongly as `'navigation'`), supersede:** A still active → prefetch idle on
+ * `/b` → click `/b` → pin → guard fails before prepare → `unpin` → `hadNavigation` +
+ * `refs === 0` → abort → warmup dead → retry refetches.
+ *
+ * **Good (`'pin'`), same supersede sequence:** pin leaves, work stays idle → later prepare
+ * / click can join in-flight singleflight or a settled handoff value (TTL ~30s is separate).
+ *
+ * **Also required (correctness):** A→B with a **shared** key (e.g. LCA parent). Pin keeps
+ * `refs > 0` across `cancel(A)` so A’s real `'navigation'` `release` does not abort work
+ * B is about to take.
+ *
+ * **Lifetime:** supersede window only (until `unpin`) — not handoff TTL and not “until
+ * prefetch finishes”. Pin does **not** block abort forever: after a real `'navigation'`
+ * hold has been seen and all waiters leave (including after pin is gone), work still
+ * aborts. If `hadNavigation` was already set by A on a shared key and pin was the last
+ * ref, `unpin` may still abort — that is sticky navigation policy, not pin arming abort.
  */
-export type HandoffWaiterKind = 'navigation' | 'prefetch';
+export type HandoffWaiterKind = 'navigation' | 'prefetch' | 'pin';
 
 /**
  * One hold on shared prepare work for a resource key ({@link HandoffWorkRegistry.hold}).
@@ -47,9 +82,10 @@ type WorkEntry = {
   /** Active (not yet {@link HandoffWaiter.release | released}) waiters on this generation. */
   refs: number;
   /**
-   * Sticky: `'navigation'` held this generation at least once.
-   * When `refs` hits 0 and this is set → abort and delete. Prefetch-only idle
-   * leaves the entry in place (same `workSignal` for a later hold).
+   * Sticky: a `'navigation'` waiter held this generation at least once.
+   * When `refs` hits 0 and this is set → abort and delete.
+   * `'prefetch'` / `'pin'` never set this — idle leaves the entry for rejoin
+   * (same `workSignal` for a later hold). See {@link HandoffWaiterKind}.
    */
   hadNavigation: boolean;
 };
@@ -70,6 +106,11 @@ type WorkEntry = {
  * | 1 | Prefetch ушёл, nav ещё держит | жив |
  * | 2 | Prefetch ушёл, nav ещё не пришёл | жив (rejoin) |
  * | 3 | Все ушли, `'navigation'` уже был | abort этого key |
+ * | 4 | Только `'pin'` / `'prefetch'` ушли | жив (rejoin) |
+ *
+ * `'pin'` vs `'prefetch'`: одинаковая abort-полярность (`hadNavigation` не ставится),
+ * разная роль — pin не «греет результат», а только держит `refs` на окно supersede.
+ * См. {@link HandoffWaiterKind}.
  *
  * Abort — generation одного key, не весь {@link HandoffCache} (кроме {@link destroy}).
  * Owned by {@link HandoffCache}; settled values — в cache, не здесь.
@@ -85,7 +126,7 @@ export class HandoffWorkRegistry {
    * Register a waiter on `key` and return a {@link HandoffWaiter} for that generation.
    *
    * @param key - Resource identity (e.g. `data:…` / `view:…`).
-   * @param kind - Interest kind. `'navigation'` sets sticky `hadNavigation` for this generation.
+   * @param kind - Interest kind. Only `'navigation'` sets sticky `hadNavigation`.
    * @returns Waiter whose {@link HandoffWaiter.workSignal} is shared for this key’s current generation.
    */
   hold(key: string, kind: HandoffWaiterKind): HandoffWaiter {

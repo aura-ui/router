@@ -236,6 +236,9 @@ export class AuraRoutingEngine implements NavigationHost {
     this.registry.clear();
     this.prev = null;
     this.navigationCoordinator.invalidate();
+    // Abort shared prepare work first so in-flight loaders see workSignal abort.
+    this.sharedBuffer.destroy();
+    this.dataGraph.destroy();
     this.viewGraph.destroy();
   }
 

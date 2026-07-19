@@ -73,6 +73,10 @@ export class HandoffCache extends AuraResolvableCache<unknown> {
 
   /**
    * Register a work waiter for `key` (shared {@link HandoffWaiter.workSignal}).
+   *
+   * @param kind - {@link HandoffWaiterKind}. Only `'navigation'` sets sticky abort-on-idle.
+   *   `'pin'` = supersede refcount bridge ({@link ResourceGraph.pinSharedBufferFor}),
+   *   not a prepare mode and not a TTL lease.
    * @see HandoffWorkRegistry.hold
    */
   hold(key: string, kind: HandoffWaiterKind): HandoffWaiter {
@@ -85,6 +89,15 @@ export class HandoffCache extends AuraResolvableCache<unknown> {
    */
   waiterCount(key: string): number {
     return this.work.waiterCount(key);
+  }
+
+  /**
+   * Drop settled values and in-flight singleflight slots; abort all work generations.
+   * Stale loads that settle after this call do not rewrite the store (epoch gate).
+   */
+  override clear(): void {
+    this.work.destroy();
+    super.clear();
   }
 
   /** Abort outstanding work signals, then destroy the resolvable cache. */

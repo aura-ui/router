@@ -3,7 +3,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
 import { getActiveChain } from '../route-tree/matched-chain';
-import type { ViewGraph } from '../view-graph';
+import type { ViewGraph, ViewPayload } from '../view-graph';
 import { HandoffCache } from './handoff-cache';
 import type { HandoffWaiter } from './handoff-work-registry';
 
@@ -20,13 +20,23 @@ export type ResourceGraphLoadPlan = {
    * Enter routes whose view/content can start without waiting for load payloads.
    * Runs in parallel with {@link dataRoutes}.
    */
-  contentRoutes: readonly MatchedRouteInfo[];
-  dataBoundContentRoutes: readonly MatchedRouteInfo[];
+  viewRoutes: readonly MatchedRouteInfo[];
+  viewWithDataRoutes: readonly MatchedRouteInfo[];
 };
 
+/**
+ * Result of {@link ResourceGraph.resolve}.
+ *
+ * Navigation: `{ data?, view }` or `{ error }`.
+ * Prefetch: soft `{}` (warmup only).
+ */
 export type ResourceGraphResolveResult = {
+  /** Terminal prepare outcome (cancel / fail / redirect). */
   error?: PipelineStepResult;
+  /** DataGraph snapshot for the enter branch. */
   data?: DataSnapshot;
+  /** View payloads in `enterRoutes` order. No content → `null`. */
+  view?: readonly (ViewPayload | null)[];
 };
 
 /**
@@ -111,8 +121,8 @@ export class ResourceGraph {
    */
   buildLoadPlan(enterRoutes: readonly MatchedRouteInfo[] = this.enterRoutes): ResourceGraphLoadPlan {
     const dataRoutes: MatchedRouteInfo[] = [];
-    const contentRoutes: MatchedRouteInfo[] = [];
-    const dataBoundContentRoutes: MatchedRouteInfo[] = [];
+    const viewRoutes: MatchedRouteInfo[] = [];
+    const viewWithDataRoutes: MatchedRouteInfo[] = [];
 
     for (const matched of enterRoutes) {
       const { route } = matched;
@@ -122,49 +132,58 @@ export class ResourceGraph {
       const layout =
         typeof route.layout === 'string' ? route.layout.trim() : '';
       if (layout) {
-        contentRoutes.push(matched);
+        viewRoutes.push(matched);
       } else if (route.view?.loader) {
         route.viewLoaderNeedsData
-          ? dataBoundContentRoutes.push(matched)
-          : contentRoutes.push(matched);
+          ? viewWithDataRoutes.push(matched)
+          : viewRoutes.push(matched);
       }
     }
 
-    return { dataRoutes, contentRoutes, dataBoundContentRoutes };
+    return { dataRoutes, viewRoutes, viewWithDataRoutes };
   }
 
   private async load(plan: ResourceGraphLoadPlan): Promise<ResourceGraphResolveResult> {
-    const { dataRoutes, contentRoutes, dataBoundContentRoutes } = plan;
-    const { transaction } = this;
+    const { dataRoutes, viewRoutes, viewWithDataRoutes } = plan;
+    const { transaction, enterRoutes } = this;
     const { signal } = transaction;
 
     const dataPromise: Promise<DataGraphLoadResult> = dataRoutes.length
       ? this.dataGraph.load(dataRoutes, { branch: this.branch, transaction, mode: 'navigation' })
       : Promise.resolve({});
 
-    const contentPromise = this.viewGraph.load(contentRoutes, signal, {
+    const contentPromise = this.viewGraph.load(viewRoutes, signal, {
       mode: 'navigation',
       transaction,
     });
 
-    const [dataResult, contentResult] = await Promise.all([dataPromise, contentPromise]);
+    const [dataResult, viewResult] = await Promise.all([dataPromise, contentPromise]);
 
-    if (dataResult.error) return dataResult;
-    if (contentResult.error) return { error: contentResult.error };
+    if (dataResult.error) return { error: dataResult.error };
+    if (viewResult.error) return { error: viewResult.error };
 
-    const dataBoundResult = await this.viewGraph.load(dataBoundContentRoutes, signal, {
+    const viewWithDataResult = await this.viewGraph.load(viewWithDataRoutes, signal, {
       data: (route: MatchedRouteInfo) => dataResult.data?.get(route.dataKey!),
       mode: 'navigation',
       transaction,
     });
 
-    if (dataBoundResult.error) return { error: dataBoundResult.error };
+    if (viewWithDataResult.error) return { error: viewWithDataResult.error };
 
-    return dataResult;
+    return {
+      ...(dataResult.data && { data: dataResult.data }),
+      view: enterRoutes.map((match) => {
+        const i = viewRoutes.indexOf(match);
+        if (i >= 0) return viewResult.data?.[i]?.data ?? null;
+        const j = viewWithDataRoutes.indexOf(match);
+        if (j >= 0) return viewWithDataResult.data?.[j]?.data ?? null;
+        return null;
+      }),
+    };
   }
 
   private async prefetch(plan: ResourceGraphLoadPlan): Promise<ResourceGraphResolveResult> {
-    const { dataRoutes, contentRoutes, dataBoundContentRoutes } = plan;
+    const { dataRoutes, viewRoutes, viewWithDataRoutes } = plan;
     const { transaction } = this;
     const { signal } = transaction;
     let parts: Promise<unknown>[] = [];
@@ -177,18 +196,18 @@ export class ResourceGraph {
       }));
     }
 
-    if (contentRoutes.length) {
-      parts.push(this.viewGraph.load(contentRoutes, signal, { mode: 'prefetch' }));
+    if (viewRoutes.length) {
+      parts.push(this.viewGraph.load(viewRoutes, signal, { mode: 'prefetch' }));
     }
 
     if (parts.length) {
       await Promise.all(parts);
     }
 
-    if (dataBoundContentRoutes.length) {
+    if (viewWithDataRoutes.length) {
       // todo check data
       parts = [];
-      parts.push(this.viewGraph.load(dataBoundContentRoutes, signal, { mode: 'prefetch' }));
+      parts.push(this.viewGraph.load(viewWithDataRoutes, signal, { mode: 'prefetch' }));
       await Promise.all(parts);
     }
 

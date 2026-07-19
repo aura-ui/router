@@ -39,7 +39,7 @@ function matchedRoute(
 }
 
 describe('ResourceGraph', () => {
-  it('buildLoadPlan splits data routes and independent content routes', () => {
+  it('buildLoadPlan splits data routes and independent view routes', () => {
     const parent = matchedRoute('/app', { load: ['layout'] });
     const leaf = matchedRoute('/app/home', { load: ['page'], asyncView: true });
     const staticOnly = matchedRoute('/about', { asyncView: true });
@@ -48,14 +48,15 @@ describe('ResourceGraph', () => {
     const plan = graph.buildLoadPlan([parent, leaf, staticOnly]);
 
     expect(plan.dataRoutes).toEqual([parent, leaf]);
-    expect(plan.contentRoutes.map((r) => r.pattern)).toEqual([
+    expect(plan.viewRoutes.map((r) => r.pattern)).toEqual([
       '/app',
       '/app/home',
       '/about',
     ]);
+    expect(plan.viewWithDataRoutes).toEqual([]);
   });
 
-  it('buildLoadPlan puts layout-only routes into contentRoutes', () => {
+  it('buildLoadPlan puts layout-only routes into viewRoutes', () => {
     const folder = matchedRoute('/settings', {
       load: ['settings-data'],
       layout: '<slot></slot>',
@@ -67,14 +68,14 @@ describe('ResourceGraph', () => {
     const plan = graph.buildLoadPlan([folder, leaf]);
 
     expect(plan.dataRoutes).toEqual([folder]);
-    expect(plan.contentRoutes.map((r) => r.pattern)).toEqual([
+    expect(plan.viewRoutes.map((r) => r.pattern)).toEqual([
       '/settings',
       '/settings/profile',
     ]);
-    expect(plan.dataBoundContentRoutes).toEqual([]);
+    expect(plan.viewWithDataRoutes).toEqual([]);
   });
 
-  it('navigation load runs dataGraph.load once in parallel with content views', async () => {
+  it('navigation load runs dataGraph.load once in parallel with views', async () => {
     const order: string[] = [];
     let releaseData!: () => void;
     const dataGate = new Promise<void>((resolve) => {
@@ -164,30 +165,33 @@ describe('ResourceGraph', () => {
     expect(result.view).toEqual(['<layout/>', '<page/>']);
   });
 
-  it('speculative mode prefetches data and content in parallel', async () => {
+  it('prefetch mode warms data and views and returns soft empty result', async () => {
     const leaf = matchedRoute('/x', { load: ['data'], asyncView: true });
     const signal = new AbortController().signal;
-    const transaction = { phaseMode: 'speculative', signal } as NavigationTransaction;
+    const transaction = { phaseMode: 'prefetch', signal } as NavigationTransaction;
 
     const dataGraph = {
-      load: jest.fn(async () => undefined),
+      load: jest.fn(async () => ({ data: new Map() })),
     };
     const viewGraph = {
-      loadView: jest.fn(),
       load: jest.fn(async () => ({})),
     };
 
     const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
-    await graph.resolve([leaf], {
+    const result = await graph.resolve([leaf], {
       branch: [leaf],
       transaction,
     });
 
+    expect(result).toEqual({});
     expect(dataGraph.load).toHaveBeenCalledWith([leaf], {
       branch: [leaf],
       transaction,
       mode: 'prefetch',
     });
-    expect(viewGraph.load).toHaveBeenCalledWith([leaf], signal, { mode: 'prefetch' });
+    expect(viewGraph.load).toHaveBeenCalledWith([leaf], signal, {
+      mode: 'prefetch',
+      transaction,
+    });
   });
 });

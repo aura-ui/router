@@ -59,6 +59,52 @@ describe('AuraRouter data-router-active-class', () => {
     expect(about.classList.contains('is-active')).toBe(false);
   });
 
+  it('marks active link on system boot before transitionIn finishes', async () => {
+    let releaseTransition!: () => void;
+    const transitionGate = new Promise<void>((resolve) => {
+      releaseTransition = resolve;
+    });
+
+    AuraRouter.use({
+      name: 'slow-fade-active-test',
+      version: '1.0.0',
+      fn: async (ctx) => {
+        if (ctx.phase === 'transitionIn') await transitionGate;
+      },
+    });
+
+    window.history.replaceState({}, '', '/about');
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('data-router-active-class', 'is-active');
+    router.setAttribute('transition', 'slow-fade-active-test');
+    router.setAttribute('transition-order', 'parallel');
+    router.innerHTML = `
+      <nav>
+        <a href="/" data-router-link>Home</a>
+        <a href="/about" data-router-link>About</a>
+      </nav>
+      <aura-outlet></aura-outlet>
+      <aura-route path="/" view="html::<p>home</p>"></aura-route>
+      <aura-route path="/about" view="html::<p>about</p>"></aura-route>
+    `;
+    document.body.append(router);
+
+    await customElements.whenDefined('aura-route');
+    await flushNavigation();
+
+    const links = router.querySelectorAll<HTMLAnchorElement>('[data-router-link]');
+    const home = links[0]!;
+    const about = links[1]!;
+
+    expect(about.classList.contains('is-active')).toBe(true);
+    expect(about.getAttribute('aria-current')).toBe('page');
+    expect(home.classList.contains('is-active')).toBe(false);
+
+    releaseTransition();
+    await flushNavigation();
+    AuraRouter.unuse('slow-fade-active-test');
+  });
+
   it('updates active class after programmatic navigation', async () => {
     const { router, home, about } = await mountRouter(true);
 
@@ -68,6 +114,37 @@ describe('AuraRouter data-router-active-class', () => {
     expect(home.classList.contains('is-active')).toBe(false);
     expect(about.classList.contains('is-active')).toBe(true);
     expect(about.getAttribute('aria-current')).toBe('page');
+  });
+
+  it('re-syncs active class on links that arrive with the new view', async () => {
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('data-router-active-class', 'is-active');
+    router.innerHTML = `
+      <nav>
+        <a href="/" data-router-link>Home</a>
+        <a href="/about" data-router-link>About</a>
+      </nav>
+      <aura-outlet></aura-outlet>
+      <aura-route path="/" view="html::<p>home</p>"></aura-route>
+      <aura-route
+        path="/about"
+        view="html::<p>about</p><a href=&quot;/about&quot; data-router-link data-testid=&quot;in-view&quot;>About in view</a>"
+      ></aura-route>
+    `;
+    document.body.append(router);
+
+    await customElements.whenDefined('aura-route');
+    await flushNavigation();
+
+    expect(router.querySelector('[data-testid="in-view"]')).toBeNull();
+
+    router.navigate('/about');
+    await flushNavigation();
+
+    const inView = router.querySelector<HTMLAnchorElement>('[data-testid="in-view"]');
+    expect(inView).not.toBeNull();
+    expect(inView!.classList.contains('is-active')).toBe(true);
+    expect(inView!.getAttribute('aria-current')).toBe('page');
   });
 
   it('link matchers reflect the settled route via router.trail', async () => {

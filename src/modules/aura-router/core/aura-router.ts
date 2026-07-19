@@ -220,6 +220,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         linksSelector: this.linksSelector,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
+        // Active links: early sync when URL aligns (chrome nav), late sync after
+        // view commit (links that arrived with the new content).
         onNavigationHistoryCommitted: (ctx) => {
           dispatchNavigationStart(this, {
             from: ctx.from?.pathname ?? null,
@@ -269,6 +271,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
+  /**
+   * Trail + active-link classes for the target href.
+   * Invoked twice per navigation: URL-aligned (history) and after view commit.
+   */
   private syncNavState(to: MatchedRouteInfo): void {
     this._trail = toRouteTrail(to.chain ?? [to]);
     this.syncActiveLinks(to.href);

@@ -47,6 +47,10 @@ export interface AuraRoutingEngineConfig {
   linksSelector?: string;
   /** Default: `false`. */
   hash?: boolean;
+  /**
+   * Address bar matches navigation target (after history write, or browser-owned
+   * `system` / `pop`). Used for active links / `navigation-start` — before transitions.
+   */
   onNavigationHistoryCommitted?: (ctx: NavigationCommittedContext) => void;
   onNavigationCommitted?: (ctx: NavigationCommittedContext) => void;
   onAnchorNavigation?: (href: string) => void;

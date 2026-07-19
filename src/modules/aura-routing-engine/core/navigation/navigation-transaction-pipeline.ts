@@ -141,8 +141,8 @@ export class NavigationTransactionPipeline {
   }
 
   /**
-   * Writes browser history when the transaction's history policy requires it.
-   * Usable as a {@link PipelineStep} (`null` = continue) or as a void side-effect (fast path).
+   * History step: URL write (when needed) + chrome sync (active links).
+   * See {@link AuraRoutingEngine.commitHistoryIfNeeded}.
    */
   private commitHistory(): PipelineStepResult {
     this.transaction.engine.commitHistoryIfNeeded(this.transaction);

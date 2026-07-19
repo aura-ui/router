@@ -1,6 +1,6 @@
 # TODO: Pipeline — sync/async шаги, fast path, step runner
 
-> **Статус:** <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ ЧАСТИЧНО</span> — sync/dom-cache fast path + thenable ✓ · F1b ⊘ · F3 docs ✗  
+> **Статус:** <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> — sync/dom/view-cache fast path + thenable ✓ · F1b ⊘ · F3 docs ✓  
 > **Сверка с кодом:** 2026-07-19  
 > **Связь:** оптимизация `NavigationTransactionPipeline` без смены семантики cancel/supersede.  
 > **См. также:** [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md), [../done/REDIRECT_CHAIN_COLLAPSE.md](../done/REDIRECT_CHAIN_COLLAPSE.md) (blocking walk ✓ · полный `runBlockingOnly` ⊘), fast path: `canUseFastPath` / `canUseDomCacheFastPath` / `canUseViewCacheFastPath` → `runFastPipeline`
@@ -24,7 +24,7 @@
 | **F1** | Thenable-aware `runSequentially` + `isThenable` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | sync steps: `runCommitHistory`, `commitEnterBranchToDom` |
 | **F1b** | Lifecycle sync-return при sync hooks | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | откат: много кода ради копеек |
 | **F2** | Dom/view-cache fast path | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | `canUseDomCacheFastPath` · `canUseViewCacheFastPath` |
-| **F3** | Документировать commit-slice invariant | <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> | JSDoc / ARCHITECTURE cross-link |
+| **F3** | Документировать commit-slice invariant | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> | pipeline JSDoc · ARCHITECTURE · NAVIGATION_RUN_MANAGER |
 | — | Generator / trampoline driver | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | overkill до профиля |
 | — | Enum `sync \| async` на шагах | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | хрупко |
 | — | Полный `runBlockingOnly` mode | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> | не планируется (есть guard walk) |
@@ -59,14 +59,28 @@ type PipelineStep = () => Promise<PipelineStepResult>;
 | Gap ломает атомарность **всего** run | **Нет** — supersede **использует** окна между await |
 | Gap ломает атомарность **commit** | Только если между view commit и history commit вставить await |
 
-### Commit slice (invariant — не ломать) <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> в коде · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> явная дока (F3)
+### Commit slice (invariant — не ломать) <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> код + дока (F3)
+
+**View commit slice** в `runAfterRender` — sync pair, без `await` между:
 
 ```text
-commitEnterViews()   // sync
-commitGate()         // sync, сразу после — без await между
+unmount (exit)                 // may await — outside slice
+for enter: commitStagedView()  // promote staged → active
+commitNavigation()             // view-success gate (prev, scroll, callbacks)
+// ← no await between the two lines above
+ready (enter)                  // may await — outside slice
 ```
 
-Сейчас в `runAfterRender` / `commitNavigation` это соблюдено. Для transition-пути gap **между** `markViewStaged` и commit **ожидаем** — там transition hooks; supersede + `revertInFlightView`.
+| | |
+|--|--|
+| **Где в коде** | `NavigationTransactionPipeline.runAfterRender` |
+| **JSDoc** | class + `runAfterRender` в `navigation-transaction-pipeline.ts` |
+| **ARCHITECTURE** | `core/ARCHITECTURE.md` § Commit Vocabulary → Commit-slice invariant |
+| **Cross-link** | [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md) («Не делать») |
+
+History URL (`commitHistory` / `commitHistoryIfNeeded`) — **отдельный** sync step после guards / до loads; не часть view slice.
+
+Gap **между** `markViewStaged` и slice на transition-пути **ожидаем** (transition hooks); supersede → `rollbackUncommittedViews` / `revertInFlightView`.
 
 ---
 
@@ -139,7 +153,7 @@ async function runUntilTerminal(steps: PipelineStep[], ctx: PipelineContext) {
 |-------|----------------|--------|
 | DomCache / branch mount restore | mount из cache без fetch | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | view commit → `commitNavigation` | sync commit slice | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `runFastPipeline` | bypass guards/loads/transitions для Tier 0 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `runFastPipeline` | bypass guards/loads/transitions (sync / dom-cache / view-cache) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 ---
 
@@ -261,10 +275,10 @@ Trampoline / generator дают:
 | `core/navigation/navigation-transaction.ts` | `canUseFastPath \|\| canUseDomCacheFastPath → runFastPipeline` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `core/data-graph/data-graph.ts` | peekCached | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> не в v1 |
 
-### Фаза 3 — Документировать invariants <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗ ОСТАЛОСЬ</span>
+### Фаза 3 — Документировать invariants <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-1. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Commit slice invariant в pipeline JSDoc или ARCHITECTURE.
-2. <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> Cross-link из [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md).
+1. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Commit slice invariant в pipeline JSDoc (`NavigationTransactionPipeline` / `runAfterRender`) и `core/ARCHITECTURE.md` § Commit Vocabulary.
+2. <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Cross-link из [NAVIGATION_RUN_MANAGER.md](./NAVIGATION_RUN_MANAGER.md) («Не делать» → этот § / F3).
 
 ### Не делать (пока) <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span>
 
@@ -279,16 +293,19 @@ Trampoline / generator дают:
 
 ```mermaid
 flowchart TD
-  START[processor.run] --> FP0{Tier 0 fast path?}
-  FP0 -->|yes ✓| FAST0[runFastPipeline]
+  START[NavigationTransaction.run] --> FP0{canUseFastPath?}
+  FP0 -->|yes ✓| FAST[runFastPipeline]
   FP0 -->|no| FP1{canUseDomCacheFastPath?}
-  FP1 -->|yes ✓| FAST1[runFastPipeline same]
-  FP1 -->|no| FULL[runFullPipeline]
+  FP1 -->|yes ✓| FAST
+  FP1 -->|no| FP2{canUseViewCacheFastPath?}
+  FP2 -->|yes ✓| FAST
+  FP2 -->|no| FULL[runFullPipeline]
   FULL --> SYNC{step returns thenable?}
   SYNC -->|no| NEXT[next step sync]
   SYNC -->|yes| AWAIT[await once]
   AWAIT --> NEXT
-  NEXT --> COMMIT[commit slice sync ✓]
+  NEXT --> COMMIT[commitStagedView + commitNavigation sync ✓]
+  FAST --> COMMIT
 ```
 
 ---
@@ -302,7 +319,7 @@ flowchart TD
 | Fast path Tier 0 | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> shipped |
 | Dom-cache fast path | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `canUseDomCacheFastPath` → тот же `runFastPipeline` |
 | Generator/trampoline | <span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">⊘</span> overkill до профиля / streaming |
-| Commit slice атомарность | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> в коде · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> дока (F3) |
+| Commit slice атомарность | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> код + JSDoc + ARCHITECTURE + NAVIGATION_RUN_MANAGER (F3) |
 
 ---
 

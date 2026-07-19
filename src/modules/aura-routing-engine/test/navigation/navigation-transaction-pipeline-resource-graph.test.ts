@@ -17,7 +17,7 @@ describe('NavigationTransactionPipeline ResourceGraph prepare boundary (E6)', ()
   });
 
   it.each([
-    ['runPrepare', async (pipeline: NavigationTransactionPipeline) => pipeline.runPrepare()],
+    ['runLoads', async (pipeline: NavigationTransactionPipeline) => pipeline.runLoads()],
     ['runUpdate', async (pipeline: NavigationTransactionPipeline) => pipeline.runUpdate()],
     [
       'runSpeculativePrepare',
@@ -58,12 +58,12 @@ describe('NavigationTransactionPipeline ResourceGraph prepare boundary (E6)', ()
     viewLoad.mockRestore();
   });
 
-  it('runPrepare / runUpdate wire RG result onto transaction snapshots', async () => {
+  it('runLoads / runUpdate wire RG result onto transaction snapshots', async () => {
     const enter = createMatchedRoute('/page', { load: ['data'], update: ['sync'] });
     const data = new Map([[enter.dataKey!, { id: 9 }]]);
     const view = ['<wired/>'];
 
-    for (const mode of ['prepare', 'update'] as const) {
+    for (const mode of ['loads', 'update'] as const) {
       const transaction = createMockTransaction({
         enterRoutes: [enter],
         update: mode === 'update',
@@ -72,8 +72,8 @@ describe('NavigationTransactionPipeline ResourceGraph prepare boundary (E6)', ()
       jest.spyOn(transaction.engine.resourceGraph, 'load').mockResolvedValue({ data, view });
 
       const pipeline = new NavigationTransactionPipeline(transaction);
-      if (mode === 'prepare') {
-        await expect(pipeline.runPrepare()).resolves.toBeNull();
+      if (mode === 'loads') {
+        await expect(pipeline.runLoads()).resolves.toBeNull();
       } else {
         await expect(pipeline.runUpdate()).resolves.toEqual({ status: 'navigationSucceeded' });
       }
@@ -100,7 +100,7 @@ describe('NavigationTransactionPipeline ResourceGraph prepare boundary (E6)', ()
     const viewLoad = jest.spyOn(transaction.engine.viewGraph, 'load');
 
     await expect(
-      new NavigationTransactionPipeline(transaction).runPrepare(),
+      new NavigationTransactionPipeline(transaction).runLoads(),
     ).resolves.toBeNull();
 
     expect(rgLoad).toHaveBeenCalledTimes(1);

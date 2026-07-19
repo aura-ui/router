@@ -160,7 +160,7 @@ async function runRenderStep(
   }
 
   const pipeline = new NavigationTransactionPipeline(transaction);
-  const preparePromise = pipeline.runPrepare();
+  const preparePromise = pipeline.runLoads();
 
   if (options?.cancelAfterMs != null) {
     await sleep(options.cancelAfterMs);

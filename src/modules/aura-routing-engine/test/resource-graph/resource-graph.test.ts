@@ -133,6 +133,35 @@ describe('ResourceGraph', () => {
       mode: 'navigation',
     });
     expect(result.data?.get('k')).toEqual({ ok: true });
+    expect(result.view).toEqual([null, null]);
+  });
+
+  it('navigation load assembles view payloads in enterRoutes order', async () => {
+    const layout = matchedRoute('/app', { layout: '<slot></slot>', view: null });
+    const page = matchedRoute('/app/home', { asyncView: true });
+    const branch = [layout, page];
+
+    const dataGraph = {
+      load: jest.fn(async () => ({})),
+    };
+    const viewGraph = {
+      load: jest.fn(async (routes: MatchedRouteInfo[]) => ({
+        data: routes.map((route) =>
+          route.pattern === '/app' ? { data: '<layout/>' } : { data: '<page/>' },
+        ),
+      })),
+    };
+
+    const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
+    const transaction = {
+      phaseMode: 'navigation',
+      signal: new AbortController().signal,
+    } as NavigationTransaction;
+
+    const result = await graph.resolve(branch, { branch, transaction });
+
+    expect(result.error).toBeUndefined();
+    expect(result.view).toEqual(['<layout/>', '<page/>']);
   });
 
   it('speculative mode prefetches data and content in parallel', async () => {

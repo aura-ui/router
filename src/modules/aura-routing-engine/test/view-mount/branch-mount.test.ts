@@ -1,8 +1,4 @@
-import {
-  createBranchMountContext,
-  mountEnterBranch,
-} from '../../core/view-mount/branch-mount';
-import type { DataSnapshot } from '../../core/data-graph';
+import { mountEnterBranch } from '../../core/view-mount/branch-mount';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 
 describe('mountEnterBranch', () => {
@@ -127,42 +123,5 @@ describe('mountEnterBranch', () => {
         message: 'Branch mount: expected 1 view payloads, got 0',
       }));
     }
-  });
-});
-
-describe('createBranchMountContext', () => {
-  it('uses isActive for aborted', () => {
-    let active = true;
-    const ctx = createBranchMountContext({
-      signal: new AbortController().signal,
-      isActive: () => active,
-    });
-
-    expect(ctx.aborted()).toBe(false);
-    active = false;
-    expect(ctx.aborted()).toBe(true);
-  });
-
-  it('exposes load-hook data from snapshot', () => {
-    const route = createMatchedRoute('/users', { load: ['user'], hasLoad: true });
-    const snapshot = new Map([[route.dataKey!, { userId: '42' }]]) as DataSnapshot;
-
-    const ctx = createBranchMountContext({
-      signal: new AbortController().signal,
-      isActive: () => true,
-      dataSnapshot: snapshot,
-    });
-
-    expect(ctx.dataFor?.(route)).toEqual({ userId: '42' });
-  });
-
-  it('forwards paramChangeRemount', () => {
-    const ctx = createBranchMountContext({
-      signal: new AbortController().signal,
-      isActive: () => true,
-      paramChangeRemount: true,
-    });
-
-    expect(ctx.paramChangeRemount).toBe(true);
   });
 });

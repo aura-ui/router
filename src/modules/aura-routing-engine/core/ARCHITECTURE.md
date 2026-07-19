@@ -119,7 +119,7 @@ rendering, and the view success gate (`commitNavigation`). It delegates per-rout
 lifecycle execution to `NavigationTransactionPipelinePhase`. Blocking phases may
 cancel or redirect before history commit and render.
 
-`failure/` owns error normalization and app callbacks; it does not write history.
+`failure/` owns the failure model only; it does not write history or run app callbacks.
 `navigation/navigation-failure-handler.ts` runs the terminal `error` phase after
 pipeline failures. `navigation/not-found-exit-cleanup.ts` runs callback-only
 `unmount` on the previous leaf before pre-match `NOT_FOUND`.
@@ -134,10 +134,8 @@ Two axes — do not merge:
 | **Apply** | `applyNavigationOutcome` / `applyPreMatchFailure` (+ `applyTransactionHistory`) | History policy, `prev`, `onNotFound`, redirect re-navigate |
 
 `NavigationPulse` **must not** write history, mutate `prev`, invoke app recovery callbacks,
-or start navigation. Target call order for terminal paths: `pulse.settle` → apply effects.
-
-Known gaps (later cleanup): pre-match `NOT_FOUND` and resolve-probe cancel/redirect do not
-always call `settle` before apply — see [NAVIGATION_RUN_MANAGER.md](../../../../docs/todo/NAVIGATION_RUN_MANAGER.md).
+or start navigation. Terminal call order: `pulse.settle` → apply effects
+(`processResult`, `handleUnmatchedNavigation`, `handleRedirectError`, `finalizeResolveTerminal`).
 
 ## Commit Vocabulary
 

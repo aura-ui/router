@@ -339,6 +339,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       if (event.failure.viewCommitted) {
         this.notFound.hide();
       }
+      // NOT_FOUND already surfaces as DOM `not-found` via engine `onNotFound`.
+      if (event.failure.isNotFound) {
+        return;
+      }
       dispatchNavigationError(this, event.failure);
     }
   }

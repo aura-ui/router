@@ -50,7 +50,7 @@
 | **Observe** | `NavigationPulse` → `EventBus` → DOM bridge | факты lifecycle |
 | **Apply** | engine `finalize*` / history policy | side effects |
 
-Целевой порядок на terminal: `pulse.settle` → apply effects. Пробелы (NOT_FOUND / resolve cancel·redirect без settle) — в cleanup-фазах [NAVIGATION_RUN_MANAGER.md](../todo/NAVIGATION_RUN_MANAGER.md).
+Порядок на terminal: `pulse.settle` → apply effects (все paths, включая NOT_FOUND и resolve-probe).
 
 ---
 
@@ -167,15 +167,15 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | `navigation:commit:start` | `commitStart` | `runAfterRender()` / `runUpdate()` | Перед sync commit slice | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `navigation:commit:end` | `commitEnd` | `commitNavigation()` | View promoted + `prev` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 | `navigation:finish` | `settle` | `processResult` | Terminal success | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:cancel` | `settle` | `processResult` | В т.ч. supersede → cancelled; probe `finalizeResolveTerminal` bus не пишет | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:redirect` | `settle` | `processResult` | | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:error` | `settle` | `processResult` / `handleRedirectError` / `finalizeResolveTerminal` | → DOM adapter | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:cancel` | `settle` | `processResult` / `finalizeResolveTerminal` | В т.ч. supersede; probe cancel (`id: 0`) без prior `start` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:redirect` | `settle` | `processResult` / `finalizeResolveTerminal` | Collapse leaf path обычно без terminal redirect | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:error` | `settle` | `processResult` / pre-match / `finalizeResolveTerminal` | → DOM `navigation-error`; `NOT_FOUND` → bus + DOM `not-found` (не дублировать `navigation-error`) | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 **Fast path:** `start` → (deactivate) → `url-aligned` → `commit:start` → `commit:end` → (activate) → `finish` — без prepare/load.
 
 **Supersede / abort:** устаревший job получает `navigation:cancel` (не `finish`); новый — свой `navigation:start`.
 
-**Redirect-walk probe (`id: 0`):** нет `run()` → нет `start` / prepare / commit. Cancel/redirect с probe в bus не пишутся; terminal **error** → `pulse.settle` → `navigation:error` → DOM.
+**Redirect-walk probe (`id: 0`):** нет `run()` → нет `start` / prepare / commit. Terminal cancel/redirect/error → `pulse.settle` → apply (единый порядок observe → apply).
 
 ---
 

@@ -32,7 +32,8 @@ export interface AuraRouterNavigationErrorEventDetail {
   href: string;
   router: HTMLElement;
   from: string | null;
-  to: string;
+  /** Matched target pathname, or `null` for pre-match failures (`NOT_FOUND` / redirect-cycle). */
+  to: string | null;
   phase: NavigationErrorPhase;
   viewCommitted: boolean;
   code: NavigationFailureCode;
@@ -69,15 +70,11 @@ export function dispatchNotFound(
 export function toRouterNavigationErrorDetail(
   failure: FailedNavigation,
 ): Omit<AuraRouterNavigationErrorEventDetail, 'router'> {
-  if (!failure.to) {
-    throw new Error('NOT_FOUND failure has no matched route');
-  }
-
   return {
     error: failure.error,
     href: failure.href,
     from: failure.from?.pathname ?? null,
-    to: failure.to.pathname,
+    to: failure.to?.pathname ?? null,
     phase: failure.error.phase,
     viewCommitted: failure.viewCommitted,
     code: failure.error.code,

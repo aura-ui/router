@@ -5,6 +5,7 @@ import {
 import type { RouterInstance } from '../../core';
 import * as redirectResolver from '../../core/redirect/redirect-resolver';
 import { createTestRoute } from '../helpers/create-test-route';
+import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
 
 describe('AuraRoutingEngine NOT_FOUND', () => {
   const router: RouterInstance = { navigate: jest.fn() };
@@ -22,6 +23,7 @@ describe('AuraRoutingEngine NOT_FOUND', () => {
     engine.setNotFoundHandler(recover);
     engine.registerRoutes([createTestRoute('/home', { onUnmount })]);
     provider.start();
+    const errors = collectNavigationErrors(engine);
 
     await engine.navigateTo('/home', 'system', { replace: true, syncHistory: false });
     await engine.navigateTo('/missing', 'push', { replace: false, syncHistory: true });
@@ -35,6 +37,8 @@ describe('AuraRoutingEngine NOT_FOUND', () => {
     );
     expect(recover).toHaveBeenCalledWith('/missing');
     expect(provider.currentHref).toBe('/missing');
+    expect(errors).toHaveLength(1);
+    expect(errors[0]!.error.code).toBe('NOT_FOUND');
   });
 
   it('reports NOT_FOUND for redirect target href, not the original request', async () => {

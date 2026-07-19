@@ -302,14 +302,11 @@ export class AuraRoutingEngine implements NavigationHost {
       action,
       router: this.router,
     });
-    const failure = FailedNavigation.notFound(requestedHref, this.prev, action);
-    applyPreMatchFailure(
-      failure,
+    this.settleAndApplyPreMatchFailure(
+      FailedNavigation.notFound(requestedHref, this.prev, action),
       action,
       requestedHref,
-      this.prev?.href ?? null,
       options,
-      this.outcomeContext(),
     );
   }
 
@@ -319,7 +316,34 @@ export class AuraRoutingEngine implements NavigationHost {
     action: HistoryAction,
     options: NavigateHistoryOptions,
   ): void {
-    const failure = FailedNavigation.redirectError(code, href, this.prev, action);
+    this.settleAndApplyPreMatchFailure(
+      FailedNavigation.redirectError(code, href, this.prev, action),
+      action,
+      href,
+      options,
+    );
+  }
+
+  /**
+   * Terminal outcome from pre-commit redirect resolution (before pipeline run).
+   * Probe txs use `id: 0` and never call {@link NavigationTransaction.run}.
+   */
+  finalizeResolveTerminal(
+    result: Exclude<PipelineStepResult, null>,
+    probe: NavigationTransaction,
+  ): void {
+    if (!this.isRunning) return;
+    this.pulse.settle(probe.transactionId, result);
+    this.applyTerminalOutcome(result, probe);
+  }
+
+  /** Observe → apply for pre-match failures (`id: 0`). */
+  private settleAndApplyPreMatchFailure(
+    failure: FailedNavigation,
+    action: HistoryAction,
+    href: string,
+    options: NavigateHistoryOptions,
+  ): void {
     this.pulse.settle(0, failure.toResult());
     applyPreMatchFailure(
       failure,
@@ -329,26 +353,6 @@ export class AuraRoutingEngine implements NavigationHost {
       options,
       this.outcomeContext(),
     );
-  }
-
-  /**
-   * Terminal outcome from pre-commit redirect resolution (before pipeline run).
-   * Probe txs use `id: 0` and never call {@link NavigationTransaction.run}.
-   *
-   * Observe vs apply: {@link NavigationPulse} is emit-only. Today only `error` calls
-   * {@link NavigationPulse.settle}; cancel/redirect apply effects without bus emit
-   * (align in a later cleanup step — settle → apply for every terminal path).
-   */
-  finalizeResolveTerminal(
-    result: Exclude<PipelineStepResult, null>,
-    probe: NavigationTransaction,
-  ): void {
-    if (!this.isRunning) return;
-
-    if (result.status === 'error') {
-      this.pulse.settle(probe.transactionId, result);
-    }
-    this.applyTerminalOutcome(result, probe);
   }
 
   private outcomeContext() {

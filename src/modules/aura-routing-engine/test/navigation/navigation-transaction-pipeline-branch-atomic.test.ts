@@ -4,7 +4,6 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
   require('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import * as branchResolver from '../../core/view-mount/branch-resolver';
 import * as branchMount from '../../core/view-mount/branch-mount';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 import {
@@ -28,55 +27,48 @@ async function prepareThenRenderWithTransition(pipeline: NavigationTransactionPi
 }
 
 describe('NavigationTransactionPipeline branch prepare → commit render', () => {
-  let resolveEnterBranchSpy: jest.SpiedFunction<typeof branchResolver.resolveEnterBranch>;
   let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
 
   beforeEach(() => {
     resetPipelineMocks();
-    resolveEnterBranchSpy = jest
-      .spyOn(branchResolver, 'resolveEnterBranch')
-      .mockResolvedValue({ status: 'ok', preResolvedContents: ['<layout/>', '<index/>'] });
     mountEnterBranchSpy = jest
       .spyOn(branchMount, 'mountEnterBranch')
       .mockReturnValue({ status: 'ok' });
   });
 
   afterEach(() => {
-    resolveEnterBranchSpy.mockRestore();
     mountEnterBranchSpy.mockRestore();
   });
 
-  it('resolves in prepare then sync-mounts in render for multi-route enter', async () => {
+  it('loads via ResourceGraph in prepare then sync-mounts in render for multi-route enter', async () => {
     const layout = createMatchedRoute('/users');
     const index = createMatchedRoute('/users/1');
     const transaction = withViewGraph({
       enterRoutes: [layout, index],
       transitionOrder: null,
     });
+    const loadSpy = jest.spyOn(transaction.engine.resourceGraph, 'load');
 
     await prepareThenRender(new NavigationTransactionPipeline(transaction));
 
-    expect(resolveEnterBranchSpy).toHaveBeenCalledWith(
+    expect(loadSpy).toHaveBeenCalledWith(
       [layout, index],
-      transaction.engine.viewGraph,
+      expect.objectContaining({ transaction }),
+    );
+    expect(transaction.viewSnapshot).toBeUndefined();
+    expect(mountEnterBranchSpy).toHaveBeenCalledWith(
+      [layout, index],
+      ['<span/>', '<span/>'],
       expect.objectContaining({
         signal: transaction.signal,
         paramChangeRemount: false,
       }),
     );
-    expect(mountEnterBranchSpy).toHaveBeenCalledWith(
-      [layout, index],
-      ['<layout/>', '<index/>'],
-      expect.objectContaining({ signal: transaction.signal }),
-    );
     expect(mockRunViewCommit).not.toHaveBeenCalled();
+    loadSpy.mockRestore();
   });
 
   it('uses branch prepare/commit for a single sync route', async () => {
-    resolveEnterBranchSpy.mockResolvedValue({
-      status: 'ok',
-      preResolvedContents: ['<page/>'],
-    });
     const transaction = withViewGraph({
       enterRoutes: [createMatchedRoute('/page')],
       transitionOrder: null,
@@ -84,16 +76,11 @@ describe('NavigationTransactionPipeline branch prepare → commit render', () =>
 
     await prepareThenRender(new NavigationTransactionPipeline(transaction));
 
-    expect(resolveEnterBranchSpy).toHaveBeenCalledTimes(1);
     expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
     expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 
-  it('passes paramChangeRemount through branch resolve context', async () => {
-    resolveEnterBranchSpy.mockResolvedValue({
-      status: 'ok',
-      preResolvedContents: ['<page/>'],
-    });
+  it('passes paramChangeRemount through branch mount context', async () => {
     const transaction = withViewGraph({
       enterRoutes: [createMatchedRoute('/users/2')],
       transitionOrder: null,
@@ -102,11 +89,6 @@ describe('NavigationTransactionPipeline branch prepare → commit render', () =>
 
     await prepareThenRender(new NavigationTransactionPipeline(transaction));
 
-    expect(resolveEnterBranchSpy).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({ paramChangeRemount: true }),
-    );
     expect(mountEnterBranchSpy).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
@@ -122,17 +104,21 @@ describe('NavigationTransactionPipeline branch prepare → commit render', () =>
 
     await prepareThenRenderWithTransition(new NavigationTransactionPipeline(transaction));
 
-    expect(resolveEnterBranchSpy).toHaveBeenCalledTimes(1);
     expect(mountEnterBranchSpy).toHaveBeenCalledTimes(1);
     expect(mockRunViewCommit).not.toHaveBeenCalled();
   });
 
-  it('out-in resolves in prepare before transitionOut and mounts before transitionIn', async () => {
+  it('out-in loads in prepare before transitionOut and mounts before transitionIn', async () => {
     const callOrder: string[] = [];
+    const transaction = withViewGraph({
+      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      transitionOrder: 'out-in',
+    });
 
-    resolveEnterBranchSpy.mockImplementation(async () => {
-      callOrder.push('resolve');
-      return { status: 'ok', preResolvedContents: ['<layout/>', '<index/>'] };
+    jest.spyOn(transaction.engine.resourceGraph, 'load').mockImplementation(async () => {
+      callOrder.push('load');
+      return { view: ['<page/>'] };
     });
     mountEnterBranchSpy.mockImplementation(() => {
       callOrder.push('apply');
@@ -142,22 +128,18 @@ describe('NavigationTransactionPipeline branch prepare → commit render', () =>
       callOrder.push(ctx.phase);
     });
 
-    const transaction = withViewGraph({
-      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
-      transitionOrder: 'out-in',
-    });
-
     await prepareThenRenderWithTransition(new NavigationTransactionPipeline(transaction));
 
-    expect(callOrder).toEqual(['resolve', 'transitionOut', 'apply', 'transitionIn']);
+    expect(callOrder).toEqual(['load', 'transitionOut', 'apply', 'transitionIn']);
   });
 
-  it('returns cancelled when branch resolve aborts', async () => {
-    resolveEnterBranchSpy.mockResolvedValue({ status: 'aborted' });
+  it('returns cancelled when ResourceGraph load soft-cancels', async () => {
     const transaction = withViewGraph({
       enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: null,
+    });
+    jest.spyOn(transaction.engine.resourceGraph, 'load').mockResolvedValue({
+      error: { status: 'cancelled' },
     });
 
     const outcome = await new NavigationTransactionPipeline(transaction).runPrepare();
@@ -165,23 +147,6 @@ describe('NavigationTransactionPipeline branch prepare → commit render', () =>
     expect(outcome).toEqual({ status: 'cancelled' });
     expect(mountEnterBranchSpy).not.toHaveBeenCalled();
     expect(mockRunViewCommit).not.toHaveBeenCalled();
-  });
-
-  it('returns cancelled when branch resolve succeeds but transaction is inactive', async () => {
-    resolveEnterBranchSpy.mockResolvedValue({
-      status: 'ok',
-      preResolvedContents: ['<a/>', '<b/>'],
-    });
-    const transaction = withViewGraph({
-      enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
-      transitionOrder: null,
-    });
-    jest.spyOn(transaction, 'isActive').mockReturnValue(false);
-
-    const outcome = await new NavigationTransactionPipeline(transaction).runPrepare();
-
-    expect(outcome).toEqual({ status: 'cancelled' });
-    expect(mountEnterBranchSpy).not.toHaveBeenCalled();
   });
 
   it('returns cancelled when branch mount succeeds but transaction is inactive', async () => {
@@ -215,21 +180,16 @@ describe('NavigationTransactionPipeline branch prepare → commit render', () =>
 });
 
 describe('NavigationTransactionPipeline render failure recovery', () => {
-  let resolveEnterBranchSpy: jest.SpiedFunction<typeof branchResolver.resolveEnterBranch>;
   let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
 
   beforeEach(() => {
     resetPipelineMocks();
-    resolveEnterBranchSpy = jest
-      .spyOn(branchResolver, 'resolveEnterBranch')
-      .mockResolvedValue({ status: 'ok', preResolvedContents: ['<a/>', '<b/>'] });
     mountEnterBranchSpy = jest
       .spyOn(branchMount, 'mountEnterBranch')
       .mockReturnValue({ status: 'ok' });
   });
 
   afterEach(() => {
-    resolveEnterBranchSpy.mockRestore();
     mountEnterBranchSpy.mockRestore();
   });
 
@@ -268,20 +228,24 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
     await expectRenderErrorRecovery(outcome, phases, recoverySpy);
   });
 
-  it('recovers after branch resolve error', async () => {
-    const resolveError = new Error('branch resolve failed');
+  it('recovers after ResourceGraph load error', async () => {
     const failingRoute = createMatchedRoute('/b');
-    resolveEnterBranchSpy.mockResolvedValue({
-      status: 'error',
-      error: resolveError,
-      route: failingRoute,
-    });
-
     const { phases } = trackLifecyclePhases();
     const transaction = withViewGraph({
       exitRoutes: [createMatchedRoute('/from', { unmount: ['cleanup'] })],
       enterRoutes: [createMatchedRoute('/a'), failingRoute],
       transitionOrder: null,
+    });
+    jest.spyOn(transaction.engine.resourceGraph, 'load').mockResolvedValue({
+      error: {
+        status: 'error',
+        failure: {
+          error: new Error('branch resolve failed'),
+          route: failingRoute,
+          atPhase: 'load',
+          viewCommitted: false,
+        },
+      },
     });
     const recoverySpy = jest.spyOn(
       transaction.viewCommitTracker,
@@ -290,8 +254,11 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
 
     const outcome = await new NavigationTransactionPipeline(transaction).runPrepare();
 
-    await expectRenderErrorRecovery(outcome, phases, recoverySpy);
+    // Prepare returns the error; recovery (unmount) is owned by the full pipeline / fail handler.
+    expect(outcome?.status).toBe('error');
     expect(mountEnterBranchSpy).not.toHaveBeenCalled();
+    expect(recoverySpy).not.toHaveBeenCalled();
+    expect(phases).toEqual([]);
   });
 
   it('returns cancelled when branch mount aborts mid-apply', async () => {
@@ -316,7 +283,7 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
 
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       if (ctx.phase === 'transitionOut') {
-        transaction.preResolvedBranchContents = undefined;
+        transaction.viewSnapshot = undefined;
       }
     });
 
@@ -330,14 +297,10 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
 });
 
 describe('NavigationTransactionPipeline branch transition matrix', () => {
-  let resolveEnterBranchSpy: jest.SpiedFunction<typeof branchResolver.resolveEnterBranch>;
   let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
 
   beforeEach(() => {
     resetPipelineMocks();
-    resolveEnterBranchSpy = jest
-      .spyOn(branchResolver, 'resolveEnterBranch')
-      .mockResolvedValue({ status: 'ok', preResolvedContents: ['<layout/>', '<index/>'] });
     mountEnterBranchSpy = jest
       .spyOn(branchMount, 'mountEnterBranch')
       .mockImplementation(() => {
@@ -346,19 +309,23 @@ describe('NavigationTransactionPipeline branch transition matrix', () => {
   });
 
   afterEach(() => {
-    resolveEnterBranchSpy.mockRestore();
     mountEnterBranchSpy.mockRestore();
   });
 
   it.each([
-    ['parallel', ['resolve', 'apply', 'transitionOut', 'transitionIn']],
-    ['in-out', ['resolve', 'apply', 'transitionIn', 'transitionOut']],
+    ['parallel', ['load', 'apply', 'transitionOut', 'transitionIn']],
+    ['in-out', ['load', 'apply', 'transitionIn', 'transitionOut']],
   ] as const)('branch + %s runs steps in order', async (policy, expectedOrder) => {
     const callOrder: string[] = [];
+    const transaction = withViewGraph({
+      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
+      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
+      transitionOrder: policy,
+    });
 
-    resolveEnterBranchSpy.mockImplementation(async () => {
-      callOrder.push('resolve');
-      return { status: 'ok', preResolvedContents: ['<page/>'] };
+    jest.spyOn(transaction.engine.resourceGraph, 'load').mockImplementation(async () => {
+      callOrder.push('load');
+      return { view: ['<page/>'] };
     });
     mountEnterBranchSpy.mockImplementation(() => {
       callOrder.push('apply');
@@ -366,12 +333,6 @@ describe('NavigationTransactionPipeline branch transition matrix', () => {
     });
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       callOrder.push(ctx.phase);
-    });
-
-    const transaction = withViewGraph({
-      exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
-      enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
-      transitionOrder: policy,
     });
 
     await prepareThenRenderWithTransition(new NavigationTransactionPipeline(transaction));

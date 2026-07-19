@@ -113,7 +113,7 @@ describe('ResourceGraph', () => {
     const signal = new AbortController().signal;
     const transaction = { phaseMode: 'navigation', signal } as NavigationTransaction;
 
-    const resultPromise = graph.resolve(branch, {
+    const resultPromise = graph.load(branch, {
       branch,
       transaction,
     });
@@ -159,7 +159,7 @@ describe('ResourceGraph', () => {
       signal: new AbortController().signal,
     } as NavigationTransaction;
 
-    const result = await graph.resolve(branch, { branch, transaction });
+    const result = await graph.load(branch, { branch, transaction });
 
     expect(result.error).toBeUndefined();
     expect(result.view).toEqual(['<layout/>', '<page/>']);
@@ -178,7 +178,7 @@ describe('ResourceGraph', () => {
     };
 
     const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
-    const result = await graph.resolve([leaf], {
+    const result = await graph.load([leaf], {
       branch: [leaf],
       transaction,
     });

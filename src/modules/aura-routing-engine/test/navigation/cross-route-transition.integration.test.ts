@@ -12,7 +12,11 @@ import type { RouteLifecycleContext } from '../../core/route/types';
 import { createTestRoute } from '../helpers/create-test-route';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { createMockEngine } from '../helpers/create-mock-transaction';
+import {
+  createMockEngine,
+  createViewGraphFromLoadView,
+  wireEngineViewGraph,
+} from '../helpers/create-mock-transaction';
 import {
   createTestOutlet,
   PARALLEL_CROSS_FADE_TRANSITION,
@@ -114,9 +118,12 @@ function wireRoute(
 
 async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteInfo) {
   const engine = createMockEngine();
-  engine.viewGraph = {
-    loadView: async (routeInfo) => ({ data: routeMarkup.get(routeInfo.route) ?? null }),
-  } as typeof engine.viewGraph;
+  wireEngineViewGraph(
+    engine,
+    createViewGraphFromLoadView(async (routeInfo) => ({
+      data: routeMarkup.get(routeInfo.route) ?? null,
+    })),
+  );
 
   const transaction = new NavigationTransaction(
     1,

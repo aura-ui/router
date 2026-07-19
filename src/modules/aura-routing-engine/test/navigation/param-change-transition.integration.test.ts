@@ -15,7 +15,11 @@ import {
   createUsersIdMatch,
   createUsersIdNode,
 } from '../helpers/create-dynamic-leaf-match';
-import { createMockEngine } from '../helpers/create-mock-transaction';
+import {
+  createMockEngine,
+  createViewGraphFromLoadView,
+  wireEngineViewGraph,
+} from '../helpers/create-mock-transaction';
 import {
   createTestOutlet,
   PARALLEL_CROSS_FADE_TRANSITION,
@@ -131,7 +135,7 @@ async function runParamRemountNavigation(
   loadView: NonNullable<typeof lastWiredLoadView> = lastWiredLoadView!,
 ) {
   const engine = createMockEngine();
-  engine.viewGraph = { loadView } as NonNullable<typeof engine.viewGraph>;
+  wireEngineViewGraph(engine, createViewGraphFromLoadView(loadView));
 
   const transaction = new NavigationTransaction(
     1,
@@ -456,7 +460,7 @@ describe('param-change in-place + transition pipeline order', () => {
     const enterRoute = createUsersIdMatch('2', node);
 
     const engine = createMockEngine();
-    engine.viewGraph = { loadView } as NonNullable<typeof engine.viewGraph>;
+    wireEngineViewGraph(engine, createViewGraphFromLoadView(loadView));
 
     const transaction = new NavigationTransaction(
       1,

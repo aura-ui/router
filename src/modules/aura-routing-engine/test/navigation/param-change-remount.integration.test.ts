@@ -17,7 +17,11 @@ import {
   createUsersIdNode,
 } from '../helpers/create-dynamic-leaf-match';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
-import { createMockEngine } from '../helpers/create-mock-transaction';
+import {
+  createMockEngine,
+  createViewGraphFromLoadView,
+  wireEngineViewGraph,
+} from '../helpers/create-mock-transaction';
 import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
 import { resetHookMocks } from '../helpers/jest/hook-mocks';
 
@@ -92,7 +96,7 @@ async function runParamRemountNavigation(
   loadView: ViewGraph['loadView'],
 ) {
   const engine = createMockEngine();
-  engine.viewGraph = { loadView } as unknown as ViewGraph;
+  wireEngineViewGraph(engine, createViewGraphFromLoadView(loadView));
 
   const transaction = new NavigationTransaction(
     1,

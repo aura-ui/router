@@ -69,8 +69,8 @@ describe('PrefetchPipeline', () => {
     jest.useRealTimers();
   });
 
-  it('prefetch plans resources and runs speculative prepare with data+view flags', async () => {
-    const order: string[] = [];
+  it('prefetch plans resources and runs speculative prepare', async () => {
+    const runs: string[] = [];
     const { pipeline } = createPipeline({
       planner: {
         planResources: (plan) => [
@@ -78,17 +78,14 @@ describe('PrefetchPipeline', () => {
           { kind: 'data', targets: plan.enterRoutes, priority: 'high' },
         ],
       },
-      runSpeculativePrepare: async (plan, ctx) => {
-        if (ctx.view) order.push(`view:${plan.enterRoutes.at(-1)?.pattern}`);
-        if (ctx.data) order.push(`data:${plan.enterRoutes.at(-1)?.pattern}`);
+      runSpeculativePrepare: async (plan) => {
+        runs.push(plan.enterRoutes.at(-1)?.pattern ?? '');
       },
     });
 
     await pipeline.prefetch('/settings/profile');
 
-    expect(order).toHaveLength(2);
-    expect(order).toContain('view:/settings/profile');
-    expect(order).toContain('data:/settings/profile');
+    expect(runs).toEqual(['/settings/profile']);
   });
 
   it('completes when speculative prepare is a no-op', async () => {
@@ -102,8 +99,8 @@ describe('PrefetchPipeline', () => {
     await expect(pipeline.prefetch('/settings/profile')).resolves.toBeUndefined();
   });
 
-  it('runs speculative prepare for data when data resource is planned', async () => {
-    let dataRuns = 0;
+  it('runs speculative prepare when data resource is planned', async () => {
+    let prepareRuns = 0;
     const profile = createDomRoute('profile');
     profile.setAttribute('load', 'profile');
     const settings = createDomRoute('/settings', [profile]);
@@ -112,14 +109,14 @@ describe('PrefetchPipeline', () => {
     const { pipeline } = createPipeline({
       matchableNodes,
       planner: new DefaultPrefetchResourcePlanner({ view: false }),
-      runSpeculativePrepare: async (_plan, ctx) => {
-        if (ctx.data) dataRuns++;
+      runSpeculativePrepare: async () => {
+        prepareRuns++;
       },
     });
 
     await pipeline.prefetch('/settings/profile', { mode: 'intent' });
 
-    expect(dataRuns).toBe(1);
+    expect(prepareRuns).toBe(1);
   });
 
   it('DataGraph.load(mode: prefetch) warms load-hook cache', async () => {
@@ -189,8 +186,8 @@ describe('PrefetchPipeline', () => {
   it('tap mode prefetches content resources', async () => {
     const runs: string[] = [];
     const { pipeline } = createPipeline({
-      runSpeculativePrepare: async (plan, ctx) => {
-        if (ctx.view) runs.push(plan.href);
+      runSpeculativePrepare: async (plan) => {
+        runs.push(plan.href);
       },
     });
 
@@ -286,8 +283,8 @@ describe('PrefetchPipeline', () => {
     let loads = 0;
     const { pipeline: withContent } = createPipeline({
       matchableNodes,
-      runSpeculativePrepare: async (_plan, ctx) => {
-        if (ctx.view) loads++;
+      runSpeculativePrepare: async () => {
+        loads++;
       },
     });
 
@@ -312,8 +309,8 @@ describe('PrefetchPipeline', () => {
       config: {
         onSkipped: (_href, reason) => skipped.push(reason),
       },
-      runSpeculativePrepare: async (plan, ctx) => {
-        if (ctx.view) runs.push(plan.href);
+      runSpeculativePrepare: async (plan) => {
+        runs.push(plan.href);
       },
     });
 

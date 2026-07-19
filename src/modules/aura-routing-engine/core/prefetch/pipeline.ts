@@ -216,9 +216,6 @@ export class PrefetchPipeline {
       return false;
     }
 
-    const data = resources.some((r) => r.kind === 'data');
-    const view = resources.some((r) => r.kind === 'view');
-
     this.deps.speculation?.hint(plan, ctx);
     this.config.onStart?.(plan, ctx);
 
@@ -227,8 +224,6 @@ export class PrefetchPipeline {
         this.deps.runSpeculativePrepare(plan, {
           mode: ctx.mode,
           signal: ctx.signal,
-          data,
-          view,
         }),
         ctx.signal,
       );

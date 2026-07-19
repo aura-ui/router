@@ -177,51 +177,13 @@ export class NavigationTransactionPipeline {
     ]);
   }
 
-  async runSpeculativePrepare(opts?: {
-    data?: boolean;
-    view?: boolean;
-  }): Promise<PipelineStepResult> {
-    if (!this.transaction.isActive()) {
-      return { status: 'cancelled' };
-    }
-
-    const data = opts?.data ?? true;
-    const view = opts?.view ?? false;
-    const { engine, signal, transitionPlan } = this.transaction;
+  async runSpeculativePrepare(): Promise<void> {
+    const { to, transitionPlan, engine } = this.transaction;
     const enterRoutes = transitionPlan.enterRoutes;
-
-    try {
-      const parts: Promise<unknown>[] = [];
-
-      if (data) {
-        const { to } = this.transaction;
-        const branch = to.chain ?? transitionPlan.enterRoutes;
-        parts.push(engine.dataGraph.load(enterRoutes, {
-          branch,
-          transaction: this.transaction,
-          mode: 'prefetch',
-        }));
-      }
-
-      if (view) {
-        parts.push(engine.viewGraph.load(enterRoutes, signal, { mode: 'prefetch' }));
-      }
-
-      if (parts.length) {
-        await Promise.all(parts);
-      }
-
-      if (!this.transaction.isActive()) {
-        return { status: 'cancelled' };
-      }
-
-      return null;
-    } catch {
-      if (!this.transaction.isActive()) {
-        return { status: 'cancelled' };
-      }
-      return null;
-    }
+    await engine.resourceGraph.load(enterRoutes, {
+      branch: to.chain ?? enterRoutes,
+      transaction: this.transaction,
+    });
   }
 
   /**
@@ -244,7 +206,7 @@ export class NavigationTransactionPipeline {
   /**
    * Commit enter-branch DOM with `transition-order` from the enter leaf.
    *
-   * Content must already be on `transaction.preResolvedBranchContents` ({@link runPrepare}).
+   * Content must already be on `transaction.viewSnapshot` ({@link runPrepare}).
    *
    * | transition-order | step sequence |
    * |------------------|---------------|
@@ -308,8 +270,8 @@ export class NavigationTransactionPipeline {
   /**
    * Atomic render — phase 2: sync mount pre-resolved branch into the DOM.
    *
-   * Clears `preResolvedBranchContents` after read. Marks the view staged on success.
-   * Missing pre-resolved contents yields `cancelled`.
+   * Clears `viewSnapshot` after read. Marks the view staged on success.
+   * Missing view snapshot yields `cancelled`.
    */
   private commitEnterBranchToDom(): Promise<PipelineStepResult> {
     const preResolvedContents = this.transaction.viewSnapshot;

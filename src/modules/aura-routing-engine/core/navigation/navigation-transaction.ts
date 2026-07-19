@@ -113,11 +113,11 @@ export class NavigationTransaction {
     return new NavigationTransactionPipeline(this).runGuards();
   }
 
-  async runSpeculativePrepare(opts?: { data?: boolean; view?: boolean }): Promise<PipelineStepResult> {
+  async runSpeculativePrepare(): Promise<void> {
     if (!this.transitionPlan) {
       this.transitionPlan = buildTransitionPlan(this.from, this.to);
     }
-    return new NavigationTransactionPipeline(this).runSpeculativePrepare(opts);
+    return new NavigationTransactionPipeline(this).runSpeculativePrepare();
   }
 
   async fail(

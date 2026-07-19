@@ -1,9 +1,17 @@
 import type { RouteInstance } from '../../core';
+import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { computeMatchScore } from '../../core/match/route-score';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { createTestRoute } from './create-test-route';
 import { withResolvedView } from './with-resolved-view';
+
+function withResourceKeys(info: MatchedRouteInfo): MatchedRouteInfo {
+  const keys = resourceKeys(info);
+  info.dataKey = keys.dataKey;
+  info.viewKey = keys.viewKey;
+  return info;
+}
 
 export const USERS_LAYOUT_PATTERN = '/users';
 export const USERS_ID_PATTERN = '/users/:id';
@@ -55,6 +63,7 @@ export function createNestedUsersIdMatch(id: string, leaf: RouteNode): MatchedRo
 
   for (const info of chain) {
     info.chain = chain;
+    withResourceKeys(info);
   }
 
   return withResolvedView(chain[1]!);
@@ -89,5 +98,5 @@ export function createUsersIdMatch(id: string, node: RouteNode): MatchedRouteInf
     node,
     params: { id },
   };
-  return withResolvedView(match);
+  return withResolvedView(withResourceKeys(match));
 }

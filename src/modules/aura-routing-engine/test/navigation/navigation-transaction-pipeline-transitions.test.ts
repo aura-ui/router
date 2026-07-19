@@ -26,7 +26,7 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
     transaction: ReturnType<typeof createMockTransaction>,
     contents: readonly (string | null)[] = ['<page/>'],
   ) {
-    transaction.preResolvedBranchContents = contents;
+    transaction.viewSnapshot = contents;
     return transaction;
   }
 
@@ -277,7 +277,7 @@ describe('NavigationTransactionPipeline parallel transition edge cases', () => {
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
-    transaction.preResolvedBranchContents = ['<page/>'];
+    transaction.viewSnapshot = ['<page/>'];
     jest.spyOn(transaction, 'isActive').mockImplementation(() => active);
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
@@ -298,7 +298,7 @@ describe('NavigationTransactionPipeline parallel transition edge cases', () => {
         }),
       ],
     });
-    transaction.preResolvedBranchContents = ['<page/>'];
+    transaction.viewSnapshot = ['<page/>'];
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 

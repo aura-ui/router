@@ -225,8 +225,9 @@ export class NavigationCoordinator {
     }
   }
 
+  /** {@link NavigationPulse.settle}, then host finalize / redirect / error. */
   private processResult(result: TransactionResult, transaction: NavigationTransaction): void {
-    this.host.engine.pulse.terminal(transaction.transactionId, result);
+    this.host.engine.pulse.settle(transaction.transactionId, result);
 
     if (result.status === 'navigationSucceeded') {
       return;

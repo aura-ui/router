@@ -136,20 +136,20 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 
 ## Точки emit в pipeline — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-| Событие | Где emit | Примечание | Статус |
-|---------|----------|------------|--------|
-| `navigation:start` | `NavigationTransaction.run()` | + `node:deactivate` по `exitRoutes` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:url-aligned` | `commitHistory()` → `notifyUrlAligned` | После write / для pop+system без write | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:prepare:start` / `end` | шаги в `runSequentially` (full / update) | `end` только если prepare дошёл до конца; fast path без prepare | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `load:start` / `load:end` / `load:error` | `runLoads()` | Per enter route; error только при `status === 'error'` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `node:deactivate` | При `navigation:start` | `exitRoutes` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `node:activate` | `commitNavigation()` | `enterRoutes`; `nodeId === pattern` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:commit:start` | `runAfterRender()` / `runUpdate()` | Перед sync commit slice | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:commit:end` | `commitNavigation()` | View promoted + `prev` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:finish` | `processResult` | Terminal success | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:cancel` | `processResult` / `finalizeResolveTerminal` | В т.ч. supersede → cancelled | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:redirect` | то же | | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
-| `navigation:error` | то же + callback `onNavigationError` | Bus и callback параллельно | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| Событие | `NavigationPulse` | Caller | Примечание | Статус |
+|---------|-------------------|--------|------------|--------|
+| `navigation:start` | `begin` | `NavigationTransaction.run()` | + `node:deactivate` по `exitRoutes` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:url-aligned` | `alignUrl` | `commitHistory()` → `notifyUrlAligned` | После write / для pop+system без write | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:prepare:start` / `end` | `prepareStart` / `prepareEnd` | шаги в `runSequentially` (full / update) | `end` только если prepare дошёл до конца; fast path без prepare | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `load:start` / `load:end` / `load:error` | `loadStart` / `loadEnd` | `runLoads()` | Per enter route; error только при `status === 'error'` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `node:deactivate` | `begin` | При `navigation:start` | `exitRoutes` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `node:activate` | `commitEnd` | `commitNavigation()` | `enterRoutes`; `nodeId === pattern` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:commit:start` | `commitStart` | `runAfterRender()` / `runUpdate()` | Перед sync commit slice | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:commit:end` | `commitEnd` | `commitNavigation()` | View promoted + `prev` | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:finish` | `settle` | `processResult` | Terminal success | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:cancel` | `settle` | `processResult` | В т.ч. supersede → cancelled; probe `finalizeResolveTerminal` bus не пишет | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:redirect` | `settle` | `processResult` | | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
+| `navigation:error` | `settle` | `processResult` + callback `onNavigationError` | Bus и callback параллельно | <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> |
 
 **Fast path:** `start` → (deactivate) → `url-aligned` → `commit:start` → `commit:end` → (activate) → `finish` — без prepare/load.
 
@@ -187,15 +187,14 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 
 ### EB1 — Processor + coordinator — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span>
 
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `navigation:start` + `node:deactivate` в `NavigationTransaction.run()` (рядом с `url-aligned`, не вместо).
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `navigation:url-aligned` в `commitHistory()` / `notifyUrlAligned`.
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `navigation:prepare:*` как шаги в `runSequentially` (full + update; fast path пропускает).
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `load:*` в `runLoads()` (per enter route; `load:error` при `status === 'error'`).
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `node:activate` в `commitNavigation()`; `node:deactivate` при start (`nodeId === pattern`).
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `navigation:commit:start` в `runAfterRender()` / `runUpdate()`.
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `navigation:commit:end` в `commitNavigation()`.
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `finish` / `cancel` / `redirect` / `error` — `emitNavigationTerminal` в coordinator + `finalizeResolveTerminal`.
-- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Fast path: `url-aligned` + `commit:*` (без prepare/load).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `pulse.begin` в `NavigationTransaction.run()` (`navigation:start` + `node:deactivate`).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `pulse.alignUrl` через `commitHistory()` / `notifyUrlAligned`.
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `pulse.prepareStart` / `prepareEnd` как шаги в `runSequentially` (full + update; fast path пропускает).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `pulse.loadStart` / `loadEnd` в `runLoads()` (per enter route; `load:error` при `status === 'error'`).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `pulse.commitEnd` в `commitNavigation()` (`commit:end` + `node:activate`; `nodeId === pattern`).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `pulse.commitStart` в `runAfterRender()` / `runUpdate()`.
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> `pulse.settle` в coordinator `processResult` (`finish` / `cancel` / `redirect` / `error`).
+- [x] <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> Fast path: `alignUrl` + `commit:*` (без prepare/load).
 
 ### EB2 — Public API + callbacks — <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ ГОТОВО</span> (error overlay ✗)
 
@@ -259,3 +258,4 @@ In-engine bus + adapter в `aura-router.ts` (`onEngineEvent`):
 | 2026-07-19 | EB1: `start` / `prepare:*` / `load:*` / `node:*` / `commit:start` / terminal; тесты `event-bus-pipeline.test.ts`; осталось EB3/EB4 |
 | 2026-07-19 | Рефактор: все emit payload в `NavigationPulse`; pipeline/coordinator — только `pulse.*` |
 | 2026-07-19 | `NavigationPulse` перенесён в `core/navigation/` (`events/` = bus + types) |
+| 2026-07-19 | API pulse: `begin` / `loadStart`/`loadEnd` / `alignUrl` / `settle` (+ JSDoc sync) |

@@ -155,7 +155,7 @@ export class NavigationTransactionPipeline {
    * History: write URL (when needed), then URL-aligned chrome sync.
    *
    * {@link AuraRoutingEngine.commitHistoryIfNeeded} →
-   * {@link AuraRoutingEngine.notifyUrlAligned}
+   * {@link AuraRoutingEngine.notifyUrlAligned} → {@link NavigationPulse.alignUrl}
    */
   private commitHistory(): PipelineStepResult {
     const tx = this.transaction;
@@ -180,7 +180,8 @@ export class NavigationTransactionPipeline {
   /**
    * Blocking data load for the enter branch.
    *
-   * Runs after history commit and before render. Delegates to `engine.resourceGraph.load`; stores
+   * Runs after history commit and before render. Emits {@link NavigationPulse.loadStart} /
+   * {@link NavigationPulse.loadEnd}; delegates to `engine.resourceGraph.load`; stores
    * the resulting snapshot on the transaction for view commit and lifecycle hooks.
    *
    * `activeChain` is the full target branch (`to.chain`) when present, otherwise enter routes.
@@ -190,11 +191,11 @@ export class NavigationTransactionPipeline {
     const enterRoutes = tx.transitionPlan.enterRoutes;
     const branch = tx.to.chain ?? enterRoutes;
 
-    this.pulse.loadBegin(tx, enterRoutes);
+    this.pulse.loadStart(tx, enterRoutes);
     const { error, data, view } = await tx.engine.resourceGraph.load(enterRoutes, { branch, transaction: tx });
     data && (tx.dataSnapshot = data);
     view && (tx.viewSnapshot = view);
-    this.pulse.loadSettle(tx, enterRoutes, error, tx.to);
+    this.pulse.loadEnd(tx, enterRoutes, error, tx.to);
     return error ?? null;
   }
 
@@ -321,8 +322,10 @@ export class NavigationTransactionPipeline {
   /**
    * Post-render finalization after staged views are in the DOM.
    *
-   * Order: `unmount` (exit branch) → **commit slice** (`commitStagedView` × enter →
-   * {@link NavigationTransaction.commitNavigation}) → `ready` (enter branch).
+   * Order: `unmount` (exit branch) → **commit slice**
+   * ({@link NavigationPulse.commitStart} → `commitStagedView` × enter →
+   * {@link NavigationTransaction.commitNavigation} → {@link NavigationPulse.commitEnd})
+   * → `ready` (enter branch).
    *
    * **Invariant:** the commit slice is synchronous — no `await` between the last
    * `commitStagedView` and `commitNavigation`. `unmount` / `ready` may suspend; that is

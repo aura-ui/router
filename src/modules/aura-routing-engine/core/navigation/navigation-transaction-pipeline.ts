@@ -10,6 +10,7 @@
  *
  * @module navigation/navigation-transaction-pipeline
  */
+import { isThenable } from '../../../aura-utils/async/is-thenable';
 import { NavigationTransaction } from './navigation-transaction';
 import { PHASES } from './lifecycle-phases';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
@@ -20,8 +21,11 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { TransitionMap } from '../route-tree/transition-plan';
 import type { PipelinePhaseDefinition, PipelineStepResult } from './types';
 
-/** Single pipeline step. `null` = success and continue; otherwise a terminal {@link PipelineStepResult}. */
-type PipelineStep = () => Promise<PipelineStepResult>;
+/**
+ * Single pipeline step. May return a sync {@link PipelineStepResult} or a Promise.
+ * `null` = success and continue; otherwise a terminal result.
+ */
+type PipelineStep = () => PipelineStepResult | Promise<PipelineStepResult>;
 
 /**
  * Executes one {@link NavigationTransaction} as a sequence of blocking steps.
@@ -59,7 +63,7 @@ export class NavigationTransactionPipeline {
   async runFullPipeline(): Promise<PipelineStepResult> {
     return await this.runSequentially([
       ...(this.transaction.skipBlockingPhases ? [] : [() => this.runGuards()]),
-      () => this.runCommitHistory(),
+      () => this.commitHistory(),
       () => this.runLoads(), //NOTE: here can be not needed view load, even with cache.dom - it is design desition
       () => this.runRenderWithTransition(),
       () => this.runAfterRender(),
@@ -112,7 +116,7 @@ export class NavigationTransactionPipeline {
    */
   async runUpdate(): Promise<PipelineStepResult> {
     const stepResult = await this.runSequentially([
-      () => this.runCommitHistory(),
+      () => this.commitHistory(),
       () => this.runLoads(),
       () => this.runLifecyclePhase(PHASES.update),
     ]);
@@ -126,15 +130,13 @@ export class NavigationTransactionPipeline {
     return { status: 'navigationSucceeded' };
   }
 
-  /** Writes browser history when the transaction's history policy requires it. */
-  private commitHistory(): void {
+  /**
+   * Writes browser history when the transaction's history policy requires it.
+   * Usable as a {@link PipelineStep} (`null` = continue) or as a void side-effect (fast path).
+   */
+  private commitHistory(): PipelineStepResult {
     this.transaction.engine.commitHistoryIfNeeded(this.transaction);
-  }
-
-  /** Pipeline step wrapper around {@link commitHistory}. */
-  private runCommitHistory(): Promise<PipelineStepResult> {
-    this.commitHistory();
-    return Promise.resolve(null);
+    return null;
   }
 
   /**
@@ -209,7 +211,9 @@ export class NavigationTransactionPipeline {
    *
    * @param transitionOrder — enter leaf `transition-order`, or `null` when absent
    */
-  private renderEnterBranch(transitionOrder: TransitionOrderType | null): Promise<PipelineStepResult> {
+  private renderEnterBranch(
+    transitionOrder: TransitionOrderType | null,
+  ): PipelineStepResult | Promise<PipelineStepResult> {
     if (transitionOrder === null) {
       return this.commitEnterBranchToDom();
     }
@@ -237,7 +241,7 @@ export class NavigationTransactionPipeline {
       ]);
     }
 
-    return Promise.resolve(null);
+    return null;
   }
 
   /**
@@ -263,10 +267,10 @@ export class NavigationTransactionPipeline {
    * Atomic render: sync-mount {@link NavigationTransaction.viewSnapshot} into the DOM.
    * Clears the snapshot after read. Missing snapshot → `cancelled`.
    */
-  private commitEnterBranchToDom(): Promise<PipelineStepResult> {
+  private commitEnterBranchToDom(): PipelineStepResult | Promise<PipelineStepResult> {
     const viewSnapshot = this.transaction.viewSnapshot;
     this.transaction.viewSnapshot = undefined;
-    if (!viewSnapshot) return Promise.resolve({ status: 'cancelled' });
+    if (!viewSnapshot) return { status: 'cancelled' };
 
     const tx = this.transaction;
     const mountResult = mountEnterBranch(tx.transitionPlan.enterRoutes, viewSnapshot, {
@@ -277,14 +281,14 @@ export class NavigationTransactionPipeline {
     });
 
     if (mountResult.status === 'aborted' || !tx.isActive()) {
-      return Promise.resolve({ status: 'cancelled' });
+      return { status: 'cancelled' };
     }
     if (mountResult.status === 'error') {
       return this.failRender(mountResult.route, mountResult.error);
     }
 
     tx.viewCommitTracker.markViewStaged();
-    return Promise.resolve(null);
+    return null;
   }
 
   /**
@@ -356,7 +360,9 @@ export class NavigationTransactionPipeline {
   /**
    * Runs pipeline steps in order until one returns a terminal result or the transaction is inactive.
    *
-   * @param steps — ordered step functions
+   * Thenable-aware: sync step results continue without an extra microtask tick; only Promises are awaited.
+   *
+   * @param steps — ordered step functions (sync or async)
    * @returns first non-`null` step result, `cancelled` if inactive before/during a step, or `null`
    */
   private async runSequentially(steps: PipelineStep[]): Promise<PipelineStepResult> {
@@ -364,7 +370,10 @@ export class NavigationTransactionPipeline {
       if (!this.transaction.isActive()) {
         return { status: 'cancelled' };
       }
-      const stepResult = await step();
+      let stepResult = step();
+      if (isThenable(stepResult)) {
+        stepResult = await stepResult;
+      }
       if (stepResult) return stepResult;
     }
     return null;

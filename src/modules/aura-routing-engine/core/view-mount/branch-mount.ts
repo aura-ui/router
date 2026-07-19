@@ -4,8 +4,6 @@
  * @module view-mount/branch-mount
  */
 import type { ApplyPreResolvedOptions } from '../../../aura-route/core/types';
-import type { DataSnapshot } from '../data-graph';
-import { resolveRouteData } from '../data-graph/route-data';
 import type { ViewPayload } from '../view-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { isRenderError } from './view-commit-render';
@@ -21,30 +19,6 @@ export type BranchMountContext = {
   /** Load-hook snapshot for a route (from DataGraph). */
   dataFor?: (route: MatchedRouteInfo) => unknown | undefined;
 };
-
-/** Minimal transaction surface for {@link createBranchMountContext}. */
-export type BranchMountTransaction = {
-  signal: AbortSignal;
-  isActive(): boolean;
-  dataSnapshot?: DataSnapshot;
-  paramChangeRemount?: boolean;
-};
-
-/** Build mount context: `isActive()` covers abort and supersede. */
-export function createBranchMountContext(
-  transaction: BranchMountTransaction,
-): BranchMountContext {
-  const { dataSnapshot } = transaction;
-
-  return {
-    signal: transaction.signal,
-    aborted: () => !transaction.isActive(),
-    paramChangeRemount: transaction.paramChangeRemount === true,
-    dataFor: dataSnapshot
-      ? (route) => resolveRouteData(dataSnapshot, route)
-      : undefined,
-  };
-}
 
 export type MountEnterBranchResult =
   | { status: 'ok' }

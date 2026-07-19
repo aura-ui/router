@@ -49,13 +49,9 @@ export {
 export type { ViewCommitSnapshot, ViewCommitState } from './core/view-mount/view-commit-state';
 export { isViewCommittedForHistory } from './core/view-mount/view-commit-state';
 export type { ViewRenderResult } from './core/view-mount/view-commit-render';
-export {
-  createBranchMountContext,
-  mountEnterBranch,
-} from './core/view-mount/branch-mount';
+export { mountEnterBranch } from './core/view-mount/branch-mount';
 export type {
   BranchMountContext,
-  BranchMountTransaction,
   MountEnterBranchResult,
 } from './core/view-mount/branch-mount';
 

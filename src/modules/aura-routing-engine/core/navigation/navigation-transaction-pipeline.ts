@@ -13,7 +13,8 @@
 import { NavigationTransaction } from './navigation-transaction';
 import { PHASES } from './lifecycle-phases';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
-import { createBranchMountContext, mountEnterBranch } from '../view-mount/branch-mount';
+import { resolveRouteData } from '../data-graph/route-data';
+import { mountEnterBranch } from '../view-mount/branch-mount';
 import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -281,13 +282,15 @@ export class NavigationTransactionPipeline {
     }
 
     const enterRoutes = this.transaction.transitionPlan.enterRoutes;
-    const mountContext = createBranchMountContext({
-      signal: this.transaction.signal,
-      dataSnapshot: this.transaction.dataSnapshot,
-      isActive: () => this.transaction.isActive(),
+    const { signal, dataSnapshot } = this.transaction;
+    const mountResult = mountEnterBranch(enterRoutes, preResolvedContents, {
+      signal,
+      aborted: () => !this.transaction.isActive(),
       paramChangeRemount: this.transaction.transitionPlan.paramChangeRemount === true,
+      dataFor: dataSnapshot
+        ? (route) => resolveRouteData(dataSnapshot, route)
+        : undefined,
     });
-    const mountResult = mountEnterBranch(enterRoutes, preResolvedContents, mountContext);
 
     if (mountResult.status === 'aborted' || !this.transaction.isActive()) {
       return Promise.resolve({ status: 'cancelled' });

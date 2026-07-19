@@ -8,7 +8,7 @@ import type {
   NavigateHistoryOptions,
   NavigationProvider,
 } from './history/provider.types';
-import { runNotFoundExitCleanup } from './navigation/not-found-exit-cleanup';
+import { unmountPrevOnNotFound } from './navigation/unmount-prev-on-not-found';
 import {
   AuraRoutingUrlMatcher,
   type MatchedRouteInfo,
@@ -297,7 +297,7 @@ export class AuraRoutingEngine implements NavigationHost {
     action: HistoryAction,
     options: NavigateHistoryOptions,
   ): void {
-    runNotFoundExitCleanup({
+    unmountPrevOnNotFound({
       from: this.prev,
       action,
       router: this.router,
@@ -344,9 +344,10 @@ export class AuraRoutingEngine implements NavigationHost {
     href: string,
     options: NavigateHistoryOptions,
   ): void {
-    this.pulse.settle(0, failure.toResult());
+    const result = failure.toResult();
+    this.pulse.settle(0, result);
     applyNavigationOutcome(
-      failure.toResult(),
+      result,
       {
         action,
         href,

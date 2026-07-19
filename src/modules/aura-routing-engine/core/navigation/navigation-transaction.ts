@@ -19,7 +19,7 @@ import type { NavigationLifecycleContext } from './types';
 import type { DataSnapshot } from '../data-graph';
 import type { ViewPayload } from '../view-graph';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
-import { NavigationFailureHandler } from './navigation-failure-handler';
+import { handlePipelineFailure } from './pipeline-failure';
 
 /** Returns true when a newer transaction or coordinator invalidate superseded this one. */
 type IsTransactionStaleCheck = (transactionId: number) => boolean;
@@ -107,8 +107,8 @@ export class NavigationTransaction {
       return this.transitionPlan.update
         ? pipeline.runUpdate()
         : this.transitionPlan.canUseFastPath
-            || canUseDomCacheFastPath(this.transitionPlan)
-            || canUseViewCacheFastPath(this.transitionPlan, this.engine.viewGraph)
+        || canUseDomCacheFastPath(this.transitionPlan)
+        || canUseViewCacheFastPath(this.transitionPlan, this.engine.viewGraph)
           ? pipeline.runFastPipeline()
           : pipeline.runFullPipeline();
     });
@@ -134,12 +134,7 @@ export class NavigationTransaction {
   ): Promise<TransactionResult> {
     return !this.isActive()
       ? { status: 'cancelled' }
-      : NavigationFailureHandler.handle(
-        route,
-        error,
-        atPhase,
-        NavigationTransaction.createTransactionContext(this),
-      );
+      : handlePipelineFailure(route, error, atPhase, NavigationTransaction.createTransactionContext(this));
   }
 
   /** Builds engine orchestration context for one navigation transaction. */

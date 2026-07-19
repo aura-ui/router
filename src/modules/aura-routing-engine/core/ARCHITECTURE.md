@@ -10,7 +10,7 @@ failure handling in `failure/README.md`.
 | --- | --- |
 | `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and pre-match `NOT_FOUND`, `commitHistoryIfNeeded`, `commitNavigation`, `invalidateData()`. |
 | `aura-routing-route-registry.ts` | Route catalog snapshot, tree rebuild, `matchableNodes` for matcher. |
-| `navigation/` | Coordinator, transaction, pipeline, phase registry (`lifecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), **observe-only** `navigation-pulse.ts`, **apply** (`navigation-outcome.ts`), failure lifecycle (`navigation-failure-handler.ts`, `not-found-exit-cleanup.ts`), outcome types. |
+| `navigation/` | Coordinator, transaction, pipeline, phase registry (`lifecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), **observe-only** `navigation-pulse.ts`, **apply** (`navigation-outcome.ts`), failure lifecycle (`pipeline-failure.ts`, `unmount-prev-on-not-found.ts`), outcome types. |
 | `events/` | Typed `EventBus` + `EngineEvent`. Emit goes through `NavigationPulse`, not ad-hoc from pipeline. |
 | `route/` | `RouteInstance`, lifecycle phase vocabulary (`RoutePhase`, `RouteLifecycleContext`, …), hook attr props. |
 | `guard.types.ts` | Shared blocking-hook contract: `GuardResult`, `RedirectTarget` (normalized from hook return values). |
@@ -120,9 +120,9 @@ lifecycle execution to `NavigationTransactionPipelinePhase`. Blocking phases may
 cancel or redirect before history commit and render.
 
 `failure/` owns the failure model only; it does not write history or run app callbacks.
-`navigation/navigation-failure-handler.ts` runs the terminal `error` phase after
-pipeline failures. `navigation/not-found-exit-cleanup.ts` runs callback-only
-`unmount` on the previous leaf before pre-match `NOT_FOUND`.
+`navigation/pipeline-failure.ts` (`handlePipelineFailure`) runs the terminal
+`error` phase after pipeline failures. `navigation/unmount-prev-on-not-found.ts`
+runs callback-only `unmount` on the previous leaf before pre-match `NOT_FOUND`.
 
 ### Observe vs apply (Pulse contract)
 

@@ -281,7 +281,7 @@ export interface NavigationTransactionSlice {
  * Engine orchestration context for one in-flight navigation transaction.
  *
  * Built by {@link ./navigation-transaction!NavigationTransaction.createTransactionContext}; passed to
- * {@link ./navigation-failure-handler!NavigationFailureHandler.handle} and
+ * {@link ./pipeline-failure!handlePipelineFailure} and
  * {@link ./navigation-transaction-pipeline-phase!NavigationTransactionPipelinePhase.runError}.
  */
 export interface NavigationLifecycleContext {

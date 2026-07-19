@@ -1,7 +1,7 @@
 /**
- * Pre-match NOT_FOUND exit cleanup — unmount callback for the previous leaf route.
+ * Callback-only `unmount` of the previous leaf before pre-match fallback 404.
  *
- * @module navigation/not-found-exit-cleanup
+ * @module navigation/unmount-prev-on-not-found
  */
 
 import type { HistoryAction } from '../history/provider.types';
@@ -11,20 +11,17 @@ import { getLeafMatch } from '../route-tree/matched-chain';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 import { PHASES } from './lifecycle-phases';
 
-export interface NotFoundExitInput {
+export interface UnmountPrevOnNotFoundInput {
   from: MatchedRouteInfo | null;
   action: HistoryAction;
   router: RouterInstance;
 }
 
 /**
- * Runs legacy `unmount` cleanup for the previous leaf route before fallback 404.
- *
- * Pre-match NOT_FOUND has no processor job or transition plan, so this function
- * deliberately keeps the old callback-only semantics while sharing lifecycle
- * context construction with the normal pipeline.
+ * Runs legacy `unmount` for the previous leaf when there is no match / no
+ * transition plan. Shares lifecycle context construction with the pipeline.
  */
-export function runNotFoundExitCleanup(input: NotFoundExitInput): void {
+export function unmountPrevOnNotFound(input: UnmountPrevOnNotFoundInput): void {
   if (!input.from) return;
 
   const leaf = getLeafMatch(input.from);

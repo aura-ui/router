@@ -19,7 +19,7 @@
 | **Terminal apply** | `applyNavigationOutcome` (+ `NavigationIdentity`) · host `applyTerminalOutcome` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | **RedirectResolver** | `followRedirectsWithGuardWalk` — `core/redirect/redirect-resolver.ts` | <span style="color: #2ea043; font-weight: bold;">✓</span> |
 | **ViewCommitOrchestrator** | `view-commit-render` / tracker / rollback — без единого orchestrator | <span style="color: #cf222e; font-weight: bold;">✗</span> |
-| **NotFoundPipeline** | `not-found-exit-cleanup` + `handleUnmatchedNavigation` на engine | <span style="color: #bf8700; font-weight: bold;">~</span> |
+| **NotFoundPipeline** | `unmount-prev-on-not-found` + `handleUnmatchedNavigation` на engine | <span style="color: #bf8700; font-weight: bold;">~</span> |
 | **PipelineManifest** | `PHASES` / `PIPELINE_PHASES` в `lifecycle-phases.ts`; шаги pipeline отдельно | <span style="color: #bf8700; font-weight: bold;">~</span> |
 | **NavigationScroll** | `scrollToHash` в engine; `ScrollRestoration` в aura-router | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | **LifecycleContextFactory** | ad-hoc stub ctx в not-found / fast-path | <span style="color: #cf222e; font-weight: bold;">✗</span> |
@@ -215,7 +215,7 @@ interface ViewCommitOrchestrator {
 
 **Уже в коде:**
 
-- <span style="color: #2ea043; font-weight: bold;">✓</span> `runNotFoundExitCleanup`
+- <span style="color: #2ea043; font-weight: bold;">✓</span> `unmountPrevOnNotFound`
 - <span style="color: #2ea043; font-weight: bold;">✓</span> `FailedNavigation.notFound`
 - <span style="color: #bf8700; font-weight: bold;">~</span> `handleUnmatchedNavigation` на engine (не один pipeline-модуль)
 
@@ -449,7 +449,7 @@ createRouterEngineCallbacks(host: AuraRouter): AuraRoutingEngineConfig
 | `NavigationCoordinator` | `RunManager` + `NavigationRun` | <span style="color: #bf8700; font-weight: bold;">~</span> имена другие |
 | `withCancelledTransactionScope` | `NavigationRun.rollback` | <span style="color: #2ea043; font-weight: bold;">✓</span> в transaction |
 | `finalize*` + `finalizeFailure` | `NavigationOutcomeHandler` | <span style="color: #bf8700; font-weight: bold;">~</span> |
-| `not-found-exit-cleanup` + engine NOT_FOUND | `NotFoundPipeline` | <span style="color: #bf8700; font-weight: bold;">~</span> |
+| `unmount-prev-on-not-found` + engine NOT_FOUND | `NotFoundPipeline` | <span style="color: #bf8700; font-weight: bold;">~</span> |
 | `runRender` / fast-path commit | `ViewCommitOrchestrator` | <span style="color: #cf222e; font-weight: bold;">✗</span> |
 | `PHASES` + `MAIN_PIPELINE` | `PipelineManifest` | <span style="color: #bf8700; font-weight: bold;">~</span> |
 | `scrollToHash` + `ScrollRestoration` | `NavigationScroll` | <span style="color: #cf222e; font-weight: bold;">✗</span> |

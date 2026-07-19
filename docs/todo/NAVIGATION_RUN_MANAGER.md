@@ -370,7 +370,7 @@ NavigationTransactionPipeline  порядок шагов; telemetry { emit } в 
 - FIFO stack/queue pending navigations (latest-wins).
 - Два full run на одну sync redirect-цепочку — <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✓</span> уже не делаем.
 - God object run (matcher, prefetch, scroll внутри run).
-- Async gap между view commit и history commit.
+- Async gap inside the **view commit slice** (`commitStagedView` → `commitNavigation`) — см. [PIPELINE_STEP_RUNNER.md](./PIPELINE_STEP_RUNNER.md) § Commit slice / F3 и `core/ARCHITECTURE.md` § Commit Vocabulary. (History URL пишется раньше, sync, отдельно от этого slice.)
 
 ---
 

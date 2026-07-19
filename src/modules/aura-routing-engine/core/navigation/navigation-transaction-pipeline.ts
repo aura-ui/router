@@ -39,7 +39,16 @@ type PipelineStep = () => PipelineStepResult | Promise<PipelineStepResult>;
  * branch commit with `paramChangeRemount` (DomCache restore via `syncBranchMount` early-exit).
  * {@link runFastPipeline} skips loads/transitions (see {@link TransitionMap.canUseFastPath}).
  *
+ * **Commit-slice invariant** (do not break): in {@link runAfterRender}, every enter
+ * `commitStagedView` and {@link NavigationTransaction.commitNavigation} must run back-to-back
+ * with **no `await` between them**. History URL write is earlier ({@link commitHistory} /
+ * `commitHistoryIfNeeded`) and is a separate sync step — not part of this slice.
+ * A gap between `markViewStaged` and this slice is expected on the transition path
+ * (hooks may suspend; supersede rolls back via `rollbackUncommittedViews`).
+ *
  * @see docs/MAIN_PIPELINE.md
+ * @see `core/ARCHITECTURE.md` § Commit Vocabulary
+ * @see docs/todo/PIPELINE_STEP_RUNNER.md (F3)
  */
 export class NavigationTransactionPipeline {
 
@@ -295,8 +304,12 @@ export class NavigationTransactionPipeline {
   /**
    * Post-render finalization after staged views are in the DOM.
    *
-   * Order: `unmount` (exit branch) → `commitStagedView` on each enter route →
-   * {@link NavigationTransaction.commitNavigation} → `ready` (enter branch).
+   * Order: `unmount` (exit branch) → **commit slice** (`commitStagedView` × enter →
+   * {@link NavigationTransaction.commitNavigation}) → `ready` (enter branch).
+   *
+   * **Invariant:** the commit slice is synchronous — no `await` between the last
+   * `commitStagedView` and `commitNavigation`. `unmount` / `ready` may suspend; that is
+   * outside the slice. See class JSDoc and `core/ARCHITECTURE.md` § Commit Vocabulary.
    *
    * Param-change remount follows the same sequence globally for successful navigations.
    */
@@ -312,6 +325,7 @@ export class NavigationTransactionPipeline {
       return { status: 'cancelled' };
     }
 
+    // Commit slice — must stay sync (no await between promote and view-success gate).
     for (const matchedRoute of this.transaction.transitionPlan.enterRoutes) {
       matchedRoute.route.commitStagedView?.();
     }

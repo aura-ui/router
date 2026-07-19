@@ -54,13 +54,14 @@ sequenceDiagram
       Tx->>Tx: buildTransitionPlan(from, to)
       alt update (same route record)
         Tx->>Pipeline: runUpdate()
-      else fast path (Tier 0)
+      else sync / dom-cache / view-cache fast path
         Tx->>Pipeline: runFastPipeline()
       else full
         Tx->>Pipeline: runFullPipeline()
       end
       Note over Pipeline,History: push/replace URL after guards (post collapse), before load/render
       Pipeline->>Engine: commitHistoryIfNeeded()
+      Note over Pipeline: view commit slice sync — commitStagedView then commitNavigation
       Pipeline->>Engine: commitNavigation() after view promotion
       Engine->>Engine: setPrev(to)
       Pipeline-->>Tx: PipelineStepResult
@@ -78,13 +79,18 @@ sequenceDiagram
 | Tier | Entry | Skips | Order (high level) |
 | --- | --- | --- | --- |
 | **Update** | `runUpdate()` | guards, render, unmount, ready | history → loads → `update` → `commitNavigation` |
-| **Fast (Tier 0)** | `runFastPipeline()` | guards, loads, transitions | history → single `runViewCommit` → after-render |
+| **Fast** | `runFastPipeline()` | guards, loads, transitions | history → single `runViewCommit` → after-render |
 | **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → history → **loads** (`ResourceGraph.load`) → commit + transitions → after-render |
 
 `skipBlockingPhases`: redirect walk already ran `leave` → `guard` — see `redirect/README.md`.
 
-Fast path eligibility: `TransitionMap.canUseFastPath` — flat swap (one exit, one enter), sync inline
-content, no blocking hooks or `transition-order`.
+Fast path eligibility (any → same `runFastPipeline` body):
+
+- `TransitionMap.canUseFastPath` — flat + sync inline content + lifecycle gates
+- `canUseDomCacheFastPath` — flat + `cache.dom` hit + same gates (`hasLoad` → full)
+- `canUseViewCacheFastPath` — flat + warm `cache.view` + same gates (no layout / `viewLoaderNeedsData`)
+
+View commit slice (`commitStagedView` → `commitNavigation`) must stay sync — see § Commit Vocabulary.
 
 Full render is always **branch loads → commit**:
 
@@ -133,6 +139,31 @@ The engine keeps three related concepts separate:
 `commitNavigation()` on the engine is the view-success boundary: staged view is
 promoted, `prev` is updated, scroll/hash and `onNavigationCommitted` run. It does
 not perform a second `pushState` when history was already committed.
+
+### Commit-slice invariant (do not break)
+
+In `NavigationTransactionPipeline.runAfterRender`, after exit `unmount` settles,
+the **view commit slice** must stay synchronous:
+
+```text
+for enter: commitStagedView()   // promote staged → active
+commitNavigation()              // view-success gate (prev, scroll, callbacks)
+// ← no await between these two
+ready                           // may await — outside the slice
+```
+
+| Allowed | Forbidden |
+| --- | --- |
+| `await` on `unmount` / `ready` / transition hooks before or after the slice | `await` between the last `commitStagedView` and `commitNavigation` |
+| Gap between `markViewStaged` and the slice (transition-order path) | Treating history URL write as part of this slice |
+
+History URL write (`commitHistory` / `commitHistoryIfNeeded`) is an earlier sync step,
+not part of the view slice. Supersede between `markViewStaged` and the slice rolls back
+via `ViewCommitTracker` + `rollbackUncommittedViews`.
+
+See also: class JSDoc on `NavigationTransactionPipeline`,
+[PIPELINE_STEP_RUNNER.md](../../../../docs/todo/PIPELINE_STEP_RUNNER.md) (F3),
+[NAVIGATION_RUN_MANAGER.md](../../../../docs/todo/NAVIGATION_RUN_MANAGER.md).
 
 ## Data Invalidation
 

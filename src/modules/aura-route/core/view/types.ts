@@ -38,6 +38,8 @@ export type RouteViewConfig = {
 
 /** Keep-alive detached DOM (`extract` checkout, `put` cache). */
 export interface DomCachePort {
+  /** Read-only probe — does not promote LRU or remove the entry. */
+  has(key: string): boolean;
   extract(key: string): ViewRoot | undefined;
   put(key: string, root: ViewRoot): void;
 }

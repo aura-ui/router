@@ -43,6 +43,11 @@ export class RouteDomCache implements DomCachePort {
     });
   }
 
+  /** Read-only probe for dom-cache fast path — no LRU promote, no checkout. */
+  has(key: string): boolean {
+    return RouteDomCache.storeOf().has(key);
+  }
+
   extract(key: string): ViewRoot | undefined {
     return RouteDomCache.storeOf().extract(key);
   }

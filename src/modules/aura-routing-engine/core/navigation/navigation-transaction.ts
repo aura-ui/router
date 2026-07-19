@@ -1,5 +1,9 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { buildTransitionPlan, type TransitionMap } from '../route-tree/transition-plan';
+import {
+  buildTransitionPlan,
+  canUseDomCacheFastPath,
+  type TransitionMap,
+} from '../route-tree/transition-plan';
 import { NavigationTransactionPipeline } from './navigation-transaction-pipeline';
 import type {
   NavigationPhaseMode,
@@ -98,7 +102,7 @@ export class NavigationTransaction {
       const pipeline = new NavigationTransactionPipeline(this);
       return this.transitionPlan.update
         ? pipeline.runUpdate()
-        : this.transitionPlan.canUseFastPath
+        : this.transitionPlan.canUseFastPath || canUseDomCacheFastPath(this.transitionPlan)
           ? pipeline.runFastPipeline()
           : pipeline.runFullPipeline();
     });

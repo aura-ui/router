@@ -38,6 +38,9 @@ import {
   dispatchNavigationCancel,
   dispatchNavigationRedirect,
   dispatchNavigationStart,
+  dispatchLoadStart,
+  dispatchLoadEnd,
+  dispatchLoadError,
   dispatchNotFound,
   dispatchDataInvalidated,
   type NotFoundHandler,
@@ -90,6 +93,17 @@ export {
   type AuraRouterNavigationCancelEvent,
   type AuraRouterNavigationRedirectEventDetail,
   type AuraRouterNavigationRedirectEvent,
+} from './navigation-events';
+
+export {
+  AURA_ROUTER_LOAD_START,
+  AURA_ROUTER_LOAD_END,
+  AURA_ROUTER_LOAD_ERROR,
+  type AuraRouterLoadEventDetail,
+  type AuraRouterLoadStartEvent,
+  type AuraRouterLoadEndEvent,
+  type AuraRouterLoadErrorEventDetail,
+  type AuraRouterLoadErrorEvent,
 } from './navigation-events';
 
 export {
@@ -256,6 +270,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /**
    * Host chrome adapter over the engine event stream.
    * Early: `url-aligned` → active links / `navigation-start`.
+   * Loads: `load:*` → `load-start` / `load-end` / `load-error`.
    * Late: `commit:end` → scroll, not-found, active links again, DOM `navigation`.
    * Terminal: `finish` / `cancel` / `redirect` / `error` → DOM counterparts.
    */
@@ -267,6 +282,21 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         pathname: event.to.pathname,
       });
       this.syncNavState(event.to);
+      return;
+    }
+
+    if (event.type === 'load:start') {
+      dispatchLoadStart(this, event.id, event.nodeId, event.pattern);
+      return;
+    }
+
+    if (event.type === 'load:end') {
+      dispatchLoadEnd(this, event.id, event.nodeId, event.pattern);
+      return;
+    }
+
+    if (event.type === 'load:error') {
+      dispatchLoadError(this, event.id, event.nodeId, event.pattern, event.error);
       return;
     }
 

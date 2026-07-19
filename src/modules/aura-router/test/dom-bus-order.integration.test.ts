@@ -2,6 +2,8 @@
 
 import type { EngineEvent } from '../../aura-routing-engine/core';
 import {
+  AURA_ROUTER_LOAD_END,
+  AURA_ROUTER_LOAD_START,
   AURA_ROUTER_NAVIGATION,
   AURA_ROUTER_NAVIGATION_CANCEL,
   AURA_ROUTER_NAVIGATION_COMPLETE,
@@ -13,6 +15,8 @@ import { registerAuraRouterComponents } from '../core/aura-router-setup';
 
 const DOM_LIFECYCLE = [
   AURA_ROUTER_NAVIGATION_START,
+  AURA_ROUTER_LOAD_START,
+  AURA_ROUTER_LOAD_END,
   AURA_ROUTER_NAVIGATION,
   AURA_ROUTER_NAVIGATION_COMPLETE,
   AURA_ROUTER_NAVIGATION_CANCEL,
@@ -128,6 +132,8 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
     ]);
     expect(collectors.dom).toEqual([
       AURA_ROUTER_NAVIGATION_START,
+      AURA_ROUTER_LOAD_START,
+      AURA_ROUTER_LOAD_END,
       AURA_ROUTER_NAVIGATION,
       AURA_ROUTER_NAVIGATION_COMPLETE,
     ]);
@@ -187,7 +193,10 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
 
     router.navigate('/slow');
     await waitForBus(collectors.bus, 'load:start');
-    expect(collectors.dom).toEqual([AURA_ROUTER_NAVIGATION_START]);
+    expect(collectors.dom).toEqual([
+      AURA_ROUTER_NAVIGATION_START,
+      AURA_ROUTER_LOAD_START,
+    ]);
 
     router.navigate('/about');
     release();
@@ -213,6 +222,7 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
     ]);
     expect(collectors.dom).toEqual([
       AURA_ROUTER_NAVIGATION_START, // /slow
+      AURA_ROUTER_LOAD_START,
       AURA_ROUTER_NAVIGATION_START, // /about
       AURA_ROUTER_NAVIGATION_CANCEL,
       AURA_ROUTER_NAVIGATION,

@@ -237,3 +237,65 @@ export function dispatchNavigationRedirect(
     detail: { id, url, replace, router } satisfies AuraRouterNavigationRedirectEventDetail,
   });
 }
+
+/** CustomEvent name: `load-start` — bus `load:start` (per enter route). */
+export const AURA_ROUTER_LOAD_START = 'load-start';
+
+/** CustomEvent name: `load-end` — bus `load:end`. */
+export const AURA_ROUTER_LOAD_END = 'load-end';
+
+/** CustomEvent name: `load-error` — bus `load:error`. */
+export const AURA_ROUTER_LOAD_ERROR = 'load-error';
+
+export interface AuraRouterLoadEventDetail {
+  id: number;
+  nodeId: string;
+  pattern: string;
+  router: HTMLElement;
+}
+
+export type AuraRouterLoadStartEvent = CustomEvent<AuraRouterLoadEventDetail>;
+export type AuraRouterLoadEndEvent = CustomEvent<AuraRouterLoadEventDetail>;
+
+export interface AuraRouterLoadErrorEventDetail extends AuraRouterLoadEventDetail {
+  error: unknown;
+}
+
+export type AuraRouterLoadErrorEvent = CustomEvent<AuraRouterLoadErrorEventDetail>;
+
+/** Dispatches `load-start` from bus `load:start`. */
+export function dispatchLoadStart(
+  router: HTMLElement,
+  id: number,
+  nodeId: string,
+  pattern: string,
+): void {
+  dispatchCustomEvent(router, AURA_ROUTER_LOAD_START, {
+    detail: { id, nodeId, pattern, router } satisfies AuraRouterLoadEventDetail,
+  });
+}
+
+/** Dispatches `load-end` from bus `load:end`. */
+export function dispatchLoadEnd(
+  router: HTMLElement,
+  id: number,
+  nodeId: string,
+  pattern: string,
+): void {
+  dispatchCustomEvent(router, AURA_ROUTER_LOAD_END, {
+    detail: { id, nodeId, pattern, router } satisfies AuraRouterLoadEventDetail,
+  });
+}
+
+/** Dispatches `load-error` from bus `load:error`. */
+export function dispatchLoadError(
+  router: HTMLElement,
+  id: number,
+  nodeId: string,
+  pattern: string,
+  error: unknown,
+): void {
+  dispatchCustomEvent(router, AURA_ROUTER_LOAD_ERROR, {
+    detail: { id, nodeId, pattern, error, router } satisfies AuraRouterLoadErrorEventDetail,
+  });
+}

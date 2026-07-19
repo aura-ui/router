@@ -59,6 +59,7 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 - `AURA_ROUTER_NAVIGATION_HOOK_ERROR` — `'navigation-hook-error'` (падение `error="…"` hook).
 - `AURA_ROUTER_NAVIGATION_START` / `AURA_ROUTER_NAVIGATION` — start / commit.
 - `AURA_ROUTER_NAVIGATION_COMPLETE` / `CANCEL` / `REDIRECT` — terminal outcomes.
+- `AURA_ROUTER_LOAD_START` / `LOAD_END` / `LOAD_ERROR` — per-route data load.
 - Типы: `NotFoundHandler`, `NavigationFailureCode`, `AuraRouterNavigationErrorEventDetail`, …
 
 ## События навигации
@@ -67,6 +68,13 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 
 ```ts
 router.addEventListener('navigation-start', (event) => { /* url aligned */ });
+router.addEventListener('load-start', (event) => {
+  const { id, pattern } = event.detail; // per enter route
+});
+router.addEventListener('load-end', (event) => { /* … */ });
+router.addEventListener('load-error', (event) => {
+  const { error, pattern } = event.detail;
+});
 router.addEventListener('navigation', (event) => { /* view committed */ });
 router.addEventListener('navigation-complete', (event) => { /* finish */ });
 router.addEventListener('navigation-cancel', (event) => { /* cancelled / supersede */ });

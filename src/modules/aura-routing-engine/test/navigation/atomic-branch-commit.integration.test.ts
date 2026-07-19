@@ -1,9 +1,9 @@
 /** @jest-environment jsdom */
 
+import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { registerAuraRouterComponents } from '../../../aura-router/core/aura-router-setup';
-import { AuraRoute } from '../../../aura-route/core/aura-route';
-import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';

@@ -5,6 +5,7 @@ import {
 } from '../history/history-policy';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+
 import type { NavigationTransaction } from './navigation-transaction';
 import type { TransactionResult } from './types';
 

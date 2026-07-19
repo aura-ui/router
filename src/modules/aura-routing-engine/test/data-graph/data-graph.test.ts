@@ -1,6 +1,6 @@
-import { DataGraph } from '../../core/data-graph';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
+import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
 import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';

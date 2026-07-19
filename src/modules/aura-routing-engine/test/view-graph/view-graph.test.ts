@@ -1,10 +1,10 @@
-import { ViewGraph, LoaderRegistry } from '../../core/view-graph';
-import { HandoffCache } from '../../core/resource-graph';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import { withResolvedView } from '../helpers/with-resolved-view';
-import { createTestRoute } from '../helpers/create-test-route';
 import type { RouteInstance } from '../../core';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { HandoffCache } from '../../core/resource-graph';
+import { ViewGraph, LoaderRegistry } from '../../core/view-graph';
+import { createTestRoute } from '../helpers/create-test-route';
+import { withResolvedView } from '../helpers/with-resolved-view';
 
 function matched(
   pattern: string,

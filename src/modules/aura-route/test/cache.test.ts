@@ -1,5 +1,5 @@
-import { AuraRoute } from '../core/aura-route';
 import { NO_CACHE } from '../../aura-routing-engine/core';
+import { AuraRoute } from '../core/aura-route';
 
 describe('AuraRoute cache', () => {
   beforeAll(() => {

@@ -5,10 +5,17 @@
  * @module navigation/navigation-transaction-pipeline-phase
  */
 
-import { NavigationTransaction } from './navigation-transaction';
+import { resolveRouteData } from '../data-graph/route-data';
+import type { NavigationError } from '../failure';
+import type { NavigationFailure } from '../failure/navigation-failure';
 import type { GuardResult } from '../guard.types';
-import type { RouteInfo, RouteLifecycleContext, RoutePhase, LifecyclePhase } from '../route/types';
+import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
+import { resolveHookNames } from '../hooks/resolve-hook-names';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { RouteInfo, RouteLifecycleContext, RoutePhase, LifecyclePhase } from '../route/types';
+
+import { PHASES } from './lifecycle-phases';
+import { NavigationTransaction } from './navigation-transaction';
 import type {
   BlockingHookStepResult,
   NavigationLifecycleContext,
@@ -18,12 +25,6 @@ import type {
   RoutePhaseRunResult,
   RoutePhaseThrowPolicy,
 } from './types';
-import { resolveHookNames } from '../hooks/resolve-hook-names';
-import { PHASES } from './lifecycle-phases';
-import { runPhaseHooks, type HookRegistry } from '../hooks/registry';
-import { resolveRouteData } from '../data-graph/route-data';
-import type { NavigationError } from '../failure';
-import type { NavigationFailure } from '../failure/navigation-failure';
 
 /** Executes one {@link RoutePhaseDefinition} for a matched route within a transaction. */
 export class NavigationTransactionPipelinePhase {

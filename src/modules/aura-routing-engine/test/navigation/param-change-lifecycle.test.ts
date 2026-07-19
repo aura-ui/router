@@ -3,8 +3,9 @@
 jest.mock('../../core/view-mount/view-commit-render', () =>
   jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import * as branchMount from '../../core/view-mount/branch-mount';
 import {
   createNestedUsersIdMatch,
   createNestedUsersIdSetup,
@@ -14,7 +15,6 @@ import {
 import { createMockEngine } from '../helpers/create-mock-transaction';
 import { runNavigationTransaction } from '../helpers/jest/navigation-fixtures';
 import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
-import * as branchMount from '../../core/view-mount/branch-mount';
 
 async function runNavigation(
   from: MatchedRouteInfo,

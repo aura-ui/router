@@ -1,5 +1,5 @@
-import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 import type { AuraOutlet, ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 
 export type ViewKind = 'layout' | 'view';
 export type ViewPayload = Node | string;

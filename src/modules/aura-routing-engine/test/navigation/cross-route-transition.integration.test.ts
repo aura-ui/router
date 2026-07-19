@@ -1,27 +1,27 @@
 ﻿jest.mock('../../core/hooks/registry', () =>
   jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteInstance } from '../../core/route/types';
-import { RouteViewController } from '../../../aura-route/core/view/view-controller';
-import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
-import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
-import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { RouteLifecycleContext } from '../../core/route/types';
-import { createTestRoute } from '../helpers/create-test-route';
-import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
+import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
+import { RouteViewController } from '../../../aura-route/core/view/view-controller';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { RouteInstance } from '../../core/route/types';
+import type { RouteLifecycleContext } from '../../core/route/types';
 import {
   createMockEngine,
   createViewGraphFromLoadView,
   wireEngineViewGraph,
 } from '../helpers/create-mock-transaction';
+import { createTestRoute } from '../helpers/create-test-route';
+import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 import {
   createTestOutlet,
   PARALLEL_CROSS_FADE_TRANSITION,
 } from '../helpers/jest/navigation-fixtures';
-import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 
 const routeMarkup = new WeakMap<RouteInstance, string>();
 

@@ -1,10 +1,10 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
-import { RouteViewController } from '../../core/view/view-controller';
-import { defaultDomCache } from '../../core/view/dom-cache';
-import type { AuraRouteInterface } from '../../core/types';
-import type { ViewResolverPort } from '../../core/view/types';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
+import type { AuraRouteInterface } from '../../core/types';
+import { defaultDomCache } from '../../core/view/dom-cache';
+import type { ViewResolverPort } from '../../core/view/types';
+import { RouteViewController } from '../../core/view/view-controller';
 
 function createOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;

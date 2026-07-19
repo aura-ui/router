@@ -1,13 +1,14 @@
+import { AuraRoute } from '../../modules/aura-route/core/aura-route';
 import {
   AuraRouter,
   AURA_ROUTER_NAVIGATION,
 } from '../../modules/aura-router/core';
-import { AuraRoute } from '../../modules/aura-route/core/aura-route';
+
 import { installAnimationsDemoControls, syncAnimationsOrderUi } from './animations-demo';
-import { installDemoTransitionHooks } from './hooks/view-transition';
 import { renderRouteFacts, installDemoRouteFactsObserver } from './demo-route-facts';
 import { syncRouteParams } from './demo-route-params';
 import { highlightDemoCode } from './highlight-code';
+import { installDemoTransitionHooks } from './hooks/view-transition';
 import { highlightDemoOutlets, installDemoShell } from './outlet-demo';
 
 installDemoShell();

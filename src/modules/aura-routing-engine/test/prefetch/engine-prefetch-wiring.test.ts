@@ -1,6 +1,6 @@
 import { AuraRoutingEngine } from '../../core';
-import { LoaderRegistry } from '../../core/view-graph';
 import type { RouterInstance } from '../../core';
+import { LoaderRegistry } from '../../core/view-graph';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
 describe('AuraRoutingEngine prefetch wiring', () => {

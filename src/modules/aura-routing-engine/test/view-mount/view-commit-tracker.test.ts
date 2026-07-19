@@ -1,5 +1,5 @@
-import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
 import { isViewCommittedForHistory } from '../../core/view-mount/view-commit-state';
+import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
 
 describe('ViewCommitTracker', () => {
   it('starts with view none', () => {

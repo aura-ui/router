@@ -3,12 +3,12 @@
 jest.mock('../../core/view-mount/view-commit-render', () =>
   jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
-import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import type { EngineEvent } from '../../core/events';
 import { NavigationFailure } from '../../core/failure';
 import { NavigationError } from '../../core/failure/navigation-error';
+import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
+import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import {
   createCoordinatorMockHost,
   createMatchedRoute,

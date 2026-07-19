@@ -1,11 +1,11 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { RouteViewController } from '../../core/view/view-controller';
-import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 import {
   NavigationError,
   NO_CACHE,
   type MatchedRouteInfo,
 } from '../../../aura-routing-engine/core';
+import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
+import { RouteViewController } from '../../core/view/view-controller';
 
 function matched(pathname: string): MatchedRouteInfo {
   return {

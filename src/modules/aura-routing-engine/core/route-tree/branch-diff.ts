@@ -1,6 +1,7 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { RouteNode } from './route-node.types';
+
 import { routeMatchKey } from './matched-chain';
+import type { RouteNode } from './route-node.types';
 
 /**
  * Индекс LCA: deepest общий prefix двух root→leaf цепочек по pattern.

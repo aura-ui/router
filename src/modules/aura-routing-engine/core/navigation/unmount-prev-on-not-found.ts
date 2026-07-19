@@ -8,8 +8,9 @@ import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouterInstance } from '../route/types';
 import { getLeafMatch } from '../route-tree/matched-chain';
-import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
+
 import { PHASES } from './lifecycle-phases';
+import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
 
 export interface UnmountPrevOnNotFoundInput {
   from: MatchedRouteInfo | null;

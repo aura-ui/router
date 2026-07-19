@@ -5,8 +5,8 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
-import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
 import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
+import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
 import { mockRunPhaseHooks, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
 
 describe('NavigationTransactionPipeline.runUpdate', () => {

@@ -1,5 +1,5 @@
-import { ComponentLoader } from '../../../core/view-graph/loaders/component';
 import { createBrowserEnvironment } from '../../../core/view-graph/environment';
+import { ComponentLoader } from '../../../core/view-graph/loaders/component';
 
 describe('ComponentLoader', () => {
   const tag = 'view-graph-test-widget';

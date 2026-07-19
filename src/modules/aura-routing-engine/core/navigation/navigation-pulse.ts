@@ -1,5 +1,6 @@
 import type { EventBus } from '../events';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+
 import type { NavigationTransaction } from './navigation-transaction';
 import type { PipelineStepResult, TransactionResult } from './types';
 

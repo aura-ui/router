@@ -1,4 +1,5 @@
 import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
+
 import type {
   ViewLoaderEnv,
   ViewLoadContext,

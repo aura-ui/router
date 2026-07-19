@@ -1,5 +1,6 @@
 import { AuraOutlet, type ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../aura-utils/misc';
+
 import { AURA_ROUTER_NOT_FOUND, type NotFoundHandler } from './navigation-events';
 
 export { AURA_ROUTER_NOT_FOUND };

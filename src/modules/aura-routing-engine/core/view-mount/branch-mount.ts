@@ -6,8 +6,9 @@
 import type { ApplyPreResolvedOptions } from '../../../aura-route/core/types';
 import type { DataSnapshot } from '../data-graph';
 import { resolveRouteData } from '../data-graph/route-data';
-import type { ViewPayload } from '../view-graph';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { ViewPayload } from '../view-graph';
+
 import { isRenderError } from './view-commit-render';
 
 export type BranchMountContext = {

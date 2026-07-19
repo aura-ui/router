@@ -1,11 +1,12 @@
 import { onAbort } from '../../../aura-utils/async/on-abort';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
-import { PrefetchPolicy, type ResolvedPrefetchConfig } from './policy';
-import { PrefetchPlanResolver } from './plan';
-import { PrefetchRunStore } from './store';
+
 import { PrefetchIntentBus } from './intent/bus';
 import { LinkIntentSource } from './intent/link-source';
+import { PrefetchPlanResolver } from './plan';
+import { PrefetchPolicy, type ResolvedPrefetchConfig } from './policy';
 import { resolvePrefetchMode } from './prefetch-policy';
+import { PrefetchRunStore } from './store';
 import type {
   PrefetchConfig,
   PrefetchIntent,

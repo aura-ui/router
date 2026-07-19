@@ -1,7 +1,7 @@
-import type { ViewLoadContext, ViewLoadResult } from '../types';
 import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
-import { componentMarkup } from '../markup';
 import { Loader } from '../loader';
+import { componentMarkup } from '../markup';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
 
 /** `view="component::tag-name"` — registered custom element + `aura-data`. */
 export class ComponentLoader extends Loader {

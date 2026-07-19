@@ -1,5 +1,6 @@
-import { isOffKeyword } from './off-keyword';
 import { parseCommaSeparated } from '../../../aura-utils/misc/format';
+
+import { isOffKeyword } from './off-keyword';
 import type { TransitionOrderType } from './transition-order-attr-parser';
 
 /** Resolved view transition from route attrs. `order: null` — inactive package (replace mount, skip transition phases). */

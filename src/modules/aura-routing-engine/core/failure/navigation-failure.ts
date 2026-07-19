@@ -10,9 +10,10 @@
 
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { RedirectErrorOutcome } from '../redirect/types';
 import type { NavigationErrorResult } from '../navigation/types';
+import type { RedirectErrorOutcome } from '../redirect/types';
 import { isViewCommittedForHistory, type ViewCommitSnapshot } from '../view-mount/view-commit-state';
+
 import { NavigationError } from './navigation-error';
 
 export class NavigationFailure {

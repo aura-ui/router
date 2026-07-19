@@ -1,16 +1,16 @@
+import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { EventBus } from '../../core/events';
 import type { EngineEvent } from '../../core/events';
 import { NavigationFailure } from '../../core/failure';
 import { NavigationError } from '../../core/failure/navigation-error';
-import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { FakeHistoryProvider } from '../../core/history/fake-provider';
 import { NavigationPulse } from '../../core/navigation/navigation-pulse';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
 import {
   createMatchedRoute,
   createMockTransaction,
 } from '../helpers/create-mock-transaction';
-import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
 
 function types(events: EngineEvent[]): EngineEvent['type'][] {
   return events.map((e) => e.type);

@@ -1,12 +1,12 @@
+import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
+import { Loader } from '../../core/view-graph/loader';
+import { HtmlLoader } from '../../core/view-graph/loaders/html';
 import {
   LoaderRegistry,
   createLoaderRegistry,
   defaultLoaderRegistry,
 } from '../../core/view-graph/registry';
-import { HtmlLoader } from '../../core/view-graph/loaders/html';
-import { Loader } from '../../core/view-graph/loader';
 import type { ViewLoaderEnv, ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
-import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
 
 class ProbeLoader extends Loader {
   static readonly type = 'template' as const satisfies LoaderId;

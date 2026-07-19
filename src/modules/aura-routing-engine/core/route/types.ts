@@ -1,12 +1,12 @@
-import type { HistoryAction } from '../history/provider.types';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { MountStrategy } from '../../../aura-route/core/attr/mount-strategy-attr-parser';
-import type { RouterPrefetchPolicy } from '../prefetch/prefetch-policy';
-import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { ParamChangePolicy } from '../../../aura-route/core/attr/param-change-attr-parser';
+import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
 import type { RouteRenderOptions, ApplyPreResolvedOptions } from '../../../aura-route/core/types';
+import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { RouterPrefetchPolicy } from '../prefetch/prefetch-policy';
 import type { ViewRenderResult } from '../view-mount/view-commit-render';
 
 export type { RouterPrefetchPolicy };

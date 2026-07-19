@@ -2,19 +2,19 @@
   jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteNode } from '../../core/route-tree/route-node.types';
-import { RouteViewController } from '../../../aura-route/core/view/view-controller';
-import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
 import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import { RouteViewController } from '../../../aura-route/core/view/view-controller';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { RouteNode } from '../../core/route-tree/route-node.types';
 import {
   createUsersIdMatch,
   createUsersIdNode,
 } from '../helpers/create-dynamic-leaf-match';
 import { createMockEngine } from '../helpers/create-mock-transaction';
-import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
 import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
+import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
 
 function wireRouteViewController(
   node: RouteNode,

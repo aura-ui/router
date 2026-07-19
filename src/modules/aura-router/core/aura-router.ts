@@ -2,6 +2,9 @@ import type { CacheStoreOptions } from '../../aura-cache-store/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRoute, RouteDomCache } from '../../aura-route/core';
+import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
+import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
+import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import {
   AuraRoutingEngine,
   ViewGraph,
@@ -25,11 +28,17 @@ import {
   type EventBus,
   type EngineEvent,
 } from '../../aura-routing-engine/core';
+import {
+  syncRouterHostActiveLinks,
+  toRouteTrail,
+  type RouteTrailEntry,
+} from '../../aura-routing-engine/core/link-active';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 import { attr } from '../../aura-utils/decorators';
+import { parseNullableString } from '../../aura-utils/misc';
 
 import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
 import { registerAuraRouterComponents } from './aura-router-setup';
-import { ScrollRestoration } from './scroll-restoration';
 import {
   dispatchNavigationError,
   dispatchNavigationHookError,
@@ -45,16 +54,7 @@ import {
   dispatchDataInvalidated,
   type NotFoundHandler,
 } from './navigation-events';
-import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
-import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
-import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
-import { parseNullableString } from '../../aura-utils/misc';
-import {
-  syncRouterHostActiveLinks,
-  toRouteTrail,
-  type RouteTrailEntry,
-} from '../../aura-routing-engine/core/link-active';
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
+import { ScrollRestoration } from './scroll-restoration';
 
 export {
   AURA_ROUTER_NOT_FOUND,

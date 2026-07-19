@@ -3,8 +3,8 @@
 jest.mock('../../core/view-mount/view-commit-render', () =>
   jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
-import { PHASES } from '../../core/navigation/lifecycle-phases';
 import type { DataSnapshot } from '../../core/data-graph';
+import { PHASES } from '../../core/navigation/lifecycle-phases';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as branchMount from '../../core/view-mount/branch-mount';
 import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';

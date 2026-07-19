@@ -1,5 +1,5 @@
-import { HtmlLoader } from '../../../core/view-graph/loaders/html';
 import { createBrowserEnvironment } from '../../../core/view-graph/environment';
+import { HtmlLoader } from '../../../core/view-graph/loaders/html';
 
 describe('HtmlLoader', () => {
   it('returns inline content as html payload', async () => {

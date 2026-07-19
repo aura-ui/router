@@ -1,13 +1,14 @@
 import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
-import type { ViewLoaderEnv, LoaderFn } from './types';
-import { Loader, FnLoader, type LoaderClass } from './loader';
+
 import { createBrowserEnvironment, defaultEnvironment } from './environment';
+import { Loader, FnLoader, type LoaderClass } from './loader';
 import { ComponentLoader } from './loaders/component';
 import { HtmlLoader } from './loaders/html';
 import { IframeLoader } from './loaders/iframe';
 import { ImportLoader } from './loaders/import';
 import { TemplateLoader } from './loaders/template';
 import { UrlLoader } from './loaders/url';
+import type { ViewLoaderEnv, LoaderFn } from './types';
 
 const BUILTIN = [
   TemplateLoader,

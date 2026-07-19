@@ -1,4 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
+
 import {
   VIEW_PREFETCH_MIN_CONFIDENCE,
   PrefetchPolicy,

@@ -1,7 +1,6 @@
 import type { MatchedRouteInfo, CacheFlags } from '../../aura-routing-engine/route-api';
 
 import type { ScrollAttr } from './attr/scroll-attr-parser';
-
 import type { RouteTransitionType } from './attr/transition-attr-parser';
 import type { ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { ViewPayload } from './view/types';

@@ -1,7 +1,8 @@
-import { isSamePathAndSearch } from '../link-active/app-href';
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
+import { isSamePathAndSearch } from '../link-active/app-href';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouteInstance } from '../route/types';
+
 import {
   buildEnterRoutes,
   buildExitRoutes,

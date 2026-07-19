@@ -1,4 +1,5 @@
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
+
 import { PrefetchPolicy, type ResolvedPrefetchConfig } from './policy';
 import type { PrefetchConfig, PrefetchMode, PrefetchSkipReason } from './types';
 

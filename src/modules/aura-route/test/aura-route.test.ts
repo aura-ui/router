@@ -1,5 +1,5 @@
-import { AuraRoute } from '../core/aura-route';
 import { NO_TRANSITION } from '../core/attr/transition-attr-parser';
+import { AuraRoute } from '../core/aura-route';
 
 describe('AuraRoute transition getter', () => {
   beforeAll(() => {

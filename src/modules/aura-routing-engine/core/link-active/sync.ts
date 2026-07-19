@@ -1,5 +1,4 @@
 import { splitAppHref } from '../../../aura-utils/misc/url';
-
 import { resolveLinkHref } from '../user-actions/link-resolve';
 
 import { matchLinkActive } from './match';

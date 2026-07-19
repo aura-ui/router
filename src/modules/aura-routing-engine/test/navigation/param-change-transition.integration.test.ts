@@ -2,14 +2,14 @@
   jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteNode } from '../../core/route-tree/route-node.types';
-import { NO_TRANSITION, type RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
-import { RouteViewController } from '../../../aura-route/core/view/view-controller';
-import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import { NO_TRANSITION, type RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
+import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
+import { RouteViewController } from '../../../aura-route/core/view/view-controller';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { RouteLifecycleContext } from '../../core/route/types';
+import type { RouteNode } from '../../core/route-tree/route-node.types';
 import type { ViewGraph } from '../../core/view-graph';
 import {
   createUsersIdMatch,
@@ -20,11 +20,11 @@ import {
   createViewGraphFromLoadView,
   wireEngineViewGraph,
 } from '../helpers/create-mock-transaction';
+import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 import {
   createTestOutlet,
   PARALLEL_CROSS_FADE_TRANSITION,
 } from '../helpers/jest/navigation-fixtures';
-import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
 
 type WireOptions = {
   cacheDom?: boolean;

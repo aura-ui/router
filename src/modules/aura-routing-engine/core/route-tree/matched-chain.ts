@@ -1,4 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
+
 import { attachResolvedView } from './resolved-view';
 import type { RouteNode } from './route-node.types';
 

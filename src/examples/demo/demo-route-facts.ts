@@ -1,6 +1,7 @@
 import { AURA_VIEW_ROOT_ATTR } from '../../modules/aura-outlet/core/aura-outlet';
-import { syncRouteParams } from './demo-route-params';
+
 import { getViewMeta, type DemoRouteFact } from './demo-route-meta';
+import { syncRouteParams } from './demo-route-params';
 
 function appendFactValue(dd: HTMLElement, fact: DemoRouteFact): void {
   switch (fact.kind) {

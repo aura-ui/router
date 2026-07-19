@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 
-import { splitAppHref } from '../../aura-utils/misc/url';
 import { matchLinkActive } from '../../aura-routing-engine/core/link-active/match';
+import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRouter } from '../core/aura-router';
 import { registerAuraRouterComponents } from '../core/aura-router-setup';
 

@@ -1,7 +1,8 @@
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import { AbortScope } from '../../../aura-utils/async/abort-scope';
+
 import { EMPTY_MOUNT, type MountSnapshot } from './outlet-adapter';
 import type { RouteViewConfig } from './types';
-import { AbortScope } from '../../../aura-utils/async/abort-scope';
 
 /** Mutable view state shared by render and teardown pipelines. */
 export class ViewContext {

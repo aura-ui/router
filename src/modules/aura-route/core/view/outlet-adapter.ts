@@ -5,8 +5,9 @@ import type {
   ViewRoot,
 } from '../../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface } from '../types';
-import type { ViewKind } from './types';
+
 import { destroyViewRoot } from './dom-cache';
+import type { ViewKind } from './types';
 
 type StageStrategy = Extract<OutletStrategy, 'replace' | 'stage'>;
 

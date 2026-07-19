@@ -1,25 +1,28 @@
+import { AuraRoutingEngine } from '../aura-routing-engine';
+import type { DataSnapshot } from '../data-graph';
+import { type NavigationErrorPhase } from '../failure';
+import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import {
   canUseDomCacheFastPath,
   canUseViewCacheFastPath,
 } from '../route-tree/can-use-fast-path';
 import { buildTransitionPlan, type TransitionMap } from '../route-tree/transition-plan';
+import type { ViewPayload } from '../view-graph';
+import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
+import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
+
 import { NavigationTransactionPipeline } from './navigation-transaction-pipeline';
+import { handlePipelineFailure } from './pipeline-failure';
 import type {
   NavigationPhaseMode,
   NavigationTransactionOptions,
   PipelineStepResult,
   TransactionResult,
 } from './types';
-import { AuraRoutingEngine } from '../aura-routing-engine';
-import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
-import { type NavigationErrorPhase } from '../failure';
-import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import type { NavigationLifecycleContext } from './types';
-import type { DataSnapshot } from '../data-graph';
-import type { ViewPayload } from '../view-graph';
-import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
-import { handlePipelineFailure } from './pipeline-failure';
+
+
 
 /** Returns true when a newer transaction or coordinator invalidate superseded this one. */
 type IsTransactionStaleCheck = (transactionId: number) => boolean;

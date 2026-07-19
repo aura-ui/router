@@ -1,9 +1,10 @@
+import { splitAppHref } from '../../../aura-utils/misc/url';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import {
   isHashOnlyChange,
   resolveDocumentHref,
 } from '../link-active/app-href';
-import { splitAppHref } from '../../../aura-utils/misc/url';
+
 import type {
   PrefetchConfig,
   PrefetchMode,

@@ -1,6 +1,6 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
-import { MAX_REDIRECTION_STEPS } from '../../core/redirect/redirect-resolver';
 import { resolveRedirectHref } from '../../core/redirect/match-step';
+import { MAX_REDIRECTION_STEPS } from '../../core/redirect/redirect-resolver';
 import { followDeclarativeRedirects } from '../../core/redirect/redirect-resolver';
 import {
   buildTreeFromDom,

@@ -63,7 +63,7 @@ describe('NavigationTransactionPipeline branch mount data', () => {
       transitionOrder: null,
     });
     transaction.dataSnapshot = snapshot;
-    transaction.preResolvedBranchContents = ['<page/>'];
+    transaction.viewSnapshot = ['<page/>'];
 
     await new NavigationTransactionPipeline(transaction).runRender();
 
@@ -85,7 +85,7 @@ describe('NavigationTransactionPipeline.runLoads activeChain', () => {
     resetPipelineMocks();
   });
 
-  it('prefers to.chain over enterRoutes when calling DataGraph.load', async () => {
+  it('prefers to.chain over enterRoutes when calling ResourceGraph.load', async () => {
     const parent = createMatchedRoute('/users');
     const child = createMatchedRoute('/users/1');
     const branch = [parent, child];
@@ -97,14 +97,14 @@ describe('NavigationTransactionPipeline.runLoads activeChain', () => {
     transaction.to = { ...child, chain: branch };
 
     const loadSpy = jest
-      .spyOn(transaction.engine.dataGraph, 'load')
+      .spyOn(transaction.engine.resourceGraph, 'load')
       .mockResolvedValue({});
 
     await new NavigationTransactionPipeline(transaction).runLoads();
 
     expect(loadSpy).toHaveBeenCalledWith(
       [child],
-      expect.objectContaining({ branch, transaction, mode: 'navigation' }),
+      expect.objectContaining({ branch, transaction }),
     );
 
     loadSpy.mockRestore();
@@ -135,7 +135,7 @@ describe('NavigationTransactionPipeline branch render cancellation', () => {
       enterRoutes: [createMatchedRoute('/page')],
       transitionOrder: null,
     });
-    transaction.preResolvedBranchContents = ['<page/>'];
+    transaction.viewSnapshot = ['<page/>'];
 
     await new NavigationTransactionPipeline(transaction).runRender();
 
@@ -153,7 +153,7 @@ describe('NavigationTransactionPipeline branch render cancellation', () => {
       enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: null,
     });
-    transaction.preResolvedBranchContents = ['<a/>', '<b/>'];
+    transaction.viewSnapshot = ['<a/>', '<b/>'];
     jest.spyOn(transaction, 'isActive').mockImplementation(() => active);
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRender();

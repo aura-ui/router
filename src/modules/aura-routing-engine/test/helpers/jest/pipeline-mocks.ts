@@ -1,6 +1,9 @@
-import type { ViewGraph } from '../../../core';
 import { runViewCommit } from '../../../core/view-mount/view-commit-render';
-import { createMockTransaction } from '../create-mock-transaction';
+import {
+  createMockTransaction,
+  createMockViewGraph,
+  wireEngineViewGraph,
+} from '../create-mock-transaction';
 import { mockRunPhaseHooks, resetHookMocks } from './hook-mocks';
 
 export { mockRunPhaseHooks } from './hook-mocks';
@@ -17,7 +20,7 @@ export function withViewGraph(
   options: Parameters<typeof createMockTransaction>[0],
 ): ReturnType<typeof createMockTransaction> {
   const transaction = createMockTransaction(options);
-  transaction.engine.viewGraph = { loadView: jest.fn() } as unknown as ViewGraph;
+  wireEngineViewGraph(transaction.engine, createMockViewGraph());
   return transaction;
 }
 

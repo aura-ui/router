@@ -119,8 +119,6 @@ export type PrefetchPipelineDeps = {
     ctx: {
       readonly mode: PrefetchMode;
       readonly signal: AbortSignal;
-      readonly data: boolean;
-      readonly view: boolean;
     },
   ) => Promise<void>;
 };

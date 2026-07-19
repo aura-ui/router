@@ -418,17 +418,11 @@ export class AuraRoutingEngine implements NavigationHost {
 
     const runSpeculativePrepare = async (
       plan: PrefetchPlan,
-      ctx: {
-        mode: PrefetchMode;
-        signal: AbortSignal;
-        data: boolean;
-        view: boolean;
-      },
+      ctx: { mode: PrefetchMode; signal: AbortSignal },
     ): Promise<void> => {
-      const from = this.prev;
-
       if (ctx.signal.aborted) return;
 
+      const from = this.prev;
       const probe = new NavigationTransaction(
         0,
         0,
@@ -439,7 +433,7 @@ export class AuraRoutingEngine implements NavigationHost {
           hash: plan.hash,
           action: 'push',
           options: { replace: false, syncHistory: false },
-          phaseMode: 'speculative',
+          phaseMode: 'prefetch',
         },
         () => ctx.signal.aborted,
         this,
@@ -448,7 +442,7 @@ export class AuraRoutingEngine implements NavigationHost {
       const clearOnAbort = onAbort(ctx.signal, () => probe.cancel());
       try {
         probe.transitionPlan = buildTransitionPlan(from, plan.leaf);
-        await probe.runSpeculativePrepare({ data: ctx.data, view: ctx.view });
+        await probe.runSpeculativePrepare();
       } finally {
         clearOnAbort();
       }

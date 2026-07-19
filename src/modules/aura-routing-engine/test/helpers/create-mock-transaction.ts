@@ -41,11 +41,51 @@ export function withPlanTransitionOrder(
   return { ...plan, transitionOrder };
 }
 
+/** Batch `load` that fans out to `loadView` (ResourceGraph entry). */
+export function createViewGraphFromLoadView(
+  loadView: ViewGraph['loadView'],
+): ViewGraph {
+  return {
+    loadView,
+    load: jest.fn(async (matches: readonly MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {
+      const results = await Promise.all(
+        matches.map((match) => loadView(match, signal, options as never)),
+      );
+      const error = results.find((result) => result?.error)?.error;
+      return error ? { error } : { data: results };
+    }),
+  } as unknown as ViewGraph;
+}
+
+/** Minimal ViewGraph for ResourceGraph.load in pipeline tests. */
+export function createMockViewGraph(): ViewGraph {
+  return createViewGraphFromLoadView(
+    jest.fn(async (match: MatchedRouteInfo) => {
+      const layout =
+        typeof match.route.layout === 'string' ? match.route.layout.trim() : '';
+      return { data: layout || match.route.view?.content ?? null };
+    }),
+  );
+}
+
+/** Point engine.viewGraph + resourceGraph at the same ViewGraph instance. */
+export function wireEngineViewGraph(
+  engine: AuraRoutingEngine,
+  viewGraph: ViewGraph,
+): void {
+  engine.viewGraph = viewGraph;
+  engine.resourceGraph = new ResourceGraph(
+    viewGraph,
+    engine.dataGraph,
+    engine.sharedBuffer,
+  );
+}
+
 export function createMockEngine(): AuraRoutingEngine {
   const hookRegistry = new HookRegistry();
   const sharedBuffer = new HandoffCache();
   const dataGraph = new DataGraph(sharedBuffer, { hooks: hookRegistry });
-  const viewGraph = { loadView: jest.fn().mockResolvedValue({}) } as unknown as ViewGraph;
+  const viewGraph = createMockViewGraph();
   return {
     commitHistoryIfNeeded: jest.fn(),
     commitNavigation: jest.fn(),
@@ -67,7 +107,7 @@ export function createCoordinatorMockHost(): NavigationHost & {
   const hookRegistry = new HookRegistry();
   const sharedBuffer = new HandoffCache();
   const dataGraph = new DataGraph(sharedBuffer, { hooks: hookRegistry });
-  const viewGraph = { loadView: jest.fn().mockResolvedValue({}) } as unknown as ViewGraph;
+  const viewGraph = createMockViewGraph();
   const host = {
     isRunning: true,
     matcher: { matchPath: jest.fn(), buildMatchedRouteInfo: jest.fn() },

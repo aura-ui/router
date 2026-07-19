@@ -17,7 +17,7 @@ export type DefaultPrefetchResourcePlannerOptions = {
 
 /**
  * Default ISNR planner: enterRoutes → view and/or data resources by confidence tier.
- * PrefetchPipeline turns planned kinds into `{ data, view }` flags for speculative prepare.
+ * Empty plan → PrefetchPipeline skips speculative prepare.
  */
 export class DefaultPrefetchResourcePlanner implements PrefetchResourcePlanner {
   private readonly policy: PrefetchPolicy;

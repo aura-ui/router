@@ -75,8 +75,7 @@ export class ResourceGraph {
     this.branch = context.branch;
     this.transaction = context.transaction;
     this.enterRoutes = enterRoutes;
-    const plan = this.buildLoadPlan();
-    return this.execute(plan);
+    return this.execute(this.buildLoadPlan());
   }
 
   /**

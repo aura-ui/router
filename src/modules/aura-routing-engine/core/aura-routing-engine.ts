@@ -1,7 +1,7 @@
 import { isHashOnlyChange, resolveDocumentHrefParts } from './link-active/app-href';
 import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import { FailedNavigation, type CompleteFailureDeps } from './failure';
+import { FailedNavigation } from './failure';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import type {
   HistoryAction,
@@ -15,7 +15,7 @@ import {
 } from './match/url-matcher';
 import { NavigationCoordinator } from './navigation/navigation-coordinator';
 import type { NavigationHost } from './navigation/navigation-host';
-import { applyTransactionHistory } from './navigation/navigation-finalize';
+import { applyTransactionHistory } from './history/history-policy';
 import {
   applyNavigationOutcome,
   applyPreMatchFailure,
@@ -351,17 +351,11 @@ export class AuraRoutingEngine implements NavigationHost {
     this.applyTerminalOutcome(result, probe);
   }
 
-  private failureDeps(): CompleteFailureDeps {
-    return {
-      onNotFound: this.config.onNotFound,
-      notFoundHandler: this.notFoundHandler ?? undefined,
-    };
-  }
-
   private outcomeContext() {
     return {
       provider: this.provider,
-      failureDeps: this.failureDeps(),
+      onNotFound: this.config.onNotFound,
+      notFoundHandler: this.notFoundHandler ?? undefined,
       setPrev: (prev: MatchedRouteInfo | null) => {
         this.prev = prev;
       },

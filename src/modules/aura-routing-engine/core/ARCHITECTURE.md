@@ -10,7 +10,7 @@ failure handling in `failure/README.md`.
 | --- | --- |
 | `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and pre-match `NOT_FOUND`, `commitHistoryIfNeeded`, `commitNavigation`, `invalidateData()`. |
 | `aura-routing-route-registry.ts` | Route catalog snapshot, tree rebuild, `matchableNodes` for matcher. |
-| `navigation/` | Coordinator, transaction, pipeline, phase registry (`lifecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), **observe-only** `navigation-pulse.ts`, **apply** helpers (`navigation-outcome-handler.ts`), failure lifecycle (`navigation-failure-handler.ts`, `not-found-exit-cleanup.ts`), history helpers (`navigation-finalize.ts`), outcome types. |
+| `navigation/` | Coordinator, transaction, pipeline, phase registry (`lifecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), **observe-only** `navigation-pulse.ts`, **apply** (`navigation-outcome-handler.ts`), failure lifecycle (`navigation-failure-handler.ts`, `not-found-exit-cleanup.ts`), outcome types. |
 | `events/` | Typed `EventBus` + `EngineEvent`. Emit goes through `NavigationPulse`, not ad-hoc from pipeline. |
 | `route/` | `RouteInstance`, lifecycle phase vocabulary (`RoutePhase`, `RouteLifecycleContext`, …), hook attr props. |
 | `guard.types.ts` | Shared blocking-hook contract: `GuardResult`, `RedirectTarget` (normalized from hook return values). |
@@ -18,9 +18,9 @@ failure handling in `failure/README.md`.
 | `route-tree/` | Nested route tree, active chain, LCA branch diff, `TransitionMap` (+ derived `canUseFastPath`). |
 | `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`. |
 | `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit blocking walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
-| `history/` | Browser/fake providers and post-outcome history policy (`history-policy.ts`). |
+| `history/` | Browser/fake providers and history policy (`history-policy.ts`, incl. `applyTransactionHistory`). |
 | `view-mount/` | View staging/commit tracking, fast-path `runViewCommit`, branch mount (`branch-mount`), staged-view rollback. |
-| `failure/` | Structured navigation errors (`navigation-error.ts`), failure snapshots (`navigation-failure.ts`), app callbacks (`finalize-failure.ts`). |
+| `failure/` | Model only: structured errors (`navigation-error.ts`), snapshots (`navigation-failure.ts`). Apply side effects → `navigation-outcome-handler.ts`. |
 | `view-graph/` | Route view attrs → `ViewGraph` → payload cache → loader payload. |
 | `data-graph/` | Route `load` hooks, SWR cache, prefetch intent, cache invalidation. |
 | `prefetch/` | `PrefetchPipeline`: intent bus → policy → plan → speculative prepare (`dataGraph` / `viewGraph`). |
@@ -131,7 +131,7 @@ Two axes — do not merge:
 | Axis | Owner | Responsibility |
 | --- | --- | --- |
 | **Observe** | `NavigationPulse` → `EventBus` → aura-router DOM | Emit lifecycle facts only (`start`, phase, `settle` → finish/cancel/redirect/error, loads, …) |
-| **Apply** | `applyNavigationOutcome` / `applyPreMatchFailure` | History policy, `prev`, `onNotFound`, redirect re-navigate |
+| **Apply** | `applyNavigationOutcome` / `applyPreMatchFailure` (+ `applyTransactionHistory`) | History policy, `prev`, `onNotFound`, redirect re-navigate |
 
 `NavigationPulse` **must not** write history, mutate `prev`, invoke app recovery callbacks,
 or start navigation. Target call order for terminal paths: `pulse.settle` → apply effects.

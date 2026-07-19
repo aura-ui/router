@@ -41,6 +41,15 @@ import type { TransitionMap } from '../route-tree/transition-plan';
 import type { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 
 // --- Shared outcomes ---
+
+/** Snapshot passed to host chrome after view commit (scroll, etc.). */
+export interface NavigationCommittedContext {
+  from: MatchedRouteInfo | null;
+  to: MatchedRouteInfo;
+  action: HistoryAction;
+  hash: string;
+}
+
 export type NavigationPhaseMode = 'navigation' | 'prefetch';
 
 /**

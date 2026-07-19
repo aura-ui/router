@@ -1,6 +1,7 @@
 import { FailedNavigation, NavigationError } from '../../core/failure';
 import {
   applyHistoryPolicy,
+  applyTransactionHistory,
   resolveHistoryPolicy,
 } from '../../core/history/history-policy';
 import type { HistoryAction } from '../../core/history/provider.types';
@@ -116,5 +117,20 @@ describe('applyHistoryPolicy', () => {
     );
     expect(provider.commit).not.toHaveBeenCalled();
     expect(provider.rollback).not.toHaveBeenCalled();
+  });
+});
+
+describe('applyTransactionHistory', () => {
+  it('commits on navigationSucceeded', () => {
+    const provider = { commit: jest.fn(), rollback: jest.fn() };
+    applyTransactionHistory(
+      { status: 'navigationSucceeded' },
+      'push',
+      '/to',
+      '/from',
+      { replace: false, syncHistory: true },
+      provider,
+    );
+    expect(provider.commit).toHaveBeenCalledWith('/to', { replace: false, syncHistory: true });
   });
 });

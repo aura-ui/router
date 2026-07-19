@@ -39,7 +39,7 @@ describe('NavigationTransaction.run fast path selection', () => {
     const fullSpy = jest
       .spyOn(NavigationTransactionPipeline.prototype, 'runFullPipeline')
       .mockResolvedValue({ status: 'navigationSucceeded' });
-    const loadSpy = jest.spyOn(engine.dataGraph, 'load');
+    const loadSpy = jest.spyOn(engine.resourceGraph, 'load');
 
     const result = await transaction.run();
 

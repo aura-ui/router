@@ -153,7 +153,7 @@ export class NavigationTransactionPipeline {
   /**
    * Blocking data load for the enter branch.
    *
-   * Runs after history commit and before render. Delegates to `engine.dataGraph.load`; stores
+   * Runs after history commit and before render. Delegates to `engine.resourceGraph.load`; stores
    * the resulting snapshot on the transaction for view commit and lifecycle hooks.
    *
    * `activeChain` is the full target branch (`to.chain`) when present, otherwise enter routes.

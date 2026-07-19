@@ -99,6 +99,22 @@ describe('navigation-events', () => {
     expect(detail.viewCommitted).toBe(true);
   });
 
+  it('dispatchNavigationError accepts pre-match NOT_FOUND (to is null)', () => {
+    const router = document.createElement('div');
+    const listener = jest.fn();
+
+    router.addEventListener(AURA_ROUTER_NAVIGATION_ERROR, listener);
+    dispatchNavigationError(
+      router,
+      FailedNavigation.notFound('/missing', null, 'push'),
+    );
+
+    const detail = listener.mock.calls[0][0].detail as AuraRouterNavigationErrorEventDetail;
+    expect(detail.code).toBe('NOT_FOUND');
+    expect(detail.href).toBe('/missing');
+    expect(detail.to).toBeNull();
+  });
+
   it('dispatchNavigationError forwards guard error fields', () => {
     const router = document.createElement('div');
     const listener = jest.fn();

@@ -1,14 +1,14 @@
-# Aura UI Router
+﻿# Aura UI Router
 
-[![npm version](https://img.shields.io/npm/v/@aura-ui-web/router.svg)](https://www.npmjs.com/package/@aura-ui-web/router)
-[![license](https://img.shields.io/npm/l/@aura-ui-web/router.svg)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
+[![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
 **Declarative routing for Web Components — SSR-first, from static HTML to client navigation.**
 
 Composable lifecycle hooks and nested routes, declared in markup.
 
 ```bash
-npm install @aura-ui-web/router
+npm install @auraui/router
 ```
 
 > **Target API.** This README describes the public lifecycle attribute names. Other areas may still lag — see [ROADMAP](./ROADMAP.md).
@@ -69,7 +69,7 @@ A bare `view` value (e.g. `users.html`) defaults to the **`url`** loader — it 
 **2. Bootstrap the router**
 
 ```ts
-import { AuraRouter } from '@aura-ui-web/router';
+import { AuraRouter } from '@auraui/router';
 
 AuraRouter.install();
 ```
@@ -234,7 +234,7 @@ Hooks on a parent run for every child navigation inside that branch (with inheri
 Register hook implementations with `AuraRouter.use(hook)`. Phase attributes (`guard`, `load`, `ready`, …) list **hook names** to run at that phase — comma-separated.
 
 ```ts
-import { defineRouteHook, AuraRouter } from '@aura-ui-web/router';
+import { defineRouteHook, AuraRouter } from '@auraui/router';
 
 const authHook = defineRouteHook({
   name: 'auth',
@@ -331,7 +331,7 @@ Attributes on `<aura-router>` inherit to child `<aura-route>` elements. Per-rout
 ## Programmatic API
 
 ```ts
-import { AuraRouter } from '@aura-ui-web/router';
+import { AuraRouter } from '@auraui/router';
 
 // Register global hooks
 AuraRouter.use(myHook, { /* hook options */ });
@@ -380,7 +380,7 @@ router.addEventListener('navigation-hook-error', (e) => {
 ## Custom loaders
 
 ```ts
-import { AuraRouter, type LoaderFn } from '@aura-ui-web/router';
+import { AuraRouter, type LoaderFn } from '@auraui/router';
 
 const myLoader: LoaderFn = async (ctx) => {
   const text = await fetch(ctx.content, { signal: ctx.signal }).then((r) => r.text());
@@ -398,23 +398,20 @@ AuraRouter.registerLoader('custom', myLoader);
 
 ## Package scope
 
-Aura UI packages are published under **`@aura-ui-web/*`**.
+Aura UI packages are published under **`@auraui/*`**.
 
-In this scope, **`web` means Web Components** — the technology we target — not a generic “web app” label or a pre-release channel.
-
-```
-Web Components  →  web  →  @aura-ui-web/router
-```
+Custom element tags use the short prefix **`aura-*`** (for example `<aura-router>`, `<aura-route>`, `<aura-outlet>`).
 
 | Package | Status |
 | --- | --- |
-| `@aura-ui-web/router` | this repo |
-| `@aura-ui-web/base` | planned |
-| `@aura-ui-web/components` | planned |
+| `@auraui/router` | this repo |
+| `@auraui/base` | planned |
+| `@auraui/components` | planned |
 
 | | |
 | --- | --- |
-| **npm** | `@aura-ui-web/*` |
+| **npm** | [`@auraui/router`](https://www.npmjs.com/package/@auraui/router) · scope `@auraui/*` |
+| **Site** | [auraui.dev](https://auraui.dev) |
 | **GitHub** | [github.com/aura-ui/router](https://github.com/aura-ui/router) |
 
 ---

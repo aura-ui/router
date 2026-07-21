@@ -1,5 +1,5 @@
 {
-  "name": "@aura-ui-web/router",
+  "name": "@auraui/router",
   "version": "0.0.1",
   "description": "SSR-first declarative router for Web Components — from static HTML to client navigation.",
   "type": "module",

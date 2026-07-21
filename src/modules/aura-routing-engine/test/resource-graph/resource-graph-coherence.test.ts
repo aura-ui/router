@@ -306,6 +306,55 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(dataGraph.getData(route)).toEqual({ n: 1 });
   });
 
+  it('E5a: consumeSharedBufferFor after success → second navigation reloads without waiting TTL', async () => {
+    let dataLoads = 0;
+    let viewLoads = 0;
+    const loaders = new LoaderRegistry(undefined, []);
+    loaders.register('html', async () => {
+      viewLoads++;
+      return `<span>${viewLoads}</span>`;
+    });
+    wire({ viewRegistry: loaders });
+
+    hooks.register({
+      name: 'data',
+      version: '1.0.0',
+      fn: async () => {
+        dataLoads++;
+        return { n: dataLoads };
+      },
+    });
+
+    const route = createNoCacheRoute('/ephemeral-consume', { load: ['data'] });
+    const branch = [route];
+
+    const firstTx = prepareTx(branch, engine, 'navigation');
+    const first = await resourceGraph.load(branch, {
+      branch,
+      transaction: firstTx,
+    });
+    expect(first.error).toBeUndefined();
+    expect(dataLoads).toBe(1);
+    expect(viewLoads).toBe(1);
+    expect(handoff.get(route.dataKey!)).toEqual({ n: 1 });
+    expect(handoff.get(route.viewKey!)).toBe('<span>1</span>');
+
+    resourceGraph.consumeSharedBufferFor(branch);
+    expect(handoff.get(route.dataKey!)).toBeUndefined();
+    expect(handoff.get(route.viewKey!)).toBeUndefined();
+
+    const secondTx = prepareTx(branch, engine, 'navigation');
+    const second = await resourceGraph.load(branch, {
+      branch,
+      transaction: secondTx,
+    });
+    expect(second.error).toBeUndefined();
+    expect(dataLoads).toBe(2);
+    expect(viewLoads).toBe(2);
+    expect(second.data?.get(route.dataKey!)).toEqual({ n: 2 });
+    expect(second.view?.[0]).toBe('<span>2</span>');
+  });
+
   it('E5: cache.* off + handoff TTL expire → second navigation reloads data + view', async () => {
     jest.useFakeTimers();
 

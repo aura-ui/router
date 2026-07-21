@@ -350,7 +350,18 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(1);
+      // Superseded nav applies cancel; winner applies success (handoff consume).
+      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(2);
+      expect(host.applyTerminalOutcome).toHaveBeenNthCalledWith(
+        1,
+        { status: 'cancelled' },
+        expect.objectContaining({ href: '/about' }),
+      );
+      expect(host.applyTerminalOutcome).toHaveBeenNthCalledWith(
+        2,
+        { status: 'navigationSucceeded' },
+        expect.objectContaining({ href: '/gallery' }),
+      );
 
       expect(coordinator.activeTransaction).toBeNull();
 
@@ -542,7 +553,12 @@ describe('NavigationCoordinator', () => {
 
       expect(coordinator.activeTransaction).toBeNull();
 
-      expect(host.applyTerminalOutcome).not.toHaveBeenCalled();
+      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(1);
+
+      expect(host.applyTerminalOutcome).toHaveBeenCalledWith(
+        { status: 'navigationSucceeded' },
+        expect.objectContaining({ href: '/about' }),
+      );
 
     });
 
@@ -666,7 +682,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-    it('treats navigationSucceeded as success', async () => {
+    it('treats navigationSucceeded as success and applies terminal outcome', async () => {
 
       const host = createCoordinatorMockHost();
 
@@ -686,7 +702,11 @@ describe('NavigationCoordinator', () => {
 
 
 
-      expect(host.applyTerminalOutcome).not.toHaveBeenCalled();
+      expect(host.applyTerminalOutcome).toHaveBeenCalledTimes(1);
+      expect(host.applyTerminalOutcome).toHaveBeenCalledWith(
+        { status: 'navigationSucceeded' },
+        expect.objectContaining({ href: '/about' }),
+      );
 
     });
 

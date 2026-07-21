@@ -43,7 +43,8 @@ export interface NavigationHost {
 
   /**
    * Apply terminal side effects for a {@link TransactionResult}
-   * (history / `prev` / redirect). Observe via {@link NavigationPulse.settle} separately.
+   * (history / `prev` / redirect / sharedBuffer consume on success).
+   * Observe via {@link NavigationPulse.settle} separately.
    */
   applyTerminalOutcome(
     result: TransactionResult,

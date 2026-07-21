@@ -17,7 +17,9 @@ export type { HandoffWaiter, HandoffWaiterKind } from './handoff-work-registry';
  * Options for {@link HandoffCache}.
  *
  * Uses short TTL (`ttl`) without SWR: entries stay readable until expired, then
- * are removed on access — hover→click join, not long-lived route revisit cache.
+ * are removed on access — hover→click / in-flight join. Successful navigation
+ * consumes enter keys via ResourceGraph.consumeSharedBufferFor; long revisit is
+ * `cache.data` / `cache.view` only.
  */
 export type HandoffCacheOptions = {
   /**

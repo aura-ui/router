@@ -229,14 +229,7 @@ export class NavigationCoordinator {
   /** Observe ({@link NavigationPulse.settle}), then apply terminal side effects. */
   private processResult(result: TransactionResult, transaction: NavigationTransaction): void {
     this.host.engine.pulse.settle(transaction.transactionId, result);
-
-    if (result.status === 'navigationSucceeded') {
-      return;
-    }
-    if (!this.host.isRunning) {
-      return;
-    }
-
+    if (!this.host.isRunning) return;
     this.host.applyTerminalOutcome(result, transaction);
   }
 

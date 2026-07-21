@@ -62,7 +62,8 @@ export function navigationIdentityFromTx(
 
 /**
  * Apply terminal side effects for a {@link TransactionResult}.
- * Call after {@link NavigationPulse.settle}. `navigationSucceeded` is a no-op.
+ * Call after {@link NavigationPulse.settle}. `navigationSucceeded` is a no-op
+ * (sharedBuffer consume is in `AuraRoutingEngine.applyTerminalOutcome`).
  */
 export function applyNavigationOutcome(
   result: TransactionResult,

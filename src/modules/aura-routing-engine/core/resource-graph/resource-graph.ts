@@ -6,6 +6,7 @@ import {
 } from '../data-graph';
 import type { HookRegistry } from '../hooks/registry';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
+import { viewKeyWithData } from '../match/resource-keys';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
@@ -146,6 +147,22 @@ export class ResourceGraph {
    */
   invalidateView(options: RouterInvalidateOptions = {}): number {
     return this.viewGraph.invalidate(options);
+  }
+
+  /**
+   * Drop settled {@link sharedBuffer} keys for successfully entered routes.
+   * Call from `navigationSucceeded` apply — not from {@link load}. Long `cache.*` untouched.
+   */
+  consumeSharedBufferFor(enterRoutes: readonly MatchedRouteInfo[]): void {
+    for (const match of enterRoutes) {
+      const { dataKey, viewKey } = match;
+      if (dataKey && viewKey) {
+        const data = this.sharedBuffer.get(dataKey);
+        if (data !== undefined) this.sharedBuffer.delete(viewKeyWithData(viewKey, data));
+      }
+      if (viewKey) this.sharedBuffer.delete(viewKey);
+      if (dataKey) this.sharedBuffer.delete(dataKey);
+    }
   }
 
   /**

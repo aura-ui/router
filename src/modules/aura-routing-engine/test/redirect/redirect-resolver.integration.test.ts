@@ -42,8 +42,12 @@ describe('RedirectResolver integration', () => {
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]!.to.pattern).toBe('/login');
-    // Collapse runs one leaf pipeline — no post-pipeline redirect apply.
-    expect(applySpy).not.toHaveBeenCalled();
+    // Collapse runs one leaf pipeline — success apply (handoff consume), not redirect apply.
+    expect(applySpy).toHaveBeenCalledTimes(1);
+    expect(applySpy).toHaveBeenCalledWith(
+      { status: 'navigationSucceeded' },
+      expect.objectContaining({ href: '/login' }),
+    );
   });
 
   it('runs leave on each blocking walk hop during guard redirect chain', async () => {

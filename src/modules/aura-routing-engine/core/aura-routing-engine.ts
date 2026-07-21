@@ -496,9 +496,13 @@ export class AuraRoutingEngine implements NavigationHost {
     this.prev = transition.to;
   }
 
-  /** Terminal apply (history / `prev` / redirect). Observe via {@link NavigationPulse.settle}. */
+  /** Terminal apply (history / `prev` / redirect / sharedBuffer consume). Observe via {@link NavigationPulse.settle}. */
   applyTerminalOutcome(result: TransactionResult, tx: NavigationTransaction): void {
     applyNavigationOutcome(result, navigationIdentityFromTx(tx), this.applyOutcomeContext());
+    if (result.status === 'navigationSucceeded') {
+      // clear buffer cache to not have a wrong expectations from users
+      this.resourceGraph.consumeSharedBufferFor(tx.transitionPlan?.enterRoutes ?? []);
+    }
   }
 
   reportNavigationHookError(hookError: unknown, parent: NavigationFailure): void {

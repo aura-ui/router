@@ -138,7 +138,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ parser: parseNullableString, cached: true, name: 'link-active-class' }) linkActiveClass: string | null;
   /** CSS class for section/folder links when the current URL is under the link path (prefix match). */
   @attr({ parser: parseNullableString, cached: true, name: 'link-active-branch-class' }) linkActiveBranchClass: string | null;
-  /** Ancestor selector for active-link scan when nav is outside router (demo: `.demo-site`). */
+  /** Optional ancestor that narrows the active-link scan (default: whole document). */
   @attr({ parser: parseNullableString, cached: true, name: 'links-container-selector' }) linksContainerSelector: string | null;
 
   /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */

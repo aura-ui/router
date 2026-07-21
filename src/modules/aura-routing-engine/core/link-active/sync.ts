@@ -19,19 +19,19 @@ export function syncRouterActiveLinks(options: SyncRouterActiveLinksOptions): vo
   const { root, linksSelector, currentHref } = options;
   const current = splitAppHref(currentHref);
 
-  root.querySelectorAll(linksSelector).forEach((node) => {
-    if (!(node instanceof HTMLAnchorElement)) return;
+  for (const node of root.querySelectorAll(linksSelector)) {
+    if (!(node instanceof HTMLAnchorElement)) continue;
 
     const linkHref = resolveLinkHref(node, currentHref);
-    const { exact: isExactMatch, prefix: isPrefixMatch } = linkHref
+    const { exact, prefix } = linkHref
       ? matchLinkActive(linkHref, current)
       : { exact: false, prefix: false };
 
-    for (const c of exactClasses) node.classList.toggle(c, isExactMatch);
-    for (const c of prefixClasses) node.classList.toggle(c, isPrefixMatch);
-    if (isExactMatch) node.setAttribute('aria-current', 'page');
+    for (const c of exactClasses) node.classList.toggle(c, exact);
+    for (const c of prefixClasses) node.classList.toggle(c, prefix);
+    if (exact) node.setAttribute('aria-current', 'page');
     else node.removeAttribute('aria-current');
-  });
+  }
 }
 
 export interface ActiveLinkSyncConfig {
@@ -41,20 +41,18 @@ export interface ActiveLinkSyncConfig {
   linksContainerSelector: string | null;
 }
 
-/** Sync active classes on `[aura-router-link]` anchors under a router host element. */
+/** Sync active classes on `[aura-router-link]` anchors (document-wide unless scoped). */
 export function syncRouterHostActiveLinks(
   host: HTMLElement,
   currentHref: string,
-  config: ActiveLinkSyncConfig,
+  { linksSelector, linkActiveClass, linkActiveBranchClass, linksContainerSelector }: ActiveLinkSyncConfig,
 ): void {
-  if (!config.linkActiveClass && !config.linkActiveBranchClass) return;
-
-  const scope = config.linksContainerSelector;
+  if (!linkActiveClass && !linkActiveBranchClass) return;
   syncRouterActiveLinks({
-    root: scope ? (host.closest(scope) ?? host) : host,
-    linksSelector: config.linksSelector,
-    linkActiveClass: config.linkActiveClass ?? undefined,
-    linkActiveBranchClass: config.linkActiveBranchClass ?? undefined,
+    root: linksContainerSelector ? host.closest(linksContainerSelector) ?? host : host.ownerDocument!,
+    linksSelector,
+    linkActiveClass: linkActiveClass ?? undefined,
+    linkActiveBranchClass: linkActiveBranchClass ?? undefined,
     currentHref,
   });
 }

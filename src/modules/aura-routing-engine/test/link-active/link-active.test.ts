@@ -190,6 +190,29 @@ describe('link-active', () => {
   });
 
   describe('syncRouterHostActiveLinks', () => {
+    it('scans the whole document when links-container-selector is absent', () => {
+      document.body.innerHTML = `
+        <nav>
+          <a href="/about" aura-router-link>About outside</a>
+        </nav>
+        <aura-router link-active-class="is-active">
+          <a href="/about" aura-router-link>About inside</a>
+        </aura-router>
+      `;
+
+      const host = document.querySelector('aura-router') as HTMLElement;
+      syncRouterHostActiveLinks(host, '/about', {
+        linksSelector: '[aura-router-link]',
+        linkActiveClass: 'is-active',
+        linkActiveBranchClass: null,
+        linksContainerSelector: null,
+      });
+
+      const [outside, inside] = document.querySelectorAll<HTMLAnchorElement>('a');
+      expect(outside.classList.contains('is-active')).toBe(true);
+      expect(inside.classList.contains('is-active')).toBe(true);
+    });
+
     it('scopes link scan to router-link-root ancestor', () => {
       document.body.innerHTML = `
         <div class="demo-site">
@@ -200,6 +223,7 @@ describe('link-active', () => {
             <a href="/about" aura-router-link>About inside</a>
           </aura-router>
         </div>
+        <a href="/about" aura-router-link>Outside scope</a>
       `;
 
       const host = document.querySelector('aura-router') as HTMLElement;
@@ -210,9 +234,10 @@ describe('link-active', () => {
         linksContainerSelector: '.demo-site',
       });
 
-      const [outside, inside] = document.querySelectorAll<HTMLAnchorElement>('a');
+      const [outside, inside, outOfScope] = document.querySelectorAll<HTMLAnchorElement>('a');
       expect(outside.classList.contains('is-active')).toBe(true);
       expect(inside.classList.contains('is-active')).toBe(true);
+      expect(outOfScope.classList.contains('is-active')).toBe(false);
     });
   });
 });

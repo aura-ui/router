@@ -115,12 +115,8 @@ describe('AuraRouter link-active-class', () => {
   });
 
   it('re-syncs active class on links that arrive with the new view', async () => {
-    const site = document.createElement('div');
-    site.className = 'site';
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('link-active-class', 'is-active');
-    // Sibling outlet is outside <aura-router>; widen active-link scan to the shell.
-    router.setAttribute('links-container-selector', '.site');
     router.innerHTML = `
       <nav>
         <a href="/" aura-router-link>Home</a>
@@ -132,8 +128,7 @@ describe('AuraRouter link-active-class', () => {
         view="html::<p>about</p><a href=&quot;/about&quot; aura-router-link data-testid=&quot;in-view&quot;>About in view</a>"
       ></aura-route>
     `;
-    site.append(router);
-    document.body.append(site);
+    document.body.append(router);
 
     await customElements.whenDefined('aura-route');
     await flushNavigation();

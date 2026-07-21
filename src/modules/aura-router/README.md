@@ -32,7 +32,7 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 |---------|----------|
 | `prefetch` | Default prefetch для in-app ссылок: `intent` (default), `tap`, `false` / `none` (off). Override на ссылке: `data-prefetch`. |
 | `links-selector` | CSS-селектор in-app ссылок для перехвата кликов. По умолчанию: `[aura-router-link]`. |
-| `links-container-selector` | Контейнер, в котором искать ссылки для active-state (если nav вне `<aura-router>`). |
+| `links-container-selector` | Опционально сужает поиск ссылок для active-state до предка (по умолчанию — весь документ). |
 | `link-active-class` | CSS-класс точного совпадения URL на `[aura-router-link]`. |
 | `link-active-branch-class` | CSS-класс prefix-совпадения (активная ветка / раздел). |
 | `not-found-template` | Id `<template>` для **fallback**-404 (см. ниже). Используется только когда нет `<aura-route path="*">`. |

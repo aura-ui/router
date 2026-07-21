@@ -9,10 +9,24 @@ export const fetchText: FetchText = async (url, signal) => {
   return response.text();
 };
 
-/** `pages/foo.html` → `{origin}/pages/foo.html` */
-export function resolveRelativeUrl(path: string): string {
-  const normalized = path.replace(/^\//, '');
-  return `${window.location.origin}/${normalized}`;
+function defaultBase(): string | URL {
+  const href = globalThis.location?.href;
+  if (href) return href;
+  throw new Error('resolveRelativeUrl: pass base when location is unavailable (SSR / tests)');
+}
+
+/**
+ * Resolve a view URL from the site origin (not the current route path).
+ * Absolute `https://…` pass through; invalid input returns `path` as-is.
+ * Without `location`, callers must pass `base`.
+ */
+export function resolveRelativeUrl(path: string, base: string | URL = defaultBase()): string {
+  try {
+    const root = new URL('/', base);
+    return new URL(path.trim(), root).href;
+  } catch {
+    return path;
+  }
 }
 
 /** Browser {@link ViewLoaderEnv} for {@link LoaderRegistry} / built-in loaders. */

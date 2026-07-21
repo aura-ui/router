@@ -11,7 +11,7 @@ Composable lifecycle hooks and nested routes, declared in markup.
 npm install @auraui/router
 ```
 
-> **Target API.** This README describes the public lifecycle attribute names. Other areas may still lag — see [ROADMAP](./ROADMAP.md).
+> **Experimental (pre-alpha).** `@auraui/router@0.0.x` is an early public cut — APIs and behavior may change without a major bump before `0.1.0`. Prefer pinning exact versions; use for evaluation and feedback, not as a frozen production contract yet. Lifecycle attribute names in this README (`guard`, `load`, `ready`, …) are the intended public surface; other areas may still lag — see [ROADMAP](./ROADMAP.md) and [LIMITATIONS](./LIMITATIONS.md).
 
 ---
 

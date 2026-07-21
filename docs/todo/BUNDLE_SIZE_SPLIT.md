@@ -25,8 +25,9 @@
 
 ```bash
 npm run build
-node scripts/measure-app-bundle.mjs
-node scripts/analyze-app-bundle.mjs
+npm run size           # size-limit budgets (min / gzip / brotli), CI gate
+npm run size:analyze   # visual report (esbuild-why HTML)
+npm run size:vite      # optional Vite fixture: raw / gzip / brotli
 ```
 
 ---
@@ -59,10 +60,10 @@ Alias `@auraui/router` → `dist/index.js`, Vite, esbuild minify, один ча�
 
 `AuraRoute` / `AuraOutlet` почти ничего не добавляют: граф уже тянется через `install()`.
 
-### 1.3. Attribution (minified via sourcemap)
+### 1.3. Attribution
 
-Скрипт: `scripts/analyze-app-bundle.mjs`  
-База: ~107.8 kB min · **31.3 kB gzip**.
+Визуальный разбор: `npm run size:analyze` (`@size-limit/esbuild-why`).  
+Историческая база (Vite measure): ~107.8 kB min · **31.3 kB gzip**.
 
 | Модуль | ~min | ~gzip | Доля |
 |--------|-----:|------:|-----:|
@@ -260,11 +261,11 @@ AuraRouter.install();
 
 ### Фаза 0 — измеримость <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~ скрипты есть</span>
 
-- [x] `scripts/measure-app-bundle.mjs`
-- [x] `scripts/analyze-app-bundle.mjs`
+- [x] `scripts/measure-app-bundle.mjs` (`npm run size:vite`)
+- [x] `size-limit` + `size:analyze` (`.size-limit.cjs`, CI: `npm run size`)
 - [ ] Сценарии `core-entry` / `full-entry` / `core+prefetch` в measure
 - [ ] Заготовка `exports` в `package.json` (пока на те же файлы)
-- [ ] Budget gate в CI (после появления `/core`)
+- [x] Budget gate в CI (`npm run size` после build; уже на monolith entry)
 
 **Done:** стабильные цифры до/после каждой фазы.
 

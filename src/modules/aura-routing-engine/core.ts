@@ -153,6 +153,9 @@ export type { LoaderId } from '../aura-route/core/attr/view-attr-parser';
 export type { RouterInvalidateOptions as ViewInvalidateOptions } from './core/invalidate-router-cache';
 
 export {
+  ALL_CACHE,
+  DEFAULT_CACHE,
+  DOM_CACHE,
   NO_CACHE,
   parseCacheAttr,
 } from '../aura-route/core/attr/cache-attr-parser';

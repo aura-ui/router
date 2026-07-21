@@ -124,6 +124,37 @@ Folder URLs get a trailing slash in the address bar (`/app` → `/app/`) so rela
 
 ---
 
+## 6. Cache
+
+Control what is kept when leaving a route with the `cache` attribute on `<aura-route>` or `<aura-router>` (inherited; child overrides).
+
+Ladder: **off → `cache` → `dom` → `all`**.
+
+| Attr | DOM keep-alive | View payload | `load` data | Use when |
+| --- | --- | --- | --- | --- |
+| *(absent)* | | | | No cache |
+| `cache` / `cache=""` | | ✓ | ✓ | Cache network/content; remount UI |
+| `view` | | ✓ | | Only HTML / loader payload |
+| `data` | | | ✓ | Only `load` hooks |
+| `dom` | ✓ | ✓ | | Tabs / forms — keep live DOM (`view` is LRU fallback) |
+| `all` | ✓ | ✓ | ✓ | Keep-alive + cached data |
+| `off` / `none` / `false` | | | | Opt out of inherited cache |
+
+```html
+<!-- typical page: cache HTML + load, fresh DOM each visit -->
+<aura-route path="/feed" view="feed.html" load="fetch-feed" cache></aura-route>
+
+<!-- tab / editor: keep the live DOM -->
+<aura-route path="/draft" view="editor.html" cache="dom"></aura-route>
+
+<!-- sticky UI + cached load -->
+<aura-route path="/inbox" view="inbox.html" load="fetch-inbox" cache="all"></aura-route>
+```
+
+Unknown values disable cache and log a `console.warn`.
+
+---
+
 ## Mental model
 
 ```text
@@ -132,7 +163,7 @@ click / navigate
     → render view / layout into <aura-outlet>
 ```
 
-That’s the whole slim loop. No data layer, no prefetch, no fetch-by-URL loaders in this guide.
+That’s the slim loop. Data `load`, prefetch, and network loaders are optional on top of this.
 
 ---
 
@@ -149,8 +180,8 @@ npm run dev
 
 ## More
 
-> **Slim model** (this README): match URL → render a view into `<aura-outlet>`.  
-> Advanced features (data `load`, prefetch, network loaders, cache, hooks) — separate docs (coming).
+> **Slim model** (this README): match URL → render a view into `<aura-outlet>`, plus optional [`cache`](#6-cache).  
+> Further advanced features (prefetch, network loaders, hooks) — separate docs (coming).
 
 | | |
 | --- | --- |

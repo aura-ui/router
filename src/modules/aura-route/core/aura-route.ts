@@ -9,12 +9,8 @@ import {
 } from '../../aura-routing-engine/route-api';
 import { routeAttr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
-
 import { parseCacheAttr, type CacheFlags } from './attr/cache-attr-parser';
-import {
-  parseHookList,
-  parseInheritableNullableString,
-} from './attr/inherit-attr-parser';
+import { parseHookList, parseInheritableNullableString, } from './attr/inherit-attr-parser';
 import { parseMountStrategyAttr, type MountStrategy } from './attr/mount-strategy-attr-parser';
 import { parseParamChangeAttr, type ParamChangePolicy } from './attr/param-change-attr-parser';
 import { parsePrefetchAttr, type PrefetchType } from './attr/prefetch-attr-parser';
@@ -197,11 +193,11 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   }
 
   get hasViewCache() {
-    return this.cache.data;
+    return this.cache.view;
   }
 
   get hasDomCache() {
-    return this.cache.data;
+    return this.cache.dom;
   }
 
   get type(): RouteType {

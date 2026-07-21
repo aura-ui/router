@@ -1,9 +1,9 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import importPlugin from 'eslint-plugin-import'
-import securityPlugin from 'eslint-plugin-security'
-import unicornPlugin from 'eslint-plugin-unicorn'
-import tseslint from 'typescript-eslint'
+import js from '@eslint/js';
+import globals from 'globals';
+import importPlugin from 'eslint-plugin-import';
+import securityPlugin from 'eslint-plugin-security';
+import unicornPlugin from 'eslint-plugin-unicorn';
+import tseslint from 'typescript-eslint';
 
 export default [
   {
@@ -12,12 +12,15 @@ export default [
       'dist-demo/**',
       'node_modules/**',
       '.vite/**',
+      '.tmp/**',
       'bench/**',
       'coverage/**',
       'scripts/**',
+      'playground/**',
       'vite.config.ts',
       'vite.lib.config.ts',
       'jest.config.cjs',
+      '.size-limit.cjs',
     ],
   },
   js.configs.recommended,
@@ -64,4 +67,4 @@ export default [
       },
     },
   },
-]
+];

@@ -36,3 +36,6 @@ bench/reports/
 
 src/__depricated
 /__depricated/
+
+# Local WIP docs (keep on disk, not in git)
+docs-wip/

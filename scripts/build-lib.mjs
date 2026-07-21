@@ -3,10 +3,11 @@ import { spawnSync } from 'node:child_process';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
-import { readFileSync } from 'node:fs';
+import * as esbuild from 'esbuild';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = resolve(root, 'dist');
+const distEntry = resolve(dist, 'index.js');
 
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -32,10 +33,10 @@ async function walkFiles(dir, out = []) {
   return out;
 }
 
-async function printBuildSummary() {
+/** Package layout sizes (raw only — per-file gzip overstates a real app chunk). */
+async function summarizeDistLayout() {
   const files = await walkFiles(dist);
   let jsBytes = 0;
-  let jsGzipBytes = 0;
   let jsCount = 0;
   let mapBytes = 0;
   let dtsBytes = 0;
@@ -46,7 +47,6 @@ async function printBuildSummary() {
     if (path.endsWith('.js') && !path.endsWith('.js.map')) {
       jsCount += 1;
       jsBytes += size;
-      jsGzipBytes += gzipSync(readFileSync(path)).length;
     } else if (path.endsWith('.map')) {
       mapBytes += size;
     } else if (path.endsWith('.d.ts') || path.endsWith('.d.ts.map')) {
@@ -56,14 +56,54 @@ async function printBuildSummary() {
     }
   }
 
-  const total = jsBytes + mapBytes + dtsBytes + otherBytes;
+  return {
+    jsBytes,
+    jsCount,
+    mapBytes,
+    dtsBytes,
+    otherBytes,
+    total: jsBytes + mapBytes + dtsBytes + otherBytes,
+  };
+}
+
+/**
+ * Consumer-facing estimate: minify + bundle public entry (same idea as size:vite / size-limit).
+ * Not identical to Vite rollup output, but comparable and honest vs per-file gzip sums.
+ */
+async function measureAppEntry() {
+  const result = await esbuild.build({
+    entryPoints: [distEntry],
+    bundle: true,
+    minify: true,
+    write: false,
+    format: 'esm',
+    platform: 'browser',
+    target: 'es2022',
+    logLevel: 'silent',
+  });
+  const buf = Buffer.from(result.outputFiles[0].contents);
+  return {
+    raw: buf.length,
+    gzip: gzipSync(buf, { level: 9 }).length,
+  };
+}
+
+async function printBuildSummary() {
+  const layout = await summarizeDistLayout();
+  const app = await measureAppEntry();
+
   console.log('');
-  console.log('Build summary (dist/)');
-  console.log(`  JS:     ${formatKb(jsBytes)} raw · ${formatKb(jsGzipBytes)} gzip  (${jsCount} files)`);
-  console.log(`  maps:   ${formatKb(mapBytes)}`);
-  console.log(`  dts:    ${formatKb(dtsBytes)}`);
-  if (otherBytes) console.log(`  other:  ${formatKb(otherBytes)}`);
-  console.log(`  TOTAL:  ${formatKb(total)}`);
+  console.log('Build summary');
+  console.log('  dist/ layout (publish package, unminified preserveModules)');
+  console.log(`    JS:     ${formatKb(layout.jsBytes)} raw  (${layout.jsCount} files)`);
+  console.log(`    maps:   ${formatKb(layout.mapBytes)}`);
+  console.log(`    dts:    ${formatKb(layout.dtsBytes)}`);
+  if (layout.otherBytes) console.log(`    other:  ${formatKb(layout.otherBytes)}`);
+  console.log(`    TOTAL:  ${formatKb(layout.total)}`);
+  console.log('  app entry (esbuild minify + bundle of dist/index.js)');
+  console.log(`    raw:    ${formatKb(app.raw)}`);
+  console.log(`    gzip:   ${formatKb(app.gzip)}`);
+  console.log('  tip: npm run size | size:vite for budgets / Vite fixture');
 }
 
 /** Windows-friendly clean: retries, then wipe contents if rmdir stays locked. */
@@ -80,8 +120,8 @@ async function cleanDist() {
     await Promise.all(
       entries.map(async (name) => {
         const path = join(dist, name);
-        const stat = await lstat(path);
-        if (stat.isDirectory()) {
+        const entryStat = await lstat(path);
+        if (entryStat.isDirectory()) {
           await rm(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
         } else {
           await unlink(path);

@@ -4,16 +4,18 @@
  * Measures what a consumer app would pay after Vite minify + single-chunk rollup,
  * not the sum of unminified preserveModules files in dist/.
  *
- * Usage: node scripts/measure-app-bundle.mjs
+ * Usage: npm run size:vite
  */
-import { mkdir, rm, writeFile, readFile, stat } from 'node:fs/promises';
+import { access, mkdir, rm, writeFile, readFile, stat } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync, brotliCompressSync, constants as zlibConstants } from 'node:zlib';
 import { build } from 'vite';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const distEntry = resolve(root, 'dist/index.js');
 const outRoot = resolve(root, '.tmp/bundle-size');
+const packageName = '@auraui/router';
 
 const scenarios = [
   {
@@ -26,7 +28,7 @@ import {
   AuraOutlet,
   defineRouteHook,
   AURA_ROUTER_NAVIGATION_COMPLETE,
-} from '@aura-ui-web/router';
+} from '${packageName}';
 
 const hook = defineRouteHook({
   async load() {
@@ -51,7 +53,7 @@ export { AuraRouter, AuraRoute, AuraOutlet, defineRouteHook };
     id: 'router-only',
     label: 'AuraRouter only (install + configure)',
     code: `
-import { AuraRouter } from '@aura-ui-web/router';
+import { AuraRouter } from '${packageName}';
 
 AuraRouter.configure({ notFoundHandler: () => null });
 AuraRouter.install();
@@ -80,7 +82,7 @@ async function measureScenario(scenario) {
     publicDir: false,
     resolve: {
       alias: {
-        '@aura-ui-web/router': resolve(root, 'dist/index.js'),
+        [packageName]: distEntry,
       },
     },
     build: {
@@ -96,6 +98,7 @@ async function measureScenario(scenario) {
         output: {
           entryFileNames: 'app.js',
           format: 'es',
+          // Vite 8 / Rollup: prefer codeSplitting over deprecated inlineDynamicImports
           codeSplitting: false,
         },
       },
@@ -114,10 +117,17 @@ async function measureScenario(scenario) {
   return { raw, gzip, brotli, path: bundlePath, mtime: fileStat.mtime };
 }
 
+try {
+  await access(distEntry);
+} catch {
+  console.error('Missing dist/index.js. Run `npm run build` first.');
+  process.exit(1);
+}
+
 await mkdir(outRoot, { recursive: true });
 
 console.log('App bundle size (minified single chunk from public entry)\n');
-console.log('Alias: @aura-ui-web/router → dist/index.js');
+console.log(`Alias: ${packageName} → dist/index.js`);
 console.log('Tooling: Vite + esbuild minify, single chunk\n');
 
 const rows = [];

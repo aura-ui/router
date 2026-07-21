@@ -1,4 +1,4 @@
-# TODO: общие стили и presentation-слой transition в core
+﻿# TODO: общие стили и presentation-слой transition в core
 
 > **Статус:** <span style="color: #cf222e; font-weight: bold;">✗</span> не сделано  
 > **Последнее обновление:** 2026-07-06  
@@ -115,7 +115,7 @@ Core отвечает за **когда** два view root в DOM; прилож�
 
 ### P0 — presentation CSS (обязательно для crossfade «из коробки»)
 
-Shipped stylesheet (кандидаты: `aura-outlet/transitions.css`, opt-in import `@aura-ui-web/router/transitions.css`):
+Shipped stylesheet (кандидаты: `aura-outlet/transitions.css`, opt-in import `@auraui/router/transitions.css`):
 
 1. **Outlet as stacking context** — `aura-outlet` или attr `data-aura-transition` → `position: relative`.
 2. **Overlay для staged incoming** — селектор по второму direct child `[data-aura-view-root]` (без demo-префиксов):

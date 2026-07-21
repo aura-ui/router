@@ -1,4 +1,4 @@
-# Bundle size: аудит и split plan (core 15–20 kB)
+﻿# Bundle size: аудит и split plan (core 15–20 kB)
 
 > **Статус:** план (2026-07-20) · код фаз 0–4 ещё не внедрён  
 > **Продуктовое решение:** <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">принято</span> **slim by default**, advanced — opt-in ([§5.4](#54-принятое-решение-slim-by-default--advanced-opt-in))  
@@ -50,7 +50,7 @@ Maps/dts в runtime не едут. Для сравнения с конкурен
 ### 1.2. App bundle (честная метрика)
 
 Скрипт: `scripts/measure-app-bundle.mjs`  
-Alias `@aura-ui-web/router` → `dist/index.js`, Vite, esbuild minify, один чанк.
+Alias `@auraui/router` → `dist/index.js`, Vite, esbuild minify, один чанк.
 
 | Сценарий | raw | gzip | brotli |
 |----------|----:|-----:|------:|
@@ -116,8 +116,8 @@ Aura сейчас **между Vue Router и TanStack/RR** по клиентск
 ```
 consumer import
       │
-      ├─ @aura-ui-web/router            → slim DEFAULT (~15–20 kB)  ★ WC-first
-      ├─ @aura-ui-web/router/full      → всё сразу (~28–32 kB)     DX / migration
+      ├─ @auraui/router            → slim DEFAULT (~15–20 kB)  ★ WC-first
+      ├─ @auraui/router/full      → всё сразу (~28–32 kB)     DX / migration
       │
       └─ opt-in (поверх slim):
             ├─ /prefetch
@@ -126,7 +126,7 @@ consumer import
             └─ /cache             (AuraCacheStore SWR/GC)
 ```
 
-Алиас: `@aura-ui-web/router/core` → тот же граф, что `.` (slim), если нужен явный путь в доках.
+Алиас: `@auraui/router/core` → тот же граф, что `.` (slim), если нужен явный путь в доках.
 
 Внутри engine — **порты + lazy factory**, не второй класс `AuraRouter`.  
 Pipeline уже делегирует в `tx.engine.resourceGraph.load` — удобная граница для `PreparePort`.
@@ -212,26 +212,26 @@ Navigation + view mount **не резать** — must-have для этой ЦА
 | Способ | Когда | Заметка |
 |--------|-------|---------|
 | **Default `.` = slim** | основной путь | Реально маленький бандл |
-| **`import '@aura-ui-web/router/prefetch'`** (и `/data`, `/cache`, …) | точечный advanced | Bundler видит зависимость; tree-shake честный |
-| **`@aura-ui-web/router/full`** или `install({ preset: 'full' })` | «всё сразу» / demo / migration | Одна строка DX без сборки opt-in вручную |
+| **`import '@auraui/router/prefetch'`** (и `/data`, `/cache`, …) | точечный advanced | Bundler видит зависимость; tree-shake честный |
+| **`@auraui/router/full`** или `install({ preset: 'full' })` | «всё сразу» / demo / migration | Одна строка DX без сборки opt-in вручную |
 | **`configure({ prefetch: 'intent' })`** | включает *поведение* | Код подтягивает side-entry или documented `import()`; не сканировать DOM на `install` |
 
 Пример целевого DX:
 
 ```ts
 // default — slim (быстрая загрузка)
-import { AuraRouter } from '@aura-ui-web/router';
+import { AuraRouter } from '@auraui/router';
 AuraRouter.install();
 
 // advanced — явно
-import { AuraRouter } from '@aura-ui-web/router';
-import '@aura-ui-web/router/prefetch';
-import '@aura-ui-web/router/data';
+import { AuraRouter } from '@auraui/router';
+import '@auraui/router/prefetch';
+import '@auraui/router/data';
 AuraRouter.configure({ prefetch: 'intent' });
 AuraRouter.install();
 
 // или всё сразу
-import { AuraRouter } from '@aura-ui-web/router/full';
+import { AuraRouter } from '@auraui/router/full';
 AuraRouter.install();
 ```
 

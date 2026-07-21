@@ -11,6 +11,7 @@
 | [DATAGRAPH_GAPS.md](./DATAGRAPH_GAPS.md) | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> invalidate + `parent()` ✓ · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> defer · shouldRevalidate · UI-on-stale |
 | [DATAGRAPH_LOAD_DAG.md](./DATAGRAPH_LOAD_DAG.md) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓</span> parallel default + opt-in `ctx.parent()` · engine-forced DAG ⊘ |
 | [NAVIGATION_PERF_AUDIT.md](./NAVIGATION_PERF_AUDIT.md) | **Аудит:** hot path perf — узкие места + ссылка на `bench/` |
+| [BUNDLE_SIZE_SPLIT.md](./BUNDLE_SIZE_SPLIT.md) | **Аудит + plan:** slim default 15–20 kB (§5.4 принято); `/full` ~30; ЦА WC/HTML |
 | [DATA_SWR_PARITY.md](./DATA_SWR_PARITY.md) | <span style="background:#f59e0b;color:#111;padding:2px 8px;border-radius:4px;font-weight:700">~</span> DataGraph SWR ✓ · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> shouldRevalidate · per-route TTL · view SWR |
 | [CONTENT_CACHE.md](./CONTENT_CACHE.md) | <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">✓ v1</span> ViewGraph/ViewPayloadCache · <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700">✗</span> unified invalidate · view SWR default |
 | [LINK_DRIVEN_PRELOAD.md](./LINK_DRIVEN_PRELOAD.md) | **Принятая стратегия:** link-driven prefetch + router-owned Data cache |
@@ -42,7 +43,7 @@
 | [SSR_SERVER_NAVIGATION_PATH.md](./SSR_SERVER_NAVIGATION_PATH.md) | ⚠️ **Под вопросом:** отдельный server navigation path (HTTP redirect, load redirect, не client pipeline) |
 | [ROUTE_API_V3.md](./ROUTE_API_V3.md) | Путь as-is → [README](../README.md): `view`, loaders, lifecycle `guard\|ready`, `cache` |
 | [NESTED_ROUTES_JOY_MODEL.md](./NESTED_ROUTES_JOY_MODEL.md) | Route Folders: nested DX поверх v3 — **статус реализации** (✓/~✗/⏸); redirect — последний этап |
-| [PRE_RELEASE_0.0.1.md](./PRE_RELEASE_0.0.1.md) | **Чеклист:** merge в `main` + npm `@aura-ui-web/router@0.0.1` — аудит, блокеры, must-have |
+| [PRE_RELEASE_0.0.1.md](./PRE_RELEASE_0.0.1.md) | **Чеклист:** merge в `main` + npm `@auraui/router@0.0.1` — аудит, блокеры, must-have |
 | [ADOPTION_AND_GTM.md](./ADOPTION_AND_GTM.md) | Перспективы, GTM, hero README/landing, outline Vaadin→Aura migration |
 | [DOCUMENT_FIRST_WC.md](./DOCUMENT_FIRST_WC.md) | **Стратегия:** document-first + WC — что «дожать», чеклист, tiered prefetch, ЦА |
 | [NAVIGATION_ERROR_V2.md](./NAVIGATION_ERROR_V2.md) | **Реализовано:** обработка ошибок v2 — detection / recovery / reporting (5 фаз) |

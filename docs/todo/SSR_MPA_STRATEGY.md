@@ -1,4 +1,4 @@
-# SSR & MPA → SPA — стратегия и границы ответственности
+﻿# SSR & MPA → SPA — стратегия и границы ответственности
 
 > **Статус:** design / decision record (2026-06-30)  
 > **Публичный roadmap:** только **MPA → SPA** (client hydration) — [ROADMAP.md](../../ROADMAP.md) Phase 8.  
@@ -89,7 +89,7 @@ GET /users
 
 ```ts
 // app.js
-import { AuraRouter } from '@aura-ui-web/router';
+import { AuraRouter } from '@auraui/router';
 AuraRouter.install();
 ```
 

@@ -20,8 +20,9 @@ function run(command, args) {
   }
 }
 
+/** SI kilobytes (1 kB = 1000 B), same base as size-limit — not KiB (1024). */
 function formatKb(bytes) {
-  return `${(bytes / 1024).toFixed(2)} kB`;
+  return `${(bytes / 1000).toFixed(2)} kB`;
 }
 
 async function walkFiles(dir, out = []) {
@@ -94,9 +95,10 @@ async function printBuildSummary() {
 
   console.log('');
   console.log('Build summary');
+  console.log('  units: SI kB (÷1000), same as size-limit — not KiB (÷1024)');
   console.log('  dist/ layout (publish package, unminified preserveModules)');
   console.log(`    JS:     ${formatKb(layout.jsBytes)} raw  (${layout.jsCount} files)`);
-  console.log(`    maps:   ${formatKb(layout.mapBytes)}`);
+  if (layout.mapBytes) console.log(`    maps:   ${formatKb(layout.mapBytes)}`);
   console.log(`    dts:    ${formatKb(layout.dtsBytes)}`);
   if (layout.otherBytes) console.log(`    other:  ${formatKb(layout.otherBytes)}`);
   console.log(`    TOTAL:  ${formatKb(layout.total)}`);

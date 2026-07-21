@@ -55,6 +55,7 @@ import {
   type NotFoundHandler,
 } from './navigation-events';
 import { ScrollRestoration } from './scroll-restoration';
+import { memoize } from '../../aura-utils/decorators/memoize';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -220,9 +221,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.querySelectorAll<AuraRoute>(AuraRoute.is);
   }
 
+  @memoize()
   get appOutlet(): AuraOutlet {
-    return this.querySelector(AuraOutlet.is) as AuraOutlet;
-    // ?? this.#ensureDefaultOutlet();
+    let outlet = document.querySelector(AuraOutlet.is) as AuraOutlet | null;
+    if (!outlet) {
+      outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+      this.parentNode?.insertBefore(outlet, this);
+    }
+    return outlet;
   }
 
   connectedCallback(): void {

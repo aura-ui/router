@@ -38,7 +38,6 @@ describe('AuraRouter data-router-active-class', () => {
         <a href="/" data-router-link>Home</a>
         <a href="/about" data-router-link>About</a>
       </nav>
-      <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route path="/about" view="html::<p>about</p>"></aura-route>
     `;
@@ -83,7 +82,6 @@ describe('AuraRouter data-router-active-class', () => {
         <a href="/" data-router-link>Home</a>
         <a href="/about" data-router-link>About</a>
       </nav>
-      <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route path="/about" view="html::<p>about</p>"></aura-route>
     `;
@@ -117,31 +115,35 @@ describe('AuraRouter data-router-active-class', () => {
   });
 
   it('re-syncs active class on links that arrive with the new view', async () => {
+    const site = document.createElement('div');
+    site.className = 'site';
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('data-router-active-class', 'is-active');
+    // Sibling outlet is outside <aura-router>; widen active-link scan to the shell.
+    router.setAttribute('data-router-link-root', '.site');
     router.innerHTML = `
       <nav>
         <a href="/" data-router-link>Home</a>
         <a href="/about" data-router-link>About</a>
       </nav>
-      <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route
         path="/about"
         view="html::<p>about</p><a href=&quot;/about&quot; data-router-link data-testid=&quot;in-view&quot;>About in view</a>"
       ></aura-route>
     `;
-    document.body.append(router);
+    site.append(router);
+    document.body.append(site);
 
     await customElements.whenDefined('aura-route');
     await flushNavigation();
 
-    expect(router.querySelector('[data-testid="in-view"]')).toBeNull();
+    expect(router.appOutlet.querySelector('[data-testid="in-view"]')).toBeNull();
 
     router.navigate('/about');
     await flushNavigation();
 
-    const inView = router.querySelector<HTMLAnchorElement>('[data-testid="in-view"]');
+    const inView = router.appOutlet.querySelector<HTMLAnchorElement>('[data-testid="in-view"]');
     expect(inView).not.toBeNull();
     expect(inView!.classList.contains('is-active')).toBe(true);
     expect(inView!.getAttribute('aria-current')).toBe('page');
@@ -181,7 +183,6 @@ describe('AuraRouter data-router-active-class', () => {
         <a href="/docs#intro" data-router-link>Intro</a>
         <a href="/docs#faq" data-router-link>FAQ</a>
       </nav>
-      <aura-outlet></aura-outlet>
       <aura-route path="/docs" view="html::<p>docs</p>"></aura-route>
     `;
     document.body.append(router);
@@ -225,7 +226,6 @@ describe('AuraRouter data-branch-active-class and trail', () => {
         <a href="/app/settings" data-router-link>Settings</a>
         <a href="/app/settings/profile" data-router-link>Profile</a>
       </nav>
-      <aura-outlet></aura-outlet>
       <aura-route path="/app/settings" layout="settings-layout">
         <aura-route path="profile" view="html::<p>profile</p>"></aura-route>
       </aura-route>
@@ -253,7 +253,6 @@ describe('AuraRouter data-branch-active-class and trail', () => {
   it('exposes router.trail for the active route chain', async () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.innerHTML = `
-      <aura-outlet></aura-outlet>
       <aura-route path="/app" layout="app-layout">
         <aura-route path="settings" layout="settings-layout">
           <aura-route path="profile" view="html::<p>profile</p>"></aura-route>

@@ -17,7 +17,6 @@ describe('Prefetch cascade link > route > router', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('prefetch', 'intent');
     router.innerHTML = `
-      <aura-outlet></aura-outlet>
       <aura-route path="/quiet" prefetch="false" view="html::x"></aura-route>
     `;
     document.body.append(router);
@@ -40,7 +39,6 @@ describe('Prefetch cascade link > route > router', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('prefetch', 'intent');
     router.innerHTML = `
-      <aura-outlet></aura-outlet>
       <aura-route path="/tap" prefetch="false" view="html::x"></aura-route>
     `;
     document.body.append(router);
@@ -64,7 +62,6 @@ describe('Prefetch cascade link > route > router', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('prefetch', 'tap');
     router.innerHTML = `
-      <aura-outlet></aura-outlet>
       <aura-route path="/feed" view="html::x"></aura-route>
     `;
     document.body.append(router);

@@ -95,12 +95,7 @@ async function mountBranchFixture(routerAttrs: Record<string, string> = {}): Pro
   for (const [name, value] of Object.entries(routerAttrs)) {
     router.setAttribute(name, value);
   }
-  router.append(
-    document.createElement(AuraOutlet.is),
-    home,
-    users,
-    gallery,
-  );
+  router.append(home, users, gallery);
   document.body.append(router);
 
   await customElements.whenDefined(AuraRoute.is);
@@ -290,7 +285,7 @@ describe('atomic branch commit integration', () => {
 
     registerAuraRouterComponents();
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.append(document.createElement(AuraOutlet.is), home, users);
+    router.append(home, users);
     document.body.append(router);
 
     await customElements.whenDefined(AuraRoute.is);
@@ -347,7 +342,7 @@ describe('atomic branch commit integration', () => {
 
     registerAuraRouterComponents();
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.append(document.createElement(AuraOutlet.is), home, users);
+    router.append(home, users);
     document.body.append(router);
 
     await customElements.whenDefined(AuraRoute.is);
@@ -384,7 +379,7 @@ describe('atomic branch commit integration', () => {
 
     registerAuraRouterComponents();
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.append(document.createElement(AuraOutlet.is), home, users);
+    router.append(home, users);
     document.body.append(router);
 
     await customElements.whenDefined(AuraRoute.is);

@@ -36,7 +36,6 @@ describe('AuraRouter.invalidate', () => {
     });
 
     const router = await mountRouter(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/items" load="fetch-items" cache="data" view="html::x"></aura-route>
     `);
 
@@ -54,7 +53,6 @@ describe('AuraRouter.invalidate', () => {
 
   it('dispatches data-invalidated', async () => {
     const router = await mountRouter(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/items" load="fetch-items" cache="data" view="html::x"></aura-route>
     `);
 
@@ -90,7 +88,6 @@ describe('AuraRouter.invalidate', () => {
     });
 
     const router = await mountRouter(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/items" load="fetch-items" cache="data" view="html::a"></aura-route>
       <aura-route path="/profile" load="fetch-user" cache="data" view="html::b"></aura-route>
     `);
@@ -116,7 +113,6 @@ describe('AuraRouter.invalidate', () => {
     });
 
     const router = await mountRouter(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/page" view="html::x" cache="view"></aura-route>
     `);
 
@@ -188,7 +184,6 @@ describe('AuraRouter.invalidateView', () => {
     });
 
     const router = await mountRouter(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/page" load="fetch-items" cache="all" view="html::x"></aura-route>
     `);
 

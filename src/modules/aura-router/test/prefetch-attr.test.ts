@@ -29,7 +29,6 @@ describe('AuraRouter prefetch attr', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('prefetch', 'false');
     router.innerHTML = `
-      <aura-outlet></aura-outlet>
       <aura-route path="/about" view="prefetch-router-probe::x"></aura-route>
     `;
     document.body.append(router);
@@ -52,7 +51,6 @@ describe('AuraRouter prefetch attr', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('prefetch', 'intent');
     router.innerHTML = `
-      <aura-outlet></aura-outlet>
       <aura-route path="/about" view="prefetch-router-intent::x"></aura-route>
     `;
     document.body.append(router);

@@ -108,7 +108,6 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
     });
 
     const { router, collectors } = await mount(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route path="/about" view="html::<p>about</p>" load="eb3-load"></aura-route>
     `);
@@ -141,7 +140,6 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
 
   it('fast path: no prepare/load; DOM start → navigation → complete', async () => {
     const { router, collectors } = await mount(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route path="/about" view="html::<p>about</p>"></aura-route>
     `);
@@ -184,7 +182,6 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
     });
 
     const { router, collectors } = await mount(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route path="/slow" view="html::<p>slow</p>" load="eb3-slow-load"></aura-route>
       <aura-route path="/about" view="html::<p>about</p>"></aura-route>
@@ -233,7 +230,6 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
 
   it('redirect (collapsed walk): no redirect terminal; final nav completes on target', async () => {
     const { router, collectors } = await mount(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route path="/go" redirect="/about"></aura-route>
       <aura-route path="/about" view="html::<p>about</p>"></aura-route>
@@ -266,7 +262,6 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
 
   it('redirect bus terminal maps to navigation-redirect DOM', async () => {
     const { router, collectors } = await mount(`
-      <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
     `);
     collectors.clear();

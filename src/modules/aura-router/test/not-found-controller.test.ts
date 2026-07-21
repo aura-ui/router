@@ -16,17 +16,19 @@ function createHost(options: { notFoundTemplate?: string; withOutlet?: boolean }
     configurable: true,
   });
 
-  if (options.withOutlet !== false) {
-    outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-    router.appendChild(outlet);
-  }
-
   Object.defineProperty(router, 'appOutlet', {
     get: () => outlet as AuraOutlet,
     configurable: true,
   });
 
   document.body.appendChild(router);
+
+  if (options.withOutlet !== false) {
+    // Sibling before host — mirrors AuraRouter.appOutlet placement.
+    outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+    document.body.insertBefore(outlet, router);
+  }
+
   return router;
 }
 
@@ -115,7 +117,8 @@ describe('AuraRouterNotFoundController', () => {
     expect(router.appOutlet.children).toHaveLength(1);
   });
 
-  it('throws when root outlet is missing', () => {
+  it('throws when appOutlet resolves to null', () => {
+    // Defensive path for hosts that do not auto-create (AuraRouter always does).
     const router = createHost({ withOutlet: false });
     const controller = new AuraRouterNotFoundController(router);
 

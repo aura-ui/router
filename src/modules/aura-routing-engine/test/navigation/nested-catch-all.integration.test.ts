@@ -1,6 +1,5 @@
 /** @jest-environment jsdom */
 
-import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { registerAuraRouterComponents } from '../../../aura-router/core/aura-router-setup';
@@ -49,7 +48,7 @@ async function mountNestedCatchAllFixture(): Promise<Fixture> {
 
   registerAuraRouterComponents();
   const router = document.createElement(AuraRouter.is) as AuraRouter;
-  router.append(document.createElement(AuraOutlet.is), users);
+  router.append(users);
   document.body.append(router);
 
   await customElements.whenDefined(AuraRoute.is);

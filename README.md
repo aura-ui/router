@@ -30,8 +30,6 @@ This registers `<aura-router>`, `<aura-route>`, and `<aura-outlet>`.
 Put an outlet where content should appear, and list routes under `<aura-router>`:
 
 ```html
-<aura-outlet></aura-outlet>
-
 <aura-router>
   <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>

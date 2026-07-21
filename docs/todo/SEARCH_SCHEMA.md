@@ -1,4 +1,4 @@
-# RFC: Search schema (`search` attr + `useSearchSchema`)
+﻿# RFC: Search schema (`search` attr + `useSearchSchema`)
 
 > **Статус:** draft (RFC)  
 > **Дата:** 2026-07-02  
@@ -82,7 +82,7 @@ Leaf route **перебивает** router default. Layout без `search` на�
 
 ```ts
 import { z } from 'zod';
-import { AuraRouter, defineSearchSchema } from '@aura-ui-web/router';
+import { AuraRouter, defineSearchSchema } from '@auraui/router';
 
 const productsSearch = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -414,7 +414,7 @@ router.navigate('/products', { search: { page: 1 } });
 | # | Task |
 |---|------|
 | 3.1 | Codegen: scan `search="…"` → typed navigate helpers |
-| 3.2 | `@aura-ui-web/router-zod` adapter package |
+| 3.2 | `@auraui/router-zod` adapter package |
 | 3.3 | SSR: validate search on server HTML render |
 
 ---

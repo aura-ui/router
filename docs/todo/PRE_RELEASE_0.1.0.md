@@ -1,4 +1,4 @@
-# Pre-release checklist: 0.1.0
+﻿# Pre-release checklist: 0.1.0
 
 > **Audience:** solo maintainer  
 > **Goal:** npm-installable library + honest docs + demo — **no new subsystems**  
@@ -74,7 +74,7 @@ npm pack
 
 | Metric | Target |
 |--------|--------|
-| `import { AuraRouter } from '@aura-ui-web/router'` | works |
+| `import { AuraRouter } from '@auraui/router'` | works |
 | README matches attrs | yes |
 | Dogfood 2+ weeks on own project | post-release |
 | External user runs demo | bonus |

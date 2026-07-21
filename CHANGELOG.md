@@ -10,32 +10,38 @@ Package version in `package.json` is **`0.0.1`**. Nothing from this tree has bee
 
 ### Added
 
-- Routing engine, Jest tests, and Vite demo (feature branches; not on `main`).
+- **Routing engine architecture** — `NavigationCoordinator` → `NavigationTransaction` → `NavigationTransactionPipeline` (match → guards → prepare/load → render → effects); modules under `aura-routing-engine/core/` (route-tree, prefetch, DataGraph, ViewGraph, resource-graph, view-mount, history, redirect, failure).
+- **Typed EventBus** — `EventBus` + `NavigationPulse`; subscribe via `router.events` (navigation / load lifecycle emits).
+- Jest test suite and Vite demo (`src/examples/demo`; feature branches, not on `main` yet).
 - Declarative `redirect` attr (max hop limit); redirect chains resolve pre-commit in a single navigation run.
-- View loaders: `url`, `import`, `iframe`, `html`, `template`, `component`; `extract` attr for fragment selection on URL fetches.
+- View loaders: `url`, `import`, `iframe`, `html`, `template`, `component`; `extract` attr for fragment selection on URL fetches; `view="loader::content"` form.
+- Public lifecycle attrs on `<aura-route>` / inherit from router: `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error` (plus transition attrs).
+- `cache` attr (`data` / `view` / `screen` / `all` / `dom`; inherit opt-out) — replaces legacy `preserve`.
 - `param-change` attr (`update` | `navigate`) for same-route param updates / remount.
 - `mount-strategy` attr; parallel enter-branch resolve then sync mount (branch-atomic).
 - Canonical href resolution and trailing-slash policy for nested routes.
 - Active links (class + `aria-current`), router trail entry, branch active class.
 - Nested `<aura-outlet>`, `AuraRouter.prefetch()`, link prefetch cascade (intent / tap).
 - DataGraph long cache with global `staleTime` (~30s); `router.invalidate()` and `data-invalidated` event.
-- Navigation events bus, navigation pulse, nav outcome handling (including after view commit).
 - Resource graph (data + view load, resource keys, handoff / shared buffer, in-flight join).
 - Transition-plan fast paths (`canUseDomCacheFastPath`, `canUseViewCacheFastPath`).
 - `NavigationTransactionPipeline` with `commitHistory` before loads (optimistic history).
 - Detached snapshot rollback for replace mounts; pre-resolved view render path.
 - Shared-buffer pin strategy (buffer lifetime not tied to a single navigation).
+- Scroll restoration and URLPattern-based matcher.
+- Structured navigation failures (`NavigationFailure`) + `navigation-error` / `not-found` DOM events.
+- Lib packaging: `package.json` `exports` / types / `files`, `src/index.ts`, `npm run build` → `scripts/build-lib.mjs`, `npm run smoke`.
 
 ### Changed
 
-- `preserve` attr replaced by `cache` (`data` / `view` / `screen` / `all` / `dom`); inherit opt-out standardized.
-- Lifecycle attrs: `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error` (plus transition attrs). No `reenter` attr.
+- `preserve` attr removed in favor of `cache` (`data` / `view` / `screen` / `all` / `dom`); inherit opt-out standardized (`none` / `off` / `false`).
+- Lifecycle rename to short public attrs: `guard`, `load`, `ready`, `leave`, … (no `reenter` attr; no deprecated `enter` / `after` aliases).
 - Single prepare/load phase for navigation; `mount-strategy="per-route"` removed.
 - Redirects are not produced from the load phase; redirect follow uses a guard walk (`skipBlockingPhases`).
 - DataGraph / ViewGraph owned by resource graph; load vs prefetch is a load `mode`.
 - Terminal failures modeled as `NavigationFailure`; navigation generations keyed by `transactionId`.
 - View attr form is `loader::content` (view-graph module; formerly content-graph).
-- `npm run build` is `tsc && vite build` (typecheck/emit + Vite demo shells).
+- `npm run build` emits the library via `scripts/build-lib.mjs` (`tsc -p tsconfig.build.json` + Vite lib); demo shells use `npm run build:demo` / `vite build`.
 
 ### Fixed
 
@@ -54,4 +60,4 @@ Package version in `package.json` is **`0.0.1`**. Nothing from this tree has bee
 
 ### Known limitations
 
-See [LIMITATIONS.md](./LIMITATIONS.md). Packaging (`exports` / public entry) is still unfinished — see the pre-release checklist.
+See [LIMITATIONS.md](./LIMITATIONS.md). First publish still needs merge to `main` (registry stub `@auraui/router@0.0.0` is expected until then). Planned later: lite default entry vs `@auraui/router/full`, DataGraph SWR parity (`shouldRevalidate`, public `defer()`), engine `renderNode()`, View Transitions API — see [ROADMAP.md](./ROADMAP.md).

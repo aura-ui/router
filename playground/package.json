@@ -1,0 +1,20 @@
+{
+  "name": "playground",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx esbuild src/main.js --bundle --format=esm --outfile=static/main.js",
+    "dev": "npm run build && node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@auraui/router": "../auraui-router-0.0.1.tgz",
+    "@fastify/static": "^10.1.0",
+    "fastify": "^5.10.0"
+  }
+}

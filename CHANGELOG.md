@@ -1,6 +1,6 @@
-# Changelog
+﻿# Changelog
 
-All notable changes to `@aura-ui-web/router` are documented here.
+All notable changes to `@auraui/router` are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 

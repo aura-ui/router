@@ -1,4 +1,4 @@
-# view-graph
+﻿# view-graph
 
 Модуль загрузки **view-payload** для маршрутов: layout из `<template>`, HTML, HTTP, web components и кастомные источники.
 
@@ -182,7 +182,7 @@ registry.register('charts', loaderFn);  // функция → FnLoader
 ### Функция (рекомендуется)
 
 ```ts
-import { AuraRouter } from '@aura-ui-web/router';
+import { AuraRouter } from '@auraui/router';
 
 AuraRouter.registerLoader('charts', async (context) => {
   // view="charts::dashboard" → context.content === 'dashboard'

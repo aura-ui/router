@@ -1,26 +1,20 @@
-import {
-  DEFAULT_ROUTER_MOUNT_STRATEGY,
-  parseMountStrategyAttr,
-} from '../../core/attr/mount-strategy-attr-parser';
+import { parseMountStrategyAttr } from '../../core/attr/mount-strategy-attr-parser';
 
 describe('parseMountStrategyAttr', () => {
-  it('returns null when attr is absent', () => {
-    expect(parseMountStrategyAttr(null)).toBeNull();
+  it('returns branch when attr is absent', () => {
+    expect(parseMountStrategyAttr(null)).toBe('branch');
   });
 
-  it('returns null for empty or unknown values', () => {
-    expect(parseMountStrategyAttr('')).toBeNull();
-    expect(parseMountStrategyAttr('   ')).toBeNull();
-    expect(parseMountStrategyAttr('eager')).toBeNull();
-  });
-
-  it('parses known mount strategies', () => {
-    expect(parseMountStrategyAttr('per-route')).toBeNull();
+  it('returns branch for empty, off, unknown, or explicit branch', () => {
+    expect(parseMountStrategyAttr('')).toBe('branch');
+    expect(parseMountStrategyAttr('   ')).toBe('branch');
+    expect(parseMountStrategyAttr('off')).toBe('branch');
+    expect(parseMountStrategyAttr('eager')).toBe('branch');
+    expect(parseMountStrategyAttr('per-route')).toBe('branch');
     expect(parseMountStrategyAttr('BRANCH')).toBe('branch');
-    expect(parseMountStrategyAttr(' full ')).toBe('full');
   });
 
-  it('exposes recommended router default', () => {
-    expect(DEFAULT_ROUTER_MOUNT_STRATEGY).toBe('branch');
+  it('parses full', () => {
+    expect(parseMountStrategyAttr(' full ')).toBe('full');
   });
 });

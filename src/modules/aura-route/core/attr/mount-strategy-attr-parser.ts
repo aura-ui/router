@@ -1,19 +1,11 @@
-/** `mount-strategy` attr: branch · full (P1). `per-route` removed — all mounts use branch prepare/commit. */
-export const MOUNT_STRATEGIES = ['branch', 'full'] as const;
+/** Enter-branch mount mode from `mount-strategy` (`branch` default, `full` = URL+DOM together). */
+export type MountStrategy = 'branch' | 'full';
 
-export type MountStrategy = (typeof MOUNT_STRATEGIES)[number];
+const DEFAULT_ROUTER_MOUNT_STRATEGY: MountStrategy = 'branch';
 
-/** Recommended explicit router default when using the attr (heuristic applies when absent). */
-export const DEFAULT_ROUTER_MOUNT_STRATEGY: MountStrategy = 'branch';
-
-const MODES = new Set<string>(MOUNT_STRATEGIES);
-
-import { isOffKeyword } from './off-keyword';
-
-export function parseMountStrategyAttr(value: string | null): MountStrategy | null {
-  if (value === null) return null;
-  const trimmed = value.trim().toLowerCase();
-  if (!trimmed || isOffKeyword(trimmed)) return null;
-  if (MODES.has(trimmed)) return trimmed as MountStrategy;
-  return null;
+/** Parses `mount-strategy`. Absent / unknown → `branch`. */
+export function parseMountStrategyAttr(value: string | null): MountStrategy {
+  const trimmed = value?.trim().toLowerCase() ?? '';
+  if (trimmed === 'full') return trimmed;
+  return DEFAULT_ROUTER_MOUNT_STRATEGY;
 }

@@ -36,7 +36,7 @@ export function createTestRoute(
     error: null,
     unmount: null,
     update: null,
-    mountStrategy: null,
+    mountStrategy: 'branch',
     extract: null,
     layout: '',
     redirect: '',

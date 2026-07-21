@@ -77,7 +77,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @routeAttr({ parser: parseScrollAttr, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   @routeAttr({ parser: parsePrefetchAttr }) prefetch: PrefetchType | false | null;
-  @routeAttr({ parser: parseMountStrategyAttr }) mountStrategy: MountStrategy | null;
+  @routeAttr({ parser: parseMountStrategyAttr }) mountStrategy: MountStrategy;
   @routeAttr({ parser: parseCacheAttr }) cache: CacheFlags;
   @routeAttr({ inherit: false }) redirect: string;
 

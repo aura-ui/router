@@ -6,14 +6,14 @@ import { matchLinkActive } from './match';
 export interface SyncRouterActiveLinksOptions {
   root: ParentNode;
   linksSelector: string;
-  exactActiveClass?: string;
-  prefixActiveClass?: string;
+  linkActiveClass?: string;
+  linkActiveBranchClass?: string;
   currentHref: string;
 }
 
 export function syncRouterActiveLinks(options: SyncRouterActiveLinksOptions): void {
-  const exactClasses = options.exactActiveClass?.split(/\s+/).filter(Boolean) ?? [];
-  const prefixClasses = options.prefixActiveClass?.split(/\s+/).filter(Boolean) ?? [];
+  const exactClasses = options.linkActiveClass?.split(/\s+/).filter(Boolean) ?? [];
+  const prefixClasses = options.linkActiveBranchClass?.split(/\s+/).filter(Boolean) ?? [];
   if (!exactClasses.length && !prefixClasses.length) return;
 
   const { root, linksSelector, currentHref } = options;
@@ -36,25 +36,25 @@ export function syncRouterActiveLinks(options: SyncRouterActiveLinksOptions): vo
 
 export interface ActiveLinkSyncConfig {
   linksSelector: string;
-  exactActiveClass: string | null;
-  prefixActiveClass: string | null;
-  scopeSelector: string | null;
+  linkActiveClass: string | null;
+  linkActiveBranchClass: string | null;
+  linksContainerSelector: string | null;
 }
 
-/** Sync active classes on `[data-router-link]` anchors under a router host element. */
+/** Sync active classes on `[aura-router-link]` anchors under a router host element. */
 export function syncRouterHostActiveLinks(
   host: HTMLElement,
   currentHref: string,
   config: ActiveLinkSyncConfig,
 ): void {
-  if (!config.exactActiveClass && !config.prefixActiveClass) return;
+  if (!config.linkActiveClass && !config.linkActiveBranchClass) return;
 
-  const scope = config.scopeSelector;
+  const scope = config.linksContainerSelector;
   syncRouterActiveLinks({
     root: scope ? (host.closest(scope) ?? host) : host,
     linksSelector: config.linksSelector,
-    exactActiveClass: config.exactActiveClass ?? undefined,
-    prefixActiveClass: config.prefixActiveClass ?? undefined,
+    linkActiveClass: config.linkActiveClass ?? undefined,
+    linkActiveBranchClass: config.linkActiveBranchClass ?? undefined,
     currentHref,
   });
 }

@@ -29,7 +29,7 @@ describe('LinkPrefetchIntentTracker', () => {
 
     tracker.start();
 
-    document.body.innerHTML = '<a href="/about" data-router-link>About</a>';
+    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
     document.querySelector('a')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
     expect(scheduleIntent).toHaveBeenCalledWith('/about', 'intent');
@@ -41,7 +41,7 @@ describe('LinkPrefetchIntentTracker', () => {
 
     tracker.start();
 
-    document.body.innerHTML = '<a href="/about" data-router-link data-prefetch="false">About</a>';
+    document.body.innerHTML = '<a href="/about" aura-router-link data-prefetch="false">About</a>';
     document.querySelector('a')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
     expect(scheduleIntent).not.toHaveBeenCalled();
@@ -53,7 +53,7 @@ describe('LinkPrefetchIntentTracker', () => {
 
     tracker.start();
 
-    document.body.innerHTML = '<a href="/about" data-router-link>About</a>';
+    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
     const link = document.querySelector('a')!;
     link.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
 

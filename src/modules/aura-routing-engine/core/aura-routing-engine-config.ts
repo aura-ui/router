@@ -10,7 +10,7 @@ import type { ViewGraph, LoaderRegistry, ViewGraphCacheOptions } from './view-gr
  * One object — read top-to-bottom.
  */
 export const ENGINE_DEFAULTS = {
-  linksSelector: '[data-router-link]',
+  linksSelector: '[aura-router-link]',
   hash: false,
 
   /** `cache.view` — max entries, GC after 12h. */
@@ -42,7 +42,7 @@ export const ENGINE_DEFAULTS = {
 } as const;
 
 export interface AuraRoutingEngineConfig {
-  /** Default: `'[data-router-link]'`. */
+  /** Default: `'[aura-router-link]'`. */
   linksSelector?: string;
   /** Default: `false`. */
   hash?: boolean;

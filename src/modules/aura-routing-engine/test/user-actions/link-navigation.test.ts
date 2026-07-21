@@ -12,7 +12,7 @@ describe('LinkNavigationTracker', () => {
     tracker.onNavigation(onNavigation);
     tracker.start();
 
-    document.body.innerHTML = '<a href="/about" data-router-link>About</a>';
+    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
     const link = document.querySelector('a')!;
     const event = new MouseEvent('click', { bubbles: true, cancelable: true });
     link.dispatchEvent(event);
@@ -33,7 +33,7 @@ describe('LinkNavigationTracker', () => {
     tracker.onNavigation(onNavigation);
     tracker.start();
 
-    document.body.innerHTML = '<a href="https://example.com" data-router-link>External</a>';
+    document.body.innerHTML = '<a href="https://example.com" aura-router-link>External</a>';
     document.querySelector('a')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(onNavigation).not.toHaveBeenCalled();
@@ -47,7 +47,7 @@ describe('LinkNavigationTracker', () => {
     tracker.onNavigation(onNavigation);
     tracker.start();
 
-    document.body.innerHTML = '<a href="profile" data-router-link>Profile</a>';
+    document.body.innerHTML = '<a href="profile" aura-router-link>Profile</a>';
     document.querySelector('a')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 
     expect(onNavigation).toHaveBeenCalledWith({

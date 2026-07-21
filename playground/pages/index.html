@@ -5,20 +5,27 @@
 </head>
 <body>
 Привет!
-<ul>
-  <li><a href="/a" data-router-link>Page A</a></li>
-  <li><a href="/b" data-router-link>Page B</a></li>
-</ul>
 
+<nav>
+  <a href="/" aura-router-link>Home</a>
+  <a href="/about" aura-router-link>About</a>
+</nav>
+
+<aura-outlet></aura-outlet>
 <aura-router>
-  <aura-route></aura-route>
-  <aura-route></aura-route>
+  <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
+  <aura-route path="/about" view="template::about-page"></aura-route>
+  <aura-route path="*" view="template::not-found"></aura-route>
 </aura-router>
 
-<aura-router>
-  <aura-outlet></aura-outlet>
-  <aura-route path="a" view="html::sasdasdsadsadasdsa"></aura-route>
-  <aura-route path="b" view="html::bbbb"></aura-route>
-</aura-router>
+<template id="about-page">
+  <h1>About</h1>
+  <p>Static markup or Web Components go here.</p>
+</template>
+
+<template id="not-found">
+  <h1>404</h1>
+</template>
+
 </body>
 </html>

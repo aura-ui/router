@@ -7,9 +7,9 @@
   <h2>Приоритет маршрутов</h2>
   <p>При нескольких кандидатах побеждает более специфичный pattern: статический сегмент → динамический <code>:id</code> → catch-all <code>*</code>.</p>
   <nav class="demo-links">
-    <a href="/features/routing-advanced/users/about" data-router-link>/users/about</a>
-    <a href="/features/routing-advanced/users/1" data-router-link>/users/1</a>
-    <a href="/features/routing-advanced/unknown-page" data-router-link>несуществующий path</a>
+    <a href="/features/routing-advanced/users/about" aura-router-link>/users/about</a>
+    <a href="/features/routing-advanced/users/1" aura-router-link>/users/1</a>
+    <a href="/features/routing-advanced/unknown-page" aura-router-link>несуществующий path</a>
   </nav>
 
   <div class="demo-code-window">
@@ -30,13 +30,13 @@
   <h2>Третий уровень вложенности</h2>
   <p>Цепочка outlet: корневой → <code>users-layout</code> → <code>user-layout</code> → конечный view. Профиль и настройки одного пользователя разделяют layout второго уровня.</p>
   <nav class="demo-links">
-    <a href="/features/routing-advanced/users/1" data-router-link>Профиль</a>
-    <a href="/features/routing-advanced/users/1/settings" data-router-link>Настройки</a>
+    <a href="/features/routing-advanced/users/1" aura-router-link>Профиль</a>
+    <a href="/features/routing-advanced/users/1/settings" aura-router-link>Настройки</a>
   </nav>
 
   <h2>Catch-all и 404</h2>
   <p>Маршрут <code>path="*"</code> обрабатывает path, для которого нет более специфичного совпадения. URL в адресной строке сохраняется; страница не перезагружается.</p>
   <nav class="demo-links">
-    <a href="/features/routing-advanced/unknown-page" data-router-link>Открыть 404</a>
+    <a href="/features/routing-advanced/unknown-page" aura-router-link>Открыть 404</a>
   </nav>
 </article>

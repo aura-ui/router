@@ -23,17 +23,17 @@
           <code id="demo-site-url" aria-live="polite"></code>
         </div>
         <nav class="demo-links demo-site-nav" aria-label="Навигация">
-          <a href="/features/routing-nested" data-router-link>Обзор</a>
-          <a href="/features/routing-nested/users" data-router-link>Список</a>
-          <a href="/features/routing-nested/users/1" data-router-link>User 1</a>
-          <a href="/features/routing-nested/users/2" data-router-link>User 2</a>
-          <a href="/features/routing-nested/users/3" data-router-link>User 3</a>
-          <a href="/features/routing-nested/users/unknown" data-router-link>404 demo</a>
+          <a href="/features/routing-nested" aura-router-link>Обзор</a>
+          <a href="/features/routing-nested/users" aura-router-link>Список</a>
+          <a href="/features/routing-nested/users/1" aura-router-link>User 1</a>
+          <a href="/features/routing-nested/users/2" aura-router-link>User 2</a>
+          <a href="/features/routing-nested/users/3" aura-router-link>User 3</a>
+          <a href="/features/routing-nested/users/unknown" aura-router-link>404 demo</a>
         </nav>
       </div>
 
       <div class="demo-site-stage">
-        <aura-router id="app" data-router-active-class="is-active" data-branch-active-class="is-branch-active" data-router-link-root=".demo-site">
+        <aura-router id="app" link-active-class="is-active" link-active-branch-class="is-branch-active" links-container-selector=".demo-site">
           <aura-outlet class="demo-site-outlet"></aura-outlet>
 
           <aura-route path="/features/routing-nested/index.html" view="features/routing-nested/intro.html"></aura-route>

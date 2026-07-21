@@ -23,16 +23,16 @@
           <code id="demo-site-url" aria-live="polite"></code>
         </div>
         <nav class="demo-links demo-site-nav" aria-label="Сценарии update">
-          <a href="/features/phase-update" data-router-link>Обзор</a>
-          <a href="/features/phase-update/search?tab=info" data-router-link>Search</a>
-          <a href="/features/phase-update/hash#one" data-router-link>Hash</a>
-          <a href="/features/phase-update/remount/1" data-router-link>:id remount</a>
-          <a href="/features/phase-update/update/1" data-router-link>param-update</a>
+          <a href="/features/phase-update" aura-router-link>Обзор</a>
+          <a href="/features/phase-update/search?tab=info" aura-router-link>Search</a>
+          <a href="/features/phase-update/hash#one" aura-router-link>Hash</a>
+          <a href="/features/phase-update/remount/1" aura-router-link>:id remount</a>
+          <a href="/features/phase-update/update/1" aura-router-link>param-update</a>
         </nav>
       </div>
 
       <div class="demo-site-stage">
-        <aura-router id="app" data-router-active-class="is-active" data-router-link-root=".demo-site">
+        <aura-router id="app" link-active-class="is-active" links-container-selector=".demo-site">
           <aura-outlet class="demo-site-outlet"></aura-outlet>
 
           <aura-route path="/features/phase-update/index.html" view="features/phase-update/intro.html"></aura-route>

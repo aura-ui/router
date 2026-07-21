@@ -132,23 +132,21 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   /** Fallback template id — когда нет `<aura-route path="*">`. */
   @attr({ readonly: true, cached: true }) notFoundTemplate: string;
-  @attr({ dataAttr: true, defaultValue: '[data-router-link]' })
-  linksSelector: string;
-  /** CSS class toggled on `[data-router-link]` when its resolved href matches the current URL. */
-  @attr({ dataAttr: true, parser: parseNullableString, cached: true, name: 'router-active-class' })
-  exactActiveClass: string | null;
+
+  @attr({ defaultValue: '[aura-router-link]' }) linksSelector: string;
+  /** CSS class toggled on `[aura-router-link]` when its resolved href matches the current URL. */
+  @attr({ parser: parseNullableString, cached: true, name: 'link-active-class' }) linkActiveClass: string | null;
   /** CSS class for section/folder links when the current URL is under the link path (prefix match). */
-  @attr({ dataAttr: true, parser: parseNullableString, cached: true, name: 'branch-active-class' })
-  prefixActiveClass: string | null;
+  @attr({ parser: parseNullableString, cached: true, name: 'link-active-branch-class' }) linkActiveBranchClass: string | null;
   /** Ancestor selector for active-link scan when nav is outside router (demo: `.demo-site`). */
-  @attr({ dataAttr: true, parser: parseNullableString, cached: true, name: 'router-link-root' })
-  activeLinkScope: string | null;
+  @attr({ parser: parseNullableString, cached: true, name: 'links-container-selector' }) linksContainerSelector: string | null;
+
   /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
   /** Default CSS selector for `url` fragment extract on child routes (`extract="none"` opts out). */
   @attr({ parser: parseNullableString, cached: true }) extract: string | null;
   /**
-   * Default prefetch for `[data-router-link]` (`intent` | `tap` | `false`).
+   * Default prefetch for `[aura-router-link]` (`intent` | `tap` | `false`).
    * Per-link override: `data-prefetch` on `<a>`.
    */
   @attr({ parser: parsePrefetchAttr, cached: true, name: 'prefetch' })
@@ -369,9 +367,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private syncActiveLinks(href: string): void {
     syncRouterHostActiveLinks(this, href, {
       linksSelector: this.linksSelector,
-      exactActiveClass: this.exactActiveClass,
-      prefixActiveClass: this.prefixActiveClass,
-      scopeSelector: this.activeLinkScope,
+      linkActiveClass: this.linkActiveClass,
+      linkActiveBranchClass: this.linkActiveBranchClass,
+      linksContainerSelector: this.linksContainerSelector,
     });
   }
 

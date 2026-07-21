@@ -5,9 +5,9 @@
   <p>Активная вкладка: <code>tab=<span data-demo-param="tab">—</span></code></p>
 
   <nav class="demo-links">
-    <a href="/features/phase-update/search?tab=info" data-router-link>Информация</a>
-    <a href="/features/phase-update/search?tab=posts" data-router-link>Записи</a>
-    <a href="/features/phase-update/search?tab=settings" data-router-link>Настройки</a>
+    <a href="/features/phase-update/search?tab=info" aura-router-link>Информация</a>
+    <a href="/features/phase-update/search?tab=posts" aura-router-link>Записи</a>
+    <a href="/features/phase-update/search?tab=settings" aura-router-link>Настройки</a>
   </nav>
 
   <p class="demo-hint">Переключайте вкладки: меняется только query. «Назад» восстановит предыдущее значение <code>tab</code>.</p>
@@ -22,7 +22,7 @@
   <template id="phase-update-search-code">
 <aura-route path="/features/phase-update/search" view="features/phase-update/search.html"></aura-route>
 
-<a href="/features/phase-update/search?tab=info" data-router-link>Информация</a>
-<a href="/features/phase-update/search?tab=posts" data-router-link>Записи</a>
+<a href="/features/phase-update/search?tab=info" aura-router-link>Информация</a>
+<a href="/features/phase-update/search?tab=posts" aura-router-link>Записи</a>
   </template>
 </article>

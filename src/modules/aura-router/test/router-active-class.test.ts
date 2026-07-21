@@ -10,7 +10,7 @@ async function flushNavigation(): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
-describe('AuraRouter data-router-active-class', () => {
+describe('AuraRouter link-active-class', () => {
   beforeAll(() => {
     registerAuraRouterComponents();
   });
@@ -31,12 +31,12 @@ describe('AuraRouter data-router-active-class', () => {
   }> {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     if (withActiveClass) {
-      router.setAttribute('data-router-active-class', 'is-active');
+      router.setAttribute('link-active-class', 'is-active');
     }
     router.innerHTML = `
       <nav>
-        <a href="/" data-router-link>Home</a>
-        <a href="/about" data-router-link>About</a>
+        <a href="/" aura-router-link>Home</a>
+        <a href="/about" aura-router-link>About</a>
       </nav>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route path="/about" view="html::<p>about</p>"></aura-route>
@@ -46,7 +46,7 @@ describe('AuraRouter data-router-active-class', () => {
     await customElements.whenDefined('aura-route');
     await flushNavigation();
 
-    const links = router.querySelectorAll<HTMLAnchorElement>('[data-router-link]');
+    const links = router.querySelectorAll<HTMLAnchorElement>('[aura-router-link]');
     return { router, home: links[0]!, about: links[1]! };
   }
 
@@ -74,13 +74,13 @@ describe('AuraRouter data-router-active-class', () => {
 
     window.history.replaceState({}, '', '/about');
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.setAttribute('data-router-active-class', 'is-active');
+    router.setAttribute('link-active-class', 'is-active');
     router.setAttribute('transition', 'slow-fade-active-test');
     router.setAttribute('transition-order', 'parallel');
     router.innerHTML = `
       <nav>
-        <a href="/" data-router-link>Home</a>
-        <a href="/about" data-router-link>About</a>
+        <a href="/" aura-router-link>Home</a>
+        <a href="/about" aura-router-link>About</a>
       </nav>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route path="/about" view="html::<p>about</p>"></aura-route>
@@ -90,7 +90,7 @@ describe('AuraRouter data-router-active-class', () => {
     await customElements.whenDefined('aura-route');
     await flushNavigation();
 
-    const links = router.querySelectorAll<HTMLAnchorElement>('[data-router-link]');
+    const links = router.querySelectorAll<HTMLAnchorElement>('[aura-router-link]');
     const home = links[0]!;
     const about = links[1]!;
 
@@ -118,18 +118,18 @@ describe('AuraRouter data-router-active-class', () => {
     const site = document.createElement('div');
     site.className = 'site';
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.setAttribute('data-router-active-class', 'is-active');
+    router.setAttribute('link-active-class', 'is-active');
     // Sibling outlet is outside <aura-router>; widen active-link scan to the shell.
-    router.setAttribute('data-router-link-root', '.site');
+    router.setAttribute('links-container-selector', '.site');
     router.innerHTML = `
       <nav>
-        <a href="/" data-router-link>Home</a>
-        <a href="/about" data-router-link>About</a>
+        <a href="/" aura-router-link>Home</a>
+        <a href="/about" aura-router-link>About</a>
       </nav>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>
       <aura-route
         path="/about"
-        view="html::<p>about</p><a href=&quot;/about&quot; data-router-link data-testid=&quot;in-view&quot;>About in view</a>"
+        view="html::<p>about</p><a href=&quot;/about&quot; aura-router-link data-testid=&quot;in-view&quot;>About in view</a>"
       ></aura-route>
     `;
     site.append(router);
@@ -166,7 +166,7 @@ describe('AuraRouter data-router-active-class', () => {
     expect(matchLinkActive('/about', next).exact).toBe(true);
   });
 
-  it('does nothing when data-router-active-class is absent', async () => {
+  it('does nothing when link-active-class is absent', async () => {
     const { home, about } = await mountRouter(false);
 
     expect(home.classList.contains('is-active')).toBe(false);
@@ -176,12 +176,12 @@ describe('AuraRouter data-router-active-class', () => {
 
   it('updates active class on hash-only navigation', async () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.setAttribute('data-router-active-class', 'is-active');
+    router.setAttribute('link-active-class', 'is-active');
     router.innerHTML = `
       <nav>
-        <a href="/docs" data-router-link>Docs</a>
-        <a href="/docs#intro" data-router-link>Intro</a>
-        <a href="/docs#faq" data-router-link>FAQ</a>
+        <a href="/docs" aura-router-link>Docs</a>
+        <a href="/docs#intro" aura-router-link>Intro</a>
+        <a href="/docs#faq" aura-router-link>FAQ</a>
       </nav>
       <aura-route path="/docs" view="html::<p>docs</p>"></aura-route>
     `;
@@ -190,7 +190,7 @@ describe('AuraRouter data-router-active-class', () => {
     await customElements.whenDefined('aura-route');
     await flushNavigation();
 
-    const [, intro, faq] = router.querySelectorAll<HTMLAnchorElement>('[data-router-link]');
+    const [, intro, faq] = router.querySelectorAll<HTMLAnchorElement>('[aura-router-link]');
 
     router.navigate('/docs#intro');
     await flushNavigation();
@@ -207,7 +207,7 @@ describe('AuraRouter data-router-active-class', () => {
   });
 });
 
-describe('AuraRouter data-branch-active-class and trail', () => {
+describe('AuraRouter link-active-branch-class and trail', () => {
   beforeAll(() => {
     registerAuraRouterComponents();
   });
@@ -219,12 +219,12 @@ describe('AuraRouter data-branch-active-class and trail', () => {
 
   it('marks branch nav links on nested routes', async () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.setAttribute('data-router-active-class', 'is-active');
-    router.setAttribute('data-branch-active-class', 'is-branch-active');
+    router.setAttribute('link-active-class', 'is-active');
+    router.setAttribute('link-active-branch-class', 'is-branch-active');
     router.innerHTML = `
       <nav>
-        <a href="/app/settings" data-router-link>Settings</a>
-        <a href="/app/settings/profile" data-router-link>Profile</a>
+        <a href="/app/settings" aura-router-link>Settings</a>
+        <a href="/app/settings/profile" aura-router-link>Profile</a>
       </nav>
       <aura-route path="/app/settings" layout="settings-layout">
         <aura-route path="profile" view="html::<p>profile</p>"></aura-route>
@@ -243,7 +243,7 @@ describe('AuraRouter data-branch-active-class and trail', () => {
     expect(matchLinkActive('/app/settings', current).prefix).toBe(true);
     expect(matchLinkActive('/app/settings/profile', current).exact).toBe(true);
 
-    const [settings, profile] = router.querySelectorAll<HTMLAnchorElement>('[data-router-link]');
+    const [settings, profile] = router.querySelectorAll<HTMLAnchorElement>('[aura-router-link]');
     expect(settings.classList.contains('is-active')).toBe(false);
     expect(settings.classList.contains('is-branch-active')).toBe(true);
     expect(profile.classList.contains('is-active')).toBe(true);

@@ -8,7 +8,7 @@ export interface LinkNavigationTrackerConfig {
   linksSelector?: string;
 }
 
-/** Click on `[data-router-link]` → navigation request. */
+/** Click on `[aura-router-link]` → navigation request. */
 export class LinkNavigationTracker {
   private handler?: NavigationHandler;
   private listening = false;

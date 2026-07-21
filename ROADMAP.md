@@ -202,7 +202,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | ---: | --- | :---: | --- |
 | 8.1 | **MPA → SPA migration guide** — step-by-step for existing multi-page sites | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Default adoption path; server unchanged |
 | 8.2 | **Shared layout pattern** — inject `<aura-router>` + routes from CMS/template (EJS, PHP, static partial) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Routes in HTML; server does not run Aura pipeline |
-| 8.3 | **Client hydration recipe** — full HTML from server + `AuraRouter.install()` without refetch on first paint | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Patterns in README (`url` + `extract` + `data-router-link`); dedicated first-paint recipe still missing |
+| 8.3 | **Client hydration recipe** — full HTML from server + `AuraRouter.install()` without refetch on first paint | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Patterns in README (`url` + `extract` + `aura-router-link`); dedicated first-paint recipe still missing |
 | 8.4 | **Static MPA example** — nginx or Express static: one `.html` per URL + client bundle | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Fastest path; no Node adapter |
 
 > **Done when:** guide + example show server serving `.html` directly and Aura handling navigation only in the browser.

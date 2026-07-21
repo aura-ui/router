@@ -1,4 +1,4 @@
-﻿# Aura UI Router
+# Aura UI Router
 
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
@@ -58,11 +58,11 @@ Put an outlet where content should appear, and list routes under `<aura-router>`
 ## 3. Add links
 
 ```html
-<a href="/" data-router-link>Home</a>
-<a href="/about" data-router-link>About</a>
+<a href="/" aura-router-link>Home</a>
+<a href="/about" aura-router-link>About</a>
 ```
 
-Clicks on `[data-router-link]` update the URL and swap the outlet — no full reload.
+Clicks on `[aura-router-link]` update the URL and swap the outlet — no full reload.
 
 Or navigate from code:
 
@@ -99,8 +99,8 @@ Nest routes. A parent with `layout` is a shell; children render into its inner `
 ```html
 <template id="app-shell">
   <nav>
-    <a href="." data-router-link>Overview</a>
-    <a href="settings" data-router-link>Settings</a>
+    <a href="." aura-router-link>Overview</a>
+    <a href="settings" aura-router-link>Settings</a>
   </nav>
   <aura-outlet></aura-outlet>
 </template>

@@ -21,7 +21,7 @@ export interface LinkPrefetchIntentTrackerConfig {
   resolveMode: LinkPrefetchModeResolver;
 }
 
-/** Hover / focus / touch on `[data-router-link]` → prefetch intent. */
+/** Hover / focus / touch on `[aura-router-link]` → prefetch intent. */
 export class LinkPrefetchIntentTracker {
   private readonly handlers: LinkPrefetchHandlers;
   private listening = false;

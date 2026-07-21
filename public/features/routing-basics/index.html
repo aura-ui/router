@@ -23,14 +23,14 @@
           <code id="demo-site-url" aria-live="polite"></code>
         </div>
         <nav class="demo-links demo-site-nav" aria-label="Навигация">
-          <a href="/features/routing-basics" data-router-link>Обзор</a>
-          <a href="/features/routing-basics/a" data-router-link>Страница A</a>
-          <a href="/features/routing-basics/b" data-router-link>Страница B</a>
+          <a href="/features/routing-basics" aura-router-link>Обзор</a>
+          <a href="/features/routing-basics/a" aura-router-link>Страница A</a>
+          <a href="/features/routing-basics/b" aura-router-link>Страница B</a>
         </nav>
       </div>
 
       <div class="demo-site-stage">
-        <aura-router id="app" data-router-active-class="is-active" data-router-link-root=".demo-site">
+        <aura-router id="app" link-active-class="is-active" links-container-selector=".demo-site">
           <aura-outlet class="demo-site-outlet"></aura-outlet>
 
           <aura-route path="/features/routing-basics/index.html" view="features/routing-basics/intro.html"></aura-route>

@@ -48,4 +48,4 @@ Plans: [ROADMAP.md](./ROADMAP.md) · history: [CHANGELOG.md](./CHANGELOG.md).
 
 ## What already works
 
-Nested routes + LCA diff, nested `<aura-outlet>`, lifecycle hooks (`guard` / `load` / `ready` / …), declarative / hook redirects, `param-change`, `mount-strategy`, active links, DataGraph + view loaders (`url` / `import` / `iframe` / `html` / `template` / `component`), prefetch cascade (intent/tap), staged commit / fast path, scroll restoration, URLPattern matcher, `router.events`, `router.invalidate()` / `invalidateView()`, structured `navigation-error` / `not-found`, progressive enhancement with `data-router-link`.
+Nested routes + LCA diff, nested `<aura-outlet>`, lifecycle hooks (`guard` / `load` / `ready` / …), declarative / hook redirects, `param-change`, `mount-strategy`, active links, DataGraph + view loaders (`url` / `import` / `iframe` / `html` / `template` / `component`), prefetch cascade (intent/tap), staged commit / fast path, scroll restoration, URLPattern matcher, `router.events`, `router.invalidate()` / `invalidateView()`, structured `navigation-error` / `not-found`, progressive enhancement with `aura-router-link`.

@@ -131,8 +131,17 @@ describe('AuraRoute viewKeySuffix', () => {
   it('builds layout and view slots', () => {
     expect(mount({ layout: 'shell' }).viewKeySuffix).toBe('layout:template:shell');
     expect(mount({ view: 'html::<p/>' }).viewKeySuffix).toBe('view:html:<p/>');
+    expect(mount({ view: 'html::<main id="m">x</main>', extract: '#m' }).viewKeySuffix).toBe(
+      'view:html:<main id="m">x</main>',
+    );
     expect(mount({ view: 'url::page.html', extract: '#main' }).viewKeySuffix).toBe(
       'view:url:page.html::#main',
+    );
+    expect(mount({ view: 'url::page.html', extract: 'none' }).viewKeySuffix).toBe(
+      'view:url:page.html',
+    );
+    expect(mount({ view: 'component::x-card', extract: '#main' }).viewKeySuffix).toBe(
+      'view:component:x-card',
     );
     expect(mount({}).viewKeySuffix).toBeNull();
   });
@@ -151,5 +160,11 @@ describe('AuraRoute viewKeySuffix', () => {
     route.setAttribute('view', 'url::x.html');
     route.setAttribute('extract', '#c');
     expect(route.viewKeySuffix).toBe('view:url:x.html::#c');
+
+    route.setAttribute('extract', '#d');
+    expect(route.viewKeySuffix).toBe('view:url:x.html::#d');
+
+    route.setAttribute('extract', 'none');
+    expect(route.viewKeySuffix).toBe('view:url:x.html');
   });
 });

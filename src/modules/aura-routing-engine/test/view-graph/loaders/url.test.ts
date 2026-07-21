@@ -40,6 +40,31 @@ describe('UrlLoader', () => {
         signal: new AbortController().signal,
         route: { href: '/page', pattern: '/page' },
       }),
-    ).resolves.toEqual({ kind: 'html', value: '<span>part</span>' });
+    ).resolves.toEqual({
+      kind: 'html',
+      value: '<div id="content"><span>part</span></div>',
+    });
+  });
+
+  it('falls back to full html when extract selector matches nothing', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const full = '<html><body><div id="root">full</div></body></html>';
+    const fetchText = jest.fn().mockResolvedValue(full);
+    const loader = new UrlLoader(env(fetchText));
+
+    await expect(
+      loader.load({
+        content: 'page.html',
+        kind: 'view',
+        extract: '#missing',
+        signal: new AbortController().signal,
+        route: { href: '/page', pattern: '/page' },
+      }),
+    ).resolves.toEqual({ kind: 'html', value: full });
+
+    expect(warn).toHaveBeenCalledWith(
+      'Nothing found for extract selector "#missing" — using full HTML',
+    );
+    warn.mockRestore();
   });
 });

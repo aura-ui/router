@@ -51,6 +51,7 @@ Put an outlet where content should appear, and list routes under `<aura-router>`
 | `<aura-outlet>` | Where the matched view mounts |
 | `<aura-route path="…">` | URL pattern |
 | `view="…"` | What to render (see below) |
+| `extract="…"` | CSS selector for a fragment from fetched (`url`) HTML |
 | `path="*"` | Catch-all 404 |
 
 ---
@@ -92,7 +93,33 @@ Put custom elements inside the template or HTML string — they work like any We
 
 ---
 
-## 5. Nested routes & layouts
+## 5. Extract fragments
+
+Use `extract` when a fetched page is full HTML and the outlet should mount only one node — a CSS selector for that root. Applies to `url` views (`view="page.html"` / `url::…`), not to inline `html::…`.
+
+```html
+<!-- default for every child route -->
+<aura-router extract="#main">
+  <aura-route path="/about" view="about.html"></aura-route>
+  <!-- opt out: keep the full response -->
+  <aura-route path="/partial" view="snippet.html" extract="none"></aura-route>
+  <!-- override -->
+  <aura-route path="/article" view="article.html" extract="#body"></aura-route>
+</aura-router>
+```
+
+| Attr | Meaning |
+| --- | --- |
+| `extract="#main"` | Take `outerHTML` of the first match |
+| *(no match)* | Fall back to the full HTML (`console.warn`) |
+| `extract="none"` / `off` / `false` / `""` | Opt out of an inherited default |
+| *(absent)* | Inherit from `<aura-router>` / parent `<aura-route>` |
+
+Selector stays in `extract`, not inside `view`.
+
+---
+
+## 6. Nested routes & layouts
 
 Nest routes. A parent with `layout` is a shell; children render into its inner `<aura-outlet>`.
 
@@ -124,7 +151,7 @@ Folder URLs get a trailing slash in the address bar (`/app` → `/app/`) so rela
 
 ---
 
-## 6. Cache
+## 7. Cache
 
 Control what is kept when leaving a route with the `cache` attribute on `<aura-route>` or `<aura-router>` (inherited; child overrides).
 
@@ -180,7 +207,7 @@ npm run dev
 
 ## More
 
-> **Slim model** (this README): match URL → render a view into `<aura-outlet>`, plus optional [`cache`](#6-cache).  
+> **Slim model** (this README): match URL → render a view into `<aura-outlet>`, plus optional [`extract`](#5-extract-fragments) and [`cache`](#7-cache).  
 > Further advanced features (prefetch, network loaders, hooks) — separate docs (coming).
 
 | | |

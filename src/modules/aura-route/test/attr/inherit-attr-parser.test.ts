@@ -24,6 +24,7 @@ describe('parseHookList', () => {
 describe('parseInheritableNullableString', () => {
   it('returns null when absent, off, or empty', () => {
     expect(parseInheritableNullableString(null)).toBeNull();
+    expect(parseInheritableNullableString('none')).toBeNull();
     expect(parseInheritableNullableString('off')).toBeNull();
     expect(parseInheritableNullableString('false')).toBeNull();
     expect(parseInheritableNullableString('   ')).toBeNull();

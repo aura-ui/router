@@ -16,29 +16,28 @@ export const getTemplate = (id: string) => {
   return template?.content.cloneNode(true) as DocumentFragment;
 };
 
-/** `#id` only — no combinators, classes, or pseudo-elements. */
-const SIMPLE_ID_SELECTOR = /^#[^.#[\]:>,+~\s]+$/;
-
 /**
  * Extracts a DOM subtree from an HTML string as a markup string.
  *
  * Parses `html` with `DOMParser` (suitable for full documents and partials).
- * Simple `#id` selectors use `getElementById`; all other selectors use `querySelector`.
  *
  * @param html - Raw HTML response (e.g. from a `url` loader fetch).
- * @param selector - CSS selector for the root element whose children are injected.
- * @returns `innerHTML` of the first matching element.
- * @throws When no element matches `selector`.
+ * @param selector - CSS selector for the element to extract.
+ * @returns `outerHTML` of the first matching element, or `null` when nothing matches.
  */
-export function extractHtmlFragment(html: string, selector: string): string {
+export function extractHtmlFragment(html: string, selector: string): string | null {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const node = SIMPLE_ID_SELECTOR.test(selector)
-    ? doc.getElementById(selector.slice(1))
-    : doc.querySelector(selector);
+  return doc.querySelector(selector)?.outerHTML ?? null;
+}
 
-  if (!node) {
-    throw new Error(`No element matches selector "${selector}"`);
-  }
-
-  return node.innerHTML;
+/**
+ * Applies route `extract` to an HTML string.
+ * On miss, warns and returns `html` unchanged.
+ */
+export function applyHtmlExtract(html: string, extract: string | null | undefined): string {
+  if (!extract) return html;
+  const fragment = extractHtmlFragment(html, extract);
+  if (fragment != null) return fragment;
+  console.warn(`Nothing found for extract selector "${extract}" — using full HTML`);
+  return html;
 }

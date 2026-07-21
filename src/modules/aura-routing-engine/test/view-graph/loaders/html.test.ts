@@ -13,4 +13,20 @@ describe('HtmlLoader', () => {
       }),
     ).resolves.toEqual({ kind: 'html', value: '<p>inline</p>' });
   });
+
+  it('ignores extract (url-only feature)', async () => {
+    const loader = new HtmlLoader(createBrowserEnvironment());
+    await expect(
+      loader.load({
+        content: '<div id="content"><span>part</span></div>',
+        kind: 'view',
+        extract: '#content',
+        signal: new AbortController().signal,
+        route: { href: '/x', pattern: '/x' },
+      }),
+    ).resolves.toEqual({
+      kind: 'html',
+      value: '<div id="content"><span>part</span></div>',
+    });
+  });
 });

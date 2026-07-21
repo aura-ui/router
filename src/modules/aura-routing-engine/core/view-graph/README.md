@@ -64,7 +64,7 @@ type ViewKind = 'layout' | 'view';
 
 У узла с `layout` view-атрибут не используется: descriptor всегда строится из `layout` → loader `template`.
 
-Для `view` с loader `url` и атрибутом `extract` селектор попадает в descriptor и в `context.extract` (фрагмент вырезается в `UrlLoader` после fetch).
+Для `view` с loader `url` и атрибутом `extract` селектор попадает в descriptor и в `context.extract` (фрагмент вырезается в `UrlLoader`: `outerHTML` матча; при отсутствии матча — `console.warn` и полный HTML).
 
 **Синтаксис `view`:**
 

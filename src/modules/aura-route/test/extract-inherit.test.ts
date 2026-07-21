@@ -36,10 +36,34 @@ describe('AuraRoute extract inherit', () => {
     expect(child.extract).toBe('#main');
   });
 
+  it('inherits null when aura-router extract is an off keyword', () => {
+    const router = document.createElement('aura-router');
+    router.setAttribute('extract', 'none');
+    const child = route({ path: '/about' }, router);
+
+    expect(child.extract).toBeNull();
+  });
+
   it('extract="none" opts out of router default', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('extract', '#main');
     const child = route({ path: '/partial', extract: 'none' }, router);
+
+    expect(child.extract).toBeNull();
+  });
+
+  it('extract="off" / "false" / "" opt out of router default', () => {
+    const router = document.createElement('aura-router');
+    router.setAttribute('extract', '#main');
+
+    expect(route({ path: '/a', extract: 'off' }, router).extract).toBeNull();
+    expect(route({ path: '/b', extract: 'false' }, router).extract).toBeNull();
+    expect(route({ path: '/c', extract: '' }, router).extract).toBeNull();
+  });
+
+  it('extract="none" opts out of parent route', () => {
+    const parent = route({ path: '/legacy', extract: '#main' });
+    const child = route({ path: '/legacy/partial', extract: 'none' }, parent);
 
     expect(child.extract).toBeNull();
   });
@@ -56,6 +80,16 @@ describe('AuraRoute extract inherit', () => {
     const parent = route({ path: '/legacy', extract: '#main' });
     const child = route({ path: '/legacy/about' }, parent);
 
+    expect(child.extract).toBe('#main');
+  });
+
+  it('removing local extract restores ancestor inherit', () => {
+    const router = document.createElement('aura-router');
+    router.setAttribute('extract', '#main');
+    const child = route({ path: '/partial', extract: 'none' }, router);
+
+    expect(child.extract).toBeNull();
+    child.removeAttribute('extract');
     expect(child.extract).toBe('#main');
   });
 

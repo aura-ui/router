@@ -492,6 +492,47 @@ describe('ViewGraph', () => {
     expect(extract).toBe('#main');
   });
 
+  it('buildViewDescriptor omits extract for non-url loaders', async () => {
+    let htmlExtract: string | undefined;
+    let componentExtract: string | undefined;
+    registry.register('html', async (ctx) => {
+      htmlExtract = ctx.extract;
+      return ctx.content;
+    });
+    registry.register('component', async (ctx) => {
+      componentExtract = ctx.extract;
+      return '<x-card></x-card>';
+    });
+
+    await viewGraph.loadView(
+      matched('/html', {
+        route: {
+          layout: '',
+          view: { loader: 'html', content: '<main id="main">x</main>' },
+          extract: '#main',
+          cache: NO_CACHE,
+        },
+        resolvedView: { loader: 'html', content: '<main id="main">x</main>' },
+      }),
+      new AbortController().signal,
+    );
+    await viewGraph.loadView(
+      matched('/component', {
+        route: {
+          layout: '',
+          view: { loader: 'component', content: 'x-card' },
+          extract: '#main',
+          cache: NO_CACHE,
+        },
+        resolvedView: { loader: 'component', content: 'x-card' },
+      }),
+      new AbortController().signal,
+    );
+
+    expect(htmlExtract).toBeUndefined();
+    expect(componentExtract).toBeUndefined();
+  });
+
   it('prefers layout over view when both are present', async () => {
     registry.register('template', async (ctx) => `layout:${ctx.content}`);
     registry.register('html', async () => 'view-should-not-load');

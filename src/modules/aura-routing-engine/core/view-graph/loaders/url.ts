@@ -9,6 +9,6 @@ export class UrlLoader extends Loader {
 
   async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     const html = await this.env.fetchText(this.env.resolveUrl(ctx.content), ctx.signal);
-    return { kind: 'html', value: applyHtmlExtract(html, ctx.extract) };
+    return { kind: 'html', value: applyHtmlExtract(html, ctx.extract, ctx.route.href) };
   }
 }

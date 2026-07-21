@@ -35,23 +35,23 @@ describe('extractHtmlFragment', () => {
 
 describe('applyHtmlExtract', () => {
   it('returns fragment when selector matches', () => {
-    expect(applyHtmlExtract(FULL_PAGE, '#content')).toBe(
+    expect(applyHtmlExtract(FULL_PAGE, '#content', '/about')).toBe(
       '<main id="content"><h1>About</h1><p>Body</p></main>',
     );
   });
 
   it('returns html unchanged when extract is absent', () => {
-    expect(applyHtmlExtract('<p>x</p>', null)).toBe('<p>x</p>');
-    expect(applyHtmlExtract('<p>x</p>', undefined)).toBe('<p>x</p>');
+    expect(applyHtmlExtract('<p>x</p>', null, '/x')).toBe('<p>x</p>');
+    expect(applyHtmlExtract('<p>x</p>', undefined, '/x')).toBe('<p>x</p>');
   });
 
   it('warns and returns full html when selector matches nothing', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const html = '<div id="root">full</div>';
 
-    expect(applyHtmlExtract(html, '#missing')).toBe(html);
+    expect(applyHtmlExtract(html, '#missing', '/page')).toBe(html);
     expect(warn).toHaveBeenCalledWith(
-      'Nothing found for extract selector "#missing" — using full HTML',
+      'Nothing found for extract selector "#missing" — using full HTML. Page — /page',
     );
 
     warn.mockRestore();

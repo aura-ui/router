@@ -63,7 +63,7 @@ describe('UrlLoader', () => {
     ).resolves.toEqual({ kind: 'html', value: full });
 
     expect(warn).toHaveBeenCalledWith(
-      'Nothing found for extract selector "#missing" — using full HTML',
+      'Nothing found for extract selector "#missing" — using full HTML. Page — /page',
     );
     warn.mockRestore();
   });

@@ -34,10 +34,10 @@ export function extractHtmlFragment(html: string, selector: string): string | nu
  * Applies route `extract` to an HTML string.
  * On miss, warns and returns `html` unchanged.
  */
-export function applyHtmlExtract(html: string, extract: string | null | undefined): string {
+export function applyHtmlExtract(html: string, extract: string | null | undefined, href: string): string {
   if (!extract) return html;
   const fragment = extractHtmlFragment(html, extract);
   if (fragment != null) return fragment;
-  console.warn(`Nothing found for extract selector "${extract}" — using full HTML`);
+  console.warn(`Nothing found for extract selector "${extract}" — using full HTML. Page — ${href}`);
   return html;
 }

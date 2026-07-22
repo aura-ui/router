@@ -10,8 +10,6 @@ export {
 } from './app-href';
 export {
   syncRouterActiveLinks,
-  syncRouterHostActiveLinks,
-  type ActiveLinkSyncConfig,
   type SyncRouterActiveLinksOptions,
 } from './sync';
 export { toActiveRouteBranch, type ActiveRouteBranchEntry } from './active-route-branch';

@@ -171,6 +171,58 @@ describe('AuraRouter link-active-class', () => {
     expect(home.hasAttribute('aria-current')).toBe(false);
   });
 
+  it('scans the whole document when links-container-selector is absent', async () => {
+    document.body.innerHTML = `
+      <nav>
+        <a href="/about" aura-router-link>About outside</a>
+      </nav>
+    `;
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('link-active-class', 'is-active');
+    router.innerHTML = `
+      <a href="/about" aura-router-link>About inside</a>
+      <aura-route path="/about" view="html::<p>about</p>"></aura-route>
+    `;
+    document.body.append(router);
+
+    window.history.replaceState({}, '', '/about');
+    await customElements.whenDefined('aura-route');
+    await flushNavigation();
+
+    const [outside, inside] = document.querySelectorAll<HTMLAnchorElement>('a');
+    expect(outside!.classList.contains('is-active')).toBe(true);
+    expect(inside!.classList.contains('is-active')).toBe(true);
+  });
+
+  it('scopes active-link scan to links-container-selector ancestor', async () => {
+    document.body.innerHTML = `
+      <div class="demo-site">
+        <nav>
+          <a href="/about" aura-router-link>About</a>
+        </nav>
+      </div>
+      <a href="/about" aura-router-link>Outside scope</a>
+    `;
+    const site = document.querySelector('.demo-site')!;
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('link-active-class', 'is-active');
+    router.setAttribute('links-container-selector', '.demo-site');
+    router.innerHTML = `
+      <a href="/about" aura-router-link>About inside</a>
+      <aura-route path="/about" view="html::<p>about</p>"></aura-route>
+    `;
+    site.append(router);
+
+    window.history.replaceState({}, '', '/about');
+    await customElements.whenDefined('aura-route');
+    await flushNavigation();
+
+    const [outside, inside, outOfScope] = document.querySelectorAll<HTMLAnchorElement>('a');
+    expect(outside!.classList.contains('is-active')).toBe(true);
+    expect(inside!.classList.contains('is-active')).toBe(true);
+    expect(outOfScope!.classList.contains('is-active')).toBe(false);
+  });
+
   it('updates active class on hash-only navigation', async () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('link-active-class', 'is-active');

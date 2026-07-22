@@ -25,7 +25,7 @@ import {
   type MatchedRouteInfo,
 } from '../../aura-routing-engine/core';
 import {
-  syncRouterHostActiveLinks,
+  syncRouterActiveLinks,
   toActiveRouteBranch,
   type ActiveRouteBranchEntry,
 } from '../../aura-routing-engine/core/link-active';
@@ -221,11 +221,17 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   private syncActiveLinks(href: string): void {
-    syncRouterHostActiveLinks(this, href, {
+    const { linkActiveClass, linkActiveBranchClass } = this;
+    if (!linkActiveClass && !linkActiveBranchClass) return;
+
+    syncRouterActiveLinks({
+      container: this.linksContainerSelector
+        ? this.closest(this.linksContainerSelector) ?? this
+        : this.ownerDocument!,
       linksSelector: this.linksSelector,
-      linkActiveClass: this.linkActiveClass,
-      linkActiveBranchClass: this.linkActiveBranchClass,
-      linksContainerSelector: this.linksContainerSelector,
+      linkActiveClass: linkActiveClass ?? undefined,
+      linkActiveBranchClass: linkActiveBranchClass ?? undefined,
+      currentHref: href,
     });
   }
 

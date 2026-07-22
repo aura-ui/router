@@ -157,14 +157,19 @@ export class AuraRoutingEngine implements NavigationHost {
 
   /**
    * Invalidates a resource cache via {@link ResourceGraph}.
-   * `options.cache`: `'data'` (default) | `'view'`.
+   * `options.cache`: `'data'` (default) | `'view'` | `'all'`.
    * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
    */
   invalidate(options: RouterInvalidateOptions = {}): number {
     this.resetPrefetchRecords(options);
-    return options.cache === 'view'
-      ? this.resourceGraph.invalidateView(options)
-      : this.resourceGraph.invalidateData(options);
+    if (options.cache === 'view') return this.resourceGraph.invalidateView(options);
+    if (options.cache === 'all') {
+      const data = this.resourceGraph.invalidateData(options);
+      const view = this.resourceGraph.invalidateView(options);
+      if (data < 0 && view < 0) return -1;
+      return (data < 0 ? 0 : data) + (view < 0 ? 0 : view);
+    }
+    return this.resourceGraph.invalidateData(options);
   }
 
   private resetPrefetchRecords(options: InvalidateScope): void {

@@ -8,7 +8,7 @@ failure handling in `failure/README.md`.
 
 | Area | Responsibility |
 | --- | --- |
-| `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and pre-match `NOT_FOUND`, `commitHistoryIfNeeded`, `commitNavigation`, `invalidate({ cache: 'data' | 'view' })`. |
+| `aura-routing-engine.ts` | Public engine adapter: provider/link/prefetch wiring, route registry, hash-only and pre-match `NOT_FOUND`, `commitHistoryIfNeeded`, `commitNavigation`, `invalidate({ cache: 'data' | 'view' | 'all' })`. |
 | `aura-routing-route-registry.ts` | Route catalog snapshot, tree rebuild, `matchableNodes` for matcher. |
 | `navigation/` | Coordinator, transaction, pipeline, phase registry (`lifecycle-phases.ts` / `PHASES`), lifecycle execution (`navigation-transaction-pipeline-phase.ts`), **observe-only** `navigation-pulse.ts`, **apply** (`navigation-outcome.ts`), failure lifecycle (`pipeline-failure.ts`, `unmount-prev-on-not-found.ts`), outcome types. |
 | `events/` | Typed `EventBus` + `EngineEvent`. Emit goes through `NavigationPulse`, not ad-hoc from pipeline. |
@@ -109,7 +109,7 @@ Full render is always **branch loads → commit**:
 `AuraRoutingEngine` owns external I/O: history provider lifecycle, link tracking,
 route registration, prefetch setup, hash-only navigation, pre-match `NOT_FOUND`,
 `commitHistoryIfNeeded` / `commitNavigation`, and cache invalidation via
-`invalidate({ cache: 'data' | 'view' })` (delegated to `ResourceGraph`).
+`invalidate({ cache: 'data' | 'view' | 'all' })` (delegated to `ResourceGraph`).
 
 `ResourceGraph` owns prepare: `HandoffCache` + `DataGraph` + `ViewGraph`. Navigation and
 speculative prepare load only via `resourceGraph.load(...)` (pipeline /

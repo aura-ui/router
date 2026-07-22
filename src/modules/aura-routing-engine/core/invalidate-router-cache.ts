@@ -36,10 +36,10 @@ export type InvalidateScope = {
  */
 export type RouterInvalidateOptions = InvalidateScope & {
   /**
-   * Which resource cache to invalidate (`'data'` default | `'view'`).
+   * Which resource cache to invalidate (`'data'` default | `'view'` | `'all'`).
    * Only meaningful on engine / router; graph backends ignore it.
    */
-  cache?: 'data' | 'view';
+  cache?: 'data' | 'view' | 'all';
   /**
    * How affected entries are updated.
    * `'stale'` (default) — keep values, mark outdated (SWR on next load).

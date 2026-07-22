@@ -243,8 +243,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /**
-   * Invalidates a resource cache (`options.cache`: `'data'` default | `'view'`).
-   * Dispatches `data-invalidated` for the data cache
+   * Invalidates a resource cache (`options.cache`: `'data'` default | `'view'` | `'all'`).
+   * Dispatches `data-invalidated` when data is included (`'data'` / `'all'`).
    * (`-1` = full invalidate, empty cache).
    */
   invalidate(options?: RouterInvalidateOptions): number {

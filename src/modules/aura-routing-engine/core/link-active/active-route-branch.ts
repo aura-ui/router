@@ -1,10 +1,10 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
-export interface RouteTrailEntry {
+export interface ActiveRouteBranchEntry {
   pattern: string;
   href: string;
 }
 
-export function toRouteTrail(chain: readonly MatchedRouteInfo[]): RouteTrailEntry[] {
+export function toActiveRouteBranch(chain: readonly MatchedRouteInfo[]): ActiveRouteBranchEntry[] {
   return chain.map((e) => ({ pattern: e.pattern, href: e.href }));
 }

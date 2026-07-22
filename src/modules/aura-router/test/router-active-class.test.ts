@@ -146,10 +146,10 @@ describe('AuraRouter link-active-class', () => {
     expect(inView!.getAttribute('aria-current')).toBe('page');
   });
 
-  it('link matchers reflect the settled route via router.trail', async () => {
+  it('link matchers reflect the settled route via router.activeRouteBranch', async () => {
     const { router } = await mountRouter(true);
 
-    const currentHref = router.trail[router.trail.length - 1]!.href;
+    const currentHref = router.activeRouteBranch[router.activeRouteBranch.length - 1]!.href;
     const current = splitAppHref(currentHref);
     expect(matchLinkActive('/', current).exact).toBe(true);
     expect(matchLinkActive('/about', current).exact).toBe(false);
@@ -157,7 +157,7 @@ describe('AuraRouter link-active-class', () => {
     router.navigate('/about');
     await flushNavigation();
 
-    const nextHref = router.trail[router.trail.length - 1]!.href;
+    const nextHref = router.activeRouteBranch[router.activeRouteBranch.length - 1]!.href;
     const next = splitAppHref(nextHref);
     expect(matchLinkActive('/', next).exact).toBe(false);
     expect(matchLinkActive('/about', next).exact).toBe(true);
@@ -275,7 +275,7 @@ describe('AuraRouter link-active-class', () => {
   });
 });
 
-describe('AuraRouter link-active-branch-class and trail', () => {
+describe('AuraRouter link-active-branch-class and activeRouteBranch', () => {
   beforeAll(() => {
     installAuraRouter();
   });
@@ -307,7 +307,7 @@ describe('AuraRouter link-active-branch-class and trail', () => {
     router.navigate('/app/settings/profile');
     await flushNavigation();
 
-    const current = splitAppHref(router.trail[router.trail.length - 1]!.href);
+    const current = splitAppHref(router.activeRouteBranch[router.activeRouteBranch.length - 1]!.href);
     expect(matchLinkActive('/app/settings', current).prefix).toBe(true);
     expect(matchLinkActive('/app/settings/profile', current).exact).toBe(true);
 
@@ -318,7 +318,7 @@ describe('AuraRouter link-active-branch-class and trail', () => {
     expect(profile!.classList.contains('is-branch-active')).toBe(true);
   });
 
-  it('exposes router.trail for the active route chain', async () => {
+  it('exposes router.activeRouteBranch root → leaf', async () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.innerHTML = `
       <aura-route path="/app" layout="app-layout">
@@ -337,7 +337,7 @@ describe('AuraRouter link-active-branch-class and trail', () => {
     router.navigate('/app/settings/profile');
     await flushNavigation();
 
-    expect(router.trail.map((entry) => entry.pattern)).toEqual([
+    expect(router.activeRouteBranch.map((entry) => entry.pattern)).toEqual([
       '/app',
       '/app/settings',
       '/app/settings/profile',

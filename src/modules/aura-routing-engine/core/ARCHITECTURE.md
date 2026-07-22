@@ -27,7 +27,7 @@ failure handling in `failure/README.md`.
 | `invalidate-router-cache.ts` | Shared invalidate helpers for data/view caches (`key` / route pattern / `match` / all). |
 | `prefetch/` | `PrefetchPipeline`: intent bus → policy → plan → speculative prepare via `ResourceGraph.load`. |
 | `user-actions/` | Link click interception (`link-navigation.ts`), href resolution (`link-resolve.ts`), link prefetch intent. |
-| `link-active/` | App href resolution/comparison (`app-href.ts`), active link matching (`match.ts`), DOM class sync (`sync.ts`), and `router.trail` (`route-trail.ts`). |
+| `link-active/` | App href resolution/comparison (`app-href.ts`), active link matching (`match.ts`), DOM class sync (`sync.ts`), and `router.activeRouteBranch` (`active-route-branch.ts`). |
 
 ## Navigation Flow
 

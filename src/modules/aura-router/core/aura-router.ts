@@ -26,8 +26,8 @@ import {
 } from '../../aura-routing-engine/core';
 import {
   syncRouterHostActiveLinks,
-  toRouteTrail,
-  type RouteTrailEntry,
+  toActiveRouteBranch,
+  type ActiveRouteBranchEntry,
 } from '../../aura-routing-engine/core/link-active';
 import { attr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
@@ -96,11 +96,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();
   private readonly notFound = new AuraRouterNotFoundController(this);
-  private _trail: RouteTrailEntry[] = [];
+  private _activeRouteBranch: ActiveRouteBranchEntry[] = [];
 
   /** Active branch root → leaf after the last settled navigation. */
-  get trail(): readonly RouteTrailEntry[] {
-    return this._trail;
+  get activeRouteBranch(): readonly ActiveRouteBranchEntry[] {
+    return this._activeRouteBranch;
   }
 
   static install(): void {
@@ -178,7 +178,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   disconnectedCallback(): void {
     this.engine?.destroy();
     this.engine = undefined;
-    this._trail = [];
+    this._activeRouteBranch = [];
     memoize.clear(this, 'appOutlet');
     this.scrollRestoration.clear();
     this.notFound.clear();
@@ -206,16 +206,16 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
-  /** Trail + active-link classes after url-align / commit (via engine bridge). */
+  /** Branch + active-link classes after url-align / commit (via engine bridge). */
   private syncNavState(to: MatchedRouteInfo): void {
-    this._trail = toRouteTrail(to.chain ?? [to]);
+    this._activeRouteBranch = toActiveRouteBranch(to.chain ?? [to]);
     this.syncActiveLinks(to.href);
   }
 
-  /** Hash-only shortcut: keep trail patterns, rewrite hrefs, refresh active links. */
+  /** Hash-only shortcut: keep patterns, rewrite hrefs, refresh active links. */
   private applyHashOnlyNavigation(href: string): void {
-    if (this._trail.length) {
-      this._trail = this._trail.map((e) => ({ pattern: e.pattern, href }));
+    if (this._activeRouteBranch.length) {
+      this._activeRouteBranch = this._activeRouteBranch.map((e) => ({ pattern: e.pattern, href }));
     }
     this.syncActiveLinks(href);
   }

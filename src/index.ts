@@ -12,7 +12,7 @@ export {
   AuraRouter,
   type AuraRouterConfigureOptions,
   type RouterInstance,
-  type RouteTrailEntry,
+  type ActiveRouteBranchEntry,
   AURA_ROUTER_NOT_FOUND,
   AURA_ROUTER_NAVIGATION_ERROR,
   AURA_ROUTER_NAVIGATION_HOOK_ERROR,

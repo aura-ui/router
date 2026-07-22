@@ -14,4 +14,4 @@ export {
   type ActiveLinkSyncConfig,
   type SyncRouterActiveLinksOptions,
 } from './sync';
-export { toRouteTrail, type RouteTrailEntry } from './route-trail';
+export { toActiveRouteBranch, type ActiveRouteBranchEntry } from './active-route-branch';

@@ -136,7 +136,7 @@ describe('AuraRouter.appOutlet', () => {
     expect(outlet.querySelector('[data-home]')?.textContent).toBe('home');
 
     router.remove();
-    expect(router.trail).toEqual([]);
+    expect(router.activeRouteBranch).toEqual([]);
 
     document.body.append(router);
     await new Promise<void>((resolve) => setTimeout(resolve, 0));

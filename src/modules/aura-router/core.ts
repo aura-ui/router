@@ -1,6 +1,6 @@
 export { AuraRouter, type AuraRouterConfigureOptions } from './core/aura-router';
 export type { RouterInstance } from '../aura-routing-engine/core';
-export type { RouteTrailEntry } from '../aura-routing-engine/core/link-active';
+export type { ActiveRouteBranchEntry } from '../aura-routing-engine/core/link-active';
 export {
   AURA_ROUTER_NOT_FOUND,
   AURA_ROUTER_NAVIGATION_ERROR,

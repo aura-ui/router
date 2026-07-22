@@ -303,7 +303,7 @@ export class AuraRoutingEngine implements NavigationHost {
 
   /**
    * cancel-pending stay: pending may have written the URL and early-synced nav state.
-   * Roll address bar back when needed, then ask the host to re-sync active links / trail.
+   * Roll address bar back when needed, then ask the host to re-sync active links / branch.
    */
   restoreCommittedNavState(pending: NavigationTransaction | null): void {
     const committed = this.prev;

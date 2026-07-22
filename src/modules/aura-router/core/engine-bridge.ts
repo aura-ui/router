@@ -61,7 +61,7 @@ export function connectRouterEngine(
 /**
  * Host chrome adapter over the engine event stream.
  * Early: `url-aligned` → active links / `navigation-start`.
- * Stay: `nav-state-restore` → active links / trail after cancel-pending.
+ * Stay: `nav-state-restore` → active links / branch after cancel-pending.
  * Loads: `load:*` → `load-start` / `load-end` / `load-error`.
  * Late: `commit:end` → scroll, not-found, active links again, DOM `navigation`.
  * Terminal: `finish` / `cancel` / `redirect` / `error` → DOM counterparts.

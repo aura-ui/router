@@ -37,7 +37,7 @@ export type EngineEvent =
   | (NavId & { type: 'navigation:cancel'; reason?: string })
   | (NavId & { type: 'navigation:redirect'; url: string; replace: boolean })
   | (NavId & { type: 'navigation:error'; failure: NavigationFailure })
-  /** Stay on committed route after cancel-pending; host re-syncs active links / trail. */
+  /** Stay on committed route after cancel-pending; host re-syncs active links / branch. */
   | { type: 'navigation:nav-state-restore'; to: MatchedRouteInfo }
   | (NavId & NodeRef & { type: 'node:activate' })
   | (NavId & NodeRef & { type: 'node:deactivate' })

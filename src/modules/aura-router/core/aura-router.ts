@@ -240,7 +240,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.engine?.destroy();
     this.engine = undefined;
     this.scrollRestoration.clear();
-    this.notFound.reset();
+    this.notFound.clear();
   }
 
   private ensureEngine(): AuraRoutingEngine {
@@ -309,7 +309,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
 
     if (event.type === 'navigation:commit:end') {
-      this.notFound.hide();
+      this.notFound.clear();
       if (isCatchAllRoutePattern(event.to.pattern)) {
         dispatchNotFound(this, event.to.href, 'route');
       }
@@ -345,7 +345,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
     if (event.type === 'navigation:error') {
       if (event.failure.viewCommitted) {
-        this.notFound.hide();
+        this.notFound.clear();
       }
       // Fallback NOT_FOUND already handled in config `onNotFound` (DOM + recover).
       if (event.failure.isNotFound) {

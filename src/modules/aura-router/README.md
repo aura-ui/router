@@ -108,7 +108,7 @@ Catch-all маршрут матчит любой pathname, но **проигры
 
 После успешного commit:
 
-1. Скрывается fallback-outlet роутера (`notFound.hide()`).
+1. Скрывается fallback-outlet роутера (`notFound.clear()`).
 2. Если сработал catch-all — диспатчится событие `not-found` с `source: 'route'`.
 
 ```html

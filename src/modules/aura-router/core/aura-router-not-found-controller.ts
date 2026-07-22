@@ -1,9 +1,7 @@
 import { AuraOutlet, type ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../aura-utils/misc';
 
-import { AURA_ROUTER_NOT_FOUND, type NotFoundHandler } from './navigation-events';
-
-export { AURA_ROUTER_NOT_FOUND };
+import type { NotFoundHandler } from './navigation-events';
 
 const NOT_FOUND_VIEW_KEY = '__not-found__';
 
@@ -12,11 +10,11 @@ export interface AuraRouterNotFoundHost extends HTMLElement {
   appOutlet: AuraOutlet;
 }
 
-let configuredNotFoundHandler: NotFoundHandler | null | undefined;
+let configuredHandler: NotFoundHandler | null = null;
 
 export class AuraRouterNotFoundController {
-  private instanceHandler?: NotFoundHandler | null;
-  private notFoundHandle?: ViewHandle;
+  private handler: NotFoundHandler | null = null;
+  private viewHandle?: ViewHandle;
   private readonly router: AuraRouterNotFoundHost;
 
   constructor(router: AuraRouterNotFoundHost) {
@@ -24,75 +22,38 @@ export class AuraRouterNotFoundController {
   }
 
   static configure(handler: NotFoundHandler | null | undefined): void {
-    configuredNotFoundHandler = handler ?? null;
+    configuredHandler = handler ?? null;
   }
 
   setHandler(handler: NotFoundHandler | null): void {
-    this.instanceHandler = handler;
+    this.handler = handler;
   }
 
-  reset(): void {
-    this.clearFallbackView();
+  /** Drop mounted fallback view (disconnect / successful commit / committed error). */
+  clear(): void {
+    this.viewHandle?.destroy();
+    this.viewHandle = undefined;
   }
 
-  /** Clears fallback view (not used when declarative `path="*"` handles 404). */
-  hide(): void {
-    this.clearFallbackView();
-  }
-
-  /** Fallback recovery UI — called from AuraRouter `onNotFound` after cancelable `not-found`. */
+  /** Fallback recovery UI after cancelable `not-found` (unless preventDefault). */
   recover(url: string): void {
-    const handler = this.instanceHandler ?? configuredNotFoundHandler;
+    const handler = this.handler ?? configuredHandler;
     if (handler) {
-      this.clearFallbackView();
+      this.clear();
       handler(url, this.router);
       return;
     }
 
-    if (this.router.notFoundTemplate) {
-      this.renderTemplate(this.router.notFoundTemplate, url);
-      return;
-    }
+    const content = this.router.notFoundTemplate
+      ? getTemplate(this.router.notFoundTemplate)
+      : `Page not found: ${url}`;
 
-    this.renderFallback(url);
-  }
-
-  private clearFallbackView(): void {
-    if (!this.notFoundHandle) return;
-    this.notFoundHandle.destroy();
-    this.notFoundHandle = undefined;
-  }
-
-  private getAppOutlet(): AuraOutlet {
+    this.clear();
     const outlet = this.router.appOutlet;
-    if (!outlet) {
-      throw new Error('`<aura-router>` requires a root `<aura-outlet>` for fallback 404.');
-    }
-    return outlet;
-  }
+    this.viewHandle =
+      outlet.apply(content, { strategy: 'replace', key: NOT_FOUND_VIEW_KEY }) ?? undefined;
 
-  private mountFallback(content: DocumentFragment | string, url?: string): void {
-    const outlet = this.getAppOutlet();
-    this.clearFallbackView();
-    this.notFoundHandle = outlet.apply(content, {
-      strategy: 'replace',
-      key: NOT_FOUND_VIEW_KEY,
-    }) ?? undefined;
-    if (url !== undefined) {
-      this.applyNotFoundUrl(this.notFoundHandle?.viewRoot ?? outlet, url);
-    }
-  }
-
-  private renderTemplate(templateId: string, url: string): void {
-    this.mountFallback(getTemplate(templateId), url);
-  }
-
-  private renderFallback(url: string): void {
-    this.mountFallback(`Page not found: ${url}`);
-  }
-
-  /** Fallback view only — `[data-not-found-url]` is not part of AuraRoute. */
-  private applyNotFoundUrl(root: ParentNode, url: string): void {
+    const root = this.viewHandle?.viewRoot ?? outlet;
     root.querySelectorAll('[data-not-found-url]').forEach((el) => {
       el.textContent = url;
     });

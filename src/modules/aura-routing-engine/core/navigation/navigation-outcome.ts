@@ -15,8 +15,7 @@ import type { TransactionResult } from './types';
  */
 export type ApplyOutcomeContext = {
   provider: HistoryProviderLike;
-  onNotFound?: (failure: NavigationFailure) => void | boolean;
-  notFoundHandler?: (href: string) => void;
+  onNotFound?: (failure: NavigationFailure) => void;
   setPrev: (prev: MatchedRouteInfo | null) => void;
   navigateTo: (
     url: string,
@@ -25,11 +24,8 @@ export type ApplyOutcomeContext = {
   ) => void;
 };
 
-/** NOT_FOUND recovery callbacks (public config shape). */
-export type NotFoundCallbacks = Pick<
-  ApplyOutcomeContext,
-  'onNotFound' | 'notFoundHandler'
->;
+/** NOT_FOUND host callback (public config shape). */
+export type NotFoundCallbacks = Pick<ApplyOutcomeContext, 'onNotFound'>;
 
 /** @deprecated Use {@link NotFoundCallbacks}. */
 export type CompleteFailureDeps = NotFoundCallbacks;
@@ -95,15 +91,13 @@ export function applyNavigationOutcome(
   }
 }
 
-/** NOT_FOUND callbacks + `prev`. No history / bus. */
+/** NOT_FOUND host notify + `prev`. No history / bus. */
 function applyFailureEffects(
   failure: NavigationFailure,
   ctx: ApplyOutcomeContext,
 ): void {
   if (failure.isNotFound) {
-    if (ctx.onNotFound?.(failure) !== false) {
-      ctx.notFoundHandler?.(failure.href);
-    }
+    ctx.onNotFound?.(failure);
     ctx.setPrev(null);
     return;
   }

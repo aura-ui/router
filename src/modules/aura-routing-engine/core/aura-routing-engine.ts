@@ -59,9 +59,6 @@ export {
   ENGINE_DEFAULTS,
   resolveAuraRoutingEngineConfig,
 } from './aura-routing-engine-config';
-/** Engine fallback recovery when match returns null (no `path="*"` route). */
-export type NotFoundFallbackHandler = (href: string) => void;
-
 export class AuraRoutingEngine implements NavigationHost {
   private readonly registry = new AuraRoutingRouteRegistry();
   readonly matcher = new AuraRoutingUrlMatcher();
@@ -72,7 +69,6 @@ export class AuraRoutingEngine implements NavigationHost {
   private prev: MatchedRouteInfo | null;
   readonly router: RouterInstance;
 
-  private notFoundHandler: NotFoundFallbackHandler | null = null;
   private prefetchPipeline?: PrefetchPipeline;
   private readonly linkNavigation: LinkNavigationTracker;
   readonly hooksRegistry: HookRegistry;
@@ -377,7 +373,6 @@ export class AuraRoutingEngine implements NavigationHost {
     return {
       provider: this.provider,
       onNotFound: this.config.onNotFound,
-      notFoundHandler: this.notFoundHandler ?? undefined,
       setPrev: (prev: MatchedRouteInfo | null) => {
         this.prev = prev;
       },
@@ -405,10 +400,6 @@ export class AuraRoutingEngine implements NavigationHost {
     requestAnimationFrame(() => {
       document.getElementById(id)?.scrollIntoView();
     });
-  }
-
-  setNotFoundHandler(callback: NotFoundFallbackHandler): void {
-    this.notFoundHandler = callback;
   }
 
   private initPrefetch(): void {

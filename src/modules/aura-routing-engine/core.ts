@@ -14,7 +14,6 @@
 // --- Engine (wired by aura-router) ---
 
 export type {
-  NotFoundFallbackHandler,
   AuraRoutingEngineConfig,
   ResolvedAuraRoutingEngineConfig,
 } from './core/aura-routing-engine';

@@ -205,9 +205,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /** Per-instance override (перекрывает configure и template). Только fallback. */
   setNotFoundHandler(handler: NotFoundHandler | null): void {
     this.notFound.setHandler(handler);
-    this.ensureEngine().setNotFoundHandler((url) => {
-      this.notFound.recover(url);
-    });
   }
 
   /** Facade to the engine-owned {@link ViewGraph} (creates engine on first access). */
@@ -251,7 +248,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       const config: AuraRoutingEngineConfig = {
         linksSelector: this.linksSelector,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
-        onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
+        onNotFound: (failure) => {
+          if (dispatchNotFound(this, failure.href, 'fallback')) {
+            this.notFound.recover(failure.href);
+          }
+        },
         onHashOnlyNavigation: (href) => {
           if (this._trail.length) {
             this._trail = this._trail.map((e) => ({ pattern: e.pattern, href }));
@@ -263,9 +264,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         },
       };
       this.engine = new AuraRoutingEngine(this, config);
-      this.engine.setNotFoundHandler((url) => {
-        this.notFound.recover(url);
-      });
       this.engine.events.subscribe((event) => this.onEngineEvent(event));
     }
     return this.engine;
@@ -349,7 +347,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       if (event.failure.viewCommitted) {
         this.notFound.hide();
       }
-      // NOT_FOUND already surfaces as DOM `not-found` via engine `onNotFound`.
+      // Fallback NOT_FOUND already handled in config `onNotFound` (DOM + recover).
       if (event.failure.isNotFound) {
         return;
       }

@@ -48,8 +48,8 @@ export interface AuraRoutingEngineConfig {
   hash?: boolean;
   onHashOnlyNavigation?: (href: string) => void;
   onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
-  /** Return `false` to skip fallback recovery UI. */
-  onNotFound?: (failure: NavigationFailure) => void | boolean;
+  /** Fallback NOT_FOUND — host owns event + recovery UI. */
+  onNotFound?: (failure: NavigationFailure) => void;
   /** Default: BrowserHistoryProvider. */
   provider?: NavigationProvider;
   /** Advanced tests — prefer `viewRegistry`. Must share handoff with data. */

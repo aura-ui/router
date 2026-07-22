@@ -40,7 +40,7 @@ export class AuraRouterNotFoundController {
     this.clearFallbackView();
   }
 
-  /** Fallback recovery UI — `not-found` event is emitted via engine `onNotFound` before this. */
+  /** Fallback recovery UI — called from AuraRouter `onNotFound` after cancelable `not-found`. */
   recover(url: string): void {
     const handler = this.instanceHandler ?? configuredNotFoundHandler;
     if (handler) {

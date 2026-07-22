@@ -46,7 +46,7 @@ History policy: `history/history-policy.ts` (`applyTransactionHistory`).
 
 ## Recovery (apply layer, not here)
 
-- `NOT_FOUND` → `onNotFound` / fallback / `setPrev(null)` via `applyNavigationOutcome`.
+- `NOT_FOUND` → `onNotFound` / `setPrev(null)` via `applyNavigationOutcome`.
 - Pipeline / redirect-cycle errors → bus `navigation:error` via `NavigationPulse.settle`.
 - Committed view failure → `setPrev(failure.to)` via apply path.
 

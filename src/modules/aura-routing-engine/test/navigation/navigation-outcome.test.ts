@@ -5,7 +5,6 @@ import { createTestRoute } from '../helpers/create-test-route';
 describe('applyNavigationOutcome (pre-match / error)', () => {
   const provider = { commit: jest.fn(), rollback: jest.fn() };
   const onNotFound = jest.fn();
-  const notFoundHandler = jest.fn();
   const setPrev = jest.fn();
 
   beforeEach(() => {
@@ -16,7 +15,6 @@ describe('applyNavigationOutcome (pre-match / error)', () => {
     return {
       provider,
       onNotFound,
-      notFoundHandler,
       setPrev,
       navigateTo: jest.fn(),
     };
@@ -31,13 +29,12 @@ describe('applyNavigationOutcome (pre-match / error)', () => {
     };
   }
 
-  it('runs NOT_FOUND callbacks, commits history, clears prev', () => {
+  it('notifies onNotFound, commits history, clears prev', () => {
     const failure = NavigationFailure.notFound('/missing', null, 'push');
 
     applyNavigationOutcome(failure.toResult(), identity('/missing'), ctx());
 
     expect(onNotFound).toHaveBeenCalledWith(failure);
-    expect(notFoundHandler).toHaveBeenCalledWith('/missing');
     expect(provider.commit).toHaveBeenCalled();
     expect(setPrev).toHaveBeenCalledWith(null);
   });

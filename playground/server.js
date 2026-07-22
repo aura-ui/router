@@ -18,6 +18,18 @@ fastify.register(fastifyStatic, {
 });
 
 // Declare a route
+fastify.get('/user', async function handler(request, reply) {
+  await new Promise((r) => setTimeout(r, 3000));
+  const html = await readFile(join(__dirname, 'pages', 'user.html'), 'utf8');
+  return reply.type('text/html').send(html);
+});
+
+fastify.get('/contacts', async function handler(request, reply) {
+  await new Promise((r) => setTimeout(r, 1000));
+  const html = await readFile(join(__dirname, 'pages', 'contacts.html'), 'utf8');
+  return reply.type('text/html').send(html);
+});
+
 fastify.get('/*', async function handler(request, reply) {
   const html = await readFile(join(__dirname, 'pages', 'index.html'), 'utf8');
   return reply.type('text/html').send(html);

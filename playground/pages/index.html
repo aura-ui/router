@@ -6,15 +6,26 @@
 <body>
 Привет!
 
+<style>
+    .active {
+        color: red;
+    }
+</style>
 <nav>
   <a href="/" aura-router-link>Home</a>
   <a href="/about" aura-router-link>About</a>
+  <a href="/contacts" aura-router-link>Contacts</a>
+  <a href="/user" aura-router-link>User</a>
+  <a href="/error" aura-router-link>404</a>
 </nav>
 
-<aura-outlet></aura-outlet>
-<aura-router>
+<aura-router link-active-class="active"
+             loading-template="loading"
+             cache>
   <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>
+  <aura-route path="/contacts" view="contacts" cache="off" extract=".main"></aura-route>
+  <aura-route path="/user" view="user"></aura-route>
   <aura-route path="*" view="template::not-found"></aura-route>
 </aura-router>
 
@@ -26,6 +37,11 @@
 <template id="not-found">
   <h1>404</h1>
 </template>
+
+<template id="loading">
+  <h1>Loading</h1>
+</template>
+
 
 </body>
 </html>

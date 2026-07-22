@@ -41,47 +41,6 @@ import { dispatchDataInvalidated, type NotFoundHandler } from './navigation-even
 import { ScrollRestoration } from './scroll-restoration';
 import { resolveAppOutlet } from './outlet-resolver';
 
-export {
-  AURA_ROUTER_NOT_FOUND,
-  AURA_ROUTER_NAVIGATION_ERROR,
-  AURA_ROUTER_NAVIGATION_HOOK_ERROR,
-  AURA_ROUTER_NAVIGATION,
-  AURA_ROUTER_NAVIGATION_START,
-  AURA_ROUTER_NAVIGATION_COMPLETE,
-  AURA_ROUTER_NAVIGATION_CANCEL,
-  AURA_ROUTER_NAVIGATION_REDIRECT,
-  AURA_ROUTER_LOAD_START,
-  AURA_ROUTER_LOAD_END,
-  AURA_ROUTER_LOAD_ERROR,
-  AURA_ROUTER_DATA_INVALIDATED,
-  type NotFoundHandler,
-  type NotFoundSource,
-  type AuraRouterNotFoundEventDetail,
-  type AuraRouterNotFoundEvent,
-  type AuraRouterNavigationErrorEventDetail,
-  type AuraRouterNavigationErrorEvent,
-  type NavigationErrorPhase,
-  type NavigationFailureCode,
-  type AuraRouterNavigationHookErrorEventDetail,
-  type AuraRouterNavigationHookErrorEvent,
-  type AuraRouterNavigationEventDetail,
-  type AuraRouterNavigationEvent,
-  type AuraRouterNavigationStartEvent,
-  type AuraRouterNavigationCompleteEventDetail,
-  type AuraRouterNavigationCompleteEvent,
-  type AuraRouterNavigationCancelEventDetail,
-  type AuraRouterNavigationCancelEvent,
-  type AuraRouterNavigationRedirectEventDetail,
-  type AuraRouterNavigationRedirectEvent,
-  type AuraRouterLoadEventDetail,
-  type AuraRouterLoadStartEvent,
-  type AuraRouterLoadEndEvent,
-  type AuraRouterLoadErrorEventDetail,
-  type AuraRouterLoadErrorEvent,
-  type AuraRouterDataInvalidatedEventDetail,
-  type AuraRouterDataInvalidatedEvent,
-} from './navigation-events';
-
 export interface AuraRouterConfigureOptions {
   /** Detached DOM keep-alive (`cache.dom`). */
   domCache?: CacheStoreOptions<ViewRoot>;
@@ -93,29 +52,27 @@ export interface AuraRouterConfigureOptions {
   notFoundHandler?: NotFoundHandler | null;
 }
 
-export type { RouterInstance } from '../../aura-routing-engine/core';
-export type { RouteTrailEntry } from '../../aura-routing-engine/core/link-active';
-
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
   /** Fallback template id — когда нет `<aura-route path="*">`. */
-  @attr({ readonly: true, cached: true }) notFoundTemplate: string;
+  @attr({ readonly: true, cached: true })
+  notFoundTemplate: string;
 
-  @attr({ defaultValue: '[aura-router-link]' }) linksSelector: string;
+  @attr({ defaultValue: '[aura-router-link]' })
+  linksSelector: string;
   /** CSS class toggled on `[aura-router-link]` when its resolved href matches the current URL. */
-  @attr({ parser: parseNullableString, cached: true, name: 'link-active-class' }) linkActiveClass: string | null;
+  @attr({ parser: parseNullableString, cached: true })
+  linkActiveClass: string | null;
   /** CSS class for section/folder links when the current URL is under the link path (prefix match). */
   @attr({
     parser: parseNullableString,
     cached: true,
-    name: 'link-active-branch-class',
   }) linkActiveBranchClass: string | null;
   /** Optional ancestor that narrows the active-link scan (default: whole document). */
   @attr({
     parser: parseNullableString,
     cached: true,
-    name: 'links-container-selector',
   }) linksContainerSelector: string | null;
 
   /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */

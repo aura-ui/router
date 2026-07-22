@@ -4,6 +4,7 @@ import { matchLinkActive } from '../../aura-routing-engine/core/link-active/matc
 import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRouter } from '../core/aura-router';
 import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { getRouterEngine } from './helpers/get-router-engine';
 
 async function flushNavigation(): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -238,7 +239,7 @@ describe('AuraRouter link-active-class', () => {
     await flushNavigation();
 
     const bus: string[] = [];
-    router.events.subscribe((event) => {
+    getRouterEngine(router).events.subscribe((event) => {
       bus.push(event.type);
     });
 

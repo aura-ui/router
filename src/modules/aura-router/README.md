@@ -67,7 +67,7 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 
 ## События навигации
 
-Публичные DOM events — thin adapter над engine bus (`router.events`).
+Публичные DOM events — thin adapter над внутренним engine EventBus (bus на `<aura-router>` не светится).
 
 ```ts
 router.addEventListener('navigation-start', (event) => { /* url aligned */ });

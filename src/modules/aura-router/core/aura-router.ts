@@ -23,7 +23,6 @@ import {
   type RouterInstance,
   type DataGraphCacheOptions,
   type Loader,
-  type EventBus,
   type MatchedRouteInfo,
 } from '../../aura-routing-engine/core';
 import {
@@ -278,11 +277,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       linkActiveBranchClass: this.linkActiveBranchClass,
       linksContainerSelector: this.linksContainerSelector,
     });
-  }
-
-  /** Engine event stream (`navigation:url-aligned`, `navigation:commit:end`, …). */
-  get events(): EventBus {
-    return this.ensureEngine().events;
   }
 
   navigate(path: string, options: Partial<NavigateHistoryOptions> = {}): void {

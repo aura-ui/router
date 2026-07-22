@@ -12,6 +12,7 @@ import {
   AuraRouter,
 } from '../core/aura-router';
 import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { getRouterEngine } from './helpers/get-router-engine';
 
 const DOM_LIFECYCLE = [
   AURA_ROUTER_NAVIGATION_START,
@@ -52,7 +53,7 @@ function attachCollectors(router: AuraRouter): Collectors {
   const bus: EngineEvent['type'][] = [];
   const dom: string[] = [];
 
-  router.events.subscribe((event) => {
+  getRouterEngine(router).events.subscribe((event) => {
     bus.push(event.type);
   });
 
@@ -269,7 +270,7 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
     const listener = jest.fn();
     router.addEventListener(AURA_ROUTER_NAVIGATION_REDIRECT, listener);
 
-    router.events.emit({
+    getRouterEngine(router).events.emit({
       type: 'navigation:redirect',
       id: 42,
       url: '/login',

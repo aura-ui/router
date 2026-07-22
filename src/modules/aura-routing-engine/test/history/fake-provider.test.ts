@@ -78,10 +78,10 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(provider.entries).toEqual(['/', '/about']);
   });
 
-  it('calls onAnchorNavigation for hash-only navigateTo', async () => {
-    const onAnchorNavigation = jest.fn();
+  it('calls onHashOnlyNavigation for hash-only navigateTo', async () => {
+    const onHashOnlyNavigation = jest.fn();
     const provider = new FakeHistoryProvider('/docs');
-    const engine = new AuraRoutingEngine(router, { provider, onAnchorNavigation });
+    const engine = new AuraRoutingEngine(router, { provider, onHashOnlyNavigation });
 
     engine.registerRoutes([createTestRoute('/docs')]);
     provider.start();
@@ -89,8 +89,8 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     await engine.navigateTo('/docs', 'system', { replace: true, syncHistory: false });
     await engine.navigateTo('/docs#intro', 'push', { replace: false, syncHistory: true });
 
-    expect(onAnchorNavigation).toHaveBeenCalledTimes(1);
-    expect(onAnchorNavigation).toHaveBeenCalledWith('/docs#intro');
+    expect(onHashOnlyNavigation).toHaveBeenCalledTimes(1);
+    expect(onHashOnlyNavigation).toHaveBeenCalledWith('/docs#intro');
     expect(provider.currentHref).toBe('/docs#intro');
   });
 

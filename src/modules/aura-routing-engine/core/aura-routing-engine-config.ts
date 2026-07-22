@@ -46,7 +46,7 @@ export interface AuraRoutingEngineConfig {
   linksSelector?: string;
   /** Default: `false`. */
   hash?: boolean;
-  onAnchorNavigation?: (href: string) => void;
+  onHashOnlyNavigation?: (href: string) => void;
   onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
   /** Return `false` to skip fallback recovery UI. */
   onNotFound?: (failure: NavigationFailure) => void | boolean;

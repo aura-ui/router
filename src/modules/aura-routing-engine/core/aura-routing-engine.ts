@@ -274,7 +274,7 @@ export class AuraRoutingEngine implements NavigationHost {
 
     // Только якорь на том же route — без полного transition
     if (resolved.hash && isHashOnlyChange(resolved, splitAppHref(this.provider.currentHref))) {
-      this.finalizeAnchorNavigation(resolved.href, options, resolved.hash);
+      this.finalizeHashOnlyNavigation(resolved.href, options, resolved.hash);
       return;
     }
 
@@ -388,14 +388,14 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
   /** Hash-only на том же path — без processor. */
-  private finalizeAnchorNavigation(
+  private finalizeHashOnlyNavigation(
     href: string,
     options: NavigateHistoryOptions,
     hash: string,
   ): void {
     this.provider.commit(href, options);
     if (this.prev) syncChainHref(this.prev, href, hash);
-    this.config.onAnchorNavigation?.(href);
+    this.config.onHashOnlyNavigation?.(href);
     if (hash) this.scrollToHash(hash);
   }
 

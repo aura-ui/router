@@ -167,7 +167,7 @@ export const DEMO_VIEW_META: Record<string, DemoRouteFact[]> = {
     {
       term: 'Pipeline',
       kind: 'code',
-      value: 'finalizeAnchorNavigation',
+      value: 'finalizeHashOnlyNavigation',
     },
     {
       term: 'Действие роутера',

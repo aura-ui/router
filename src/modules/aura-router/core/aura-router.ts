@@ -252,7 +252,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         linksSelector: this.linksSelector,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
         onNotFound: (failure) => dispatchNotFound(this, failure.href, 'fallback'),
-        onAnchorNavigation: (href) => {
+        onHashOnlyNavigation: (href) => {
           if (this._trail.length) {
             this._trail = this._trail.map((e) => ({ pattern: e.pattern, href }));
           }

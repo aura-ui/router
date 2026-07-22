@@ -46,7 +46,7 @@ export function getLeafMatch(info: MatchedRouteInfo): MatchedRouteInfo {
  * / `node.pattern`, но одинаковые `href`, `pathname`, `search`, `hash` (см. `buildActiveChain`).
  *
  * При переходе только якоря (`/settings/profile` → `/settings/profile#tab`) pathname не меняется,
- * processor и lifecycle не запускаются (`AuraRoutingEngine.finalizeAnchorNavigation`), но `prev`
+ * processor и lifecycle не запускаются (`AuraRoutingEngine.finalizeHashOnlyNavigation`), но `prev`
  * должен отражать новый hash. Функция проходит `getActiveChain(info)` и ставит **один и тот же**
  * `href` и `hash` на parent, leaf и все промежуточные звенья — иначе часть chain устареет.
  *

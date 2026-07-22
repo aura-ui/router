@@ -284,3 +284,80 @@ describe('AuraRoutingEngine finalize after early history', () => {
     expect(provider.currentHref).toBe('/to');
   });
 });
+
+describe('AuraRoutingEngine.restoreCommittedNavState', () => {
+  it('rolls back URL and emits nav-state-restore when pending already wrote history', () => {
+    const provider = new FakeHistoryProvider('/about');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+
+    const about = createMatchedRoute('/about');
+    const gallery = createMatchedRoute('/gallery');
+    engine.commitNavigation(
+      new NavigationTransaction(
+        1,
+        {
+          from: null,
+          to: about,
+          action: 'system',
+          href: '/about',
+          hash: '',
+          options: { replace: true, syncHistory: false },
+        },
+        () => false,
+        engine,
+      ),
+    );
+
+    const pending = new NavigationTransaction(
+      2,
+      {
+        from: about,
+        to: gallery,
+        action: 'push',
+        href: '/gallery',
+        hash: '',
+        options: { replace: false, syncHistory: true },
+      },
+      () => false,
+      engine,
+    );
+    engine.commitHistoryIfNeeded(pending);
+    expect(provider.currentHref).toBe('/gallery');
+
+    const seen: unknown[] = [];
+    engine.events.subscribe((e) => seen.push(e));
+    engine.restoreCommittedNavState(pending);
+
+    expect(provider.currentHref).toBe('/about');
+    expect(seen).toEqual([{ type: 'navigation:nav-state-restore', to: about }]);
+  });
+
+  it('emits nav-state-restore without rollback when pending did not write history', () => {
+    const provider = new FakeHistoryProvider('/about');
+    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+
+    const about = createMatchedRoute('/about');
+    engine.commitNavigation(
+      new NavigationTransaction(
+        1,
+        {
+          from: null,
+          to: about,
+          action: 'system',
+          href: '/about',
+          hash: '',
+          options: { replace: true, syncHistory: false },
+        },
+        () => false,
+        engine,
+      ),
+    );
+
+    const seen: unknown[] = [];
+    engine.events.subscribe((e) => seen.push(e));
+    engine.restoreCommittedNavState(null);
+
+    expect(provider.currentHref).toBe('/about');
+    expect(seen).toEqual([{ type: 'navigation:nav-state-restore', to: about }]);
+  });
+});

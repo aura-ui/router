@@ -293,6 +293,20 @@ export class AuraRoutingEngine implements NavigationHost {
     this.provider.commit(href, { replace: true, syncHistory: true });
   }
 
+  /**
+   * cancel-pending stay: pending may have written the URL and early-synced nav state.
+   * Roll address bar back when needed, then ask the host to re-sync active links / trail.
+   */
+  restoreCommittedNavState(pending: NavigationTransaction | null): void {
+    const committed = this.prev;
+    if (committed == null) return;
+
+    if (pending?.historyCommitted) {
+      this.provider.rollback(committed.href);
+    }
+    this.pulse.restoreNavState(committed);
+  }
+
   handleUnmatchedNavigation(
     requestedHref: string,
     action: HistoryAction,

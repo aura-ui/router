@@ -35,6 +35,8 @@ describe('RedirectResolver integration', () => {
 
     engine.replaceRoutes(collectRoutesFromDom(dashboard, login));
     provider.start();
+    // Harness skips engine.start(); processResult applies only while running.
+    engine.isRunning = true;
 
     const applySpy = jest.spyOn(engine, 'applyTerminalOutcome');
 

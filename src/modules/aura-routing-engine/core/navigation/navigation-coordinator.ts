@@ -159,8 +159,10 @@ export class NavigationCoordinator {
     }
 
     if (plan.action === 'cancel-pending') {
-      this.activeTransaction?.cancel();
+      const pending = this.activeTransaction;
+      pending?.cancel();
       this.activeTransaction = null;
+      this.host.restoreCommittedNavState(pending);
       return;
     }
 

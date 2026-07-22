@@ -124,6 +124,11 @@ export class NavigationPulse {
     });
   }
 
+  /** Emits `navigation:nav-state-restore` for the committed route (cancel-pending stay). */
+  restoreNavState(to: MatchedRouteInfo): void {
+    this.bus.emit({ type: 'navigation:nav-state-restore', to });
+  }
+
   /** Emits `navigation:commit:start`. */
   commitStart(tx: NavigationTransaction): void {
     this.bus.emit({ type: 'navigation:commit:start', id: tx.transactionId });

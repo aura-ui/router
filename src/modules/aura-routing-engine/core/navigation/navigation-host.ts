@@ -50,4 +50,10 @@ export interface NavigationHost {
     result: TransactionResult,
     transaction: NavigationTransaction,
   ): void;
+
+  /**
+   * After cancel-pending: restore address bar / nav state to the committed route.
+   * Pending may already have written history and early-synced active links.
+   */
+  restoreCommittedNavState(pending: NavigationTransaction | null): void;
 }

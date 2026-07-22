@@ -200,6 +200,77 @@ describe('AuraRouter link-active-class', () => {
     expect(faq.classList.contains('is-active')).toBe(true);
     expect(faq.getAttribute('aria-current')).toBe('page');
   });
+
+  it('restores active link when returning to committed route while target load is in flight', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    AuraRouter.use({
+      name: 'slow-load-cancel-pending-active',
+      version: '1.0.0',
+      fn: async (ctx) => {
+        if (ctx.phase === 'load') {
+          await gate;
+          return { ok: true };
+        }
+      },
+    });
+
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('link-active-class', 'is-active');
+    router.innerHTML = `
+      <nav>
+        <a href="/" aura-router-link>Home</a>
+        <a href="/about" aura-router-link>About</a>
+      </nav>
+      <aura-route path="/" view="html::<p>home</p>"></aura-route>
+      <aura-route
+        path="/about"
+        view="html::<p>about</p>"
+        load="slow-load-cancel-pending-active"
+      ></aura-route>
+    `;
+    document.body.append(router);
+
+    await customElements.whenDefined('aura-route');
+    await flushNavigation();
+
+    const bus: string[] = [];
+    router.events.subscribe((event) => {
+      bus.push(event.type);
+    });
+
+    const [home, about] = router.querySelectorAll<HTMLAnchorElement>('[aura-router-link]');
+    expect(home!.classList.contains('is-active')).toBe(true);
+
+    void router.navigate('/about');
+    const started = Date.now();
+    while (!bus.includes('navigation:url-aligned')) {
+      if (Date.now() - started > 1000) {
+        throw new Error(`Timed out waiting for url-aligned; saw ${JSON.stringify(bus)}`);
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 5));
+    }
+
+    expect(window.location.pathname).toBe('/about');
+    expect(about!.classList.contains('is-active')).toBe(true);
+    expect(home!.classList.contains('is-active')).toBe(false);
+
+    void router.navigate('/');
+    await flushNavigation();
+
+    expect(bus).toContain('navigation:nav-state-restore');
+    expect(window.location.pathname).toBe('/');
+    expect(home!.classList.contains('is-active')).toBe(true);
+    expect(home!.getAttribute('aria-current')).toBe('page');
+    expect(about!.classList.contains('is-active')).toBe(false);
+
+    release();
+    await flushNavigation();
+    AuraRouter.unuse('slow-load-cancel-pending-active');
+  });
 });
 
 describe('AuraRouter link-active-branch-class and trail', () => {

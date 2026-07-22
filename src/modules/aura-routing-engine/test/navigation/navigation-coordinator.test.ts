@@ -200,6 +200,12 @@ describe('NavigationCoordinator', () => {
 
       expect(coordinator.activeTransaction).toBeNull();
 
+      expect(host.restoreCommittedNavState).toHaveBeenCalledTimes(1);
+
+      expect(host.restoreCommittedNavState).toHaveBeenCalledWith(
+        expect.objectContaining({ href: '/gallery' }),
+      );
+
       expect(coordinator.hasOpenNavigation('/gallery')).toBe(true);
 
 
@@ -247,6 +253,8 @@ describe('NavigationCoordinator', () => {
       expect(runSpy).not.toHaveBeenCalled();
 
       expect(cancelSpy).not.toHaveBeenCalled();
+
+      expect(host.restoreCommittedNavState).toHaveBeenCalledWith(null);
 
       expect(coordinator.hasOpenNavigation('/gallery')).toBe(true);
 
@@ -789,6 +797,8 @@ describe('NavigationCoordinator', () => {
       expect(runSpy).not.toHaveBeenCalled();
 
       expect(cancelSpy).not.toHaveBeenCalled();
+
+      expect(host.restoreCommittedNavState).toHaveBeenCalledWith(null);
 
       expect(coordinator.beginNavigation('/gallery')).toBeNull();
 

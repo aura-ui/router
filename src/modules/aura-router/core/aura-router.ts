@@ -274,6 +274,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /**
    * Host chrome adapter over the engine event stream.
    * Early: `url-aligned` → active links / `navigation-start`.
+   * Stay: `nav-state-restore` → active links / trail after cancel-pending.
    * Loads: `load:*` → `load-start` / `load-end` / `load-error`.
    * Late: `commit:end` → scroll, not-found, active links again, DOM `navigation`.
    * Terminal: `finish` / `cancel` / `redirect` / `error` → DOM counterparts.
@@ -285,6 +286,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
         to: event.to.href,
         pathname: event.to.pathname,
       });
+      this.syncNavState(event.to);
+      return;
+    }
+
+    if (event.type === 'navigation:nav-state-restore') {
       this.syncNavState(event.to);
       return;
     }

@@ -71,6 +71,18 @@ describe('NavigationPulse', () => {
     ]);
   });
 
+  it('restoreNavState emits navigation:nav-state-restore', () => {
+    const seen: EngineEvent[] = [];
+    const bus = new EventBus();
+    bus.subscribe((e) => seen.push(e));
+    const pulse = new NavigationPulse(bus);
+    const to = createMatchedRoute('/about');
+
+    pulse.restoreNavState(to);
+
+    expect(seen).toEqual([{ type: 'navigation:nav-state-restore', to }]);
+  });
+
   it('commitEnd emits commit:end then node:activate', () => {
     const seen: EngineEvent[] = [];
     const bus = new EventBus();

@@ -44,7 +44,8 @@ export class LinkPrefetchIntentTracker {
     document.addEventListener('touchstart', this.onLinkTouch, { capture: true, passive: true });
   }
 
-  destroy(): void {
+  /** Pause intent listeners; handlers stay for a later {@link start}. */
+  stop(): void {
     if (!this.listening) return;
     this.listening = false;
     document.removeEventListener('mouseover', this.onLinkIntent, { capture: true });

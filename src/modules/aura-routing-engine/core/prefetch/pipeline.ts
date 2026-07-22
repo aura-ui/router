@@ -62,6 +62,11 @@ export class PrefetchPipeline {
     this.linkSource.start();
   }
 
+  /** Pause link intents; bus / store / plan resolver stay intact for a later {@link start}. */
+  stop(): void {
+    this.linkSource.stop();
+  }
+
   scheduleIntent(href: string, mode?: PrefetchMode): void {
     this.handleIntent({ type: 'schedule', href, mode, source: 'api' });
   }
@@ -142,8 +147,9 @@ export class PrefetchPipeline {
   }
 
   destroy(): void {
+    // Pause while the bus is still subscribed so cancelIntent reaches the store.
+    this.stop();
     this.unsubscribeIntent();
-    this.linkSource.destroy();
     this.intentBus.destroy();
     this.store.destroy();
     this.planResolver.clear();

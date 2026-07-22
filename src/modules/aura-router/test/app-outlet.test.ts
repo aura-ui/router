@@ -111,4 +111,28 @@ describe('AuraRouter.appOutlet', () => {
     expect(router.appOutlet.querySelector('[data-home]')?.textContent).toBe('home');
     expect(router.previousElementSibling).toBe(router.appOutlet);
   });
+
+  it('reuses the sibling outlet after disconnect/reconnect and remounts', async () => {
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.innerHTML = `<aura-route path="/" view="html::<p data-home>home</p>"></aura-route>`;
+    document.body.append(router);
+
+    await customElements.whenDefined('aura-route');
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    const outlet = router.appOutlet;
+    expect(outlet.querySelector('[data-home]')?.textContent).toBe('home');
+
+    router.remove();
+    expect(router.trail).toEqual([]);
+
+    document.body.append(router);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(router.appOutlet).toBe(outlet);
+    expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
+    expect(router.appOutlet.querySelector('[data-home]')?.textContent).toBe('home');
+  });
 });

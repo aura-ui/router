@@ -57,4 +57,22 @@ describe('LinkNavigationTracker', () => {
       syncHistory: true,
     });
   });
+
+  it('stop pauses clicks; start resumes with the same handler', () => {
+    const onNavigation = jest.fn();
+    const tracker = new LinkNavigationTracker();
+
+    tracker.onNavigation(onNavigation);
+    tracker.start();
+    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
+    const link = document.querySelector('a')!;
+
+    tracker.stop();
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(onNavigation).not.toHaveBeenCalled();
+
+    tracker.start();
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(onNavigation).toHaveBeenCalledTimes(1);
+  });
 });

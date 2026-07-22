@@ -209,20 +209,35 @@ export class AuraRoutingEngine implements NavigationHost {
     });
   }
 
-  stop() {
+  /**
+   * Pause input (history / link clicks / prefetch intents) and cancel in-flight work.
+   * Keeps wiring so a later {@link start} resumes on the same instance.
+   * For full teardown use {@link destroy}.
+   */
+  stop(): void {
+    if (!this.isRunning) return;
     this.isRunning = false;
     this.navigationCoordinator.invalidate();
+    this.prefetchPipeline?.stop();
+    this.linkNavigation.stop();
+    this.provider.stop();
+  }
+
+  /**
+   * Full teardown. Does not call {@link stop} — subsystem `destroy` already pauses listeners
+   * where needed; calling both would re-stop / re-invalidate for nothing.
+   */
+  destroy(): void {
+    if (this.isRunning) {
+      this.isRunning = false;
+      this.navigationCoordinator.invalidate();
+    }
     this.prefetchPipeline?.destroy();
     this.linkNavigation.destroy();
     this.provider.destroy();
     this.matcher.destroy();
-  }
-
-  destroy(): void {
-    this.stop();
     this.registry.clear();
     this.prev = null;
-    this.navigationCoordinator.invalidate();
     this.resourceGraph.destroy();
     this.events.destroy();
   }

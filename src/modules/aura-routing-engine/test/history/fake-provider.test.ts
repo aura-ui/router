@@ -122,6 +122,47 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(provider.currentHref).toBe('/about');
   });
 
+  it('stop pauses input; start resumes on the same engine', async () => {
+    const provider = new FakeHistoryProvider('/');
+    const engine = new AuraRoutingEngine(router, { provider });
+
+    engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
+    engine.start();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    engine.stop();
+    expect(engine.isRunning).toBe(false);
+    provider.clickLink('/about');
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(provider.currentHref).toBe('/');
+
+    engine.start();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(engine.isRunning).toBe(true);
+
+    provider.clickLink('/about');
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(provider.currentHref).toBe('/about');
+
+    engine.destroy();
+  });
+
+  it('destroy after stop clears provider handler', () => {
+    const provider = new FakeHistoryProvider('/');
+    const handler = jest.fn();
+    provider.onNavigation(handler);
+    provider.start();
+
+    const engine = new AuraRoutingEngine(router, { provider });
+    engine.start();
+    engine.stop();
+    engine.destroy();
+
+    provider.start();
+    provider.clickLink('/x');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it('при ошибке render вызывает onUnmount у from и коммитит URL', async () => {
     const fromLeft = jest.fn();
     const renderError = new Error('load failed');

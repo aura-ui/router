@@ -30,7 +30,11 @@ export interface NavigationProvider {
   readonly currentHref: string;
 
   onNavigation(handler: NavigationHandler): void;
+  /** Begin listening (popstate / test transport). Idempotent. */
   start(): void;
+  /** Pause listening; keeps {@link onNavigation} handler for a later {@link start}. */
+  stop(): void;
+  /** Full teardown — clears handler. Not restartable; create a new provider instead. */
   destroy(): void;
 
   /** History commit: записать URL после успешного processor (не view commit / render). */

@@ -41,8 +41,12 @@ export class FakeHistoryProvider implements NavigationProvider {
     this.listening = true;
   }
 
-  destroy(): void {
+  stop(): void {
     this.listening = false;
+  }
+
+  destroy(): void {
+    this.stop();
     this.handler = undefined;
   }
 

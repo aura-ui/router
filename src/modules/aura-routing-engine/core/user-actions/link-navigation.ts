@@ -28,10 +28,15 @@ export class LinkNavigationTracker {
     document.addEventListener('click', this.onDocumentClick, { capture: true });
   }
 
-  destroy(): void {
+  /** Pause click capture; keeps {@link onNavigation} handler for a later {@link start}. */
+  stop(): void {
     if (!this.listening) return;
     this.listening = false;
     document.removeEventListener('click', this.onDocumentClick, { capture: true });
+  }
+
+  destroy(): void {
+    this.stop();
     this.handler = undefined;
   }
 

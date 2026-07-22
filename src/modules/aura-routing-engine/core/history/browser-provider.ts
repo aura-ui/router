@@ -27,10 +27,14 @@ export class BrowserHistoryProvider implements NavigationProvider {
     window.addEventListener('popstate', this.onPopState);
   }
 
-  destroy(): void {
+  stop(): void {
     if (!this.listening) return;
     this.listening = false;
     window.removeEventListener('popstate', this.onPopState);
+  }
+
+  destroy(): void {
+    this.stop();
     this.handler = undefined;
   }
 

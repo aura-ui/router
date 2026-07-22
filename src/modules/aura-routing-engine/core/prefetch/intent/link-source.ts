@@ -31,7 +31,12 @@ export class LinkIntentSource {
     this.tracker.start();
   }
 
+  stop(): void {
+    this.tracker.stop();
+  }
+
+  /** Same as {@link stop} — tracker has no extra teardown beyond pausing listeners. */
   destroy(): void {
-    this.tracker.destroy();
+    this.stop();
   }
 }

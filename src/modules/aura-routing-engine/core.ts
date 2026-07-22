@@ -150,7 +150,6 @@ export type {
 } from './core/view-graph';
 
 export type { LoaderId } from '../aura-route/core/attr/view-attr-parser';
-export type { RouterInvalidateOptions as ViewInvalidateOptions } from './core/invalidate-router-cache';
 
 export {
   ALL_CACHE,
@@ -182,10 +181,7 @@ export type {
   DataSnapshot,
   LoadHookMode,
 } from './core/data-graph';
-export type {
-  RouterInvalidateOptions,
-  RouterInvalidateOptions as RouterDataInvalidateOptions,
-} from './core/invalidate-router-cache';
+export type { RouterInvalidateOptions } from './core/invalidate-router-cache';
 
 // --- Route hooks (registered via AuraRouter.use) ---
 

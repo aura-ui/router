@@ -156,23 +156,15 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
   /**
-   * Invalidates load-hook cache entries via {@link ResourceGraph.invalidateData}.
+   * Invalidates a resource cache via {@link ResourceGraph}.
+   * `options.cache`: `'data'` (default) | `'view'`.
    * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
    */
-  invalidateData(options: RouterInvalidateOptions = {}): number {
-    const count = this.resourceGraph.invalidateData(options);
+  invalidate(options: RouterInvalidateOptions = {}): number {
     this.resetPrefetchRecords(options);
-    return count;
-  }
-
-  /**
-   * Invalidates view-loader payload cache via {@link ResourceGraph.invalidateView}.
-   * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
-   */
-  invalidateView(options: RouterInvalidateOptions = {}): number {
-    const count = this.resourceGraph.invalidateView(options);
-    this.resetPrefetchRecords(options);
-    return count;
+    return options.cache === 'view'
+      ? this.resourceGraph.invalidateView(options)
+      : this.resourceGraph.invalidateData(options);
   }
 
   private resetPrefetchRecords(options: InvalidateScope): void {

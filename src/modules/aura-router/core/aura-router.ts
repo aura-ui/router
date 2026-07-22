@@ -1,7 +1,7 @@
 import type { CacheStoreOptions } from '../../aura-cache-store/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import { AuraRoute, RouteDomCache } from '../../aura-route/core';
+import { AuraRoute, RouteDomCache, type ViewResolverPort } from '../../aura-route/core';
 import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
 import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
@@ -18,8 +18,7 @@ import {
   type NavigateHistoryOptions,
   type PrefetchOptions,
   type RouteHookDefinition,
-  type RouterDataInvalidateOptions,
-  type ViewInvalidateOptions,
+  type RouterInvalidateOptions,
   type RouterInstance,
   type DataGraphCacheOptions,
   type Loader,
@@ -147,8 +146,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.notFound.setHandler(handler);
   }
 
-  /** Facade to the engine-owned {@link ViewGraph} (creates engine on first access). */
-  get viewGraph(): ViewGraph {
+  /** @internal Used by AuraRoute / RouteViewController. Not a supported app API. */
+  resolveViewPort(): ViewResolverPort {
     return this.ensureEngine().viewGraph;
   }
 
@@ -244,20 +243,15 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /**
-   * Invalidates load-hook cache entries ({@link DataGraph}).
-   * Dispatches `data-invalidated` with the number of affected entries (`-1` = full invalidate, empty cache).
+   * Invalidates a resource cache (`options.cache`: `'data'` default | `'view'`).
+   * Dispatches `data-invalidated` for the data cache
+   * (`-1` = full invalidate, empty cache).
    */
-  invalidate(options?: RouterDataInvalidateOptions): number {
-    const count = this.ensureEngine().invalidateData(options);
-    dispatchDataInvalidated(this, count);
+  invalidate(options?: RouterInvalidateOptions): number {
+    const count = this.ensureEngine().invalidate(options);
+    if (options?.cache !== 'view') {
+      dispatchDataInvalidated(this, count);
+    }
     return count;
-  }
-
-  /**
-   * Invalidates view-loader payload cache ({@link ViewGraph}).
-   * Does not affect load-hook data; use {@link invalidate} for that.
-   */
-  invalidateView(options?: ViewInvalidateOptions): number {
-    return this.ensureEngine().invalidateView(options);
   }
 }

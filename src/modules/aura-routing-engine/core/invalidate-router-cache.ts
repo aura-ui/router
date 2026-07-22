@@ -31,10 +31,15 @@ export type InvalidateScope = {
 };
 
 /**
- * Options for {@link invalidateRouterCache}, {@link DataGraph.invalidate},
- * {@link AuraRoutingEngine.invalidateData}, and {@link AuraRoutingEngine.invalidateView}.
+ * Options for {@link invalidateRouterCache}, graph `invalidate`, and
+ * {@link AuraRoutingEngine.invalidate}.
  */
 export type RouterInvalidateOptions = InvalidateScope & {
+  /**
+   * Which resource cache to invalidate (`'data'` default | `'view'`).
+   * Only meaningful on engine / router; graph backends ignore it.
+   */
+  cache?: 'data' | 'view';
   /**
    * How affected entries are updated.
    * `'stale'` (default) — keep values, mark outdated (SWR on next load).

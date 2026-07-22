@@ -291,7 +291,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 Поле `kind` в ключе разводит layout и view при совпадении `loader:content`.
 
-**Инвалидация:** `viewGraph.invalidate(options)` или `AuraRouter.invalidateView()`. Scope: `key`, `path`, `match`. Policy: `stale` (по умолчанию) | `remove`.
+**Инвалидация:** `viewGraph.invalidate(options)` или `AuraRouter.invalidate({ cache: 'view' })`. Scope: `key`, `path`, `match`. Policy: `stale` (по умолчанию) | `remove`.
 
 ---
 
@@ -328,7 +328,7 @@ Prefetch (hover/intent) идёт через speculative prepare → `viewGraph.p
 AuraRouter
   ├─ viewGraph: ViewGraph { registry, cache }
   ├─ registerLoader(loaderId, fn) → defaultLoaderRegistry
-  └─ invalidateView() → viewGraph.invalidate()
+  └─ invalidate({ cache: 'view' }) → viewGraph.invalidate()
 
 AuraRoutingEngine
   └─ config.viewGraph → speculative prepare → viewGraph.prefetch

@@ -106,7 +106,7 @@ describe('AuraRouter.invalidate', () => {
     expect(userLoads).toBe(1);
   });
 
-  it('does not clear view-loader payload cache', async () => {
+  it('does not clear view-loader payload cache by default', async () => {
     let htmlLoads = 0;
     AuraRouter.registerLoader(
       'html',
@@ -120,57 +120,27 @@ describe('AuraRouter.invalidate', () => {
       <aura-route path="/page" view="html::x" cache="view"></aura-route>
     `);
 
-    await router.viewGraph.loadView(
-      {
-        href: '/page',
-        pathname: '/page',
-        search: '',
-        hash: '',
-        pattern: '/page',
-        route: router.routes[0] as never,
-        resolvedView: { loader: 'html', content: 'x' },
-      } as never,
-      new AbortController().signal,
-    );
+    const view = router.resolveViewPort();
+    const routeInfo = {
+      href: '/page',
+      pathname: '/page',
+      search: '',
+      hash: '',
+      pattern: '/page',
+      route: router.routes[0] as never,
+      resolvedView: { loader: 'html', content: 'x' },
+    } as never;
+
+    await view.loadView(routeInfo, new AbortController().signal);
     expect(htmlLoads).toBe(1);
 
     router.invalidate({ policy: 'remove' });
 
-    await router.viewGraph.loadView(
-      {
-        href: '/page',
-        pathname: '/page',
-        search: '',
-        hash: '',
-        pattern: '/page',
-        route: router.routes[0] as never,
-        resolvedView: { loader: 'html', content: 'x' },
-      } as never,
-      new AbortController().signal,
-    );
+    await view.loadView(routeInfo, new AbortController().signal);
     expect(htmlLoads).toBe(1);
   });
-});
 
-describe('AuraRouter.invalidateView', () => {
-  beforeAll(() => {
-    installAuraRouter();
-  });
-
-  afterEach(() => {
-    document.body.innerHTML = '';
-  });
-
-  async function mountRouter(html: string): Promise<AuraRouter> {
-    const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.innerHTML = html;
-    document.body.append(router);
-    await customElements.whenDefined('aura-route');
-    router.refreshRoutes();
-    return router;
-  }
-
-  it('clears payload cache without touching load hooks', async () => {
+  it('clears view payload cache without touching load hooks', async () => {
     let htmlLoads = 0;
     let dataLoads = 0;
 
@@ -198,7 +168,12 @@ describe('AuraRouter.invalidateView', () => {
     expect(htmlLoads).toBe(1);
     expect(dataLoads).toBe(1);
 
-    router.invalidateView({ policy: 'remove' });
+    const handler = jest.fn();
+    router.addEventListener(AURA_ROUTER_DATA_INVALIDATED, handler);
+
+    router.invalidate({ cache: 'view', policy: 'remove' });
+
+    expect(handler).not.toHaveBeenCalled();
 
     await router.prefetch('/page');
     expect(htmlLoads).toBe(2);

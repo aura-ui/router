@@ -142,7 +142,7 @@ export interface AuraRouterDataInvalidatedEventDetail {
 
 export type AuraRouterDataInvalidatedEvent = CustomEvent<AuraRouterDataInvalidatedEventDetail>;
 
-/** Dispatches `data-invalidated` after {@link AuraRouter.invalidate}. */
+/** Dispatches `data-invalidated` after {@link AuraRouter.invalidate} for the data cache. */
 export function dispatchDataInvalidated(router: HTMLElement, count: number): void {
   dispatchCustomEvent(router, AURA_ROUTER_DATA_INVALIDATED, {
     detail: { count, router },

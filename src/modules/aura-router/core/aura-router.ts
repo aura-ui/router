@@ -40,7 +40,6 @@ import { dispatchDataInvalidated, type NotFoundHandler } from './navigation-even
 import { ScrollRestoration } from './scroll-restoration';
 import { resolveAppOutlet } from './outlet-resolver';
 
-/** Global cache / 404 defaults applied via {@link AuraRouter.configure}. */
 export interface AuraRouterConfigureOptions {
   /** Detached DOM keep-alive (`cache.dom`). */
   domCache?: CacheStoreOptions<ViewRoot>;
@@ -53,11 +52,9 @@ export interface AuraRouterConfigureOptions {
 }
 
 /**
- * Host custom element for client-side routing.
- * Owns attrs / chrome; delegates matching, navigation, and caches to {@link AuraRoutingEngine}.
+ * Host custom element: attrs / chrome here; matching & navigation in {@link AuraRoutingEngine}.
  */
 export class AuraRouter extends HTMLElement implements RouterInstance {
-  /** Custom element tag name. */
   static is = 'aura-router';
 
   /** Fallback template id — когда нет `<aura-route path="*">`. */
@@ -104,41 +101,43 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private readonly notFound = new AuraRouterNotFoundController(this);
   private _activeRouteBranch: ActiveRouteBranchEntry[] = [];
 
-  /** Active branch root → leaf after the last settled navigation. */
+  /**
+   * Matched branch root → leaf.
+   * Also refreshed on url-align / nav-state-restore (not only after commit).
+   */
   get activeRouteBranch(): readonly ActiveRouteBranchEntry[] {
     return this._activeRouteBranch;
   }
 
-  /** Direct child `<aura-route>` elements under this router. */
+  /** All descendant `<aura-route>` nodes (`querySelectorAll`, not only direct children). */
   get routes() {
     return this.querySelectorAll<AuraRoute>(AuraRoute.is);
   }
 
   /**
-   * Root view outlet for fallback 404 / top-level mounts.
-   * Resolve order: `outlet` attr → prev/next sibling → nested `<aura-outlet>` → create sibling.
+   * Outlet for fallback 404 / top-level mounts.
+   * Resolve order: `outlet` attr → prev/next sibling → nested → create sibling before host.
    */
   @memoize()
   get appOutlet(): AuraOutlet {
     return resolveAppOutlet(this);
   }
 
-  /** Registers the custom element (`AuraRouter.is`) once. */
+  /** Also registers `<aura-outlet>` and `<aura-route>`. */
   static install(): void {
     installAuraRouter();
   }
 
-  /** Registers a global hook shared by all default AuraRouter instances. */
+  /** Process-wide hook via {@link defaultHookRegistry} — shared by all default engine instances. */
   static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
     defaultHookRegistry.register(hook, options ?? {});
   }
 
-  /** Removes a globally registered hook by name. Returns true when it existed. */
+  /** @returns `true` if a hook with that name was registered */
   static unuse(name: string): boolean {
     return defaultHookRegistry.unregister(name);
   }
 
-  /** Applies global cache / 404 defaults (`dom` / `view` / `data` / `notFoundHandler`). */
   static configure(options: AuraRouterConfigureOptions): void {
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);
@@ -154,20 +153,16 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
   }
 
-  /** Registers a custom content loader on the shared {@link defaultLoaderRegistry}. */
+  /** Custom view loader on the shared {@link defaultLoaderRegistry}. */
   static registerLoader(id: LoaderId, fn: LoaderFn, options?: RegisterLoaderOptions): void {
     defaultLoaderRegistry.register(id, fn, options);
   }
 
-  /** Returns a loader previously registered via {@link AuraRouter.registerLoader}. */
+  /** @throws if `id` is unknown */
   static getLoader(id: LoaderId): Loader {
     return defaultLoaderRegistry.get(id);
   }
 
-  /**
-   * Builds the engine (if needed), waits for `<aura-route>`, then refreshes routes and starts.
-   * Restarts when already running (reconnect).
-   */
   connectedCallback(): void {
     const engine = this.ensureEngine();
     if (engine.isRunning) engine.stop();
@@ -179,7 +174,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     });
   }
 
-  /** Destroys the engine and clears branch / outlet memo / scroll / not-found state. */
   disconnectedCallback(): void {
     this.engine?.destroy();
     this.engine = undefined;
@@ -199,15 +193,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.ensureEngine().viewGraph;
   }
 
-  /** Pushes the current child `<aura-route>` tree into the engine registry. */
   refreshRoutes(): void {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
-  /**
-   * Programmatic navigation.
-   * Defaults: `replace: false` → history `push`; `syncHistory: true`.
-   */
+  /** Defaults: `replace: false` → history `push`; `syncHistory: true`. */
   navigate(path: string, options: Partial<NavigateHistoryOptions> = {}): void {
     const replace = options.replace ?? false;
     void this.ensureEngine().navigateTo(path, replace ? 'replace' : 'push', {
@@ -216,15 +206,13 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     });
   }
 
-  /** Programmatic prefetch for a target href. */
   prefetch(href: string, options?: PrefetchOptions): Promise<void> {
     return this.ensureEngine().prefetch(href, options);
   }
 
   /**
-   * Invalidates a resource cache (`options.cache`: `'data'` default | `'view'` | `'all'`).
-   * Dispatches `data-invalidated` when data is included (`'data'` / `'all'`).
-   * (`-1` = full invalidate, empty cache).
+   * Dispatches `data-invalidated` unless `options.cache === 'view'`.
+   * @returns affected count; `-1` if a full invalidate hit an empty cache
    */
   invalidate(options?: RouterInvalidateOptions): number {
     const count = this.ensureEngine().invalidate(options);
@@ -234,7 +222,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return count;
   }
 
-  /** Lazily creates {@link AuraRoutingEngine} and wires the host bridge. */
   private ensureEngine(): AuraRoutingEngine {
     if (!this.engine) {
       const { config, onEvent } = connectRouterEngine(this, {
@@ -253,13 +240,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.engine;
   }
 
-  /** Branch + active-link classes after url-align / commit (via engine bridge). */
   private syncBranchAndActiveLinks(to: MatchedRouteInfo): void {
     this._activeRouteBranch = toActiveRouteBranch(to.chain ?? [to]);
     this.syncActiveLinks(to.href);
   }
 
-  /** Hash-only shortcut: keep patterns, rewrite hrefs, refresh active links. */
+  /** Keep patterns, rewrite hrefs, refresh active links. */
   private applyHashOnlyNavigation(href: string): void {
     if (this._activeRouteBranch.length) {
       this._activeRouteBranch = this._activeRouteBranch.map((e) => ({ pattern: e.pattern, href }));
@@ -268,8 +254,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /**
-   * Toggles {@link linkActiveClass} / {@link linkActiveBranchClass} on matching links.
-   * No-op when both classes are unset. Scan root: `linksContainerSelector` → `closest`, else `document`.
+   * No-op when both active classes are unset.
+   * Scan root: `linksContainerSelector` → `closest` (else this host); otherwise `ownerDocument`.
    */
   private syncActiveLinks(href: string): void {
     const { linkActiveClass, linkActiveBranchClass } = this;

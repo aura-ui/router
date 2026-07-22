@@ -4,7 +4,7 @@ import { registerComponent } from '../../aura-utils/misc/component';
 
 import { AuraRouter } from './aura-router';
 
-export function registerAuraRouterComponents(): void {
+export function installAuraRouter(): void {
   registerComponent(AuraOutlet);
   registerComponent(AuraRoute);
   registerComponent(AuraRouter);

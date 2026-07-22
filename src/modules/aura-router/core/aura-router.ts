@@ -35,7 +35,7 @@ import { memoize } from '../../aura-utils/decorators/memoize';
 import { parseNullableString } from '../../aura-utils/misc';
 
 import { AuraRouterNotFoundController } from './not-found-controller';
-import { registerAuraRouterComponents } from './aura-router-setup';
+import { installAuraRouter } from './install';
 import { connectRouterEngine } from './engine-bridge';
 import { dispatchDataInvalidated, type NotFoundHandler } from './navigation-events';
 import { ScrollRestoration } from './scroll-restoration';
@@ -105,7 +105,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   static install(): void {
-    registerAuraRouterComponents();
+    installAuraRouter();
   }
 
   /** Registers a global hook shared by all default AuraRouter instances. */

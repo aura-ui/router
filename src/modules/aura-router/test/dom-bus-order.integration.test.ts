@@ -1,6 +1,8 @@
 /** @jest-environment jsdom */
 
 import type { EngineEvent, RouteHookDefinition } from '../../aura-routing-engine/core';
+import { AuraRouter } from '../core/aura-router';
+import { installAuraRouter } from '../core/install';
 import {
   AURA_ROUTER_LOAD_END,
   AURA_ROUTER_LOAD_START,
@@ -9,9 +11,7 @@ import {
   AURA_ROUTER_NAVIGATION_COMPLETE,
   AURA_ROUTER_NAVIGATION_REDIRECT,
   AURA_ROUTER_NAVIGATION_START,
-  AuraRouter,
-} from '../core/aura-router';
-import { registerAuraRouterComponents } from '../core/aura-router-setup';
+} from '../core/navigation-events';
 import { getRouterEngine } from './helpers/get-router-engine';
 
 const DOM_LIFECYCLE = [
@@ -75,7 +75,7 @@ function attachCollectors(router: AuraRouter): Collectors {
 
 describe('AuraRouter DOM + bus order (EB3)', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   beforeEach(() => {

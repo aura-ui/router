@@ -1,7 +1,8 @@
 /** @jest-environment jsdom */
 
-import { AURA_ROUTER_NOT_FOUND, AuraRouter } from '../core/aura-router';
-import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { AuraRouter } from '../core/aura-router';
+import { installAuraRouter } from '../core/install';
+import { AURA_ROUTER_NOT_FOUND } from '../core/navigation-events';
 
 async function flushNavigation(): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -10,7 +11,7 @@ async function flushNavigation(): Promise<void> {
 
 describe('AuraRouter fallback not-found (ensureEngine onNotFound)', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   beforeEach(() => {

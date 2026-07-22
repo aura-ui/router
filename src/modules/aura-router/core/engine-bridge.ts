@@ -5,7 +5,7 @@ import {
   type MatchedRouteInfo,
 } from '../../aura-routing-engine/core';
 
-import type { AuraRouterNotFoundController } from './aura-router-not-found-controller';
+import type { AuraRouterNotFoundController } from './not-found-controller';
 import {
   dispatchLoadEnd,
   dispatchLoadError,

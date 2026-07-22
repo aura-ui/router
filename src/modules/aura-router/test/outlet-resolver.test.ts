@@ -3,8 +3,9 @@
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouter } from '../core/aura-router';
 import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { resolveAppOutlet } from '../core/outlet-resolver';
 
-describe('AuraRouter.appOutlet', () => {
+describe('resolveAppOutlet', () => {
   beforeAll(() => {
     registerAuraRouterComponents();
   });
@@ -21,7 +22,7 @@ describe('AuraRouter.appOutlet', () => {
     router.setAttribute('outlet', '#main-outlet');
     document.body.append(distant, target, router);
 
-    expect(router.appOutlet).toBe(target);
+    expect(resolveAppOutlet(router)).toBe(target);
   });
 
   it('throws when outlet selector does not match an aura-outlet', () => {
@@ -29,7 +30,7 @@ describe('AuraRouter.appOutlet', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('outlet', '#missing');
 
-    expect(() => router.appOutlet).toThrow(
+    expect(() => resolveAppOutlet(router)).toThrow(
       '`<aura-router outlet="#missing">` did not match an `<aura-outlet>`.',
     );
   });
@@ -39,7 +40,7 @@ describe('AuraRouter.appOutlet', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     document.body.append(existing, router);
 
-    expect(router.appOutlet).toBe(existing);
+    expect(resolveAppOutlet(router)).toBe(existing);
     expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
   });
 
@@ -48,7 +49,7 @@ describe('AuraRouter.appOutlet', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     document.body.append(router, existing);
 
-    expect(router.appOutlet).toBe(existing);
+    expect(resolveAppOutlet(router)).toBe(existing);
     expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
   });
 
@@ -58,7 +59,7 @@ describe('AuraRouter.appOutlet', () => {
     router.append(nested);
     document.body.append(router);
 
-    expect(router.appOutlet).toBe(nested);
+    expect(resolveAppOutlet(router)).toBe(nested);
     expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
   });
 
@@ -69,7 +70,7 @@ describe('AuraRouter.appOutlet', () => {
     wrap.append(router);
     document.body.append(distant, wrap);
 
-    const outlet = router.appOutlet;
+    const outlet = resolveAppOutlet(router);
 
     expect(outlet).not.toBe(distant);
     expect(outlet.nextElementSibling).toBe(router);
@@ -80,12 +81,22 @@ describe('AuraRouter.appOutlet', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     document.body.append(router);
 
-    const outlet = router.appOutlet;
+    const outlet = resolveAppOutlet(router);
 
     expect(outlet).toBeInstanceOf(AuraOutlet);
     expect(outlet.nextElementSibling).toBe(router);
     expect(router.previousElementSibling).toBe(outlet);
     expect(router.contains(outlet)).toBe(false);
+  });
+});
+
+describe('AuraRouter.appOutlet', () => {
+  beforeAll(() => {
+    registerAuraRouterComponents();
+  });
+
+  afterEach(() => {
+    document.body.replaceChildren();
   });
 
   it('memoizes the resolved outlet', () => {

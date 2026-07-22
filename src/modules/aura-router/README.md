@@ -171,7 +171,8 @@ aura-router/
 ├── core.ts                              # public entry
 └── core/
     ├── aura-router.ts                   # <aura-router> element
-    ├── aura-router-not-found-controller.ts
+    ├── not-found-controller.ts
+    ├── outlet-resolver.ts
     └── navigation-events.ts             # DOM event types + dispatch helpers
 ```
 

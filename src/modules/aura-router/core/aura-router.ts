@@ -34,11 +34,12 @@ import { attr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
 import { parseNullableString } from '../../aura-utils/misc';
 
-import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
+import { AuraRouterNotFoundController } from './not-found-controller';
 import { registerAuraRouterComponents } from './aura-router-setup';
 import { connectRouterEngine } from './engine-bridge';
 import { dispatchDataInvalidated, type NotFoundHandler } from './navigation-events';
 import { ScrollRestoration } from './scroll-restoration';
+import { resolveAppOutlet } from './outlet-resolver';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -285,11 +286,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.ensureEngine().prefetch(href, options);
   }
 
-  /** @deprecated Use {@link prefetch}. */
-  preload(href: string, options?: PrefetchOptions): Promise<void> {
-    return this.prefetch(href, options);
-  }
-
   /**
    * Invalidates load-hook cache entries ({@link DataGraph}).
    * Dispatches `data-invalidated` with the number of affected entries (`-1` = full invalidate, empty cache).
@@ -307,30 +303,4 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   invalidateView(options?: ViewInvalidateOptions): number {
     return this.ensureEngine().invalidateView(options);
   }
-}
-
-/** Resolve order: `outlet` attr → siblings → nested → create sibling before host. */
-function resolveAppOutlet(host: AuraRouter): AuraOutlet {
-  const selector = host.outletSelector;
-  if (selector) {
-    const found = document.querySelector(selector);
-    if (!isAuraOutlet(found)) {
-      throw new Error(`\`<aura-router outlet="${selector}">\` did not match an \`<${AuraOutlet.is}>\`.`);
-    }
-    return found;
-  }
-
-  if (isAuraOutlet(host.previousElementSibling)) return host.previousElementSibling;
-  if (isAuraOutlet(host.nextElementSibling)) return host.nextElementSibling;
-
-  const nested = host.querySelector(AuraOutlet.is);
-  if (isAuraOutlet(nested)) return nested;
-
-  const created = document.createElement(AuraOutlet.is) as AuraOutlet;
-  host.parentNode?.insertBefore(created, host);
-  return created;
-}
-
-function isAuraOutlet(el: Element | null | undefined): el is AuraOutlet {
-  return el?.localName === AuraOutlet.is;
 }

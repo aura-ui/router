@@ -2,7 +2,7 @@ import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import {
   AuraRouterNotFoundController,
   type AuraRouterNotFoundHost,
-} from '../core/aura-router-not-found-controller';
+} from '../core/not-found-controller';
 
 type TestHost = HTMLElement & AuraRouterNotFoundHost;
 

@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 
-import type { EngineEvent } from '../../aura-routing-engine/core';
+import type { EngineEvent, RouteHookDefinition } from '../../aura-routing-engine/core';
 import {
   AURA_ROUTER_LOAD_END,
   AURA_ROUTER_LOAD_START,
@@ -103,9 +103,9 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
     AuraRouter.use({
       name: 'eb3-load',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: (async (ctx: Parameters<RouteHookDefinition['fn']>[0]) => {
         if (ctx.phase === 'load') return { ok: true };
-      },
+      }) as unknown as RouteHookDefinition['fn'],
     });
 
     const { router, collectors } = await mount(`
@@ -174,12 +174,12 @@ describe('AuraRouter DOM + bus order (EB3)', () => {
     AuraRouter.use({
       name: 'eb3-slow-load',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: (async (ctx: Parameters<RouteHookDefinition['fn']>[0]) => {
         if (ctx.phase === 'load') {
           await gate;
           return { ok: true };
         }
-      },
+      }) as unknown as RouteHookDefinition['fn'],
     });
 
     const { router, collectors } = await mount(`

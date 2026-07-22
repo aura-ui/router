@@ -3,6 +3,7 @@
 import { AuraRouter } from '../core/aura-router';
 import { registerAuraRouterComponents } from '../core/aura-router-setup';
 import { AURA_ROUTER_DATA_INVALIDATED } from '../core/navigation-events';
+import type { LoaderFn, RouteHookDefinition } from '../../aura-routing-engine/core';
 
 describe('AuraRouter.invalidate', () => {
   beforeAll(() => {
@@ -29,10 +30,10 @@ describe('AuraRouter.invalidate', () => {
     AuraRouter.use({
       name: 'fetch-items',
       version: '1.0.0',
-      fn: async () => {
+      fn: (async () => {
         loads++;
         return { n: loads };
-      },
+      }) as unknown as RouteHookDefinition['fn'],
     });
 
     const router = await mountRouter(`
@@ -73,18 +74,18 @@ describe('AuraRouter.invalidate', () => {
     AuraRouter.use({
       name: 'fetch-items',
       version: '1.0.0',
-      fn: async () => {
+      fn: (async () => {
         itemLoads++;
         return { items: itemLoads };
-      },
+      }) as unknown as RouteHookDefinition['fn'],
     });
     AuraRouter.use({
       name: 'fetch-user',
       version: '1.0.0',
-      fn: async () => {
+      fn: (async () => {
         userLoads++;
         return { user: userLoads };
-      },
+      }) as unknown as RouteHookDefinition['fn'],
     });
 
     const router = await mountRouter(`
@@ -107,10 +108,13 @@ describe('AuraRouter.invalidate', () => {
 
   it('does not clear view-loader payload cache', async () => {
     let htmlLoads = 0;
-    AuraRouter.registerLoader('html', async () => {
-      htmlLoads++;
-      return `<span>v${htmlLoads}</span>`;
-    });
+    AuraRouter.registerLoader(
+      'html',
+      (async () => {
+        htmlLoads++;
+        return `<span>v${htmlLoads}</span>`;
+      }) as unknown as LoaderFn,
+    );
 
     const router = await mountRouter(`
       <aura-route path="/page" view="html::x" cache="view"></aura-route>
@@ -170,17 +174,20 @@ describe('AuraRouter.invalidateView', () => {
     let htmlLoads = 0;
     let dataLoads = 0;
 
-    AuraRouter.registerLoader('html', async () => {
-      htmlLoads++;
-      return `<span>v${htmlLoads}</span>`;
-    });
+    AuraRouter.registerLoader(
+      'html',
+      (async () => {
+        htmlLoads++;
+        return `<span>v${htmlLoads}</span>`;
+      }) as unknown as LoaderFn,
+    );
     AuraRouter.use({
       name: 'fetch-items',
       version: '1.0.0',
-      fn: async () => {
+      fn: (async () => {
         dataLoads++;
         return { n: dataLoads };
-      },
+      }) as unknown as RouteHookDefinition['fn'],
     });
 
     const router = await mountRouter(`

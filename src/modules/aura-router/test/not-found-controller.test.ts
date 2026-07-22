@@ -7,7 +7,7 @@ import {
 type TestHost = HTMLElement & AuraRouterNotFoundHost;
 
 function createHost(options: { notFoundTemplate?: string } = {}): TestHost {
-  const router = document.createElement('div') as TestHost;
+  const router = document.createElement('div') as unknown as TestHost;
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
 
   Object.defineProperty(router, 'notFoundTemplate', {

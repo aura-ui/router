@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 
 import { matchLinkActive } from '../../aura-routing-engine/core/link-active/match';
+import type { RouteHookDefinition } from '../../aura-routing-engine/core';
 import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRouter } from '../core/aura-router';
 import { registerAuraRouterComponents } from '../core/aura-router-setup';
@@ -148,7 +149,7 @@ describe('AuraRouter link-active-class', () => {
   it('link matchers reflect the settled route via router.trail', async () => {
     const { router } = await mountRouter(true);
 
-    const currentHref = router.trail.at(-1)!.href;
+    const currentHref = router.trail[router.trail.length - 1]!.href;
     const current = splitAppHref(currentHref);
     expect(matchLinkActive('/', current).exact).toBe(true);
     expect(matchLinkActive('/about', current).exact).toBe(false);
@@ -156,7 +157,7 @@ describe('AuraRouter link-active-class', () => {
     router.navigate('/about');
     await flushNavigation();
 
-    const nextHref = router.trail.at(-1)!.href;
+    const nextHref = router.trail[router.trail.length - 1]!.href;
     const next = splitAppHref(nextHref);
     expect(matchLinkActive('/', next).exact).toBe(false);
     expect(matchLinkActive('/about', next).exact).toBe(true);
@@ -191,15 +192,15 @@ describe('AuraRouter link-active-class', () => {
     router.navigate('/docs#intro');
     await flushNavigation();
 
-    expect(intro.classList.contains('is-active')).toBe(true);
-    expect(faq.classList.contains('is-active')).toBe(false);
+    expect(intro!.classList.contains('is-active')).toBe(true);
+    expect(faq!.classList.contains('is-active')).toBe(false);
 
     router.navigate('/docs#faq');
     await flushNavigation();
 
-    expect(intro.classList.contains('is-active')).toBe(false);
-    expect(faq.classList.contains('is-active')).toBe(true);
-    expect(faq.getAttribute('aria-current')).toBe('page');
+    expect(intro!.classList.contains('is-active')).toBe(false);
+    expect(faq!.classList.contains('is-active')).toBe(true);
+    expect(faq!.getAttribute('aria-current')).toBe('page');
   });
 
   it('restores active link when returning to committed route while target load is in flight', async () => {
@@ -211,12 +212,12 @@ describe('AuraRouter link-active-class', () => {
     AuraRouter.use({
       name: 'slow-load-cancel-pending-active',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: (async (ctx: Parameters<RouteHookDefinition['fn']>[0]) => {
         if (ctx.phase === 'load') {
           await gate;
           return { ok: true };
         }
-      },
+      }) as unknown as RouteHookDefinition['fn'],
     });
 
     const router = document.createElement(AuraRouter.is) as AuraRouter;
@@ -306,15 +307,15 @@ describe('AuraRouter link-active-branch-class and trail', () => {
     router.navigate('/app/settings/profile');
     await flushNavigation();
 
-    const current = splitAppHref(router.trail.at(-1)!.href);
+    const current = splitAppHref(router.trail[router.trail.length - 1]!.href);
     expect(matchLinkActive('/app/settings', current).prefix).toBe(true);
     expect(matchLinkActive('/app/settings/profile', current).exact).toBe(true);
 
     const [settings, profile] = router.querySelectorAll<HTMLAnchorElement>('[aura-router-link]');
-    expect(settings.classList.contains('is-active')).toBe(false);
-    expect(settings.classList.contains('is-branch-active')).toBe(true);
-    expect(profile.classList.contains('is-active')).toBe(true);
-    expect(profile.classList.contains('is-branch-active')).toBe(true);
+    expect(settings!.classList.contains('is-active')).toBe(false);
+    expect(settings!.classList.contains('is-branch-active')).toBe(true);
+    expect(profile!.classList.contains('is-active')).toBe(true);
+    expect(profile!.classList.contains('is-branch-active')).toBe(true);
   });
 
   it('exposes router.trail for the active route chain', async () => {

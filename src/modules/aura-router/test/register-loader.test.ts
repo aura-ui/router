@@ -6,19 +6,28 @@ import {
   defaultLoaderRegistry,
   routeSnapshot,
   type LoaderFn,
+  type MatchedRouteInfo,
+  type ViewLoadContext,
 } from '../../aura-routing-engine/core';
 import { HandoffCache } from '../../aura-routing-engine/core/resource-graph';
 import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
 import { withResolvedView } from '../../aura-routing-engine/test/helpers/with-resolved-view';
 import { AuraRouter } from '../core/aura-router';
 
+function testRoute(path: string, view: { loader: string; content: string }) {
+  return createTestRoute(path, {
+    view,
+    cache: NO_CACHE,
+  } as Parameters<typeof createTestRoute>[1]) as MatchedRouteInfo['route'];
+}
+
 describe('AuraRouter.registerLoaderLoader', () => {
   it('registers LoaderFn on defaultLoaderRegistry for ViewGraph', async () => {
     let viewContent: string | undefined;
-    const customLoader: LoaderFn = async (context) => {
+    const customLoader = (async (context: ViewLoadContext) => {
       viewContent = context.content;
       return 'custom-payload';
-    };
+    }) as unknown as LoaderFn;
     expect(() => AuraRouter.registerLoader('register-loader-test', customLoader)).not.toThrow();
 
     const viewGraph = new ViewGraph(new HandoffCache(), {
@@ -33,11 +42,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         search: '',
         hash: '',
         pattern: '/bridge',
-        route: createTestRoute('/bridge', {
-          layout: '',
-          view: { loader: 'register-loader-test', content: 'any-ref' },
-          cache: NO_CACHE,
-        }),
+        route: testRoute('/bridge', { loader: 'register-loader-test', content: 'any-ref' }),
       }),
       new AbortController().signal,
     );
@@ -48,18 +53,23 @@ describe('AuraRouter.registerLoaderLoader', () => {
   });
 
   it('registerLoader accepts needsData option', () => {
-    AuraRouter.registerLoader('register-loader-needs-data', async () => 'x', {
-      needsData: true,
-    });
+    AuraRouter.registerLoader(
+      'register-loader-needs-data',
+      (async () => 'x') as unknown as LoaderFn,
+      { needsData: true },
+    );
     expect(AuraRouter.getLoader('register-loader-needs-data').needsData).toBe(true);
   });
 
   it('passes view attr content to LoaderFn as context.content', async () => {
     let viewContent: string | undefined;
-    defaultLoaderRegistry.register('content-probe', async (context) => {
-      viewContent = context.content;
-      return 'ok';
-    });
+    defaultLoaderRegistry.register(
+      'content-probe',
+      (async (context: ViewLoadContext) => {
+        viewContent = context.content;
+        return 'ok';
+      }) as unknown as LoaderFn,
+    );
 
     const service = new ViewGraph(new HandoffCache(), {
       registry: defaultLoaderRegistry,
@@ -72,11 +82,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         search: '',
         hash: '',
         pattern: '/analytics',
-        route: createTestRoute('/analytics', {
-          layout: '',
-          view: { loader: 'content-probe', content: 'dashboard' },
-          cache: NO_CACHE,
-        }),
+        route: testRoute('/analytics', { loader: 'content-probe', content: 'dashboard' }),
       }),
       new AbortController().signal,
     );
@@ -87,10 +93,13 @@ describe('AuraRouter.registerLoaderLoader', () => {
   it('LoaderFn receives load-hook data in route snapshot when provided', async () => {
     let captured: Record<string, unknown> | undefined;
 
-    defaultLoaderRegistry.register('route-data-probe', async (ctx) => {
-      captured = routeSnapshot(ctx);
-      return 'ok';
-    });
+    defaultLoaderRegistry.register(
+      'route-data-probe',
+      (async (ctx: ViewLoadContext) => {
+        captured = routeSnapshot(ctx);
+        return 'ok';
+      }) as unknown as LoaderFn,
+    );
 
     const service = new ViewGraph(new HandoffCache(), {
       registry: defaultLoaderRegistry,
@@ -104,11 +113,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         hash: '',
         pattern: '/users/:id',
         params: { id: '1' },
-        route: createTestRoute('/users/:id', {
-          layout: '',
-          view: { loader: 'route-data-probe', content: 'x' },
-          cache: NO_CACHE,
-        }),
+        route: testRoute('/users/:id', { loader: 'route-data-probe', content: 'x' }),
       }),
       new AbortController().signal,
       { data: { userId: '1' } },
@@ -125,10 +130,13 @@ describe('AuraRouter.registerLoaderLoader', () => {
   it('LoaderFn receives LoadContext with route snapshot fields', async () => {
     let captured: Record<string, unknown> | undefined;
 
-    defaultLoaderRegistry.register('route-context-probe', async (ctx) => {
-      captured = routeSnapshot(ctx);
-      return 'ok';
-    });
+    defaultLoaderRegistry.register(
+      'route-context-probe',
+      (async (ctx: ViewLoadContext) => {
+        captured = routeSnapshot(ctx);
+        return 'ok';
+      }) as unknown as LoaderFn,
+    );
 
     const service = new ViewGraph(new HandoffCache(), {
       registry: defaultLoaderRegistry,
@@ -144,11 +152,7 @@ describe('AuraRouter.registerLoaderLoader', () => {
         pattern: '/users/:id',
         params: { id: '1' },
         query: { q: '1' },
-        route: createTestRoute('/users/:id', {
-          layout: '',
-          view: { loader: 'route-context-probe', content: 'x' },
-          cache: NO_CACHE,
-        }),
+        route: testRoute('/users/:id', { loader: 'route-context-probe', content: 'x' }),
       }),
       new AbortController().signal,
     );

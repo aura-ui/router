@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 
+import type { LoaderFn } from '../../aura-routing-engine/core';
 import { AuraRouter } from '../core/aura-router';
 import { registerAuraRouterComponents } from '../core/aura-router-setup';
 
@@ -21,10 +22,13 @@ describe('AuraRouter prefetch attr', () => {
 
   it('disables link prefetch pipeline when prefetch="false"', async () => {
     let loads = 0;
-    AuraRouter.registerLoader('prefetch-router-probe', async () => {
-      loads++;
-      return 'x';
-    });
+    AuraRouter.registerLoader(
+      'prefetch-router-probe',
+      (async () => {
+        loads++;
+        return 'x';
+      }) as unknown as LoaderFn,
+    );
 
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('prefetch', 'false');
@@ -43,10 +47,13 @@ describe('AuraRouter prefetch attr', () => {
 
   it('enables prefetch when prefetch="intent"', async () => {
     let loads = 0;
-    AuraRouter.registerLoader('prefetch-router-intent', async () => {
-      loads++;
-      return 'x';
-    });
+    AuraRouter.registerLoader(
+      'prefetch-router-intent',
+      (async () => {
+        loads++;
+        return 'x';
+      }) as unknown as LoaderFn,
+    );
 
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.setAttribute('prefetch', 'intent');

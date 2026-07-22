@@ -1,4 +1,4 @@
-import { NavigationFailure, NavigationError } from '../../aura-routing-engine/core';
+import { NavigationFailure, NavigationError, type MatchedRouteInfo } from '../../aura-routing-engine/core';
 import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
 import {
   AURA_ROUTER_LOAD_END,
@@ -18,7 +18,19 @@ import {
   dispatchNavigationRedirect,
   dispatchNotFound,
   type AuraRouterNavigationErrorEventDetail,
+  type AuraRouterNotFoundEvent,
 } from '../core/navigation-events';
+
+function matchedInfo(href: string): MatchedRouteInfo {
+  return {
+    href,
+    pathname: href,
+    search: '',
+    hash: '',
+    pattern: href,
+    route: createTestRoute(href) as MatchedRouteInfo['route'],
+  };
+}
 
 function matchedFailure(
   overrides: Partial<{
@@ -30,17 +42,8 @@ function matchedFailure(
   }> = {},
 ) {
   const href = overrides.href ?? '/x';
-  const to = {
-    href,
-    pathname: href,
-    search: '',
-    hash: '',
-    pattern: href,
-    route: createTestRoute(href),
-  };
-  const from = overrides.from
-    ? { href: overrides.from, pathname: overrides.from, search: '', hash: '', pattern: overrides.from, route: createTestRoute(overrides.from) }
-    : null;
+  const to = matchedInfo(href);
+  const from = overrides.from ? matchedInfo(overrides.from) : null;
 
   return NavigationFailure.fromPipeline(
     new NavigationError({
@@ -65,7 +68,8 @@ describe('navigation-events', () => {
     const allowed = dispatchNotFound(router, '/404', 'fallback');
 
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener.mock.calls[0][0].detail).toMatchObject({
+    const event = listener.mock.calls[0]![0] as AuraRouterNotFoundEvent;
+    expect(event.detail).toMatchObject({
       url: '/404',
       router,
       source: 'fallback',

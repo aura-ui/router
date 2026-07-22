@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 
 import { AuraRoute } from '../../aura-route/core/aura-route';
-import { ScrollRestoration } from '../core/scroll-restoration';
+import { ScrollRestoration, type ScrollContainer } from '../core/scroll-restoration';
 
 function matched(path: string, route: AuraRoute) {
   return {
@@ -15,7 +15,8 @@ function matched(path: string, route: AuraRoute) {
 }
 
 describe('ScrollRestoration', () => {
-  let container: ScrollContainerMock;
+  let mock: ScrollContainerMock;
+  let container: ScrollContainer;
 
   beforeAll(() => {
     if (!customElements.get(AuraRoute.is)) {
@@ -24,7 +25,8 @@ describe('ScrollRestoration', () => {
   });
 
   beforeEach(() => {
-    container = new ScrollContainerMock();
+    mock = new ScrollContainerMock();
+    container = mock as unknown as ScrollContainer;
     jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
       cb(0);
       return 0;
@@ -46,7 +48,7 @@ describe('ScrollRestoration', () => {
       hash: '',
     });
 
-    expect(container.scrollTo).toHaveBeenCalledWith(0, 0);
+    expect(mock.scrollTo).toHaveBeenCalledWith(0, 0);
   });
 
   it('restores saved scroll on pop when policy is restore', () => {
@@ -54,7 +56,7 @@ describe('ScrollRestoration', () => {
     const checkout = createRoute('/checkout', 'top');
     const restoration = new ScrollRestoration(container);
 
-    container.scrollY = 480;
+    mock.scrollY = 480;
     restoration.handleCommit({
       from: matched('/feed', feed),
       to: matched('/checkout', checkout),
@@ -62,7 +64,7 @@ describe('ScrollRestoration', () => {
       hash: '',
     });
 
-    container.scrollY = 0;
+    mock.scrollY = 0;
     restoration.handleCommit({
       from: matched('/checkout', checkout),
       to: matched('/feed', feed),
@@ -70,7 +72,7 @@ describe('ScrollRestoration', () => {
       hash: '',
     });
 
-    expect(container.scrollTo).toHaveBeenLastCalledWith(0, 480);
+    expect(mock.scrollTo).toHaveBeenLastCalledWith(0, 480);
   });
 
   it('does nothing when policy is manual', () => {
@@ -84,7 +86,7 @@ describe('ScrollRestoration', () => {
       hash: '',
     });
 
-    expect(container.scrollTo).not.toHaveBeenCalled();
+    expect(mock.scrollTo).not.toHaveBeenCalled();
   });
 
   it('skips auto scroll when hash is present', () => {
@@ -98,7 +100,7 @@ describe('ScrollRestoration', () => {
       hash: '#section',
     });
 
-    expect(container.scrollTo).not.toHaveBeenCalled();
+    expect(mock.scrollTo).not.toHaveBeenCalled();
   });
 });
 
@@ -109,9 +111,9 @@ function createRoute(path: string, scroll: string): AuraRoute {
   return route;
 }
 
-class ScrollContainerMock implements Pick<Window, 'scrollY' | 'scrollTo'> {
+class ScrollContainerMock {
   scrollY = 0;
-  scrollTo = jest.fn((x: number, y: number) => {
-    this.scrollY = y;
+  scrollTo = jest.fn((x: number | ScrollToOptions = 0, y = 0) => {
+    this.scrollY = typeof x === 'number' ? y : (x.top ?? 0);
   });
 }

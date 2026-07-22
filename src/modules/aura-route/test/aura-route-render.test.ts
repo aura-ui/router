@@ -1,15 +1,21 @@
 ﻿jest.mock('../../aura-router/core/aura-router', () => {
   const { AuraOutlet } = jest.requireActual('../../aura-outlet/core/aura-outlet');
-  return {
-    AuraRouter: class {
-      static is = 'aura-router';
-      appOutlet = document.createElement(AuraOutlet.is);
-      viewGraph = { loadView: jest.fn().mockResolvedValue({ data: '<span>ok</span>' }) };
-    },
-  };
+
+  class MockAuraRouter extends HTMLElement {
+    static is = 'aura-router';
+    appOutlet = document.createElement(AuraOutlet.is);
+    viewGraph = { loadView: jest.fn().mockResolvedValue({ data: '<span>ok</span>' }) };
+
+    resolveViewPort() {
+      return this.viewGraph;
+    }
+  }
+
+  return { AuraRouter: MockAuraRouter };
 });
 
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
+import { AuraRouter } from '../../aura-router/core/aura-router';
 import { AuraRoute } from '../core/aura-route';
 
 describe('AuraRoute render validation', () => {
@@ -20,8 +26,8 @@ describe('AuraRoute render validation', () => {
     if (!customElements.get(AuraRoute.is)) {
       customElements.define(AuraRoute.is, AuraRoute);
     }
-    if (!customElements.get('aura-router')) {
-      customElements.define('aura-router', class extends HTMLElement {});
+    if (!customElements.get(AuraRouter.is)) {
+      customElements.define(AuraRouter.is, AuraRouter as CustomElementConstructor);
     }
   });
 
@@ -33,7 +39,7 @@ describe('AuraRoute render validation', () => {
     attrs: Record<string, string>,
     innerHTML = '',
   ): AuraRoute {
-    const router = document.createElement('aura-router');
+    const router = document.createElement(AuraRouter.is);
     const route = document.createElement(AuraRoute.is) as AuraRoute;
     route.setAttribute('path', attrs.path ?? '/page');
     for (const [name, value] of Object.entries(attrs)) {

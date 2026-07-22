@@ -1,4 +1,4 @@
-import type { MatchedRouteInfo, NavigationCommittedContext } from '../../aura-routing-engine/core';
+import type { NavigationCommittedContext } from '../../aura-routing-engine/core';
 
 export type ScrollContainer = Pick<Window, 'scrollY' | 'scrollTo'>;
 
@@ -15,38 +15,24 @@ export class ScrollRestoration {
     this.positions.clear();
   }
 
-  handleCommit(ctx: NavigationCommittedContext): void {
-    this.saveLeavingRoute(ctx.from);
-    this.applyTargetPolicy(ctx);
-  }
+  apply(ctx: NavigationCommittedContext): void {
+    const { from, to, action, hash } = ctx;
 
-  private saveLeavingRoute(from: MatchedRouteInfo | null): void {
-    if (!from || from.route.scrollPolicy !== 'restore') return;
-    this.positions.set(this.navigationKey(from), this.container.scrollY);
-  }
-
-  private applyTargetPolicy(ctx: NavigationCommittedContext): void {
-    if (ctx.hash) return;
-
-    const policy = ctx.to.route.scrollPolicy;
-    if (policy === 'manual') return;
-
-    if (policy === 'restore' && ctx.action === 'pop') {
-      const saved = this.positions.get(this.navigationKey(ctx.to));
-      if (saved !== undefined) this.scrollTo(saved);
-      return;
+    if (from?.route.scrollPolicy === 'restore') {
+      this.positions.set(from.pathname + from.search, this.container.scrollY);
     }
 
-    if (policy === 'top' || policy === 'restore') {
-      this.scrollTo(0);
-    }
-  }
+    if (hash) return;
 
-  private navigationKey(info: MatchedRouteInfo): string {
-    return info.pathname + info.search;
-  }
+    const policy = to.route.scrollPolicy;
+    if (policy !== 'top' && policy !== 'restore') return;
 
-  private scrollTo(y: number): void {
+    const y =
+      policy === 'restore' && action === 'pop'
+        ? this.positions.get(to.pathname + to.search)
+        : 0;
+
+    if (y === undefined) return;
     requestAnimationFrame(() => this.container.scrollTo(0, y));
   }
 }

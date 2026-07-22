@@ -41,7 +41,7 @@ describe('ScrollRestoration', () => {
     const route = createRoute('/checkout', 'top');
     const restoration = new ScrollRestoration(container);
 
-    restoration.handleCommit({
+    restoration.apply({
       from: null,
       to: matched('/checkout', route),
       action: 'push',
@@ -57,7 +57,7 @@ describe('ScrollRestoration', () => {
     const restoration = new ScrollRestoration(container);
 
     mock.scrollY = 480;
-    restoration.handleCommit({
+    restoration.apply({
       from: matched('/feed', feed),
       to: matched('/checkout', checkout),
       action: 'push',
@@ -65,7 +65,7 @@ describe('ScrollRestoration', () => {
     });
 
     mock.scrollY = 0;
-    restoration.handleCommit({
+    restoration.apply({
       from: matched('/checkout', checkout),
       to: matched('/feed', feed),
       action: 'pop',
@@ -79,7 +79,7 @@ describe('ScrollRestoration', () => {
     const route = createRoute('/quiet', '');
     const restoration = new ScrollRestoration(container);
 
-    restoration.handleCommit({
+    restoration.apply({
       from: null,
       to: matched('/quiet', route),
       action: 'push',
@@ -93,7 +93,7 @@ describe('ScrollRestoration', () => {
     const route = createRoute('/docs', 'top');
     const restoration = new ScrollRestoration(container);
 
-    restoration.handleCommit({
+    restoration.apply({
       from: null,
       to: matched('/docs', route),
       action: 'push',

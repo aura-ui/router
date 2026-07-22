@@ -24,7 +24,7 @@ import type { ScrollRestoration } from './scroll-restoration';
 /** Deps the engine↔host bridge needs from `<aura-router>` (not the whole element API). */
 export type RouterEngineBridgeDeps = {
   notFound: Pick<AuraRouterNotFoundController, 'recover' | 'clear'>;
-  scrollRestoration: Pick<ScrollRestoration, 'handleCommit'>;
+  scrollRestoration: Pick<ScrollRestoration, 'apply'>;
   syncBranchAndActiveLinks: (to: MatchedRouteInfo) => void;
   onHashOnlyNavigation: (href: string) => void;
 };
@@ -108,7 +108,7 @@ function onEngineEvent(
     if (isCatchAllRoutePattern(event.to.pattern)) {
       dispatchNotFound(host, event.to.href, 'route');
     }
-    scrollRestoration.handleCommit({
+    scrollRestoration.apply({
       from: event.from,
       to: event.to,
       action: event.action,

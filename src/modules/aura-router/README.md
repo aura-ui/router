@@ -36,6 +36,7 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 | `link-active-class` | CSS-класс точного совпадения URL на `[aura-router-link]`. |
 | `link-active-branch-class` | CSS-класс prefix-совпадения (активная ветка / раздел). |
 | `not-found-template` | Id `<template>` для **fallback**-404 (см. ниже). Используется только когда нет `<aura-route path="*">`. |
+| `outlet` | Опциональный CSS-селектор корневого `<aura-outlet>`. Если не задан: prev/next sibling → nested `<aura-outlet>` → автосоздание sibling перед router. |
 
 ### Атрибуты `<aura-route>` (prefetch)
 

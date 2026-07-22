@@ -13,13 +13,67 @@ describe('AuraRouter.appOutlet', () => {
     document.body.replaceChildren();
   });
 
-  it('reuses an existing document outlet', () => {
+  it('uses outlet attribute selector when set', () => {
+    const target = document.createElement(AuraOutlet.is) as AuraOutlet;
+    target.id = 'main-outlet';
+    const distant = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('outlet', '#main-outlet');
+    document.body.append(distant, target, router);
+
+    expect(router.appOutlet).toBe(target);
+  });
+
+  it('throws when outlet selector does not match an aura-outlet', () => {
+    // Keep disconnected — avoid connectedCallback starting a NOT_FOUND recover.
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('outlet', '#missing');
+
+    expect(() => router.appOutlet).toThrow(
+      '`<aura-router outlet="#missing">` did not match an `<aura-outlet>`.',
+    );
+  });
+
+  it('reuses previous sibling outlet', () => {
     const existing = document.createElement(AuraOutlet.is) as AuraOutlet;
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     document.body.append(existing, router);
 
     expect(router.appOutlet).toBe(existing);
     expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
+  });
+
+  it('reuses next sibling outlet', () => {
+    const existing = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    document.body.append(router, existing);
+
+    expect(router.appOutlet).toBe(existing);
+    expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
+  });
+
+  it('reuses nested outlet inside the router', () => {
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    const nested = document.createElement(AuraOutlet.is) as AuraOutlet;
+    router.append(nested);
+    document.body.append(router);
+
+    expect(router.appOutlet).toBe(nested);
+    expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
+  });
+
+  it('ignores a distant document outlet and creates a sibling', () => {
+    const distant = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const wrap = document.createElement('div');
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    wrap.append(router);
+    document.body.append(distant, wrap);
+
+    const outlet = router.appOutlet;
+
+    expect(outlet).not.toBe(distant);
+    expect(outlet.nextElementSibling).toBe(router);
+    expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(2);
   });
 
   it('creates a sibling outlet before the router when none exists', () => {

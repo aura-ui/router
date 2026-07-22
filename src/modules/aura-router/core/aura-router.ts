@@ -145,6 +145,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   prefetchDomAttr: PrefetchType | false | null;
   /** Default enter-branch mount strategy for child routes (`branch` | `full`). */
   @attr({ parser: parseMountStrategyAttr, cached: true }) mountStrategy: MountStrategy;
+  /**
+   * Optional CSS selector for the root `<aura-outlet>`.
+   * When unset: previous/next sibling → nested `querySelector` → auto-create sibling.
+   */
+  @attr({ parser: parseNullableString, cached: true, name: 'outlet' })
+  outletSelector: string | null;
 
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();
@@ -208,14 +214,30 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.querySelectorAll<AuraRoute>(AuraRoute.is);
   }
 
+  /**
+   * Root view outlet for fallback 404 / top-level mounts.
+   * Resolve order: `outlet` attr → prev/next sibling → nested `<aura-outlet>` → create sibling.
+   */
   @memoize()
   get appOutlet(): AuraOutlet {
-    let outlet = document.querySelector(AuraOutlet.is) as AuraOutlet | null;
-    if (!outlet) {
-      outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-      this.parentNode?.insertBefore(outlet, this);
+    const selector = this.outletSelector;
+    if (selector) {
+      const found = document.querySelector(selector);
+      if (!isAuraOutlet(found)) {
+        throw new Error(`\`<aura-router outlet="${selector}">\` did not match an \`<${AuraOutlet.is}>\`.`);
+      }
+      return found;
     }
-    return outlet;
+
+    if (isAuraOutlet(this.previousElementSibling)) return this.previousElementSibling;
+    if (isAuraOutlet(this.nextElementSibling)) return this.nextElementSibling;
+
+    const nested = this.querySelector(AuraOutlet.is);
+    if (isAuraOutlet(nested)) return nested;
+
+    const created = document.createElement(AuraOutlet.is) as AuraOutlet;
+    this.parentNode?.insertBefore(created, this);
+    return created;
   }
 
   connectedCallback(): void {
@@ -314,4 +336,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   invalidateView(options?: ViewInvalidateOptions): number {
     return this.ensureEngine().invalidateView(options);
   }
+}
+
+function isAuraOutlet(el: Element | null | undefined): el is AuraOutlet {
+  return el?.localName === AuraOutlet.is;
 }

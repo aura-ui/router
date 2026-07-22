@@ -14,6 +14,7 @@ let configuredHandler: NotFoundHandler | null = null;
 
 export class AuraRouterNotFoundController {
   private handler: NotFoundHandler | null = null;
+  /** Built-in fallback mount — kept so {@link clear} can destroy it without touching later route views. */
   private viewHandle?: ViewHandle;
   private readonly router: AuraRouterNotFoundHost;
 
@@ -37,9 +38,10 @@ export class AuraRouterNotFoundController {
 
   /** Fallback recovery UI after cancelable `not-found` (unless preventDefault). */
   recover(url: string): void {
+    this.clear();
+
     const handler = this.handler ?? configuredHandler;
     if (handler) {
-      this.clear();
       handler(url, this.router);
       return;
     }
@@ -48,13 +50,11 @@ export class AuraRouterNotFoundController {
       ? getTemplate(this.router.notFoundTemplate)
       : `Page not found: ${url}`;
 
-    this.clear();
-    const outlet = this.router.appOutlet;
-    this.viewHandle =
-      outlet.apply(content, { strategy: 'replace', key: NOT_FOUND_VIEW_KEY }) ?? undefined;
+    const handle = this.router.appOutlet.apply(content, { strategy: 'replace', key: NOT_FOUND_VIEW_KEY });
+    if (!handle) return;
 
-    const root = this.viewHandle?.viewRoot ?? outlet;
-    root.querySelectorAll('[data-not-found-url]').forEach((el) => {
+    this.viewHandle = handle;
+    handle.viewRoot.querySelectorAll('[data-not-found-url]').forEach((el) => {
       el.textContent = url;
     });
   }

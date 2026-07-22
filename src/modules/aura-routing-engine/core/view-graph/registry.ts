@@ -19,6 +19,12 @@ const BUILTIN = [
   IframeLoader,
 ] as const satisfies readonly LoaderClass[];
 
+/** Options for `register(loaderId, fn, options)`. */
+export type RegisterLoaderOptions = {
+  /** Include DataGraph payload in the view cache key (same idea as component loader). */
+  needsData?: boolean;
+};
+
 /** Built-in and custom loaders keyed by {@link LoaderId}. See {@link defaultLoaderRegistry}. */
 export class LoaderRegistry {
   private readonly env: ViewLoaderEnv;
@@ -35,8 +41,12 @@ export class LoaderRegistry {
   /** Instance, class (`new C(env)`), or `(loaderId, fn)` → {@link FnLoader}. */
   register(loader: Loader): void;
   register(loaderClass: LoaderClass): void;
-  register(loaderId: LoaderId, fn: LoaderFn, options?: any): void;
-  register(loaderIdOrLoader: LoaderId | Loader | LoaderClass, fn?: LoaderFn, options?: any): void {
+  register(loaderId: LoaderId, fn: LoaderFn, options?: RegisterLoaderOptions): void;
+  register(
+    loaderIdOrLoader: LoaderId | Loader | LoaderClass,
+    fn?: LoaderFn,
+    options?: RegisterLoaderOptions,
+  ): void {
     if (typeof loaderIdOrLoader === 'string') {
       if (!fn) throw new TypeError(`register("${loaderIdOrLoader}") requires a loader function`);
       return this.install(new FnLoader(this.env, loaderIdOrLoader, fn, options?.needsData));

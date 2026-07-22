@@ -22,7 +22,12 @@ export type ViewLoadPort = Pick<ViewGraph, 'load' | 'loadView'>;
 /** Async layout / view loader — same contract as aura-route `ViewResolverPort`. */
 export type ViewResolverPort = Pick<ViewGraph, 'loadView'>;
 
-export { LoaderRegistry, createLoaderRegistry, defaultLoaderRegistry } from './registry';
+export {
+  LoaderRegistry,
+  createLoaderRegistry,
+  defaultLoaderRegistry,
+  type RegisterLoaderOptions,
+} from './registry';
 export { Loader, type LoaderClass } from './loader';
 
 export type {

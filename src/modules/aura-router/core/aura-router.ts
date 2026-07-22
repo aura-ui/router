@@ -15,6 +15,7 @@ import {
   type HistoryAction,
   type LoaderFn,
   type LoaderId,
+  type RegisterLoaderOptions,
   type NavigateHistoryOptions,
   type PrefetchOptions,
   type RouteHookDefinition,
@@ -185,7 +186,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /** Registers a custom content loader on the shared {@link defaultLoaderRegistry}. */
-  static registerLoader(id: LoaderId, fn: LoaderFn, options?: any): void {
+  static registerLoader(id: LoaderId, fn: LoaderFn, options?: RegisterLoaderOptions): void {
     defaultLoaderRegistry.register(id, fn, options);
   }
 

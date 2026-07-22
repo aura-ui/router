@@ -144,6 +144,7 @@ export type {
   ViewLoadResult,
   FetchText,
   LoaderFn,
+  RegisterLoaderOptions,
   ViewLoadContext,
   ViewPayload,
 } from './core/view-graph';

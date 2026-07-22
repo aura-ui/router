@@ -40,6 +40,7 @@ import { dispatchDataInvalidated, type NotFoundHandler } from './navigation-even
 import { ScrollRestoration } from './scroll-restoration';
 import { resolveAppOutlet } from './outlet-resolver';
 
+/** Global cache / 404 defaults applied via {@link AuraRouter.configure}. */
 export interface AuraRouterConfigureOptions {
   /** Detached DOM keep-alive (`cache.dom`). */
   domCache?: CacheStoreOptions<ViewRoot>;
@@ -51,7 +52,12 @@ export interface AuraRouterConfigureOptions {
   notFoundHandler?: NotFoundHandler | null;
 }
 
+/**
+ * Host custom element for client-side routing.
+ * Owns attrs / chrome; delegates matching, navigation, and caches to {@link AuraRoutingEngine}.
+ */
 export class AuraRouter extends HTMLElement implements RouterInstance {
+  /** Custom element tag name. */
   static is = 'aura-router';
 
   /** Fallback template id — когда нет `<aura-route path="*">`. */
@@ -103,6 +109,21 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this._activeRouteBranch;
   }
 
+  /** Direct child `<aura-route>` elements under this router. */
+  get routes() {
+    return this.querySelectorAll<AuraRoute>(AuraRoute.is);
+  }
+
+  /**
+   * Root view outlet for fallback 404 / top-level mounts.
+   * Resolve order: `outlet` attr → prev/next sibling → nested `<aura-outlet>` → create sibling.
+   */
+  @memoize()
+  get appOutlet(): AuraOutlet {
+    return resolveAppOutlet(this);
+  }
+
+  /** Registers the custom element (`AuraRouter.is`) once. */
   static install(): void {
     installAuraRouter();
   }
@@ -117,6 +138,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return defaultHookRegistry.unregister(name);
   }
 
+  /** Applies global cache / 404 defaults (`dom` / `view` / `data` / `notFoundHandler`). */
   static configure(options: AuraRouterConfigureOptions): void {
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);
@@ -137,8 +159,34 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     defaultLoaderRegistry.register(id, fn, options);
   }
 
+  /** Returns a loader previously registered via {@link AuraRouter.registerLoader}. */
   static getLoader(id: LoaderId): Loader {
     return defaultLoaderRegistry.get(id);
+  }
+
+  /**
+   * Builds the engine (if needed), waits for `<aura-route>`, then refreshes routes and starts.
+   * Restarts when already running (reconnect).
+   */
+  connectedCallback(): void {
+    const engine = this.ensureEngine();
+    if (engine.isRunning) engine.stop();
+
+    void customElements.whenDefined(AuraRoute.is).then(() => {
+      if (!this.isConnected) return;
+      this.refreshRoutes();
+      this.ensureEngine().start();
+    });
+  }
+
+  /** Destroys the engine and clears branch / outlet memo / scroll / not-found state. */
+  disconnectedCallback(): void {
+    this.engine?.destroy();
+    this.engine = undefined;
+    this._activeRouteBranch = [];
+    memoize.clear(this, 'appOutlet');
+    this.scrollRestoration.clear();
+    this.notFound.clear();
   }
 
   /** Per-instance override (перекрывает configure и template). Только fallback. */
@@ -151,90 +199,15 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.ensureEngine().viewGraph;
   }
 
-  get routes() {
-    return this.querySelectorAll<AuraRoute>(AuraRoute.is);
-  }
-
-  /**
-   * Root view outlet for fallback 404 / top-level mounts.
-   * Resolve order: `outlet` attr → prev/next sibling → nested `<aura-outlet>` → create sibling.
-   */
-  @memoize()
-  get appOutlet(): AuraOutlet {
-    return resolveAppOutlet(this);
-  }
-
-  connectedCallback(): void {
-    const engine = this.ensureEngine();
-    if (engine.isRunning) engine.stop();
-
-    void customElements.whenDefined(AuraRoute.is).then(() => {
-      if (!this.isConnected) return;
-      this.refreshRoutes();
-      this.ensureEngine().start();
-    });
-  }
-
-  disconnectedCallback(): void {
-    this.engine?.destroy();
-    this.engine = undefined;
-    this._activeRouteBranch = [];
-    memoize.clear(this, 'appOutlet');
-    this.scrollRestoration.clear();
-    this.notFound.clear();
-  }
-
-  private ensureEngine(): AuraRoutingEngine {
-    if (!this.engine) {
-      const { config, onEvent } = connectRouterEngine(this, {
-        notFound: this.notFound,
-        scrollRestoration: this.scrollRestoration,
-        syncBranchAndActiveLinks: (to) => this.syncBranchAndActiveLinks(to),
-        onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
-      });
-      this.engine = new AuraRoutingEngine(this, {
-        linksSelector: this.linksSelector,
-        prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
-        ...config,
-      });
-      this.engine.events.subscribe(onEvent);
-    }
-    return this.engine;
-  }
-
+  /** Pushes the current child `<aura-route>` tree into the engine registry. */
   refreshRoutes(): void {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
-  /** Branch + active-link classes after url-align / commit (via engine bridge). */
-  private syncBranchAndActiveLinks(to: MatchedRouteInfo): void {
-    this._activeRouteBranch = toActiveRouteBranch(to.chain ?? [to]);
-    this.syncActiveLinks(to.href);
-  }
-
-  /** Hash-only shortcut: keep patterns, rewrite hrefs, refresh active links. */
-  private applyHashOnlyNavigation(href: string): void {
-    if (this._activeRouteBranch.length) {
-      this._activeRouteBranch = this._activeRouteBranch.map((e) => ({ pattern: e.pattern, href }));
-    }
-    this.syncActiveLinks(href);
-  }
-
-  private syncActiveLinks(href: string): void {
-    const { linkActiveClass, linkActiveBranchClass } = this;
-    if (!linkActiveClass && !linkActiveBranchClass) return;
-
-    syncRouterActiveLinks({
-      container: this.linksContainerSelector
-        ? this.closest(this.linksContainerSelector) ?? this
-        : this.ownerDocument!,
-      linksSelector: this.linksSelector,
-      linkActiveClass: linkActiveClass ?? undefined,
-      linkActiveBranchClass: linkActiveBranchClass ?? undefined,
-      currentHref: href,
-    });
-  }
-
+  /**
+   * Programmatic navigation.
+   * Defaults: `replace: false` → history `push`; `syncHistory: true`.
+   */
   navigate(path: string, options: Partial<NavigateHistoryOptions> = {}): void {
     const replace = options.replace ?? false;
     void this.ensureEngine().navigateTo(path, replace ? 'replace' : 'push', {
@@ -259,5 +232,57 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       dispatchDataInvalidated(this, count);
     }
     return count;
+  }
+
+  /** Lazily creates {@link AuraRoutingEngine} and wires the host bridge. */
+  private ensureEngine(): AuraRoutingEngine {
+    if (!this.engine) {
+      const { config, onEvent } = connectRouterEngine(this, {
+        notFound: this.notFound,
+        scrollRestoration: this.scrollRestoration,
+        syncBranchAndActiveLinks: (to) => this.syncBranchAndActiveLinks(to),
+        onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
+      });
+      this.engine = new AuraRoutingEngine(this, {
+        linksSelector: this.linksSelector,
+        prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
+        ...config,
+      });
+      this.engine.events.subscribe(onEvent);
+    }
+    return this.engine;
+  }
+
+  /** Branch + active-link classes after url-align / commit (via engine bridge). */
+  private syncBranchAndActiveLinks(to: MatchedRouteInfo): void {
+    this._activeRouteBranch = toActiveRouteBranch(to.chain ?? [to]);
+    this.syncActiveLinks(to.href);
+  }
+
+  /** Hash-only shortcut: keep patterns, rewrite hrefs, refresh active links. */
+  private applyHashOnlyNavigation(href: string): void {
+    if (this._activeRouteBranch.length) {
+      this._activeRouteBranch = this._activeRouteBranch.map((e) => ({ pattern: e.pattern, href }));
+    }
+    this.syncActiveLinks(href);
+  }
+
+  /**
+   * Toggles {@link linkActiveClass} / {@link linkActiveBranchClass} on matching links.
+   * No-op when both classes are unset. Scan root: `linksContainerSelector` → `closest`, else `document`.
+   */
+  private syncActiveLinks(href: string): void {
+    const { linkActiveClass, linkActiveBranchClass } = this;
+    if (!linkActiveClass && !linkActiveBranchClass) return;
+
+    syncRouterActiveLinks({
+      container: this.linksContainerSelector
+        ? this.closest(this.linksContainerSelector) ?? this
+        : this.ownerDocument!,
+      linksSelector: this.linksSelector,
+      linkActiveClass: linkActiveClass ?? undefined,
+      linkActiveBranchClass: linkActiveBranchClass ?? undefined,
+      currentHref: href,
+    });
   }
 }

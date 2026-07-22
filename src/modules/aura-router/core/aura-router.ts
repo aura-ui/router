@@ -12,7 +12,6 @@ import {
   defaultLoaderRegistry,
   defaultHookRegistry,
   resolvePrefetchEngineConfig,
-  type HistoryAction,
   type LoaderFn,
   type LoaderId,
   type RegisterLoaderOptions,
@@ -43,32 +42,27 @@ import { ScrollRestoration } from './scroll-restoration';
 
 export {
   AURA_ROUTER_NOT_FOUND,
-  type NotFoundHandler,
-  type NotFoundSource,
-  type AuraRouterNotFoundEventDetail,
-  type AuraRouterNotFoundEvent,
-} from './navigation-events';
-
-export {
   AURA_ROUTER_NAVIGATION_ERROR,
-  type AuraRouterNavigationErrorEventDetail,
-  type AuraRouterNavigationErrorEvent,
-  type NavigationErrorPhase,
-  type NavigationFailureCode,
-} from './navigation-events';
-
-export {
   AURA_ROUTER_NAVIGATION_HOOK_ERROR,
-  type AuraRouterNavigationHookErrorEventDetail,
-  type AuraRouterNavigationHookErrorEvent,
-} from './navigation-events';
-
-export {
   AURA_ROUTER_NAVIGATION,
   AURA_ROUTER_NAVIGATION_START,
   AURA_ROUTER_NAVIGATION_COMPLETE,
   AURA_ROUTER_NAVIGATION_CANCEL,
   AURA_ROUTER_NAVIGATION_REDIRECT,
+  AURA_ROUTER_LOAD_START,
+  AURA_ROUTER_LOAD_END,
+  AURA_ROUTER_LOAD_ERROR,
+  AURA_ROUTER_DATA_INVALIDATED,
+  type NotFoundHandler,
+  type NotFoundSource,
+  type AuraRouterNotFoundEventDetail,
+  type AuraRouterNotFoundEvent,
+  type AuraRouterNavigationErrorEventDetail,
+  type AuraRouterNavigationErrorEvent,
+  type NavigationErrorPhase,
+  type NavigationFailureCode,
+  type AuraRouterNavigationHookErrorEventDetail,
+  type AuraRouterNavigationHookErrorEvent,
   type AuraRouterNavigationEventDetail,
   type AuraRouterNavigationEvent,
   type AuraRouterNavigationStartEvent,
@@ -78,21 +72,11 @@ export {
   type AuraRouterNavigationCancelEvent,
   type AuraRouterNavigationRedirectEventDetail,
   type AuraRouterNavigationRedirectEvent,
-} from './navigation-events';
-
-export {
-  AURA_ROUTER_LOAD_START,
-  AURA_ROUTER_LOAD_END,
-  AURA_ROUTER_LOAD_ERROR,
   type AuraRouterLoadEventDetail,
   type AuraRouterLoadStartEvent,
   type AuraRouterLoadEndEvent,
   type AuraRouterLoadErrorEventDetail,
   type AuraRouterLoadErrorEvent,
-} from './navigation-events';
-
-export {
-  AURA_ROUTER_DATA_INVALIDATED,
   type AuraRouterDataInvalidatedEventDetail,
   type AuraRouterDataInvalidatedEvent,
 } from './navigation-events';
@@ -220,29 +204,13 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
    */
   @memoize()
   get appOutlet(): AuraOutlet {
-    const selector = this.outletSelector;
-    if (selector) {
-      const found = document.querySelector(selector);
-      if (!isAuraOutlet(found)) {
-        throw new Error(`\`<aura-router outlet="${selector}">\` did not match an \`<${AuraOutlet.is}>\`.`);
-      }
-      return found;
-    }
-
-    if (isAuraOutlet(this.previousElementSibling)) return this.previousElementSibling;
-    if (isAuraOutlet(this.nextElementSibling)) return this.nextElementSibling;
-
-    const nested = this.querySelector(AuraOutlet.is);
-    if (isAuraOutlet(nested)) return nested;
-
-    const created = document.createElement(AuraOutlet.is) as AuraOutlet;
-    this.parentNode?.insertBefore(created, this);
-    return created;
+    return resolveAppOutlet(this);
   }
 
   connectedCallback(): void {
     const engine = this.ensureEngine();
     if (engine.isRunning) engine.stop();
+
     void customElements.whenDefined(AuraRoute.is).then(() => {
       if (!this.isConnected) return;
       this.refreshRoutes();
@@ -253,6 +221,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   disconnectedCallback(): void {
     this.engine?.destroy();
     this.engine = undefined;
+    this._trail = [];
+    memoize.clear(this, 'appOutlet');
     this.scrollRestoration.clear();
     this.notFound.clear();
   }
@@ -304,9 +274,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   navigate(path: string, options: Partial<NavigateHistoryOptions> = {}): void {
     const replace = options.replace ?? false;
-    const syncHistory = options.syncHistory ?? true;
-    const action: HistoryAction = replace ? 'replace' : 'push';
-    void this.ensureEngine().navigateTo(path, action, { replace, syncHistory });
+    void this.ensureEngine().navigateTo(path, replace ? 'replace' : 'push', {
+      replace,
+      syncHistory: options.syncHistory ?? true,
+    });
   }
 
   /** Programmatic prefetch for a target href. */
@@ -336,6 +307,28 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   invalidateView(options?: ViewInvalidateOptions): number {
     return this.ensureEngine().invalidateView(options);
   }
+}
+
+/** Resolve order: `outlet` attr → siblings → nested → create sibling before host. */
+function resolveAppOutlet(host: AuraRouter): AuraOutlet {
+  const selector = host.outletSelector;
+  if (selector) {
+    const found = document.querySelector(selector);
+    if (!isAuraOutlet(found)) {
+      throw new Error(`\`<aura-router outlet="${selector}">\` did not match an \`<${AuraOutlet.is}>\`.`);
+    }
+    return found;
+  }
+
+  if (isAuraOutlet(host.previousElementSibling)) return host.previousElementSibling;
+  if (isAuraOutlet(host.nextElementSibling)) return host.nextElementSibling;
+
+  const nested = host.querySelector(AuraOutlet.is);
+  if (isAuraOutlet(nested)) return nested;
+
+  const created = document.createElement(AuraOutlet.is) as AuraOutlet;
+  host.parentNode?.insertBefore(created, host);
+  return created;
 }
 
 function isAuraOutlet(el: Element | null | undefined): el is AuraOutlet {

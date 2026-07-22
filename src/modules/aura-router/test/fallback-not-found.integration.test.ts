@@ -1,0 +1,64 @@
+/** @jest-environment jsdom */
+
+import { AURA_ROUTER_NOT_FOUND, AuraRouter } from '../core/aura-router';
+import { registerAuraRouterComponents } from '../core/aura-router-setup';
+
+async function flushNavigation(): Promise<void> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
+
+describe('AuraRouter fallback not-found (ensureEngine onNotFound)', () => {
+  beforeAll(() => {
+    registerAuraRouterComponents();
+  });
+
+  beforeEach(() => {
+    document.body.replaceChildren();
+    window.history.replaceState({}, '', '/');
+  });
+
+  afterEach(() => {
+    document.body.replaceChildren();
+    window.history.replaceState({}, '', '/');
+  });
+
+  async function mount(): Promise<AuraRouter> {
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.innerHTML = `
+      <aura-outlet></aura-outlet>
+      <aura-route path="/" view="html::<p>home</p>"></aura-route>
+    `;
+    document.body.append(router);
+    await customElements.whenDefined('aura-route');
+    await flushNavigation();
+    return router;
+  }
+
+  it('renders default fallback UI on unmatched navigation', async () => {
+    const router = await mount();
+    const seen: Array<{ url: string; source: string }> = [];
+    router.addEventListener(AURA_ROUTER_NOT_FOUND, ((event: CustomEvent) => {
+      seen.push({ url: event.detail.url, source: event.detail.source });
+    }) as EventListener);
+
+    router.navigate('/missing');
+    await flushNavigation();
+
+    expect(seen).toEqual([{ url: '/missing', source: 'fallback' }]);
+    expect(router.appOutlet.textContent).toContain('Page not found: /missing');
+  });
+
+  it('skips fallback UI when not-found listener calls preventDefault', async () => {
+    const router = await mount();
+    router.addEventListener(AURA_ROUTER_NOT_FOUND, (event) => {
+      event.preventDefault();
+    });
+
+    router.navigate('/blocked');
+    await flushNavigation();
+
+    expect(router.appOutlet.textContent ?? '').not.toContain('Page not found');
+    expect(router.appOutlet.querySelector('[data-not-found-url]')).toBeNull();
+  });
+});

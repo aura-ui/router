@@ -189,7 +189,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
       const { config, onEvent } = connectRouterEngine(this, {
         notFound: this.notFound,
         scrollRestoration: this.scrollRestoration,
-        syncNavState: (to) => this.syncNavState(to),
+        syncBranchAndActiveLinks: (to) => this.syncBranchAndActiveLinks(to),
         onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
       });
       this.engine = new AuraRoutingEngine(this, {
@@ -207,7 +207,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   }
 
   /** Branch + active-link classes after url-align / commit (via engine bridge). */
-  private syncNavState(to: MatchedRouteInfo): void {
+  private syncBranchAndActiveLinks(to: MatchedRouteInfo): void {
     this._activeRouteBranch = toActiveRouteBranch(to.chain ?? [to]);
     this.syncActiveLinks(to.href);
   }

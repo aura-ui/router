@@ -25,7 +25,7 @@ import type { ScrollRestoration } from './scroll-restoration';
 export type RouterEngineBridgeDeps = {
   notFound: Pick<AuraRouterNotFoundController, 'recover' | 'clear'>;
   scrollRestoration: Pick<ScrollRestoration, 'handleCommit'>;
-  syncNavState: (to: MatchedRouteInfo) => void;
+  syncBranchAndActiveLinks: (to: MatchedRouteInfo) => void;
   onHashOnlyNavigation: (href: string) => void;
 };
 
@@ -71,7 +71,7 @@ function onEngineEvent(
   deps: RouterEngineBridgeDeps,
   event: EngineEvent,
 ): void {
-  const { notFound, scrollRestoration, syncNavState } = deps;
+  const { notFound, scrollRestoration, syncBranchAndActiveLinks } = deps;
 
   if (event.type === 'navigation:url-aligned') {
     dispatchNavigationStart(host, {
@@ -79,12 +79,12 @@ function onEngineEvent(
       to: event.to.href,
       pathname: event.to.pathname,
     });
-    syncNavState(event.to);
+    syncBranchAndActiveLinks(event.to);
     return;
   }
 
   if (event.type === 'navigation:nav-state-restore') {
-    syncNavState(event.to);
+    syncBranchAndActiveLinks(event.to);
     return;
   }
 
@@ -119,7 +119,7 @@ function onEngineEvent(
       to: event.to.href,
       pathname: event.to.pathname,
     });
-    syncNavState(event.to);
+    syncBranchAndActiveLinks(event.to);
     return;
   }
 

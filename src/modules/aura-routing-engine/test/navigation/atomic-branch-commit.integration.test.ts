@@ -3,7 +3,7 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
-import { registerAuraRouterComponents } from '../../../aura-router/core/aura-router-setup';
+import { installAuraRouter } from '../../../aura-router/core/install';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
@@ -90,7 +90,7 @@ async function mountBranchFixture(routerAttrs: Record<string, string> = {}): Pro
   const gallery = createDomRoute('/gallery');
   gallery.setAttribute('view', 'html::<span data-gallery>GALLERY</span>');
 
-  registerAuraRouterComponents();
+  installAuraRouter();
   const router = document.createElement(AuraRouter.is) as AuraRouter;
   for (const [name, value] of Object.entries(routerAttrs)) {
     router.setAttribute(name, value);
@@ -283,7 +283,7 @@ describe('atomic branch commit integration', () => {
     const home = createDomRoute('/');
     home.setAttribute('view', 'template::intro-view');
 
-    registerAuraRouterComponents();
+    installAuraRouter();
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.append(home, users);
     document.body.append(router);
@@ -340,7 +340,7 @@ describe('atomic branch commit integration', () => {
     const home = createDomRoute('/');
     home.setAttribute('view', 'template::intro-view');
 
-    registerAuraRouterComponents();
+    installAuraRouter();
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.append(home, users);
     document.body.append(router);
@@ -377,7 +377,7 @@ describe('atomic branch commit integration', () => {
     home.setAttribute('view', 'template::intro-view');
     home.setAttribute('cache', 'dom');
 
-    registerAuraRouterComponents();
+    installAuraRouter();
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.append(home, users);
     document.body.append(router);

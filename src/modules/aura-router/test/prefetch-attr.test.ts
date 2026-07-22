@@ -2,11 +2,11 @@
 
 import type { LoaderFn } from '../../aura-routing-engine/core';
 import { AuraRouter } from '../core/aura-router';
-import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { installAuraRouter } from '../core/install';
 
 describe('AuraRouter prefetch attr', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   afterEach(() => {

@@ -2,7 +2,7 @@
 
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
-import { registerAuraRouterComponents } from '../../../aura-router/core/aura-router-setup';
+import { installAuraRouter } from '../../../aura-router/core/install';
 import { createDomRoute } from '../helpers/test-route-dom';
 
 const SPLAT_LOADER = 'nested-catch-all-splat';
@@ -46,7 +46,7 @@ async function mountNestedCatchAllFixture(): Promise<Fixture> {
   const users = createDomRoute('/users', [profile, fallback]);
   users.setAttribute('layout', 'users-layout');
 
-  registerAuraRouterComponents();
+  installAuraRouter();
   const router = document.createElement(AuraRouter.is) as AuraRouter;
   router.append(users);
   document.body.append(router);

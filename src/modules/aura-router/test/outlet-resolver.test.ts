@@ -2,12 +2,12 @@
 
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouter } from '../core/aura-router';
-import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { installAuraRouter } from '../core/install';
 import { resolveAppOutlet } from '../core/outlet-resolver';
 
 describe('resolveAppOutlet', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   afterEach(() => {
@@ -92,7 +92,7 @@ describe('resolveAppOutlet', () => {
 
 describe('AuraRouter.appOutlet', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   afterEach(() => {

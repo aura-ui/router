@@ -2,11 +2,11 @@
 
 import { resolvePrefetchMode } from '../../aura-routing-engine/core/prefetch/prefetch-policy';
 import { AuraRouter } from '../core/aura-router';
-import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { installAuraRouter } from '../core/install';
 
 describe('Prefetch cascade link > route > router', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   afterEach(() => {

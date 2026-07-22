@@ -1,13 +1,13 @@
 /** @jest-environment jsdom */
 
 import { AuraRouter } from '../core/aura-router';
-import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { installAuraRouter } from '../core/install';
 import { AURA_ROUTER_DATA_INVALIDATED } from '../core/navigation-events';
 import type { LoaderFn, RouteHookDefinition } from '../../aura-routing-engine/core';
 
 describe('AuraRouter.invalidate', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   afterEach(() => {
@@ -154,7 +154,7 @@ describe('AuraRouter.invalidate', () => {
 
 describe('AuraRouter.invalidateView', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   afterEach(() => {

@@ -4,7 +4,7 @@ import { matchLinkActive } from '../../aura-routing-engine/core/link-active/matc
 import type { RouteHookDefinition } from '../../aura-routing-engine/core';
 import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRouter } from '../core/aura-router';
-import { registerAuraRouterComponents } from '../core/aura-router-setup';
+import { installAuraRouter } from '../core/install';
 import { getRouterEngine } from './helpers/get-router-engine';
 
 async function flushNavigation(): Promise<void> {
@@ -14,7 +14,7 @@ async function flushNavigation(): Promise<void> {
 
 describe('AuraRouter link-active-class', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   beforeEach(() => {
@@ -277,7 +277,7 @@ describe('AuraRouter link-active-class', () => {
 
 describe('AuraRouter link-active-branch-class and trail', () => {
   beforeAll(() => {
-    registerAuraRouterComponents();
+    installAuraRouter();
   });
 
   beforeEach(() => {

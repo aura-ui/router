@@ -11,9 +11,7 @@ import {
   DataGraph,
   defaultLoaderRegistry,
   defaultHookRegistry,
-  isCatchAllRoutePattern,
   resolvePrefetchEngineConfig,
-  type AuraRoutingEngineConfig,
   type HistoryAction,
   type LoaderFn,
   type LoaderId,
@@ -26,36 +24,22 @@ import {
   type DataGraphCacheOptions,
   type Loader,
   type EventBus,
-  type EngineEvent,
+  type MatchedRouteInfo,
 } from '../../aura-routing-engine/core';
 import {
   syncRouterHostActiveLinks,
   toRouteTrail,
   type RouteTrailEntry,
 } from '../../aura-routing-engine/core/link-active';
-import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 import { attr } from '../../aura-utils/decorators';
+import { memoize } from '../../aura-utils/decorators/memoize';
 import { parseNullableString } from '../../aura-utils/misc';
 
 import { AuraRouterNotFoundController } from './aura-router-not-found-controller';
 import { registerAuraRouterComponents } from './aura-router-setup';
-import {
-  dispatchNavigationError,
-  dispatchNavigationHookError,
-  dispatchNavigationCommitted,
-  dispatchNavigationComplete,
-  dispatchNavigationCancel,
-  dispatchNavigationRedirect,
-  dispatchNavigationStart,
-  dispatchLoadStart,
-  dispatchLoadEnd,
-  dispatchLoadError,
-  dispatchNotFound,
-  dispatchDataInvalidated,
-  type NotFoundHandler,
-} from './navigation-events';
+import { connectRouterEngine } from './engine-bridge';
+import { dispatchDataInvalidated, type NotFoundHandler } from './navigation-events';
 import { ScrollRestoration } from './scroll-restoration';
-import { memoize } from '../../aura-utils/decorators/memoize';
 
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -137,9 +121,17 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /** CSS class toggled on `[aura-router-link]` when its resolved href matches the current URL. */
   @attr({ parser: parseNullableString, cached: true, name: 'link-active-class' }) linkActiveClass: string | null;
   /** CSS class for section/folder links when the current URL is under the link path (prefix match). */
-  @attr({ parser: parseNullableString, cached: true, name: 'link-active-branch-class' }) linkActiveBranchClass: string | null;
+  @attr({
+    parser: parseNullableString,
+    cached: true,
+    name: 'link-active-branch-class',
+  }) linkActiveBranchClass: string | null;
   /** Optional ancestor that narrows the active-link scan (default: whole document). */
-  @attr({ parser: parseNullableString, cached: true, name: 'links-container-selector' }) linksContainerSelector: string | null;
+  @attr({
+    parser: parseNullableString,
+    cached: true,
+    name: 'links-container-selector',
+  }) linksContainerSelector: string | null;
 
   /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
@@ -245,127 +237,38 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   private ensureEngine(): AuraRoutingEngine {
     if (!this.engine) {
-      const config: AuraRoutingEngineConfig = {
+      const { config, onEvent } = connectRouterEngine(this, {
+        notFound: this.notFound,
+        scrollRestoration: this.scrollRestoration,
+        syncNavState: (to) => this.syncNavState(to),
+        onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
+      });
+      this.engine = new AuraRoutingEngine(this, {
         linksSelector: this.linksSelector,
         prefetch: resolvePrefetchEngineConfig(this.prefetchDomAttr),
-        onNotFound: (failure) => {
-          if (dispatchNotFound(this, failure.href, 'fallback')) {
-            this.notFound.recover(failure.href);
-          }
-        },
-        onHashOnlyNavigation: (href) => {
-          if (this._trail.length) {
-            this._trail = this._trail.map((e) => ({ pattern: e.pattern, href }));
-          }
-          this.syncActiveLinks(href);
-        },
-        onNavigationHookError: (detail) => {
-          dispatchNavigationHookError(this, detail);
-        },
-      };
-      this.engine = new AuraRoutingEngine(this, config);
-      this.engine.events.subscribe((event) => this.onEngineEvent(event));
+        ...config,
+      });
+      this.engine.events.subscribe(onEvent);
     }
     return this.engine;
-  }
-
-  /**
-   * Host chrome adapter over the engine event stream.
-   * Early: `url-aligned` → active links / `navigation-start`.
-   * Stay: `nav-state-restore` → active links / trail after cancel-pending.
-   * Loads: `load:*` → `load-start` / `load-end` / `load-error`.
-   * Late: `commit:end` → scroll, not-found, active links again, DOM `navigation`.
-   * Terminal: `finish` / `cancel` / `redirect` / `error` → DOM counterparts.
-   */
-  private onEngineEvent(event: EngineEvent): void {
-    if (event.type === 'navigation:url-aligned') {
-      dispatchNavigationStart(this, {
-        from: event.from?.pathname ?? null,
-        to: event.to.href,
-        pathname: event.to.pathname,
-      });
-      this.syncNavState(event.to);
-      return;
-    }
-
-    if (event.type === 'navigation:nav-state-restore') {
-      this.syncNavState(event.to);
-      return;
-    }
-
-    if (event.type === 'load:start') {
-      dispatchLoadStart(this, event.id, event.nodeId, event.pattern);
-      return;
-    }
-
-    if (event.type === 'load:end') {
-      dispatchLoadEnd(this, event.id, event.nodeId, event.pattern);
-      return;
-    }
-
-    if (event.type === 'load:error') {
-      dispatchLoadError(this, event.id, event.nodeId, event.pattern, event.error);
-      return;
-    }
-
-    if (event.type === 'navigation:commit:end') {
-      this.notFound.clear();
-      if (isCatchAllRoutePattern(event.to.pattern)) {
-        dispatchNotFound(this, event.to.href, 'route');
-      }
-      this.scrollRestoration.handleCommit({
-        from: event.from,
-        to: event.to,
-        action: event.action,
-        hash: event.hash,
-      });
-      dispatchNavigationCommitted(this, {
-        from: event.from?.pathname ?? null,
-        to: event.to.href,
-        pathname: event.to.pathname,
-      });
-      this.syncNavState(event.to);
-      return;
-    }
-
-    if (event.type === 'navigation:finish') {
-      dispatchNavigationComplete(this, event.id);
-      return;
-    }
-
-    if (event.type === 'navigation:cancel') {
-      dispatchNavigationCancel(this, event.id, event.reason);
-      return;
-    }
-
-    if (event.type === 'navigation:redirect') {
-      dispatchNavigationRedirect(this, event.id, event.url, event.replace);
-      return;
-    }
-
-    if (event.type === 'navigation:error') {
-      if (event.failure.viewCommitted) {
-        this.notFound.clear();
-      }
-      // Fallback NOT_FOUND already handled in config `onNotFound` (DOM + recover).
-      if (event.failure.isNotFound) {
-        return;
-      }
-      dispatchNavigationError(this, event.failure);
-    }
   }
 
   refreshRoutes(): void {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
-  /**
-   * Trail + active-link classes for the target href.
-   * Called from {@link onEngineEvent} on `url-aligned` and again on `commit:end`.
-   */
+  /** Trail + active-link classes after url-align / commit (via engine bridge). */
   private syncNavState(to: MatchedRouteInfo): void {
     this._trail = toRouteTrail(to.chain ?? [to]);
     this.syncActiveLinks(to.href);
+  }
+
+  /** Hash-only shortcut: keep trail patterns, rewrite hrefs, refresh active links. */
+  private applyHashOnlyNavigation(href: string): void {
+    if (this._trail.length) {
+      this._trail = this._trail.map((e) => ({ pattern: e.pattern, href }));
+    }
+    this.syncActiveLinks(href);
   }
 
   private syncActiveLinks(href: string): void {

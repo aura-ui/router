@@ -1,4 +1,4 @@
-import { AuraCacheStore, type CacheStoreOptions } from '../../../aura-cache-store/core';
+import { AuraSwrCache, type SwrCacheOptions } from '../../../aura-cache/core';
 import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo, RouteInfo } from '../../../aura-routing-engine/route-api';
 
@@ -23,7 +23,7 @@ export function domCacheKey(source: CacheKeySource, fallbackPath: string): strin
   return `${base}|${qs}`;
 }
 
-const DEFAULT_CACHE_OPTIONS: CacheStoreOptions<ViewRoot> = {
+const DEFAULT_CACHE_OPTIONS: SwrCacheOptions<ViewRoot> = {
   max: 10,
   gcTime: Infinity,
   gcSweepInterval: false,
@@ -32,11 +32,11 @@ const DEFAULT_CACHE_OPTIONS: CacheStoreOptions<ViewRoot> = {
 
 /** Shared LRU detached-DOM cache (`cache.dom`). */
 export class RouteDomCache implements DomCachePort {
-  private static store: AuraCacheStore<ViewRoot> | undefined;
+  private static store: AuraSwrCache<ViewRoot> | undefined;
 
-  static configure(options: CacheStoreOptions<ViewRoot> = {}): void {
+  static configure(options: SwrCacheOptions<ViewRoot> = {}): void {
     RouteDomCache.store?.destroy();
-    RouteDomCache.store = new AuraCacheStore({
+    RouteDomCache.store = new AuraSwrCache({
       ...DEFAULT_CACHE_OPTIONS,
       ...options,
       onRemove: options.onRemove ?? DEFAULT_CACHE_OPTIONS.onRemove,
@@ -56,7 +56,7 @@ export class RouteDomCache implements DomCachePort {
     RouteDomCache.storeOf().set(key, root);
   }
 
-  private static storeOf(): AuraCacheStore<ViewRoot> {
+  private static storeOf(): AuraSwrCache<ViewRoot> {
     if (!RouteDomCache.store) {
       RouteDomCache.configure();
     }

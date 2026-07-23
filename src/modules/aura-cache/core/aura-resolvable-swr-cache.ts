@@ -1,13 +1,13 @@
 import { Singleflight } from '../../aura-utils/async/singleflight';
 
-import { AuraCacheStore, type CacheStoreOptions, type InvalidatePolicy } from './aura-cache-store';
+import { AuraSwrCache, type SwrCacheOptions, type InvalidatePolicy } from './aura-swr-cache';
 
 /**
- * Resolve policy for {@link AuraResolvableCache} — fixed at construction, not per `resolve` call.
+ * Resolve policy for {@link AuraResolvableSwrCache} — fixed at construction, not per `resolve` call.
  *
  * Avoids concurrent `resolve` callers disagreeing on write / side-effects for the same key.
  */
-export type ResolvableCachePolicy = {
+export type ResolvableSwrCachePolicy = {
   /**
    * Whether to write the settled value into this store.
    * Default `true`. Pass `false` or a predicate to skip / filter storage
@@ -22,29 +22,29 @@ export type ResolvableCachePolicy = {
 };
 
 /** Constructor options: store config + fixed resolve policy. */
-export type ResolvableCacheOptions<T> = CacheStoreOptions<T> & ResolvableCachePolicy;
+export type ResolvableSwrCacheOptions<T> = SwrCacheOptions<T> & ResolvableSwrCachePolicy;
 
 /**
  * In-memory cache with LRU eviction, in-flight load deduplication, and SWR resolve.
- * Composes {@link AuraCacheStore} + {@link Singleflight} for `resolve(key, load)` flows.
+ * Composes {@link AuraSwrCache} + {@link Singleflight} for `resolve(key, load)` flows.
  *
- * When {@link CacheStoreOptions.staleTime} is set, stale entries are returned immediately
+ * When {@link SwrCacheOptions.staleTime} is set, stale entries are returned immediately
  * and `load` runs in the background (stale-while-revalidate).
  */
-export class AuraResolvableCache<T> {
-  private readonly store: AuraCacheStore<T>;
+export class AuraResolvableSwrCache<T> {
+  private readonly store: AuraSwrCache<T>;
   private readonly singleflight = new Singleflight<string, unknown>();
-  private readonly write: ResolvableCachePolicy['write'];
-  private readonly onSettled: ResolvableCachePolicy['onSettled'];
+  private readonly write: ResolvableSwrCachePolicy['write'];
+  private readonly onSettled: ResolvableSwrCachePolicy['onSettled'];
   /**
    * Bumped on {@link clear} / {@link destroy} so in-flight loads started before the bump
    * cannot {@link commit} into a cleared store (orphan singleflight after map clear).
    */
   private epoch = 0;
 
-  constructor(options: ResolvableCacheOptions<T> = {}) {
+  constructor(options: ResolvableSwrCacheOptions<T> = {}) {
     const { write, onSettled, ...storeOptions } = options;
-    this.store = new AuraCacheStore(storeOptions);
+    this.store = new AuraSwrCache(storeOptions);
     this.write = write;
     this.onSettled = onSettled;
   }
@@ -115,8 +115,8 @@ export class AuraResolvableCache<T> {
    * With SWR (`staleTime`): fresh → cached value; stale → cached value + background `load`;
    * missing → await `load`. Background revalidation errors are ignored.
    *
-   * On settle: writes into this store when the constructor {@link ResolvableCachePolicy.write}
-   * allows (default), then runs optional {@link ResolvableCachePolicy.onSettled}.
+   * On settle: writes into this store when the constructor {@link ResolvableSwrCachePolicy.write}
+   * allows (default), then runs optional {@link ResolvableSwrCachePolicy.onSettled}.
    */
   resolve<R>(key: string, load: () => Promise<R>): Promise<R> {
     const entry = this.store.lookup(key, true);

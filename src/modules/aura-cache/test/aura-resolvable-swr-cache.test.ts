@@ -1,7 +1,7 @@
-import { AuraResolvableCache } from '../core/aura-resolvable-cache';
+import { AuraResolvableSwrCache } from '../core/aura-resolvable-swr-cache';
 
 describe('ResolvableCache', () => {
-  let cache: AuraResolvableCache<string> | undefined;
+  let cache: AuraResolvableSwrCache<string> | undefined;
 
   afterEach(() => {
     cache?.destroy();
@@ -9,7 +9,7 @@ describe('ResolvableCache', () => {
   });
 
   it('dedupes in-flight loads', async () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     let loads = 0;
 
     const load = () => {
@@ -28,7 +28,7 @@ describe('ResolvableCache', () => {
   });
 
   it('returns cached entry without calling load', async () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     let loads = 0;
 
     await cache.resolve('k', async () => {
@@ -47,7 +47,7 @@ describe('ResolvableCache', () => {
 
   it('onSettled is an extra write; this store still keeps the settled value', async () => {
     const side = new Map<string, string>();
-    cache = new AuraResolvableCache({
+    cache = new AuraResolvableSwrCache({
       gcSweepInterval: false,
       onSettled: (key, value) => {
         side.set(key, value as string);
@@ -61,7 +61,7 @@ describe('ResolvableCache', () => {
   });
 
   it('write: false skips storing while still settling the promise', async () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false, write: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false, write: false });
 
     const value = await cache.resolve('k', async () => 'loaded');
 
@@ -70,7 +70,7 @@ describe('ResolvableCache', () => {
   });
 
   it('write predicate can filter what is stored', async () => {
-    const mixed = new AuraResolvableCache<unknown>({
+    const mixed = new AuraResolvableSwrCache<unknown>({
       gcSweepInterval: false,
       write: (v) => typeof v === 'string',
     });
@@ -84,7 +84,7 @@ describe('ResolvableCache', () => {
   });
 
   it('clears rejected in-flight work so callers can retry', async () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     let loads = 0;
 
     await expect(
@@ -104,7 +104,7 @@ describe('ResolvableCache', () => {
   });
 
   it('clear drops in-flight singleflight without resurrecting store on late settle', async () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
@@ -127,7 +127,7 @@ describe('ResolvableCache', () => {
   });
 
   it('evicts least recently used entry when max exceeded', async () => {
-    cache = new AuraResolvableCache({ max: 2, gcTime: Infinity, gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ max: 2, gcTime: Infinity, gcSweepInterval: false });
 
     await cache.resolve('a', async () => 'A');
     await cache.resolve('b', async () => 'B');
@@ -148,7 +148,7 @@ describe('ResolvableCache', () => {
     });
 
     it('skips load while the entry is fresh', async () => {
-      cache = new AuraResolvableCache({
+      cache = new AuraResolvableSwrCache({
         staleTime: 1_000,
         gcTime: Infinity,
         gcSweepInterval: false,
@@ -172,7 +172,7 @@ describe('ResolvableCache', () => {
     });
 
     it('returns stale value and revalidates in the background', async () => {
-      cache = new AuraResolvableCache({
+      cache = new AuraResolvableSwrCache({
         staleTime: 1_000,
         gcTime: Infinity,
         gcSweepInterval: false,
@@ -207,7 +207,7 @@ describe('ResolvableCache', () => {
     });
 
     it('dedupes concurrent stale revalidations', async () => {
-      cache = new AuraResolvableCache({
+      cache = new AuraResolvableSwrCache({
         staleTime: 1_000,
         gcTime: Infinity,
         gcSweepInterval: false,
@@ -237,7 +237,7 @@ describe('ResolvableCache', () => {
     });
 
     it('ignores background revalidation errors', async () => {
-      cache = new AuraResolvableCache({
+      cache = new AuraResolvableSwrCache({
         staleTime: 1_000,
         gcTime: Infinity,
         gcSweepInterval: false,

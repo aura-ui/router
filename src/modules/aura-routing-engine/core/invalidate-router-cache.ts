@@ -1,4 +1,4 @@
-import type { InvalidatePolicy } from '../../aura-cache-store/core';
+import type { InvalidatePolicy } from '../../aura-cache/core';
 
 /** Separator between identity segments in cache keys (`data:/users|id=1`). */
 const CACHE_KEY_SEP = '|';
@@ -50,7 +50,7 @@ export type RouterInvalidateOptions = InvalidateScope & {
 
 /**
  * Minimal cache surface required by {@link invalidateRouterCache}.
- * Implemented by {@link AuraResolvableCache} in DataGraph and ViewGraph.
+ * Implemented by {@link AuraResolvableSwrCache} in DataGraph and ViewGraph.
  */
 export type RouterCacheInvalidator = {
   /** Invalidates a single key. Returns whether the key existed. */
@@ -108,7 +108,7 @@ function invalidateEveryKey(cache: RouterCacheInvalidator, policy: InvalidatePol
  * Resolution order when multiple scope fields are set: `key` → `path` → `match` → all entries.
  * An exact `key` uses a direct lookup; other scopes scan via {@link RouterCacheInvalidator.invalidateMatch}.
  *
- * @param cache - Backing store ({@link AuraResolvableCache}).
+ * @param cache - Backing store ({@link AuraResolvableSwrCache}).
  * @param options - Invalidation scope and optional {@link InvalidatePolicy}.
  * @param defaultPolicy - Policy when `options.policy` is omitted. Default: `'stale'`.
  * @returns Affected entry count. `0` when a scoped invalidate matched nothing.

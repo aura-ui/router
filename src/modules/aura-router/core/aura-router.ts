@@ -21,7 +21,7 @@ import { AURA_ROUTER_DATA_INVALIDATED, emit } from './navigation-events';
 import { connectRouterEngine } from './engine-bridge';
 import { AuraRouterNotFoundController } from './not-found-controller';
 import { ScrollRestoration } from './scroll-restoration';
-import type { CacheStoreOptions } from '../../aura-cache-store/core';
+import type { SwrCacheOptions } from '../../aura-cache/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import type { ViewResolverPort } from '../../aura-route/core';
 import type { MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
@@ -45,9 +45,9 @@ import type { NotFoundHandler } from './navigation-events';
 
 export interface AuraRouterConfigureOptions {
   /** Detached DOM keep-alive (`cache.dom`). */
-  domCache?: CacheStoreOptions<ViewRoot>;
+  domCache?: SwrCacheOptions<ViewRoot>;
   /** View-loader payload strings (`cache.view`). */
-  viewCache?: CacheStoreOptions<string>;
+  viewCache?: SwrCacheOptions<string>;
   /** Load-hook payloads (`cache.data`). */
   dataCache?: DataGraphCacheOptions;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */

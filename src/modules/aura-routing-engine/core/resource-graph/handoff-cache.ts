@@ -1,8 +1,8 @@
-import type { CacheStoreOptions } from '../../../aura-cache-store/core';
+import type { SwrCacheOptions } from '../../../aura-cache/core';
 import {
-  AuraResolvableCache,
-  type ResolvableCachePolicy,
-} from '../../../aura-cache-store/core/aura-resolvable-cache';
+  AuraResolvableSwrCache,
+  type ResolvableSwrCachePolicy,
+} from '../../../aura-cache/core/aura-resolvable-swr-cache';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 
 import {
@@ -23,7 +23,7 @@ export type { HandoffWaiter, HandoffWaiterKind } from './handoff-work-registry';
  */
 export type HandoffCacheOptions = {
   /**
-   * How long a settled value stays available for a later {@link AuraResolvableCache.resolve}.
+   * How long a settled value stays available for a later {@link AuraResolvableSwrCache.resolve}.
    * Default: {@link ENGINE_DEFAULTS.sharedBufferOptions}.ttl.
    */
   readonly ttl?: number;
@@ -33,17 +33,17 @@ export type HandoffCacheOptions = {
    * Background GC sweep. Default `false` — expire lazily on access.
    * Pass a ms interval only when proactive sweep is needed.
    */
-  readonly gcSweepInterval?: CacheStoreOptions<unknown>['gcSweepInterval'];
+  readonly gcSweepInterval?: SwrCacheOptions<unknown>['gcSweepInterval'];
   /** Called when a value is discarded (LRU, TTL, delete, clear, invalidate remove). */
   readonly onRemove?: (key: string, value: unknown) => void;
   /** Extra side-effect after a successful load settle (does not control persist). */
-  readonly onSettled?: ResolvableCachePolicy['onSettled'];
+  readonly onSettled?: ResolvableSwrCachePolicy['onSettled'];
 };
 
 /**
  * Short-lived prepare handoff: in-flight dedupe + TTL settle + work waiters.
  *
- * Thin specialization of {@link AuraResolvableCache}: default TTL, no SWR.
+ * Thin specialization of {@link AuraResolvableSwrCache}: default TTL, no SWR.
  * Long-lived route revisit stays behind `cache.data` / `cache.view`.
  *
  * {@link DocumentFragment} is never persisted (one-shot DOM; mount empties it).
@@ -53,7 +53,7 @@ export type HandoffCacheOptions = {
  *
  * Owned by {@link ResourceGraph}; DataGraph / ViewGraph share one instance.
  */
-export class HandoffCache extends AuraResolvableCache<unknown> {
+export class HandoffCache extends AuraResolvableSwrCache<unknown> {
   private readonly work = new HandoffWorkRegistry();
 
   constructor(options: HandoffCacheOptions = {}) {

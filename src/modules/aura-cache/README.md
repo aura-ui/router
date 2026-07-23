@@ -1,10 +1,23 @@
-# aura-cache-store
+# aura-cache
 
-String-key in-memory cache for content and DOM snapshots. `Map` + doubly-linked list for O(1) lookup, LRU promotion, and removal.
+In-memory cache module for router content, DOM snapshots, and loader data.
+
+| Export | Role |
+|--------|------|
+| [`AuraSwrCache`](#auraswrcache) | String-key LRU store with SWR, GC, and invalidation |
+| [`AuraResolvableSwrCache`](#auraresolvableswrcache) | Same store + in-flight dedupe + `resolve(key, load)` |
 
 ```ts
-import { AuraCacheStore, DEFAULT_GC_TIME } from './modules/aura-cache-store/core';
+import {
+  AuraSwrCache,
+  AuraResolvableSwrCache,
+  DEFAULT_GC_TIME,
+} from './modules/aura-cache/core';
 ```
+
+## AuraSwrCache
+
+`Map` + doubly-linked list for O(1) lookup, LRU promotion, and removal.
 
 ## Key concepts
 
@@ -56,7 +69,7 @@ stateDiagram-v2
 ## Configuration
 
 ```ts
-type CacheStoreOptions<T> = {
+type SwrCacheOptions<T> = {
   max?: number;
   staleTime?: number;                  // SWR fresh window (ms)
   gcTime?: number;                     // max age since storedAt (ms)
@@ -117,7 +130,7 @@ Background sweep lifecycle:
 
 ### Read API: `get` vs `lookup` vs `has` vs `peek` vs `isStale` vs `extract`
 
-Use this table to pick the right read path. **`RouteDomCache`** (`has` / `peek` / `extract`) follows the same rules via `AuraCacheStore` for those methods; use `AuraCacheStore.lookup` directly for SWR status.
+Use this table to pick the right read path. **`RouteDomCache`** (`has` / `peek` / `extract`) follows the same rules via `AuraSwrCache` for those methods; use `AuraSwrCache.lookup` directly for SWR status.
 
 | Method | Returns value | Promotes LRU | Always unlinks | Calls `onRemove` | GC-expired entry |
 |--------|:-------------:|:------------:|:--------------:|:----------------:|------------------|
@@ -177,7 +190,7 @@ await renderFresh(key);
 ### Basic usage
 
 ```ts
-const cache = new AuraCacheStore<string>();
+const cache = new AuraSwrCache<string>();
 
 cache.set('/home', '<h1>Home</h1>');
 cache.get('/home');   // '<h1>Home</h1>'
@@ -189,7 +202,7 @@ cache.get('/home');   // undefined
 ### TTL without SWR
 
 ```ts
-const cache = new AuraCacheStore<string>({
+const cache = new AuraSwrCache<string>({
   gcTime: 60_000,
   gcSweepInterval: false,
 });
@@ -204,7 +217,7 @@ cache.get('fragment'); // undefined — removed on read
 Serve cached content immediately; when `lookup()` returns `stale`, show it and refresh in the background:
 
 ```ts
-const cache = new AuraCacheStore<string>({
+const cache = new AuraSwrCache<string>({
   staleTime: 30_000, // fresh for 30s; gcTime defaults to DEFAULT_GC_TIME (5 min)
 });
 
@@ -231,7 +244,7 @@ async function revalidate(url: string): Promise<void> {
 ### LRU capacity
 
 ```ts
-const cache = new AuraCacheStore<string>({ max: 2 });
+const cache = new AuraSwrCache<string>({ max: 2 });
 
 cache.set('a', 'A');
 cache.set('b', 'B');
@@ -248,7 +261,7 @@ Use `get` or `lookup(key, true)` when access should protect an entry from remova
 Mark entries outdated after a mutation or event without deleting them immediately (default `'stale'` policy):
 
 ```ts
-const cache = new AuraCacheStore<string>({ staleTime: 60_000 });
+const cache = new AuraSwrCache<string>({ staleTime: 60_000 });
 
 cache.set('data:users', '{"users":[]}');
 cache.set('html:/about', '<main>About</main>');
@@ -266,7 +279,7 @@ cache.invalidateAll('remove');
 ### Proactive GC
 
 ```ts
-const cache = new AuraCacheStore<string>({
+const cache = new AuraSwrCache<string>({
   gcTime: 60_000,
   // gcSweepInterval omitted → auto sweep every 30s (gcTime / 2)
 });
@@ -298,25 +311,62 @@ Use it to release resources — e.g. remove a DOM node from a detached keep-aliv
 **Do not call store methods inside `onRemove`.** While the callback runs, the store may be walking its internal list or updating an entry. Calling `set`, `delete`, `clear`, `get`, `extract`, or `invalidate` from `onRemove` is unsupported: it can double-invoke callbacks, skip entries, or recurse indefinitely. Only clean up the `value` you receive.
 
 ```ts
-const cache = new AuraCacheStore<HTMLElement>({
+const cache = new AuraSwrCache<HTMLElement>({
   max: 10,
   onRemove: (_key, el) => el.remove(), // OK — release the element
 });
 
 // ❌ unsupported
-const bad = new AuraCacheStore<HTMLElement>({
+const bad = new AuraSwrCache<HTMLElement>({
   onRemove: (key) => cache.delete(key),
 });
 ```
 
 Live `extract` skips `onRemove` (keep-alive reattach); GC-expired `extract` calls it. See [`extract`](#extract).
 
+## AuraResolvableSwrCache
+
+Composes [`AuraSwrCache`](#auraswrcache) + singleflight for loader-style flows (`DataGraph`, view payload cache, handoff).
+
+```ts
+const cache = new AuraResolvableSwrCache<string>({
+  staleTime: 30_000,
+  write: true, // default — store settled values
+  onSettled: (key, value) => {
+    /* optional side-effect; does not replace write */
+  },
+});
+
+const html = await cache.resolve('/about', () => fetch('/about').then((r) => r.text()));
+```
+
+| Method | Description |
+|--------|-------------|
+| `resolve(key, load)` | Fresh → cached value; stale → cached value + background `load`; missing → await `load`. Concurrent callers share one in-flight `load` |
+| `join(key)` | Join in-flight work or a settled value — never starts a load |
+| `get` / `has` / `set` / `delete` | Delegate to the underlying store (`delete` also drops in-flight) |
+| `invalidate` / `invalidateMatch` / `invalidateAll` | Delegate to the store |
+| `clear` / `destroy` | Clear store + in-flight; bump epoch so late settles cannot resurrect entries |
+
+Constructor extras (`ResolvableSwrCacheOptions` = `SwrCacheOptions` + policy):
+
+| Option | Description |
+|--------|-------------|
+| `write` | `boolean` or predicate — whether to `set` the settled value (default `true`). In-flight dedupe still applies when `false` |
+| `onSettled` | Extra callback after a successful load settle (not on fresh hits) |
+
 ## Exported types
 
 ```ts
 export const DEFAULT_GC_TIME = 5 * 60_000;
 
-type CacheStoreOptions<T> = { /* see Configuration */ };
+type SwrCacheOptions<T> = { /* see Configuration */ };
+type ResolvableSwrCacheOptions<T> = SwrCacheOptions<T> & ResolvableSwrCachePolicy;
+type ResolvableSwrCachePolicy = {
+  write?: boolean | ((value: unknown) => boolean);
+  onSettled?: (key: string, value: unknown) => void;
+};
+
 type InvalidatePolicy = 'remove' | 'stale';
 type CacheEntryStatus = 'fresh' | 'stale' | 'missing';
 
@@ -329,7 +379,8 @@ type CacheLookup<T> =
 ## Tests
 
 ```bash
-npx jest src/modules/aura-cache-store/test/aura-cache-store.test.ts
+npx jest src/modules/aura-cache/test/aura-swr-cache.test.ts
+npx jest src/modules/aura-cache/test/aura-resolvable-swr-cache.test.ts
 ```
 
 ## Benchmark
@@ -341,4 +392,4 @@ npm run bench:cache:gc   # with --expose-gc
 
 ## Comparison with SPA router caches
 
-See [docs/comparison/CACHE_STORE_COMPARISON.md](../../docs/comparison/CACHE_STORE_COMPARISON.md) — SWR/LRU parity with TanStack Router, ratings (7/10 as engine), benchmark numbers, roadmap to router integration.
+See [docs-wip/comparison/CACHE_STORE_COMPARISON.md](../../docs-wip/comparison/CACHE_STORE_COMPARISON.md) — SWR/LRU parity with TanStack Router, ratings (7/10 as engine), benchmark numbers, roadmap to router integration.

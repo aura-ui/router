@@ -272,7 +272,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 **Что кешируется:** только **строки**. `DocumentFragment` в `ViewPayloadCache` не пишется — DOM keep-alive обслуживает `RouteDomCache`.
 
-**In-flight dedup:** `AuraResolvableCache.resolve` схлопывает параллельные запросы с одним ключом.
+**In-flight dedup:** `AuraResolvableSwrCache.resolve` схлопывает параллельные запросы с одним ключом.
 
 **Формат ключа** (`viewCacheKey`):
 

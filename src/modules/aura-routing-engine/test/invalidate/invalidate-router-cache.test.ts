@@ -1,8 +1,8 @@
-import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
+import { AuraResolvableSwrCache } from '../../../aura-cache/core/aura-resolvable-swr-cache';
 import { invalidateRouterCache } from '../../core/invalidate-router-cache';
 
 describe('invalidateRouterCache', () => {
-  let cache: AuraResolvableCache<string> | undefined;
+  let cache: AuraResolvableSwrCache<string> | undefined;
 
   afterEach(() => {
     cache?.destroy();
@@ -10,12 +10,12 @@ describe('invalidateRouterCache', () => {
   });
 
   it('returns -1 when a full invalidate matches no entries', () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     expect(invalidateRouterCache(cache, {})).toBe(-1);
   });
 
   it('invalidates an exact key', () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     cache.set('data:/users', 'a');
     cache.set('data:/users|id=1', 'b');
     cache.set('data:/users/other', 'c');
@@ -29,7 +29,7 @@ describe('invalidateRouterCache', () => {
   });
 
   it('invalidates by path prefix for data keys', () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     cache.set('data:/items', 'a');
     cache.set('data:/profile', 'b');
 
@@ -41,7 +41,7 @@ describe('invalidateRouterCache', () => {
   });
 
   it('invalidates by path prefix for view keys', () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     cache.set('view:/users|layout:template:x', 'a');
     cache.set('view:/profile|view:html:y', 'b');
 
@@ -53,7 +53,7 @@ describe('invalidateRouterCache', () => {
   });
 
   it('matches path prefix before params/query/slot segments', () => {
-    cache = new AuraResolvableCache({ gcSweepInterval: false });
+    cache = new AuraResolvableSwrCache({ gcSweepInterval: false });
     cache.set('data:/users', 'root');
     cache.set('data:/users|id=1', 'param');
     cache.set('view:/users|view:html:<p/>', 'view');

@@ -1,5 +1,5 @@
-import type { CacheStoreOptions } from '../../../aura-cache-store/core';
-import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
+import type { SwrCacheOptions } from '../../../aura-cache/core';
+import { AuraResolvableSwrCache } from '../../../aura-cache/core/aura-resolvable-swr-cache';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { promiseWithResolvers } from '../../../aura-utils/async/promises';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
@@ -24,7 +24,7 @@ import { closestRouteWithLoadHooks } from './route-data';
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
 /** Options for the long-lived `cache.data` store. */
-export type DataGraphCacheOptions = Pick<CacheStoreOptions<unknown>, 'max' | 'staleTime' | 'gcTime'>;
+export type DataGraphCacheOptions = Pick<SwrCacheOptions<unknown>, 'max' | 'staleTime' | 'gcTime'>;
 
 export type DataGraphDeps = {
   /** Required — route `load` hooks live on the engine hook registry. */
@@ -104,13 +104,13 @@ class DataGraphTerminalError extends Error {
  * View/HTML stays in `core/view-graph/`. Child may `await ctx.parent()`; default is parallel.
  *
  * Shared prepare: {@link HandoffCache.hold} → hooks/`workSignal`; interest →
- * {@link awaitUntilAbort}; `finally` → release. Long revisit stays in {@link AuraResolvableCache}.
+ * {@link awaitUntilAbort}; `finally` → release. Long revisit stays in {@link AuraResolvableSwrCache}.
  */
 export class DataGraph {
   private static defaultCacheOptions: DataGraphCacheOptions = {};
 
   private readonly hooks: HookRegistry;
-  private readonly cache: AuraResolvableCache<unknown>;
+  private readonly cache: AuraResolvableSwrCache<unknown>;
   private readonly sharedBuffer: HandoffCache;
 
   /** Default `cache.data` options for engine-created graphs. */
@@ -121,7 +121,7 @@ export class DataGraph {
   constructor(sharedBuffer: HandoffCache, deps: DataGraphDeps) {
     this.hooks = deps.hooks;
     this.sharedBuffer = sharedBuffer;
-    this.cache = new AuraResolvableCache({
+    this.cache = new AuraResolvableSwrCache({
       ...ENGINE_DEFAULTS.dataCache,
       ...DataGraph.defaultCacheOptions,
       ...deps.cache,

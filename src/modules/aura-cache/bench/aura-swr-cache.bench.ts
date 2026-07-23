@@ -1,5 +1,5 @@
 /**
- * Benchmark: Map-order LRU vs DLL LRU (AuraCacheStore).
+ * Benchmark: Map-order LRU vs DLL LRU (AuraSwrCache).
  *
  * Practices aligned with Redis/memtier (mixed ratios, Zipfian), Caffeine
  * (correctness + throughput), and JMH-style warmup / multi-run stats.
@@ -9,7 +9,7 @@
  *   npm run bench:cache:gc   (optional: GC between runs)
  */
 
-import { AuraCacheStore } from '../core/aura-cache-store';
+import { AuraSwrCache } from '../core/aura-swr-cache';
 
 type CacheLike = {
   get(key: string): string | undefined;
@@ -187,7 +187,7 @@ const correctnessChecks: CorrectnessCheck[] = [
   {
     label: 'LRU: promoted key survives removal',
     run: () => {
-      const cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      const cache = new AuraSwrCache<string>({ max: 2, gcSweepInterval: false });
       cache.set('a', 'A');
       cache.set('b', 'B');
       cache.get('a');
@@ -199,7 +199,7 @@ const correctnessChecks: CorrectnessCheck[] = [
   {
     label: 'LRU: has() does not promote',
     run: () => {
-      const cache = new AuraCacheStore<string>({ max: 2, gcSweepInterval: false });
+      const cache = new AuraSwrCache<string>({ max: 2, gcSweepInterval: false });
       cache.set('a', 'A');
       cache.set('b', 'B');
       cache.has('a');
@@ -210,7 +210,7 @@ const correctnessChecks: CorrectnessCheck[] = [
   {
     label: 'SWR: lookup reports fresh → stale → missing',
     run: async () => {
-      const cache = new AuraCacheStore<string>({
+      const cache = new AuraSwrCache<string>({
         staleTime: 50,
         gcTime: 200,
         gcSweepInterval: false,
@@ -228,7 +228,7 @@ const correctnessChecks: CorrectnessCheck[] = [
   {
     label: 'invalidateMatch: stale policy keeps readable values',
     run: () => {
-      const cache = new AuraCacheStore<string>({ staleTime: 60_000, gcSweepInterval: false });
+      const cache = new AuraSwrCache<string>({ staleTime: 60_000, gcSweepInterval: false });
       cache.set('data:a', 'A');
       cache.set('html:b', 'B');
       cache.invalidateMatch((k) => k.startsWith('data:'));
@@ -242,7 +242,7 @@ const correctnessChecks: CorrectnessCheck[] = [
       const factories: Array<() => CacheLike> = [
         () => new MapCacheStoreV1(3),
         () => new MapCacheStoreV2(3),
-        () => new AuraCacheStore<string>({ max: 3, gcSweepInterval: false }),
+        () => new AuraSwrCache<string>({ max: 3, gcSweepInterval: false }),
       ];
 
       for (const create of factories) {
@@ -324,7 +324,7 @@ function runScenario(
 const lruFactories: ScenarioFactory[] = [
   ['Map v1 (reorder+trim)', () => new MapCacheStoreV1(MAX)],
   ['Map v2 (reorder, trim insert)', () => new MapCacheStoreV2(MAX)],
-  ['DLL AuraCacheStore', () => new AuraCacheStore<string>({ max: MAX, gcSweepInterval: false })],
+  ['DLL AuraSwrCache', () => new AuraSwrCache<string>({ max: MAX, gcSweepInterval: false })],
 ];
 
 // --- Main ---
@@ -381,12 +381,12 @@ runScenario(
   },
 );
 
-// AuraCacheStore-specific API paths (no Map baselines — different surface)
+// AuraSwrCache-specific API paths (no Map baselines — different surface)
 const auraOnly: ScenarioFactory[] = [
-  ['lookup fresh (no touch)', () => new AuraCacheStore<string>({ staleTime: 60_000, gcSweepInterval: false })],
-  ['lookup + touch', () => new AuraCacheStore<string>({ staleTime: 60_000, gcSweepInterval: false })],
-  ['has() probe', () => new AuraCacheStore<string>({ max: MAX, gcSweepInterval: false })],
-  ['purgeExpired sweep', () => new AuraCacheStore<string>({ gcTime: 1, gcSweepInterval: false })],
+  ['lookup fresh (no touch)', () => new AuraSwrCache<string>({ staleTime: 60_000, gcSweepInterval: false })],
+  ['lookup + touch', () => new AuraSwrCache<string>({ staleTime: 60_000, gcSweepInterval: false })],
+  ['has() probe', () => new AuraSwrCache<string>({ max: MAX, gcSweepInterval: false })],
+  ['purgeExpired sweep', () => new AuraSwrCache<string>({ gcTime: 1, gcSweepInterval: false })],
 ];
 
 runScenario(
@@ -394,7 +394,7 @@ runScenario(
   [auraOnly[0]!],
   (cache) => fill(cache, MAX),
   (cache, i) => {
-    const hit = (cache as AuraCacheStore<string>).lookup(roundRobinKeys[i]!);
+    const hit = (cache as AuraSwrCache<string>).lookup(roundRobinKeys[i]!);
     if (hit.status !== 'missing') consume(hit.value);
   },
 );
@@ -404,7 +404,7 @@ runScenario(
   [auraOnly[1]!],
   (cache) => fill(cache, MAX),
   (cache, i) => {
-    const hit = (cache as AuraCacheStore<string>).lookup(roundRobinKeys[i]!, true);
+    const hit = (cache as AuraSwrCache<string>).lookup(roundRobinKeys[i]!, true);
     if (hit.status !== 'missing') consume(hit.value);
   },
 );
@@ -414,7 +414,7 @@ runScenario(
   [auraOnly[2]!],
   (cache) => fill(cache, MAX),
   (cache, i) => {
-    sink ^= (cache as AuraCacheStore<string>).has(roundRobinKeys[i]!) ? 1 : 0;
+    sink ^= (cache as AuraSwrCache<string>).has(roundRobinKeys[i]!) ? 1 : 0;
   },
 );
 
@@ -423,14 +423,14 @@ runScenario(
   [auraOnly[3]!],
   (cache) => fill(cache, MAX),
   (cache) => {
-    (cache as AuraCacheStore<string>).purgeExpired();
+    (cache as AuraSwrCache<string>).purgeExpired();
   },
   10_000,
 );
 
 runScenario(
   'invalidateMatch stale (prefix scan)',
-  [['AuraCacheStore', () => new AuraCacheStore<string>({ staleTime: 60_000, gcSweepInterval: false })]],
+  [['AuraSwrCache', () => new AuraSwrCache<string>({ staleTime: 60_000, gcSweepInterval: false })]],
   (cache) => {
     for (let i = 0; i < MAX; i++) {
       cache.set(`data:${i}`, `d${i}`);
@@ -439,7 +439,7 @@ runScenario(
   },
   (cache, i) => {
     if (i % 50 === 0) {
-      (cache as AuraCacheStore<string>).invalidateMatch((k) => k.startsWith('data:'));
+      (cache as AuraSwrCache<string>).invalidateMatch((k) => k.startsWith('data:'));
     } else {
       consume(cache.get(`html:${i % MAX}`));
     }
@@ -454,7 +454,7 @@ for (const max of [10, 100, 1_000]) {
   const scaleFactories: ScenarioFactory[] = [
     ['Map v1', () => new MapCacheStoreV1(max)],
     ['Map v2', () => new MapCacheStoreV2(max)],
-    ['AuraCacheStore', () => new AuraCacheStore<string>({ max, gcSweepInterval: false })],
+    ['AuraSwrCache', () => new AuraSwrCache<string>({ max, gcSweepInterval: false })],
   ];
 
   console.log(`  max=${max}`);
@@ -467,7 +467,7 @@ for (const max of [10, 100, 1_000]) {
 }
 
 // Context: cache vs network
-const dll = new AuraCacheStore<string>({ max: MAX, gcSweepInterval: false });
+const dll = new AuraSwrCache<string>({ max: MAX, gcSweepInterval: false });
 fill(dll, MAX);
 const cacheMs = performance.now();
 for (let i = 0; i < OPS; i++) consume(dll.get(hotKey));

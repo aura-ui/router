@@ -4,17 +4,17 @@ export const DEFAULT_GC_TIME = 5 * 60_000;
 /** `'stale'` — mark outdated, keep serving until revalidated; `'remove'` — delete from cache. */
 export type InvalidatePolicy = 'remove' | 'stale';
 
-/** Status returned by {@link AuraCacheStore.lookup}. */
+/** Status returned by {@link AuraSwrCache.lookup}. */
 export type CacheEntryStatus = 'fresh' | 'stale' | 'missing';
 
-/** Result of {@link AuraCacheStore.lookup}. */
+/** Result of {@link AuraSwrCache.lookup}. */
 export type CacheLookup<T> =
   | { status: 'missing' }
   | { status: 'fresh'; value: T }
   | { status: 'stale'; value: T };
 
-/** Configuration for {@link AuraCacheStore}. */
-export type CacheStoreOptions<T> = {
+/** Configuration for {@link AuraSwrCache}. */
+export type SwrCacheOptions<T> = {
   /** Max entries; removes least recently used key first. */
   max?: number;
   /**
@@ -32,17 +32,17 @@ export type CacheStoreOptions<T> = {
    * Background GC sweep interval in ms.
    *
    * - `undefined` — auto when `gcTime` is a finite positive ms value: `clamp(gcTime / 2, 5s … 60s)`
-   * - `number` — run {@link AuraCacheStore.purgeExpired} every N ms (requires finite `gcTime`)
-   * - `false` — disabled; removal on access or manual {@link AuraCacheStore.purgeExpired} only
+   * - `number` — run {@link AuraSwrCache.purgeExpired} every N ms (requires finite `gcTime`)
+   * - `false` — disabled; removal on access or manual {@link AuraSwrCache.purgeExpired} only
    *
    * Timer starts on the first `set()` while the store is non-empty, stops when the store
-   * becomes empty or on {@link AuraCacheStore.clear}, and restarts on the next `set()`.
+   * becomes empty or on {@link AuraSwrCache.clear}, and restarts on the next `set()`.
    */
   gcSweepInterval?: number | false;
   /** Default invalidation policy. See {@link InvalidatePolicy}. */
   invalidatePolicy?: InvalidatePolicy;
   /**
-   * Called when a value is discarded: LRU eviction; GC ({@link AuraCacheStore.purgeExpired},
+   * Called when a value is discarded: LRU eviction; GC ({@link AuraSwrCache.purgeExpired},
    * background sweep, or lazy GC on `get` / `lookup` / `has` / `peek` / `isStale` / GC-expired
    * `extract`); `set` overwrite when the value changes (not when the same reference is reused);
    * `delete` / `clear`; `invalidate` with `'remove'` (including `invalidateMatch` /
@@ -81,14 +81,14 @@ interface Node<T> {
  * **SWR** (`staleTime`, stale-while-revalidate): serve cached data immediately;
  * when outdated, keep serving stale value and revalidate in the background.
  * Lifecycle: `fresh` → `stale` → removed after `gcTime` (default {@link DEFAULT_GC_TIME}).
- * Use {@link AuraCacheStore.lookup} to read status. `gcTime: Infinity` disables TTL removal.
+ * Use {@link AuraSwrCache.lookup} to read status. `gcTime: Infinity` disables TTL removal.
  *
  * GC is lazy on access (`get`, `has`, `peek`, `lookup`, `isStale`, `extract`) and proactive via
- * {@link AuraCacheStore.purgeExpired} or background sweep (`gcSweepInterval`).
+ * {@link AuraSwrCache.purgeExpired} or background sweep (`gcSweepInterval`).
  * `size` and `keys` are passive introspection (may include GC-expired entries until removed
  * elsewhere). `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order.
  */
-export class AuraCacheStore<T> {
+export class AuraSwrCache<T> {
   private readonly max?: number;
   private readonly swrEnabled: boolean;
   private readonly staleTimeMs?: number;
@@ -107,9 +107,9 @@ export class AuraCacheStore<T> {
   /**
    * @param options - Cache limits, SWR timings, invalidation defaults, and removal callback.
    */
-  constructor(options: CacheStoreOptions<T> = {}) {
+  constructor(options: SwrCacheOptions<T> = {}) {
     if (options.max !== undefined && options.max < 1) {
-      throw new Error(`AuraCacheStore: max must be >= 1, got ${options.max}`);
+      throw new Error(`AuraSwrCache: max must be >= 1, got ${options.max}`);
     }
 
     assertTiming('staleTime', options.staleTime);
@@ -130,7 +130,7 @@ export class AuraCacheStore<T> {
       !isFiniteGcTime(this.gcTimeMs)
     ) {
       throw new Error(
-        'AuraCacheStore: gcSweepInterval requires a finite gcTime (Infinity disables TTL removal)',
+        'AuraSwrCache: gcSweepInterval requires a finite gcTime (Infinity disables TTL removal)',
       );
     }
 
@@ -145,7 +145,7 @@ export class AuraCacheStore<T> {
    * GC-expired entries are removed on access.
    *
    * Does not report whether the entry is stale. In SWR mode (`staleTime`), use
-   * {@link AuraCacheStore.lookup} to decide whether to revalidate.
+   * {@link AuraSwrCache.lookup} to decide whether to revalidate.
    *
    * @param key - Cache key.
    * @returns The stored value, or `undefined` if missing or GC-expired.
@@ -345,7 +345,7 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Marks matching entries outdated or removes them. See {@link AuraCacheStore.invalidate}.
+   * Marks matching entries outdated or removes them. See {@link AuraSwrCache.invalidate}.
    *
    * @param predicate - Key filter.
    * @param policy - Defaults to `invalidatePolicy`.
@@ -371,7 +371,7 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Marks every entry outdated or removes all. See {@link AuraCacheStore.invalidate}.
+   * Marks every entry outdated or removes all. See {@link AuraSwrCache.invalidate}.
    *
    * @param policy - Defaults to `invalidatePolicy`.
    * @returns Number of affected entries.
@@ -446,7 +446,7 @@ export class AuraCacheStore<T> {
   }
 
   /**
-   * Releases the store. Same as {@link AuraCacheStore.clear}.
+   * Releases the store. Same as {@link AuraSwrCache.clear}.
    */
   destroy(): void {
     this.clear();
@@ -456,7 +456,7 @@ export class AuraCacheStore<T> {
    * Number of entries in the map (includes stale and GC-expired until removed elsewhere).
    * Does not run GC or promote LRU.
    *
-   * @returns Current `map` size. Use {@link AuraCacheStore.purgeExpired} or read accessors
+   * @returns Current `map` size. Use {@link AuraSwrCache.purgeExpired} or read accessors
    *   first when you need a count of readable entries only.
    */
   get size(): number {
@@ -465,7 +465,7 @@ export class AuraCacheStore<T> {
 
   /**
    * Snapshot of map keys in insertion order (not LRU order). Does not promote LRU or run GC.
-   * May include GC-expired keys until removed by access, {@link AuraCacheStore.purgeExpired},
+   * May include GC-expired keys until removed by access, {@link AuraSwrCache.purgeExpired},
    * or background sweep.
    *
    * @returns All keys currently in the map.
@@ -681,13 +681,13 @@ function isFiniteGcTime(gcTime: number | undefined): gcTime is number {
 function assertTiming(name: string, value: number | undefined): void {
   if (value === undefined) return;
   if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
-    throw new Error(`AuraCacheStore: ${name} must be >= 0 or Infinity, got ${value}`);
+    throw new Error(`AuraSwrCache: ${name} must be >= 0 or Infinity, got ${value}`);
   }
 }
 
 /** Validates explicit `gcSweepInterval` ms value. */
 function assertPositiveInterval(name: string, value: number): void {
   if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`AuraCacheStore: ${name} must be a positive number, got ${value}`);
+    throw new Error(`AuraSwrCache: ${name} must be a positive number, got ${value}`);
   }
 }

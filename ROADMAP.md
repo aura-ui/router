@@ -66,7 +66,7 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | **Fast path** | Skip heavy work on simple link clicks with no guards or loaders |
 | **Commit point** | Staged render: prepare off-screen, swap when ready |
 | **Link prefetch** | Hover/tap intent with inherited prefetch policy |
-| **DataGraph** | Route `load` + `AuraResolvableCache` (baseline; parity gaps in 2.1) |
+| **DataGraph** | Route `load` + `AuraResolvableSwrCache` (baseline; parity gaps in 2.1) |
 | **View loaders** | `view="…"` — `url`, `html`, `template`, `import`, `component`, `iframe` |
 | **Lifecycle attrs** | `guard`, `load`, `ready`, `leave`, … on `<aura-route>` / inherit from router |
 | **View cache** | `cache` attr (`dom` / `view` / `data` / `screen` / `all`) |

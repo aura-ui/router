@@ -1,5 +1,5 @@
-import type { CacheStoreOptions } from '../../../aura-cache-store/core';
-import { AuraResolvableCache } from '../../../aura-cache-store/core/aura-resolvable-cache';
+import type { SwrCacheOptions } from '../../../aura-cache/core';
+import { AuraResolvableSwrCache } from '../../../aura-cache/core/aura-resolvable-swr-cache';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
@@ -23,7 +23,7 @@ import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
 /** Options for the long-lived `cache.view` store. */
-export type ViewGraphCacheOptions = Pick<CacheStoreOptions<string>, 'max' | 'staleTime' | 'gcTime'>;
+export type ViewGraphCacheOptions = Pick<SwrCacheOptions<string>, 'max' | 'staleTime' | 'gcTime'>;
 
 export type ViewGraphDeps = {
   /** Defaults to {@link defaultLoaderRegistry}. */
@@ -91,14 +91,14 @@ export type RouteViewSource = {
  *
  * Shared prepare: {@link HandoffCache.hold} → loader/`workSignal`; interest →
  * {@link awaitUntilAbort}; `finally` → release.
- * Long revisit: string payloads with `cache.view` stay in {@link AuraResolvableCache}
+ * Long revisit: string payloads with `cache.view` stay in {@link AuraResolvableSwrCache}
  * (`DocumentFragment` is never long-cached — mount empties it).
  */
 export class ViewGraph {
   private static defaultCacheOptions: ViewGraphCacheOptions = {};
 
   private readonly registry: LoaderRegistry;
-  private readonly cache: AuraResolvableCache<string>;
+  private readonly cache: AuraResolvableSwrCache<string>;
   private readonly sharedBuffer: HandoffCache;
 
   /** Default `cache.view` options for engine-created graphs. */
@@ -109,7 +109,7 @@ export class ViewGraph {
   constructor(sharedBuffer: HandoffCache, deps: ViewGraphDeps = {}) {
     this.registry = deps.registry ?? defaultLoaderRegistry;
     this.sharedBuffer = sharedBuffer;
-    this.cache = new AuraResolvableCache({
+    this.cache = new AuraResolvableSwrCache({
       ...ENGINE_DEFAULTS.viewCache,
       ...ViewGraph.defaultCacheOptions,
       ...deps.cache,

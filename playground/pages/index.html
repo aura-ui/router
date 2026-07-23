@@ -15,19 +15,32 @@
   <a href="/" aura-router-link>Home</a>
   <a href="/about" aura-router-link>About</a>
   <a href="/contacts" aura-router-link>Contacts</a>
-  <a href="/user" aura-router-link>User</a>
+  <a href="/users" aura-router-link>Users</a>
+  <a href="/users/1" aura-router-link>User 1</a>
+  <a href="/users/2" aura-router-link>User 2</a>
   <a href="/error" aura-router-link>404</a>
 </nav>
 
 <aura-router link-active-class="active"
              loading-template="loading"
+             loading-body-class="loading"
+             error-template="error"
              cache>
   <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>
-  <aura-route path="/contacts" view="contacts" cache="off" extract=".main"></aura-route>
-  <aura-route path="/user" view="user"></aura-route>
+  <aura-route path="/contacts" view="contacts" extract=".main" cache="off"   loading-template="loading-contacts"></aura-route>
+  <aura-route path="/users" layout="users">
+    <aura-route path="1" view="user"></aura-route>
+    <aura-route path="2" view="user"></aura-route>
+  </aura-route>
   <aura-route path="*" view="template::not-found"></aura-route>
 </aura-router>
+
+<template id="users">
+  <h2>Пользователи</h2>
+  <aura-outlet></aura-outlet>
+</template>
+
 
 <template id="about-page">
   <h1>About</h1>
@@ -40,6 +53,15 @@
 
 <template id="loading">
   <h1>Loading</h1>
+</template>
+
+<template id="loading-contacts">
+  <h1>Loading contacts</h1>
+</template>
+
+
+<template id="error">
+  <h1>!!!Error</h1>
 </template>
 
 

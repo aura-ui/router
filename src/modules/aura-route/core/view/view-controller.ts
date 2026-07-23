@@ -48,21 +48,28 @@ export class RouteViewController {
    * Sync mount with a pre-resolved payload — used by branch-atomic apply.
    * Parent→child calls must stay in one task (no `await` between routes).
    */
-  mountResolvedView(
-    routeInfo: MatchedRouteInfo,
-    options: MountResolvedViewOptions,
-  ): ViewRenderResult | 'aborted' {
+  mountResolvedView(routeInfo: MatchedRouteInfo, options: MountResolvedViewOptions): ViewRenderResult | 'aborted' {
     if (options.parentSignal?.aborted) return 'aborted';
     const pass = this.beginPass(routeInfo, options, options.preResolvedView);
     this.ctx.lastCacheKey = pass.domCacheKey;
     return this.renderPipeline.syncBranchMount(pass);
   }
 
-  private beginPass(
-    routeInfo: MatchedRouteInfo,
-    options?: RouteRenderOptions & { immediate?: boolean },
-    preResolvedView?: ViewPayload | null,
-  ): RenderPass {
+  /**
+   * Mount `loading-template` payload — always `viewKind: 'view'`
+   * (not a layout shell, so no `<aura-outlet>` check).
+   */
+  mountLoadingTemplate(routeInfo: MatchedRouteInfo, payload: ViewPayload): ViewRenderResult | 'aborted' {
+    const pass: RenderPass = {
+      ...this.beginPass(routeInfo, undefined, payload),
+      viewKind: 'view',
+      useStagedMount: false,
+    };
+    this.ctx.lastCacheKey = pass.domCacheKey;
+    return this.renderPipeline.syncBranchMount(pass);
+  }
+
+  private beginPass(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions, preResolvedView?: ViewPayload | null): RenderPass {
     this.ctx.paramChangeRemount = options?.paramChangeRemount === true;
     const route = this.ctx.config.route;
 
@@ -72,10 +79,9 @@ export class RouteViewController {
       signal: this.ctx.renderSignal.begin(options?.parentSignal),
       domCacheKey: domCacheKey(routeInfo, route.path),
       viewKind: route.hasLayout ? 'layout' : 'view',
-      useStagedMount: options?.immediate
-        ? false
-        : route.transition.order !== null
-          || (this.ctx.paramChangeRemount && route.cache.dom),
+      useStagedMount:
+        route.transition.order !== null
+        || (this.ctx.paramChangeRemount && route.cache.dom),
       ...(options?.data !== undefined && { data: options.data }),
       ...(preResolvedView !== undefined && { preResolvedView }),
     };

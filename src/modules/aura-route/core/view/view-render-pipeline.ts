@@ -9,9 +9,6 @@ import { ViewRenderPipelinePhase } from './view-render-pipeline-phase';
  * or direct mount (sync via {@link syncBranchMount}).
  *
  * Terminal `ViewRenderResult` ends the pass; `null` means continue to the next step.
- *
- * Loading chrome (template / body class / events) is owned by the navigation prepare
- * window (`showLoading` / `hideLoading` around `runLoads`), not this pipeline.
  */
 export class ViewRenderPipeline {
   private readonly ctx: ViewContext;

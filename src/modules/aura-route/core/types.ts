@@ -46,8 +46,6 @@ export type RouteRenderOptions = {
 export type MountResolvedViewOptions = RouteRenderOptions & {
   /** Payload from navigation `viewSnapshot`. `null` = empty view route. */
   preResolvedView: ViewPayload | null;
-  /** Force visible replace mount (loading placeholder before prepare). */
-  immediate?: boolean;
 };
 
 export type RouteUnmountOptions = {

@@ -355,10 +355,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     if (!this.loadingTemplate || !this.viewReady || !this.viewController) return;
 
     try {
-      this.mountResolvedView(routeInfo, {
-        preResolvedView: getTemplate(this.loadingTemplate),
-        immediate: true,
-      });
+      this.passId++;
+      this.viewController.mountLoadingTemplate(routeInfo, getTemplate(this.loadingTemplate));
     } catch (error) {
       console.warn(`Failed to render loadingTemplate for route "${this.path}":`, error);
     }

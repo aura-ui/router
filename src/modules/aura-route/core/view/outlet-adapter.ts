@@ -90,10 +90,7 @@ export function warnMissingLayoutOutlet(
   nestedOutlet: AuraOutlet | null,
 ): void {
   if (viewKind !== 'layout' || nestedOutlet) return;
-
-  console.warn(
-    `AuraRoute layout "${route.layout}" (path: ${route.path}) has no <aura-outlet>`,
-  );
+  console.warn(`AuraRoute layout "${route.layout}" (path: ${route.path}) has no <aura-outlet>`);
 }
 
 /**

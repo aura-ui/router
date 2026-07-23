@@ -166,74 +166,66 @@ async function runPresentationAnimation(
   }
 }
 
-export const fadeHook = defineRouteHook({
-  name: 'fade',
-  version: '1.0.0',
-  fn: async (ctx) => {
-    const root = resolveTransitionRoot(ctx);
-    if (!root) return;
+export const fadeHook = defineRouteHook('fade', async (ctx) => {
+  const root = resolveTransitionRoot(ctx);
+  if (!root) return;
 
-    const signal = ctx.transactionSignal;
+  const signal = ctx.transactionSignal;
 
-    if (ctx.phase === 'transitionIn') {
-      const fromTransform = `translate3d(${FADE_IN_FROM_X}, 0, 0)`;
-      await primeEnterRoot(root, fromTransform);
-      await runEnterPresentationAnimation(root, fromTransform, signal);
-      return;
-    }
+  if (ctx.phase === 'transitionIn') {
+    const fromTransform = `translate3d(${FADE_IN_FROM_X}, 0, 0)`;
+    await primeEnterRoot(root, fromTransform);
+    await runEnterPresentationAnimation(root, fromTransform, signal);
+    return;
+  }
 
-    if (ctx.phase === 'transitionOut') {
-      root.classList.remove(DEMO_VIEW_ENTERING);
-      const startOpacity = Number.parseFloat(getComputedStyle(root).opacity);
-      const fromOpacity = Number.isFinite(startOpacity) ? startOpacity : 1;
-      const toTransform = `translate3d(${FADE_OUT_TO_X}, 0, 0)`;
+  if (ctx.phase === 'transitionOut') {
+    root.classList.remove(DEMO_VIEW_ENTERING);
+    const startOpacity = Number.parseFloat(getComputedStyle(root).opacity);
+    const fromOpacity = Number.isFinite(startOpacity) ? startOpacity : 1;
+    const toTransform = `translate3d(${FADE_OUT_TO_X}, 0, 0)`;
 
-      root.style.opacity = String(fromOpacity);
-      root.style.transform = 'translate3d(0, 0, 0)';
+    root.style.opacity = String(fromOpacity);
+    root.style.transform = 'translate3d(0, 0, 0)';
 
-      await runPresentationAnimation(
-        root,
-        [
-          { opacity: fromOpacity, transform: 'translate3d(0, 0, 0)' },
-          { opacity: 0, transform: toTransform },
-        ],
-        { duration: FADE_OUT_MS, easing: FADE_OUT_EASING },
-        signal,
-      );
-    }
-  },
+    await runPresentationAnimation(
+      root,
+      [
+        { opacity: fromOpacity, transform: 'translate3d(0, 0, 0)' },
+        { opacity: 0, transform: toTransform },
+      ],
+      { duration: FADE_OUT_MS, easing: FADE_OUT_EASING },
+      signal,
+    );
+  }
 });
 
-export const slideHook = defineRouteHook({
-  name: 'slide',
-  version: '1.0.0',
-  fn: async (ctx) => {
-    const root = resolveTransitionRoot(ctx);
-    if (!root) return;
+export const slideHook = defineRouteHook('slide', async (ctx) => {
+  const root = resolveTransitionRoot(ctx);
+  if (!root) return;
 
-    const signal = ctx.transactionSignal;
+  const signal = ctx.transactionSignal;
 
-    if (ctx.phase === 'transitionIn') {
-      const fromTransform = 'translate3d(0, 1rem, 0)';
-      await primeEnterRoot(root, fromTransform);
-      await runEnterPresentationAnimation(root, fromTransform, signal);
-      return;
-    }
+  if (ctx.phase === 'transitionIn') {
+    const fromTransform = 'translate3d(0, 1rem, 0)';
+    await primeEnterRoot(root, fromTransform);
+    await runEnterPresentationAnimation(root, fromTransform, signal);
+    return;
+  }
 
-    if (ctx.phase === 'transitionOut') {
-      clearPresentation(root);
+  if (ctx.phase === 'transitionOut') {
+    clearPresentation(root);
 
-      await runPresentationAnimation(
-        root,
-        [
-          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-          { opacity: 0, transform: 'translate3d(0, -0.5rem, 0)' },
-        ],
-        { duration: FADE_OUT_MS, easing: FADE_OUT_EASING },
-        signal,
-      );
-    }
-  },
+    await runPresentationAnimation(
+      root,
+      [
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+        { opacity: 0, transform: 'translate3d(0, -0.5rem, 0)' },
+      ],
+      { duration: FADE_OUT_MS, easing: FADE_OUT_EASING },
+      signal,
+    );
+  }
 });
 
 /** Registers reference transition hooks used by animation demo scenarios. */

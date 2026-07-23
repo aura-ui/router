@@ -188,6 +188,7 @@ export type { RouterInvalidateOptions } from './core/invalidate-router-cache';
 
 export { resolveHookNames } from './core/hooks/resolve-hook-names';
 export { defineRouteHook } from './core/hooks/define-hook';
+export type { DefineRouteHookMeta } from './core/hooks/define-hook';
 export { NO_TRANSITION } from '../aura-route/core/attr/transition-attr-parser';
 export {
   HookRegistry,

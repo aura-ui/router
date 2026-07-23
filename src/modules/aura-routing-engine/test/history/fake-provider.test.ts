@@ -203,12 +203,8 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     const errors = collectNavigationErrors(engine);
 
     engine.hooksRegistry.register(
-      defineRouteHook({
-        name: 'guard',
-        version: '1.0.0',
-        fn: async () => {
-          throw enterError;
-        },
+      defineRouteHook('guard', async () => {
+        throw enterError;
       }),
     );
 

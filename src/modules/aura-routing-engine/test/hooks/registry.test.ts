@@ -4,11 +4,7 @@ import { HookRegistry } from '../../core/hooks/registry';
 describe('HookRegistry', () => {
   it('unregister removes a hook by name', () => {
     const registry = new HookRegistry();
-    const hook = defineRouteHook({
-      name: 'analytics',
-      version: '1.0.0',
-      fn: async () => {},
-    });
+    const hook = defineRouteHook('analytics', async () => {});
 
     registry.register(hook);
     expect(registry.has('analytics')).toBe(true);
@@ -22,11 +18,7 @@ describe('HookRegistry', () => {
     const registry = new HookRegistry();
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const hook = defineRouteHook({
-      name: 'auth',
-      version: '1.0.0',
-      fn: async () => {},
-    });
+    const hook = defineRouteHook('auth', async () => {});
 
     registry.register(hook, { redirect: '/login' });
     registry.register(hook, { redirect: '/sign-in' });
@@ -37,11 +29,7 @@ describe('HookRegistry', () => {
 
   it('stores a snapshot of options so caller mutations do not affect the hook', () => {
     const registry = new HookRegistry();
-    const hook = defineRouteHook({
-      name: 'auth',
-      version: '1.0.0',
-      fn: async () => {},
-    });
+    const hook = defineRouteHook('auth', async () => {});
     const options = { redirect: '/login' };
 
     registry.register(hook, options);
@@ -55,11 +43,9 @@ describe('HookRegistry', () => {
 
     expect(() =>
       registry.register(
-        defineRouteHook({
-          name: 'future-hook',
+        defineRouteHook('future-hook', async () => {}, {
           version: '1.0.0',
           requires: '>99.0.0',
-          fn: async () => {},
         }),
       ),
     ).toThrow('Hook "future-hook@1.0.0" requires router >99.0.0');
@@ -91,5 +77,3 @@ describe('HookRegistry', () => {
     expect(registry.has('авторизация')).toBe(true);
   });
 });
-
-

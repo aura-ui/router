@@ -27,12 +27,8 @@ describe('onNavigationHookError', () => {
     const errors = collectNavigationErrors(engine);
 
     engine.hooksRegistry.register(
-      defineRouteHook({
-        name: 'bad-error-hook',
-        version: '1.0.0',
-        fn: async () => {
-          throw hookError;
-        },
+      defineRouteHook('bad-error-hook', async () => {
+        throw hookError;
       }),
     );
 

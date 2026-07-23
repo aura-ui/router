@@ -74,6 +74,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true })
   errorTemplate: string;
 
+  @attr({ readonly: true, cached: true })
+  loadingTemplate: string;
+
   @attr({ defaultValue: '[aura-router-link]' })
   linksSelector: string;
 

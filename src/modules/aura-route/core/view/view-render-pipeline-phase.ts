@@ -90,7 +90,7 @@ export class ViewRenderPipelinePhase {
       }
     }
 
-    this.mountPayload(pass, resolveError(this.ctx.config.route, error), 'view');
+    this.mountPayload(pass, resolveErrorMarkup(this.ctx.config.route, error), 'view');
     return { status: 'error', error };
   }
 
@@ -151,7 +151,7 @@ function emptyContent(): ViewPayload {
   return EMPTY_CONTENT;
 }
 
-function resolveError(route: AuraRouteInterface, error: unknown): ViewPayload {
+function resolveErrorMarkup(route: AuraRouteInterface, error: unknown): ViewPayload {
   if (route.errorTemplate) {
     try {
       return getTemplate(route.errorTemplate);

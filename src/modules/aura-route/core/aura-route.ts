@@ -190,7 +190,6 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   /** Inline `html::` without layout, fetch loaders, or loading UI — future sync render lane (see IMPLEMENTATION_STEPS §5b PR3). */
   get hasSyncContent(): boolean {
     if (this.type !== 'page' || this.hasLayout || this.hasAsyncContent) return false;
-    if (this.loadingTemplate?.trim()) return false;
     return this.view?.loader === 'html';
   }
 

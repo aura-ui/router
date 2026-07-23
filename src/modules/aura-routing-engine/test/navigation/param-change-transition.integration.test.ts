@@ -1,5 +1,5 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
@@ -14,17 +14,17 @@ import type { ViewGraph } from '../../core/view-graph';
 import {
   createUsersIdMatch,
   createUsersIdNode,
-} from '../helpers/create-dynamic-leaf-match';
+} from '../_helpers/create-dynamic-leaf-match';
 import {
   createMockEngine,
   createViewGraphFromLoadView,
   wireEngineViewGraph,
-} from '../helpers/create-mock-transaction';
-import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
+} from '../_helpers/create-mock-transaction';
+import { mockRunPhaseHooks, resetHookMocks } from '../_helpers/jest/hook-mocks';
 import {
   createTestOutlet,
   PARALLEL_CROSS_FADE_TRANSITION,
-} from '../helpers/jest/navigation-fixtures';
+} from '../_helpers/jest/navigation-fixtures';
 
 type WireOptions = {
   cacheDom?: boolean;

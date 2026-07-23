@@ -1,5 +1,5 @@
 import { mountEnterBranch } from '../../core/view-mount/branch-mount';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 describe('mountEnterBranch', () => {
   it('mounts enter routes in order with pre-resolved contents', () => {

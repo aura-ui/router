@@ -1,5 +1,5 @@
 import { NavigationFailure, NavigationError } from '../../core/failure';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 describe('NavigationFailure', () => {
   const to = {

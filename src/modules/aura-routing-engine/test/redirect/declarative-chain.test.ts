@@ -6,7 +6,7 @@ import {
   buildTreeFromDom,
   createDomRedirectRoute,
   createDomRoute,
-} from '../helpers/test-route-dom';
+} from '../_helpers/test-route-dom';
 
 describe('followDeclarativeRedirects', () => {
   const matcher = new AuraRoutingUrlMatcher();

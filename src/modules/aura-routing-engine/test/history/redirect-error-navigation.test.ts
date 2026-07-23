@@ -4,12 +4,12 @@ import {
 } from '../../core';
 import type { RouterInstance } from '../../core';
 import { MAX_REDIRECTION_STEPS } from '../../core/redirect/redirect-resolver';
-import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
-import { createTestRoute } from '../helpers/create-test-route';
+import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
+import { createTestRoute } from '../_helpers/create-test-route';
 import {
   collectRoutesFromDom,
   createDomRedirectRoute,
-} from '../helpers/test-route-dom';
+} from '../_helpers/test-route-dom';
 
 describe('AuraRoutingEngine redirect-error', () => {
   const router: RouterInstance = { navigate: jest.fn() };

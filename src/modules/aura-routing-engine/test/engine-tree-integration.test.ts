@@ -9,7 +9,7 @@ import {
   collectRoutesFromDom,
   createDomRedirectRoute,
   createDomRoute,
-} from './helpers/test-route-dom';
+} from './_helpers/test-route-dom';
 
 describe('AuraRoutingEngine + route tree', () => {
   const router: RouterInstance = { navigate: jest.fn() };

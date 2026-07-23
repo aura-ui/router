@@ -5,7 +5,7 @@ import type { AuraRoute } from '../../src/modules/aura-route/core/aura-route';
 import type { RouteNode } from '../../src/modules/aura-routing-engine/core/route-tree/route-node.types';
 import type { MatchedRouteInfo } from '../../src/modules/aura-routing-engine/core/match/url-matcher';
 import { computeMatchScore } from '../../src/modules/aura-routing-engine/core/match/route-score';
-import { createTestRoute } from '../../src/modules/aura-routing-engine/test/helpers/create-test-route';
+import { createTestRoute } from '../../src/modules/aura-routing-engine/test/_helpers/create-test-route';
 function mockRoute(path: string): AuraRoute {
   return createTestRoute(path) as unknown as AuraRoute;
 }

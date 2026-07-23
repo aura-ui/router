@@ -6,8 +6,8 @@ import {
   collectTransactionRoutes,
   rollbackUncommittedViews,
 } from '../../core/view-mount/view-mount-rollback';
-import { createMatchedRoute, createMockEngine } from '../helpers/create-mock-transaction';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createMatchedRoute, createMockEngine } from '../_helpers/create-mock-transaction';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 function createMatchedRouteLocal(
   path: string,

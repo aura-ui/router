@@ -1,7 +1,7 @@
 import { AuraRoutingEngine, FakeHistoryProvider } from '../../core';
 import type { RouterInstance } from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 describe('AuraRoutingEngine.finalizeResolveTerminal', () => {
   const router: RouterInstance = { navigate: jest.fn() };

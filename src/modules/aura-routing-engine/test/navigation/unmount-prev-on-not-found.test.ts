@@ -1,6 +1,6 @@
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { unmountPrevOnNotFound } from '../../core/navigation/unmount-prev-on-not-found';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 function createMatchedRoute(path: string): MatchedRouteInfo {
   return {

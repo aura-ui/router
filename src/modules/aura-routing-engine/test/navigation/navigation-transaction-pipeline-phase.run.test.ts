@@ -3,8 +3,8 @@ import { NavigationTransactionPipelinePhase } from '../../core/navigation/naviga
 import {
   createMatchedRoute,
   createMockTransaction,
-} from '../helpers/create-mock-transaction';
-import { registerTestHook } from '../helpers/jest/navigation-fixtures';
+} from '../_helpers/create-mock-transaction';
+import { registerTestHook } from '../_helpers/jest/navigation-fixtures';
 
 describe('NavigationTransactionPipelinePhase.resolveBlockingHookOutcome', () => {
   it('returns cancelled when hook returns false', () => {

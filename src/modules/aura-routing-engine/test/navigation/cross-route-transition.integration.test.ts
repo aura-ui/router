@@ -1,5 +1,5 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
@@ -15,13 +15,13 @@ import {
   createMockEngine,
   createViewGraphFromLoadView,
   wireEngineViewGraph,
-} from '../helpers/create-mock-transaction';
-import { createTestRoute } from '../helpers/create-test-route';
-import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
+} from '../_helpers/create-mock-transaction';
+import { createTestRoute } from '../_helpers/create-test-route';
+import { mockRunPhaseHooks, resetHookMocks } from '../_helpers/jest/hook-mocks';
 import {
   createTestOutlet,
   PARALLEL_CROSS_FADE_TRANSITION,
-} from '../helpers/jest/navigation-fixtures';
+} from '../_helpers/jest/navigation-fixtures';
 
 const routeMarkup = new WeakMap<RouteInstance, string>();
 

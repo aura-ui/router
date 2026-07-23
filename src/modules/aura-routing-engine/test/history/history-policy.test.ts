@@ -8,7 +8,7 @@ import {
 import type { HistoryAction } from '../../core/history/provider.types';
 import type { TransactionResult } from '../../core/navigation/types';
 import type { ViewCommitState } from '../../core/view-mount/view-commit-state';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 function pipelineErrorResult(
   code: NavigationError['code'],

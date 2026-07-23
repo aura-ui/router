@@ -10,8 +10,8 @@ import type {
   SpeculationPrefetchPort,
 } from '../../core/prefetch/types';
 import { HandoffCache } from '../../core/resource-graph';
-import { createMockTransaction } from '../helpers/create-mock-transaction';
-import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
+import { createMockTransaction } from '../_helpers/create-mock-transaction';
+import { buildTreeFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('PrefetchPipeline', () => {
   const matcher = new AuraRoutingUrlMatcher();

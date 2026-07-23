@@ -1,7 +1,7 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 jest.mock('../../core/view-mount/view-commit-render', () =>
-  jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
+  jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import {
   defaultDomCache,
@@ -10,9 +10,9 @@ import {
 } from '../../../aura-route/core/view/dom-cache';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import { createMatchedRoute, createMockEngine } from '../helpers/create-mock-transaction';
-import { DEFAULT_PUSH_NAV_OPTIONS } from '../helpers/jest/constants';
-import { mockRunPhaseHooks, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
+import { createMatchedRoute, createMockEngine } from '../_helpers/create-mock-transaction';
+import { DEFAULT_PUSH_NAV_OPTIONS } from '../_helpers/jest/constants';
+import { mockRunPhaseHooks, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 describe('NavigationTransaction.run fast path selection', () => {
   beforeEach(() => {

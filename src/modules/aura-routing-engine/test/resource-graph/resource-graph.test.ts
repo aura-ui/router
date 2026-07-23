@@ -9,8 +9,8 @@ import {
   type ResourceGraphLoadPlan,
 } from '../../core/resource-graph';
 import type { ViewGraph } from '../../core/view-graph';
-import { createViewGraphFromLoadView } from '../helpers/create-mock-transaction';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createViewGraphFromLoadView } from '../_helpers/create-mock-transaction';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 function createGraph(viewGraph: ViewGraph, dataGraph: DataGraph): ResourceGraph {
   return new ResourceGraph({

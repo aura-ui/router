@@ -1,7 +1,7 @@
 import { AuraRoutingEngine } from '../../core';
 import type { LoaderFn, RouterInstance } from '../../core';
 import { LoaderRegistry } from '../../core/view-graph';
-import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
+import { collectRoutesFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('AuraRoutingEngine prefetch wiring', () => {
   const router: RouterInstance = { navigate: jest.fn() };

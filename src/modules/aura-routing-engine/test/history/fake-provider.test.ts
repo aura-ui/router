@@ -5,9 +5,9 @@ import {
 import type { RouterInstance } from '../../core';
 import { defineRouteHook } from '../../core/hooks/define-hook';
 import { defaultHookRegistry } from '../../core/hooks/registry';
-import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
-import { createTestRoute } from '../helpers/create-test-route';
-import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
+import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
+import { createTestRoute } from '../_helpers/create-test-route';
+import { collectRoutesFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('FakeHistoryProvider', () => {
   it('push + commit обновляет стек URL', () => {

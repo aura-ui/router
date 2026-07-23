@@ -11,8 +11,8 @@ import { NavigationTransaction } from '../../core/navigation/navigation-transact
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { buildRouteTree } from '../../core/route-tree/build-route-tree';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
-import { withPlanTransitionOrder } from '../helpers/create-mock-transaction';
-import { createDomRoute } from '../helpers/test-route-dom';
+import { withPlanTransitionOrder } from '../_helpers/create-mock-transaction';
+import { createDomRoute } from '../_helpers/test-route-dom';
 
 const SLOW_CHILD_LOADER = 'branch-slow-child';
 const FAIL_CHILD_LOADER = 'branch-fail-child';

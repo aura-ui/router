@@ -1,5 +1,5 @@
 import { toActiveRouteBranch } from '../../core/link-active/active-route-branch';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 describe('toActiveRouteBranch', () => {
   it('maps chain matches to pattern/href entries', () => {

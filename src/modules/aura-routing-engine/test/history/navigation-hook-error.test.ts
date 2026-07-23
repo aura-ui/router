@@ -5,8 +5,8 @@ import {
 import type { RouterInstance } from '../../core';
 import { defineRouteHook } from '../../core/hooks/define-hook';
 import { defaultHookRegistry } from '../../core/hooks/registry';
-import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
-import { createTestRoute } from '../helpers/create-test-route';
+import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 describe('onNavigationHookError', () => {
   const router: RouterInstance = { navigate: jest.fn() };

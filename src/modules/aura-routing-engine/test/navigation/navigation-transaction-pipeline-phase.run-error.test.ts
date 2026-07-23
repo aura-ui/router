@@ -1,11 +1,11 @@
 import { HookRegistry } from '../../core/hooks/registry';
 import { NavigationTransactionPipelinePhase } from '../../core/navigation/navigation-transaction-pipeline-phase';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 import {
   createNavigationFailure,
   createNavigationLifecycleContext,
   registerTestHook,
-} from '../helpers/jest/navigation-fixtures';
+} from '../_helpers/jest/navigation-fixtures';
 
 describe('NavigationTransactionPipelinePhase.runError', () => {
   it('runs onError with normalized error in phase context', async () => {

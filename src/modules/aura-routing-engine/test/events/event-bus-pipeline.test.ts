@@ -1,7 +1,7 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 jest.mock('../../core/view-mount/view-commit-render', () =>
-  jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
+  jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import type { EngineEvent } from '../../core/events';
 import { NavigationFailure } from '../../core/failure';
@@ -13,9 +13,9 @@ import {
   createCoordinatorMockHost,
   createMatchedRoute,
   createMockTransaction,
-} from '../helpers/create-mock-transaction';
-import { createPushNavOptions } from '../helpers/jest/navigation-fixtures';
-import { mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
+} from '../_helpers/create-mock-transaction';
+import { createPushNavOptions } from '../_helpers/jest/navigation-fixtures';
+import { mockRunViewCommit, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 function eventTypes(events: EngineEvent[]): EngineEvent['type'][] {
   return events.map((event) => event.type);

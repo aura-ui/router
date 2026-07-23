@@ -1,6 +1,6 @@
 import { NavigationFailure, NavigationError } from '../../core/failure';
 import { applyNavigationOutcome } from '../../core/navigation/navigation-outcome';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 describe('applyNavigationOutcome (pre-match / error)', () => {
   const provider = { commit: jest.fn(), rollback: jest.fn() };

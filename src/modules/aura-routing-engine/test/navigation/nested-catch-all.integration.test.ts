@@ -3,7 +3,7 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { installAuraRouter } from '../../../aura-router/core/install';
-import { createDomRoute } from '../helpers/test-route-dom';
+import { createDomRoute } from '../_helpers/test-route-dom';
 
 const SPLAT_LOADER = 'nested-catch-all-splat';
 

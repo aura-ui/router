@@ -1,18 +1,18 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 jest.mock('../../core/view-mount/view-commit-render', () =>
-  jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
+  jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as branchMount from '../../core/view-mount/branch-mount';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 import {
   mockRunPhaseHooks,
   mockRunViewCommit,
   resetPipelineMocks,
   trackLifecyclePhases,
   withViewGraph,
-} from '../helpers/jest/pipeline-mocks';
+} from '../_helpers/jest/pipeline-mocks';
 
 async function prepareThenRender(pipeline: NavigationTransactionPipeline) {
   const prepareResult = await pipeline.runLoads();
@@ -26,7 +26,7 @@ async function prepareThenRenderWithTransition(pipeline: NavigationTransactionPi
   return pipeline.runRenderWithTransition();
 }
 
-describe('NavigationTransactionPipeline branch prepare → commit render', () => {
+describe('NavigationTransactionPipeline branch prepare > commit render', () => {
   let mountEnterBranchSpy: jest.SpiedFunction<typeof branchMount.mountEnterBranch>;
 
   beforeEach(() => {

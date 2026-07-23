@@ -1,15 +1,15 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 jest.mock('../../core/view-mount/view-commit-render', () =>
-  jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
+  jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import {
   createMatchedRoute,
   createPairTransaction,
-} from '../helpers/create-mock-transaction';
-import { PARALLEL_FADE_TRANSITION } from '../helpers/jest/navigation-fixtures';
-import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
+} from '../_helpers/create-mock-transaction';
+import { PARALLEL_FADE_TRANSITION } from '../_helpers/jest/navigation-fixtures';
+import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 describe('NavigationTransaction.isActive', () => {
   it('is false after cancel even when the transaction was not superseded', () => {
@@ -28,7 +28,7 @@ describe('NavigationTransaction.isActive', () => {
   });
 });
 
-describe('NavigationTransactionPipeline cancel-pending (A → B in-flight → A)', () => {
+describe('NavigationTransactionPipeline cancel-pending (A > B in-flight > A)', () => {
   beforeEach(() => {
     resetPipelineMocks();
   });

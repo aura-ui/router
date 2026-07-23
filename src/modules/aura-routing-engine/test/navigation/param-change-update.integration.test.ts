@@ -1,5 +1,5 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
@@ -12,10 +12,10 @@ import type { RouteNode } from '../../core/route-tree/route-node.types';
 import {
   createUsersIdMatch,
   createUsersIdNode,
-} from '../helpers/create-dynamic-leaf-match';
-import { createMockEngine } from '../helpers/create-mock-transaction';
-import { mockRunPhaseHooks, resetHookMocks } from '../helpers/jest/hook-mocks';
-import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
+} from '../_helpers/create-dynamic-leaf-match';
+import { createMockEngine } from '../_helpers/create-mock-transaction';
+import { mockRunPhaseHooks, resetHookMocks } from '../_helpers/jest/hook-mocks';
+import { createTestOutlet } from '../_helpers/jest/navigation-fixtures';
 
 function wireRouteViewController(
   node: RouteNode,
@@ -103,7 +103,7 @@ describe('param-change UPDATE integration (real view)', () => {
     document.body.replaceChildren();
   });
 
-  it('same viewKey keeps DOM and skips re-render on /users/1 → /users/2', async () => {
+  it('same viewKey keeps DOM and skips re-render on /users/1 > /users/2', async () => {
     const phases: string[] = [];
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);

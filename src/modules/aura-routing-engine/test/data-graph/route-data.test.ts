@@ -4,7 +4,7 @@ import {
 } from '../../core/data-graph/route-data';
 import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 function matched(path: string, load: string[] | null = ['data']): MatchedRouteInfo {
   const info: MatchedRouteInfo = {

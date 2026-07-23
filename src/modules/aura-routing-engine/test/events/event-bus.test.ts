@@ -1,6 +1,6 @@
 import { EventBus } from '../../core/events';
 import type { EngineEvent } from '../../core/events';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 describe('EventBus', () => {
   it('delivers events to subscribers in subscription order', () => {

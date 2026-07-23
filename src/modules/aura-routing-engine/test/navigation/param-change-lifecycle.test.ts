@@ -1,7 +1,7 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 jest.mock('../../core/view-mount/view-commit-render', () =>
-  jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
+  jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
@@ -11,10 +11,10 @@ import {
   createNestedUsersIdSetup,
   createUsersIdMatch,
   createUsersIdNode,
-} from '../helpers/create-dynamic-leaf-match';
-import { createMockEngine } from '../helpers/create-mock-transaction';
-import { runNavigationTransaction } from '../helpers/jest/navigation-fixtures';
-import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
+} from '../_helpers/create-dynamic-leaf-match';
+import { createMockEngine } from '../_helpers/create-mock-transaction';
+import { runNavigationTransaction } from '../_helpers/jest/navigation-fixtures';
+import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 async function runNavigation(
   from: MatchedRouteInfo,
@@ -38,7 +38,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     mountEnterBranchSpy.mockRestore();
   });
 
-  it('case A: same viewKey → UPDATE without render/unmount/ready', async () => {
+  it('case A: same viewKey > UPDATE without render/unmount/ready', async () => {
     const phases: string[] = [];
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
@@ -72,7 +72,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     expect(loadHook).toHaveBeenCalledTimes(1);
   });
 
-  it('case B: per-id viewKey → FULL with render, unmount, ready', async () => {
+  it('case B: per-id viewKey > FULL with render, unmount, ready', async () => {
     const phases: string[] = [];
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
@@ -97,7 +97,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     expect(phases).not.toContain('update');
   });
 
-  it('case C: navigate override with same viewKey → FULL refetch', async () => {
+  it('case C: navigate override with same viewKey > FULL refetch', async () => {
     const phases: string[] = [];
     mockRunPhaseHooks.mockImplementation(async (_registry, ctx) => {
       phases.push(ctx.phase);
@@ -172,7 +172,7 @@ describe('param-change lifecycle by view loader', () => {
     ['html', 'partials/user-shell.html'],
     ['component', 'user-profile'],
     ['import', 'user-profile'],
-  ] as const)('%s static shell → UPDATE without render', async (loader, content) => {
+  ] as const)('%s static shell > UPDATE without render', async (loader, content) => {
     const node = createUsersIdNode({
       view: { loader, content },
       update: ['apply-user'],
@@ -194,7 +194,7 @@ describe('param-change lifecycle by view loader', () => {
   it.each([
     ['html', 'content/user/{{id}}.html'],
     ['import', 'widgets/user-{{id}}'],
-  ] as const)('%s per-id content → FULL with render', async (loader, content) => {
+  ] as const)('%s per-id content > FULL with render', async (loader, content) => {
     const node = createUsersIdNode({
       view: { loader, content },
       unmount: ['teardown'],
@@ -214,7 +214,7 @@ describe('param-change lifecycle by view loader', () => {
     expect(phases).not.toContain('update');
   });
 
-  it('layout-only leaf → UPDATE without render', async () => {
+  it('layout-only leaf > UPDATE without render', async () => {
     const node = createUsersIdNode({
       layout: 'users-shell',
       view: { loader: 'url', content: 'ignored.html' },

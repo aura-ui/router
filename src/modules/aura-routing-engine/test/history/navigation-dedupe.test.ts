@@ -5,7 +5,7 @@ import {
 import type { RouterInstance } from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { TransactionResult } from '../../core/navigation/types';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 function mockTransactionRunSuccess(run: jest.SpyInstance): void {
   run.mockImplementation(async function (this: NavigationTransaction) {

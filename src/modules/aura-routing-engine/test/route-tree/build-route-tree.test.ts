@@ -1,4 +1,4 @@
-import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
+import { buildTreeFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('buildRouteTree', () => {  it('builds nested tree with resolved pattern', () => {
     const profile = createDomRoute('profile');

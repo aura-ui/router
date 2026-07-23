@@ -1,5 +1,5 @@
 import { NavigationTransactionPipelinePhase } from '../../core/navigation/navigation-transaction-pipeline-phase';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 describe('NavigationTransactionPipelinePhase.buildPhaseContext', () => {
   it('maps matched route and navigation slice to hook context', () => {

@@ -8,7 +8,7 @@ import '../lib/dom-bootstrap';
 import { DataGraph } from '../../src/modules/aura-routing-engine/core/data-graph';
 import { HookRegistry } from '../../src/modules/aura-routing-engine/core/hooks/registry';
 import { HandoffCache } from '../../src/modules/aura-routing-engine/core/resource-graph';
-import { createMatchedRoute, createMockTransaction } from '../../src/modules/aura-routing-engine/test/helpers/create-mock-transaction';
+import { createMatchedRoute, createMockTransaction } from '../../src/modules/aura-routing-engine/test/_helpers/create-mock-transaction';
 import { BenchSession, isBenchMain, type SavedReport } from '../lib/report';
 const BENCH_ID = 'data-graph';
 const NO_PRESERVE = { view: false, data: false } as const;

@@ -1,7 +1,7 @@
 import { HookRegistry } from '../../core/hooks/registry';
 import { handlePipelineFailure } from '../../core/navigation/pipeline-failure';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
-import { createNavigationLifecycleContext } from '../helpers/jest/navigation-fixtures';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
+import { createNavigationLifecycleContext } from '../_helpers/jest/navigation-fixtures';
 
 describe('handlePipelineFailure', () => {
   it('reports route onError failures without replacing the parent failure', async () => {

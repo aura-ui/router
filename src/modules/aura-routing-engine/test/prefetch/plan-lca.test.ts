@@ -1,6 +1,6 @@
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { PrefetchPlanResolver } from '../../core/prefetch/plan';
-import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
+import { buildTreeFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('PrefetchPlanResolver LCA delta', () => {
   const matcher = new AuraRoutingUrlMatcher();

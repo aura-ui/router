@@ -7,8 +7,8 @@ import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { HandoffCache } from '../../core/resource-graph';
 import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
-import { createMockEngine } from '../helpers/create-mock-transaction';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createMockEngine } from '../_helpers/create-mock-transaction';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 function matchedRoute(path: string, load: string[] | null = ['data']): MatchedRouteInfo {
   const info: MatchedRouteInfo = {

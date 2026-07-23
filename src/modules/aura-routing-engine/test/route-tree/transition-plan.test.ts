@@ -8,9 +8,9 @@ import {
   isSameNavigationTarget,
 } from '../../core/route-tree/transition-plan';
 import type { RouteInstance } from '../../core';
-import { createUsersIdMatch, createUsersIdNode, createNestedUsersIdMatch, createNestedUsersIdSetup } from '../helpers/create-dynamic-leaf-match';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createUsersIdMatch, createUsersIdNode, createNestedUsersIdMatch, createNestedUsersIdSetup } from '../_helpers/create-dynamic-leaf-match';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
+import { createTestRoute } from '../_helpers/create-test-route';
 
 function createMatch(node: RouteNode, pathname: string): MatchedRouteInfo {
   return {

@@ -2,21 +2,21 @@ import { NavigationFailure } from '../../core/failure';
 import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { NavigationTransactionOptions } from '../../core/navigation/types';
-import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
+import { createUsersIdMatch, createUsersIdNode } from '../_helpers/create-dynamic-leaf-match';
 import {
 
   createCoordinatorMockHost,
 
   createMatchedRoute,
 
-} from '../helpers/create-mock-transaction';
+} from '../_helpers/create-mock-transaction';
 import {
 
   createPushNavOptions,
 
   mockDeferredTransactionRun,
 
-} from '../helpers/jest/navigation-fixtures';
+} from '../_helpers/jest/navigation-fixtures';
 
 
 

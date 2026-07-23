@@ -5,7 +5,7 @@ import type { RouteHookDefinition } from '../../aura-routing-engine/core';
 import { splitAppHref } from '../../aura-utils/misc/url';
 import { AuraRouter } from '../core/aura-router';
 import { installAuraRouter } from '../core/install';
-import { getRouterEngine } from './helpers/get-router-engine';
+import { getRouterEngine } from './_helpers/get-router-engine';
 
 async function flushNavigation(): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 0));

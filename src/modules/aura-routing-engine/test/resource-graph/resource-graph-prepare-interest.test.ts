@@ -3,7 +3,7 @@ import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
 import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
 import type { ViewGraph } from '../../core/view-graph';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 function createResources(handoff: HandoffCache): ResourceGraph {
   const hooks = new HookRegistry();

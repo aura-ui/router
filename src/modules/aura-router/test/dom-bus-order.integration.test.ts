@@ -12,7 +12,7 @@ import {
   AURA_ROUTER_NAVIGATION_REDIRECT,
   AURA_ROUTER_NAVIGATION_START,
 } from '../core/navigation-events';
-import { getRouterEngine } from './helpers/get-router-engine';
+import { getRouterEngine } from './_helpers/get-router-engine';
 
 const DOM_LIFECYCLE = [
   AURA_ROUTER_NAVIGATION_START,

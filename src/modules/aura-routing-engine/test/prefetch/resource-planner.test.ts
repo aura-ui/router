@@ -2,7 +2,7 @@ import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { PrefetchPolicy } from '../../core/prefetch/policy';
 import { DefaultPrefetchResourcePlanner } from '../../core/prefetch/resources';
 import type { PrefetchPlan } from '../../core/prefetch/types';
-import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
+import { buildTreeFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('DefaultPrefetchResourcePlanner', () => {
   const matcher = new AuraRoutingUrlMatcher();

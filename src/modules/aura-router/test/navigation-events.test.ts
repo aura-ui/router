@@ -1,5 +1,5 @@
 import { NavigationFailure, NavigationError, type MatchedRouteInfo } from '../../aura-routing-engine/core';
-import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
+import { createTestRoute } from '../../aura-routing-engine/test/_helpers/create-test-route';
 import {
   AURA_ROUTER_LOAD_END,
   AURA_ROUTER_LOAD_ERROR,

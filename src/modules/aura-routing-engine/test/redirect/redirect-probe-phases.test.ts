@@ -5,14 +5,14 @@ import {
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as transitionPlan from '../../core/route-tree/transition-plan';
-import { createMatchedRoute, createMockEngine } from '../helpers/create-mock-transaction';
-import { DEFAULT_PUSH_NAV_OPTIONS } from '../helpers/jest/constants';
-import { registerTestHook } from '../helpers/jest/navigation-fixtures';
+import { createMatchedRoute, createMockEngine } from '../_helpers/create-mock-transaction';
+import { DEFAULT_PUSH_NAV_OPTIONS } from '../_helpers/jest/constants';
+import { registerTestHook } from '../_helpers/jest/navigation-fixtures';
 import {
   collectRoutesFromDom,
   createDomRedirectRoute,
   createDomRoute,
-} from '../helpers/test-route-dom';
+} from '../_helpers/test-route-dom';
 
 describe('redirect blocking walk policy', () => {
   afterEach(() => {

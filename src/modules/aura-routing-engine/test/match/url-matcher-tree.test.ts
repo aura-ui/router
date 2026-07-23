@@ -7,7 +7,7 @@ import {
   isStaticRoutePattern,
 } from '../../core/match/url-matcher';
 import { buildRouteTree } from '../../core/route-tree/build-route-tree';
-import { createDomRoute, collectRoutesFromDom } from '../helpers/test-route-dom';
+import { createDomRoute, collectRoutesFromDom } from '../_helpers/test-route-dom';
 
 describe('AuraRoutingUrlMatcher', () => {
   const matcher = new AuraRoutingUrlMatcher();

@@ -1,5 +1,5 @@
 import { applyCanonicalIndexFolderHref } from '../../core/match/canonical-index-href';
-import { buildTreeFromDom, createDomRoute } from '../helpers/test-route-dom';
+import { buildTreeFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('canonical index folder href', () => {
   it('adds trailing slash for index child under folder', () => {

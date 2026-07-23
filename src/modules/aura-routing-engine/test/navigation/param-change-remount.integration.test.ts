@@ -1,5 +1,5 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
@@ -17,14 +17,14 @@ import type { ViewGraph } from '../../core/view-graph';
 import {
   createUsersIdMatch,
   createUsersIdNode,
-} from '../helpers/create-dynamic-leaf-match';
+} from '../_helpers/create-dynamic-leaf-match';
 import {
   createMockEngine,
   createViewGraphFromLoadView,
   wireEngineViewGraph,
-} from '../helpers/create-mock-transaction';
-import { resetHookMocks } from '../helpers/jest/hook-mocks';
-import { createTestOutlet } from '../helpers/jest/navigation-fixtures';
+} from '../_helpers/create-mock-transaction';
+import { resetHookMocks } from '../_helpers/jest/hook-mocks';
+import { createTestOutlet } from '../_helpers/jest/navigation-fixtures';
 
 function wireRouteViewController(
   node: RouteNode,
@@ -133,7 +133,7 @@ describe('param-change remount integration (branch commit)', () => {
     document.body.replaceChildren();
   });
 
-  it('keeps enter view on screen through prepare → commit → unmount', async () => {
+  it('keeps enter view on screen through prepare > commit > unmount', async () => {
     const outlet = createTestOutlet();
     let serial = 0;
     const node = createUsersIdNode({

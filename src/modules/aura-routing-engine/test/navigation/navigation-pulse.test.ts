@@ -10,7 +10,7 @@ import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
 import {
   createMatchedRoute,
   createMockTransaction,
-} from '../helpers/create-mock-transaction';
+} from '../_helpers/create-mock-transaction';
 
 function types(events: EngineEvent[]): EngineEvent['type'][] {
   return events.map((e) => e.type);

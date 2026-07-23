@@ -8,7 +8,7 @@ import '../lib/dom-bootstrap';
 import { canUseFastPath } from '../../src/modules/aura-routing-engine/core/route-tree/can-use-fast-path';
 import { buildTransitionPlan } from '../../src/modules/aura-routing-engine/core/route-tree/transition-plan';
 import { matchedLeaf, nestedChain } from '../lib/fixtures';
-import { createTestRoute } from '../../src/modules/aura-routing-engine/test/helpers/create-test-route';
+import { createTestRoute } from '../../src/modules/aura-routing-engine/test/_helpers/create-test-route';
 import type { MatchedRouteInfo } from '../../src/modules/aura-routing-engine/core/match/url-matcher';
 import { BenchSession, isBenchMain, type SavedReport } from '../lib/report';
 const BENCH_ID = 'navigation-pipeline';

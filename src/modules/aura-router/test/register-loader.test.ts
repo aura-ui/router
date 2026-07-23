@@ -10,8 +10,8 @@ import {
   type ViewLoadContext,
 } from '../../aura-routing-engine/core';
 import { HandoffCache } from '../../aura-routing-engine/core/resource-graph';
-import { createTestRoute } from '../../aura-routing-engine/test/helpers/create-test-route';
-import { withResolvedView } from '../../aura-routing-engine/test/helpers/with-resolved-view';
+import { createTestRoute } from '../../aura-routing-engine/test/_helpers/create-test-route';
+import { withResolvedView } from '../../aura-routing-engine/test/_helpers/with-resolved-view';
 import { AuraRouter } from '../core/aura-router';
 
 function testRoute(path: string, view: { loader: string; content: string }) {

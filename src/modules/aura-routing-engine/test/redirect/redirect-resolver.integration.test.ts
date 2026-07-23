@@ -3,13 +3,13 @@ import {
   FakeHistoryProvider,
 } from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { collectNavigationErrors } from '../helpers/collect-navigation-errors';
-import { registerTestHook } from '../helpers/jest/navigation-fixtures';
+import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
+import { registerTestHook } from '../_helpers/jest/navigation-fixtures';
 import {
   collectRoutesFromDom,
   createDomRedirectRoute,
   createDomRoute,
-} from '../helpers/test-route-dom';
+} from '../_helpers/test-route-dom';
 
 describe('RedirectResolver integration', () => {
   afterEach(() => {

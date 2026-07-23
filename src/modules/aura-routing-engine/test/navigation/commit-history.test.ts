@@ -1,7 +1,7 @@
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { FakeHistoryProvider } from '../../core/history/fake-provider';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { createMatchedRoute } from '../helpers/create-mock-transaction';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 describe('AuraRoutingEngine.commitHistoryIfNeeded', () => {
   it('writes URL once for push navigation without emitting url-aligned', () => {

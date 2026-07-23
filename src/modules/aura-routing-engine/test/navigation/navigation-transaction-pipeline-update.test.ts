@@ -1,13 +1,13 @@
-﻿jest.mock('../../core/hooks/registry', () =>
-  jest.requireActual('../helpers/jest/mock-hooks-registry').mockHooksRegistry());
+jest.mock('../../core/hooks/registry', () =>
+  jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 jest.mock('../../core/view-mount/view-commit-render', () =>
-  jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
+  jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
-import { createUsersIdMatch, createUsersIdNode } from '../helpers/create-dynamic-leaf-match';
-import { createMatchedRoute, createMockTransaction } from '../helpers/create-mock-transaction';
-import { mockRunPhaseHooks, resetPipelineMocks } from '../helpers/jest/pipeline-mocks';
+import { createUsersIdMatch, createUsersIdNode } from '../_helpers/create-dynamic-leaf-match';
+import { createMatchedRoute, createMockTransaction } from '../_helpers/create-mock-transaction';
+import { mockRunPhaseHooks, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 describe('NavigationTransactionPipeline.runUpdate', () => {
   beforeEach(() => {

@@ -19,8 +19,8 @@ import {
   createMatchedRoute,
   createMockEngine,
   createMockViewGraph,
-} from '../helpers/create-mock-transaction';
-import { withResolvedView } from '../helpers/with-resolved-view';
+} from '../_helpers/create-mock-transaction';
+import { withResolvedView } from '../_helpers/with-resolved-view';
 
 /** Load hooks return data payloads; registry typing is guard-oriented. */
 function loadHook(fn: () => Promise<unknown>): RouteHookDefinition['fn'] {

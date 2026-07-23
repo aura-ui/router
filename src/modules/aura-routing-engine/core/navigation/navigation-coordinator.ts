@@ -55,11 +55,7 @@ export class NavigationCoordinator {
    * Full navigation entry: resolve redirect chain, plan, then run the pipeline when needed.
    * Hash-only and anchor fast paths stay in the engine.
    */
-  async navigate(
-    href: string,
-    action: HistoryAction,
-    options: NavigateHistoryOptions,
-  ): Promise<void> {
+  async navigate(href: string, action: HistoryAction, options: NavigateHistoryOptions): Promise<void> {
     const resolved = resolveDocumentHrefParts(href);
     const attempt = this.beginNavigation(resolved.href);
     if (attempt === null) {
@@ -84,6 +80,12 @@ export class NavigationCoordinator {
 
       if (!this.isAttemptCurrent(attempt)) {
         return;
+      }
+
+      // Non-resolved outcomes skip {@link run} — drop any in-flight pipeline (same as cancel-pending).
+      if (chain.status !== 'resolved') {
+        this.activeTransaction?.cancel();
+        this.activeTransaction = null;
       }
 
       if (chain.status === 'redirect-error') {

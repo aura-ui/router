@@ -2,6 +2,7 @@ import { NavigationFailure } from '../../core/failure';
 import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { NavigationTransactionOptions } from '../../core/navigation/types';
+import * as redirectResolver from '../../core/redirect/redirect-resolver';
 import { createUsersIdMatch, createUsersIdNode } from '../_helpers/create-dynamic-leaf-match';
 import {
 
@@ -17,6 +18,7 @@ import {
   mockDeferredTransactionRun,
 
 } from '../_helpers/jest/navigation-fixtures';
+import { DEFAULT_PUSH_NAV_OPTIONS } from '../_helpers/jest/constants';
 
 
 
@@ -1107,6 +1109,40 @@ describe('NavigationCoordinator', () => {
 
     });
 
+  });
+
+  describe('navigate — pre-pipeline terminals', () => {
+    it('cancels an in-flight pipeline when resolve is unmatched', async () => {
+      const host = createCoordinatorMockHost();
+      const coordinator = new NavigationCoordinator(host);
+      const home = createMatchedRoute('/');
+      const contacts = createMatchedRoute('/contacts');
+      const { resolveAt } = mockDeferredTransactionRun();
+      const cancelSpy = jest.spyOn(NavigationTransaction.prototype, 'cancel');
+
+      const contactsNav = coordinator.run(
+        navOptions({ from: home, to: contacts, href: '/contacts' }),
+      );
+      expect(coordinator.activeTransaction).not.toBeNull();
+
+      jest.spyOn(redirectResolver, 'followRedirectsWithGuardWalk').mockResolvedValue({
+        status: 'unmatched',
+        href: '/error',
+      });
+
+      await coordinator.navigate('/error', 'push', DEFAULT_PUSH_NAV_OPTIONS);
+
+      expect(cancelSpy).toHaveBeenCalledTimes(1);
+      expect(host.handleUnmatchedNavigation).toHaveBeenCalledWith(
+        '/error',
+        'push',
+        DEFAULT_PUSH_NAV_OPTIONS,
+      );
+      expect(coordinator.activeTransaction).toBeNull();
+
+      resolveAt(0, { status: 'cancelled' });
+      await contactsNav;
+    });
   });
 
 });

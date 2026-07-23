@@ -1,7 +1,9 @@
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
+import type { LoaderFn } from '../../core';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { ENGINE_DEFAULTS } from '../../core/aura-routing-engine-config';
 import { DataGraph } from '../../core/data-graph';
+import type { RouteHookDefinition } from '../../core/hooks/types';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
@@ -19,6 +21,15 @@ import {
   createMockViewGraph,
 } from '../helpers/create-mock-transaction';
 import { withResolvedView } from '../helpers/with-resolved-view';
+
+/** Load hooks return data payloads; registry typing is guard-oriented. */
+function loadHook(fn: () => Promise<unknown>): RouteHookDefinition['fn'] {
+  return fn as unknown as RouteHookDefinition['fn'];
+}
+
+function asHtmlLoader(fn: () => Promise<string>): LoaderFn {
+  return fn as unknown as LoaderFn;
+}
 
 function prepareTx(
   enterRoutes: readonly MatchedRouteInfo[],
@@ -84,7 +95,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
       sharedBuffer: handoff,
     });
     const base = createMockEngine();
-    base.resourceGraph = resourceGraph;
+    (base as { resourceGraph: ResourceGraph }).resourceGraph = resourceGraph;
     (base as { hooksRegistry: HookRegistry }).hooksRegistry = hooks;
     engine = base;
   }
@@ -103,19 +114,22 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     let dataLoads = 0;
     let viewLoads = 0;
     const loaders = new LoaderRegistry(undefined, []);
-    loaders.register('html', async () => {
-      viewLoads++;
-      return '<span>users</span>';
-    });
+    loaders.register(
+      'html',
+      asHtmlLoader(async () => {
+        viewLoads++;
+        return '<span>users</span>';
+      }),
+    );
     wire({ viewRegistry: loaders });
 
     hooks.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: loadHook(async () => {
         dataLoads++;
         return { id: 1 };
-      },
+      }),
     });
 
     const route = createNoCacheRoute('/users', { load: ['data'] });
@@ -159,21 +173,24 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     });
 
     const loaders = new LoaderRegistry(undefined, []);
-    loaders.register('html', async () => {
-      viewLoads++;
-      await viewGate;
-      return '<span>overlap</span>';
-    });
+    loaders.register(
+      'html',
+      asHtmlLoader(async () => {
+        viewLoads++;
+        await viewGate;
+        return '<span>overlap</span>';
+      }),
+    );
     wire({ viewRegistry: loaders });
 
     hooks.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: loadHook(async () => {
         dataLoads++;
         await dataGate;
         return { id: 2 };
-      },
+      }),
     });
 
     const route = createNoCacheRoute('/overlap', { load: ['data'] });
@@ -216,21 +233,24 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     });
 
     const loaders = new LoaderRegistry(undefined, []);
-    loaders.register('html', async () => {
-      viewLoads++;
-      await viewGate;
-      return '<span>users</span>';
-    });
+    loaders.register(
+      'html',
+      asHtmlLoader(async () => {
+        viewLoads++;
+        await viewGate;
+        return '<span>users</span>';
+      }),
+    );
     wire({ viewRegistry: loaders });
 
     hooks.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: loadHook(async () => {
         dataLoads++;
         await dataGate;
         return { id: 1 };
-      },
+      }),
     });
 
     const route = createNoCacheRoute('/users', { load: ['data'] });
@@ -270,10 +290,10 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     hooks.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: loadHook(async () => {
         loads++;
         return { n: loads };
-      },
+      }),
     });
 
     const route = createMatchedRoute('/profile', {
@@ -310,19 +330,22 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     let dataLoads = 0;
     let viewLoads = 0;
     const loaders = new LoaderRegistry(undefined, []);
-    loaders.register('html', async () => {
-      viewLoads++;
-      return `<span>${viewLoads}</span>`;
-    });
+    loaders.register(
+      'html',
+      asHtmlLoader(async () => {
+        viewLoads++;
+        return `<span>${viewLoads}</span>`;
+      }),
+    );
     wire({ viewRegistry: loaders });
 
     hooks.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: loadHook(async () => {
         dataLoads++;
         return { n: dataLoads };
-      },
+      }),
     });
 
     const route = createNoCacheRoute('/ephemeral-consume', { load: ['data'] });
@@ -361,19 +384,22 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     let dataLoads = 0;
     let viewLoads = 0;
     const loaders = new LoaderRegistry(undefined, []);
-    loaders.register('html', async () => {
-      viewLoads++;
-      return `<span>${viewLoads}</span>`;
-    });
+    loaders.register(
+      'html',
+      asHtmlLoader(async () => {
+        viewLoads++;
+        return `<span>${viewLoads}</span>`;
+      }),
+    );
     wire({ viewRegistry: loaders });
 
     hooks.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: loadHook(async () => {
         dataLoads++;
         return { n: dataLoads };
-      },
+      }),
     });
 
     const route = createNoCacheRoute('/ephemeral', { load: ['data'] });
@@ -415,10 +441,10 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     hooks.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: loadHook(async () => {
         loads++;
         return { id: 7 };
-      },
+      }),
     });
 
     const route = createMatchedRoute('/settings', {

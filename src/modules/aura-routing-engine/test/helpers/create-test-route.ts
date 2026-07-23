@@ -1,3 +1,4 @@
+import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import { isAsyncLoader } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
@@ -18,7 +19,7 @@ export const SYNC_HTML_VIEW: ViewAttrDescriptor = { loader: 'html', content: '<s
 export function createTestRoute(
   path: string,
   overrides: Partial<RouteInstance> = {},
-): RouteInstance {
+): AuraRoute {
   const { cache = { dom: false, view: false, data: true }, ...routeOverrides } = overrides;
   const route = {
     uid: ++testRouteUid,
@@ -124,5 +125,5 @@ export function createTestRoute(
     },
   });
 
-  return route;
+  return route as unknown as AuraRoute;
 }

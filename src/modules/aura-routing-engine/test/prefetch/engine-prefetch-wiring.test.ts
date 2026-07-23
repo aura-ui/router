@@ -1,5 +1,5 @@
 import { AuraRoutingEngine } from '../../core';
-import type { RouterInstance } from '../../core';
+import type { LoaderFn, RouterInstance } from '../../core';
 import { LoaderRegistry } from '../../core/view-graph';
 import { collectRoutesFromDom, createDomRoute } from '../helpers/test-route-dom';
 
@@ -9,10 +9,13 @@ describe('AuraRoutingEngine prefetch wiring', () => {
   it('prefetch loads content for matched branch via registry descriptors', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      return '<span>about</span>';
-    });
+    registry.register(
+      'html',
+      (async () => {
+        loads++;
+        return '<span>about</span>';
+      }) as unknown as LoaderFn,
+    );
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
@@ -28,10 +31,13 @@ describe('AuraRoutingEngine prefetch wiring', () => {
   it('disables prefetch when config.prefetch is false', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      return 'x';
-    });
+    registry.register(
+      'html',
+      (async () => {
+        loads++;
+        return 'x';
+      }) as unknown as LoaderFn,
+    );
 
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');

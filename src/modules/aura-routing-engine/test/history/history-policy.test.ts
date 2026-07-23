@@ -3,11 +3,12 @@ import {
   applyHistoryPolicy,
   applyTransactionHistory,
   resolveHistoryPolicy,
+  type ResolveHistoryOptions,
 } from '../../core/history/history-policy';
 import type { HistoryAction } from '../../core/history/provider.types';
 import type { TransactionResult } from '../../core/navigation/types';
 import type { ViewCommitState } from '../../core/view-mount/view-commit-state';
-import { createTestRoute } from '../helpers/create-test-route';
+import { createMatchedRoute } from '../helpers/create-mock-transaction';
 
 function pipelineErrorResult(
   code: NavigationError['code'],
@@ -16,20 +17,11 @@ function pipelineErrorResult(
   href: string,
   action: HistoryAction = 'push',
 ): Extract<TransactionResult, { status: 'error' }> {
-  const to = {
-    href,
-    pathname: href,
-    search: '',
-    hash: '',
-    pattern: href,
-    route: createTestRoute(href),
-  };
-
   return NavigationFailure.fromPipeline(
     new NavigationError({ code, phase, routePattern: href, message: 'fail' }),
     { view, href },
     null,
-    to,
+    createMatchedRoute(href),
     action,
   ).toResult();
 }
@@ -74,7 +66,7 @@ describe('resolveHistoryPolicy', () => {
       'push',
       'preserve',
     ],
-  ] as const)('%s', (_label, result, action, expected, options = {}) => {
+  ] as const)('%s', (_label, result, action, expected, options: ResolveHistoryOptions = {}) => {
     expect(resolveHistoryPolicy(result, action, { syncHistory: true, ...options })).toBe(expected);
   });
 });

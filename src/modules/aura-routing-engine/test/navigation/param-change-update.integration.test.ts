@@ -4,6 +4,7 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
@@ -47,9 +48,13 @@ function wireRouteViewController(
 
   const controller = new RouteViewController(
     {
-      route: routeRecord,
+      route: routeRecord as unknown as AuraRouteInterface,
       view: { loadView: async () => { resolveCount++; return { data: resolve() }; } },
-      cache: { extract: () => undefined, put: () => {} },
+      cache: {
+        has: () => false,
+        extract: () => undefined,
+        put: () => {},
+      },
       mountTarget: {
         appOutlet: () => outlet,
         nestedOutlet: () => null,

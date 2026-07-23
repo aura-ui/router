@@ -4,6 +4,7 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
   jest.requireActual('../helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import type { DataSnapshot } from '../../core/data-graph';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { PHASES } from '../../core/navigation/lifecycle-phases';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as branchMount from '../../core/view-mount/branch-mount';
@@ -90,7 +91,7 @@ describe('NavigationTransactionPipeline.runLoads activeChain', () => {
       enterRoutes: [child],
       transitionOrder: null,
     });
-    transaction.to = { ...child, chain: branch };
+    (transaction as { to: MatchedRouteInfo }).to = { ...child, chain: branch };
 
     const loadSpy = jest
       .spyOn(transaction.engine.resourceGraph, 'load')

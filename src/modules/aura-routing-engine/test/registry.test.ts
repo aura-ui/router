@@ -1,7 +1,7 @@
 import { AuraRoutingRouteRegistry } from '../core/aura-routing-route-registry';
 
 import { createTestRoute } from './helpers/create-test-route';
-import { buildTreeFromDom, createDomRoute } from './helpers/test-route-dom';
+import { createDomRoute } from './helpers/test-route-dom';
 
 describe('AuraRoutingRouteRegistry.buildTree', () => {
   it('indexes flat routes by pattern', () => {

@@ -79,7 +79,8 @@ describe('PrefetchPipeline', () => {
         ],
       },
       runSpeculativePrepare: async (plan) => {
-        runs.push(plan.enterRoutes.at(-1)?.pattern ?? '');
+        const leaf = plan.enterRoutes[plan.enterRoutes.length - 1];
+        runs.push(leaf?.pattern ?? '');
       },
     });
 

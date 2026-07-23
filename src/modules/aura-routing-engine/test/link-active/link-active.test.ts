@@ -25,10 +25,10 @@ describe('link-active', () => {
       });
 
       const [overview, profile] = document.querySelectorAll<HTMLAnchorElement>('a');
-      expect(overview.classList.contains('is-active')).toBe(true);
-      expect(overview.getAttribute('aria-current')).toBe('page');
-      expect(profile.classList.contains('is-active')).toBe(false);
-      expect(profile.hasAttribute('aria-current')).toBe(false);
+      expect(overview!.classList.contains('is-active')).toBe(true);
+      expect(overview!.getAttribute('aria-current')).toBe('page');
+      expect(profile!.classList.contains('is-active')).toBe(false);
+      expect(profile!.hasAttribute('aria-current')).toBe(false);
     });
 
     it('resolves path-relative href against current location', () => {
@@ -83,9 +83,9 @@ describe('link-active', () => {
       });
 
       const [one, two] = document.querySelectorAll<HTMLAnchorElement>('a');
-      expect(one.classList.contains('is-active')).toBe(false);
-      expect(one.hasAttribute('aria-current')).toBe(false);
-      expect(two.classList.contains('is-active')).toBe(true);
+      expect(one!.classList.contains('is-active')).toBe(false);
+      expect(one!.hasAttribute('aria-current')).toBe(false);
+      expect(two!.classList.contains('is-active')).toBe(true);
     });
 
     it('ignores external and hash-only links', () => {
@@ -179,10 +179,10 @@ describe('link-active', () => {
       });
 
       const [settings, profile] = document.querySelectorAll<HTMLAnchorElement>('a');
-      expect(settings.classList.contains('is-active')).toBe(false);
-      expect(settings.classList.contains('is-branch-active')).toBe(true);
-      expect(profile.classList.contains('is-active')).toBe(true);
-      expect(profile.classList.contains('is-branch-active')).toBe(true);
+      expect(settings!.classList.contains('is-active')).toBe(false);
+      expect(settings!.classList.contains('is-branch-active')).toBe(true);
+      expect(profile!.classList.contains('is-active')).toBe(true);
+      expect(profile!.classList.contains('is-branch-active')).toBe(true);
     });
   });
 

@@ -19,8 +19,9 @@ export const USERS_ID_PATTERN = '/users/:id';
 
 export function createUsersLayoutNode(): RouteNode {
   const node = {
-    route: createTestRoute(USERS_LAYOUT_PATTERN, { layout: 'users-shell' }),
-    content: { kind: 'view' as const, loader: '', content: '', cache: false },
+    route: createTestRoute(USERS_LAYOUT_PATTERN, {
+      layout: 'users-shell',
+    } as Partial<RouteInstance>) as RouteNode['route'],
     segment: USERS_LAYOUT_PATTERN,
     pattern: USERS_LAYOUT_PATTERN,
     matchScore: computeMatchScore(USERS_LAYOUT_PATTERN),
@@ -72,8 +73,7 @@ export function createNestedUsersIdMatch(id: string, leaf: RouteNode): MatchedRo
 
 export function createUsersIdNode(overrides: Partial<RouteInstance> = {}): RouteNode {
   const node = {
-    route: createTestRoute(USERS_ID_PATTERN, overrides),
-    content: { kind: 'view' as const, loader: '', content: '', cache: false },
+    route: createTestRoute(USERS_ID_PATTERN, overrides) as RouteNode['route'],
     segment: USERS_ID_PATTERN,
     pattern: USERS_ID_PATTERN,
     matchScore: computeMatchScore(USERS_ID_PATTERN),

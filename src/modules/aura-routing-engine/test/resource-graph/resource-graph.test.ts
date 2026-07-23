@@ -1,9 +1,15 @@
+import type { RouteInstance } from '../../core';
 import type { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
+import {
+  HandoffCache,
+  ResourceGraph,
+  type ResourceGraphLoadPlan,
+} from '../../core/resource-graph';
 import type { ViewGraph } from '../../core/view-graph';
+import { createViewGraphFromLoadView } from '../helpers/create-mock-transaction';
 import { createTestRoute } from '../helpers/create-test-route';
 
 function createGraph(viewGraph: ViewGraph, dataGraph: DataGraph): ResourceGraph {
@@ -13,6 +19,17 @@ function createGraph(viewGraph: ViewGraph, dataGraph: DataGraph): ResourceGraph 
     dataGraph,
     sharedBuffer: new HandoffCache(),
   });
+}
+
+function buildLoadPlan(
+  graph: ResourceGraph,
+  routes: readonly MatchedRouteInfo[],
+): ResourceGraphLoadPlan {
+  return (
+    graph as unknown as {
+      buildLoadPlan(routes: readonly MatchedRouteInfo[]): ResourceGraphLoadPlan;
+    }
+  ).buildLoadPlan(routes);
 }
 
 function matchedRoute(
@@ -40,7 +57,7 @@ function matchedRoute(
           : asyncView
             ? { loader: 'url', content: `${path}.html` }
             : { loader: 'html', content: '<span/>' },
-    }) as MatchedRouteInfo['route'],
+    } as Partial<RouteInstance>) as MatchedRouteInfo['route'],
   };
 }
 
@@ -51,7 +68,7 @@ describe('ResourceGraph', () => {
     const staticOnly = matchedRoute('/about', { asyncView: true });
 
     const graph = createGraph({} as ViewGraph, {} as DataGraph);
-    const plan = graph.buildLoadPlan([parent, leaf, staticOnly]);
+    const plan = buildLoadPlan(graph, [parent, leaf, staticOnly]);
 
     expect(plan.dataRoutes).toEqual([parent, leaf]);
     expect(plan.viewRoutes.map((r) => r.pattern)).toEqual([
@@ -71,7 +88,7 @@ describe('ResourceGraph', () => {
     const leaf = matchedRoute('/settings/profile', { asyncView: true });
 
     const graph = createGraph({} as ViewGraph, {} as DataGraph);
-    const plan = graph.buildLoadPlan([folder, leaf]);
+    const plan = buildLoadPlan(graph, [folder, leaf]);
 
     expect(plan.dataRoutes).toEqual([folder]);
     expect(plan.viewRoutes.map((r) => r.pattern)).toEqual([
@@ -101,21 +118,13 @@ describe('ResourceGraph', () => {
       }),
     };
 
-    const viewGraph = {
-      loadView: jest.fn(async (route: MatchedRouteInfo) => {
-        order.push(`view:${route.pattern}`);
-        return {};
-      }),
-      load: jest.fn(async (routes: MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {
-        const results = await Promise.all(
-          routes.map((route) => viewGraph.loadView(route, signal, options)),
-        );
-        const error = results.find((result) => result.error)?.error;
-        return error ? { error } : { data: results };
-      }),
-    };
+    const loadView = jest.fn(async (route: MatchedRouteInfo) => {
+      order.push(`view:${route.pattern}`);
+      return {};
+    });
+    const viewGraph = createViewGraphFromLoadView(loadView);
 
-    const graph = createGraph(viewGraph as unknown as ViewGraph, dataGraph as unknown as DataGraph);
+    const graph = createGraph(viewGraph, dataGraph as unknown as DataGraph);
     const signal = new AbortController().signal;
     const transaction = { phaseMode: 'navigation', signal } as NavigationTransaction;
 

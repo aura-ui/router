@@ -87,7 +87,7 @@ describe('NavigationTransactionPipeline history commit', () => {
 
     const result = await new NavigationTransactionPipeline(transaction).runFullPipeline();
 
-    expect(result.status).toBe('error');
+    expect(result!.status).toBe('error');
     expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
     expect(transaction.engine.notifyUrlAligned).toHaveBeenCalledTimes(1);
   });

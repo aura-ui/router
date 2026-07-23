@@ -41,7 +41,7 @@ function mockDeferredTransactionRun() {
   return {
     run,
     resolveAt(index: number, result: TransactionResult) {
-      resolvers[index](result);
+      resolvers[index]!(result);
     },
     transactionAt(index: number) {
       return transactions[index];

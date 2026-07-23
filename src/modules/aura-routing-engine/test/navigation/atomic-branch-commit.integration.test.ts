@@ -5,6 +5,7 @@ import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { installAuraRouter } from '../../../aura-router/core/install';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
+import type { LoaderFn } from '../../core';
 import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
@@ -66,7 +67,10 @@ type Fixture = {
 };
 
 function registerSlowChildLoader(gate: { loader: (ctx: { signal?: AbortSignal }) => Promise<string> }): void {
-  AuraRouter.registerLoader(SLOW_CHILD_LOADER, (ctx) => gate.loader(ctx));
+  AuraRouter.registerLoader(
+    SLOW_CHILD_LOADER,
+    ((ctx: { signal?: AbortSignal }) => gate.loader(ctx)) as unknown as LoaderFn,
+  );
 }
 
 async function mountBranchFixture(routerAttrs: Record<string, string> = {}): Promise<Fixture> {
@@ -263,10 +267,13 @@ describe('atomic branch commit integration', () => {
 
   it('prefetch resolves child content before navigate', async () => {
     let loads = 0;
-    AuraRouter.registerLoader(SLOW_CHILD_LOADER, async () => {
-      loads++;
-      return '<span data-child-marker>CACHED-CHILD</span>';
-    });
+    AuraRouter.registerLoader(
+      SLOW_CHILD_LOADER,
+      (async () => {
+        loads++;
+        return '<span data-child-marker>CACHED-CHILD</span>';
+      }) as unknown as LoaderFn,
+    );
 
     document.body.innerHTML = `
       <template id="users-layout">

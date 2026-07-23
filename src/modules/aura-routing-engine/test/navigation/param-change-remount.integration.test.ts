@@ -4,6 +4,7 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
+import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
@@ -30,9 +31,9 @@ function wireRouteViewController(
   outlet: AuraOutlet,
   resolve: (id: string) => string,
   cacheDom = false,
-): { controller: RouteViewController; stash: Map<string, Element>; loadView: ViewGraph['loadView'] } {
+): { controller: RouteViewController; stash: Map<string, HTMLElement>; loadView: ViewGraph['loadView'] } {
   let passId = 0;
-  const stash = new Map<string, Element>();
+  const stash = new Map<string, HTMLElement>();
   const routeRecord = node.route as {
     path: string;
     layout: string;
@@ -61,15 +62,16 @@ function wireRouteViewController(
 
   const controller = new RouteViewController(
     {
-      route: routeRecord,
+      route: routeRecord as unknown as AuraRouteInterface,
       view: { loadView },
       cache: {
+        has: (key) => stash.has(key),
         extract: (key) => {
           const root = stash.get(key);
           if (root) stash.delete(key);
           return root;
         },
-        put: (key, root) => stash.set(key, root),
+        put: (key, root) => { stash.set(key, root); },
       },
       mountTarget: {
         appOutlet: () => outlet,

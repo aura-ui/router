@@ -1,3 +1,4 @@
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { attachResolvedView } from '../../core/route-tree/resolved-view';
 
 function matchFixture(
@@ -6,7 +7,7 @@ function matchFixture(
     view?: { loader: string; content: string } | null;
     layout?: string;
   } = {},
-) {
+): MatchedRouteInfo {
   return {
     href: '/users/1',
     pathname: '/users/1',
@@ -18,7 +19,7 @@ function matchFixture(
       view: 'view' in overrides ? overrides.view : { loader: 'url', content: 'shell.html' },
       layout: overrides.layout ?? '',
     },
-  } as never;
+  } as MatchedRouteInfo;
 }
 
 describe('attachResolvedView', () => {

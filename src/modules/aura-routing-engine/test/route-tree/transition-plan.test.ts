@@ -7,6 +7,7 @@ import {
   finalizeTransitionPlan,
   isSameNavigationTarget,
 } from '../../core/route-tree/transition-plan';
+import type { RouteInstance } from '../../core';
 import { createUsersIdMatch, createUsersIdNode, createNestedUsersIdMatch, createNestedUsersIdSetup } from '../helpers/create-dynamic-leaf-match';
 import { createMatchedRoute } from '../helpers/create-mock-transaction';
 import { createTestRoute } from '../helpers/create-test-route';
@@ -273,7 +274,7 @@ describe('buildTransitionPlan', () => {
       const node = createUsersIdNode({
         layout: 'users-shell',
         view: { loader: 'url', content: 'ignored.html' },
-      });
+      } as Partial<RouteInstance>);
       const from = createUsersIdMatch('1', node);
       const to = createUsersIdMatch('2', node);
 
@@ -362,8 +363,7 @@ describe('derived TransitionMap fields', () => {
 
 describe('needsBlockingWalk field', () => {
   it('is true when an exit route has leave', () => {
-    const exit = createMatchedRoute('/a');
-    (exit.route as { leave: string }).leave = 'on-leave';
+    const exit = createMatchedRoute('/a', { leave: ['on-leave'] });
     const plan = finalizeTransitionPlan({
       exitRoutes: [exit],
       enterRoutes: [createMatchedRoute('/b')],
@@ -377,8 +377,7 @@ describe('needsBlockingWalk field', () => {
   });
 
   it('is true when an enter route has guard', () => {
-    const enter = createMatchedRoute('/b');
-    (enter.route as { guard: string }).guard = 'on-guard';
+    const enter = createMatchedRoute('/b', { guard: ['on-guard'] });
     const plan = finalizeTransitionPlan({
       exitRoutes: [createMatchedRoute('/a')],
       enterRoutes: [enter],

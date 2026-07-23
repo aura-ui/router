@@ -188,7 +188,7 @@ describe('outlet-adapter', () => {
       expect(root.children).toHaveLength(0);
     });
 
-    it('reattachContent re-inserts detached root from view cache', () => {
+    it('reattachContent re-inserts detached root from DomCache keep-alive', () => {
       const root = createOutlet();
       const first = mount(ctx({ appOutlet: root, pattern: '/cached' }), '<span>cached</span>');
       const detached = unmountHandle(first.activeHandle, true)!;
@@ -319,6 +319,7 @@ describe('outlet-adapter', () => {
             strategy: 'stage',
             activeHandle: outgoing,
             stageOutgoingHandle: { id: 'prev-out' } as never,
+            pendingOutgoingRoot: null,
             nestedOutlet: null,
           },
           { activeHandle: incoming, nestedOutlet: null, appliedStrategy: 'replace' },

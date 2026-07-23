@@ -5,6 +5,7 @@ import {
   type MatchedRouteInfo,
 } from '../../../aura-routing-engine/core';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
+import type { AuraRouteInterface } from '../../core/types';
 import { RouteViewController } from '../../core/view/view-controller';
 
 function matched(pathname: string): MatchedRouteInfo {
@@ -45,19 +46,19 @@ describe('RouteViewController render errors', () => {
         route: {
           path: '/broken',
           layout: '',
-          view: '',
+          view: null,
           loadingTemplate: '',
           errorTemplate: '',
           scrollPolicy: null,
           cache: NO_CACHE,
           transition: NO_TRANSITION,
-        },
+        } as AuraRouteInterface,
         view: {
           loadView: async () => {
             throw loadError;
           },
         },
-        cache: { extract: () => undefined, put: () => {} },
+        cache: { has: () => false, extract: () => undefined, put: () => {} },
         mountTarget: {
           appOutlet: () => outlet,
           nestedOutlet: () => null,

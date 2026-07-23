@@ -23,7 +23,7 @@ function matched(pathname: string, overrides: Partial<MatchedRouteInfo> = {}): M
   } as MatchedRouteInfo;
 }
 
-function createMockViewCache(stash = new Map<string, Element>()): DomCachePort {
+function createMockDomCache(stash = new Map<string, Element>()): DomCachePort {
   return {
     has: (key) => stash.has(key),
     extract: (key) => {
@@ -39,7 +39,7 @@ function createController(
   path: string,
   outlets: { root: () => AuraOutlet; mount?: (route?: MatchedRouteInfo) => AuraOutlet | null },
   view: ViewResolverPort,
-  viewCache: DomCachePort,
+  domCache: DomCachePort,
   cacheDom = true,
 ): RouteViewController {
   let passId = 0;
@@ -58,7 +58,7 @@ function createController(
     {
       route,
       view,
-      cache: viewCache,
+      cache: domCache,
       mountTarget: {
         appOutlet: outlets.root,
         nestedOutlet: outlets.mount ?? (() => null),
@@ -103,12 +103,12 @@ describe('RouteViewController keep-alive integration', () => {
 
   it('stashes under pathname when render is skipped', async () => {
     const stash = new Map<string, Element>();
-    const viewCache = createMockViewCache(stash);
+    const domCache = createMockDomCache(stash);
     const controller = createController(
       'user/:id',
       { root: createOutlet },
       { loadView: async () => ({ data: '<span>view</span>' }) },
-      viewCache,
+      domCache,
     );
 
     const route = matched('/user/1', { pattern: '/user/:id' });
@@ -123,7 +123,7 @@ describe('RouteViewController keep-alive integration', () => {
 
   it('isolates stash keys by query string', async () => {
     const stash = new Map<string, Element>();
-    const viewCache = createMockViewCache(stash);
+    const domCache = createMockDomCache(stash);
     let resolveCount = 0;
     const root = createOutlet();
 
@@ -136,7 +136,7 @@ describe('RouteViewController keep-alive integration', () => {
           return { data: `<span>result-${resolveCount}</span>` };
         },
       },
-      viewCache,
+      domCache,
     );
 
     const routeA = matched('/search', { query: { q: 'a' }, pattern: '/search' });
@@ -165,14 +165,14 @@ describe('RouteViewController keep-alive integration', () => {
 
   it('reattaches child view in parent outlet slot from stash', async () => {
     const stash = new Map<string, Element>();
-    const viewCache = createMockViewCache(stash);
+    const domCache = createMockDomCache(stash);
     const root = createOutlet();
 
     const parent = createController(
       'users',
       { root: () => root },
       { loadView: async () => ({ data: layoutShell() }) },
-      viewCache,
+      domCache,
     );
 
     const child = createController(
@@ -182,7 +182,7 @@ describe('RouteViewController keep-alive integration', () => {
         mount: () => parent.nestedOutlet,
       },
       { loadView: async () => ({ data: '<span id="child-view">child</span>' }) },
-      viewCache,
+      domCache,
     );
 
     await parent.render(matched('/users', { pattern: '/users' }));
@@ -207,7 +207,7 @@ describe('RouteViewController keep-alive integration', () => {
           return { data: '<span id="child-view">fresh</span>' };
         },
       },
-      viewCache,
+      domCache,
     );
 
     await childAgain.render(childRoute);
@@ -227,7 +227,7 @@ describe('RouteViewController keep-alive integration', () => {
       },
     });
 
-    const viewCache = new RouteDomCache();
+    const domCache = new RouteDomCache();
     const root = createOutlet();
 
     async function visit(pathname: string, attrPath: string): Promise<void> {
@@ -235,7 +235,7 @@ describe('RouteViewController keep-alive integration', () => {
         attrPath,
         { root: () => root },
         { loadView: async () => ({ data: `<span>${pathname}</span>` }) },
-        viewCache,
+        domCache,
       );
       await controller.render(matched(pathname, { pattern: attrPath }));
       controller.onUnmount();
@@ -246,9 +246,9 @@ describe('RouteViewController keep-alive integration', () => {
     await visit('/c', 'c');
 
     expect(evicted).toHaveLength(1);
-    expect(viewCache.extract(domCacheKey(matched('/a', { pattern: 'a' }), 'a'))).toBeUndefined();
-    expect(viewCache.extract(domCacheKey(matched('/b', { pattern: 'b' }), 'b'))).toBeDefined();
-    expect(viewCache.extract(domCacheKey(matched('/c', { pattern: 'c' }), 'c'))).toBeDefined();
+    expect(domCache.extract(domCacheKey(matched('/a', { pattern: 'a' }), 'a'))).toBeUndefined();
+    expect(domCache.extract(domCacheKey(matched('/b', { pattern: 'b' }), 'b'))).toBeDefined();
+    expect(domCache.extract(domCacheKey(matched('/c', { pattern: 'c' }), 'c'))).toBeDefined();
     expect(evicted[0]?.isConnected).toBe(false);
   });
 
@@ -259,7 +259,7 @@ describe('RouteViewController keep-alive integration', () => {
       'user/:id',
       { root: () => root },
       { loadView: async () => ({ data: `<span>view-${++resolveCount}</span>` }) },
-      createMockViewCache(),
+      createMockDomCache(),
       false,
     );
 
@@ -284,7 +284,7 @@ describe('RouteViewController keep-alive integration', () => {
       'user/:id',
       { root: () => root },
       { loadView: async () => ({ data: `<span>view-${++resolveCount}</span>` }) },
-      createMockViewCache(),
+      createMockDomCache(),
       true,
     );
 
@@ -304,7 +304,7 @@ describe('RouteViewController keep-alive integration', () => {
       'user/:id',
       { root: () => root },
       { loadView: async () => ({ data: `<span>view-${++resolveCount}</span>` }) },
-      createMockViewCache(),
+      createMockDomCache(),
       true,
     );
 
@@ -325,7 +325,7 @@ describe('RouteViewController keep-alive integration', () => {
       'user/:id',
       { root: () => root },
       { loadView: async (info) => ({ data: `<span>view-${info.params?.id}</span>` }) },
-      createMockViewCache(),
+      createMockDomCache(),
       false,
     );
 
@@ -343,13 +343,13 @@ describe('RouteViewController keep-alive integration', () => {
   it('staged param-change remount stashes outgoing DOM before commit when cache.dom', async () => {
     const root = createOutlet();
     const stash = new Map<string, Element>();
-    const viewCache = createMockViewCache(stash);
+    const domCache = createMockDomCache(stash);
     let resolveCount = 0;
     const controller = createController(
       'user/:id',
       { root: () => root },
       { loadView: async () => ({ data: `<span>view-${++resolveCount}</span>` }) },
-      viewCache,
+      domCache,
       true,
     );
 
@@ -390,7 +390,7 @@ describe('RouteViewController keep-alive integration', () => {
             data: `<span data-id="${info.params?.id}">view-${info.params?.id}</span>`,
           }),
         },
-        cache: createMockViewCache(),
+        cache: createMockDomCache(),
         mountTarget: { appOutlet: () => root, nestedOutlet: () => null },
       },
       () => 1,
@@ -417,14 +417,14 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.textContent).toBe('view-2');
   });
 
-  it('applyPreResolved mounts content without calling content.loadView', () => {
+  it('applyPreResolved mounts content without calling view.loadView', () => {
     const root = createOutlet();
     const resolve = jest.fn(async () => ({ data: '<span>from-resolve</span>' }));
     const controller = createController(
       '/page',
       { root: () => root },
       { loadView: resolve },
-      createMockViewCache(),
+      createMockDomCache(),
       false,
     );
 
@@ -445,7 +445,7 @@ describe('RouteViewController keep-alive integration', () => {
       'users',
       { root: () => root },
       { loadView: resolve },
-      createMockViewCache(),
+      createMockDomCache(),
       false,
     );
 
@@ -456,7 +456,7 @@ describe('RouteViewController keep-alive integration', () => {
         mount: () => parent.nestedOutlet,
       },
       { loadView: resolve },
-      createMockViewCache(),
+      createMockDomCache(),
       false,
     );
 
@@ -484,6 +484,7 @@ function matchedUser(pathname: string): MatchedRouteInfo {
 }
 
 function routeConfig(overrides: Partial<AuraRouteInterface> = {}): AuraRouteInterface {
+  const { extract = null, ...rest } = overrides;
   return {
     path: 'user/:id',
     layout: '',
@@ -504,7 +505,8 @@ function routeConfig(overrides: Partial<AuraRouteInterface> = {}): AuraRouteInte
     hasReady: false,
     hasAsyncContent: false,
     hasSyncContent: false,
-    ...overrides,
+    ...rest,
+    extract,
   };
 }
 
@@ -522,7 +524,7 @@ async function captureUseStagedMount(
     {
       route: config,
       view: { loadView: async () => ({ data: '<span>view</span>' }) },
-      cache: { extract: () => undefined, put: () => {} },
+      cache: { has: () => false, extract: () => undefined, put: () => {} },
       mountTarget: { appOutlet: () => outlet, nestedOutlet: () => null },
       plugins: [{
         onContentResolved(pass) {

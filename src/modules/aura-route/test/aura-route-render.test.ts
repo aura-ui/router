@@ -16,6 +16,7 @@
 
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouter } from '../../aura-router/core/aura-router';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/route-api';
 import { AuraRoute } from '../core/aura-route';
 
 describe('AuraRoute render validation', () => {
@@ -58,7 +59,7 @@ describe('AuraRoute render validation', () => {
     search: '',
     hash: '',
     pattern: '/page',
-  };
+  } as MatchedRouteInfo;
 
   it('throws on render when page has no view', async () => {
     const route = mountRoute({ path: '/empty' });

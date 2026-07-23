@@ -164,7 +164,7 @@ describe('ViewRenderPipeline', () => {
     const root = createOutlet();
     const cached = document.createElement('div');
     cached.textContent = 'from-dom-cache';
-    const cache = { extract: jest.fn(() => cached), put: jest.fn() };
+    const cache = { has: jest.fn(() => false), extract: jest.fn(() => cached), put: jest.fn() };
     const pipeline = createPipeline(root, {
       route: { cache: { dom: true, view: true, data: true } },
       cache,
@@ -182,7 +182,7 @@ describe('ViewRenderPipeline', () => {
 
   it('syncBranchMount applies pre-resolved content when DomCache misses', () => {
     const root = createOutlet();
-    const cache = { extract: jest.fn(() => undefined), put: jest.fn() };
+    const cache = { has: jest.fn(() => false), extract: jest.fn(() => undefined), put: jest.fn() };
     const pipeline = createPipeline(root, {
       route: { cache: { dom: true, view: true, data: true } },
       cache,

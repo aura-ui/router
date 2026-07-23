@@ -112,6 +112,7 @@ describe('ViewTeardownPipeline', () => {
     const { teardown, ctx } = createTeardown(root, {
       route: { cache: { dom: true, view: false, data: false } },
       cache: {
+        has: (key) => stash.has(key),
         extract: (key) => {
           const node = stash.get(key);
           if (node) stash.delete(key);

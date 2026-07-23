@@ -7,7 +7,6 @@ import { NO_TRANSITION, type RouteTransitionType } from '../../../aura-route/cor
 import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { RouteLifecycleContext } from '../../core/route/types';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import type { ViewGraph } from '../../core/view-graph';
@@ -17,6 +16,7 @@ import {
 } from '../_helpers/create-dynamic-leaf-match';
 import {
   createMockEngine,
+  createNavigationTransaction,
   createViewGraphFromLoadView,
   wireEngineViewGraph,
 } from '../_helpers/create-mock-transaction';
@@ -137,19 +137,11 @@ async function runParamRemountNavigation(
   const engine = createMockEngine();
   wireEngineViewGraph(engine, createViewGraphFromLoadView(loadView));
 
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from,
-      to,
-      action: 'push',
-      href: to.href,
-      hash: '',
-      options: { replace: false, syncHistory: true },
-    },
-    () => false,
+  const transaction = createNavigationTransaction({
     engine,
-  );
+    from,
+    to,
+  });
 
   return {
     result: await transaction.run(),
@@ -461,19 +453,11 @@ describe('param-change in-place + transition pipeline order', () => {
     const engine = createMockEngine();
     wireEngineViewGraph(engine, createViewGraphFromLoadView(loadView));
 
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from: exitRoute,
-        to: enterRoute,
-        action: 'push',
-        href: enterRoute.href,
-        hash: '',
-        options: { replace: false, syncHistory: true },
-      },
-      () => false,
+    const transaction = createNavigationTransaction({
       engine,
-    );
+      from: exitRoute,
+      to: enterRoute,
+    });
 
     await exitRoute.route.render(exitRoute);
 

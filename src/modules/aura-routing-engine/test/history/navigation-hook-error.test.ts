@@ -1,16 +1,10 @@
-import {
-  AuraRoutingEngine,
-  FakeHistoryProvider,
-} from '../../core';
-import type { RouterInstance } from '../../core';
 import { defineRouteHook } from '../../core/hooks/define-hook';
 import { defaultHookRegistry } from '../../core/hooks/registry';
 import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
 import { createTestRoute } from '../_helpers/create-test-route';
+import { createEngineHarness } from '../_helpers/engine-harness';
 
 describe('onNavigationHookError', () => {
-  const router: RouterInstance = { navigate: jest.fn() };
-
   afterEach(() => {
     defaultHookRegistry.unregister('bad-error-hook');
   });
@@ -20,10 +14,15 @@ describe('onNavigationHookError', () => {
     const renderError = new Error('render failed');
     const onNavigationHookError = jest.fn();
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(router, {
-      provider,
+    const { engine } = createEngineHarness({
+      routes: [
+        createTestRoute('/broken', {
+          render: async () => ({ status: 'error', error: renderError }),
+          error: ['bad-error-hook'],
+        }),
+      ],
       onNavigationHookError,
+      startProvider: false,
     });
     const errors = collectNavigationErrors(engine);
 
@@ -37,13 +36,6 @@ describe('onNavigationHookError', () => {
       }),
     );
 
-    engine.registerRoutes([
-      createTestRoute('/broken', {
-        render: async () => ({ status: 'error', error: renderError }),
-        error: ['bad-error-hook'],
-      }),
-    ]);
-    provider.start();
     engine.start();
 
     await engine.navigateTo('/broken', 'push', { replace: false, syncHistory: true });

@@ -1,29 +1,21 @@
-import {
-  AuraRoutingEngine,
-  FakeHistoryProvider,
-} from '../../core';
-import type { RouterInstance } from '../../core';
 import * as redirectResolver from '../../core/redirect/redirect-resolver';
 import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
 import { createTestRoute } from '../_helpers/create-test-route';
+import { bootEngine, createEngineHarness } from '../_helpers/engine-harness';
 
 describe('AuraRoutingEngine NOT_FOUND', () => {
-  const router: RouterInstance = { navigate: jest.fn() };
-
   it('runs onUnmount, reports onNotFound, and commits URL on push', async () => {
     const onUnmount = jest.fn();
     const onNotFound = jest.fn();
 
-    const provider = new FakeHistoryProvider('/home');
-    const engine = new AuraRoutingEngine(router, {
-      provider,
+    const { engine, provider } = createEngineHarness({
+      href: '/home',
+      routes: [createTestRoute('/home', { onUnmount })],
       onNotFound,
     });
-    engine.registerRoutes([createTestRoute('/home', { onUnmount })]);
-    provider.start();
     const errors = collectNavigationErrors(engine);
 
-    await engine.navigateTo('/home', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/home');
     await engine.navigateTo('/missing', 'push', { replace: false, syncHistory: true });
 
     expect(onUnmount).toHaveBeenCalledTimes(1);
@@ -45,15 +37,13 @@ describe('AuraRoutingEngine NOT_FOUND', () => {
       href: '/missing',
     });
 
-    const provider = new FakeHistoryProvider('/home');
-    const engine = new AuraRoutingEngine(router, {
-      provider,
+    const { engine, provider } = createEngineHarness({
+      href: '/home',
+      routes: [createTestRoute('/home')],
       onNotFound,
     });
-    engine.registerRoutes([createTestRoute('/home')]);
-    provider.start();
 
-    await engine.navigateTo('/home', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/home');
     await engine.navigateTo('/entry', 'push', { replace: false, syncHistory: true });
 
     followSpy.mockRestore();

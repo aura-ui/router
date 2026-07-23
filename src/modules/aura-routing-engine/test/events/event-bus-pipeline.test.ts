@@ -3,12 +3,15 @@ jest.mock('../../core/hooks/registry', () =>
 jest.mock('../../core/view-mount/view-commit-render', () =>
   jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
-import type { EngineEvent } from '../../core/events';
 import { NavigationFailure } from '../../core/failure';
 import { NavigationError } from '../../core/failure/navigation-error';
 import { NavigationCoordinator } from '../../core/navigation/navigation-coordinator';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
+import {
+  collectEngineEvents,
+  eventTypes,
+} from '../_helpers/collect-navigation-errors';
 import {
   createCoordinatorMockHost,
   createMatchedRoute,
@@ -16,10 +19,6 @@ import {
 } from '../_helpers/create-mock-transaction';
 import { createPushNavOptions } from '../_helpers/jest/navigation-fixtures';
 import { mockRunViewCommit, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
-
-function eventTypes(events: EngineEvent[]): EngineEvent['type'][] {
-  return events.map((event) => event.type);
-}
 
 describe('EventBus pipeline emits (EB1)', () => {
   beforeEach(() => {
@@ -31,7 +30,6 @@ describe('EventBus pipeline emits (EB1)', () => {
   });
 
   it('full pipeline emits prepare / load / commit:start', async () => {
-    const seen: EngineEvent[] = [];
     const from = createMatchedRoute('/from');
     const to = createMatchedRoute('/to');
     const transaction = createMockTransaction({
@@ -40,7 +38,7 @@ describe('EventBus pipeline emits (EB1)', () => {
       enterRoutes: [to],
       transitionOrder: null,
     });
-    transaction.engine.events.subscribe((event) => seen.push(event));
+    const seen = collectEngineEvents(transaction.engine);
 
     const result = await new NavigationTransactionPipeline(transaction).runFullPipeline();
 
@@ -55,7 +53,6 @@ describe('EventBus pipeline emits (EB1)', () => {
   });
 
   it('transaction.run emits start and node:deactivate before pipeline', async () => {
-    const seen: EngineEvent[] = [];
     const from = createMatchedRoute('/from');
     const to = createMatchedRoute('/to');
     const transaction = createMockTransaction({
@@ -64,7 +61,7 @@ describe('EventBus pipeline emits (EB1)', () => {
       enterRoutes: [to],
       transitionOrder: null,
     });
-    transaction.engine.events.subscribe((event) => seen.push(event));
+    const seen = collectEngineEvents(transaction.engine);
 
     jest.spyOn(NavigationTransactionPipeline.prototype, 'runFullPipeline')
       .mockResolvedValue({ status: 'navigationSucceeded' });
@@ -95,13 +92,12 @@ describe('EventBus pipeline emits (EB1)', () => {
 
   it('fast path skips prepare and load', async () => {
     mockRunViewCommit.mockResolvedValue('ok');
-    const seen: EngineEvent[] = [];
     const transaction = createMockTransaction({
       from: createMatchedRoute('/a'),
       enterRoutes: [createMatchedRoute('/b')],
       transitionOrder: null,
     });
-    transaction.engine.events.subscribe((event) => seen.push(event));
+    const seen = collectEngineEvents(transaction.engine);
 
     await new NavigationTransactionPipeline(transaction).runFastPipeline();
 
@@ -111,8 +107,7 @@ describe('EventBus pipeline emits (EB1)', () => {
   it('coordinator emits finish after successful run', async () => {
     const host = createCoordinatorMockHost();
     const coordinator = new NavigationCoordinator(host);
-    const seen: EngineEvent[] = [];
-    host.engine.events.subscribe((event) => seen.push(event));
+    const seen = collectEngineEvents(host.engine);
 
     jest.spyOn(NavigationTransaction.prototype, 'run')
       .mockResolvedValue({ status: 'navigationSucceeded' });
@@ -131,8 +126,7 @@ describe('EventBus pipeline emits (EB1)', () => {
   it('coordinator emits cancel for cancelled run', async () => {
     const host = createCoordinatorMockHost();
     const coordinator = new NavigationCoordinator(host);
-    const seen: EngineEvent[] = [];
-    host.engine.events.subscribe((event) => seen.push(event));
+    const seen = collectEngineEvents(host.engine);
 
     jest.spyOn(NavigationTransaction.prototype, 'run')
       .mockResolvedValue({ status: 'cancelled' });
@@ -155,8 +149,7 @@ describe('EventBus pipeline emits (EB1)', () => {
   it('coordinator emits redirect and error terminals', async () => {
     const host = createCoordinatorMockHost();
     const coordinator = new NavigationCoordinator(host);
-    const seen: EngineEvent[] = [];
-    host.engine.events.subscribe((event) => seen.push(event));
+    const seen = collectEngineEvents(host.engine);
 
     const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run');
     const to = createMatchedRoute('/b');

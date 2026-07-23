@@ -1,11 +1,9 @@
-import { AuraRoutingEngine } from '../../core';
-import type { LoaderFn, RouterInstance } from '../../core';
+import type { LoaderFn } from '../../core';
 import { LoaderRegistry } from '../../core/view-graph';
+import { createEngineHarness } from '../_helpers/engine-harness';
 import { collectRoutesFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('AuraRoutingEngine prefetch wiring', () => {
-  const router: RouterInstance = { navigate: jest.fn() };
-
   it('prefetch loads content for matched branch via registry descriptors', async () => {
     const registry = new LoaderRegistry(undefined, []);
     let loads = 0;
@@ -20,8 +18,11 @@ describe('AuraRoutingEngine prefetch wiring', () => {
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::<p>about</p>');
 
-    const engine = new AuraRoutingEngine(router, { viewRegistry: registry });
-    engine.replaceRoutes(collectRoutesFromDom(createDomRoute('/'), about) as never);
+    const { engine } = createEngineHarness({
+      viewRegistry: registry,
+      routes: collectRoutesFromDom(createDomRoute('/'), about),
+      startProvider: false,
+    });
 
     await engine.prefetch('/about');
 
@@ -42,11 +43,12 @@ describe('AuraRoutingEngine prefetch wiring', () => {
     const about = createDomRoute('/about');
     about.setAttribute('view', 'html::x');
 
-    const engine = new AuraRoutingEngine(router, {
+    const { engine } = createEngineHarness({
       viewRegistry: registry,
       prefetch: false,
+      routes: collectRoutesFromDom(about),
+      startProvider: false,
     });
-    engine.replaceRoutes(collectRoutesFromDom(about) as never);
 
     await engine.prefetch('/about');
 

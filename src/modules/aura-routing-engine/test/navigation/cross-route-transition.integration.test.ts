@@ -8,15 +8,15 @@ import type { RouteTransitionType } from '../../../aura-route/core/attr/transiti
 import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { RouteInstance } from '../../core/route/types';
 import type { RouteLifecycleContext } from '../../core/route/types';
 import {
+  createMatchedRoute,
   createMockEngine,
+  createNavigationTransaction,
   createViewGraphFromLoadView,
   wireEngineViewGraph,
 } from '../_helpers/create-mock-transaction';
-import { createTestRoute } from '../_helpers/create-test-route';
 import { mockRunPhaseHooks, resetHookMocks } from '../_helpers/jest/hook-mocks';
 import {
   createTestOutlet,
@@ -45,14 +45,7 @@ function queryRouteView(outlet: AuraOutlet, label: string): Element | null {
 }
 
 function createCrossRouteMatch(path: string, overrides: Partial<RouteInstance> = {}): MatchedRouteInfo {
-  return {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
-  };
+  return createMatchedRoute(path, overrides);
 }
 
 function wireRoute(
@@ -125,19 +118,11 @@ async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteI
     })),
   );
 
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from,
-      to,
-      action: 'push',
-      href: to.href,
-      hash: '',
-      options: { replace: false, syncHistory: true },
-    },
-    () => false,
+  const transaction = createNavigationTransaction({
     engine,
-  );
+    from,
+    to,
+  });
 
   return {
     result: await transaction.run(),

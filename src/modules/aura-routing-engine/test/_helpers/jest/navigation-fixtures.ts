@@ -125,23 +125,68 @@ export async function runNavigationTransaction(
   };
 }
 
-export function mockDeferredTransactionRun() {
+export type MockDeferredTransactionRunOptions = {
+  /** Capture `this` for each deferred `run()` call. */
+  captureTransactions?: boolean;
+  /** Call `engine.commitNavigation(tx)` when resolved with success / empty result. */
+  commitOnSuccess?: boolean;
+};
+
+export function mockDeferredTransactionRun(
+  options: MockDeferredTransactionRunOptions = {},
+) {
   const resolvers: Array<(result: TransactionResult) => void> = [];
+  const transactions: NavigationTransaction[] = [];
 
   const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
-    () =>
-      new Promise<TransactionResult>((resolve) => {
-        resolvers.push(resolve);
-      }),
+    function (this: NavigationTransaction) {
+      if (options.captureTransactions) {
+        transactions.push(this);
+      }
+      return new Promise<TransactionResult>((resolve) => {
+        resolvers.push((result) => {
+          if (
+            options.commitOnSuccess &&
+            (!result || result.status === 'navigationSucceeded')
+          ) {
+            this.engine.commitNavigation(this);
+          }
+          resolve(result);
+        });
+      });
+    },
   );
 
   return {
     runSpy,
     resolveAt(index: number, result: TransactionResult) {
-      resolvers[index](result);
+      resolvers[index]!(result);
     },
     pendingCount: () => resolvers.length,
+    transactionAt(index: number) {
+      return transactions[index];
+    },
   };
+}
+
+/** Resolve when `runSpy` has at least `expected` calls (microtask poll). */
+export async function waitForRunCalls(
+  runSpy: jest.SpyInstance,
+  expected: number,
+): Promise<void> {
+  for (let i = 0; i < 100; i++) {
+    if (runSpy.mock.calls.length >= expected) return;
+    await Promise.resolve();
+  }
+  expect(runSpy).toHaveBeenCalledTimes(expected);
+}
+
+/** Immediate success stub that commits navigation. */
+export function mockTransactionRunSuccess(runSpy: jest.SpyInstance): void {
+  runSpy.mockImplementation(async function (this: NavigationTransaction) {
+    this.engine.commitNavigation(this);
+    return { status: 'navigationSucceeded' };
+  });
 }
 
 export function createTestOutlet(): AuraOutlet {

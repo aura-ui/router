@@ -6,19 +6,19 @@ import { DataGraph } from '../../core/data-graph';
 import type { RouteHookDefinition } from '../../core/hooks/types';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import type { NavigationPhaseMode } from '../../core/navigation/types';
 import {
   HandoffCache,
   ResourceGraph,
 } from '../../core/resource-graph';
-import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
 import { LoaderRegistry, ViewGraph } from '../../core/view-graph';
 import {
   createMatchedRoute,
   createMockEngine,
   createMockViewGraph,
+  createNavigationTransaction,
 } from '../_helpers/create-mock-transaction';
 import { withResolvedView } from '../_helpers/with-resolved-view';
 
@@ -38,27 +38,15 @@ function prepareTx(
   update = false,
 ): NavigationTransaction {
   const to = enterRoutes[enterRoutes.length - 1]!;
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from: null,
-      to,
-      action: 'push',
-      href: to.href,
-      hash: '',
-      options: { replace: false, syncHistory: true },
-      phaseMode,
-    },
-    () => false,
+  return createNavigationTransaction({
     engine,
-  );
-  transaction.transitionPlan = finalizeTransitionPlan({
+    to,
+    phaseMode,
     enterRoutes: [...enterRoutes],
     exitRoutes: [],
-    lca: null,
     update,
+    transitionOrder: null,
   });
-  return transaction;
 }
 
 function createNoCacheRoute(

@@ -1,57 +1,15 @@
-import { computeMatchScore } from '../../core/match/route-score';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import {
   buildExitRoutes,
   buildEnterRoutes,
   findBranchLcaIndex,
   findLcaNodes,
 } from '../../core/route-tree/branch-diff';
-import { buildMatchedChain } from '../../core/route-tree/matched-chain';
-import type { RouteNode } from '../../core/route-tree/route-node.types';
-import { createTestRoute } from '../_helpers/create-test-route';
-
-function createMatch(node: RouteNode): MatchedRouteInfo {
-  return {
-    href: node.pattern,
-    pathname: node.pattern,
-    search: '',
-    hash: '',
-    pattern: node.pattern,
-    route: node.route,
-    node,
-  };
-}
-
-function buildChain(patterns: string[]): MatchedRouteInfo[] {
-  const nodes: RouteNode[] = patterns.map((pattern, depth) => ({
-    route: createTestRoute(pattern),
-    segment: pattern.split('/').pop() ?? pattern,
-    pattern,
-    matchScore: computeMatchScore(pattern),
-    parent: null,
-    children: [],
-    depth,
-    isIndex: false,
-    branch: [],
-  }));
-
-  for (let i = 1; i < nodes.length; i++) {
-    nodes[i]!.parent = nodes[i - 1]!;
-    nodes[i - 1]!.children.push(nodes[i]!);
-  }
-
-  for (let i = 0; i < nodes.length; i++) {
-    nodes[i]!.depth = i;
-    nodes[i]!.branch = nodes.slice(0, i + 1);
-  }
-
-  return buildMatchedChain(nodes, createMatch);
-}
+import { createMatchedBranch } from '../_helpers/route-tree-fixtures';
 
 describe('branch-diff', () => {
   it('findBranchLcaIndex compares chains by shared prefix', () => {
-    const from = buildChain(['/settings', '/settings/profile']);
-    const to = buildChain(['/settings', '/settings/security']);
+    const from = createMatchedBranch(['/settings', '/settings/profile']).matches;
+    const to = createMatchedBranch(['/settings', '/settings/security']).matches;
 
     expect(findBranchLcaIndex(from, to)).toBe(0);
     expect(buildExitRoutes(from, 0).map((info) => info.pattern)).toEqual(['/settings/profile']);
@@ -59,14 +17,18 @@ describe('branch-diff', () => {
   });
 
   it('findBranchLcaIndex returns -1 for unrelated branches', () => {
-    const from = buildChain(['/settings', '/settings/profile']);
-    const to = buildChain(['/']);
+    const from = createMatchedBranch(['/settings', '/settings/profile']).matches;
+    const to = createMatchedBranch(['/']).matches;
 
     expect(findBranchLcaIndex(from, to)).toBe(-1);
   });
 
   it('findLcaNodes walks parent pointers without allocations', () => {
-    const chain = buildChain(['/settings', '/settings/profile', '/settings/profile/edit']);
+    const chain = createMatchedBranch([
+      '/settings',
+      '/settings/profile',
+      '/settings/profile/edit',
+    ]).matches;
     const settings = chain[0]!.node!;
     const profile = chain[1]!.node!;
     const edit = chain[2]!.node!;

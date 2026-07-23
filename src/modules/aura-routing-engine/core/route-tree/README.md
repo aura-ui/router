@@ -270,7 +270,7 @@ navigate(from, to)
 
 ```
 test/
-  helpers/                     (create-test-route, test-route-dom)
+  _helpers/                    (create-test-route, test-route-dom)
   route-tree/
     resolve-pattern.test.ts
     build-route-tree.test.ts   (DOM nested tree)

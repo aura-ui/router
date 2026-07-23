@@ -1,17 +1,6 @@
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { unmountPrevOnNotFound } from '../../core/navigation/unmount-prev-on-not-found';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 import { createTestRoute } from '../_helpers/create-test-route';
-
-function createMatchedRoute(path: string): MatchedRouteInfo {
-  return {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path),
-  };
-}
 
 describe('unmountPrevOnNotFound', () => {
   it('skips cleanup when there is no previous route', () => {

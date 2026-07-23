@@ -1,32 +1,21 @@
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { ViewCommitTracker } from '../../core/view-mount/view-commit-tracker';
 import {
   collectTransactionRoutes,
   rollbackUncommittedViews,
 } from '../../core/view-mount/view-mount-rollback';
-import { createMatchedRoute, createMockEngine } from '../_helpers/create-mock-transaction';
+import {
+  createMatchedRoute,
+  createMockEngine,
+  createNavigationTransaction,
+} from '../_helpers/create-mock-transaction';
 import { createTestRoute } from '../_helpers/create-test-route';
-
-function createMatchedRouteLocal(
-  path: string,
-  overrides: Parameters<typeof createTestRoute>[1] = {},
-): MatchedRouteInfo {
-  return createMatchedRoute(path, overrides);
-}
 
 describe('view rollback', () => {
   it('collectTransactionRoutes deduplicates enter and exit branches', () => {
-    const route = createTestRoute('/shared');
-    const shared: MatchedRouteInfo = {
-      href: '/shared',
-      pathname: '/shared',
-      search: '',
-      hash: '',
-      pattern: '/shared',
-      route: route as MatchedRouteInfo['route'],
-    };
+    const shared = createMatchedRoute('/shared', {
+      asRoute: createTestRoute('/shared'),
+    });
     const plan = {
       exitRoutes: [shared],
       enterRoutes: [shared],
@@ -41,8 +30,8 @@ describe('view rollback', () => {
     const revertExit = jest.fn();
     const revertEnter = jest.fn();
     const plan = {
-      exitRoutes: [createMatchedRouteLocal('/from', { revertInFlightView: revertExit })],
-      enterRoutes: [createMatchedRouteLocal('/to', { revertInFlightView: revertEnter })],
+      exitRoutes: [createMatchedRoute('/from', { revertInFlightView: revertExit })],
+      enterRoutes: [createMatchedRoute('/to', { revertInFlightView: revertEnter })],
       lca: null,
       update: false,
     };
@@ -58,7 +47,7 @@ describe('view rollback', () => {
     const revertInFlightView = jest.fn();
     const plan = {
       exitRoutes: [],
-      enterRoutes: [createMatchedRouteLocal('/to', { revertInFlightView })],
+      enterRoutes: [createMatchedRoute('/to', { revertInFlightView })],
       lca: null,
       update: false,
     };
@@ -77,21 +66,12 @@ describe('NavigationTransaction staged view rollback', () => {
   });
 
   function createTransactionWithEnterGuard(revertInFlightView: jest.Mock) {
-    const to = createMatchedRouteLocal('/to', { guard: ['auth'], revertInFlightView });
-    const engine = createMockEngine();
-    return new NavigationTransaction(
-      1,
-      {
-        from: null,
-        to,
-        action: 'push',
-        href: '/to',
-        hash: '',
-        options: { replace: false, syncHistory: true },
-      },
-      () => false,
-      engine,
-    );
+    const to = createMatchedRoute('/to', { guard: ['auth'], revertInFlightView });
+    return createNavigationTransaction({
+      engine: createMockEngine(),
+      to,
+      href: '/to',
+    });
   }
 
   it('rolls back eagerly on transaction cancel', async () => {
@@ -131,21 +111,12 @@ describe('NavigationTransaction staged view rollback', () => {
 
   it('detaches abort listener when transaction completes with committed view', async () => {
     const revertInFlightView = jest.fn();
-    const to = createMatchedRouteLocal('/to', { revertInFlightView });
-    const engine = createMockEngine();
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from: null,
-        to,
-        action: 'push',
-        href: '/to',
-        hash: '',
-        options: { replace: false, syncHistory: true },
-      },
-      () => false,
-      engine,
-    );
+    const to = createMatchedRoute('/to', { revertInFlightView });
+    const transaction = createNavigationTransaction({
+      engine: createMockEngine(),
+      to,
+      href: '/to',
+    });
 
     jest.spyOn(NavigationTransactionPipeline.prototype, 'runFastPipeline').mockImplementation(async function () {
       transaction.viewCommitTracker.markViewCommitted();

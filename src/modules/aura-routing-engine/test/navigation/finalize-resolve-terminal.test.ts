@@ -1,31 +1,23 @@
-import { AuraRoutingEngine, FakeHistoryProvider } from '../../core';
-import type { RouterInstance } from '../../core';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import { createMatchedRoute } from '../_helpers/create-mock-transaction';
+import {
+  createMatchedRoute,
+  createNavigationTransaction,
+} from '../_helpers/create-mock-transaction';
+import { createEngineHarness } from '../_helpers/engine-harness';
 
 describe('AuraRoutingEngine.finalizeResolveTerminal', () => {
-  const router: RouterInstance = { navigate: jest.fn() };
-
   function setup() {
-    const provider = new FakeHistoryProvider('/from');
-    const engine = new AuraRoutingEngine(router, { provider });
+    const { engine } = createEngineHarness({ href: '/from' });
     engine.isRunning = true;
     const seen: string[] = [];
     engine.events.subscribe((event) => seen.push(event.type));
     const applySpy = jest.spyOn(engine, 'applyTerminalOutcome');
-    const probe = new NavigationTransaction(
-      0,
-      {
-        from: createMatchedRoute('/from'),
-        to: createMatchedRoute('/to'),
-        href: '/to',
-        hash: '',
-        action: 'push',
-        options: { replace: false, syncHistory: true },
-      },
-      () => false,
+    const probe = createNavigationTransaction({
       engine,
-    );
+      id: 0,
+      from: createMatchedRoute('/from'),
+      to: createMatchedRoute('/to'),
+      href: '/to',
+    });
     return { engine, seen, applySpy, probe };
   }
 

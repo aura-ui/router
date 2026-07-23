@@ -3,8 +3,7 @@ import type { RouteInstance } from '../../core';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { HandoffCache } from '../../core/resource-graph';
 import { ViewGraph, LoaderRegistry } from '../../core/view-graph';
-import { createTestRoute } from '../_helpers/create-test-route';
-import { withResolvedView } from '../_helpers/with-resolved-view';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 function matched(
   pattern: string,
@@ -17,19 +16,13 @@ function matched(
       ? { loader: resolved.loader, content: resolved.content }
       : null;
 
-  return withResolvedView({
-    href: pattern,
-    pathname: pattern,
-    search: '',
-    hash: '',
-    pattern,
-    route: createTestRoute(pattern, {
-      layout: '',
-      view: viewFromResolved,
-      cache: NO_CACHE,
-      ...(routeOverride as Partial<RouteInstance> | undefined),
-    }),
+  return createMatchedRoute(pattern, {
+    layout: '',
+    view: viewFromResolved,
+    cache: NO_CACHE,
+    ...(routeOverride as Partial<RouteInstance> | undefined),
     ...rest,
+    attachResolvedView: true,
   });
 }
 

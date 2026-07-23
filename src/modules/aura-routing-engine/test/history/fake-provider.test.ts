@@ -1,12 +1,9 @@
-import {
-  AuraRoutingEngine,
-  FakeHistoryProvider,
-} from '../../core';
-import type { RouterInstance } from '../../core';
+import { FakeHistoryProvider } from '../../core';
 import { defineRouteHook } from '../../core/hooks/define-hook';
 import { defaultHookRegistry } from '../../core/hooks/registry';
 import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
 import { createTestRoute } from '../_helpers/create-test-route';
+import { bootEngine, createEngineHarness } from '../_helpers/engine-harness';
 import { collectRoutesFromDom, createDomRoute } from '../_helpers/test-route-dom';
 
 describe('FakeHistoryProvider', () => {
@@ -62,16 +59,12 @@ describe('FakeHistoryProvider', () => {
 });
 
 describe('AuraRoutingEngine + FakeHistoryProvider', () => {
-  const router: RouterInstance = { navigate: jest.fn() };
-
   it('после успешного push обновляет URL в provider', async () => {
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(router, { provider });
+    const { engine, provider } = createEngineHarness({
+      routes: [createTestRoute('/'), createTestRoute('/about')],
+    });
 
-    engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
-    provider.start();
-
-    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/');
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
 
     expect(provider.currentHref).toBe('/about');
@@ -80,13 +73,13 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
   it('calls onHashOnlyNavigation for hash-only navigateTo', async () => {
     const onHashOnlyNavigation = jest.fn();
-    const provider = new FakeHistoryProvider('/docs');
-    const engine = new AuraRoutingEngine(router, { provider, onHashOnlyNavigation });
+    const { engine, provider } = createEngineHarness({
+      href: '/docs',
+      routes: [createTestRoute('/docs')],
+      onHashOnlyNavigation,
+    });
 
-    engine.registerRoutes([createTestRoute('/docs')]);
-    provider.start();
-
-    await engine.navigateTo('/docs', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/docs');
     await engine.navigateTo('/docs#intro', 'push', { replace: false, syncHistory: true });
 
     expect(onHashOnlyNavigation).toHaveBeenCalledTimes(1);
@@ -97,10 +90,12 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
   it('canonicalizes index folder URL without trailing slash on start', async () => {
     const index = createDomRoute('.');
     const settings = createDomRoute('/app/settings', [index]);
-    const provider = new FakeHistoryProvider('/app/settings');
-    const engine = new AuraRoutingEngine(router, { provider });
+    const { engine, provider } = createEngineHarness({
+      href: '/app/settings',
+      routes: collectRoutesFromDom(settings),
+      startProvider: false,
+    });
 
-    engine.registerRoutes(collectRoutesFromDom(settings));
     engine.start();
 
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -109,13 +104,11 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
   });
 
   it('clickLink проходит через engine и commit-ит URL', async () => {
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(router, { provider });
+    const { engine, provider } = createEngineHarness({
+      routes: [createTestRoute('/'), createTestRoute('/about')],
+    });
 
-    engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
-    provider.start();
-
-    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/');
     provider.clickLink('/about');
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
@@ -123,10 +116,11 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
   });
 
   it('stop pauses input; start resumes on the same engine', async () => {
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine(router, { provider });
+    const { engine, provider } = createEngineHarness({
+      routes: [createTestRoute('/'), createTestRoute('/about')],
+      startProvider: false,
+    });
 
-    engine.registerRoutes([createTestRoute('/'), createTestRoute('/about')]);
     engine.start();
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
@@ -141,6 +135,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(engine.isRunning).toBe(true);
 
     provider.clickLink('/about');
+
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     expect(provider.currentHref).toBe('/about');
 
@@ -153,7 +148,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     provider.onNavigation(handler);
     provider.start();
 
-    const engine = new AuraRoutingEngine(router, { provider });
+    const { engine } = createEngineHarness({ provider, startProvider: false });
     engine.start();
     engine.stop();
     engine.destroy();
@@ -170,15 +165,16 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     const toRoute = createTestRoute('/d', {
       render: jest.fn().mockResolvedValue({ status: 'error', error: renderError }),
     });
-    const provider = new FakeHistoryProvider('/a');
-    const engine = new AuraRoutingEngine(router, { provider });
+    const { engine, provider } = createEngineHarness({
+      href: '/a',
+      routes: [fromRoute, toRoute],
+      startProvider: false,
+    });
     const errors = collectNavigationErrors(engine);
 
-    engine.registerRoutes([fromRoute, toRoute]);
-    provider.start();
     engine.start();
 
-    await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/a');
     await new Promise(resolve => setTimeout(resolve, 1));
     await engine.navigateTo('/d', 'push', { replace: false, syncHistory: true });
 
@@ -199,8 +195,11 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     const fromRoute = createTestRoute('/a', { onUnmount: fromLeft });
     const toRoute = createTestRoute('/d', { guard: ['guard'] });
 
-    const provider = new FakeHistoryProvider('/a');
-    const engine = new AuraRoutingEngine(router, { provider });
+    const { engine, provider } = createEngineHarness({
+      href: '/a',
+      routes: [fromRoute, toRoute],
+      startProvider: false,
+    });
     const errors = collectNavigationErrors(engine);
 
     engine.hooksRegistry.register(
@@ -213,12 +212,10 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
       }),
     );
 
-    engine.registerRoutes([fromRoute, toRoute]);
-    provider.start();
     engine.start();
 
     try {
-      await engine.navigateTo('/a', 'system', { replace: true, syncHistory: false });
+      await bootEngine(engine, '/a');
       await engine.navigateTo('/d', 'push', { replace: false, syncHistory: true });
 
       expect(fromLeft).not.toHaveBeenCalled();

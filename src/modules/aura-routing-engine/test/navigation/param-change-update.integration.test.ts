@@ -7,13 +7,12 @@ import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-par
 import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import {
   createUsersIdMatch,
   createUsersIdNode,
 } from '../_helpers/create-dynamic-leaf-match';
-import { createMockEngine } from '../_helpers/create-mock-transaction';
+import { createMockEngine, createNavigationTransaction } from '../_helpers/create-mock-transaction';
 import { mockRunPhaseHooks, resetHookMocks } from '../_helpers/jest/hook-mocks';
 import { createTestOutlet } from '../_helpers/jest/navigation-fixtures';
 
@@ -70,19 +69,11 @@ function wireRouteViewController(
 }
 
 async function runParamUpdateNavigation(from: MatchedRouteInfo, to: MatchedRouteInfo) {
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from,
-      to,
-      action: 'push',
-      href: to.href,
-      hash: '',
-      options: { replace: false, syncHistory: true },
-    },
-    () => false,
-    createMockEngine(),
-  );
+  const transaction = createNavigationTransaction({
+    engine: createMockEngine(),
+    from,
+    to,
+  });
 
   return {
     result: await transaction.run(),

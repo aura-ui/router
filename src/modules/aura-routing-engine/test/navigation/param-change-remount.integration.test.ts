@@ -8,7 +8,6 @@ import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import type { RouteLifecycleContext } from '../../core/route/types';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
@@ -20,6 +19,7 @@ import {
 } from '../_helpers/create-dynamic-leaf-match';
 import {
   createMockEngine,
+  createNavigationTransaction,
   createViewGraphFromLoadView,
   wireEngineViewGraph,
 } from '../_helpers/create-mock-transaction';
@@ -100,19 +100,11 @@ async function runParamRemountNavigation(
   const engine = createMockEngine();
   wireEngineViewGraph(engine, createViewGraphFromLoadView(loadView));
 
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from,
-      to,
-      action: 'push',
-      href: to.href,
-      hash: '',
-      options: { replace: false, syncHistory: true },
-    },
-    () => false,
+  const transaction = createNavigationTransaction({
     engine,
-  );
+    from,
+    to,
+  });
 
   return {
     result: await transaction.run(),
@@ -211,20 +203,12 @@ describe('NavigationTransactionPipeline branch remount options', () => {
     const engine = createMockEngine();
     (engine.viewGraph!.loadView as jest.Mock).mockResolvedValue({ data: '<span>view-2</span>' });
 
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from: exitRoute,
-        to: enterRoute,
-        action: 'push',
-        href: enterRoute.href,
-        hash: '',
-        options: { replace: false, syncHistory: true },
-      },
-      () => false,
+    const transaction = createNavigationTransaction({
       engine,
-    );
-    transaction.transitionPlan = buildTransitionPlan(exitRoute, enterRoute);
+      from: exitRoute,
+      to: enterRoute,
+      plan: buildTransitionPlan(exitRoute, enterRoute),
+    });
 
     const pipeline = new NavigationTransactionPipeline(transaction);
     expect(await pipeline.runLoads()).toBeNull();

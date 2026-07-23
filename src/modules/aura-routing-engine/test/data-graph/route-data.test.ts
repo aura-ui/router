@@ -2,23 +2,10 @@ import {
   closestRouteWithLoadHooks,
   resolveRouteData,
 } from '../../core/data-graph/route-data';
-import { resourceKeys } from '../../core/match/resource-keys';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { createTestRoute } from '../_helpers/create-test-route';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
-function matched(path: string, load: string[] | null = ['data']): MatchedRouteInfo {
-  const info: MatchedRouteInfo = {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path, { load }) as MatchedRouteInfo['route'],
-  };
-  const keys = resourceKeys(info);
-  info.dataKey = keys.dataKey;
-  info.viewKey = keys.viewKey;
-  return info;
+function matched(path: string, load: string[] | null = ['data']) {
+  return createMatchedRoute(path, { load });
 }
 
 describe('route-data helpers', () => {

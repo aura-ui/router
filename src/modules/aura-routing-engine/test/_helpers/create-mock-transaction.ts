@@ -3,12 +3,17 @@ import type { ViewGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { EventBus } from '../../core/events';
+import type {
+  HistoryAction,
+  NavigateHistoryOptions,
+} from '../../core/history/provider.types';
 import { HookRegistry } from '../../core/hooks/registry';
 import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationHost } from '../../core/navigation/navigation-host';
 import { NavigationPulse } from '../../core/navigation/navigation-pulse';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { NavigationTransactionOptions } from '../../core/navigation/types';
 import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
 import {
   finalizeTransitionPlan,
@@ -17,23 +22,90 @@ import {
 
 import { createTestRoute } from './create-test-route';
 import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
+import { withResolvedView } from './with-resolved-view';
+
+/** Match-level fields that may be mixed into the second arg of {@link createMatchedRoute}. */
+type MatchedRouteFieldOverrides = Partial<
+  Pick<
+    MatchedRouteInfo,
+    | 'href'
+    | 'pathname'
+    | 'search'
+    | 'hash'
+    | 'pattern'
+    | 'params'
+    | 'query'
+    | 'node'
+    | 'chain'
+    | 'resolvedView'
+    | 'dataKey'
+    | 'viewKey'
+  >
+>;
+
+export type CreateMatchedRouteOverrides = Partial<RouteInstance> &
+  MatchedRouteFieldOverrides & {
+    /** Use an existing route instance instead of {@link createTestRoute}. */
+    asRoute?: MatchedRouteInfo['route'];
+    /** Call {@link withResolvedView} after building the match. */
+    attachResolvedView?: boolean;
+  };
+
+const MATCHED_ROUTE_OVERRIDE_KEYS = [
+  'href',
+  'pathname',
+  'search',
+  'hash',
+  'pattern',
+  'params',
+  'query',
+  'node',
+  'chain',
+  'resolvedView',
+  'dataKey',
+  'viewKey',
+  'asRoute',
+  'attachResolvedView',
+] as const satisfies readonly (keyof CreateMatchedRouteOverrides)[];
 
 export function createMatchedRoute(
   path: string,
-  overrides: Partial<RouteInstance> = {},
+  overrides: CreateMatchedRouteOverrides = {},
 ): MatchedRouteInfo {
+  const matchOverrides: MatchedRouteFieldOverrides = {};
+  const routeOverrides: Partial<RouteInstance> = {};
+
+  for (const [key, value] of Object.entries(overrides) as Array<
+    [keyof CreateMatchedRouteOverrides, CreateMatchedRouteOverrides[keyof CreateMatchedRouteOverrides]]
+  >) {
+    if (value === undefined) continue;
+    if ((MATCHED_ROUTE_OVERRIDE_KEYS as readonly string[]).includes(key)) {
+      if (key === 'asRoute' || key === 'attachResolvedView') continue;
+      (matchOverrides as Record<string, unknown>)[key] = value;
+    } else {
+      (routeOverrides as Record<string, unknown>)[key] = value;
+    }
+  }
+
   const info: MatchedRouteInfo = {
     href: path,
     pathname: path,
     search: '',
     hash: '',
     pattern: path,
-    route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
+    route:
+      overrides.asRoute ??
+      (createTestRoute(path, routeOverrides) as MatchedRouteInfo['route']),
+    ...matchOverrides,
   };
-  const keys = resourceKeys(info);
-  info.dataKey = keys.dataKey;
-  info.viewKey = keys.viewKey;
-  return info;
+
+  if (info.dataKey === undefined || info.viewKey === undefined) {
+    const keys = resourceKeys(info);
+    info.dataKey ??= keys.dataKey;
+    info.viewKey ??= keys.viewKey;
+  }
+
+  return overrides.attachResolvedView ? withResolvedView(info) : info;
 }
 
 /** Test helper: override plan `transitionOrder` without rebuilding route attrs. */
@@ -166,6 +238,73 @@ export function createCoordinatorMockHost(): NavigationHost & {
   };
 }
 
+export type CreateNavigationTransactionOptions = {
+  engine: AuraRoutingEngine;
+  from?: MatchedRouteInfo | null;
+  to: MatchedRouteInfo;
+  action?: HistoryAction;
+  href?: string;
+  hash?: string;
+  options?: NavigateHistoryOptions;
+  id?: number;
+  isStale?: () => boolean;
+  skipBlockingPhases?: boolean;
+  phaseMode?: NavigationTransactionOptions['phaseMode'];
+  /** When set, assigns `transaction.transitionPlan`. */
+  plan?: TransitionMap;
+  exitRoutes?: MatchedRouteInfo[];
+  enterRoutes?: MatchedRouteInfo[];
+  transitionOrder?: TransitionOrderType | null;
+  update?: boolean;
+};
+
+/** Real {@link NavigationTransaction} with common test defaults. */
+export function createNavigationTransaction(
+  options: CreateNavigationTransactionOptions,
+): NavigationTransaction {
+  const to = options.to;
+  const from = options.from ?? null;
+  const transaction = new NavigationTransaction(
+    options.id ?? 1,
+    {
+      from,
+      to,
+      action: options.action ?? 'push',
+      href: options.href ?? to.href,
+      hash: options.hash ?? to.hash ?? '',
+      options: options.options ?? DEFAULT_PUSH_NAV_OPTIONS,
+      ...(options.skipBlockingPhases !== undefined
+        ? { skipBlockingPhases: options.skipBlockingPhases }
+        : {}),
+      ...(options.phaseMode !== undefined ? { phaseMode: options.phaseMode } : {}),
+    },
+    () => options.isStale?.() ?? false,
+    options.engine,
+  );
+
+  if (options.plan) {
+    transaction.transitionPlan = options.plan;
+  } else if (
+    options.exitRoutes ||
+    options.enterRoutes ||
+    options.transitionOrder !== undefined ||
+    options.update !== undefined
+  ) {
+    const plan = finalizeTransitionPlan({
+      exitRoutes: options.exitRoutes ?? (from ? [from] : []),
+      enterRoutes: options.enterRoutes ?? [to],
+      lca: null,
+      update: options.update ?? false,
+    });
+    transaction.transitionPlan = withPlanTransitionOrder(
+      plan,
+      options.transitionOrder === undefined ? 'parallel' : options.transitionOrder,
+    );
+  }
+
+  return transaction;
+}
+
 export function createPairTransaction(options: {
   from: MatchedRouteInfo;
   to: MatchedRouteInfo;
@@ -173,32 +312,15 @@ export function createPairTransaction(options: {
   transitionOrder?: TransitionOrderType | null;
 }): NavigationTransaction {
   const engine = createCoordinatorMockHost() as unknown as AuraRoutingEngine;
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from: options.from,
-      to: options.to,
-      action: 'push',
-      href: options.to.href,
-      hash: '',
-      options: DEFAULT_PUSH_NAV_OPTIONS,
-    },
-    () => options.isTransactionStale?.() ?? false,
+  return createNavigationTransaction({
     engine,
-  );
-
-  const plan = finalizeTransitionPlan({
+    from: options.from,
+    to: options.to,
+    isStale: options.isTransactionStale,
     exitRoutes: [options.from],
     enterRoutes: [options.to],
-    lca: null,
-    update: false,
+    transitionOrder: options.transitionOrder ?? 'parallel',
   });
-  transaction.transitionPlan = withPlanTransitionOrder(
-    plan,
-    options.transitionOrder ?? 'parallel',
-  );
-
-  return transaction;
 }
 
 export function createMockTransaction(options: {
@@ -212,32 +334,15 @@ export function createMockTransaction(options: {
   const enterRoutes = options.enterRoutes ?? [createMatchedRoute('/to')];
   const from = options.from ?? null;
   const to = enterRoutes[enterRoutes.length - 1]!;
-  const engine = createMockEngine();
-
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from,
-      to,
-      action: 'push',
-      href: to.href,
-      hash: '',
-      options: DEFAULT_PUSH_NAV_OPTIONS,
-    },
-    () => options.isTransactionStale?.() ?? false,
-    engine,
-  );
-
-  const plan = finalizeTransitionPlan({
+  return createNavigationTransaction({
+    engine: createMockEngine(),
+    from,
+    to,
+    isStale: options.isTransactionStale,
     exitRoutes: options.exitRoutes ?? (from ? [from] : []),
     enterRoutes,
-    lca: null,
+    transitionOrder:
+      options.transitionOrder === undefined ? 'parallel' : options.transitionOrder,
     update: options.update ?? false,
   });
-  transaction.transitionPlan = withPlanTransitionOrder(
-    plan,
-    options.transitionOrder === undefined ? 'parallel' : options.transitionOrder,
-  );
-
-  return transaction;
 }

@@ -2,27 +2,17 @@ import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
-import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { HandoffCache } from '../../core/resource-graph';
-import { finalizeTransitionPlan } from '../../core/route-tree/transition-plan';
-import { createMockEngine } from '../_helpers/create-mock-transaction';
-import { createTestRoute } from '../_helpers/create-test-route';
+import {
+  createMatchedRoute,
+  createMockEngine,
+  createNavigationTransaction,
+} from '../_helpers/create-mock-transaction';
 
 function matchedRoute(path: string, load: string[] | null = ['data']): MatchedRouteInfo {
-  const info: MatchedRouteInfo = {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path, { load }) as MatchedRouteInfo['route'],
-  };
-  const keys = resourceKeys(info);
-  info.dataKey = keys.dataKey;
-  info.viewKey = keys.viewKey;
-  return info;
+  return createMatchedRoute(path, { load });
 }
 
 function loadTransaction(
@@ -31,26 +21,13 @@ function loadTransaction(
 ): NavigationTransaction {
   const to = enterRoutes[enterRoutes.length - 1]!;
   const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from: null,
-      to,
-      action: 'push',
-      href: to.href,
-      hash: '',
-      options: { replace: false, syncHistory: true },
-    },
-    () => false,
+  return createNavigationTransaction({
     engine,
-  );
-  transaction.transitionPlan = finalizeTransitionPlan({
+    to,
     enterRoutes: [...enterRoutes],
     exitRoutes: [],
-    lca: null,
-    update: false,
+    transitionOrder: null,
   });
-  return transaction;
 }
 
 function navOptions(
@@ -749,24 +726,13 @@ describe('DataGraph', () => {
     const route = matchedRoute('/stale');
     route.route.cache = NO_CACHE;
     const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from: null,
-        to: route,
-        action: 'push',
-        href: route.href,
-        hash: '',
-        options: { replace: false, syncHistory: true },
-      },
-      () => stale,
+    const transaction = createNavigationTransaction({
       engine,
-    );
-    transaction.transitionPlan = finalizeTransitionPlan({
+      to: route,
+      isStale: () => stale,
       enterRoutes: [route],
       exitRoutes: [],
-      lca: null,
-      update: false,
+      transitionOrder: null,
     });
 
     const pending = dataGraph.load([route], { transaction, mode: 'navigation' });
@@ -813,24 +779,13 @@ describe('DataGraph', () => {
     const route = matchedRoute('/prefetch-stale');
     route.route.cache = NO_CACHE;
     const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from: null,
-        to: route,
-        action: 'push',
-        href: route.href,
-        hash: '',
-        options: { replace: false, syncHistory: true },
-      },
-      () => stale,
+    const transaction = createNavigationTransaction({
       engine,
-    );
-    transaction.transitionPlan = finalizeTransitionPlan({
+      to: route,
+      isStale: () => stale,
       enterRoutes: [route],
       exitRoutes: [],
-      lca: null,
-      update: false,
+      transitionOrder: null,
     });
 
     const pending = dataGraph.load([route], { transaction, mode: 'prefetch' });

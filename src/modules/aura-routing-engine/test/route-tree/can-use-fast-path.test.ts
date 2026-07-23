@@ -11,18 +11,9 @@ import {
 } from '../../core/route-tree/can-use-fast-path';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
 import { createUsersIdMatch, createUsersIdNode } from '../_helpers/create-dynamic-leaf-match';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 import { createTestRoute } from '../_helpers/create-test-route';
 
-function createMatchedRoute(path: string, overrides: Partial<RouteInstance> = {}): MatchedRouteInfo {
-  return {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path, overrides) as MatchedRouteInfo['route'],
-  };
-}
 
 describe('TransitionMap.canUseFastPath', () => {
   it('allows trivial flat sibling navigation with sync html view', () => {

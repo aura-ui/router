@@ -1,12 +1,12 @@
-import {
-  AuraRoutingEngine,
-  FakeHistoryProvider,
-} from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as transitionPlan from '../../core/route-tree/transition-plan';
-import { createMatchedRoute, createMockEngine } from '../_helpers/create-mock-transaction';
-import { DEFAULT_PUSH_NAV_OPTIONS } from '../_helpers/jest/constants';
+import {
+  createMatchedRoute,
+  createMockEngine,
+  createNavigationTransaction,
+} from '../_helpers/create-mock-transaction';
+import { bootEngine, createEngineHarness } from '../_helpers/engine-harness';
 import { registerTestHook } from '../_helpers/jest/navigation-fixtures';
 import {
   collectRoutesFromDom,
@@ -35,8 +35,7 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
 
@@ -48,7 +47,7 @@ describe('redirect blocking walk policy', () => {
     engine.replaceRoutes(collectRoutesFromDom(home, dashboard, login));
     provider.start();
 
-    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/');
     guardPhaseCalls = 0;
 
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
@@ -69,8 +68,7 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     const target = createDomRoute('/target');
     const hopB = createDomRedirectRoute('/b', '/target');
@@ -80,7 +78,7 @@ describe('redirect blocking walk policy', () => {
     engine.replaceRoutes(collectRoutesFromDom(home, hopA, hopB, target));
     provider.start();
 
-    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/');
     guardPhaseCalls = 0;
 
     await engine.navigateTo('/a', 'push', { replace: false, syncHistory: true });
@@ -95,20 +93,13 @@ describe('redirect blocking walk policy', () => {
     const to = createMatchedRoute('/about', { guard: ['auth'] });
     const presetPlan = transitionPlan.buildTransitionPlan(from, to);
 
-    const transaction = new NavigationTransaction(
-      0,
-      {
-        from,
-        to,
-        action: 'push',
-        href: to.href,
-        hash: '',
-        options: DEFAULT_PUSH_NAV_OPTIONS,
-      },
-      () => false,
+    const transaction = createNavigationTransaction({
       engine,
-    );
-    transaction.transitionPlan = presetPlan;
+      id: 0,
+      from,
+      to,
+      plan: presetPlan,
+    });
 
     planSpy.mockClear();
     jest.spyOn(NavigationTransactionPipeline.prototype, 'runGuards').mockResolvedValue(null);
@@ -126,8 +117,7 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     const home = createDomRoute('/');
     home.setAttribute('leave', 'home-leave');
@@ -140,7 +130,7 @@ describe('redirect blocking walk policy', () => {
     engine.replaceRoutes(collectRoutesFromDom(home, about));
     provider.start();
 
-    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/');
     runGuardsSpy.mockClear();
 
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
@@ -164,8 +154,7 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     const home = createDomRoute('/');
     home.setAttribute('leave', 'home-leave');
@@ -176,7 +165,7 @@ describe('redirect blocking walk policy', () => {
     engine.replaceRoutes(collectRoutesFromDom(home, about));
     provider.start();
 
-    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/');
     guardPhaseCalls = 0;
 
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
@@ -192,8 +181,7 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
 

@@ -8,10 +8,8 @@ import {
   domCacheKey,
   RouteDomCache,
 } from '../../../aura-route/core/view/dom-cache';
-import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import { createMatchedRoute, createMockEngine } from '../_helpers/create-mock-transaction';
-import { DEFAULT_PUSH_NAV_OPTIONS } from '../_helpers/jest/constants';
+import { createMatchedRoute, createMockEngine, createNavigationTransaction } from '../_helpers/create-mock-transaction';
 import { mockRunPhaseHooks, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 describe('NavigationTransaction.run fast path selection', () => {
@@ -24,19 +22,7 @@ describe('NavigationTransaction.run fast path selection', () => {
     const engine = createMockEngine();
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b');
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from,
-        to,
-        action: 'push',
-        href: to.href,
-        hash: '',
-        options: DEFAULT_PUSH_NAV_OPTIONS,
-      },
-      () => false,
-      engine,
-    );
+    const transaction = createNavigationTransaction({ engine, from, to });
 
     const fastSpy = jest
       .spyOn(NavigationTransactionPipeline.prototype, 'runFastPipeline')
@@ -70,19 +56,7 @@ describe('NavigationTransaction.run fast path selection', () => {
     const to = createMatchedRoute('/b', {
       view: { loader: 'url', content: 'about.html' },
     });
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from,
-        to,
-        action: 'push',
-        href: to.href,
-        hash: '',
-        options: DEFAULT_PUSH_NAV_OPTIONS,
-      },
-      () => false,
-      engine,
-    );
+    const transaction = createNavigationTransaction({ engine, from, to });
 
     const fastSpy = jest
       .spyOn(NavigationTransactionPipeline.prototype, 'runFastPipeline')
@@ -109,19 +83,7 @@ describe('NavigationTransaction.run fast path selection', () => {
     });
     defaultDomCache.put(domCacheKey(to, to.route.path), document.createElement('div'));
 
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from,
-        to,
-        action: 'push',
-        href: to.href,
-        hash: '',
-        options: DEFAULT_PUSH_NAV_OPTIONS,
-      },
-      () => false,
-      engine,
-    );
+    const transaction = createNavigationTransaction({ engine, from, to });
 
     const fastSpy = jest
       .spyOn(NavigationTransactionPipeline.prototype, 'runFastPipeline')
@@ -152,19 +114,7 @@ describe('NavigationTransaction.run fast path selection', () => {
       cache: { dom: false, view: true, data: true },
     });
 
-    const transaction = new NavigationTransaction(
-      1,
-      {
-        from,
-        to,
-        action: 'push',
-        href: to.href,
-        hash: '',
-        options: DEFAULT_PUSH_NAV_OPTIONS,
-      },
-      () => false,
-      engine,
-    );
+    const transaction = createNavigationTransaction({ engine, from, to });
 
     const fastSpy = jest
       .spyOn(NavigationTransactionPipeline.prototype, 'runFastPipeline')

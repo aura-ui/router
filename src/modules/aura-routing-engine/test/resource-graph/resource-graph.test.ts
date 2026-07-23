@@ -1,4 +1,3 @@
-import type { RouteInstance } from '../../core';
 import type { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
@@ -9,8 +8,10 @@ import {
   type ResourceGraphLoadPlan,
 } from '../../core/resource-graph';
 import type { ViewGraph } from '../../core/view-graph';
-import { createViewGraphFromLoadView } from '../_helpers/create-mock-transaction';
-import { createTestRoute } from '../_helpers/create-test-route';
+import {
+  createMatchedRoute,
+  createViewGraphFromLoadView,
+} from '../_helpers/create-mock-transaction';
 
 function createGraph(viewGraph: ViewGraph, dataGraph: DataGraph): ResourceGraph {
   return new ResourceGraph({
@@ -42,23 +43,16 @@ function matchedRoute(
   } = {},
 ): MatchedRouteInfo {
   const { load = null, asyncView = false, layout = '', view } = options;
-  return {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route: createTestRoute(path, {
-      load,
-      layout,
-      view:
-        view !== undefined
-          ? view
-          : asyncView
-            ? { loader: 'url', content: `${path}.html` }
-            : { loader: 'html', content: '<span/>' },
-    } as Partial<RouteInstance>) as MatchedRouteInfo['route'],
-  };
+  return createMatchedRoute(path, {
+    load,
+    layout,
+    view:
+      view !== undefined
+        ? view
+        : asyncView
+          ? { loader: 'url', content: `${path}.html` }
+          : { loader: 'html', content: '<span/>' },
+  });
 }
 
 describe('ResourceGraph', () => {

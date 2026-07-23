@@ -11,7 +11,10 @@ import { NavigationTransaction } from '../../core/navigation/navigation-transact
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { buildRouteTree } from '../../core/route-tree/build-route-tree';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
-import { withPlanTransitionOrder } from '../_helpers/create-mock-transaction';
+import {
+  createNavigationTransaction,
+  withPlanTransitionOrder,
+} from '../_helpers/create-mock-transaction';
 import { createDomRoute } from '../_helpers/test-route-dom';
 
 const SLOW_CHILD_LOADER = 'branch-slow-child';
@@ -136,26 +139,18 @@ async function runRenderStep(
   const from = matchAt(router, fromPath);
   const to = matchAt(router, toPath);
 
-  const transaction = new NavigationTransaction(
-    1,
-    {
-      from,
-      to,
-      action: 'push',
-      href: toPath,
-      hash: '',
-      options: { replace: false, syncHistory: false },
-    },
-    () => false,
-    engine,
-  );
-  transaction.transitionPlan = buildTransitionPlan(from, to);
+  let plan = buildTransitionPlan(from, to);
   if (options?.transitionOrder !== undefined) {
-    transaction.transitionPlan = withPlanTransitionOrder(
-      transaction.transitionPlan,
-      options.transitionOrder,
-    );
+    plan = withPlanTransitionOrder(plan, options.transitionOrder);
   }
+  const transaction = createNavigationTransaction({
+    engine,
+    from,
+    to,
+    href: toPath,
+    options: { replace: false, syncHistory: false },
+    plan,
+  });
 
   const pipeline = new NavigationTransactionPipeline(transaction);
   const preparePromise = pipeline.runLoads();

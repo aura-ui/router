@@ -1,9 +1,6 @@
-import {
-  AuraRoutingEngine,
-  FakeHistoryProvider,
-} from '../../core';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
+import { bootEngine, createEngineHarness } from '../_helpers/engine-harness';
 import { registerTestHook } from '../_helpers/jest/navigation-fixtures';
 import {
   collectRoutesFromDom,
@@ -24,8 +21,7 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
 
@@ -62,8 +58,7 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     const home = createDomRoute('/');
     home.setAttribute('leave', 'home-leave');
@@ -79,7 +74,7 @@ describe('RedirectResolver integration', () => {
     engine.replaceRoutes(collectRoutesFromDom(home, dashboard, login));
     provider.start();
 
-    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/');
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
 
     expect(leaveCalls).toBe(2);
@@ -93,8 +88,7 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
 
@@ -123,8 +117,7 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/app/settings');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/app/settings', startProvider: false });
 
     registerTestHook(engine.hooksRegistry, 'app-leave', () => {
       appLeaveCalls++;
@@ -147,7 +140,7 @@ describe('RedirectResolver integration', () => {
     engine.replaceRoutes(collectRoutesFromDom(app, login));
     provider.start();
 
-    await engine.navigateTo('/app/settings', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/app/settings');
 
     await engine.navigateTo('/app/dashboard', 'push', { replace: false, syncHistory: true });
 
@@ -163,8 +156,7 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     let redirected = false;
     engine.hooksRegistry.register({
@@ -187,7 +179,7 @@ describe('RedirectResolver integration', () => {
     engine.replaceRoutes(collectRoutesFromDom(home, dashboard, login));
     provider.start();
 
-    await engine.navigateTo('/', 'system', { replace: true, syncHistory: false });
+    await bootEngine(engine, '/');
     transactions.length = 0;
 
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
@@ -205,8 +197,7 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     registerTestHook(engine.hooksRegistry, 'to-settings', () => '/settings');
     registerTestHook(engine.hooksRegistry, 'to-login', () => '/login');
@@ -234,8 +225,7 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     registerTestHook(engine.hooksRegistry, 'auth', () => false);
 
@@ -253,8 +243,7 @@ describe('RedirectResolver integration', () => {
   });
 
   it('emits navigation:error on hook redirect cycle', async () => {
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
     const errors = collectNavigationErrors(engine);
 
     registerTestHook(engine.hooksRegistry, 'to-b', () => '/b');
@@ -287,8 +276,7 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const provider = new FakeHistoryProvider('/');
-    const engine = new AuraRoutingEngine({ navigate: jest.fn() }, { provider });
+    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
 
     registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
 

@@ -17,6 +17,9 @@ import type {
 } from './types';
 import { ROUTER_VERSION, satisfies } from './version';
 
+/** Letters from any script (lowercase / caseless), digits, hyphens; no uppercase. */
+const HOOK_NAME_RE = /^[\p{Ll}\p{Lo}\p{Lm}][\p{Ll}\p{Lo}\p{Lm}\p{N}-]*$/u;
+
 function isRedirectTarget(value: HookResultInput): value is RedirectTarget {
   return typeof value === 'string'
     || (typeof value === 'object' && value !== null && 'url' in value && !('type' in value));
@@ -88,9 +91,9 @@ export class HookRegistry {
     options: TOptions = {} as TOptions,
   ): void {
     const { name, version, fn, requires } = hook;
-    if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
+    if (!name || !HOOK_NAME_RE.test(name)) {
       throw new Error(
-        `Invalid hook name: "${name}". Use kebab-case: lowercase letters, digits, hyphens; must start with a letter (e.g. "auth", "fetch-user").`,
+        `Invalid hook name: "${name}". Use letters (any language; no uppercase), digits, and hyphens; must start with a letter (e.g. "auth", "fetch-user", "авторизация").`,
       );
     }
     const existing = this.entries.get(name);

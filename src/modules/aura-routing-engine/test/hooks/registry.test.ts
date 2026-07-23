@@ -74,7 +74,22 @@ describe('HookRegistry', () => {
         version: '1.0.0',
         fn: async () => {},
       }),
-    ).toThrow(/kebab-case.*lowercase/);
+    ).toThrow(/no uppercase/);
+  });
+
+  it('accepts unicode letter hook names', () => {
+    const registry = new HookRegistry();
+
+    expect(() =>
+      registry.register({
+        name: 'авторизация',
+        version: '1.0.0',
+        fn: async () => {},
+      }),
+    ).not.toThrow();
+
+    expect(registry.has('авторизация')).toBe(true);
   });
 });
+
 

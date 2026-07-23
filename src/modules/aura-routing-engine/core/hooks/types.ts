@@ -41,7 +41,7 @@ export type RouteHookFn<TOptions = Record<string, unknown>> = (
  * Registered route hook — global by name, invoked when a route references it.
  */
 export interface RouteHookDefinition<TOptions = Record<string, unknown>> {
-  /** kebab-case identifier; referenced from route phase attrs. */
+  /** Identifier for route phase attrs — Unicode letters (no uppercase), digits, hyphens. */
   name: string;
   /** Hook semver (logged on replacement). */
   version: string;

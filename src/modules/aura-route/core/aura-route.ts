@@ -339,6 +339,9 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   /**
    * Prepare-window loading chrome: body class, start event, optional skeleton mount.
    * Called by the engine around `runLoads` (after guards → load end).
+   *
+   * `loading-template` is skipped when the route has a page transition — skeleton
+   * would fight old→new animation; use `loading-body-class` / events instead.
    */
   showLoading(routeInfo: MatchedRouteInfo): void {
     if (this.loadingActive) return;
@@ -352,6 +355,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
       dispatchCustomEvent(this, this.loadingStartEvent, { detail: { routeInfo } });
     }
 
+    // Keep previous page visible for transition; body class / events still run above.
+    if (this.transition.order !== null) return;
     if (!this.loadingTemplate || !this.viewReady || !this.viewController) return;
 
     try {

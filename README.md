@@ -182,11 +182,69 @@ Unknown values disable cache and log a `console.warn`.
 
 ---
 
+## 8. Loading
+
+While a route is preparing (after guards → until loads finish), you can show loading chrome. Prefer a **body class / events** and keep the previous page on screen — that works with page transitions and matches typical SPA UX. Optional `loading-template` mounts a skeleton in the outlet when there is **no** page transition.
+
+```html
+<template id="loading">
+  <p>Loading…</p>
+</template>
+
+<style>
+  body.loading { cursor: progress; }
+  body.loading::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    /* spinner / overlay */
+  }
+</style>
+
+<aura-router
+  loading-body-class="loading"
+  loading-template="loading">
+  <!-- slow fetch: skeleton OK (no transition on this route) -->
+  <aura-route
+    path="/contacts"
+    view="contacts.html"
+    loading-template="loading">
+  </aura-route>
+
+  <!-- with transition: template is skipped; body class / events still run -->
+  <aura-route
+    path="/profile"
+    view="profile.html"
+    transition-order="parallel"
+    transition-in="fade"
+    transition-out="fade">
+  </aura-route>
+</aura-router>
+```
+
+| Attr | Meaning |
+| --- | --- |
+| `loading-body-class` | CSS class on `document.body` during prepare (best default for real apps) |
+| `loading-template` | `<template id>` staged in the outlet as a skeleton (previous view stays underneath) |
+| `loading-start-event` / `loading-end-event` | Custom event names; default `aura-route-loading` / `aura-route-loading-end`; `none` / `off` / `false` disables |
+| `loading-template="none"` | Opt out of an inherited router default |
+
+Attrs inherit from `<aura-router>` (and parent routes) like `extract` / `cache`.
+
+| Rule | Why |
+| --- | --- |
+| With `transition-order` / transition in–out, **`loading-template` is not mounted** | Skeleton would fight old→new animation; use `loading-body-class` or events |
+| Cancel back to the previous URL drops the staged skeleton | Previous committed view was never replaced |
+| Prefetch does not show loading chrome | Only the active navigation prepare window |
+
+---
+
 ## Mental model
 
 ```text
 click / navigate
     → match path against <aura-route> tree
+    → (optional) loading class / skeleton while loads run
     → render view / layout into <aura-outlet>
 ```
 
@@ -207,7 +265,7 @@ npm run dev
 
 ## More
 
-> **Slim model** (this README): match URL → render a view into `<aura-outlet>`, plus optional [`extract`](#5-extract-fragments) and [`cache`](#7-cache).  
+> **Slim model** (this README): match URL → render a view into `<aura-outlet>`, plus optional [`extract`](#5-extract-fragments), [`cache`](#7-cache), and [`loading`](#8-loading).  
 > Further advanced features (prefetch, network loaders, hooks) — separate docs (coming).
 
 | | |

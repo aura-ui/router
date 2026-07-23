@@ -6,9 +6,10 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import { createMatchedRoute, createMockTransaction } from '../_helpers/create-mock-transaction';
 import { resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
+import { asLoadHook } from '../_helpers/resource-graph-fixtures';
 
 /**
- * E6 — pipeline prepare boundary is ResourceGraph only.
+ * E6  pipeline prepare boundary is ResourceGraph only.
  * When prepare is stubbed, mock `resourceGraph.load`; never `dataGraph` / `viewGraph`.
  */
 describe('NavigationTransactionPipeline ResourceGraph prepare boundary (E6)', () => {
@@ -92,7 +93,7 @@ describe('NavigationTransactionPipeline ResourceGraph prepare boundary (E6)', ()
     transaction.engine.hooksRegistry.register({
       name: 'fetch',
       version: '1.0.0',
-      fn: async () => ({ ok: true }),
+      fn: asLoadHook(async () => ({ ok: true })),
     });
 
     const rgLoad = jest.spyOn(transaction.engine.resourceGraph, 'load');

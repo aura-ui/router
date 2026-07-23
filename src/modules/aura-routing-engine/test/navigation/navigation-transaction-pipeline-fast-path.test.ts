@@ -125,7 +125,7 @@ describe('NavigationTransactionPipeline fast path', () => {
 
     const result = await new NavigationTransactionPipeline(transaction).runFastPipeline();
 
-    expect(result.status).toBe('error');
+    expect(result!.status).toBe('error');
     expect(phases).toContain('unmount');
     expect(recoverySpy).toHaveBeenCalledTimes(1);
     expect(transaction.engine.commitNavigation).not.toHaveBeenCalled();

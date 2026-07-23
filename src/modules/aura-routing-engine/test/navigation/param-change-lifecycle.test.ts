@@ -3,6 +3,7 @@ jest.mock('../../core/hooks/registry', () =>
 jest.mock('../../core/view-mount/view-commit-render', () =>
   jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
+import type { RouteInstance } from '../../core';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import * as branchMount from '../../core/view-mount/branch-mount';
@@ -221,7 +222,7 @@ describe('param-change lifecycle by view loader', () => {
       update: ['sync-outlet'],
       unmount: ['teardown'],
       ready: ['analytics'],
-    });
+    } as Partial<RouteInstance>);
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 

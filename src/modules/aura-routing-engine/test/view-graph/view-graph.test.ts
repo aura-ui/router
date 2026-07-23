@@ -1,7 +1,9 @@
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { HandoffCache } from '../../core/resource-graph';
 import { ViewGraph, LoaderRegistry } from '../../core/view-graph';
 import { createViewGraphRoute as matched } from '../_helpers/create-mock-transaction';
+import { asHtmlLoader } from '../_helpers/resource-graph-fixtures';
 
 describe('ViewGraph', () => {
   let registry: LoaderRegistry;
@@ -25,7 +27,7 @@ describe('ViewGraph', () => {
   });
 
   it('loads layout via template loader', async () => {
-    registry.register('template', async (ctx) => `<layout>${ctx.content}</layout>`);
+    registry.register('template', asHtmlLoader(async (ctx) => `<layout>${ctx.content}</layout>`));
     const route = matched('/users', {
       route: { layout: 'users-layout', view: null, cache: NO_CACHE },
     });
@@ -36,7 +38,7 @@ describe('ViewGraph', () => {
   });
 
   it('loads view via resolvedView loader', async () => {
-    registry.register('html', async (ctx) => ctx.content);
+    registry.register('html', asHtmlLoader(async (ctx) => ctx.content));
     const route = matched('/about', {
       route: { layout: '', view: { loader: 'html', content: '<p>about</p>' }, cache: NO_CACHE },
       resolvedView: { loader: 'html', content: '<p>about</p>' },
@@ -59,7 +61,7 @@ describe('ViewGraph', () => {
   });
 
   it('hasCachedView is true after a warm cache.view load', async () => {
-    registry.register('html', async (ctx) => ctx.content);
+    registry.register('html', asHtmlLoader(async (ctx) => ctx.content));
     const route = matched('/about', {
       route: {
         layout: '',
@@ -75,7 +77,7 @@ describe('ViewGraph', () => {
   });
 
   it('hasCachedView is false when cache.view is disabled', async () => {
-    registry.register('html', async (ctx) => ctx.content);
+    registry.register('html', asHtmlLoader(async (ctx) => ctx.content));
     const route = matched('/about', {
       route: {
         layout: '',
@@ -91,10 +93,13 @@ describe('ViewGraph', () => {
 
   it('caches string payloads when cache.view is enabled', async () => {
     let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      return `<p>${loads}</p>`;
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async () => {
+        loads++;
+        return `<p>${loads}</p>`;
+      }),
+    );
 
     const route = matched('/cached', {
       route: { layout: '', view: { loader: 'html', content: '<p/>' }, cache: { dom: false, view: true, data: false } },
@@ -110,10 +115,13 @@ describe('ViewGraph', () => {
 
   it('joins prepare handoff when cache.view is off', async () => {
     let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      return 'x';
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async () => {
+        loads++;
+        return 'x';
+      }),
+    );
 
     const route = matched('/fresh', {
       route: { layout: '', view: { loader: 'html', content: 'x' }, cache: NO_CACHE },
@@ -129,10 +137,13 @@ describe('ViewGraph', () => {
 
   it('does not persist in long cache.view when cache.view is off', async () => {
     let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      return 'x';
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async () => {
+        loads++;
+        return 'x';
+      }),
+    );
 
     const route = matched('/fresh-long', {
       route: { layout: '', view: { loader: 'html', content: 'x' }, cache: NO_CACHE },
@@ -153,10 +164,13 @@ describe('ViewGraph', () => {
 
   it('passes load-hook data to custom loaders', async () => {
     let captured: unknown;
-    registry.register('html', async (ctx) => {
-      captured = ctx.data;
-      return 'ok';
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async (ctx) => {
+        captured = ctx.data;
+        return 'ok';
+      }),
+    );
 
     const route = matched('/users/1', {
       resolvedView: { loader: 'html', content: 'x' },
@@ -190,21 +204,24 @@ describe('ViewGraph', () => {
       releaseGate = resolve;
     });
 
-    registry.register('html', async (ctx) => {
-      loads++;
-      workSignal = ctx.signal;
-      await Promise.race([
-        gate,
-        new Promise<never>((_, reject) => {
-          const onAbort = () => {
-            reject(ctx.signal.reason ?? new DOMException('Aborted', 'AbortError'));
-          };
-          if (ctx.signal.aborted) onAbort();
-          else ctx.signal.addEventListener('abort', onAbort, { once: true });
-        }),
-      ]);
-      return `<p>${loads}</p>`;
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async (ctx) => {
+        loads++;
+        workSignal = ctx.signal;
+        await Promise.race([
+          gate,
+          new Promise<never>((_, reject) => {
+            const onAbort = () => {
+              reject(ctx.signal.reason ?? new DOMException('Aborted', 'AbortError'));
+            };
+            if (ctx.signal.aborted) onAbort();
+            else ctx.signal.addEventListener('abort', onAbort, { once: true });
+          }),
+        ]);
+        return `<p>${loads}</p>`;
+      }),
+    );
 
     const route = matched('/poison', {
       route: { layout: '', view: { loader: 'html', content: 'x' }, cache: NO_CACHE },
@@ -233,12 +250,15 @@ describe('ViewGraph', () => {
 
   it('does not persist DocumentFragment in handoff or long cache.view', async () => {
     let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      const fragment = document.createDocumentFragment();
-      fragment.appendChild(document.createElement('section'));
-      return fragment;
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async () => {
+        loads++;
+        const fragment = document.createDocumentFragment();
+        fragment.appendChild(document.createElement('section'));
+        return fragment;
+      }),
+    );
 
     const route = matched('/frag', {
       route: { layout: '', view: { loader: 'html', content: 'x' }, cache: { dom: false, view: true, data: false } },
@@ -272,7 +292,7 @@ describe('ViewGraph', () => {
   });
 
   it('load runs loadView in parallel for each route', async () => {
-    registry.register('html', async (ctx) => ctx.content);
+    registry.register('html', asHtmlLoader(async (ctx) => ctx.content));
     const parent = matched('/users', {
       resolvedView: { loader: 'html', content: 'parent' },
     });
@@ -288,25 +308,31 @@ describe('ViewGraph', () => {
 
   it('load accepts a per-route data resolver', async () => {
     const seen: unknown[] = [];
-    registry.register('html', async (ctx) => {
-      seen.push(ctx.data);
-      return ctx.content;
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async (ctx) => {
+        seen.push(ctx.data);
+        return ctx.content;
+      }),
+    );
     const a = matched('/a', { resolvedView: { loader: 'html', content: 'a' } });
     const b = matched('/b', { resolvedView: { loader: 'html', content: 'b' } });
 
     await viewGraph.load([a, b], new AbortController().signal, {
-      data: (route) => ({ pattern: route.pattern }),
+      data: (route: MatchedRouteInfo) => ({ pattern: route.pattern }),
     });
 
     expect(seen).toEqual([{ pattern: '/a' }, { pattern: '/b' }]);
   });
 
   it('load returns first error and drops sibling data', async () => {
-    registry.register('html', async (ctx) => {
-      if (ctx.route.pattern === '/bad') throw new Error('boom');
-      return ctx.content;
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async (ctx) => {
+        if (ctx.route.pattern === '/bad') throw new Error('boom');
+        return ctx.content;
+      }),
+    );
     const ok = matched('/ok', { resolvedView: { loader: 'html', content: 'ok' } });
     const bad = matched('/bad', { resolvedView: { loader: 'html', content: 'bad' } });
     const transaction = {
@@ -323,12 +349,15 @@ describe('ViewGraph', () => {
 
   it('load(mode: prefetch) loads enter routes with bounded concurrency', async () => {
     const order: string[] = [];
-    registry.register('html', async (ctx) => {
-      order.push(`start:${ctx.route.pattern}`);
-      await new Promise((r) => setTimeout(r, 10));
-      order.push(`end:${ctx.route.pattern}`);
-      return ctx.content;
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async (ctx) => {
+        order.push(`start:${ctx.route.pattern}`);
+        await new Promise((r) => setTimeout(r, 10));
+        order.push(`end:${ctx.route.pattern}`);
+        return ctx.content;
+      }),
+    );
 
     const parent = matched('/users', {
       resolvedView: { loader: 'html', content: 'parent' },
@@ -354,12 +383,15 @@ describe('ViewGraph', () => {
 
   it('load(mode: prefetch) respects leaf-first order', async () => {
     const order: string[] = [];
-    registry.register('html', async (ctx) => {
-      order.push(`start:${ctx.route.pattern}`);
-      await new Promise((r) => setTimeout(r, 10));
-      order.push(`end:${ctx.route.pattern}`);
-      return ctx.content;
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async (ctx) => {
+        order.push(`start:${ctx.route.pattern}`);
+        await new Promise((r) => setTimeout(r, 10));
+        order.push(`end:${ctx.route.pattern}`);
+        return ctx.content;
+      }),
+    );
 
     const parent = matched('/users', {
       resolvedView: { loader: 'html', content: 'parent' },
@@ -399,10 +431,13 @@ describe('ViewGraph', () => {
 
   it('invalidate clears long cache.view payloads', async () => {
     let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      return `v${loads}`;
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async () => {
+        loads++;
+        return `v${loads}`;
+      }),
+    );
 
     const route = matched('/items', {
       route: { layout: '', view: { loader: 'html', content: 'x' }, cache: { dom: false, view: true, data: false } },
@@ -425,10 +460,13 @@ describe('ViewGraph', () => {
 
   it('loadPayload includes url extract in loader context', async () => {
     let extract: string | undefined;
-    registry.register('url', async (ctx) => {
-      extract = ctx.extract;
-      return 'html';
-    });
+    registry.register(
+      'url',
+      asHtmlLoader(async (ctx) => {
+        extract = ctx.extract;
+        return 'html';
+      }),
+    );
 
     await viewGraph.loadPayload(
       { kind: 'view', loader: 'url', content: 'page.html', cache: false, extract: '#main' },
@@ -443,10 +481,13 @@ describe('ViewGraph', () => {
 
   it('buildViewDescriptor adds route extract for url views', async () => {
     let extract: string | undefined;
-    registry.register('url', async (ctx) => {
-      extract = ctx.extract;
-      return 'html';
-    });
+    registry.register(
+      'url',
+      asHtmlLoader(async (ctx) => {
+        extract = ctx.extract;
+        return 'html';
+      }),
+    );
 
     const route = matched('/page', {
       route: {
@@ -465,14 +506,20 @@ describe('ViewGraph', () => {
   it('buildViewDescriptor omits extract for non-url loaders', async () => {
     let htmlExtract: string | undefined;
     let componentExtract: string | undefined;
-    registry.register('html', async (ctx) => {
-      htmlExtract = ctx.extract;
-      return ctx.content;
-    });
-    registry.register('component', async (ctx) => {
-      componentExtract = ctx.extract;
-      return '<x-card></x-card>';
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async (ctx) => {
+        htmlExtract = ctx.extract;
+        return ctx.content;
+      }),
+    );
+    registry.register(
+      'component',
+      asHtmlLoader(async (ctx) => {
+        componentExtract = ctx.extract;
+        return '<x-card></x-card>';
+      }),
+    );
 
     await viewGraph.loadView(
       matched('/html', {
@@ -504,8 +551,8 @@ describe('ViewGraph', () => {
   });
 
   it('prefers layout over view when both are present', async () => {
-    registry.register('template', async (ctx) => `layout:${ctx.content}`);
-    registry.register('html', async () => 'view-should-not-load');
+    registry.register('template', asHtmlLoader(async (ctx) => `layout:${ctx.content}`));
+    registry.register('html', asHtmlLoader(async () => 'view-should-not-load'));
 
     const route = matched('/both', {
       route: {
@@ -531,7 +578,7 @@ describe('ViewGraph', () => {
   });
 
   it('collapses markup loader results to string payload', async () => {
-    registry.register('iframe', async () => '<iframe src="/x"></iframe>');
+    registry.register('iframe', asHtmlLoader(async () => '<iframe src="/x"></iframe>'));
     const route = matched('/embed', {
       resolvedView: { loader: 'iframe', content: 'https://example.com' },
     });
@@ -561,10 +608,13 @@ describe('ViewGraph', () => {
 
   it('omits params and query from loader context when route has none', async () => {
     let routeCtx: { href?: string; pattern?: string; params?: Record<string, string>; query?: Record<string, string> } = {};
-    registry.register('html', async (ctx) => {
-      routeCtx = ctx.route;
-      return 'ok';
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async (ctx) => {
+        routeCtx = ctx.route;
+        return 'ok';
+      }),
+    );
 
     await viewGraph.loadView(
       matched('/plain', { resolvedView: { loader: 'html', content: 'x' } }),
@@ -575,10 +625,13 @@ describe('ViewGraph', () => {
 
   it('destroy clears the payload cache', async () => {
     let loads = 0;
-    registry.register('html', async () => {
-      loads++;
-      return 'cached';
-    });
+    registry.register(
+      'html',
+      asHtmlLoader(async () => {
+        loads++;
+        return 'cached';
+      }),
+    );
 
     const route = matched('/items', {
       route: { layout: '', view: { loader: 'html', content: 'x' }, cache: { dom: false, view: true, data: false } },

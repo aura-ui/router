@@ -9,7 +9,7 @@ import {
   createPairTransaction,
 } from '../_helpers/create-mock-transaction';
 import { PARALLEL_FADE_TRANSITION } from '../_helpers/jest/navigation-fixtures';
-import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
+import { mockRunPhaseHooks, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 describe('NavigationTransaction.isActive', () => {
   it('is false after cancel even when the transaction was not superseded', () => {

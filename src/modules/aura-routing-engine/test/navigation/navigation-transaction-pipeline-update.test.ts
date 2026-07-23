@@ -75,7 +75,7 @@ describe('NavigationTransactionPipeline.runUpdate', () => {
 
     const result = await new NavigationTransactionPipeline(transaction).runUpdate();
 
-    expect(result.status).toBe('error');
+    expect(result!.status).toBe('error');
     expect(transaction.engine.commitHistoryIfNeeded).toHaveBeenCalledTimes(1);
   });
 
@@ -119,7 +119,7 @@ describe('NavigationTransactionPipeline.runUpdate', () => {
       exitRoutes: plan.exitRoutes,
       update: plan.update,
     });
-    transaction.to = to;
+    (transaction as unknown as { to: typeof to }).to = to;
     transaction.transitionPlan = plan;
     transaction.engine.hooksRegistry.register({
       name: 'fetch-user',

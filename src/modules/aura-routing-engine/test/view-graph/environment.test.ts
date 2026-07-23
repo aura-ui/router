@@ -37,7 +37,7 @@ describe('resolveRelativeUrl', () => {
 });
 
 describe('fetchText', () => {
-  const fetchMock = jest.fn<typeof fetch>();
+  const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {

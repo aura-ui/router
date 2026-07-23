@@ -1091,7 +1091,7 @@ describe('NavigationCoordinator', () => {
 
 
 
-      host.isRunning = false;
+      (host as { isRunning: boolean }).isRunning = false;
 
       coordinator.invalidate();
 

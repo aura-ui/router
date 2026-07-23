@@ -2,7 +2,7 @@ import { memoize } from '../../decorators/memoize';
 
 describe('@memoize decorator', () => {
   it('caches instance getter as own property', () => {
-    const fn = jest.fn(() => 42);
+    const fn = jest.fn((_self: object) => 42);
     class Test {
       @memoize()
       get value() {
@@ -105,7 +105,7 @@ describe('@memoize decorator', () => {
     const instance = new Test();
     expect(instance.value).toBe(99);
     memoize.clear(instance, 'value');
-    expect(Object.hasOwn(instance, 'value')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(instance, 'value')).toBe(false);
     expect(instance.value).toBe(99);
     expect(fn).toHaveBeenCalledTimes(2);
   });

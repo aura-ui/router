@@ -34,13 +34,15 @@ export type WireRouteViewControllerOptions = {
 
 export type WiredRouteViewController = {
   controller: RouteViewController;
-  stash: Map<string, Element>;
+  stash: Map<string, HTMLElement>;
   loadView: ViewGraph['loadView'];
 };
 
 type MutableRouteRecord = RouteInstance & {
   path: string;
   layout: string;
+  redirect: string;
+  type: 'page' | 'folder' | 'redirect';
   view: unknown;
   loadingTemplate: string;
   errorTemplate: string;
@@ -73,11 +75,13 @@ export function wireRouteViewController(
   } = options;
 
   let passId = 0;
-  const stash = new Map<string, Element>();
+  const stash = new Map<string, HTMLElement>();
   const routeRecord = options.route as MutableRouteRecord;
 
   if (options.path != null) routeRecord.path = options.path;
   routeRecord.layout = '';
+  routeRecord.redirect = routeRecord.redirect ?? '';
+  routeRecord.type = routeRecord.type ?? 'page';
   routeRecord.view = routeRecord.view ?? null;
   routeRecord.loadingTemplate = routeRecord.loadingTemplate ?? '';
   routeRecord.errorTemplate = routeRecord.errorTemplate ?? '';
@@ -89,7 +93,7 @@ export function wireRouteViewController(
 
   const controller = new RouteViewController(
     {
-      route: routeRecord,
+      route: routeRecord as import('../../../aura-route/core/types').AuraRouteInterface,
       view: { loadView },
       cache: cacheDom
         ? {

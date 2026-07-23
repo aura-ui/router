@@ -38,19 +38,45 @@ type MatchedRouteFieldOverrides = Partial<
     | 'query'
     | 'node'
     | 'chain'
-    | 'resolvedView'
     | 'dataKey'
     | 'viewKey'
   >
 >;
 
+/** Fixture `resolvedView` — `viewKey` is filled as `${loader}:${content}` when omitted. */
+export type ResolvedViewOverride = {
+  loader: string;
+  content: string;
+  viewKey?: string;
+} | null;
+
+/** Runtime-only fields on test route stubs (not on {@link RouteInstance}). */
+export type TestRouteRuntimeOverrides = {
+  layout?: string;
+  redirect?: string;
+};
+
 export type CreateMatchedRouteOverrides = Partial<RouteInstance> &
+  TestRouteRuntimeOverrides &
   MatchedRouteFieldOverrides & {
+    resolvedView?: ResolvedViewOverride;
     /** Use an existing route instance instead of {@link createTestRoute}. */
     asRoute?: MatchedRouteInfo['route'];
     /** Call {@link withResolvedView} after building the match. */
     attachResolvedView?: boolean;
   };
+
+function normalizeResolvedViewOverride(
+  value: ResolvedViewOverride | undefined,
+): MatchedRouteInfo['resolvedView'] | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return {
+    loader: value.loader,
+    content: value.content,
+    viewKey: value.viewKey ?? `${value.loader}:${value.content}`,
+  };
+}
 
 const MATCHED_ROUTE_OVERRIDE_KEYS = [
   'href',
@@ -73,8 +99,10 @@ export function createMatchedRoute(
   path: string,
   overrides: CreateMatchedRouteOverrides = {},
 ): MatchedRouteInfo {
-  const matchOverrides: MatchedRouteFieldOverrides = {};
-  const routeOverrides: Partial<RouteInstance> = {};
+  const matchOverrides: MatchedRouteFieldOverrides & {
+    resolvedView?: MatchedRouteInfo['resolvedView'];
+  } = {};
+  const routeOverrides: Partial<RouteInstance> & TestRouteRuntimeOverrides = {};
 
   for (const [key, value] of Object.entries(overrides) as Array<
     [keyof CreateMatchedRouteOverrides, CreateMatchedRouteOverrides[keyof CreateMatchedRouteOverrides]]
@@ -82,6 +110,12 @@ export function createMatchedRoute(
     if (value === undefined) continue;
     if ((MATCHED_ROUTE_OVERRIDE_KEYS as readonly string[]).includes(key)) {
       if (key === 'asRoute' || key === 'attachResolvedView') continue;
+      if (key === 'resolvedView') {
+        matchOverrides.resolvedView = normalizeResolvedViewOverride(
+          value as ResolvedViewOverride,
+        );
+        continue;
+      }
       (matchOverrides as Record<string, unknown>)[key] = value;
     } else {
       (routeOverrides as Record<string, unknown>)[key] = value;
@@ -119,15 +153,15 @@ export function createMatchedRoute(
 export function createViewGraphRoute(
   pattern: string,
   overrides: CreateMatchedRouteOverrides & {
-    route?: Partial<RouteInstance>;
+    route?: Partial<RouteInstance> & TestRouteRuntimeOverrides;
   } = {},
 ): MatchedRouteInfo {
   const { route: routePartial, resolvedView, ...rest } = overrides;
   const viewFromResolved =
     resolvedView && typeof resolvedView === 'object' && 'loader' in resolvedView
       ? {
-          loader: (resolvedView as { loader: string; content: string }).loader,
-          content: (resolvedView as { content: string }).content,
+          loader: resolvedView.loader,
+          content: resolvedView.content,
         }
       : undefined;
 

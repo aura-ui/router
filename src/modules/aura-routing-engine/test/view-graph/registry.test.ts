@@ -7,6 +7,7 @@ import {
   defaultLoaderRegistry,
 } from '../../core/view-graph/registry';
 import type { ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
+import { asHtmlLoader } from '../_helpers/resource-graph-fixtures';
 import { createTestLoaderEnv as createBrowserEnv } from '../_helpers/view-load-context';
 
 class ProbeLoader extends Loader {
@@ -61,7 +62,7 @@ describe('LoaderRegistry', () => {
 
   it('registers a loader function', async () => {
     const registry = new LoaderRegistry(undefined, []);
-    registry.register('html', async () => 'fn');
+    registry.register('html', asHtmlLoader(async () => 'fn'));
     await expect(
       registry.get('html').load({
         content: 'x',
@@ -74,20 +75,20 @@ describe('LoaderRegistry', () => {
 
   it('register(id, fn) without options does not throw', () => {
     const registry = new LoaderRegistry(undefined, []);
-    expect(() => registry.register('probe', async () => 'ok')).not.toThrow();
+    expect(() => registry.register('probe', asHtmlLoader(async () => 'ok'))).not.toThrow();
     expect(registry.get('probe').needsData).toBeFalsy();
   });
 
   it('register(id, fn, { needsData }) sets FnLoader.needsData', () => {
     const registry = new LoaderRegistry(undefined, []);
-    registry.register('needs-data-probe', async () => 'ok', { needsData: true });
+    registry.register('needs-data-probe', asHtmlLoader(async () => 'ok'), { needsData: true });
     expect(registry.get('needs-data-probe').needsData).toBe(true);
   });
 
   it('warns when overwriting a registered type', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const registry = new LoaderRegistry(undefined, [new HtmlLoader(createBrowserEnv())]);
-    registry.register('html', async () => 'second');
+    registry.register('html', asHtmlLoader(async () => 'second'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('html'));
     warn.mockRestore();
   });
@@ -112,9 +113,9 @@ describe('LoaderRegistry', () => {
 
   it('throws when register(loader, fn) receives an extra argument', () => {
     const registry = new LoaderRegistry(undefined, []);
-    expect(() => registry.register(ProbeLoader, async () => 'x' as never)).toThrow(
-      'register(loader) accepts a single argument',
-    );
+    expect(() =>
+      registry.register(ProbeLoader as never, asHtmlLoader(async () => 'x') as never),
+    ).toThrow('register(loader) accepts a single argument');
   });
 
   it('throws when register(class) has no static type', () => {

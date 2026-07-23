@@ -16,9 +16,15 @@ let testRouteUid = 0;
 /** Default inline sync view for Tier-0 / fast-path test routes (`html::`). */
 export const SYNC_HTML_VIEW: ViewAttrDescriptor = { loader: 'html', content: '<span/>' };
 
+export type CreateTestRouteOverrides = Partial<RouteInstance> & {
+  /** Runtime layout string on stubs (`hasLayout` reads this). */
+  layout?: string;
+  redirect?: string;
+};
+
 export function createTestRoute(
   path: string,
-  overrides: Partial<RouteInstance> = {},
+  overrides: CreateTestRouteOverrides = {},
 ): AuraRoute {
   const { cache = { dom: false, view: false, data: true }, ...routeOverrides } = overrides;
   const route = {

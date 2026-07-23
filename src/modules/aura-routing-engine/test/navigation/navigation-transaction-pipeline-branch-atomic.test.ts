@@ -3,6 +3,7 @@ jest.mock('../../core/hooks/registry', () =>
 jest.mock('../../core/view-mount/view-commit-render', () =>
   jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
+import { NavigationError, NavigationFailure } from '../../core/failure';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as branchMount from '../../core/view-mount/branch-mount';
 import { createMatchedRoute } from '../_helpers/create-mock-transaction';
@@ -239,12 +240,18 @@ describe('NavigationTransactionPipeline render failure recovery', () => {
     jest.spyOn(transaction.engine.resourceGraph, 'load').mockResolvedValue({
       error: {
         status: 'error',
-        failure: {
-          error: new Error('branch resolve failed'),
-          route: failingRoute,
-          atPhase: 'load',
-          viewCommitted: false,
-        },
+        failure: NavigationFailure.fromPipeline(
+          new NavigationError({
+            code: 'LOAD_FAILED',
+            phase: 'load',
+            routePattern: failingRoute.pattern,
+            message: 'branch resolve failed',
+          }),
+          { view: 'none', href: failingRoute.href },
+          transaction.from,
+          failingRoute,
+          transaction.action,
+        ),
       },
     });
     const recoverySpy = jest.spyOn(

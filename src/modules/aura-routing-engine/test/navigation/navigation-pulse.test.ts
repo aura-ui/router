@@ -164,6 +164,6 @@ describe('NavigationPulse', () => {
     engine.commitNavigation(tx);
 
     expect(eventTypes(seen)).toEqual(['navigation:commit:end', 'node:activate']);
-    expect(engine.prev).toBe(to);
+    expect((engine as unknown as { prev: typeof to }).prev).toBe(to);
   });
 });

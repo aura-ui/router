@@ -3,6 +3,7 @@
 import { AuraRouter } from '../../../aura-router/core/aura-router';
 import { mountDomRouter } from '../_helpers/dom-router-harness';
 import { waitForText } from '../_helpers/jsdom-async';
+import { asHtmlLoader } from '../_helpers/resource-graph-fixtures';
 import { createDomRoute } from '../_helpers/test-route-dom';
 
 const SPLAT_LOADER = 'nested-catch-all-splat';
@@ -44,11 +45,14 @@ async function mountNestedCatchAllFixture(): Promise<Fixture> {
 
 describe('nested catch-all integration', () => {
   beforeAll(() => {
-    AuraRouter.registerLoader(SPLAT_LOADER, (ctx) => {
-      splatCaptures.push({ ...(ctx.route.params ?? {}) });
-      const splat = ctx.route.params?.splat ?? '';
-      return `<span data-not-found>NOT FOUND: ${splat}</span>`;
-    });
+    AuraRouter.registerLoader(
+      SPLAT_LOADER,
+      asHtmlLoader(async (ctx) => {
+        splatCaptures.push({ ...(ctx.route.params ?? {}) });
+        const splat = ctx.route.params?.splat ?? '';
+        return `<span data-not-found>NOT FOUND: ${splat}</span>`;
+      }),
+    );
   });
 
   afterEach(() => {
@@ -90,6 +94,6 @@ describe('nested catch-all integration', () => {
     router.navigate('/users/deep/miss', { replace: false, syncHistory: false });
     await waitForText(router.appOutlet, 'NOT FOUND: deep/miss');
 
-    expect(splatCaptures.at(-1)).toEqual({ splat: 'deep/miss' });
+    expect(splatCaptures[splatCaptures.length - 1]).toEqual({ splat: 'deep/miss' });
   });
 });

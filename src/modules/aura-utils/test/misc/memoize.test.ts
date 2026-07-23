@@ -69,7 +69,7 @@ describe('memoizeFn', () => {
   });
 
   it('caches undefined as a return value', () => {
-    const fn = jest.fn(() => undefined);
+    const fn = jest.fn((_x: string) => undefined);
     const memo = memoizeFn(fn);
 
     expect(memo('x')).toBeUndefined();

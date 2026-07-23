@@ -2,7 +2,7 @@ import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { LoaderFn } from '../../core';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
-import type { RouteHookDefinition } from '../../core/hooks/types';
+import type { RouteHookContext, RouteHookDefinition } from '../../core/hooks/types';
 import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
@@ -12,7 +12,7 @@ import {
   ResourceGraph,
   type ResourceGraphLoadPlan,
 } from '../../core/resource-graph';
-import { ViewGraph, type LoaderRegistry } from '../../core/view-graph';
+import { ViewGraph, type LoaderRegistry, type ViewLoadContext } from '../../core/view-graph';
 
 import {
   createMatchedRoute,
@@ -96,12 +96,16 @@ export function createResourceGraphRoute(
 }
 
 /** Cast async data producers into the hook registry fn type. */
-export function asLoadHook(fn: () => Promise<unknown>): RouteHookDefinition['fn'] {
+export function asLoadHook(
+  fn: (ctx: RouteHookContext) => Promise<unknown>,
+): RouteHookDefinition['fn'] {
   return fn as unknown as RouteHookDefinition['fn'];
 }
 
-/** Cast async HTML producers into {@link LoaderFn}. */
-export function asHtmlLoader(fn: () => Promise<string>): LoaderFn {
+/** Cast async HTML / node producers into {@link LoaderFn}. */
+export function asHtmlLoader(
+  fn: (ctx: ViewLoadContext) => Promise<string | Node>,
+): LoaderFn {
   return fn as unknown as LoaderFn;
 }
 

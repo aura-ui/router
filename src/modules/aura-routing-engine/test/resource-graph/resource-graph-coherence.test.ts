@@ -3,13 +3,12 @@ import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { ENGINE_DEFAULTS } from '../../core/aura-routing-engine-config';
 import type { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
-import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import type {
   HandoffCache,
   ResourceGraph,
 } from '../../core/resource-graph';
-import { LoaderRegistry, type ViewGraph } from '../../core/view-graph';
+import { LoaderRegistry } from '../../core/view-graph';
 import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 import {
   asHtmlLoader,
@@ -23,7 +22,6 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
   let hooks: HookRegistry;
   let handoff: HandoffCache;
   let dataGraph: DataGraph;
-  let viewGraph: ViewGraph;
   let resourceGraph: ResourceGraph;
   let engine: AuraRoutingEngine;
 
@@ -31,7 +29,6 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     const stack = createResourceGraphStack({ hooks, ...options });
     handoff = stack.handoff;
     dataGraph = stack.dataGraph;
-    viewGraph = stack.viewGraph;
     resourceGraph = stack.resourceGraph;
     engine = stack.engine;
   }

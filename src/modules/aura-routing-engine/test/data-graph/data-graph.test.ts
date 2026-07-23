@@ -10,6 +10,7 @@ import {
   createMockEngine,
   createNavigationTransaction,
 } from '../_helpers/create-mock-transaction';
+import { asLoadHook } from '../_helpers/resource-graph-fixtures';
 
 describe('DataGraph', () => {
   let hookRegistry: HookRegistry;
@@ -31,14 +32,14 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         hookCalls++;
         return { id: 1 };
-      },
+      }),
     });
 
     const route = matchedRoute('/users');
-    (route.route as { onLoad: () => void }).onLoad = () => {
+    (route.route as unknown as { onLoad: () => void }).onLoad = () => {
       onLoadCalls++;
     };
 
@@ -55,7 +56,7 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => ({ id: 42, name: 'Ada' }),
+      fn: asLoadHook(async () => ({ id: 42, name: 'Ada' })),
     });
 
     const route = matchedRoute('/users');
@@ -69,7 +70,7 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => ({ type: 'article', id: 7, title: 'Hello' }),
+      fn: asLoadHook(async () => ({ type: 'article', id: 7, title: 'Hello' })),
     });
 
     const route = matchedRoute('/posts/7');
@@ -135,7 +136,7 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => ({ id: 1 }),
+      fn: asLoadHook(async () => ({ id: 1 })),
     });
 
     const route = matchedRoute('/users');
@@ -156,10 +157,10 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         hookCalls++;
         return { id: 1 };
-      },
+      }),
     });
 
     const route = matchedRoute('/users');
@@ -184,10 +185,10 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         loads++;
         return { n: loads };
-      },
+      }),
     });
 
     const route = matchedRoute('/items');
@@ -217,10 +218,10 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'child',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         siblingLoads++;
         return { ok: true };
-      },
+      }),
     });
 
     const layout = matchedRoute('/app', ['layout']);
@@ -235,13 +236,13 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'parent-data',
       version: '1.0.0',
-      fn: async () => ({ role: 'layout' }),
+      fn: asLoadHook(async () => ({ role: 'layout' })),
     });
 
     hookRegistry.register({
       name: 'leaf-data',
       version: '1.0.0',
-      fn: async () => ({ page: 'home' }),
+      fn: asLoadHook(async () => ({ page: 'home' })),
     });
 
     const parent = matchedRoute('/app', ['parent-data']);
@@ -276,20 +277,20 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'parent-data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         parentStarted = true;
         await parentGate;
         return { orgId: 1 };
-      },
+      }),
     });
 
     hookRegistry.register({
       name: 'child-data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         childStartedBeforeParentDone = parentStarted;
         return { users: [] };
-      },
+      }),
     });
 
     const parent = matchedRoute('/settings', ['parent-data']);
@@ -311,19 +312,19 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'parent-data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         await new Promise((r) => setTimeout(r, 20));
         return { orgId: 7 };
-      },
+      }),
     });
 
     hookRegistry.register({
       name: 'child-data',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: asLoadHook(async (ctx) => {
         childSawParent = await ctx.parent?.();
         return { users: [(childSawParent as { orgId: number }).orgId] };
-      },
+      }),
     });
 
     const parent = matchedRoute('/settings', ['parent-data']);
@@ -344,16 +345,16 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'parent-data',
       version: '1.0.0',
-      fn: async () => ({ orgId: 3 }),
+      fn: asLoadHook(async () => ({ orgId: 3 })),
     });
 
     hookRegistry.register({
       name: 'child-data',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: asLoadHook(async (ctx) => {
         childSawParent = await ctx.parent?.();
         return { ok: true };
-      },
+      }),
     });
 
     const parent = matchedRoute('/app', ['parent-data']);
@@ -373,10 +374,10 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'child-data',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: asLoadHook(async (ctx) => {
         parentResult = await ctx.parent?.();
         return { ok: true };
-      },
+      }),
     });
 
     const leaf = matchedRoute('/alone', ['child-data']);
@@ -395,11 +396,11 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         loads++;
         await gate;
         return { id: 1 };
-      },
+      }),
     });
 
     const route = matchedRoute('/users');
@@ -437,7 +438,7 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: asLoadHook(async (ctx) => {
         loads++;
         workSignal = ctx.transactionSignal;
         await Promise.race([
@@ -449,7 +450,7 @@ describe('DataGraph', () => {
           }),
         ]);
         return { id: 2 };
-      },
+      }),
     });
 
     const route = matchedRoute('/items');
@@ -490,12 +491,12 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: asLoadHook(async (ctx) => {
         workSignal = ctx.transactionSignal;
         await gate;
         sawAbortedInsideHook = ctx.transactionSignal.aborted;
         return { ok: true };
-      },
+      }),
     });
 
     const route = matchedRoute('/signal');
@@ -523,7 +524,7 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async (ctx) => {
+      fn: asLoadHook(async (ctx) => {
         loads++;
         await Promise.race([
           gate,
@@ -534,7 +535,7 @@ describe('DataGraph', () => {
           }),
         ]);
         return { id: 3 };
-      },
+      }),
     });
 
     const route = matchedRoute('/overlap');
@@ -623,12 +624,12 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'a',
       version: '1.0.0',
-      fn: async () => 1,
+      fn: asLoadHook(async () => 1),
     });
     hookRegistry.register({
       name: 'b',
       version: '1.0.0',
-      fn: async () => ({ ok: true }),
+      fn: asLoadHook(async () => ({ ok: true })),
     });
 
     const route = matchedRoute('/multi', ['a', 'b']);
@@ -653,10 +654,10 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'slow',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         await siblingGate;
         return { ok: true };
-      },
+      }),
     });
 
     const failing = matchedRoute('/fail', ['fast-fail']);
@@ -686,10 +687,10 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         await gate;
         return { id: 9 };
-      },
+      }),
     });
 
     const route = matchedRoute('/stale');
@@ -739,10 +740,10 @@ describe('DataGraph', () => {
     hookRegistry.register({
       name: 'data',
       version: '1.0.0',
-      fn: async () => {
+      fn: asLoadHook(async () => {
         await gate;
         return { warm: true };
-      },
+      }),
     });
 
     const route = matchedRoute('/prefetch-stale');

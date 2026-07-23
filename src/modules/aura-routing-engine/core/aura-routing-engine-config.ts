@@ -3,11 +3,11 @@ import type { NavigationFailure, NavigationHookErrorDetail } from './failure';
 import type { NavigationProvider } from './history/provider.types';
 import type { PrefetchConfig } from './prefetch/types';
 import type { HandoffCacheOptions } from './resource-graph/handoff-cache';
-import type { ViewGraph, LoaderRegistry, ViewGraphCacheOptions } from './view-graph';
+import type { LoaderRegistry, ViewGraph, ViewGraphCacheOptions } from './view-graph';
 
 /**
  * Production defaults for {@link AuraRoutingEngineConfig}.
- * One object — read top-to-bottom.
+ * One object — read top-to-bottom (chrome → caches → prefetch).
  */
 export const ENGINE_DEFAULTS = {
   linksSelector: '[aura-router-link]',
@@ -46,12 +46,9 @@ export interface AuraRoutingEngineConfig {
   linksSelector?: string;
   /** Default: `false`. */
   hash?: boolean;
-  onHashOnlyNavigation?: (href: string) => void;
-  onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
-  /** Fallback NOT_FOUND — host owns event + recovery UI. */
-  onNotFound?: (failure: NavigationFailure) => void;
   /** Default: BrowserHistoryProvider. */
   provider?: NavigationProvider;
+
   /** Advanced tests — prefer `viewRegistry`. Must share handoff with data. */
   viewGraph?: ViewGraph;
   viewRegistry?: LoaderRegistry;
@@ -61,8 +58,14 @@ export interface AuraRoutingEngineConfig {
   dataCache?: DataGraphCacheOptions;
   /** Default: `{ ttl: 30_000 }`. */
   sharedBufferOptions?: HandoffCacheOptions;
+
   /** Default: ENGINE_DEFAULTS.prefetch; `false` disables. */
   prefetch?: false | PrefetchConfig;
+
+  onHashOnlyNavigation?: (href: string) => void;
+  onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
+  /** Fallback NOT_FOUND — host owns event + recovery UI. */
+  onNotFound?: (failure: NavigationFailure) => void;
 }
 
 export type ResolvedAuraRoutingEngineConfig = AuraRoutingEngineConfig & {

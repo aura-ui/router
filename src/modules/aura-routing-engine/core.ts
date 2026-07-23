@@ -16,13 +16,14 @@
 export type {
   AuraRoutingEngineConfig,
   ResolvedAuraRoutingEngineConfig,
-} from './core/aura-routing-engine';
+} from './core/aura-routing-engine-config';
 
 export {
-  AuraRoutingEngine,
   ENGINE_DEFAULTS,
   resolveAuraRoutingEngineConfig,
-} from './core/aura-routing-engine';
+} from './core/aura-routing-engine-config';
+
+export { AuraRoutingEngine } from './core/aura-routing-engine';
 
 export { EventBus } from './core/events';
 export type {

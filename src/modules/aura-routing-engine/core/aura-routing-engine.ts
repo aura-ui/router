@@ -1,80 +1,48 @@
 import { onAbort } from '../../aura-utils/async/on-abort';
 import { splitAppHref } from '../../aura-utils/misc/url';
-
-import {
-  resolveAuraRoutingEngineConfig,
-  type AuraRoutingEngineConfig,
-  type ResolvedAuraRoutingEngineConfig,
-} from './aura-routing-engine-config';
+import { resolveAuraRoutingEngineConfig } from './aura-routing-engine-config';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
-import type { DataGraph } from './data-graph';
 import { EventBus } from './events';
 import { NavigationFailure } from './failure';
+import { defaultHookRegistry } from './hooks/registry';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import { applyTransactionHistory } from './history/history-policy';
-import type {
-  HistoryAction,
-  NavigateHistoryOptions,
-  NavigationProvider,
-} from './history/provider.types';
 import { isHashOnlyChange, resolveDocumentHrefParts } from './link-active/app-href';
-import {
-  AuraRoutingUrlMatcher,
-  type MatchedRouteInfo,
-} from './match/url-matcher';
+import { AuraRoutingUrlMatcher } from './match/url-matcher';
 import { NavigationCoordinator } from './navigation/navigation-coordinator';
-import type { NavigationHost } from './navigation/navigation-host';
-import {
-  applyNavigationOutcome,
-  navigationIdentityFromTx,
-} from './navigation/navigation-outcome';
+import { applyNavigationOutcome, navigationIdentityFromTx } from './navigation/navigation-outcome';
+import { NavigationPulse } from './navigation/navigation-pulse';
 import { NavigationTransaction } from './navigation/navigation-transaction';
 import { unmountPrevOnNotFound } from './navigation/unmount-prev-on-not-found';
 import { PrefetchPipeline } from './prefetch/pipeline';
 import { PrefetchPolicy } from './prefetch/policy';
-import {
-  DefaultPrefetchResourcePlanner,
-} from './prefetch/resources';
-import type {
-  PrefetchConfig,
-  PrefetchOptions,
-  PrefetchPlan,
-} from './prefetch/types';
+import { DefaultPrefetchResourcePlanner } from './prefetch/resources';
 import { ResourceGraph } from './resource-graph';
-import type { RouterInstance } from './route/types';
 import { syncChainHref } from './route-tree/matched-chain';
 import { isSameNavigationTarget } from './route-tree/transition-plan';
 import { LinkNavigationTracker } from './user-actions/link-navigation';
-import { defaultHookRegistry, type HookRegistry } from './hooks/registry';
-import type { ViewGraph } from './view-graph';
+import type { AuraRoutingEngineConfig, ResolvedAuraRoutingEngineConfig } from './aura-routing-engine-config';
+import type { DataGraph } from './data-graph';
+import type { HookRegistry } from './hooks/registry';
+import type { HistoryAction, NavigateHistoryOptions, NavigationProvider } from './history/provider.types';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
+import type { MatchedRouteInfo } from './match/url-matcher';
+import type { NavigationHost } from './navigation/navigation-host';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
-import { NavigationPulse } from './navigation/navigation-pulse';
+import type { PrefetchConfig, PrefetchOptions, PrefetchPlan } from './prefetch/types';
+import type { RouterInstance } from './route/types';
+import type { ViewGraph } from './view-graph';
 
-export type {
-  AuraRoutingEngineConfig,
-  ResolvedAuraRoutingEngineConfig,
-} from './aura-routing-engine-config';
-export {
-  ENGINE_DEFAULTS,
-  resolveAuraRoutingEngineConfig,
-} from './aura-routing-engine-config';
 export class AuraRoutingEngine implements NavigationHost {
+  readonly router: RouterInstance;
+  private readonly config: ResolvedAuraRoutingEngineConfig;
+  private readonly provider: NavigationProvider;
   private readonly registry = new AuraRoutingRouteRegistry();
   readonly matcher = new AuraRoutingUrlMatcher();
-  private readonly provider: NavigationProvider;
-  private readonly config: ResolvedAuraRoutingEngineConfig;
 
-  public isRunning = false;
-  private prev: MatchedRouteInfo | null;
-  readonly router: RouterInstance;
-
-  private prefetchPipeline?: PrefetchPipeline;
-  private readonly linkNavigation: LinkNavigationTracker;
   readonly hooksRegistry: HookRegistry;
   /** Prepare composition root — owns handoff, data, and view graphs. */
   readonly resourceGraph: ResourceGraph;
-
   /**
    * Sync navigation / load event stream (observability + host chrome).
    * Prefetch intents stay on {@link PrefetchIntentBus}.
@@ -85,8 +53,12 @@ export class AuraRoutingEngine implements NavigationHost {
    * @see {@link NavigationPulse}
    */
   readonly pulse = new NavigationPulse(this.events);
-
   private readonly navigationCoordinator: NavigationCoordinator;
+  private readonly linkNavigation: LinkNavigationTracker;
+  private prefetchPipeline?: PrefetchPipeline;
+
+  public isRunning = false;
+  private prev: MatchedRouteInfo | null;
 
   /** Facade to {@link ResourceGraph.viewGraph} (AuraRouter / branch resolve). */
   get viewGraph(): ViewGraph {
@@ -103,10 +75,7 @@ export class AuraRoutingEngine implements NavigationHost {
     return this;
   }
 
-  constructor(
-    router: RouterInstance,
-    config: AuraRoutingEngineConfig = {},
-  ) {
+  constructor(router: RouterInstance, config: AuraRoutingEngineConfig = {}) {
     this.router = router;
     this.config = resolveAuraRoutingEngineConfig(config);
 
@@ -145,52 +114,6 @@ export class AuraRoutingEngine implements NavigationHost {
     this.linkNavigation.onNavigation(onNavigation);
 
     this.initPrefetch();
-  }
-
-  preload(href: string, options?: PrefetchOptions): Promise<void> {
-    return this.prefetch(href, options);
-  }
-
-  prefetch(href: string, options?: PrefetchOptions): Promise<void> {
-    return this.prefetchPipeline?.prefetch(href, options) ?? Promise.resolve();
-  }
-
-  /**
-   * Invalidates a resource cache via {@link ResourceGraph}.
-   * `options.cache`: `'data'` (default) | `'view'` | `'all'`.
-   * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
-   */
-  invalidate(options: RouterInvalidateOptions = {}): number {
-    this.resetPrefetchRecords(options);
-    if (options.cache === 'view') return this.resourceGraph.invalidateView(options);
-    if (options.cache === 'all') {
-      const data = this.resourceGraph.invalidateData(options);
-      const view = this.resourceGraph.invalidateView(options);
-      if (data < 0 && view < 0) return -1;
-      return (data < 0 ? 0 : data) + (view < 0 ? 0 : view);
-    }
-    return this.resourceGraph.invalidateData(options);
-  }
-
-  private resetPrefetchRecords(options: InvalidateScope): void {
-    if (!this.prefetchPipeline) return;
-
-    if (options.path) {
-      this.prefetchPipeline.resetPrefetchRecords(options.path);
-      return;
-    }
-
-    if (!options.key && !options.match) {
-      this.prefetchPipeline.resetPrefetchRecords();
-    }
-  }
-
-  registerRoutes(routes: Parameters<AuraRoutingRouteRegistry['register']>[0]) {
-    this.registry.register(routes);
-  }
-
-  replaceRoutes(routes: Parameters<AuraRoutingRouteRegistry['replace']>[0]) {
-    this.registry.replace(routes);
   }
 
   start(): void {
@@ -239,6 +162,18 @@ export class AuraRoutingEngine implements NavigationHost {
     this.events.destroy();
   }
 
+  registerRoutes(routes: Parameters<AuraRoutingRouteRegistry['register']>[0]) {
+    this.registry.register(routes);
+  }
+
+  replaceRoutes(routes: Parameters<AuraRoutingRouteRegistry['replace']>[0]) {
+    this.registry.replace(routes);
+  }
+
+  getMatchableNodes() {
+    return this.registry.getMatchableNodes();
+  }
+
   /**
    * Центральный метод навигации: match → processor → finalize.
    *
@@ -273,11 +208,7 @@ export class AuraRoutingEngine implements NavigationHost {
    * @param options.syncHistory — history commit после успешного processor; `false` для `pop`
    *   и начальной загрузки, когда URL уже задан браузером.
    */
-  public async navigateTo(
-    href: string,
-    action: HistoryAction,
-    options: NavigateHistoryOptions,
-  ): Promise<void> {
+  public async navigateTo(href: string, action: HistoryAction, options: NavigateHistoryOptions): Promise<void> {
     const resolved = resolveDocumentHrefParts(href);
 
     // Только якорь на том же route — без полного transition
@@ -289,12 +220,33 @@ export class AuraRoutingEngine implements NavigationHost {
     await this.navigationCoordinator.navigate(href, action, options);
   }
 
-  getCommittedRoute(): MatchedRouteInfo | null {
-    return this.prev;
+  preload(href: string, options?: PrefetchOptions): Promise<void> {
+    return this.prefetch(href, options);
   }
 
-  getMatchableNodes() {
-    return this.registry.getMatchableNodes();
+  prefetch(href: string, options?: PrefetchOptions): Promise<void> {
+    return this.prefetchPipeline?.prefetch(href, options) ?? Promise.resolve();
+  }
+
+  /**
+   * Invalidates a resource cache via {@link ResourceGraph}.
+   * `options.cache`: `'data'` (default) | `'view'` | `'all'`.
+   * Returns affected entry count; `-1` when a full invalidate matched no cached entries.
+   */
+  invalidate(options: RouterInvalidateOptions = {}): number {
+    this.resetPrefetchRecords(options);
+    if (options.cache === 'view') return this.resourceGraph.invalidateView(options);
+    if (options.cache === 'all') {
+      const data = this.resourceGraph.invalidateData(options);
+      const view = this.resourceGraph.invalidateView(options);
+      if (data < 0 && view < 0) return -1;
+      return (data < 0 ? 0 : data) + (view < 0 ? 0 : view);
+    }
+    return this.resourceGraph.invalidateData(options);
+  }
+
+  getCommittedRoute(): MatchedRouteInfo | null {
+    return this.prev;
   }
 
   commitPopSlashFix(href: string): void {
@@ -302,24 +254,16 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
   /**
-   * cancel-pending stay: pending may have written the URL and early-synced nav state.
-   * Roll address bar back when needed, then ask the host to re-sync active links / branch.
+   * Terminal outcome from pre-commit redirect resolution (before pipeline run).
+   * Probe txs use `id: 0` and never call {@link NavigationTransaction.run}.
    */
-  restoreCommittedNavState(pending: NavigationTransaction | null): void {
-    const committed = this.prev;
-    if (committed == null) return;
-
-    if (pending?.historyCommitted) {
-      this.provider.rollback(committed.href);
-    }
-    this.pulse.restoreNavState(committed);
+  finalizeResolveTerminal(result: Exclude<PipelineStepResult, null>, probe: NavigationTransaction): void {
+    if (!this.isRunning) return;
+    this.pulse.settle(probe.transactionId, result);
+    this.applyTerminalOutcome(result, probe);
   }
 
-  handleUnmatchedNavigation(
-    requestedHref: string,
-    action: HistoryAction,
-    options: NavigateHistoryOptions,
-  ): void {
+  handleUnmatchedNavigation(requestedHref: string, action: HistoryAction, options: NavigateHistoryOptions): void {
     unmountPrevOnNotFound({
       from: this.prev,
       action,
@@ -347,70 +291,75 @@ export class AuraRoutingEngine implements NavigationHost {
     );
   }
 
+  /** Terminal apply (history / `prev` / redirect / sharedBuffer consume). Observe via {@link NavigationPulse.settle}. */
+  applyTerminalOutcome(result: TransactionResult, tx: NavigationTransaction): void {
+    applyNavigationOutcome(result, navigationIdentityFromTx(tx), this.applyOutcomeContext());
+    if (result.status === 'navigationSucceeded') {
+      // clear buffer cache to not have a wrong expectations from users
+      this.resourceGraph.consumeSharedBufferFor(tx.transitionPlan?.enterRoutes ?? []);
+    }
+  }
+
   /**
-   * Terminal outcome from pre-commit redirect resolution (before pipeline run).
-   * Probe txs use `id: 0` and never call {@link NavigationTransaction.run}.
+   * cancel-pending stay: pending may have written the URL and early-synced nav state.
+   * Roll address bar back when needed, then ask the host to re-sync active links / branch.
    */
-  finalizeResolveTerminal(
-    result: Exclude<PipelineStepResult, null>,
-    probe: NavigationTransaction,
-  ): void {
-    if (!this.isRunning) return;
-    this.pulse.settle(probe.transactionId, result);
-    this.applyTerminalOutcome(result, probe);
+  restoreCommittedNavState(pending: NavigationTransaction | null): void {
+    const committed = this.prev;
+    if (committed == null) return;
+
+    if (pending?.historyCommitted) {
+      this.provider.rollback(committed.href);
+    }
+    this.pulse.restoreNavState(committed);
   }
 
-  /** Observe → apply for pre-match failures (`id: 0`). */
-  private settleAndApplyPreMatchFailure(
-    failure: NavigationFailure,
-    action: HistoryAction,
-    href: string,
-    options: NavigateHistoryOptions,
-  ): void {
-    const result = failure.toResult();
-    this.pulse.settle(0, result);
-    applyNavigationOutcome(
-      result,
-      {
-        action,
-        href,
-        fromHref: this.prev?.href ?? null,
-        historyOptions: options,
-      },
-      this.applyOutcomeContext(),
+  /**
+   * Write address bar when policy requires (`push` / `replace` + `syncHistory`).
+   * Call {@link notifyUrlAligned} after this. Idempotent via `historyCommitted`.
+   */
+  commitHistoryIfNeeded(transition: NavigationTransaction): void {
+    if (transition.historyCommitted) return;
+
+    const { from, to, href, action, historyOptions } = transition;
+    if (!historyOptions.syncHistory || (action !== 'push' && action !== 'replace')) return;
+    if (from && isSameNavigationTarget(from, to)) return;
+
+    applyTransactionHistory(
+      { status: 'navigationSucceeded' },
+      action,
+      href,
+      from?.href ?? null,
+      historyOptions,
+      this.provider,
     );
+
+    transition.historyCommitted = true;
   }
 
-  private applyOutcomeContext() {
-    return {
-      provider: this.provider,
-      onNotFound: this.config.onNotFound,
-      setPrev: (prev: MatchedRouteInfo | null) => {
-        this.prev = prev;
-      },
-      navigateTo: (url: string, action: HistoryAction, options: NavigateHistoryOptions) => {
-        void this.navigateTo(url, action, options);
-      },
-    };
+  /**
+   * Address bar matches navigation target (`historyCommitted` write, or `system` / `pop`).
+   * Delegates to {@link NavigationPulse.alignUrl} (`navigation:url-aligned`).
+   */
+  notifyUrlAligned(transition: NavigationTransaction): void {
+    this.pulse.alignUrl(transition);
   }
 
-  /** Hash-only на том же path — без processor. */
-  private finalizeHashOnlyNavigation(
-    href: string,
-    options: NavigateHistoryOptions,
-    hash: string,
-  ): void {
-    this.provider.commit(href, options);
-    if (this.prev) syncChainHref(this.prev, href, hash);
-    this.config.onHashOnlyNavigation?.(href);
-    if (hash) this.scrollToHash(hash);
+  /**
+   * View promoted: {@link NavigationPulse.commitEnd} (`commit:end` + `node:activate`),
+   * then update `prev` and optional hash scroll.
+   */
+  commitNavigation(transition: NavigationTransaction): void {
+    this.pulse.commitEnd(transition);
+    if (transition.hash) this.scrollToHash?.(transition.hash);
+    this.prev = transition.to;
   }
 
-  private scrollToHash(hash: string): void {
-    const id = hash.startsWith('#') ? hash.slice(1) : hash;
-    if (!id) return;
-    requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView();
+  reportNavigationHookError(hookError: unknown, parent: NavigationFailure): void {
+    this.config.onNavigationHookError?.({
+      error: hookError,
+      phase: 'error',
+      parent,
     });
   }
 
@@ -469,64 +418,70 @@ export class AuraRoutingEngine implements NavigationHost {
     );
   }
 
+  private resetPrefetchRecords(options: InvalidateScope): void {
+    if (!this.prefetchPipeline) return;
 
-  // ── History / commit (side effects + {@link NavigationPulse}) ──
+    if (options.path) {
+      this.prefetchPipeline.resetPrefetchRecords(options.path);
+      return;
+    }
 
-  /**
-   * Write address bar when policy requires (`push` / `replace` + `syncHistory`).
-   * Call {@link notifyUrlAligned} after this. Idempotent via `historyCommitted`.
-   */
-  commitHistoryIfNeeded(transition: NavigationTransaction): void {
-    if (transition.historyCommitted) return;
-
-    const { from, to, href, action, historyOptions } = transition;
-    if (!historyOptions.syncHistory || (action !== 'push' && action !== 'replace')) return;
-    if (from && isSameNavigationTarget(from, to)) return;
-
-    applyTransactionHistory(
-      { status: 'navigationSucceeded' },
-      action,
-      href,
-      from?.href ?? null,
-      historyOptions,
-      this.provider,
-    );
-
-    transition.historyCommitted = true;
-  }
-
-  /**
-   * Address bar matches navigation target (`historyCommitted` write, or `system` / `pop`).
-   * Delegates to {@link NavigationPulse.alignUrl} (`navigation:url-aligned`).
-   */
-  notifyUrlAligned(transition: NavigationTransaction): void {
-    this.pulse.alignUrl(transition);
-  }
-
-  /**
-   * View promoted: {@link NavigationPulse.commitEnd} (`commit:end` + `node:activate`),
-   * then update `prev` and optional hash scroll.
-   */
-  commitNavigation(transition: NavigationTransaction): void {
-    this.pulse.commitEnd(transition);
-    if (transition.hash) this.scrollToHash?.(transition.hash);
-    this.prev = transition.to;
-  }
-
-  /** Terminal apply (history / `prev` / redirect / sharedBuffer consume). Observe via {@link NavigationPulse.settle}. */
-  applyTerminalOutcome(result: TransactionResult, tx: NavigationTransaction): void {
-    applyNavigationOutcome(result, navigationIdentityFromTx(tx), this.applyOutcomeContext());
-    if (result.status === 'navigationSucceeded') {
-      // clear buffer cache to not have a wrong expectations from users
-      this.resourceGraph.consumeSharedBufferFor(tx.transitionPlan?.enterRoutes ?? []);
+    if (!options.key && !options.match) {
+      this.prefetchPipeline.resetPrefetchRecords();
     }
   }
 
-  reportNavigationHookError(hookError: unknown, parent: NavigationFailure): void {
-    this.config.onNavigationHookError?.({
-      error: hookError,
-      phase: 'error',
-      parent,
+  /** Observe → apply for pre-match failures (`id: 0`). */
+  private settleAndApplyPreMatchFailure(
+    failure: NavigationFailure,
+    action: HistoryAction,
+    href: string,
+    options: NavigateHistoryOptions,
+  ): void {
+    const result = failure.toResult();
+    this.pulse.settle(0, result);
+    applyNavigationOutcome(
+      result,
+      {
+        action,
+        href,
+        fromHref: this.prev?.href ?? null,
+        historyOptions: options,
+      },
+      this.applyOutcomeContext(),
+    );
+  }
+
+  private applyOutcomeContext() {
+    return {
+      provider: this.provider,
+      onNotFound: this.config.onNotFound,
+      setPrev: (prev: MatchedRouteInfo | null) => {
+        this.prev = prev;
+      },
+      navigateTo: (url: string, action: HistoryAction, options: NavigateHistoryOptions) => {
+        void this.navigateTo(url, action, options);
+      },
+    };
+  }
+
+  /** Hash-only на том же path — без processor. */
+  private finalizeHashOnlyNavigation(
+    href: string,
+    options: NavigateHistoryOptions,
+    hash: string,
+  ): void {
+    this.provider.commit(href, options);
+    if (this.prev) syncChainHref(this.prev, href, hash);
+    this.config.onHashOnlyNavigation?.(href);
+    if (hash) this.scrollToHash(hash);
+  }
+
+  private scrollToHash(hash: string): void {
+    const id = hash.startsWith('#') ? hash.slice(1) : hash;
+    if (!id) return;
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView();
     });
   }
 }

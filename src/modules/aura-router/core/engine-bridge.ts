@@ -46,10 +46,7 @@ function navigationDomDetail(from: MatchedRouteInfo | null | undefined, to: Matc
 }
 
 /** Apply callbacks + bus→DOM/chrome adapter for {@link AuraRoutingEngine}. */
-export function connectRouterEngine(
-  host: HTMLElement,
-  deps: RouterEngineBridgeDeps,
-): RouterEngineBridge {
+export function connectRouterEngine(host: HTMLElement, deps: RouterEngineBridgeDeps): RouterEngineBridge {
   return {
     config: {
       onHashOnlyNavigation: deps.onHashOnlyNavigation,
@@ -72,11 +69,7 @@ export function connectRouterEngine(
  * start → loads → commit → complete / cancel / redirect → error / not-found.
  * Stay: `nav-state-restore` → active links / branch after cancel-pending.
  */
-function onEngineEvent(
-  host: HTMLElement,
-  deps: RouterEngineBridgeDeps,
-  event: EngineEvent,
-): void {
+function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: EngineEvent): void {
   const { syncBranchAndActiveLinks, scrollRestoration, notFound } = deps;
 
   switch (event.type) {

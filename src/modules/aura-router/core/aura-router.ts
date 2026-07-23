@@ -11,20 +11,13 @@ import {
   defaultHookRegistry,
   resolvePrefetchEngineConfig,
 } from '../../aura-routing-engine/core';
-import {
-  syncRouterActiveLinks,
-  toActiveRouteBranch,
-} from '../../aura-routing-engine/core/link-active';
+import { syncRouterActiveLinks, toActiveRouteBranch } from '../../aura-routing-engine/core/link-active';
 import { attr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
 import { parseNullableString } from '../../aura-utils/misc';
-
 import { installAuraRouter } from './install';
 import { resolveAppOutlet } from './outlet-resolver';
-import {
-  AURA_ROUTER_DATA_INVALIDATED,
-  emit,
-} from './navigation-events';
+import { AURA_ROUTER_DATA_INVALIDATED, emit } from './navigation-events';
 import { connectRouterEngine } from './engine-bridge';
 import { AuraRouterNotFoundController } from './not-found-controller';
 import { ScrollRestoration } from './scroll-restoration';

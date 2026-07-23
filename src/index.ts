@@ -49,12 +49,15 @@ export {
   type AuraRouterLoadErrorEvent,
   type AuraRouterDataInvalidatedEventDetail,
   type AuraRouterDataInvalidatedEvent,
-  type NavigationErrorPhase,
-  type NavigationFailureCode,
 } from './modules/aura-router/core';
 
 export { AuraRoute } from './modules/aura-route/core/aura-route';
 export { AuraOutlet } from './modules/aura-outlet/core/aura-outlet';
 
 export { defineRouteHook } from './modules/aura-routing-engine/core';
-export type { LoaderFn, RouteHookDefinition } from './modules/aura-routing-engine/core';
+export type {
+  LoaderFn,
+  RouteHookDefinition,
+  NavigationErrorPhase,
+  NavigationFailureCode,
+} from './modules/aura-routing-engine/core';

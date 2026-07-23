@@ -1,5 +1,9 @@
 export { AuraRouter, type AuraRouterConfigureOptions } from './core/aura-router';
-export type { RouterInstance } from '../aura-routing-engine/core';
+export type {
+  RouterInstance,
+  NavigationErrorPhase,
+  NavigationFailureCode,
+} from '../aura-routing-engine/core';
 export type { ActiveRouteBranchEntry } from '../aura-routing-engine/core/link-active';
 export {
   AURA_ROUTER_NOT_FOUND,
@@ -20,8 +24,6 @@ export {
   type AuraRouterNotFoundEvent,
   type AuraRouterNavigationErrorEventDetail,
   type AuraRouterNavigationErrorEvent,
-  type NavigationErrorPhase,
-  type NavigationFailureCode,
   type AuraRouterNavigationHookErrorEventDetail,
   type AuraRouterNavigationHookErrorEvent,
   type AuraRouterNavigationEventDetail,

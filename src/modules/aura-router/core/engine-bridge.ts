@@ -1,24 +1,24 @@
+import { isCatchAllRoutePattern } from '../../aura-routing-engine/core';
 import {
-  isCatchAllRoutePattern,
-  type AuraRoutingEngineConfig,
-  type EngineEvent,
-  type MatchedRouteInfo,
-} from '../../aura-routing-engine/core';
-
-import type { AuraRouterNotFoundController } from './not-found-controller';
-import {
-  dispatchLoadEnd,
-  dispatchLoadError,
-  dispatchLoadStart,
-  dispatchNavigationCancel,
-  dispatchNavigationCommitted,
-  dispatchNavigationComplete,
+  AURA_ROUTER_LOAD_END,
+  AURA_ROUTER_LOAD_ERROR,
+  AURA_ROUTER_LOAD_START,
+  AURA_ROUTER_NAVIGATION,
+  AURA_ROUTER_NAVIGATION_CANCEL,
+  AURA_ROUTER_NAVIGATION_COMPLETE,
+  AURA_ROUTER_NAVIGATION_REDIRECT,
+  AURA_ROUTER_NAVIGATION_START,
   dispatchNavigationError,
   dispatchNavigationHookError,
-  dispatchNavigationRedirect,
-  dispatchNavigationStart,
   dispatchNotFound,
+  emit,
 } from './navigation-events';
+import type {
+  AuraRoutingEngineConfig,
+  EngineEvent,
+  MatchedRouteInfo,
+} from '../../aura-routing-engine/core';
+import type { AuraRouterNotFoundController } from './not-found-controller';
 import type { ScrollRestoration } from './scroll-restoration';
 
 /** Deps the engine↔host bridge needs from `<aura-router>` (not the whole element API). */
@@ -36,6 +36,14 @@ export type RouterEngineBridge = {
   >;
   onEvent: (event: EngineEvent) => void;
 };
+
+function navigationDomDetail(from: MatchedRouteInfo | null | undefined, to: MatchedRouteInfo) {
+  return {
+    from: from?.pathname ?? null,
+    to: to.href,
+    pathname: to.pathname,
+  };
+}
 
 /** Apply callbacks + bus→DOM/chrome adapter for {@link AuraRoutingEngine}. */
 export function connectRouterEngine(
@@ -73,79 +81,85 @@ function onEngineEvent(
 ): void {
   const { notFound, scrollRestoration, syncBranchAndActiveLinks } = deps;
 
-  if (event.type === 'navigation:url-aligned') {
-    dispatchNavigationStart(host, {
-      from: event.from?.pathname ?? null,
-      to: event.to.href,
-      pathname: event.to.pathname,
-    });
-    syncBranchAndActiveLinks(event.to);
-    return;
-  }
-
-  if (event.type === 'navigation:nav-state-restore') {
-    syncBranchAndActiveLinks(event.to);
-    return;
-  }
-
-  if (event.type === 'load:start') {
-    dispatchLoadStart(host, event.id, event.nodeId, event.pattern);
-    return;
-  }
-
-  if (event.type === 'load:end') {
-    dispatchLoadEnd(host, event.id, event.nodeId, event.pattern);
-    return;
-  }
-
-  if (event.type === 'load:error') {
-    dispatchLoadError(host, event.id, event.nodeId, event.pattern, event.error);
-    return;
-  }
-
-  if (event.type === 'navigation:commit:end') {
-    notFound.clear();
-    if (isCatchAllRoutePattern(event.to.pattern)) {
-      dispatchNotFound(host, event.to.href, 'route');
-    }
-    scrollRestoration.apply({
-      from: event.from,
-      to: event.to,
-      action: event.action,
-      hash: event.hash,
-    });
-    dispatchNavigationCommitted(host, {
-      from: event.from?.pathname ?? null,
-      to: event.to.href,
-      pathname: event.to.pathname,
-    });
-    syncBranchAndActiveLinks(event.to);
-    return;
-  }
-
-  if (event.type === 'navigation:finish') {
-    dispatchNavigationComplete(host, event.id);
-    return;
-  }
-
-  if (event.type === 'navigation:cancel') {
-    dispatchNavigationCancel(host, event.id, event.reason);
-    return;
-  }
-
-  if (event.type === 'navigation:redirect') {
-    dispatchNavigationRedirect(host, event.id, event.url, event.replace);
-    return;
-  }
-
-  if (event.type === 'navigation:error') {
-    if (event.failure.viewCommitted) {
-      notFound.clear();
-    }
-    // Fallback NOT_FOUND already handled in config `onNotFound` (DOM + recover).
-    if (event.failure.isNotFound) {
+  switch (event.type) {
+    case 'navigation:url-aligned':
+      syncBranchAndActiveLinks(event.to);
+      emit(host, AURA_ROUTER_NAVIGATION_START, navigationDomDetail(event.from, event.to));
       return;
-    }
-    dispatchNavigationError(host, event.failure);
+
+    case 'navigation:nav-state-restore':
+      syncBranchAndActiveLinks(event.to);
+      return;
+
+    case 'load:start':
+      emit(host, AURA_ROUTER_LOAD_START, {
+        id: event.id,
+        nodeId: event.nodeId,
+        pattern: event.pattern,
+      });
+      return;
+
+    case 'load:end':
+      emit(host, AURA_ROUTER_LOAD_END, {
+        id: event.id,
+        nodeId: event.nodeId,
+        pattern: event.pattern,
+      });
+      return;
+
+    case 'load:error':
+      emit(host, AURA_ROUTER_LOAD_ERROR, {
+        id: event.id,
+        nodeId: event.nodeId,
+        pattern: event.pattern,
+        error: event.error,
+      });
+      return;
+
+    case 'navigation:commit:end':
+      notFound.clear();
+      if (isCatchAllRoutePattern(event.to.pattern)) {
+        dispatchNotFound(host, event.to.href, 'route');
+      }
+      scrollRestoration.apply({
+        from: event.from,
+        to: event.to,
+        action: event.action,
+        hash: event.hash,
+      });
+      syncBranchAndActiveLinks(event.to);
+      emit(host, AURA_ROUTER_NAVIGATION, navigationDomDetail(event.from, event.to));
+      return;
+
+    case 'navigation:finish':
+      emit(host, AURA_ROUTER_NAVIGATION_COMPLETE, { id: event.id });
+      return;
+
+    case 'navigation:cancel':
+      emit(host, AURA_ROUTER_NAVIGATION_CANCEL, { id: event.id, reason: event.reason });
+      return;
+
+    case 'navigation:redirect':
+      emit(host, AURA_ROUTER_NAVIGATION_REDIRECT, {
+        id: event.id,
+        url: event.url,
+        replace: event.replace,
+      });
+      return;
+
+    case 'navigation:error':
+      if (event.failure.viewCommitted) {
+        notFound.clear();
+      }
+      // Fallback NOT_FOUND already handled in config `onNotFound` (DOM + recover).
+      if (event.failure.isNotFound) {
+        return;
+      }
+      dispatchNavigationError(host, event.failure);
+      return;
+
+    default:
+      // prepare/commit:start and other bus noise — host chrome ignores.
+      return;
   }
 }

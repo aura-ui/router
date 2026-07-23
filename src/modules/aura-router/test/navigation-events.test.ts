@@ -9,14 +9,9 @@ import {
   AURA_ROUTER_NAVIGATION_ERROR,
   AURA_ROUTER_NAVIGATION_REDIRECT,
   AURA_ROUTER_NOT_FOUND,
-  dispatchLoadEnd,
-  dispatchLoadError,
-  dispatchLoadStart,
-  dispatchNavigationCancel,
-  dispatchNavigationComplete,
   dispatchNavigationError,
-  dispatchNavigationRedirect,
   dispatchNotFound,
+  emit,
   type AuraRouterNavigationErrorEventDetail,
   type AuraRouterNotFoundEvent,
 } from '../core/navigation-events';
@@ -145,55 +140,57 @@ describe('navigation-events', () => {
     });
   });
 
-  it('dispatchNavigationComplete forwards id', () => {
+  it('emit injects router into detail', () => {
     const router = document.createElement('div');
     const listener = jest.fn();
 
     router.addEventListener(AURA_ROUTER_NAVIGATION_COMPLETE, listener);
-    dispatchNavigationComplete(router, 7);
+    emit(router, AURA_ROUTER_NAVIGATION_COMPLETE, { id: 7 });
 
     expect(listener.mock.calls[0][0].detail).toEqual({ id: 7, router });
   });
 
-  it('dispatchNavigationCancel forwards id and optional reason', () => {
+  it('emit forwards cancel / redirect / load payloads', () => {
     const router = document.createElement('div');
-    const listener = jest.fn();
+    const cancel = jest.fn();
+    const redirect = jest.fn();
+    const start = jest.fn();
+    const end = jest.fn();
+    const loadError = jest.fn();
+    const error = new Error('load failed');
 
-    router.addEventListener(AURA_ROUTER_NAVIGATION_CANCEL, listener);
-    dispatchNavigationCancel(router, 3, 'superseded');
+    router.addEventListener(AURA_ROUTER_NAVIGATION_CANCEL, cancel);
+    router.addEventListener(AURA_ROUTER_NAVIGATION_REDIRECT, redirect);
+    router.addEventListener(AURA_ROUTER_LOAD_START, start);
+    router.addEventListener(AURA_ROUTER_LOAD_END, end);
+    router.addEventListener(AURA_ROUTER_LOAD_ERROR, loadError);
 
-    expect(listener.mock.calls[0][0].detail).toEqual({
+    emit(router, AURA_ROUTER_NAVIGATION_CANCEL, { id: 3, reason: 'superseded' });
+    emit(router, AURA_ROUTER_NAVIGATION_REDIRECT, {
+      id: 2,
+      url: '/login',
+      replace: true,
+    });
+    emit(router, AURA_ROUTER_LOAD_START, { id: 1, nodeId: '/about', pattern: '/about' });
+    emit(router, AURA_ROUTER_LOAD_END, { id: 1, nodeId: '/about', pattern: '/about' });
+    emit(router, AURA_ROUTER_LOAD_ERROR, {
+      id: 4,
+      nodeId: '/x',
+      pattern: '/x',
+      error,
+    });
+
+    expect(cancel.mock.calls[0][0].detail).toEqual({
       id: 3,
       router,
       reason: 'superseded',
     });
-  });
-
-  it('dispatchNavigationRedirect forwards id, url, replace', () => {
-    const router = document.createElement('div');
-    const listener = jest.fn();
-
-    router.addEventListener(AURA_ROUTER_NAVIGATION_REDIRECT, listener);
-    dispatchNavigationRedirect(router, 2, '/login', true);
-
-    expect(listener.mock.calls[0][0].detail).toEqual({
+    expect(redirect.mock.calls[0][0].detail).toEqual({
       id: 2,
       url: '/login',
       replace: true,
       router,
     });
-  });
-
-  it('dispatchLoadStart / End forward id, nodeId, pattern', () => {
-    const router = document.createElement('div');
-    const start = jest.fn();
-    const end = jest.fn();
-
-    router.addEventListener(AURA_ROUTER_LOAD_START, start);
-    router.addEventListener(AURA_ROUTER_LOAD_END, end);
-    dispatchLoadStart(router, 1, '/about', '/about');
-    dispatchLoadEnd(router, 1, '/about', '/about');
-
     expect(start.mock.calls[0]![0].detail).toEqual({
       id: 1,
       nodeId: '/about',
@@ -206,17 +203,7 @@ describe('navigation-events', () => {
       pattern: '/about',
       router,
     });
-  });
-
-  it('dispatchLoadError forwards error', () => {
-    const router = document.createElement('div');
-    const listener = jest.fn();
-    const error = new Error('load failed');
-
-    router.addEventListener(AURA_ROUTER_LOAD_ERROR, listener);
-    dispatchLoadError(router, 4, '/x', '/x', error);
-
-    expect(listener.mock.calls[0]![0].detail).toEqual({
+    expect(loadError.mock.calls[0]![0].detail).toEqual({
       id: 4,
       nodeId: '/x',
       pattern: '/x',

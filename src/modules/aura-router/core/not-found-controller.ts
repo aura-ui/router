@@ -1,6 +1,6 @@
-import { AuraOutlet, type ViewHandle } from '../../aura-outlet/core/aura-outlet';
+import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { getTemplate } from '../../aura-utils/misc';
-
+import type { ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import type { NotFoundHandler } from './navigation-events';
 
 const NOT_FOUND_VIEW_KEY = '__not-found__';

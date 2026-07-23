@@ -1,10 +1,8 @@
-import type { CacheStoreOptions } from '../../aura-cache-store/core';
-import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
-import { AuraRoute, RouteDomCache, type ViewResolverPort } from '../../aura-route/core';
-import { parseMountStrategyAttr, type MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
-import { parsePrefetchAttr, type PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
-import { parseScrollAttr, type ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
+import { AuraRoute, RouteDomCache } from '../../aura-route/core';
+import { parseMountStrategyAttr } from '../../aura-route/core/attr/mount-strategy-attr-parser';
+import { parsePrefetchAttr } from '../../aura-route/core/attr/prefetch-attr-parser';
+import { parseScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import {
   AuraRoutingEngine,
   ViewGraph,
@@ -12,22 +10,10 @@ import {
   defaultLoaderRegistry,
   defaultHookRegistry,
   resolvePrefetchEngineConfig,
-  type LoaderFn,
-  type LoaderId,
-  type RegisterLoaderOptions,
-  type NavigateHistoryOptions,
-  type PrefetchOptions,
-  type RouteHookDefinition,
-  type RouterInvalidateOptions,
-  type RouterInstance,
-  type DataGraphCacheOptions,
-  type Loader,
-  type MatchedRouteInfo,
 } from '../../aura-routing-engine/core';
 import {
   syncRouterActiveLinks,
   toActiveRouteBranch,
-  type ActiveRouteBranchEntry,
 } from '../../aura-routing-engine/core/link-active';
 import { attr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
@@ -36,9 +22,33 @@ import { parseNullableString } from '../../aura-utils/misc';
 import { AuraRouterNotFoundController } from './not-found-controller';
 import { installAuraRouter } from './install';
 import { connectRouterEngine } from './engine-bridge';
-import { dispatchDataInvalidated, type NotFoundHandler } from './navigation-events';
+import {
+  AURA_ROUTER_DATA_INVALIDATED,
+  emit,
+} from './navigation-events';
 import { ScrollRestoration } from './scroll-restoration';
 import { resolveAppOutlet } from './outlet-resolver';
+import type { CacheStoreOptions } from '../../aura-cache-store/core';
+import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
+import type { ViewResolverPort } from '../../aura-route/core';
+import type { MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
+import type { PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
+import type { ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
+import type {
+  LoaderFn,
+  LoaderId,
+  RegisterLoaderOptions,
+  NavigateHistoryOptions,
+  PrefetchOptions,
+  RouteHookDefinition,
+  RouterInvalidateOptions,
+  RouterInstance,
+  DataGraphCacheOptions,
+  Loader,
+  MatchedRouteInfo,
+} from '../../aura-routing-engine/core';
+import type { ActiveRouteBranchEntry } from '../../aura-routing-engine/core/link-active';
+import type { NotFoundHandler } from './navigation-events';
 
 export interface AuraRouterConfigureOptions {
   /** Detached DOM keep-alive (`cache.dom`). */
@@ -217,7 +227,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   invalidate(options?: RouterInvalidateOptions): number {
     const count = this.ensureEngine().invalidate(options);
     if (options?.cache !== 'view') {
-      dispatchDataInvalidated(this, count);
+      emit(this, AURA_ROUTER_DATA_INVALIDATED, { count });
     }
     return count;
   }

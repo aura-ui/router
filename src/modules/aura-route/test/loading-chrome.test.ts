@@ -231,7 +231,7 @@ describe('AuraRoute loading chrome', () => {
     expect(onStart).toHaveBeenCalledTimes(1);
   });
 
-  it('stages loading over committed view; cancel keeps About (About → Contacts → About)', async () => {
+  it('stages loading over committed view; hideLoading restores previous (About → Contacts → About)', async () => {
     appendTemplate('loading-contacts', '<h1>Loading contacts</h1>');
 
     const contacts = await readyRoute({
@@ -253,7 +253,6 @@ describe('AuraRoute loading chrome', () => {
     expect(outlet.children[1]!.textContent).toBe('Loading contacts');
     expect(document.body.classList.contains('is-loading')).toBe(true);
 
-    contacts.revertInFlightView();
     contacts.hideLoading();
 
     expect(outlet.children).toHaveLength(1);

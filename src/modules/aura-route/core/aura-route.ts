@@ -155,6 +155,8 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   private initGeneration = 0;
   private passId = 0;
   private loadingActive = false;
+  /** True only after {@link showLoading} staged a `loading-template` (skipped when transition-order). */
+  private loadingTemplateStaged = false;
 
   get nestedOutlet(): AuraOutlet | null {
     return this.viewController?.nestedOutlet ?? null;
@@ -362,15 +364,22 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     try {
       this.passId++;
       this.viewController.mountLoadingTemplate(routeInfo, getTemplate(this.loadingTemplate));
+      this.loadingTemplateStaged = true;
     } catch (error) {
       console.warn(`Failed to render loadingTemplate for route "${this.path}":`, error);
     }
   }
 
-  /** Clears body class + end event from {@link showLoading}. Staged skeleton is dropped on cancel or real mount. */
+  /** Clears body class, end event, and staged `loading-template` from {@link showLoading}. */
   hideLoading(): void {
     if (!this.loadingActive) return;
     this.loadingActive = false;
+
+    // Only when skeleton was staged — update-path has no remount to clear it otherwise.
+    if (this.loadingTemplateStaged) {
+      this.loadingTemplateStaged = false;
+      this.viewController?.revertInFlightView();
+    }
 
     if (this.loadingBodyClass) {
       document.body.classList.remove(this.loadingBodyClass);

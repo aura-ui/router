@@ -6,12 +6,12 @@ import {
 
 type TestHost = HTMLElement & AuraRouterNotFoundHost;
 
-function createHost(options: { notFoundTemplate?: string } = {}): TestHost {
+function createHost(options: { errorTemplate?: string } = {}): TestHost {
   const router = document.createElement('div') as unknown as TestHost;
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
 
-  Object.defineProperty(router, 'notFoundTemplate', {
-    value: options.notFoundTemplate ?? '',
+  Object.defineProperty(router, 'errorTemplate', {
+    value: options.errorTemplate ?? '',
     configurable: true,
   });
   Object.defineProperty(router, 'appOutlet', {
@@ -45,13 +45,13 @@ describe('AuraRouterNotFoundController', () => {
     expect(router.appOutlet.children).toHaveLength(1);
   });
 
-  it('renders not-found-template and fills data-not-found-url', () => {
+  it('renders error-template and fills data-not-found-url', () => {
     const template = document.createElement('template');
-    template.id = '404-template';
+    template.id = 'error-template';
     template.innerHTML = '<h1>404</h1><p><span data-not-found-url></span></p>';
     document.body.appendChild(template);
 
-    const router = createHost({ notFoundTemplate: '404-template' });
+    const router = createHost({ errorTemplate: 'error-template' });
     const controller = new AuraRouterNotFoundController(router);
 
     controller.recover('/gone');

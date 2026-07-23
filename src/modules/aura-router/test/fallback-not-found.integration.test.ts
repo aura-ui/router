@@ -50,6 +50,29 @@ describe('AuraRouter fallback not-found (ensureEngine onNotFound)', () => {
     expect(router.appOutlet.textContent).toContain('Page not found: /missing');
   });
 
+  it('uses router error-template as fallback UI when path="*" is absent', async () => {
+    const template = document.createElement('template');
+    template.id = 'host-error';
+    template.innerHTML = '<h1>oops</h1><span data-not-found-url></span>';
+    document.body.append(template);
+
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('error-template', 'host-error');
+    router.innerHTML = `
+      <aura-outlet></aura-outlet>
+      <aura-route path="/" view="html::<p>home</p>"></aura-route>
+    `;
+    document.body.append(router);
+    await customElements.whenDefined('aura-route');
+    await flushNavigation();
+
+    router.navigate('/gone');
+    await flushNavigation();
+
+    expect(router.appOutlet.querySelector('h1')?.textContent).toBe('oops');
+    expect(router.appOutlet.querySelector('[data-not-found-url]')?.textContent).toBe('/gone');
+  });
+
   it('skips fallback UI when not-found listener calls preventDefault', async () => {
     const router = await mount();
     router.addEventListener(AURA_ROUTER_NOT_FOUND, (event) => {

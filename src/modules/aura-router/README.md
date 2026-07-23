@@ -35,7 +35,8 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 | `links-container-selector` | Опционально сужает поиск ссылок для active-state до предка (по умолчанию — весь документ). |
 | `link-active-class` | CSS-класс точного совпадения URL на `[aura-router-link]`. |
 | `link-active-branch-class` | CSS-класс prefix-совпадения (активная ветка / раздел). |
-| `not-found-template` | Id `<template>` для **fallback**-404 (см. ниже). Используется только когда нет `<aura-route path="*">`. |
+| `error-template` | Id `<template>`: default для route `error-template` (наследование) и thin fallback-404, когда нет `<aura-route path="*">`. |
+| `loading-template` | Id `<template>`: default для route `loading-template` (наследование). |
 | `outlet` | Опциональный CSS-селектор корневого `<aura-outlet>`. Если не задан: prev/next sibling → nested `<aura-outlet>` → автосоздание sibling перед router. |
 
 ### Атрибуты `<aura-route>` (prefetch)
@@ -53,7 +54,7 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 ### Методы экземпляра
 
 - `navigate(path, options?)` — программная навигация (`replace`, `syncHistory`).
-- `setNotFoundHandler(handler | null)` — per-instance fallback handler (перекрывает `configure` и `not-found-template`).
+- `setNotFoundHandler(handler | null)` — per-instance fallback handler (перекрывает `configure` и `error-template`).
 - `refreshRoutes()` — перечитать дочерние `<aura-route>` в registry движка.
 
 ### Экспорты
@@ -133,7 +134,7 @@ Catch-all маршрут матчит любой pathname, но **проигры
 |---|----------|-----|
 | 1 | Handler экземпляра | `router.setNotFoundHandler(fn)` |
 | 2 | Глобальный handler | `AuraRouter.configure({ notFoundHandler })` |
-| 3 | Шаблон | атрибут `not-found-template` на `<aura-router>` |
+| 3 | Шаблон | атрибут `error-template` на `<aura-router>` |
 | 4 | Дефолт | текст `Page not found: {url}` в root `<aura-outlet>` |
 
 Перед показом UI диспатчится cancelable-событие `not-found` с `source: 'fallback'`. Если вызвать `event.preventDefault()`, встроенный fallback не отрисуется.
@@ -141,10 +142,15 @@ Catch-all маршрут матчит любой pathname, но **проигры
 В шаблоне fallback URL подставляется в элементы с атрибутом `[data-not-found-url]`.
 
 ```html
-<aura-router not-found-template="404-template">
+<template id="error">
+  <h1>Something went wrong</h1>
+  <p>URL: <span data-not-found-url></span></p>
+</template>
+
+<aura-router error-template="error">
   <aura-outlet></aura-outlet>
   <aura-route path="/" source="html" data-content="<h1>Home</h1>"></aura-route>
-  <!-- path="*" нет — неизвестные пути пойдут в fallback -->
+  <!-- path="*" нет — неизвестные пути пойдут в fallback через error-template -->
 </aura-router>
 ```
 

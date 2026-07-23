@@ -33,7 +33,7 @@ Plans: [ROADMAP.md](./ROADMAP.md) · history: [CHANGELOG.md](./CHANGELOG.md).
 - **ViewGraph is browser-only** — built-in loaders use `window`, `document`, `fetch`, and `customElements`. No Node SSR view pipeline (`isSSR` is reserved / always false in the browser env). Client MPA→SPA hydration is the intended path (ROADMAP Phase 8).
 - **`url` / bare `view`, `html`, `iframe`** — no URL allowlist; content is fetched, embedded, or injected from route attrs. Treat `<aura-route>` markup as **trusted** (XSS risk if content is untrusted).
 - **`loading-template`** — turns on body class + `aura-route-loading` event; does **not** clone/mount a skeleton into the outlet.
-- **`error-template`** — per-route template clone on error; no nested error-boundary hierarchy.
+- **`error-template`** — per-route template clone on error (router attr is the inherit default); also thin fallback UI when there is no `path="*"`. No nested error-boundary hierarchy.
 - **Full DOM replace** — no incremental / morph patch renderer yet.
 - **View Transitions API** — not wired in the engine (`document.startViewTransition`). CSS / WAAPI transitions via attrs work; demo hooks are separate.
 - **Nested routes work; colocated folder templates do not** — HTML nesting + `<aura-outlet>` ship; filesystem-style route folders are not a product feature yet.

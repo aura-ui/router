@@ -50,7 +50,7 @@ export interface AuraRouterConfigureOptions {
   viewCache?: SwrCacheOptions<string>;
   /** Load-hook payloads (`cache.data`). */
   dataCache?: DataGraphCacheOptions;
-  /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает not-found-template. */
+  /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает error-template. */
   notFoundHandler?: NotFoundHandler | null;
 }
 
@@ -67,9 +67,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ parser: parseNullableString, cached: true, name: 'outlet' })
   outletSelector: string | null;
 
-  /** Fallback template id — когда нет `<aura-route path="*">`. */
+  /**
+   * Default `<template>` id for route `error-template` inheritance.
+   * Also used as thin fallback UI when there is no `<aura-route path="*">`.
+   */
   @attr({ readonly: true, cached: true })
-  notFoundTemplate: string;
+  errorTemplate: string;
 
   @attr({ defaultValue: '[aura-router-link]' })
   linksSelector: string;
@@ -221,7 +224,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.ensureEngine().replaceRoutes(Array.from(this.routes));
   }
 
-  /** Per-instance override (перекрывает configure и template). Только fallback. */
+  /** Per-instance override (перекрывает configure и `error-template`). Только fallback. */
   setNotFoundHandler(handler: NotFoundHandler | null): void {
     this.notFound.setHandler(handler);
   }

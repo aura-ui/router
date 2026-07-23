@@ -6,7 +6,8 @@ import type { NotFoundHandler } from './navigation-events';
 const NOT_FOUND_VIEW_KEY = '__not-found__';
 
 export interface AuraRouterNotFoundHost extends HTMLElement {
-  notFoundTemplate: string;
+  /** Host `error-template` — also default for route error UI inheritance. */
+  errorTemplate: string;
   appOutlet: AuraOutlet;
 }
 
@@ -40,8 +41,8 @@ export class AuraRouterNotFoundController {
       return;
     }
 
-    const content = this.router.notFoundTemplate
-      ? getTemplate(this.router.notFoundTemplate)
+    const content = this.router.errorTemplate
+      ? getTemplate(this.router.errorTemplate)
       : `Page not found: ${url}`;
 
     const handle = this.router.appOutlet.apply(content, { strategy: 'replace', key: NOT_FOUND_VIEW_KEY });

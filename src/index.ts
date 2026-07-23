@@ -58,6 +58,7 @@ export { defineRouteHook } from './modules/aura-routing-engine/core';
 export type {
   LoaderFn,
   RouteHookDefinition,
+  RouteHookFn,
   NavigationErrorPhase,
   NavigationFailureCode,
 } from './modules/aura-routing-engine/core';

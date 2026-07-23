@@ -1,7 +1,8 @@
 /**
  * Author-time helper for {@link RouteHookDefinition}.
  *
- * Validates hook name format and returns a frozen definition for `AuraRouter.use()`.
+ * Freezes a hook definition for reuse / export. Name format is checked on
+ * {@link HookRegistry.register} / `AuraRouter.use()`.
  *
  * @module hooks/define-hook
  */
@@ -16,14 +17,11 @@ import type { RouteHookDefinition } from './types';
  *
  * @example
  * ```ts
- * type AuthOptions = { redirect?: string };
- *
- * export const authHook = defineRouteHook<AuthOptions>({
+ * export const authHook = defineRouteHook({
  *   name: 'auth',
  *   version: '1.0.0',
- *   requires: '>=0.1.0',
  *   fn: async (ctx) => {
- *     if (!isLoggedIn()) return ctx.options.redirect ?? '/login';
+ *     if (!isLoggedIn()) return '/login';
  *   },
  * });
  * ```
@@ -31,8 +29,5 @@ import type { RouteHookDefinition } from './types';
 export function defineRouteHook<TOptions = Record<string, unknown>>(
   def: RouteHookDefinition<TOptions>,
 ): Readonly<RouteHookDefinition<TOptions>> {
-  if (!def.name || !/^[a-z][a-z0-9-]*$/.test(def.name)) {
-    throw new Error(`Invalid hook name: "${def.name}"`);
-  }
-  return Object.freeze({ ...def, fn: def.fn });
+  return Object.freeze({ ...def });
 }

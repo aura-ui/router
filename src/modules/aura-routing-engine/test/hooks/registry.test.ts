@@ -64,4 +64,17 @@ describe('HookRegistry', () => {
       ),
     ).toThrow('Hook "future-hook@1.0.0" requires router >99.0.0');
   });
+
+  it('throws on invalid hook names', () => {
+    const registry = new HookRegistry();
+
+    expect(() =>
+      registry.register({
+        name: 'Auth',
+        version: '1.0.0',
+        fn: async () => {},
+      }),
+    ).toThrow(/kebab-case.*lowercase/);
+  });
 });
+

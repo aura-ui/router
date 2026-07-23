@@ -210,6 +210,7 @@ export type {
   LifecyclePhase,
   RouteHookContext,
   RouteHookDefinition,
+  RouteHookFn,
   HookResult,
   HookResultInput,
 } from './core/hooks/types';

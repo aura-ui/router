@@ -37,6 +37,7 @@ import type {
   PrefetchOptions,
   RegisterLoaderOptions,
   RouteHookDefinition,
+  RouteHookFn,
   RouterInvalidateOptions,
   RouterInstance,
 } from '../../aura-routing-engine/core';
@@ -171,9 +172,28 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
   }
 
-  /** Process-wide hook via {@link defaultHookRegistry} — shared by all default engine instances. */
-  static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
-    defaultHookRegistry.register(hook, options ?? {});
+  /**
+   * Process-wide hook via {@link defaultHookRegistry} — shared by all default engine instances.
+   *
+   * @example
+   * ```ts
+   * AuraRouter.use('auth', async (ctx) => {
+   *   if (!ok) return { type: 'redirect', url: '/login' };
+   * });
+   * AuraRouter.use(authHook, { redirect: '/signin' });
+   * ```
+   */
+  static use(name: string, fn: RouteHookFn, options?: Record<string, unknown>): void;
+  static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void;
+  static use(hookOrName: string | RouteHookDefinition, fnOrOptions?: RouteHookFn | Record<string, unknown>, options?: Record<string, unknown>): void {
+    if (typeof hookOrName === 'string') {
+      defaultHookRegistry.register(
+        { name: hookOrName, version: '1.0.0', fn: fnOrOptions as RouteHookFn },
+        options ?? {},
+      );
+      return;
+    }
+    defaultHookRegistry.register(hookOrName, (fnOrOptions as Record<string, unknown>) ?? {});
   }
 
   /** @returns `true` if a hook with that name was registered */

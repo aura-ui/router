@@ -88,6 +88,11 @@ export class HookRegistry {
     options: TOptions = {} as TOptions,
   ): void {
     const { name, version, fn, requires } = hook;
+    if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
+      throw new Error(
+        `Invalid hook name: "${name}". Use kebab-case: lowercase letters, digits, hyphens; must start with a letter (e.g. "auth", "fetch-user").`,
+      );
+    }
     const existing = this.entries.get(name);
 
     const stored: StoredHook = {

@@ -41,7 +41,7 @@ export type WiredRouteViewController = {
 };
 
 /** Writable test record that satisfies {@link AuraRouteInterface} for RouteViewController. */
-type MutableRouteRecord = RouteInstance & {
+type MutableRouteRecord = Omit<RouteInstance, 'extract' | 'transition'> & {
   path: string;
   layout: string;
   redirect: string;

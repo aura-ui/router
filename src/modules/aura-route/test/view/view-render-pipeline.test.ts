@@ -48,21 +48,6 @@ describe('ViewRenderPipeline', () => {
     expect(root.textContent).toBe('ok');
   });
 
-  it('fires loading plugin hooks when content resolves', async () => {
-    const root = createOutlet();
-    const onLoadingStart = jest.fn();
-    const onLoadingEnd = jest.fn();
-    const pipeline = createPipeline(root, {
-      plugins: [{ onLoadingStart, onLoadingEnd }],
-    });
-    const pass = createRenderPass();
-
-    await pipeline.resolveAndMount(pass);
-
-    expect(onLoadingStart).toHaveBeenCalledWith(pass);
-    expect(onLoadingEnd).toHaveBeenCalledWith(pass);
-  });
-
   it('returns error result when resolver throws', async () => {
     const root = createOutlet();
     const pipeline = createPipeline(root, {
@@ -83,12 +68,10 @@ describe('ViewRenderPipeline', () => {
   it('syncBranchMount mounts pre-resolved content without calling loadView', () => {
     const root = createOutlet();
     const loadView = jest.fn(async () => ({ data: '<span>from-resolve</span>' }));
-    const onLoadingStart = jest.fn();
-    const onLoadingEnd = jest.fn();
     const onContentResolved = jest.fn();
     const pipeline = createPipeline(root, {
       view: { loadView },
-      plugins: [{ onLoadingStart, onLoadingEnd, onContentResolved }],
+      plugins: [{ onContentResolved }],
     });
 
     const result = pipeline.syncBranchMount({
@@ -99,8 +82,6 @@ describe('ViewRenderPipeline', () => {
     expect(result).toEqual({ status: 'ok' });
     expect(root.textContent).toBe('pre-resolved');
     expect(loadView).not.toHaveBeenCalled();
-    expect(onLoadingStart).not.toHaveBeenCalled();
-    expect(onLoadingEnd).not.toHaveBeenCalled();
     expect(onContentResolved).toHaveBeenCalledWith(
       expect.objectContaining({ preResolvedView: '<span>pre-resolved</span>' }),
       '<span>pre-resolved</span>',

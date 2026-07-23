@@ -1,6 +1,7 @@
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import { routeAttr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
+import { dispatchCustomEvent, getTemplate } from '../../aura-utils/misc';
 import { parseCacheAttr } from './attr/cache-attr-parser';
 import { parseHookList, parseInheritableNullableString } from './attr/inherit-attr-parser';
 import { parseMountStrategyAttr } from './attr/mount-strategy-attr-parser';
@@ -15,8 +16,7 @@ import {
   DEFAULT_TRANSITION_ORDER,
   parseTransitionOrder,
 } from './attr/transition-order-attr-parser';
-import { isAsyncLoader, parseViewAttr } from './attr/view-attr-parser';
-import { loadingBodyClass, loadingEvent } from './plugins/view-loading-plugins';
+import { isAsyncLoader, isSyncLoader, parseViewAttr } from './attr/view-attr-parser';
 import { RouteViewController } from './view';
 import { domCacheKey, defaultDomCache } from './view/dom-cache';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
@@ -48,6 +48,12 @@ import type { MountTargetPort } from './view';
 
 export type { AuraRouteInterface, RouteType };
 
+/** Default `loading-start-event` name. */
+export const AURA_ROUTE_LOADING_START = 'aura-route-loading';
+
+/** Default `loading-end-event` name. */
+export const AURA_ROUTE_LOADING_END = 'aura-route-loading-end';
+
 let idCounter = 0;
 
 export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteInstance {
@@ -75,6 +81,21 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @routeAttr({ parser: parseInheritableNullableString })
   loadingTemplate: string | null;
+
+  @routeAttr({ parser: parseInheritableNullableString })
+  loadingBodyClass: string | null;
+
+  @routeAttr({
+    parser: parseInheritableNullableString,
+    defaultValue: AURA_ROUTE_LOADING_START,
+  })
+  loadingStartEvent: string | null;
+
+  @routeAttr({
+    parser: parseInheritableNullableString,
+    defaultValue: AURA_ROUTE_LOADING_END,
+  })
+  loadingEndEvent: string | null;
 
   @routeAttr({ parser: parseInheritableNullableString })
   errorTemplate: string | null;
@@ -133,6 +154,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   private viewReady = false;
   private initGeneration = 0;
   private passId = 0;
+  private loadingActive = false;
 
   get nestedOutlet(): AuraOutlet | null {
     return this.viewController?.nestedOutlet ?? null;
@@ -187,10 +209,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return isAsyncLoader(this.view?.loader);
   }
 
-  /** Inline `html::` without layout, fetch loaders, or loading UI — future sync render lane (see IMPLEMENTATION_STEPS §5b PR3). */
+  /** Sync builtin view (`html` / `template` / `component`) without layout or async work. */
   get hasSyncContent(): boolean {
     if (this.type !== 'page' || this.hasLayout || this.hasAsyncContent) return false;
-    return this.view?.loader === 'html';
+    return isSyncLoader(this.view?.loader);
   }
 
   get hasDataCache() {
@@ -255,6 +277,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     this.passId++;
     this.initGeneration++;
     this.viewReady = false;
+    if (this.loadingActive) this.hideLoading();
     this.viewController?.cancel();
   }
 
@@ -313,6 +336,48 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     void ctx;
   }
 
+  /**
+   * Prepare-window loading chrome: body class, start event, optional skeleton mount.
+   * Called by the engine around `runLoads` (after guards → load end).
+   */
+  showLoading(routeInfo: MatchedRouteInfo): void {
+    if (this.loadingActive) return;
+    this.loadingActive = true;
+
+    if (this.loadingBodyClass) {
+      document.body.classList.add(this.loadingBodyClass);
+    }
+
+    if (this.loadingStartEvent) {
+      dispatchCustomEvent(this, this.loadingStartEvent, { detail: { routeInfo } });
+    }
+
+    if (!this.loadingTemplate || !this.viewReady || !this.viewController) return;
+
+    try {
+      this.applyPreResolved(routeInfo, {
+        preResolvedView: getTemplate(this.loadingTemplate),
+        immediate: true,
+      });
+    } catch (error) {
+      console.warn(`Failed to render loadingTemplate for route "${this.path}":`, error);
+    }
+  }
+
+  /** Clears body class + end event from {@link showLoading}. Skeleton is replaced by real mount. */
+  hideLoading(): void {
+    if (!this.loadingActive) return;
+    this.loadingActive = false;
+
+    if (this.loadingBodyClass) {
+      document.body.classList.remove(this.loadingBodyClass);
+    }
+
+    if (this.loadingEndEvent) {
+      dispatchCustomEvent(this, this.loadingEndEvent);
+    }
+  }
+
   onUpdate(ctx: RouteLifecycleContext): void {
     void ctx;
     this.passId++;
@@ -368,17 +433,12 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
       nestedOutlet: (routeInfo) => routeInfo.node?.parent?.route.nestedOutlet ?? null,
     };
 
-    const plugins = [
-      ...(this.loadingTemplate ? [loadingBodyClass(), loadingEvent(this)] : []),
-    ];
-
     this.viewController = new RouteViewController(
       {
         route: this,
         view: router.resolveViewPort(),
         cache: defaultDomCache,
         mountTarget,
-        plugins,
       },
       () => this.passId,
     );

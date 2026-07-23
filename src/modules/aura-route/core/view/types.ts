@@ -21,8 +21,6 @@ export type RenderPass = {
 };
 
 export interface ViewRenderPlugin {
-  onLoadingStart?(pass: RenderPass): void;
-  onLoadingEnd?(pass: RenderPass): void;
   onContentResolved?(pass: RenderPass, payload: ViewPayload): void;
   onMounted?(pass: RenderPass): void;
   onPassError?(pass: RenderPass, error: unknown): void;

@@ -29,8 +29,12 @@ export const BUILTIN_LOADER_IDS = [
 /** Subset of {@link BUILTIN_LOADER_IDS} that require async resolve. */
 export const ASYNC_LOADER_IDS = ['url', 'import', 'iframe'] as const satisfies readonly LoaderId[];
 
+/** Built-ins that resolve without network / dynamic import. */
+export const SYNC_LOADER_IDS = ['template', 'html', 'component'] as const satisfies readonly LoaderId[];
+
 const knownLoaders = new Set<string>(BUILTIN_LOADER_IDS);
 const asyncLoaders = new Set<string>(ASYNC_LOADER_IDS);
+const syncLoaders = new Set<string>(SYNC_LOADER_IDS);
 
 export function isKnownViewLoader(loader: string): boolean {
   return knownLoaders.has(loader);
@@ -38,6 +42,11 @@ export function isKnownViewLoader(loader: string): boolean {
 
 export function isAsyncLoader(loader: string | undefined): boolean {
   return loader !== undefined && asyncLoaders.has(loader);
+}
+
+/** Known builtin that can resolve synchronously (`html` / `template` / `component`). */
+export function isSyncLoader(loader: string | undefined): boolean {
+  return loader !== undefined && syncLoaders.has(loader);
 }
 
 function urlView(content: string): ViewAttrDescriptor {

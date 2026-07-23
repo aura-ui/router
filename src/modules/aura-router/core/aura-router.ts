@@ -74,8 +74,21 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true })
   errorTemplate: string;
 
+  /** Default for route `loading-template` inheritance. */
   @attr({ readonly: true, cached: true })
   loadingTemplate: string;
+
+  /** Default for route `loading-body-class` inheritance. */
+  @attr({ readonly: true, cached: true })
+  loadingBodyClass: string;
+
+  /** Default for route `loading-start-event` inheritance. */
+  @attr({ readonly: true, cached: true })
+  loadingStartEvent: string;
+
+  /** Default for route `loading-end-event` inheritance. */
+  @attr({ readonly: true, cached: true })
+  loadingEndEvent: string;
 
   @attr({ defaultValue: '[aura-router-link]' })
   linksSelector: string;

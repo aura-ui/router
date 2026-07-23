@@ -106,6 +106,71 @@ describe('NavigationTransactionPipeline.runLoads activeChain', () => {
 
     loadSpy.mockRestore();
   });
+
+  it('wraps ResourceGraph.load with showLoading / hideLoading', async () => {
+    const order: string[] = [];
+    const enter = createMatchedRoute('/to', {
+      showLoading: () => {
+        order.push('show');
+      },
+      hideLoading: () => {
+        order.push('hide');
+      },
+    });
+
+    const transaction = createMockTransaction({
+      enterRoutes: [enter],
+      transitionOrder: null,
+    });
+
+    jest.spyOn(transaction.engine.resourceGraph, 'load').mockImplementation(async () => {
+      order.push('load');
+      return {};
+    });
+
+    await new NavigationTransactionPipeline(transaction).runLoads();
+
+    expect(order).toEqual(['show', 'load', 'hide']);
+  });
+
+  it('calls hideLoading when ResourceGraph.load throws', async () => {
+    const hideLoading = jest.fn();
+    const enter = createMatchedRoute('/to', {
+      showLoading: jest.fn(),
+      hideLoading,
+    });
+
+    const transaction = createMockTransaction({
+      enterRoutes: [enter],
+      transitionOrder: null,
+    });
+
+    jest.spyOn(transaction.engine.resourceGraph, 'load').mockRejectedValue(new Error('boom'));
+
+    await expect(new NavigationTransactionPipeline(transaction).runLoads()).rejects.toThrow('boom');
+    expect(hideLoading).toHaveBeenCalledTimes(1);
+  });
+
+  it('runSpeculativePrepare (prefetch) loads without showLoading / hideLoading', async () => {
+    const showLoading = jest.fn();
+    const hideLoading = jest.fn();
+    const enter = createMatchedRoute('/to', { showLoading, hideLoading });
+
+    const transaction = createMockTransaction({
+      enterRoutes: [enter],
+      transitionOrder: null,
+    });
+
+    const loadSpy = jest
+      .spyOn(transaction.engine.resourceGraph, 'load')
+      .mockResolvedValue({});
+
+    await new NavigationTransactionPipeline(transaction).runSpeculativePrepare();
+
+    expect(loadSpy).toHaveBeenCalledTimes(1);
+    expect(showLoading).not.toHaveBeenCalled();
+    expect(hideLoading).not.toHaveBeenCalled();
+  });
 });
 
 describe('NavigationTransactionPipeline branch render cancellation', () => {

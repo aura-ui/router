@@ -86,7 +86,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | **Update** | `runUpdate()` | guards, render, unmount, ready | history → loads → `update` → `commitNavigation` |
 | **Fast** | `runFastPipeline()` | guards, loads, transitions | history → single `runViewCommit` → after-render |
-| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → history → **loads** (`ResourceGraph.load`) → commit + transitions → after-render |
+| **Full** | `runFullPipeline()` | `runGuards` when `skipBlockingPhases` | `runGuards`? → history → **loads** (`showLoading` → `ResourceGraph.load` → `hideLoading`) → commit + transitions → after-render |
 
 `skipBlockingPhases`: redirect walk already ran `leave` → `guard` — see `redirect/README.md`.
 

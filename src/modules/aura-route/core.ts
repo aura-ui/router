@@ -14,7 +14,6 @@ export type {
   RenderPass,
 } from './core/view/types';
 export { RouteViewController } from './core/view/view-controller';
-export { loadingBodyClass, loadingEvent } from './core/plugins/view-loading-plugins';
 export {
   LoaderRegistry,
   defaultLoaderRegistry,
@@ -27,5 +26,11 @@ export type {
   LoaderId,
   LoaderFn,
 } from '../aura-routing-engine/route-api';
-export { AuraRoute, type AuraRouteInterface, type RouteType } from './core/aura-route';
+export {
+  AuraRoute,
+  AURA_ROUTE_LOADING_END,
+  AURA_ROUTE_LOADING_START,
+  type AuraRouteInterface,
+  type RouteType,
+} from './core/aura-route';
 export type { RouteRenderOptions, ApplyPreResolvedOptions, MatchedRouteInfo } from './core/types';

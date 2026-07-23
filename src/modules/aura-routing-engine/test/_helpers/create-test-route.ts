@@ -1,6 +1,6 @@
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
-import { isAsyncLoader } from '../../../aura-route/core/attr/view-attr-parser';
+import { isAsyncLoader, isSyncLoader } from '../../../aura-route/core/attr/view-attr-parser';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
 import type { RouteInstance } from '../../core';
 import type { ViewRenderResult } from '../../core/view-mount/view-commit-render';
@@ -113,12 +113,10 @@ export function createTestRoute(
       get(): boolean {
         const r = route as RouteInstance & {
           view?: { loader: string } | null;
-          loadingTemplate?: string;
         };
         if (route.hasLayout) return false;
         if (route.hasAsyncContent) return false;
-        if (r.loadingTemplate?.trim()) return false;
-        return r.view?.loader === 'html';
+        return isSyncLoader(r.view?.loader);
       },
     },
     viewLoaderNeedsData: {

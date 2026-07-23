@@ -36,7 +36,10 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 | `link-active-class` | CSS-класс точного совпадения URL на `[aura-router-link]`. |
 | `link-active-branch-class` | CSS-класс prefix-совпадения (активная ветка / раздел). |
 | `error-template` | Id `<template>`: default для route `error-template` (наследование) и thin fallback-404, когда нет `<aura-route path="*">`. |
-| `loading-template` | Id `<template>`: default для route `loading-template` (наследование). |
+| `loading-template` | Default id `<template>` (наследование). Монтируется в outlet в окне prepare: после guards → до конца `runLoads`. |
+| `loading-body-class` | Default CSS-класс на `document.body` в том же окне. Без атрибута класс не ставится. |
+| `loading-start-event` | Default имя start-события в том же окне. На route по умолчанию `aura-route-loading`; `none`/`off`/`false` — выкл. |
+| `loading-end-event` | Default имя end-события в том же окне. На route по умолчанию `aura-route-loading-end`; `none`/`off`/`false` — выкл. |
 | `outlet` | Опциональный CSS-селектор корневого `<aura-outlet>`. Если не задан: prev/next sibling → nested `<aura-outlet>` → автосоздание sibling перед router. |
 
 ### Атрибуты `<aura-route>` (prefetch)

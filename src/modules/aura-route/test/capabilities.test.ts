@@ -23,9 +23,21 @@ describe('AuraRoute fast-path getters', () => {
     expect(el.hasSyncContent).toBe(true);
   });
 
-  it('hasSyncContent is false for fetch loaders and layout', () => {
+  it('hasSyncContent is true for template and component loaders', () => {
+    expect(mountAuraRoute({ view: 'template::about-page' }).hasSyncContent).toBe(true);
+    expect(mountAuraRoute({ view: 'template::about-page' }).hasAsyncContent).toBe(false);
+    expect(mountAuraRoute({ view: 'component::x-widget' }).hasSyncContent).toBe(true);
+    expect(mountAuraRoute({ view: 'component::x-widget' }).hasAsyncContent).toBe(false);
+  });
+
+  it('hasSyncContent is false for async loaders, layout, and custom loaders', () => {
     expect(mountAuraRoute({ view: 'about.html' }).hasSyncContent).toBe(false);
     expect(mountAuraRoute({ layout: 'shell', view: 'html::<p/>' }).hasSyncContent).toBe(false);
+    expect(mountAuraRoute({ view: 'markdown::doc.md' }).hasSyncContent).toBe(false);
+    expect(mountAuraRoute({
+      view: 'html::<p/>',
+      'loading-template': 'loading',
+    }).hasSyncContent).toBe(true);
   });
 
   it('detects url default and explicit async loaders', () => {

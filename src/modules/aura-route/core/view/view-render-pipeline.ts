@@ -9,6 +9,9 @@ import { ViewRenderPipelinePhase } from './view-render-pipeline-phase';
  * or direct mount (sync via {@link syncBranchMount}).
  *
  * Terminal `ViewRenderResult` ends the pass; `null` means continue to the next step.
+ *
+ * Loading chrome (template / body class / events) is owned by the navigation prepare
+ * window (`showLoading` / `hideLoading` around `runLoads`), not this pipeline.
  */
 export class ViewRenderPipeline {
   private readonly ctx: ViewContext;
@@ -44,43 +47,18 @@ export class ViewRenderPipeline {
   }
 
   async resolveAndMount(pass: RenderPass): Promise<ViewRenderResult> {
-    let loadingHooks = false;
-
     try {
       const early = this.tryEarlyExit(pass);
       if (early) return early;
-
-      this.fireLoadingStart(pass);
-      loadingHooks = true;
 
       await this.phase.resolveContent(pass);
       return { status: 'ok' };
     } catch (error) {
       return this.phase.handleError(pass, error);
-    } finally {
-      if (loadingHooks) {
-        this.fireLoadingEnd(pass);
-      }
     }
   }
 
   private tryEarlyExit(pass: RenderPass): ViewRenderResult | null {
     return this.phase.tryCacheRestore(pass) ?? this.phase.trySkipAlreadyMounted(pass);
-  }
-
-  private fireLoadingStart(pass: RenderPass): void {
-    const plugins = this.ctx.config.plugins;
-    if (!plugins) return;
-    for (let i = 0; i < plugins.length; i++) {
-      plugins[i]!.onLoadingStart?.(pass);
-    }
-  }
-
-  private fireLoadingEnd(pass: RenderPass): void {
-    const plugins = this.ctx.config.plugins;
-    if (!plugins) return;
-    for (let i = 0; i < plugins.length; i++) {
-      plugins[i]!.onLoadingEnd?.(pass);
-    }
   }
 }

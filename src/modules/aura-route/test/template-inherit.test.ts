@@ -25,6 +25,29 @@ describe('AuraRoute template inherit', () => {
     expect(child.errorTemplate).toBe('error');
   });
 
+  it('inherits loading-body-class and loading events from aura-router', () => {
+    const child = mountAuraRouteUnderRouter(
+      { path: '/app' },
+      {
+        'loading-body-class': 'is-loading',
+        'loading-start-event': 'app-loading',
+        'loading-end-event': 'app-loaded',
+      },
+    );
+
+    expect(child.loadingBodyClass).toBe('is-loading');
+    expect(child.loadingStartEvent).toBe('app-loading');
+    expect(child.loadingEndEvent).toBe('app-loaded');
+  });
+
+  it('uses default loading event names when unset', () => {
+    const child = mountAuraRouteUnderRouter({ path: '/app' });
+
+    expect(child.loadingStartEvent).toBe('aura-route-loading');
+    expect(child.loadingEndEvent).toBe('aura-route-loading-end');
+    expect(child.loadingBodyClass).toBeNull();
+  });
+
   it('loading-template="none" opts out of router default', () => {
     const child = mountAuraRouteUnderRouter(
       { path: '/fast', 'loading-template': 'none' },
@@ -32,6 +55,15 @@ describe('AuraRoute template inherit', () => {
     );
 
     expect(child.loadingTemplate).toBeNull();
+  });
+
+  it('loading-start-event="none" opts out of default event', () => {
+    const child = mountAuraRouteUnderRouter(
+      { path: '/quiet', 'loading-start-event': 'none', 'loading-end-event': 'off' },
+    );
+
+    expect(child.loadingStartEvent).toBeNull();
+    expect(child.loadingEndEvent).toBeNull();
   });
 
   it('error-template="off" opts out of router default', () => {

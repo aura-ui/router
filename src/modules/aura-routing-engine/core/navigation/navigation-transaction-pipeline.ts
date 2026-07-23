@@ -185,6 +185,8 @@ export class NavigationTransactionPipeline {
    * {@link NavigationPulse.loadEnd}; delegates to `engine.resourceGraph.load`; stores
    * the resulting snapshot on the transaction for view commit and lifecycle hooks.
    *
+   * Loading chrome (`showLoading` / `hideLoading`) wraps the true wait window.
+   *
    * `activeChain` is the full target branch (`to.chain`) when present, otherwise enter routes.
    */
   async runLoads(): Promise<PipelineStepResult> {
@@ -192,12 +194,32 @@ export class NavigationTransactionPipeline {
     const enterRoutes = tx.transitionPlan.enterRoutes;
     const branch = tx.to.chain ?? enterRoutes;
 
-    this.pulse.loadStart(tx, enterRoutes);
-    const { error, data, view } = await tx.engine.resourceGraph.load(enterRoutes, { branch, transaction: tx });
-    data && (tx.dataSnapshot = data);
-    view && (tx.viewSnapshot = view);
-    this.pulse.loadEnd(tx, enterRoutes, error, tx.to);
-    return error ?? null;
+    this.showEnterLoading(enterRoutes);
+    try {
+      this.pulse.loadStart(tx, enterRoutes);
+      const { error, data, view } = await tx.engine.resourceGraph.load(enterRoutes, { branch, transaction: tx });
+      data && (tx.dataSnapshot = data);
+      view && (tx.viewSnapshot = view);
+      this.pulse.loadEnd(tx, enterRoutes, error, tx.to);
+      return error ?? null;
+    } finally {
+      this.hideEnterLoading(enterRoutes);
+    }
+  }
+
+  /** Per enter-route loading chrome on (template / body class / events). */
+  private showEnterLoading(routes: readonly MatchedRouteInfo[]): void {
+    for (let i = 0; i < routes.length; i++) {
+      const match = routes[i]!;
+      match.route.showLoading?.(match);
+    }
+  }
+
+  /** Per enter-route loading chrome off. */
+  private hideEnterLoading(routes: readonly MatchedRouteInfo[]): void {
+    for (let i = 0; i < routes.length; i++) {
+      routes[i]!.route.hideLoading?.();
+    }
   }
 
   async runSpeculativePrepare(): Promise<void> {

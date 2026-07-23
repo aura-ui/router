@@ -14,6 +14,9 @@ export interface AuraRouteInterface {
   redirect: string;
   view: ViewAttrDescriptor | null;
   loadingTemplate: string | null;
+  loadingBodyClass: string | null;
+  loadingStartEvent: string | null;
+  loadingEndEvent: string | null;
   errorTemplate: string | null;
   cache: CacheFlags;
   scrollPolicy: ScrollAttr | null;
@@ -43,6 +46,8 @@ export type RouteRenderOptions = {
 export type ApplyPreResolvedOptions = RouteRenderOptions & {
   /** Payload from navigation `viewSnapshot`. `null` = empty view route. */
   preResolvedView: ViewPayload | null;
+  /** Force visible replace mount (loading placeholder before prepare). */
+  immediate?: boolean;
 };
 
 export type RouteUnmountOptions = {

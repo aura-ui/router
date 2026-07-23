@@ -135,6 +135,13 @@ export interface RouteInstance extends RouteHookNamesSource {
   onUnmount(ctx: RouteLifecycleContext): void;
   onUpdate(ctx: RouteLifecycleContext): void;
   onError(ctx: RouteErrorContext): void;
+  /**
+   * True-wait loading chrome around prepare loads (after guards → load end).
+   * Optional — engine calls when present; no-op stubs omit it.
+   */
+  showLoading?(routeInfo: MatchedRouteInfo): void;
+  /** Clears loading chrome from {@link showLoading}. */
+  hideLoading?(): void;
   render(
     routeInfo: MatchedRouteInfo,
     options?: RouteRenderOptions,

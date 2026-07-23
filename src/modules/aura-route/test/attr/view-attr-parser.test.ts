@@ -1,4 +1,28 @@
-import { parseViewAttr } from '../../core/attr/view-attr-parser';
+import {
+  isAsyncLoader,
+  isSyncLoader,
+  parseViewAttr,
+} from '../../core/attr/view-attr-parser';
+
+describe('isSyncLoader / isAsyncLoader', () => {
+  it('classifies builtin loaders', () => {
+    expect(isSyncLoader('html')).toBe(true);
+    expect(isSyncLoader('template')).toBe(true);
+    expect(isSyncLoader('component')).toBe(true);
+    expect(isAsyncLoader('html')).toBe(false);
+
+    expect(isAsyncLoader('url')).toBe(true);
+    expect(isAsyncLoader('import')).toBe(true);
+    expect(isAsyncLoader('iframe')).toBe(true);
+    expect(isSyncLoader('url')).toBe(false);
+  });
+
+  it('rejects unknown and empty loaders as sync', () => {
+    expect(isSyncLoader('markdown')).toBe(false);
+    expect(isSyncLoader(undefined)).toBe(false);
+    expect(isAsyncLoader('markdown')).toBe(false);
+  });
+});
 
 describe('parseViewAttr', () => {
   it('splits known loader prefix on the first ::', () => {

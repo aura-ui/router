@@ -60,7 +60,7 @@ export class RouteViewController {
 
   private beginPass(
     routeInfo: MatchedRouteInfo,
-    options?: RouteRenderOptions,
+    options?: RouteRenderOptions & { immediate?: boolean },
     preResolvedView?: ViewPayload | null,
   ): RenderPass {
     this.ctx.paramChangeRemount = options?.paramChangeRemount === true;
@@ -72,9 +72,10 @@ export class RouteViewController {
       signal: this.ctx.renderSignal.begin(options?.parentSignal),
       domCacheKey: domCacheKey(routeInfo, route.path),
       viewKind: route.hasLayout ? 'layout' : 'view',
-      useStagedMount:
-        route.transition.order !== null
-        || (this.ctx.paramChangeRemount && route.cache.dom),
+      useStagedMount: options?.immediate
+        ? false
+        : route.transition.order !== null
+          || (this.ctx.paramChangeRemount && route.cache.dom),
       ...(options?.data !== undefined && { data: options.data }),
       ...(preResolvedView !== undefined && { preResolvedView }),
     };

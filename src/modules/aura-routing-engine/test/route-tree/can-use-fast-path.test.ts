@@ -53,14 +53,24 @@ describe('TransitionMap.canUseFastPath', () => {
     expect(plan.canUseFastPath).toBe(false);
   });
 
-  it('blocks routes with loading template', () => {
+  it('allows template loader sync content', () => {
     const from = createMatchedRoute('/a');
     const to = createMatchedRoute('/b', {
-      loadingTemplate: '<p>loading</p>',
+      view: { loader: 'template', content: 'about-page' },
+    });
+    const plan = buildTransitionPlan(from, to);
+
+    expect(plan.canUseFastPath).toBe(true);
+  });
+
+  it('loading-template alone does not block sync fast path', () => {
+    const from = createMatchedRoute('/a');
+    const to = createMatchedRoute('/b', {
+      loadingTemplate: 'loading',
     } as Partial<RouteInstance>);
     const plan = buildTransitionPlan(from, to);
 
-    expect(plan.canUseFastPath).toBe(false);
+    expect(plan.canUseFastPath).toBe(true);
   });
 
   it('blocks when enter hooks are declared', () => {

@@ -340,15 +340,5 @@ function applyMount(
 }
 
 function resolveOutlet(ctx: MountContext): AuraOutlet {
-  const outlet = ctx.mountOutlet ?? ctx.appOutlet;
-  if (!outlet) {
-    throw new DOMException('<aura-router> must contain <aura-outlet>', 'NotFoundError');
-  }
-  if (typeof outlet.apply !== 'function') {
-    throw new DOMException(
-      '<aura-outlet> is not upgraded — register customElements.define(AuraOutlet.is, AuraOutlet)',
-      'InvalidStateError',
-    );
-  }
-  return outlet;
+  return ctx.mountOutlet ?? ctx.appOutlet;
 }

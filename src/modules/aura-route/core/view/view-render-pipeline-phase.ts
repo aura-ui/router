@@ -39,10 +39,12 @@ export class ViewRenderPipelinePhase {
   /** Active keep-alive view already in outlet — skip fetch/mount. */
   trySkipAlreadyMounted(pass: RenderPass): ViewRenderResult | null {
     if (this.ctx.paramChangeRemount) return null;
+    // Staged loading / transition is not a committed keep-alive hit.
+    if (this.ctx.mount.strategy === 'stage') return null;
 
-    const keepAlive = this.ctx.config.route.cache.dom;
+    const useDomCache = this.ctx.config.route.cache.dom;
     const layout = pass.viewKind === 'layout';
-    if (keepAlive && hasActiveMount(toMountSlice(this.ctx.mount), layout)) {
+    if (useDomCache && hasActiveMount(toMountSlice(this.ctx.mount), layout)) {
       return { status: 'ok' };
     }
 

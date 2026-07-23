@@ -36,6 +36,26 @@ describe('AuraOutlet', () => {
     expect(outlet.textContent).toBe('home');
   });
 
+  it('hideActive + cancelStage restores the committed root', () => {
+    const outlet = createOutlet();
+    const active = createViewRoot();
+    active.textContent = 'about';
+    outlet.apply(active, { strategy: 'replace' });
+
+    const staged = createViewRoot();
+    staged.textContent = 'loading';
+    outlet.apply(staged, { strategy: 'stage' });
+    outlet.hideActive();
+
+    expect(active.hidden).toBe(true);
+
+    outlet.cancelStage();
+
+    expect(outlet.children).toHaveLength(1);
+    expect(outlet.textContent).toBe('about');
+    expect(active.hidden).toBe(false);
+  });
+
   it('apply replace sets data-aura-view-root on explicit roots', () => {
     const outlet = createOutlet();
     const root = document.createElement('div');

@@ -362,7 +362,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     }
   }
 
-  /** Clears body class + end event from {@link showLoading}. Skeleton is replaced by real mount. */
+  /** Clears body class + end event from {@link showLoading}. Staged skeleton is dropped on cancel or real mount. */
   hideLoading(): void {
     if (!this.loadingActive) return;
     this.loadingActive = false;

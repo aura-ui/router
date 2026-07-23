@@ -110,6 +110,12 @@ export class AuraOutlet extends AuraDom {
     if (!this.stagedRoot) return;
     this.stagedRoot.remove();
     this.stagedRoot = undefined;
+    this.activeRoot && (this.activeRoot.hidden = false);
+  }
+
+  /** Hide the committed active root (e.g. while a loading skeleton is staged). */
+  hideActive(): void {
+    if (this.activeRoot) this.activeRoot.hidden = true;
   }
 
   /** First nested `<aura-outlet>` in staged, active, or this element. */

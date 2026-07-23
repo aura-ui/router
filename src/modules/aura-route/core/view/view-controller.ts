@@ -56,17 +56,23 @@ export class RouteViewController {
   }
 
   /**
-   * Mount `loading-template` payload — always `viewKind: 'view'`
-   * (not a layout shell, so no `<aura-outlet>` check).
+   * Mount `loading-template` as pending incoming (`stage`) — committed view stays active.
+   * Cancel → {@link AuraOutlet.cancelStage}; success → real mount replaces the staged skeleton.
    */
   mountLoadingTemplate(routeInfo: MatchedRouteInfo, payload: ViewPayload): ViewRenderResult | 'aborted' {
     const pass: RenderPass = {
       ...this.beginPass(routeInfo, undefined, payload),
       viewKind: 'view',
-      useStagedMount: false,
+      useStagedMount: true,
     };
     this.ctx.lastCacheKey = pass.domCacheKey;
-    return this.renderPipeline.syncBranchMount(pass);
+    const result = this.renderPipeline.syncBranchMount(pass);
+
+    if (result !== 'aborted' && result.status === 'ok' && this.ctx.mount.strategy === 'stage') {
+      this.ctx.mount.activeHandle?.mountOutlet.hideActive();
+    }
+
+    return result;
   }
 
   private beginPass(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions, preResolvedView?: ViewPayload | null): RenderPass {

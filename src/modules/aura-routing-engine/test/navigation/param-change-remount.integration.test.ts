@@ -2,14 +2,8 @@ jest.mock('../../core/hooks/registry', () =>
   jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
-import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
-import type { AuraRouteInterface } from '../../../aura-route/core/types';
-import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
-import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import type { RouteLifecycleContext } from '../../core/route/types';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
 import type { ViewGraph } from '../../core/view-graph';
@@ -23,73 +17,26 @@ import {
   createViewGraphFromLoadView,
   wireEngineViewGraph,
 } from '../_helpers/create-mock-transaction';
-import { resetHookMocks } from '../_helpers/jest/hook-mocks';
+import { setupViewIntegrationTests } from '../_helpers/integration-setup';
 import { createTestOutlet } from '../_helpers/jest/navigation-fixtures';
+import {
+  loadViewFromParamId,
+  wireRouteViewController as wireRouteView,
+} from '../_helpers/wire-route-view-controller';
 
 function wireRouteViewController(
   node: RouteNode,
   outlet: AuraOutlet,
   resolve: (id: string) => string,
   cacheDom = false,
-): { controller: RouteViewController; stash: Map<string, HTMLElement>; loadView: ViewGraph['loadView'] } {
-  let passId = 0;
-  const stash = new Map<string, HTMLElement>();
-  const routeRecord = node.route as {
-    path: string;
-    layout: string;
-    view: unknown;
-    loadingTemplate: string;
-    errorTemplate: string;
-    scrollPolicy: null;
-    cache: CacheFlags;
-    transition: typeof NO_TRANSITION;
-    render: RouteViewController['render'];
-    applyPreResolved: RouteViewController['applyPreResolved'];
-    onUnmount: (ctx: RouteLifecycleContext) => void;
-    commitStagedView: () => void;
-  };
-
-  routeRecord.path = node.pattern;
-  routeRecord.layout = '';
-  routeRecord.view = routeRecord.view ?? null;
-  routeRecord.loadingTemplate = routeRecord.loadingTemplate ?? '';
-  routeRecord.errorTemplate = routeRecord.errorTemplate ?? '';
-  routeRecord.scrollPolicy = null;
-  routeRecord.cache = { dom: cacheDom, view: false, data: false };
-  routeRecord.transition = NO_TRANSITION;
-
-  const loadView: ViewGraph['loadView'] = async (info) => ({ data: resolve(info.params?.id ?? '?') });
-
-  const controller = new RouteViewController(
-    {
-      route: routeRecord as unknown as AuraRouteInterface,
-      view: { loadView },
-      cache: {
-        has: (key) => stash.has(key),
-        extract: (key) => {
-          const root = stash.get(key);
-          if (root) stash.delete(key);
-          return root;
-        },
-        put: (key, root) => { stash.set(key, root); },
-      },
-      mountTarget: {
-        appOutlet: () => outlet,
-        nestedOutlet: () => null,
-      },
-    },
-    () => passId,
-  );
-
-  routeRecord.render = (info, options) => controller.render(info, options);
-  routeRecord.applyPreResolved = (info, options) => controller.applyPreResolved(info, options);
-  routeRecord.onUnmount = (ctx) => {
-    passId++;
-    controller.onUnmount({ domCacheKey: domCacheKey(ctx.to, routeRecord.path) });
-  };
-  routeRecord.commitStagedView = () => controller.commitStagedView();
-
-  return { controller, stash, loadView };
+) {
+  return wireRouteView({
+    route: node.route,
+    path: node.pattern,
+    outlet,
+    loadView: loadViewFromParamId(resolve),
+    cacheDom,
+  });
 }
 
 async function runParamRemountNavigation(
@@ -113,17 +60,7 @@ async function runParamRemountNavigation(
 }
 
 describe('param-change remount integration (branch commit)', () => {
-  beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    resetHookMocks();
-    document.body.replaceChildren();
-  });
+  setupViewIntegrationTests();
 
   it('keeps enter view on screen through prepare > commit > unmount', async () => {
     const outlet = createTestOutlet();
@@ -186,10 +123,7 @@ describe('param-change remount integration (branch commit)', () => {
 });
 
 describe('NavigationTransactionPipeline branch remount options', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    resetHookMocks();
-  });
+  setupViewIntegrationTests({ resetHooks: true });
 
   it('passes paramChangeRemount to applyPreResolved via branch mount', async () => {
     const applyPreResolved = jest.fn().mockReturnValue({ status: 'ok' });

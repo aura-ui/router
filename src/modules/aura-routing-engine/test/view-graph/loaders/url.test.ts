@@ -1,12 +1,20 @@
 import { UrlLoader } from '../../../core/view-graph/loaders/url';
 import type { ViewLoaderEnv } from '../../../core/view-graph/types';
+import { createTestLoaderEnv, createViewLoadContext } from '../../_helpers/view-load-context';
 
 function env(fetchText: ViewLoaderEnv['fetchText']): ViewLoaderEnv {
-  return {
+  return createTestLoaderEnv({
     fetchText,
     resolveUrl: (ref) => `http://test/${ref}`,
-    isSSR: false,
-  };
+  });
+}
+
+function pageCtx(overrides: Parameters<typeof createViewLoadContext>[0] = {}) {
+  return createViewLoadContext({
+    content: 'page.html',
+    route: { href: '/page', pattern: '/page' },
+    ...overrides,
+  });
 }
 
 describe('UrlLoader', () => {
@@ -14,14 +22,10 @@ describe('UrlLoader', () => {
     const fetchText = jest.fn().mockResolvedValue('<div id="root">full</div>');
     const loader = new UrlLoader(env(fetchText));
 
-    await expect(
-      loader.load({
-        content: 'page.html',
-        kind: 'view',
-        signal: new AbortController().signal,
-        route: { href: '/page', pattern: '/page' },
-      }),
-    ).resolves.toEqual({ kind: 'html', value: '<div id="root">full</div>' });
+    await expect(loader.load(pageCtx())).resolves.toEqual({
+      kind: 'html',
+      value: '<div id="root">full</div>',
+    });
 
     expect(fetchText).toHaveBeenCalledWith('http://test/page.html', expect.any(AbortSignal));
   });
@@ -32,15 +36,7 @@ describe('UrlLoader', () => {
     );
     const loader = new UrlLoader(env(fetchText));
 
-    await expect(
-      loader.load({
-        content: 'page.html',
-        kind: 'view',
-        extract: '#content',
-        signal: new AbortController().signal,
-        route: { href: '/page', pattern: '/page' },
-      }),
-    ).resolves.toEqual({
+    await expect(loader.load(pageCtx({ extract: '#content' }))).resolves.toEqual({
       kind: 'html',
       value: '<div id="content"><span>part</span></div>',
     });
@@ -52,15 +48,10 @@ describe('UrlLoader', () => {
     const fetchText = jest.fn().mockResolvedValue(full);
     const loader = new UrlLoader(env(fetchText));
 
-    await expect(
-      loader.load({
-        content: 'page.html',
-        kind: 'view',
-        extract: '#missing',
-        signal: new AbortController().signal,
-        route: { href: '/page', pattern: '/page' },
-      }),
-    ).resolves.toEqual({ kind: 'html', value: full });
+    await expect(loader.load(pageCtx({ extract: '#missing' }))).resolves.toEqual({
+      kind: 'html',
+      value: full,
+    });
 
     expect(warn).toHaveBeenCalledWith(
       'Nothing found for extract selector "#missing" — using full HTML. Page — /page',

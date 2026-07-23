@@ -1,24 +1,11 @@
 /** @jest-environment jsdom */
 
-import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
-import { installAuraRouter } from '../../../aura-router/core/install';
+import { mountDomRouter } from '../_helpers/dom-router-harness';
+import { waitForText } from '../_helpers/jsdom-async';
 import { createDomRoute } from '../_helpers/test-route-dom';
 
 const SPLAT_LOADER = 'nested-catch-all-splat';
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function waitForText(root: ParentNode, text: string, timeout = 3000): Promise<void> {
-  const started = Date.now();
-  while (Date.now() - started < timeout) {
-    if (root.textContent?.includes(text)) return;
-    await sleep(10);
-  }
-  throw new Error(`Timed out waiting for "${text}"`);
-}
 
 type Fixture = {
   router: AuraRouter;
@@ -30,13 +17,6 @@ let splatCaptures: Record<string, string>[] = [];
 async function mountNestedCatchAllFixture(): Promise<Fixture> {
   splatCaptures = [];
 
-  document.body.innerHTML = `
-    <template id="users-layout">
-      <header data-layout-marker>USERS LAYOUT</header>
-      <aura-outlet></aura-outlet>
-    </template>
-  `;
-
   const profile = createDomRoute('profile');
   profile.setAttribute('view', 'html::<span data-page="profile">PROFILE</span>');
 
@@ -46,14 +26,15 @@ async function mountNestedCatchAllFixture(): Promise<Fixture> {
   const users = createDomRoute('/users', [profile, fallback]);
   users.setAttribute('layout', 'users-layout');
 
-  installAuraRouter();
-  const router = document.createElement(AuraRouter.is) as AuraRouter;
-  router.append(users);
-  document.body.append(router);
-
-  await customElements.whenDefined(AuraRoute.is);
-  await Promise.resolve();
-  router.refreshRoutes();
+  const { router } = await mountDomRouter({
+    templates: `
+      <template id="users-layout">
+        <header data-layout-marker>USERS LAYOUT</header>
+        <aura-outlet></aura-outlet>
+      </template>
+    `,
+    routes: [users],
+  });
 
   return {
     router,

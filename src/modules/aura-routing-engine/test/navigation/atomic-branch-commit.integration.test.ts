@@ -1,68 +1,31 @@
 /** @jest-environment jsdom */
 
-import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { AuraRouter } from '../../../aura-router/core/aura-router';
-import { installAuraRouter } from '../../../aura-router/core/install';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import type { LoaderFn } from '../../core';
-import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import { buildRouteTree } from '../../core/route-tree/build-route-tree';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
 import {
   createNavigationTransaction,
   withPlanTransitionOrder,
 } from '../_helpers/create-mock-transaction';
+import { mountDomRouter, matchRouterPath } from '../_helpers/dom-router-harness';
+import { createGatedLoader } from '../_helpers/gated-loader';
+import { sleep, waitForText } from '../_helpers/jsdom-async';
 import { createDomRoute } from '../_helpers/test-route-dom';
 
 const SLOW_CHILD_LOADER = 'branch-slow-child';
 const FAIL_CHILD_LOADER = 'branch-fail-child';
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function raceAbort(wait: Promise<void>, signal?: AbortSignal): Promise<void> {
-  if (!signal) return wait;
-  if (signal.aborted) {
-    return Promise.reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
-  }
-  return Promise.race([
-    wait,
-    new Promise<void>((_, reject) => {
-      signal.addEventListener(
-        'abort',
-        () => reject(signal.reason ?? new DOMException('Aborted', 'AbortError')),
-        { once: true },
-      );
-    }),
-  ]);
-}
-
-function createGatedLoader<T>(payload: T): { loader: (ctx: { signal?: AbortSignal }) => Promise<T>; release: () => void } {
-  let release!: () => void;
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  return {
-    loader: async (ctx) => {
-      await raceAbort(gate, ctx.signal);
-      return payload;
-    },
-    release,
-  };
-}
-
-async function waitForText(outlet: AuraOutlet, text: string, timeout = 3000): Promise<void> {
-  const started = Date.now();
-  while (Date.now() - started < timeout) {
-    if (outlet.textContent?.includes(text)) return;
-    await sleep(10);
-  }
-  throw new Error(`Timed out waiting for "${text}" in outlet`);
-}
+const BRANCH_TEMPLATES = `
+  <template id="users-layout">
+    <header data-layout-marker>LAYOUT</header>
+    <aura-outlet></aura-outlet>
+  </template>
+  <template id="intro-view">INTRO PAGE</template>
+`;
 
 type Fixture = {
   router: AuraRouter;
@@ -76,41 +39,40 @@ function registerSlowChildLoader(gate: { loader: (ctx: { signal?: AbortSignal })
   );
 }
 
-async function mountBranchFixture(routerAttrs: Record<string, string> = {}): Promise<Fixture> {
-  const childGate = createGatedLoader('<span data-child-marker>CHILD</span>');
-  registerSlowChildLoader(childGate);
-
-  document.body.innerHTML = `
-    <template id="users-layout">
-      <header data-layout-marker>LAYOUT</header>
-      <aura-outlet></aura-outlet>
-    </template>
-    <template id="intro-view">INTRO PAGE</template>
-  `;
-
+function buildBranchRoutes(options: {
+  childLoader?: string;
+  includeGallery?: boolean;
+  homeCacheDom?: boolean;
+} = {}): AuraRoute[] {
+  const childLoader = options.childLoader ?? SLOW_CHILD_LOADER;
   const child = createDomRoute('list');
-  child.setAttribute('view', `${SLOW_CHILD_LOADER}::x`);
+  child.setAttribute('view', `${childLoader}::x`);
   const users = createDomRoute('/users', [child]);
   users.setAttribute('layout', 'users-layout');
   const home = createDomRoute('/');
   home.setAttribute('view', 'template::intro-view');
-  const gallery = createDomRoute('/gallery');
-  gallery.setAttribute('view', 'html::<span data-gallery>GALLERY</span>');
+  if (options.homeCacheDom) home.setAttribute('cache', 'dom');
 
-  installAuraRouter();
-  const router = document.createElement(AuraRouter.is) as AuraRouter;
-  for (const [name, value] of Object.entries(routerAttrs)) {
-    router.setAttribute(name, value);
+  const routes = [home, users];
+  if (options.includeGallery !== false) {
+    const gallery = createDomRoute('/gallery');
+    gallery.setAttribute('view', 'html::<span data-gallery>GALLERY</span>');
+    routes.push(gallery);
   }
-  router.append(home, users, gallery);
-  document.body.append(router);
+  return routes;
+}
 
-  await customElements.whenDefined(AuraRoute.is);
-  await Promise.resolve();
-  router.refreshRoutes();
+async function mountBranchFixture(routerAttrs: Record<string, string> = {}): Promise<Fixture> {
+  const childGate = createGatedLoader('<span data-child-marker>CHILD</span>');
+  registerSlowChildLoader(childGate);
 
-  router.navigate('/', { replace: true, syncHistory: false });
-  await waitForText(router.appOutlet, 'INTRO');
+  const { router } = await mountDomRouter({
+    templates: BRANCH_TEMPLATES,
+    routes: buildBranchRoutes(),
+    routerAttrs,
+    bootPath: '/',
+    bootText: 'INTRO',
+  });
 
   return { router, childGate };
 }
@@ -121,14 +83,6 @@ function createEngine(router: AuraRouter): AuraRoutingEngine {
   return engine;
 }
 
-function matchAt(router: AuraRouter, pathname: string) {
-  const matcher = new AuraRoutingUrlMatcher();
-  const tree = buildRouteTree(Array.from(router.routes));
-  const hit = matcher.matchPath(pathname, tree.matchableNodes);
-  if (!hit) throw new Error(`No match for ${pathname}`);
-  return matcher.buildMatchedRouteInfo(pathname, pathname, '', '', hit.node, hit.params);
-}
-
 async function runRenderStep(
   router: AuraRouter,
   fromPath: string,
@@ -136,8 +90,8 @@ async function runRenderStep(
   options?: { cancelAfterMs?: number; transitionOrder?: 'out-in' | 'in-out' | 'parallel' | null },
 ): Promise<{ outcome: Awaited<ReturnType<NavigationTransactionPipeline['runRender']>>; transaction: NavigationTransaction }> {
   const engine = createEngine(router);
-  const from = matchAt(router, fromPath);
-  const to = matchAt(router, toPath);
+  const from = matchRouterPath(router, fromPath);
+  const to = matchRouterPath(router, toPath);
 
   let plan = buildTransitionPlan(from, to);
   if (options?.transitionOrder !== undefined) {
@@ -270,31 +224,12 @@ describe('atomic branch commit integration', () => {
       }) as unknown as LoaderFn,
     );
 
-    document.body.innerHTML = `
-      <template id="users-layout">
-        <header data-layout-marker>LAYOUT</header>
-        <aura-outlet></aura-outlet>
-      </template>
-      <template id="intro-view">INTRO PAGE</template>
-    `;
-
-    const child = createDomRoute('list');
-    child.setAttribute('view', `${SLOW_CHILD_LOADER}::x`);
-    const users = createDomRoute('/users', [child]);
-    users.setAttribute('layout', 'users-layout');
-    const home = createDomRoute('/');
-    home.setAttribute('view', 'template::intro-view');
-
-    installAuraRouter();
-    const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.append(home, users);
-    document.body.append(router);
-
-    await customElements.whenDefined(AuraRoute.is);
-    await Promise.resolve();
-    router.refreshRoutes();
-    router.navigate('/', { replace: true, syncHistory: false });
-    await waitForText(router.appOutlet, 'INTRO');
+    const { router } = await mountDomRouter({
+      templates: BRANCH_TEMPLATES,
+      routes: buildBranchRoutes({ includeGallery: false }),
+      bootPath: '/',
+      bootText: 'INTRO',
+    });
 
     await router.prefetch('/users/list');
     expect(loads).toBe(1);
@@ -327,31 +262,12 @@ describe('atomic branch commit integration', () => {
       throw new Error('branch resolve failed');
     });
 
-    document.body.innerHTML = `
-      <template id="users-layout">
-        <header data-layout-marker>LAYOUT</header>
-        <aura-outlet></aura-outlet>
-      </template>
-      <template id="intro-view">INTRO PAGE</template>
-    `;
-
-    const child = createDomRoute('list');
-    child.setAttribute('view', `${FAIL_CHILD_LOADER}::x`);
-    const users = createDomRoute('/users', [child]);
-    users.setAttribute('layout', 'users-layout');
-    const home = createDomRoute('/');
-    home.setAttribute('view', 'template::intro-view');
-
-    installAuraRouter();
-    const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.append(home, users);
-    document.body.append(router);
-
-    await customElements.whenDefined(AuraRoute.is);
-    await Promise.resolve();
-    router.refreshRoutes();
-    router.navigate('/', { replace: true, syncHistory: false });
-    await waitForText(router.appOutlet, 'INTRO');
+    const { router } = await mountDomRouter({
+      templates: BRANCH_TEMPLATES,
+      routes: buildBranchRoutes({ childLoader: FAIL_CHILD_LOADER, includeGallery: false }),
+      bootPath: '/',
+      bootText: 'INTRO',
+    });
 
     const { outcome } = await runRenderStep(router, '/', '/users/list');
 
@@ -360,35 +276,15 @@ describe('atomic branch commit integration', () => {
   });
 
   it('cache.dom keeps outgoing visible during branch resolve', async () => {
-    document.body.innerHTML = `
-      <template id="users-layout">
-        <header data-layout-marker>LAYOUT</header>
-        <aura-outlet></aura-outlet>
-      </template>
-      <template id="intro-view">INTRO PAGE</template>
-    `;
-
     const childGate = createGatedLoader('<span data-child-marker>CHILD</span>');
     registerSlowChildLoader(childGate);
 
-    const child = createDomRoute('list');
-    child.setAttribute('view', `${SLOW_CHILD_LOADER}::x`);
-    const users = createDomRoute('/users', [child]);
-    users.setAttribute('layout', 'users-layout');
-    const home = createDomRoute('/');
-    home.setAttribute('view', 'template::intro-view');
-    home.setAttribute('cache', 'dom');
-
-    installAuraRouter();
-    const router = document.createElement(AuraRouter.is) as AuraRouter;
-    router.append(home, users);
-    document.body.append(router);
-
-    await customElements.whenDefined(AuraRoute.is);
-    await Promise.resolve();
-    router.refreshRoutes();
-    router.navigate('/', { replace: true, syncHistory: false });
-    await waitForText(router.appOutlet, 'INTRO');
+    const { router } = await mountDomRouter({
+      templates: BRANCH_TEMPLATES,
+      routes: buildBranchRoutes({ includeGallery: false, homeCacheDom: true }),
+      bootPath: '/',
+      bootText: 'INTRO',
+    });
 
     router.navigate('/users/list', { replace: false, syncHistory: false });
     await sleep(40);

@@ -1,19 +1,10 @@
 import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
 import { createBrowserEnvironment } from '../../core/view-graph/environment';
 import { FnLoader, Loader } from '../../core/view-graph/loader';
-import type { ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
+import type { ViewLoadResult } from '../../core/view-graph/types';
+import { createViewLoadContext as ctx } from '../_helpers/view-load-context';
 
 const env = createBrowserEnvironment();
-
-function ctx(overrides: Partial<ViewLoadContext> = {}): ViewLoadContext {
-  return {
-    content: 'x',
-    kind: 'view',
-    signal: new AbortController().signal,
-    route: { href: '/x', pattern: '/x' },
-    ...overrides,
-  };
-}
 
 describe('Loader', () => {
   class StaticTypeLoader extends Loader {

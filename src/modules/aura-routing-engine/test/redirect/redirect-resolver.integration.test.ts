@@ -1,9 +1,8 @@
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { collectNavigationErrors } from '../_helpers/collect-navigation-errors';
-import { bootEngine, createEngineHarness } from '../_helpers/engine-harness';
+import { bootEngineWithDomRoutes } from '../_helpers/engine-harness';
 import { registerTestHook } from '../_helpers/jest/navigation-fixtures';
 import {
-  collectRoutesFromDom,
   createDomRedirectRoute,
   createDomRoute,
 } from '../_helpers/test-route-dom';
@@ -21,18 +20,19 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
-    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
-
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('/dashboard');
     dashboard.setAttribute('guard', 'auth');
 
-    engine.replaceRoutes(collectRoutesFromDom(dashboard, login));
-    provider.start();
-    // Harness skips engine.start(); processResult applies only while running.
-    engine.isRunning = true;
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [dashboard, login],
+      markRunning: true,
+      boot: false,
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'auth', () => '/login');
+      },
+    });
 
     const applySpy = jest.spyOn(engine, 'applyTerminalOutcome');
 
@@ -58,23 +58,23 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
     const home = createDomRoute('/');
     home.setAttribute('leave', 'home-leave');
-    registerTestHook(engine.hooksRegistry, 'home-leave', () => {
-      leaveCalls++;
-    });
-    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
-
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('/dashboard');
     dashboard.setAttribute('guard', 'auth');
 
-    engine.replaceRoutes(collectRoutesFromDom(home, dashboard, login));
-    provider.start();
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [home, dashboard, login],
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'home-leave', () => {
+          leaveCalls++;
+        });
+        registerTestHook(e.hooksRegistry, 'auth', () => '/login');
+      },
+    });
 
-    await bootEngine(engine, '/');
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
 
     expect(leaveCalls).toBe(2);
@@ -88,17 +88,19 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
-    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
-
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('/dashboard');
     dashboard.setAttribute('guard', 'auth');
     const alias = createDomRedirectRoute('/app', '/dashboard');
 
-    engine.replaceRoutes(collectRoutesFromDom(alias, dashboard, login));
-    provider.start();
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [alias, dashboard, login],
+      boot: false,
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'auth', () => '/login');
+      },
+    });
 
     await engine.navigateTo('/app', 'push', { replace: false, syncHistory: true });
 
@@ -117,18 +119,6 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/app/settings', startProvider: false });
-
-    registerTestHook(engine.hooksRegistry, 'app-leave', () => {
-      appLeaveCalls++;
-      return true;
-    });
-    registerTestHook(engine.hooksRegistry, 'settings-leave', () => {
-      settingsLeaveCalls++;
-      return true;
-    });
-    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
-
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('dashboard');
     const settings = createDomRoute('settings');
@@ -137,10 +127,21 @@ describe('RedirectResolver integration', () => {
     app.setAttribute('leave', 'app-leave');
     dashboard.setAttribute('guard', 'auth');
 
-    engine.replaceRoutes(collectRoutesFromDom(app, login));
-    provider.start();
-
-    await bootEngine(engine, '/app/settings');
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/app/settings',
+      domRoutes: [app, login],
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'app-leave', () => {
+          appLeaveCalls++;
+          return true;
+        });
+        registerTestHook(e.hooksRegistry, 'settings-leave', () => {
+          settingsLeaveCalls++;
+          return true;
+        });
+        registerTestHook(e.hooksRegistry, 'auth', () => '/login');
+      },
+    });
 
     await engine.navigateTo('/app/dashboard', 'push', { replace: false, syncHistory: true });
 
@@ -156,30 +157,30 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
     let redirected = false;
-    engine.hooksRegistry.register({
-      name: 'gate',
-      version: '1.0.0',
-      fn: async () => {
-        if (!redirected) {
-          redirected = true;
-          return '/login';
-        }
-        return true;
-      },
-    });
-
     const home = createDomRoute('/');
     home.setAttribute('leave', 'gate');
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('/dashboard');
 
-    engine.replaceRoutes(collectRoutesFromDom(home, dashboard, login));
-    provider.start();
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [home, dashboard, login],
+      setup: ({ engine: e }) => {
+        e.hooksRegistry.register({
+          name: 'gate',
+          version: '1.0.0',
+          fn: async () => {
+            if (!redirected) {
+              redirected = true;
+              return '/login';
+            }
+            return true;
+          },
+        });
+      },
+    });
 
-    await bootEngine(engine, '/');
     transactions.length = 0;
 
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
@@ -197,19 +198,21 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
-    registerTestHook(engine.hooksRegistry, 'to-settings', () => '/settings');
-    registerTestHook(engine.hooksRegistry, 'to-login', () => '/login');
-
     const login = createDomRoute('/login');
     const settings = createDomRoute('/settings');
     settings.setAttribute('guard', 'to-login');
     const dashboard = createDomRoute('/dashboard');
     dashboard.setAttribute('guard', 'to-settings');
 
-    engine.replaceRoutes(collectRoutesFromDom(dashboard, settings, login));
-    provider.start();
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [dashboard, settings, login],
+      boot: false,
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'to-settings', () => '/settings');
+        registerTestHook(e.hooksRegistry, 'to-login', () => '/login');
+      },
+    });
 
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
 
@@ -225,16 +228,18 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
-    registerTestHook(engine.hooksRegistry, 'auth', () => false);
-
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('/dashboard');
     dashboard.setAttribute('guard', 'auth');
 
-    engine.replaceRoutes(collectRoutesFromDom(dashboard, login));
-    provider.start();
+    const { engine, provider } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [dashboard, login],
+      boot: false,
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'auth', () => false);
+      },
+    });
 
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
 
@@ -243,19 +248,21 @@ describe('RedirectResolver integration', () => {
   });
 
   it('emits navigation:error on hook redirect cycle', async () => {
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-    const errors = collectNavigationErrors(engine);
-
-    registerTestHook(engine.hooksRegistry, 'to-b', () => '/b');
-    registerTestHook(engine.hooksRegistry, 'to-a', () => '/a');
-
     const routeA = createDomRoute('/a');
     routeA.setAttribute('guard', 'to-b');
     const routeB = createDomRoute('/b');
     routeB.setAttribute('guard', 'to-a');
 
-    engine.replaceRoutes(collectRoutesFromDom(routeA, routeB));
-    provider.start();
+    const { engine, provider } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [routeA, routeB],
+      boot: false,
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'to-b', () => '/b');
+        registerTestHook(e.hooksRegistry, 'to-a', () => '/a');
+      },
+    });
+    const errors = collectNavigationErrors(engine);
 
     await engine.navigateTo('/a', 'push', { replace: false, syncHistory: true });
 
@@ -276,16 +283,18 @@ describe('RedirectResolver integration', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
-    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
-
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('/dashboard');
     dashboard.setAttribute('guard', 'auth');
 
-    engine.replaceRoutes(collectRoutesFromDom(dashboard, login));
-    provider.start();
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [dashboard, login],
+      boot: false,
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'auth', () => '/login');
+      },
+    });
 
     await engine.navigateTo('/dashboard?tab=1#panel', 'push', { replace: false, syncHistory: true });
 

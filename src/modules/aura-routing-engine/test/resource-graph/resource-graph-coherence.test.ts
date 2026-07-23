@@ -1,66 +1,23 @@
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { LoaderFn } from '../../core';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { ENGINE_DEFAULTS } from '../../core/aura-routing-engine-config';
-import { DataGraph } from '../../core/data-graph';
-import type { RouteHookDefinition } from '../../core/hooks/types';
+import type { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import type { NavigationPhaseMode } from '../../core/navigation/types';
-import {
+import type {
   HandoffCache,
   ResourceGraph,
 } from '../../core/resource-graph';
-import { LoaderRegistry, ViewGraph } from '../../core/view-graph';
+import { LoaderRegistry, type ViewGraph } from '../../core/view-graph';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 import {
-  createMatchedRoute,
-  createMockEngine,
-  createMockViewGraph,
-  createNavigationTransaction,
-} from '../_helpers/create-mock-transaction';
-import { withResolvedView } from '../_helpers/with-resolved-view';
-
-/** Load hooks return data payloads; registry typing is guard-oriented. */
-function loadHook(fn: () => Promise<unknown>): RouteHookDefinition['fn'] {
-  return fn as unknown as RouteHookDefinition['fn'];
-}
-
-function asHtmlLoader(fn: () => Promise<string>): LoaderFn {
-  return fn as unknown as LoaderFn;
-}
-
-function prepareTx(
-  enterRoutes: readonly MatchedRouteInfo[],
-  engine: AuraRoutingEngine,
-  phaseMode: NavigationPhaseMode,
-  update = false,
-): NavigationTransaction {
-  const to = enterRoutes[enterRoutes.length - 1]!;
-  return createNavigationTransaction({
-    engine,
-    to,
-    phaseMode,
-    enterRoutes: [...enterRoutes],
-    exitRoutes: [],
-    update,
-    transitionOrder: null,
-  });
-}
-
-function createNoCacheRoute(
-  path: string,
-  overrides: Parameters<typeof createMatchedRoute>[1] = {},
-): MatchedRouteInfo {
-  return withResolvedView(
-    createMatchedRoute(path, {
-      view: { loader: 'html', content: `<span>${path}</span>` },
-      cache: NO_CACHE,
-      ...overrides,
-    }),
-  );
-}
+  asHtmlLoader,
+  asLoadHook,
+  createNoCacheResolvedRoute,
+  createResourceGraphStack,
+  createResourcePrepareTransaction,
+} from '../_helpers/resource-graph-fixtures';
 
 describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
   let hooks: HookRegistry;
@@ -71,22 +28,17 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
   let engine: AuraRoutingEngine;
 
   function wire(options: { ttl?: number; viewRegistry?: LoaderRegistry } = {}): void {
-    handoff = new HandoffCache(options.ttl !== undefined ? { ttl: options.ttl } : undefined);
-    dataGraph = new DataGraph(handoff, { hooks, cache: { staleTime: 60_000 } });
-    viewGraph = options.viewRegistry
-      ? new ViewGraph(handoff, { registry: options.viewRegistry })
-      : createMockViewGraph();
-    resourceGraph = new ResourceGraph({
-      hooks,
-      viewGraph,
-      dataGraph,
-      sharedBuffer: handoff,
-    });
-    const base = createMockEngine();
-    (base as { resourceGraph: ResourceGraph }).resourceGraph = resourceGraph;
-    (base as { hooksRegistry: HookRegistry }).hooksRegistry = hooks;
-    engine = base;
+    const stack = createResourceGraphStack({ hooks, ...options });
+    handoff = stack.handoff;
+    dataGraph = stack.dataGraph;
+    viewGraph = stack.viewGraph;
+    resourceGraph = stack.resourceGraph;
+    engine = stack.engine;
   }
+
+  const prepareTx = createResourcePrepareTransaction;
+  const createNoCacheRoute = createNoCacheResolvedRoute;
+  const loadHook = asLoadHook;
 
   beforeEach(() => {
     hooks = new HookRegistry();

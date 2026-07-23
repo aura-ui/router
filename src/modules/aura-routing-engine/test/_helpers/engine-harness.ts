@@ -64,3 +64,51 @@ export async function bootEngine(
 ): Promise<void> {
   await engine.navigateTo(href, 'system', { replace: true, syncHistory: false });
 }
+
+export type BootEngineWithDomRoutesOptions = CreateEngineHarnessOptions & {
+  /** Set `engine.isRunning = true` after start (coordinator apply path). */
+  markRunning?: boolean;
+  /**
+   * Boot path after provider start.
+   * - string — navigate there
+   * - `false` — skip boot
+   * - omitted — use {@link CreateEngineHarnessOptions.href} (default `'/'`)
+   */
+  boot?: string | false;
+  /** Runs after harness creation, before provider start / boot (register hooks, spies). */
+  setup?: (harness: EngineHarness) => void;
+};
+
+/**
+ * Create engine + DOM routes, optionally register hooks, start provider, and boot.
+ * Provider start is deferred until after {@link BootEngineWithDomRoutesOptions.setup}.
+ */
+export async function bootEngineWithDomRoutes(
+  options: BootEngineWithDomRoutesOptions = {},
+): Promise<EngineHarness> {
+  const {
+    markRunning = false,
+    boot,
+    setup,
+    startProvider = true,
+    href = '/',
+    ...rest
+  } = options;
+
+  const harness = createEngineHarness({
+    ...rest,
+    href,
+    startProvider: false,
+  });
+  setup?.(harness);
+  if (startProvider) {
+    harness.provider.start();
+  }
+  if (markRunning) {
+    harness.engine.isRunning = true;
+  }
+  if (boot !== false) {
+    await bootEngine(harness.engine, boot ?? href);
+  }
+  return harness;
+}

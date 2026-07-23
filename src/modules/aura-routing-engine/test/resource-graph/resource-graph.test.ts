@@ -1,59 +1,22 @@
 import type { DataGraph } from '../../core/data-graph';
-import { HookRegistry } from '../../core/hooks/registry';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import {
-  HandoffCache,
-  ResourceGraph,
-  type ResourceGraphLoadPlan,
-} from '../../core/resource-graph';
+import type { ResourceGraph } from '../../core/resource-graph';
 import type { ViewGraph } from '../../core/view-graph';
+import { createViewGraphFromLoadView } from '../_helpers/create-mock-transaction';
 import {
-  createMatchedRoute,
-  createViewGraphFromLoadView,
-} from '../_helpers/create-mock-transaction';
+  buildResourceLoadPlan,
+  createResourceGraphRoute,
+  createTestResourceGraph,
+} from '../_helpers/resource-graph-fixtures';
 
-function createGraph(viewGraph: ViewGraph, dataGraph: DataGraph): ResourceGraph {
-  return new ResourceGraph({
-    hooks: new HookRegistry(),
-    viewGraph,
-    dataGraph,
-    sharedBuffer: new HandoffCache(),
-  });
-}
+const createGraph = (
+  viewGraph: ViewGraph,
+  dataGraph: DataGraph,
+): ResourceGraph => createTestResourceGraph({ viewGraph, dataGraph });
 
-function buildLoadPlan(
-  graph: ResourceGraph,
-  routes: readonly MatchedRouteInfo[],
-): ResourceGraphLoadPlan {
-  return (
-    graph as unknown as {
-      buildLoadPlan(routes: readonly MatchedRouteInfo[]): ResourceGraphLoadPlan;
-    }
-  ).buildLoadPlan(routes);
-}
-
-function matchedRoute(
-  path: string,
-  options: {
-    load?: string[] | null;
-    asyncView?: boolean;
-    layout?: string;
-    view?: MatchedRouteInfo['route']['view'];
-  } = {},
-): MatchedRouteInfo {
-  const { load = null, asyncView = false, layout = '', view } = options;
-  return createMatchedRoute(path, {
-    load,
-    layout,
-    view:
-      view !== undefined
-        ? view
-        : asyncView
-          ? { loader: 'url', content: `${path}.html` }
-          : { loader: 'html', content: '<span/>' },
-  });
-}
+const buildLoadPlan = buildResourceLoadPlan;
+const matchedRoute = createResourceGraphRoute;
 
 describe('ResourceGraph', () => {
   it('buildLoadPlan splits data routes and independent view routes', () => {

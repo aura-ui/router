@@ -1,24 +1,12 @@
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import { DataGraph } from '../../core/data-graph';
-import { HookRegistry } from '../../core/hooks/registry';
-import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
-import type { ViewGraph } from '../../core/view-graph';
+import { HandoffCache } from '../../core/resource-graph';
 import { createMatchedRoute } from '../_helpers/create-mock-transaction';
-
-function createResources(handoff: HandoffCache): ResourceGraph {
-  const hooks = new HookRegistry();
-  return new ResourceGraph({
-    hooks,
-    viewGraph: { loadView: jest.fn() } as unknown as ViewGraph,
-    dataGraph: new DataGraph(handoff, { hooks }),
-    sharedBuffer: handoff,
-  });
-}
+import { createPinnedResourceGraph } from '../_helpers/resource-graph-fixtures';
 
 describe('ResourceGraph pinSharedBufferFor', () => {
   it('keeps overlapping data handoff work alive until unpin', () => {
     const handoff = new HandoffCache();
-    const resources = createResources(handoff);
+    const resources = createPinnedResourceGraph(handoff);
 
     const to = createMatchedRoute('/items', { load: ['data'], cache: NO_CACHE });
     const key = to.dataKey!;
@@ -37,7 +25,7 @@ describe('ResourceGraph pinSharedBufferFor', () => {
 
   it('pins viewKey so overlapping view handoff survives until unpin', () => {
     const handoff = new HandoffCache();
-    const resources = createResources(handoff);
+    const resources = createPinnedResourceGraph(handoff);
 
     const to = createMatchedRoute('/about', {
       load: null,
@@ -62,7 +50,7 @@ describe('ResourceGraph pinSharedBufferFor', () => {
 
   it('unpinning an older pin does not drop a newer supersede pin', () => {
     const handoff = new HandoffCache();
-    const resources = createResources(handoff);
+    const resources = createPinnedResourceGraph(handoff);
 
     const routeB = createMatchedRoute('/b', { load: ['data'], cache: NO_CACHE });
     const routeC = createMatchedRoute('/c', { load: ['data'], cache: NO_CACHE });
@@ -89,7 +77,7 @@ describe('ResourceGraph pinSharedBufferFor', () => {
 
   it('unpin is idempotent', () => {
     const handoff = new HandoffCache();
-    const resources = createResources(handoff);
+    const resources = createPinnedResourceGraph(handoff);
     const to = createMatchedRoute('/x', { load: ['data'], cache: NO_CACHE });
 
     const hold = resources.pinSharedBufferFor(to);
@@ -102,7 +90,7 @@ describe('ResourceGraph pinSharedBufferFor', () => {
 
   it('pin alone does not abort prefetch-idle work (early B fail must keep warmup)', () => {
     const handoff = new HandoffCache();
-    const resources = createResources(handoff);
+    const resources = createPinnedResourceGraph(handoff);
     const to = createMatchedRoute('/warmup', { load: ['data'], cache: NO_CACHE });
     const key = to.dataKey!;
 
@@ -125,7 +113,7 @@ describe('ResourceGraph pinSharedBufferFor', () => {
 
   it('defers work abort until unpin after navigation prepare releases', () => {
     const handoff = new HandoffCache();
-    const resources = createResources(handoff);
+    const resources = createPinnedResourceGraph(handoff);
     const to = createMatchedRoute('/page', { load: ['data'], cache: NO_CACHE });
     const key = to.dataKey!;
 
@@ -146,7 +134,7 @@ describe('ResourceGraph pinSharedBufferFor', () => {
 
   it('pin/unpin keeps in-flight handoff resolve joinable without a second load', async () => {
     const handoff = new HandoffCache();
-    const resources = createResources(handoff);
+    const resources = createPinnedResourceGraph(handoff);
     const to = createMatchedRoute('/warmup', { load: ['data'], cache: NO_CACHE });
     const key = to.dataKey!;
 

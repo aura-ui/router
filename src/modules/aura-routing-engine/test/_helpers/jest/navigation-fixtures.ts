@@ -189,6 +189,22 @@ export function mockTransactionRunSuccess(runSpy: jest.SpyInstance): void {
   });
 }
 
+/**
+ * Spy `NavigationTransaction.run`: capture each tx, commit, return success.
+ * Returns the live capture array (grows as navigations run).
+ */
+export function mockCapturingTransactionRunSuccess(): NavigationTransaction[] {
+  const transactions: NavigationTransaction[] = [];
+  jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
+    async function (this: NavigationTransaction) {
+      transactions.push(this);
+      this.engine.commitNavigation(this);
+      return { status: 'navigationSucceeded' };
+    },
+  );
+  return transactions;
+}
+
 export function createTestOutlet(): AuraOutlet {
   const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
   document.body.append(outlet);

@@ -1,15 +1,8 @@
 import { NavigationFailure, NavigationError } from '../../core/failure';
-import { createTestRoute } from '../_helpers/create-test-route';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 describe('NavigationFailure', () => {
-  const to = {
-    href: '/x',
-    pathname: '/x',
-    search: '',
-    hash: '',
-    pattern: '/x',
-    route: createTestRoute('/x'),
-  };
+  const to = createMatchedRoute('/x');
 
   it('viewCommitted derives from commit snapshot', () => {
     const error = new NavigationError({

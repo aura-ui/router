@@ -1,30 +1,7 @@
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { RouteInstance } from '../../core';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { HandoffCache } from '../../core/resource-graph';
 import { ViewGraph, LoaderRegistry } from '../../core/view-graph';
-import { createMatchedRoute } from '../_helpers/create-mock-transaction';
-
-function matched(
-  pattern: string,
-  overrides: Partial<MatchedRouteInfo> = {},
-): MatchedRouteInfo {
-  const { route: routeOverride, ...rest } = overrides;
-  const resolved = rest.resolvedView;
-  const viewFromResolved =
-    resolved && typeof resolved === 'object' && 'loader' in resolved
-      ? { loader: resolved.loader, content: resolved.content }
-      : null;
-
-  return createMatchedRoute(pattern, {
-    layout: '',
-    view: viewFromResolved,
-    cache: NO_CACHE,
-    ...(routeOverride as Partial<RouteInstance> | undefined),
-    ...rest,
-    attachResolvedView: true,
-  });
-}
+import { createViewGraphRoute as matched } from '../_helpers/create-mock-transaction';
 
 describe('ViewGraph', () => {
   let registry: LoaderRegistry;

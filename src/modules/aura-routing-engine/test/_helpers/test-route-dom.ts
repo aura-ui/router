@@ -1,4 +1,6 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { buildRouteTree } from '../../core/route-tree/build-route-tree';
 
 const ROUTE_TAG = 'aura-route';
@@ -48,6 +50,25 @@ export function collectRoutesFromDom(...roots: AuraRoute[]): AuraRoute[] {
 
 export function buildTreeFromDom(...roots: AuraRoute[]) {
   return buildRouteTree(collectRoutesFromDom(...roots));
+}
+
+/** Match `pathname` against a DOM-built route tree. */
+export function matchDomPath(
+  matcher: AuraRoutingUrlMatcher,
+  pathname: string,
+  ...roots: AuraRoute[]
+): MatchedRouteInfo {
+  const { matchableNodes } = buildTreeFromDom(...roots);
+  const found = matcher.matchPath(pathname, matchableNodes);
+  if (!found) throw new Error(`No match for ${pathname}`);
+  return matcher.buildMatchedRouteInfo(
+    pathname,
+    pathname,
+    '',
+    '',
+    found.node,
+    found.params,
+  );
 }
 
 export { ROUTE_TAG };

@@ -2,10 +2,7 @@ jest.mock('../../core/hooks/registry', () =>
   jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
-import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
-import type { AuraRouteInterface } from '../../../aura-route/core/types';
-import { RouteViewController } from '../../../aura-route/core/view/view-controller';
+import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteNode } from '../../core/route-tree/route-node.types';
 import {
@@ -13,58 +10,29 @@ import {
   createUsersIdNode,
 } from '../_helpers/create-dynamic-leaf-match';
 import { createMockEngine, createNavigationTransaction } from '../_helpers/create-mock-transaction';
-import { mockRunPhaseHooks, resetHookMocks } from '../_helpers/jest/hook-mocks';
+import { setupViewIntegrationTests } from '../_helpers/integration-setup';
+import { mockRunPhaseHooks } from '../_helpers/jest/hook-mocks';
 import { createTestOutlet } from '../_helpers/jest/navigation-fixtures';
+import { wireRouteViewController as wireRouteView } from '../_helpers/wire-route-view-controller';
 
 function wireRouteViewController(
   node: RouteNode,
   outlet: AuraOutlet,
   resolve: () => string,
 ): { resolveCount: () => number } {
-  const passId = 0;
   let resolveCount = 0;
-  const routeRecord = node.route as {
-    path: string;
-    layout: string;
-    view: unknown;
-    loadingTemplate: string;
-    errorTemplate: string;
-    scrollPolicy: null;
-    cache: CacheFlags;
-    transition: typeof NO_TRANSITION;
-    render: RouteViewController['render'];
-    commitStagedView: () => void;
-  };
-
-  routeRecord.path = node.pattern;
-  routeRecord.layout = '';
-  routeRecord.view = routeRecord.view ?? null;
-  routeRecord.loadingTemplate = routeRecord.loadingTemplate ?? '';
-  routeRecord.errorTemplate = routeRecord.errorTemplate ?? '';
-  routeRecord.scrollPolicy = null;
-  routeRecord.cache = NO_CACHE;
-  routeRecord.transition = NO_TRANSITION;
-
-  const controller = new RouteViewController(
-    {
-      route: routeRecord as unknown as AuraRouteInterface,
-      view: { loadView: async () => { resolveCount++; return { data: resolve() }; } },
-      cache: {
-        has: () => false,
-        extract: () => undefined,
-        put: () => {},
-      },
-      mountTarget: {
-        appOutlet: () => outlet,
-        nestedOutlet: () => null,
-      },
+  wireRouteView({
+    route: node.route,
+    path: node.pattern,
+    outlet,
+    cache: NO_CACHE,
+    wireUnmount: false,
+    wireApplyPreResolved: false,
+    loadView: async () => {
+      resolveCount++;
+      return { data: resolve() };
     },
-    () => passId,
-  );
-
-  routeRecord.render = (info, options) => controller.render(info, options);
-  routeRecord.commitStagedView = () => controller.commitStagedView();
-
+  });
   return { resolveCount: () => resolveCount };
 }
 
@@ -82,17 +50,7 @@ async function runParamUpdateNavigation(from: MatchedRouteInfo, to: MatchedRoute
 }
 
 describe('param-change UPDATE integration (real view)', () => {
-  beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    resetHookMocks();
-    document.body.replaceChildren();
-  });
+  setupViewIntegrationTests();
 
   it('same viewKey keeps DOM and skips re-render on /users/1 > /users/2', async () => {
     const phases: string[] = [];

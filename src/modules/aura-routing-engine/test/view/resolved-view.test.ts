@@ -1,5 +1,5 @@
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { attachResolvedView } from '../../core/route-tree/resolved-view';
+import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 function matchFixture(
   overrides: {
@@ -7,19 +7,13 @@ function matchFixture(
     view?: { loader: string; content: string } | null;
     layout?: string;
   } = {},
-): MatchedRouteInfo {
-  return {
-    href: '/users/1',
-    pathname: '/users/1',
-    search: '',
-    hash: '',
+) {
+  return createMatchedRoute('/users/1', {
     pattern: '/users/:id',
     params: overrides.params ?? { id: '1' },
-    route: {
-      view: 'view' in overrides ? overrides.view : { loader: 'url', content: 'shell.html' },
-      layout: overrides.layout ?? '',
-    },
-  } as MatchedRouteInfo;
+    view: 'view' in overrides ? overrides.view : { loader: 'url', content: 'shell.html' },
+    layout: overrides.layout ?? '',
+  });
 }
 
 describe('attachResolvedView', () => {

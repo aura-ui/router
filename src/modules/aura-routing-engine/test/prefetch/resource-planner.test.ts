@@ -2,7 +2,7 @@ import { AuraRoutingUrlMatcher } from '../../core/match/url-matcher';
 import { PrefetchPolicy } from '../../core/prefetch/policy';
 import { DefaultPrefetchResourcePlanner } from '../../core/prefetch/resources';
 import type { PrefetchPlan } from '../../core/prefetch/types';
-import { buildTreeFromDom, createDomRoute } from '../_helpers/test-route-dom';
+import { createDomRoute, matchDomPath } from '../_helpers/test-route-dom';
 
 describe('DefaultPrefetchResourcePlanner', () => {
   const matcher = new AuraRoutingUrlMatcher();
@@ -22,12 +22,8 @@ describe('DefaultPrefetchResourcePlanner', () => {
       page.setAttribute('view', attrs.view ?? 'html::x');
       if (attrs.load) page.setAttribute('load', attrs.load);
     }
-    const { matchableNodes } = buildTreeFromDom(page);
-    const found = matcher.matchPath('/page', matchableNodes);
-    if (!found) throw new Error('route not found');
 
-    const routeInfo = matcher.buildMatchedRouteInfo('/page', '/page', '', '', found.node, found.params);
-
+    const routeInfo = matchDomPath(matcher, '/page', page);
     return {
       href: '/page',
       pathname: '/page',
@@ -99,18 +95,7 @@ describe('DefaultPrefetchResourcePlanner', () => {
   it('plans content for layout folder routes', () => {
     const child = createDomRoute('detail');
     const page = createDomRoute('/layout-page', [child]);
-    const { matchableNodes } = buildTreeFromDom(page);
-    const found = matcher.matchPath('/layout-page', matchableNodes);
-    if (!found) throw new Error('route not found');
-
-    const routeInfo = matcher.buildMatchedRouteInfo(
-      '/layout-page',
-      '/layout-page',
-      '',
-      '',
-      found.node,
-      found.params,
-    );
+    const routeInfo = matchDomPath(matcher, '/layout-page', page);
 
     const plan: PrefetchPlan = {
       href: '/layout-page',

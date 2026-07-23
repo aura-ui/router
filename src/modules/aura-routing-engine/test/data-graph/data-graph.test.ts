@@ -2,45 +2,14 @@ import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { HandoffCache } from '../../core/resource-graph';
 import {
-  createMatchedRoute,
+  createDataGraphLoadOptions as navOptions,
+  createDataGraphTransaction as loadTransaction,
+  createDataMatchedRoute as matchedRoute,
   createMockEngine,
   createNavigationTransaction,
 } from '../_helpers/create-mock-transaction';
-
-function matchedRoute(path: string, load: string[] | null = ['data']): MatchedRouteInfo {
-  return createMatchedRoute(path, { load });
-}
-
-function loadTransaction(
-  hookRegistry: HookRegistry,
-  enterRoutes: readonly MatchedRouteInfo[],
-): NavigationTransaction {
-  const to = enterRoutes[enterRoutes.length - 1]!;
-  const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
-  return createNavigationTransaction({
-    engine,
-    to,
-    enterRoutes: [...enterRoutes],
-    exitRoutes: [],
-    transitionOrder: null,
-  });
-}
-
-function navOptions(
-  hookRegistry: HookRegistry,
-  enterRoutes: readonly MatchedRouteInfo[],
-  branch?: readonly MatchedRouteInfo[],
-) {
-  return {
-    transaction: loadTransaction(hookRegistry, enterRoutes),
-    mode: 'navigation' as const,
-    ...(branch ? { branch } : {}),
-  };
-}
 
 describe('DataGraph', () => {
   let hookRegistry: HookRegistry;

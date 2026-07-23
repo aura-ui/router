@@ -1,11 +1,10 @@
 import { componentMarkup, routeSnapshot } from '../../core/view-graph/markup';
 import type { ViewLoadContext } from '../../core/view-graph/types';
+import { createViewLoadContext } from '../_helpers/view-load-context';
 
 function ctx(overrides: Partial<ViewLoadContext> = {}): ViewLoadContext {
-  return {
+  return createViewLoadContext({
     content: 'my-widget',
-    kind: 'view',
-    signal: new AbortController().signal,
     route: {
       href: '/users/1?q=1',
       pattern: '/users/:id',
@@ -14,7 +13,7 @@ function ctx(overrides: Partial<ViewLoadContext> = {}): ViewLoadContext {
     },
     data: { userId: '1' },
     ...overrides,
-  };
+  });
 }
 
 describe('routeSnapshot', () => {

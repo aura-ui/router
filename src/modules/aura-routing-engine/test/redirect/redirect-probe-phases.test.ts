@@ -6,10 +6,9 @@ import {
   createMockEngine,
   createNavigationTransaction,
 } from '../_helpers/create-mock-transaction';
-import { bootEngine, createEngineHarness } from '../_helpers/engine-harness';
+import { bootEngineWithDomRoutes } from '../_helpers/engine-harness';
 import { registerTestHook } from '../_helpers/jest/navigation-fixtures';
 import {
-  collectRoutesFromDom,
   createDomRedirectRoute,
   createDomRoute,
 } from '../_helpers/test-route-dom';
@@ -35,19 +34,18 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
-    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
-
     const home = createDomRoute('/');
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('/dashboard');
     dashboard.setAttribute('guard', 'auth');
 
-    engine.replaceRoutes(collectRoutesFromDom(home, dashboard, login));
-    provider.start();
-
-    await bootEngine(engine, '/');
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [home, dashboard, login],
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'auth', () => '/login');
+      },
+    });
     guardPhaseCalls = 0;
 
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
@@ -68,17 +66,15 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
     const target = createDomRoute('/target');
     const hopB = createDomRedirectRoute('/b', '/target');
     const hopA = createDomRedirectRoute('/a', '/b');
     const home = createDomRoute('/');
 
-    engine.replaceRoutes(collectRoutesFromDom(home, hopA, hopB, target));
-    provider.start();
-
-    await bootEngine(engine, '/');
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [home, hopA, hopB, target],
+    });
     guardPhaseCalls = 0;
 
     await engine.navigateTo('/a', 'push', { replace: false, syncHistory: true });
@@ -117,20 +113,19 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
     const home = createDomRoute('/');
     home.setAttribute('leave', 'home-leave');
-    registerTestHook(engine.hooksRegistry, 'home-leave', () => true);
-
     const about = createDomRoute('/about');
     about.setAttribute('guard', 'about-guard');
-    registerTestHook(engine.hooksRegistry, 'about-guard', () => true);
 
-    engine.replaceRoutes(collectRoutesFromDom(home, about));
-    provider.start();
-
-    await bootEngine(engine, '/');
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [home, about],
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'home-leave', () => true);
+        registerTestHook(e.hooksRegistry, 'about-guard', () => true);
+      },
+    });
     runGuardsSpy.mockClear();
 
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
@@ -154,18 +149,17 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
     const home = createDomRoute('/');
     home.setAttribute('leave', 'home-leave');
-    registerTestHook(engine.hooksRegistry, 'home-leave', () => true);
-
     const about = createDomRoute('/about');
 
-    engine.replaceRoutes(collectRoutesFromDom(home, about));
-    provider.start();
-
-    await bootEngine(engine, '/');
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [home, about],
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'home-leave', () => true);
+      },
+    });
     guardPhaseCalls = 0;
 
     await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
@@ -181,16 +175,18 @@ describe('redirect blocking walk policy', () => {
       return { status: 'navigationSucceeded' };
     });
 
-    const { engine, provider } = createEngineHarness({ href: '/', startProvider: false });
-
-    registerTestHook(engine.hooksRegistry, 'auth', () => '/login');
-
     const login = createDomRoute('/login');
     const dashboard = createDomRoute('/dashboard');
     dashboard.setAttribute('guard', 'auth');
 
-    engine.replaceRoutes(collectRoutesFromDom(dashboard, login));
-    provider.start();
+    const { engine } = await bootEngineWithDomRoutes({
+      href: '/',
+      domRoutes: [dashboard, login],
+      boot: false,
+      setup: ({ engine: e }) => {
+        registerTestHook(e.hooksRegistry, 'auth', () => '/login');
+      },
+    });
 
     await engine.navigateTo('/dashboard', 'push', { replace: false, syncHistory: true });
 

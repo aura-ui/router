@@ -1,5 +1,5 @@
-import { NavigationTransaction } from '../core/navigation/navigation-transaction';
 import { createEngineHarness } from './_helpers/engine-harness';
+import { mockCapturingTransactionRunSuccess } from './_helpers/jest/navigation-fixtures';
 import {
   createDomRedirectRoute,
   createDomRoute,
@@ -10,20 +10,8 @@ describe('AuraRoutingEngine + route tree', () => {
     jest.restoreAllMocks();
   });
 
-  function captureTransactions() {
-    const transactions: NavigationTransaction[] = [];
-    jest.spyOn(NavigationTransaction.prototype, 'run').mockImplementation(
-      async function (this: NavigationTransaction) {
-        transactions.push(this);
-        this.engine.commitNavigation(this);
-        return { status: 'navigationSucceeded' };
-      },
-    );
-    return transactions;
-  }
-
   it('flat route match produces single-node chain', async () => {
-    const transactions = captureTransactions();
+    const transactions = mockCapturingTransactionRunSuccess();
     const { engine } = createEngineHarness({
       domRoutes: [createDomRoute('/'), createDomRoute('/about')],
     });
@@ -34,7 +22,7 @@ describe('AuraRoutingEngine + route tree', () => {
   });
 
   it('nested navigation passes branch chains to transaction', async () => {
-    const transactions = captureTransactions();
+    const transactions = mockCapturingTransactionRunSuccess();
     const profile = createDomRoute('profile');
     const security = createDomRoute('security');
     const settings = createDomRoute('/settings', [profile, security]);
@@ -61,7 +49,7 @@ describe('AuraRoutingEngine + route tree', () => {
   });
 
   it('navigateTo follows declarative redirect before running pipeline', async () => {
-    const transactions = captureTransactions();
+    const transactions = mockCapturingTransactionRunSuccess();
     const profile = createDomRoute('/settings/profile');
     const alias = createDomRedirectRoute('/settings', '/settings/profile');
     const { engine } = createEngineHarness({

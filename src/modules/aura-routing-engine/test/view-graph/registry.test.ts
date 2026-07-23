@@ -6,7 +6,8 @@ import {
   createLoaderRegistry,
   defaultLoaderRegistry,
 } from '../../core/view-graph/registry';
-import type { ViewLoaderEnv, ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
+import type { ViewLoadContext, ViewLoadResult } from '../../core/view-graph/types';
+import { createTestLoaderEnv as createBrowserEnv } from '../_helpers/view-load-context';
 
 class ProbeLoader extends Loader {
   static readonly type = 'template' as const satisfies LoaderId;
@@ -134,11 +135,3 @@ describe('LoaderRegistry', () => {
     expect(registry.getEnvironment()).toBe(env);
   });
 });
-
-function createBrowserEnv(): ViewLoaderEnv {
-  return {
-    fetchText: async () => '',
-    resolveUrl: (content) => content,
-    isSSR: false,
-  };
-}

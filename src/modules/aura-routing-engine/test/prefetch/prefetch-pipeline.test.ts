@@ -11,7 +11,7 @@ import type {
 } from '../../core/prefetch/types';
 import { HandoffCache } from '../../core/resource-graph';
 import { createMockTransaction } from '../_helpers/create-mock-transaction';
-import { buildTreeFromDom, createDomRoute } from '../_helpers/test-route-dom';
+import { buildTreeFromDom, createDomRoute, matchDomPath } from '../_helpers/test-route-dom';
 
 describe('PrefetchPipeline', () => {
   const matcher = new AuraRoutingUrlMatcher();
@@ -135,21 +135,10 @@ describe('PrefetchPipeline', () => {
     profile.setAttribute('load', 'profile');
     profile.setAttribute('cache', 'data');
     const settings = createDomRoute('/settings', [profile]);
-    const { matchableNodes } = buildTreeFromDom(settings);
     const localMatcher = new AuraRoutingUrlMatcher();
-    const match = localMatcher.matchPath('/settings/profile', matchableNodes);
-    expect(match).not.toBeNull();
+    const leaf = matchDomPath(localMatcher, '/settings/profile', settings);
 
     const dataGraph = new DataGraph(new HandoffCache(), { hooks: hookRegistry });
-
-    const leaf = localMatcher.buildMatchedRouteInfo(
-      '/settings/profile',
-      '/settings/profile',
-      '',
-      '',
-      match!.node,
-      match!.params,
-    );
 
     const transaction = createMockTransaction({ enterRoutes: [leaf] });
     const prefetchOpts = {

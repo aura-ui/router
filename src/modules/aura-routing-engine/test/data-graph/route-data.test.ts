@@ -2,11 +2,7 @@ import {
   closestRouteWithLoadHooks,
   resolveRouteData,
 } from '../../core/data-graph/route-data';
-import { createMatchedRoute } from '../_helpers/create-mock-transaction';
-
-function matched(path: string, load: string[] | null = ['data']) {
-  return createMatchedRoute(path, { load });
-}
+import { createDataMatchedRoute as matched } from '../_helpers/create-mock-transaction';
 
 describe('route-data helpers', () => {
   it('resolveRouteData reads snapshot by dataKey when route has load hooks', () => {

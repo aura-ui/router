@@ -1,4 +1,5 @@
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
+import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import type { ViewGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
@@ -106,6 +107,76 @@ export function createMatchedRoute(
   }
 
   return overrides.attachResolvedView ? withResolvedView(info) : info;
+}
+
+/**
+ * ViewGraph unit-test match: `NO_CACHE`, optional `resolvedView` → view attrs,
+ * then {@link withResolvedView}.
+ *
+ * Accepts either top-level {@link CreateMatchedRouteOverrides} fields or a nested
+ * `route: Partial<RouteInstance>` bag (legacy call shape in view-graph tests).
+ */
+export function createViewGraphRoute(
+  pattern: string,
+  overrides: CreateMatchedRouteOverrides & {
+    route?: Partial<RouteInstance>;
+  } = {},
+): MatchedRouteInfo {
+  const { route: routePartial, resolvedView, ...rest } = overrides;
+  const viewFromResolved =
+    resolvedView && typeof resolvedView === 'object' && 'loader' in resolvedView
+      ? {
+          loader: (resolvedView as { loader: string; content: string }).loader,
+          content: (resolvedView as { content: string }).content,
+        }
+      : undefined;
+
+  return createMatchedRoute(pattern, {
+    layout: '',
+    cache: NO_CACHE,
+    view: viewFromResolved ?? null,
+    ...routePartial,
+    ...rest,
+    ...(resolvedView !== undefined ? { resolvedView } : {}),
+    attachResolvedView: true,
+  });
+}
+
+/** Matched route with default `load: ['data']` for DataGraph tests. */
+export function createDataMatchedRoute(
+  path: string,
+  load: string[] | null = ['data'],
+): MatchedRouteInfo {
+  return createMatchedRoute(path, { load });
+}
+
+/** Navigation transaction wired for {@link DataGraph.load} calls. */
+export function createDataGraphTransaction(
+  hookRegistry: HookRegistry,
+  enterRoutes: readonly MatchedRouteInfo[],
+) {
+  const to = enterRoutes[enterRoutes.length - 1]!;
+  const engine = { ...createMockEngine(), hooksRegistry: hookRegistry } as AuraRoutingEngine;
+  return createNavigationTransaction({
+    engine,
+    to,
+    enterRoutes: [...enterRoutes],
+    exitRoutes: [],
+    transitionOrder: null,
+  });
+}
+
+/** Navigation-mode options bag for {@link DataGraph.load}. */
+export function createDataGraphLoadOptions(
+  hookRegistry: HookRegistry,
+  enterRoutes: readonly MatchedRouteInfo[],
+  branch?: readonly MatchedRouteInfo[],
+) {
+  return {
+    transaction: createDataGraphTransaction(hookRegistry, enterRoutes),
+    mode: 'navigation' as const,
+    ...(branch ? { branch } : {}),
+  };
 }
 
 /** Test helper: override plan `transitionOrder` without rebuilding route attrs. */

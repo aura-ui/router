@@ -2,14 +2,11 @@ jest.mock('../../core/hooks/registry', () =>
   jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_CACHE, type CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
-import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
-import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteInstance } from '../../core/route/types';
-import type { RouteLifecycleContext } from '../../core/route/types';
 import {
   createMatchedRoute,
   createMockEngine,
@@ -17,24 +14,28 @@ import {
   createViewGraphFromLoadView,
   wireEngineViewGraph,
 } from '../_helpers/create-mock-transaction';
+import { setupViewIntegrationTests } from '../_helpers/integration-setup';
 import { mockRunPhaseHooks, resetHookMocks } from '../_helpers/jest/hook-mocks';
 import {
   createTestOutlet,
   PARALLEL_CROSS_FADE_TRANSITION,
 } from '../_helpers/jest/navigation-fixtures';
+import {
+  wireRouteViewController,
+  type WireRouteViewControllerOptions,
+} from '../_helpers/wire-route-view-controller';
 
 const routeMarkup = new WeakMap<RouteInstance, string>();
 
 type WiredRoute = {
   match: MatchedRouteInfo;
-  controller: RouteViewController;
+  controller: ReturnType<typeof wireRouteViewController>['controller'];
 };
 
-type WireRouteOptions = {
-  transition?: RouteTransitionType;
-  onTransitionOut?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
-  onTransitionIn?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
-};
+type WireRouteOptions = Pick<
+  WireRouteViewControllerOptions,
+  'transition' | 'onTransitionOut' | 'onTransitionIn'
+>;
 
 function viewMarkup(label: string): string {
   return `<span data-route="${label}">${label}-view</span>`;
@@ -44,69 +45,31 @@ function queryRouteView(outlet: AuraOutlet, label: string): Element | null {
   return outlet.querySelector(`[data-route="${label}"]`);
 }
 
-function createCrossRouteMatch(path: string, overrides: Partial<RouteInstance> = {}): MatchedRouteInfo {
-  return createMatchedRoute(path, overrides);
-}
-
 function wireRoute(
   outlet: AuraOutlet,
   path: string,
   markup: string,
   options: WireRouteOptions = {},
 ): WiredRoute {
-  let passId = 0;
   const transition = options.transition ?? NO_TRANSITION;
-  const match = createCrossRouteMatch(path, {
+  const match = createMatchedRoute(path, {
     transition,
     transitionIn: transition.in,
     transitionOut: transition.out,
   });
 
-  const routeRecord = match.route as RouteInstance & {
-    layout: string;
-    loadingTemplate: string;
-    errorTemplate: string;
-    scrollPolicy: null;
-    cache: CacheFlags;
-    render: RouteViewController['render'];
-    onUnmount: (ctx: RouteLifecycleContext) => void;
-    onTransitionOut: (ctx: RouteLifecycleContext) => void;
-    onTransitionIn: (ctx: RouteLifecycleContext) => void;
-    commitStagedView: () => void;
-  };
+  const wired = wireRouteViewController({
+    route: match.route,
+    outlet,
+    cache: NO_CACHE,
+    wireRevertInFlight: true,
+    loadView: async () => ({ data: markup }),
+    ...options,
+    transition,
+  });
+  routeMarkup.set(match.route, markup);
 
-  routeRecord.layout = '';
-  routeRecord.loadingTemplate = '';
-  routeRecord.errorTemplate = '';
-  routeRecord.scrollPolicy = null;
-  routeRecord.cache = NO_CACHE;
-
-  const controller = new RouteViewController(
-    {
-      route: routeRecord,
-      view: { loadView: async () => ({ data: markup }) },
-      cache: { extract: () => undefined, put: () => {} },
-      mountTarget: {
-        appOutlet: () => outlet,
-        nestedOutlet: () => null,
-      },
-    },
-    () => passId,
-  );
-
-  routeRecord.render = (info, renderOptions) => controller.render(info, renderOptions);
-  routeRecord.applyPreResolved = (info, opts) => controller.applyPreResolved(info, opts);
-  routeRecord.revertInFlightView = () => controller.revertInFlightView();
-  routeRecord.onUnmount = (ctx) => {
-    passId++;
-    controller.onUnmount({ domCacheKey: domCacheKey(ctx.to, routeRecord.path) });
-  };
-  routeRecord.onTransitionOut = (ctx) => options.onTransitionOut?.(ctx, outlet);
-  routeRecord.onTransitionIn = (ctx) => options.onTransitionIn?.(ctx, outlet);
-  routeRecord.commitStagedView = () => controller.commitStagedView();
-  routeMarkup.set(routeRecord, markup);
-
-  return { match, controller };
+  return { match, controller: wired.controller };
 }
 
 async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteInfo) {
@@ -131,17 +94,7 @@ async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteI
 }
 
 describe('cross-route transition integration (real view)', () => {
-  beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    resetHookMocks();
-    document.body.replaceChildren();
-  });
+  setupViewIntegrationTests();
 
   it('parallel crossfade: both view roots visible during transition hooks', async () => {
     const outlet = createTestOutlet();

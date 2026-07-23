@@ -123,9 +123,9 @@ Catch-all маршрут матчит любой pathname, но **проигры
 Если ни один маршрут не подошёл и catch-all не зарегистрирован, engine создаёт structured `NOT_FOUND` failure:
 
 1. У предыдущего маршрута вызывается `onUnmount` (фаза `unmount`).
-2. Диспатчится cancelable `not-found` (`source: 'fallback'`).
-3. При отсутствии `preventDefault()` — fallback UI (`recover()`).
-4. URL коммитится в history (для push/replace), чтобы адресная строка отражала несуществующий путь.
+2. URL коммитится в history (для push/replace), чтобы адресная строка отражала несуществующий путь.
+3. Диспатчится cancelable `not-found` (`source: 'fallback'`); active links синкаются под новый URL (branch сбрасывается).
+4. При отсутствии `preventDefault()` — fallback UI (`recover()`).
 
 Цепочка fallback-UI (по приоритету):
 

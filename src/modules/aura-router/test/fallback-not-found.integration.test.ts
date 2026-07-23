@@ -62,4 +62,32 @@ describe('AuraRouter fallback not-found (ensureEngine onNotFound)', () => {
     expect(router.appOutlet.textContent ?? '').not.toContain('Page not found');
     expect(router.appOutlet.querySelector('[data-not-found-url]')).toBeNull();
   });
+
+  it('clears active link class when URL commits to unmatched path', async () => {
+    const router = document.createElement(AuraRouter.is) as AuraRouter;
+    router.setAttribute('link-active-class', 'is-active');
+    router.innerHTML = `
+      <nav>
+        <a href="/" aura-router-link>Home</a>
+        <a href="/about" aura-router-link>About</a>
+      </nav>
+      <aura-outlet></aura-outlet>
+      <aura-route path="/" view="html::<p>home</p>"></aura-route>
+    `;
+    document.body.append(router);
+    await customElements.whenDefined('aura-route');
+    await flushNavigation();
+
+    const home = router.querySelector<HTMLAnchorElement>('a[href="/"]')!;
+    expect(home.classList.contains('is-active')).toBe(true);
+    expect(home.getAttribute('aria-current')).toBe('page');
+
+    router.navigate('/missing');
+    await flushNavigation();
+
+    expect(window.location.pathname).toBe('/missing');
+    expect(home.classList.contains('is-active')).toBe(false);
+    expect(home.hasAttribute('aria-current')).toBe(false);
+    expect(router.activeRouteBranch).toEqual([]);
+  });
 });

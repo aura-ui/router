@@ -85,8 +85,9 @@ export function applyNavigationOutcome(
     }
 
     case 'error':
-      applyFailureEffects(result.failure, ctx);
+      // History first, then host effects (`onNotFound` / `prev`) — same order as hash-only.
       applyHistoryIfNeeded(result, identity, ctx.provider);
+      applyFailureEffects(result.failure, ctx);
       return;
   }
 }

@@ -29,11 +29,15 @@ describe('applyNavigationOutcome (pre-match / error)', () => {
     };
   }
 
-  it('notifies onNotFound, commits history, clears prev', () => {
+  it('commits history before onNotFound, clears prev', () => {
     const failure = NavigationFailure.notFound('/missing', null, 'push');
+    const callOrder: string[] = [];
+    provider.commit.mockImplementation(() => callOrder.push('commit'));
+    onNotFound.mockImplementation(() => callOrder.push('onNotFound'));
 
     applyNavigationOutcome(failure.toResult(), identity('/missing'), ctx());
 
+    expect(callOrder).toEqual(['commit', 'onNotFound']);
     expect(onNotFound).toHaveBeenCalledWith(failure);
     expect(provider.commit).toHaveBeenCalled();
     expect(setPrev).toHaveBeenCalledWith(null);

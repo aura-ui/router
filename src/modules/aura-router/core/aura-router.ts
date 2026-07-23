@@ -234,7 +234,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private ensureEngine(): AuraRoutingEngine {
     if (!this.engine) {
       const { config, onEvent } = connectRouterEngine(this, {
-        syncBranchAndActiveLinks: (to) => this.syncBranchAndActiveLinks(to),
+        syncBranchAndActiveLinks: (href, to) => this.syncBranchAndActiveLinks(href, to),
         scrollRestoration: this.scrollRestoration,
         notFound: this.notFound,
         onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
@@ -249,9 +249,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return this.engine;
   }
 
-  private syncBranchAndActiveLinks(to: MatchedRouteInfo): void {
-    this._activeRouteBranch = toActiveRouteBranch(to.chain ?? [to]);
-    this.syncActiveLinks(to.href);
+  private syncBranchAndActiveLinks(href: string, to: MatchedRouteInfo | null = null): void {
+    this._activeRouteBranch = to ? toActiveRouteBranch(to.chain ?? [to]) : [];
+    this.syncActiveLinks(href);
   }
 
   /** Keep patterns, rewrite hrefs, refresh active links. */

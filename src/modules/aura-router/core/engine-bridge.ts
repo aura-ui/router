@@ -23,7 +23,8 @@ import type { ScrollRestoration } from './scroll-restoration';
 
 /** Deps the engine↔host bridge needs from `<aura-router>` (not the whole element API). */
 export type RouterEngineBridgeDeps = {
-  syncBranchAndActiveLinks: (to: MatchedRouteInfo) => void;
+  /** Refresh active links; pass `to` when a route matched, omit/null for fallback 404. */
+  syncBranchAndActiveLinks: (href: string, to?: MatchedRouteInfo | null) => void;
   scrollRestoration: Pick<ScrollRestoration, 'apply'>;
   notFound: Pick<AuraRouterNotFoundController, 'recover' | 'clear'>;
   onHashOnlyNavigation: (href: string) => void;
@@ -54,6 +55,8 @@ export function connectRouterEngine(host: HTMLElement, deps: RouterEngineBridgeD
         dispatchNavigationHookError(host, detail);
       },
       onNotFound: (failure) => {
+        // Address bar already reflects `failure.href` (apply writes history before this).
+        deps.syncBranchAndActiveLinks(failure.href);
         if (dispatchNotFound(host, failure.href, 'fallback')) {
           deps.notFound.recover(failure.href);
         }
@@ -74,7 +77,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
 
   switch (event.type) {
     case 'navigation:url-aligned':
-      syncBranchAndActiveLinks(event.to);
+      syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION_START, navigationDomDetail(event.from, event.to));
       return;
 
@@ -114,7 +117,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
         action: event.action,
         hash: event.hash,
       });
-      syncBranchAndActiveLinks(event.to);
+      syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION, navigationDomDetail(event.from, event.to));
       return;
 
@@ -138,7 +141,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
       if (event.failure.viewCommitted) {
         notFound.clear();
       }
-      // Fallback NOT_FOUND already handled in config `onNotFound` (DOM + recover).
+      // Fallback NOT_FOUND already handled in config `onNotFound` (active links + DOM + recover).
       if (event.failure.isNotFound) {
         return;
       }
@@ -146,7 +149,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
       return;
 
     case 'navigation:nav-state-restore':
-      syncBranchAndActiveLinks(event.to);
+      syncBranchAndActiveLinks(event.to.href, event.to);
       return;
 
     default:

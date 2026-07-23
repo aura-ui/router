@@ -19,15 +19,15 @@ import { attr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
 import { parseNullableString } from '../../aura-utils/misc';
 
-import { AuraRouterNotFoundController } from './not-found-controller';
 import { installAuraRouter } from './install';
-import { connectRouterEngine } from './engine-bridge';
+import { resolveAppOutlet } from './outlet-resolver';
 import {
   AURA_ROUTER_DATA_INVALIDATED,
   emit,
 } from './navigation-events';
+import { connectRouterEngine } from './engine-bridge';
+import { AuraRouterNotFoundController } from './not-found-controller';
 import { ScrollRestoration } from './scroll-restoration';
-import { resolveAppOutlet } from './outlet-resolver';
 import type { CacheStoreOptions } from '../../aura-cache-store/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import type { ViewResolverPort } from '../../aura-route/core';
@@ -35,17 +35,17 @@ import type { MountStrategy } from '../../aura-route/core/attr/mount-strategy-at
 import type { PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import type { ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import type {
+  DataGraphCacheOptions,
+  Loader,
   LoaderFn,
   LoaderId,
-  RegisterLoaderOptions,
+  MatchedRouteInfo,
   NavigateHistoryOptions,
   PrefetchOptions,
+  RegisterLoaderOptions,
   RouteHookDefinition,
   RouterInvalidateOptions,
   RouterInstance,
-  DataGraphCacheOptions,
-  Loader,
-  MatchedRouteInfo,
 } from '../../aura-routing-engine/core';
 import type { ActiveRouteBranchEntry } from '../../aura-routing-engine/core/link-active';
 import type { NotFoundHandler } from './navigation-events';
@@ -67,44 +67,50 @@ export interface AuraRouterConfigureOptions {
 export class AuraRouter extends HTMLElement implements RouterInstance {
   static is = 'aura-router';
 
-  /** Fallback template id — когда нет `<aura-route path="*">`. */
-  @attr({ readonly: true, cached: true })
-  notFoundTemplate: string;
-
-  @attr({ defaultValue: '[aura-router-link]' })
-  linksSelector: string;
-  /** CSS class toggled on `[aura-router-link]` when its resolved href matches the current URL. */
-  @attr({ parser: parseNullableString, cached: true })
-  linkActiveClass: string | null;
-  /** CSS class for section/folder links when the current URL is under the link path (prefix match). */
-  @attr({
-    parser: parseNullableString,
-    cached: true,
-  }) linkActiveBranchClass: string | null;
-  /** Optional ancestor that narrows the active-link scan (default: whole document). */
-  @attr({
-    parser: parseNullableString,
-    cached: true,
-  }) linksContainerSelector: string | null;
-
-  /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */
-  @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' }) scrollPolicy: ScrollAttr | null;
-  /** Default CSS selector for `url` fragment extract on child routes (`extract="none"` opts out). */
-  @attr({ parser: parseNullableString, cached: true }) extract: string | null;
-  /**
-   * Default prefetch for `[aura-router-link]` (`intent` | `tap` | `false`).
-   * Per-link override: `data-prefetch` on `<a>`.
-   */
-  @attr({ parser: parsePrefetchAttr, cached: true, name: 'prefetch' })
-  prefetchDomAttr: PrefetchType | false | null;
-  /** Default enter-branch mount strategy for child routes (`branch` | `full`). */
-  @attr({ parser: parseMountStrategyAttr, cached: true }) mountStrategy: MountStrategy;
   /**
    * Optional CSS selector for the root `<aura-outlet>`.
    * When unset: previous/next sibling → nested `querySelector` → auto-create sibling.
    */
   @attr({ parser: parseNullableString, cached: true, name: 'outlet' })
   outletSelector: string | null;
+
+  /** Fallback template id — когда нет `<aura-route path="*">`. */
+  @attr({ readonly: true, cached: true })
+  notFoundTemplate: string;
+
+  @attr({ defaultValue: '[aura-router-link]' })
+  linksSelector: string;
+
+  /** Optional ancestor that narrows the active-link scan (default: whole document). */
+  @attr({ parser: parseNullableString, cached: true })
+  linksContainerSelector: string | null;
+
+  /** CSS class toggled on `[aura-router-link]` when its resolved href matches the current URL. */
+  @attr({ parser: parseNullableString, cached: true })
+  linkActiveClass: string | null;
+
+  /** CSS class for section/folder links when the current URL is under the link path (prefix match). */
+  @attr({ parser: parseNullableString, cached: true })
+  linkActiveBranchClass: string | null;
+
+  /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */
+  @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' })
+  scrollPolicy: ScrollAttr | null;
+
+  /** Default CSS selector for `url` fragment extract on child routes (`extract="none"` opts out). */
+  @attr({ parser: parseNullableString, cached: true })
+  extract: string | null;
+
+  /**
+   * Default prefetch for `[aura-router-link]` (`intent` | `tap` | `false`).
+   * Per-link override: `data-prefetch` on `<a>`.
+   */
+  @attr({ parser: parsePrefetchAttr, cached: true, name: 'prefetch' })
+  prefetchDomAttr: PrefetchType | false | null;
+
+  /** Default enter-branch mount strategy for child routes (`branch` | `full`). */
+  @attr({ parser: parseMountStrategyAttr, cached: true })
+  mountStrategy: MountStrategy;
 
   private engine?: AuraRoutingEngine;
   private readonly scrollRestoration = new ScrollRestoration();
@@ -138,20 +144,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     installAuraRouter();
   }
 
-  /** Process-wide hook via {@link defaultHookRegistry} — shared by all default engine instances. */
-  static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
-    defaultHookRegistry.register(hook, options ?? {});
-  }
-
-  /** @returns `true` if a hook with that name was registered */
-  static unuse(name: string): boolean {
-    return defaultHookRegistry.unregister(name);
-  }
-
   static configure(options: AuraRouterConfigureOptions): void {
-    if ('notFoundHandler' in options) {
-      AuraRouterNotFoundController.configure(options.notFoundHandler);
-    }
     if (options.domCache) {
       RouteDomCache.configure(options.domCache);
     }
@@ -161,6 +154,19 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (options.dataCache) {
       DataGraph.configure(options.dataCache);
     }
+    if ('notFoundHandler' in options) {
+      AuraRouterNotFoundController.configure(options.notFoundHandler);
+    }
+  }
+
+  /** Process-wide hook via {@link defaultHookRegistry} — shared by all default engine instances. */
+  static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void {
+    defaultHookRegistry.register(hook, options ?? {});
+  }
+
+  /** @returns `true` if a hook with that name was registered */
+  static unuse(name: string): boolean {
+    return defaultHookRegistry.unregister(name);
   }
 
   /** Custom view loader on the shared {@link defaultLoaderRegistry}. */
@@ -193,20 +199,6 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.notFound.clear();
   }
 
-  /** Per-instance override (перекрывает configure и template). Только fallback. */
-  setNotFoundHandler(handler: NotFoundHandler | null): void {
-    this.notFound.setHandler(handler);
-  }
-
-  /** @internal Used by AuraRoute / RouteViewController. Not a supported app API. */
-  resolveViewPort(): ViewResolverPort {
-    return this.ensureEngine().viewGraph;
-  }
-
-  refreshRoutes(): void {
-    this.ensureEngine().replaceRoutes(Array.from(this.routes));
-  }
-
   /** Defaults: `replace: false` → history `push`; `syncHistory: true`. */
   navigate(path: string, options: Partial<NavigateHistoryOptions> = {}): void {
     const replace = options.replace ?? false;
@@ -232,12 +224,26 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return count;
   }
 
+  refreshRoutes(): void {
+    this.ensureEngine().replaceRoutes(Array.from(this.routes));
+  }
+
+  /** Per-instance override (перекрывает configure и template). Только fallback. */
+  setNotFoundHandler(handler: NotFoundHandler | null): void {
+    this.notFound.setHandler(handler);
+  }
+
+  /** @internal Used by AuraRoute / RouteViewController. Not a supported app API. */
+  resolveViewPort(): ViewResolverPort {
+    return this.ensureEngine().viewGraph;
+  }
+
   private ensureEngine(): AuraRoutingEngine {
     if (!this.engine) {
       const { config, onEvent } = connectRouterEngine(this, {
-        notFound: this.notFound,
-        scrollRestoration: this.scrollRestoration,
         syncBranchAndActiveLinks: (to) => this.syncBranchAndActiveLinks(to),
+        scrollRestoration: this.scrollRestoration,
+        notFound: this.notFound,
         onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
       });
       this.engine = new AuraRoutingEngine(this, {

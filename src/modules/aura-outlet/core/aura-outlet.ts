@@ -42,10 +42,10 @@ export type ViewHandle = {
   key?: string;
   /** First nested `<aura-outlet>` inside this view root (layout shell). */
   findChildOutlet(): AuraOutlet | null;
-  /** Remove from DOM and clear children. Idempotent. */
-  destroy(): void;
   /** Remove from outlet; keep subtree. Idempotent. */
   detach(): ViewRoot;
+  /** Remove from DOM and clear children. Idempotent. */
+  destroy(): void;
 };
 
 /**
@@ -182,19 +182,19 @@ export class AuraOutlet extends AuraDom {
       mountOutlet: this,
       key: viewRoot.dataset.auraKey || undefined,
       findChildOutlet: () => this.findNestedOutlet(viewRoot),
-      destroy: () => {
-        if (destroyed) return;
-        destroyed = true;
-        viewRoot.replaceChildren();
-        viewRoot.remove();
-        this.syncStateAfterRootRemoved(viewRoot);
-      },
       detach: () => {
         if (detached || destroyed) return viewRoot;
         detached = true;
         viewRoot.remove();
         this.syncStateAfterRootRemoved(viewRoot);
         return viewRoot;
+      },
+      destroy: () => {
+        if (destroyed) return;
+        destroyed = true;
+        viewRoot.replaceChildren();
+        viewRoot.remove();
+        this.syncStateAfterRootRemoved(viewRoot);
       },
     };
   }

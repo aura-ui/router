@@ -1,13 +1,13 @@
 import { isCatchAllRoutePattern } from '../../aura-routing-engine/core';
 import {
+  AURA_ROUTER_NAVIGATION_START,
+  AURA_ROUTER_NAVIGATION,
+  AURA_ROUTER_LOAD_START,
   AURA_ROUTER_LOAD_END,
   AURA_ROUTER_LOAD_ERROR,
-  AURA_ROUTER_LOAD_START,
-  AURA_ROUTER_NAVIGATION,
-  AURA_ROUTER_NAVIGATION_CANCEL,
   AURA_ROUTER_NAVIGATION_COMPLETE,
+  AURA_ROUTER_NAVIGATION_CANCEL,
   AURA_ROUTER_NAVIGATION_REDIRECT,
-  AURA_ROUTER_NAVIGATION_START,
   dispatchNavigationError,
   dispatchNavigationHookError,
   dispatchNotFound,
@@ -23,16 +23,16 @@ import type { ScrollRestoration } from './scroll-restoration';
 
 /** Deps the engine↔host bridge needs from `<aura-router>` (not the whole element API). */
 export type RouterEngineBridgeDeps = {
-  notFound: Pick<AuraRouterNotFoundController, 'recover' | 'clear'>;
-  scrollRestoration: Pick<ScrollRestoration, 'apply'>;
   syncBranchAndActiveLinks: (to: MatchedRouteInfo) => void;
+  scrollRestoration: Pick<ScrollRestoration, 'apply'>;
+  notFound: Pick<AuraRouterNotFoundController, 'recover' | 'clear'>;
   onHashOnlyNavigation: (href: string) => void;
 };
 
 export type RouterEngineBridge = {
   config: Pick<
     AuraRoutingEngineConfig,
-    'onNotFound' | 'onHashOnlyNavigation' | 'onNavigationHookError'
+    'onHashOnlyNavigation' | 'onNavigationHookError' | 'onNotFound'
   >;
   onEvent: (event: EngineEvent) => void;
 };
@@ -52,14 +52,14 @@ export function connectRouterEngine(
 ): RouterEngineBridge {
   return {
     config: {
+      onHashOnlyNavigation: deps.onHashOnlyNavigation,
+      onNavigationHookError: (detail) => {
+        dispatchNavigationHookError(host, detail);
+      },
       onNotFound: (failure) => {
         if (dispatchNotFound(host, failure.href, 'fallback')) {
           deps.notFound.recover(failure.href);
         }
-      },
-      onHashOnlyNavigation: deps.onHashOnlyNavigation,
-      onNavigationHookError: (detail) => {
-        dispatchNavigationHookError(host, detail);
       },
     },
     onEvent: (event) => onEngineEvent(host, deps, event),
@@ -68,27 +68,21 @@ export function connectRouterEngine(
 
 /**
  * Host chrome adapter over the engine event stream.
- * Early: `url-aligned` → active links / `navigation-start`.
+ * Order mirrors DOM lifecycle in `navigation-events.ts`:
+ * start → loads → commit → complete / cancel / redirect → error / not-found.
  * Stay: `nav-state-restore` → active links / branch after cancel-pending.
- * Loads: `load:*` → `load-start` / `load-end` / `load-error`.
- * Late: `commit:end` → scroll, not-found, active links again, DOM `navigation`.
- * Terminal: `finish` / `cancel` / `redirect` / `error` → DOM counterparts.
  */
 function onEngineEvent(
   host: HTMLElement,
   deps: RouterEngineBridgeDeps,
   event: EngineEvent,
 ): void {
-  const { notFound, scrollRestoration, syncBranchAndActiveLinks } = deps;
+  const { syncBranchAndActiveLinks, scrollRestoration, notFound } = deps;
 
   switch (event.type) {
     case 'navigation:url-aligned':
       syncBranchAndActiveLinks(event.to);
       emit(host, AURA_ROUTER_NAVIGATION_START, navigationDomDetail(event.from, event.to));
-      return;
-
-    case 'navigation:nav-state-restore':
-      syncBranchAndActiveLinks(event.to);
       return;
 
     case 'load:start':
@@ -156,6 +150,10 @@ function onEngineEvent(
         return;
       }
       dispatchNavigationError(host, event.failure);
+      return;
+
+    case 'navigation:nav-state-restore':
+      syncBranchAndActiveLinks(event.to);
       return;
 
     default:

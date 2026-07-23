@@ -13,10 +13,10 @@ export interface AuraRouterNotFoundHost extends HTMLElement {
 let configuredHandler: NotFoundHandler | null = null;
 
 export class AuraRouterNotFoundController {
+  private readonly router: AuraRouterNotFoundHost;
   private handler: NotFoundHandler | null = null;
   /** Built-in fallback mount — kept so {@link clear} can destroy it without touching later route views. */
   private viewHandle?: ViewHandle;
-  private readonly router: AuraRouterNotFoundHost;
 
   constructor(router: AuraRouterNotFoundHost) {
     this.router = router;
@@ -28,12 +28,6 @@ export class AuraRouterNotFoundController {
 
   setHandler(handler: NotFoundHandler | null): void {
     this.handler = handler;
-  }
-
-  /** Drop mounted fallback view (disconnect / successful commit / committed error). */
-  clear(): void {
-    this.viewHandle?.destroy();
-    this.viewHandle = undefined;
   }
 
   /** Fallback recovery UI after cancelable `not-found` (unless preventDefault). */
@@ -57,5 +51,11 @@ export class AuraRouterNotFoundController {
     handle.viewRoot.querySelectorAll('[data-not-found-url]').forEach((el) => {
       el.textContent = url;
     });
+  }
+
+  /** Drop mounted fallback view (disconnect / successful commit / committed error). */
+  clear(): void {
+    this.viewHandle?.destroy();
+    this.viewHandle = undefined;
   }
 }

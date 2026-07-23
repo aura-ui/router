@@ -220,10 +220,6 @@ export class AuraRoutingEngine implements NavigationHost {
     await this.navigationCoordinator.navigate(href, action, options);
   }
 
-  preload(href: string, options?: PrefetchOptions): Promise<void> {
-    return this.prefetch(href, options);
-  }
-
   prefetch(href: string, options?: PrefetchOptions): Promise<void> {
     return this.prefetchPipeline?.prefetch(href, options) ?? Promise.resolve();
   }

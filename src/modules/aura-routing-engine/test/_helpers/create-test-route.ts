@@ -60,8 +60,8 @@ export function createTestRoute(
     onUpdate: noop,
     onError: noop,
     commitStagedView: noop,
-    applyPreResolved: () => ({ status: 'ok' as const }),
-    render: noopRender,
+    mountResolvedView: () => ({ status: 'ok' as const }),
+    resolveAndMountView: noopRender,
     ...routeOverrides,
   } as RouteInstance;
 

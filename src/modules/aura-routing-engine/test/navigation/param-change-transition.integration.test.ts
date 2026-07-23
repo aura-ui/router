@@ -116,7 +116,7 @@ describe('param-change in-place + transition integration (real view)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await from.route.render(from);
+    await from.route.resolveAndMountView(from);
     expect(outlet.children).toHaveLength(1);
     expect(queryViewRoot(outlet, '1')).not.toBeNull();
 
@@ -161,7 +161,7 @@ describe('param-change in-place + transition integration (real view)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await from.route.render(from);
+    await from.route.resolveAndMountView(from);
     await runParamRemountNavigation(from, to);
 
     expect(unmountCalls).toBe(1);
@@ -194,7 +194,7 @@ describe('param-change in-place + transition integration (real view)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await from.route.render(from);
+    await from.route.resolveAndMountView(from);
     const { result, transaction } = await runParamRemountNavigation(from, to);
 
     expect(result).toEqual({ status: 'navigationSucceeded' });
@@ -231,7 +231,7 @@ describe('param-change in-place + transition integration (real view)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await from.route.render(from);
+    await from.route.resolveAndMountView(from);
     await runParamRemountNavigation(from, to);
 
     expect(childCountDuringTransitionOut).toBe(1);
@@ -266,7 +266,7 @@ describe('param-change in-place + transition integration (real view)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await from.route.render(from);
+    await from.route.resolveAndMountView(from);
     await runParamRemountNavigation(from, to);
 
     expect(transitionSnapshots).toEqual([
@@ -308,7 +308,7 @@ describe('param-change in-place + transition integration (real view)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await from.route.render(from);
+    await from.route.resolveAndMountView(from);
     const { result, transaction } = await runParamRemountNavigation(from, to);
 
     expect(result).toEqual({ status: 'navigationSucceeded' });
@@ -334,8 +334,8 @@ describe('param-change in-place + transition integration (real view)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await controller.render(from);
-    await controller.render(to);
+    await controller.resolveAndMountView(from);
+    await controller.resolveAndMountView(to);
     expect(outlet.children).toHaveLength(2);
 
     controller.onUnmount();
@@ -380,7 +380,7 @@ describe('param-change in-place + transition pipeline order', () => {
       to: enterRoute,
     });
 
-    await exitRoute.route.render(exitRoute);
+    await exitRoute.route.resolveAndMountView(exitRoute);
 
     const result = await transaction.run();
 

@@ -19,7 +19,7 @@ failure handling in `failure/README.md`.
 | `match/` | URL matching (`url-matcher.ts`), `MatchedRouteInfo`, resource keys. |
 | `redirect/` | Declarative redirect hops (`followDeclarativeRedirects`), pre-commit blocking walk (`followRedirectsWithGuardWalk`). See `redirect/README.md`. |
 | `history/` | Browser/fake providers and history policy (`history-policy.ts`, incl. `applyTransactionHistory`). |
-| `view-mount/` | View staging/commit tracking, fast-path `runViewCommit`, branch mount (`branch-mount` → `applyPreResolved`), staged-view rollback. |
+| `view-mount/` | View staging/commit tracking, fast-path `runViewCommit`, branch mount (`branch-mount` → `mountResolvedView`), staged-view rollback. |
 | `failure/` | Model only: `NavigationError` (cause) in `navigation-error.ts`, `NavigationFailure` (terminal snapshot) in `navigation-failure.ts`. Apply side effects → `navigation-outcome.ts`. |
 | `resource-graph/` | Prepare composition root: owns `HandoffCache`, `DataGraph`, `ViewGraph`; sole `load()` entry for navigation and speculative prepare; supersede pin (`pinSharedBufferFor`). |
 | `view-graph/` | Route view attrs → payload cache → loader payload. Owned by `ResourceGraph` (not called directly from pipeline). |
@@ -101,7 +101,7 @@ View commit slice (`commitStagedView` → `commitNavigation`) must stay sync —
 Full render is always **branch loads → commit**:
 
 1. `runLoads()` — `ResourceGraph.load` → `dataSnapshot` / `viewSnapshot`
-2. `commitEnterBranchToDom()` — sync `mountEnterBranch` → per-route `applyPreResolved` (incl. `paramChangeRemount`)
+2. `commitEnterBranchToDom()` — sync `mountEnterBranch` → per-route `mountResolvedView` (incl. `paramChangeRemount`)
 3. Dom restore for `cache.dom` happens inside route view code (`aura-route` `ViewRenderPipeline.syncBranchMount`), not as a separate engine pipeline step
 
 ## Ownership Boundaries

@@ -33,4 +33,4 @@ export {
   type AuraRouteInterface,
   type RouteType,
 } from './core/aura-route';
-export type { RouteRenderOptions, ApplyPreResolvedOptions, MatchedRouteInfo } from './core/types';
+export type { RouteRenderOptions, MountResolvedViewOptions, MatchedRouteInfo } from './core/types';

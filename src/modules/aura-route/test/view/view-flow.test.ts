@@ -40,8 +40,8 @@ function createController(
     () => passId,
   );
 
-  const originalRender = controller.render.bind(controller);
-  controller.render = async (...args) => {
+  const originalRender = controller.resolveAndMountView.bind(controller);
+  controller.resolveAndMountView = async (...args) => {
     passId++;
     return originalRender(...args);
   };
@@ -69,11 +69,11 @@ describe('view flow (controller → outlet)', () => {
       },
     }, '/', true);
 
-    await controller.render(createMatchedRouteInfo('/old'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('old');
 
-    await controller.render(createMatchedRouteInfo('/new'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/new'));
     expect(root.children).toHaveLength(2);
     expect(root.textContent).toBe('oldnew');
 
@@ -90,8 +90,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
-    await controller.render(createMatchedRouteInfo('/old'));
-    await controller.render(createMatchedRouteInfo('/new'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/new'));
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('new');
   });
@@ -103,8 +103,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
-    await controller.render(createMatchedRouteInfo('/old'));
-    await controller.render(createMatchedRouteInfo('/new'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/new'));
     expect(root.textContent).toBe('new');
 
     controller.revertInFlightView();
@@ -118,8 +118,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
-    await controller.render(createMatchedRouteInfo('/old'));
-    await controller.render(createMatchedRouteInfo('/new'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/new'));
 
     controller.commitStagedView();
     controller.revertInFlightView();
@@ -134,8 +134,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     }, '/', true);
 
-    await controller.render(createMatchedRouteInfo('/old'));
-    await controller.render(createMatchedRouteInfo('/new'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/new'));
     expect(root.children).toHaveLength(2);
 
     controller.revertInFlightView();
@@ -143,7 +143,7 @@ describe('view flow (controller → outlet)', () => {
     expect(root.textContent).toBe('old');
 
     Object.assign(route, { transition: NO_TRANSITION });
-    await controller.render(createMatchedRouteInfo('/old'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
     expect(root.textContent).toBe('old');
     expect(root.children).toHaveLength(1);
   });
@@ -154,7 +154,7 @@ describe('view flow (controller → outlet)', () => {
       loadView: async () => ({ data: '<span>page</span>' }),
     });
 
-    await controller.render(createMatchedRouteInfo('/page'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/page'));
     const viewRoot = root.firstElementChild as HTMLElement;
     viewRoot.style.opacity = '0';
     viewRoot.style.transform = 'translateX(-1.25rem)';
@@ -172,8 +172,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     }, '/', true);
 
-    await controller.render(createMatchedRouteInfo('/old'));
-    await controller.render(createMatchedRouteInfo('/new'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/new'));
     expect(root.children).toHaveLength(2);
 
     controller.onUnmount();
@@ -186,7 +186,7 @@ describe('view flow (controller → outlet)', () => {
       loadView: async () => ({ data: '<span>page</span>' }),
     });
 
-    await controller.render(createMatchedRouteInfo('/page'));
+    await controller.resolveAndMountView(createMatchedRouteInfo('/page'));
     expect(root.children).toHaveLength(1);
 
     controller.onUnmount();

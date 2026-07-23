@@ -63,7 +63,7 @@ export function canUseDomCacheFastPath(plan: TransitionMap): boolean {
  *
  * Same body as
  * {@link ../navigation/navigation-transaction-pipeline!NavigationTransactionPipeline.runFastPipeline}
- * — `route.render` / ViewGraph take the warm hit.
+ * — `route.resolveAndMountView` / ViewGraph take the warm hit.
  *
  * Rejects `hasLoad`, {@link ../route/types!RouteInstance.hasLayout}, and
  * {@link ../route/types!RouteInstance.viewLoaderNeedsData} (layout never writes long cache;

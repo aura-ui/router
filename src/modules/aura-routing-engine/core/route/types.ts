@@ -3,7 +3,7 @@ import type { MountStrategy } from '../../../aura-route/core/attr/mount-strategy
 import type { ParamChangePolicy } from '../../../aura-route/core/attr/param-change-attr-parser';
 import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
 import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
-import type { RouteRenderOptions, ApplyPreResolvedOptions } from '../../../aura-route/core/types';
+import type { RouteRenderOptions, MountResolvedViewOptions } from '../../../aura-route/core/types';
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { RouterPrefetchPolicy } from '../prefetch/prefetch-policy';
@@ -142,7 +142,7 @@ export interface RouteInstance extends RouteHookNamesSource {
   showLoading?(routeInfo: MatchedRouteInfo): void;
   /** Clears loading chrome from {@link showLoading}. */
   hideLoading?(): void;
-  render(
+  resolveAndMountView(
     routeInfo: MatchedRouteInfo,
     options?: RouteRenderOptions,
   ): Promise<ViewRenderResult>;
@@ -150,9 +150,9 @@ export interface RouteInstance extends RouteHookNamesSource {
    * Sync mount with a pre-resolved payload (branch-atomic apply).
    * Caller must finish branch resolve first; no `await` between parent and child.
    */
-  applyPreResolved(
+  mountResolvedView(
     routeInfo: MatchedRouteInfo,
-    options: ApplyPreResolvedOptions,
+    options: MountResolvedViewOptions,
   ): ViewRenderResult | 'aborted';
   commitStagedView?(): void;
   /** Drops staged views and clears in-flight transition presentation (cancel / supersede). */

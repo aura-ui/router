@@ -3,7 +3,7 @@
  *
  * @module view-mount/branch-mount
  */
-import type { ApplyPreResolvedOptions } from '../../../aura-route/core/types';
+import type { MountResolvedViewOptions } from '../../../aura-route/core/types';
 import type { DataSnapshot } from '../data-graph';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -49,14 +49,14 @@ export function mountEnterBranch(
     const data = ctx.dataSnapshot
       ? resolveRouteData(ctx.dataSnapshot, matchedRoute)
       : undefined;
-    const options: ApplyPreResolvedOptions = {
+    const options: MountResolvedViewOptions = {
       parentSignal: ctx.signal,
       preResolvedView: viewSnapshot[i]!,
       ...(data !== undefined && { data }),
       ...(ctx.paramChangeRemount ? { paramChangeRemount: true } : {}),
     };
 
-    const result = matchedRoute.route.applyPreResolved(matchedRoute, options);
+    const result = matchedRoute.route.mountResolvedView(matchedRoute, options);
 
     if (result === 'aborted' || ctx.aborted()) {
       rollbackMounted(enterRoutes, i);

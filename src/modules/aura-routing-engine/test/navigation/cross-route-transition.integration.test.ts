@@ -117,7 +117,7 @@ describe('cross-route transition integration (real view)', () => {
       },
     });
 
-    await from.match.route.render(from.match);
+    await from.match.route.resolveAndMountView(from.match);
     expect(outlet.children).toHaveLength(1);
     expect(queryRouteView(outlet, 'from')).not.toBeNull();
 
@@ -162,7 +162,7 @@ describe('cross-route transition integration (real view)', () => {
       originalExitUnmount(options);
     };
 
-    await from.match.route.render(from.match);
+    await from.match.route.resolveAndMountView(from.match);
     await runCrossRouteNavigation(from.match, to.match);
 
     expect(exitUnmountCalls).toBe(1);
@@ -193,7 +193,7 @@ describe('cross-route transition integration (real view)', () => {
     const from = wireRoute(outlet, '/from', viewMarkup('from'), { transition });
     const to = wireRoute(outlet, '/to', viewMarkup('to'), { transition });
 
-    await from.match.route.render(from.match);
+    await from.match.route.resolveAndMountView(from.match);
     const { result, transaction } = await runCrossRouteNavigation(from.match, to.match);
 
     expect(result).toEqual({ status: 'navigationSucceeded' });
@@ -232,7 +232,7 @@ describe('cross-route transition integration (real view)', () => {
     });
     const to = wireRoute(outlet, '/to', viewMarkup('to'), { transition });
 
-    await from.match.route.render(from.match);
+    await from.match.route.resolveAndMountView(from.match);
     await runCrossRouteNavigation(from.match, to.match);
 
     expect(childCountDuringTransitionOut).toBe(1);
@@ -246,7 +246,7 @@ describe('cross-route transition integration (real view)', () => {
     const from = wireRoute(outlet, '/from', viewMarkup('from'));
     const to = wireRoute(outlet, '/to', viewMarkup('to'));
 
-    await from.match.route.render(from.match);
+    await from.match.route.resolveAndMountView(from.match);
     await runCrossRouteNavigation(from.match, to.match);
 
     expect(outlet.children).toHaveLength(1);
@@ -282,7 +282,7 @@ describe('cross-route transition pipeline order', () => {
     const from = wireRoute(outlet, '/from', viewMarkup('from'), { transition });
     const to = wireRoute(outlet, '/to', viewMarkup('to'), { transition });
 
-    await from.match.route.render(from.match);
+    await from.match.route.resolveAndMountView(from.match);
     const { result, transaction } = await runCrossRouteNavigation(from.match, to.match);
 
     expect(result).toEqual({ status: 'navigationSucceeded' });

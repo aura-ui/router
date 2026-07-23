@@ -4,6 +4,8 @@ import {
   NO_TRANSITION,
   type RouteTransitionType,
 } from '../../../aura-route/core/attr/transition-attr-parser';
+import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
+import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
@@ -26,8 +28,8 @@ export type WireRouteViewControllerOptions = {
   onTransitionIn?: (ctx: RouteLifecycleContext, outlet: AuraOutlet) => void;
   /** Wire `onUnmount` → controller + pass-id bump. Default: `true`. */
   wireUnmount?: boolean;
-  /** Wire `applyPreResolved`. Default: `true`. */
-  wireApplyPreResolved?: boolean;
+  /** Wire `mountResolvedView`. Default: `true`. */
+  wireMountResolvedView?: boolean;
   /** Wire `revertInFlightView`. Default: `false`. */
   wireRevertInFlight?: boolean;
 };
@@ -38,21 +40,26 @@ export type WiredRouteViewController = {
   loadView: ViewGraph['loadView'];
 };
 
+/** Writable test record that satisfies {@link AuraRouteInterface} for RouteViewController. */
 type MutableRouteRecord = RouteInstance & {
   path: string;
   layout: string;
   redirect: string;
-  type: 'page' | 'folder' | 'redirect';
-  view: unknown;
-  loadingTemplate: string;
-  errorTemplate: string;
+  type: AuraRouteInterface['type'];
+  view: ViewAttrDescriptor | null;
+  loadingTemplate: string | null;
+  loadingBodyClass: string | null;
+  loadingStartEvent: string | null;
+  loadingEndEvent: string | null;
+  errorTemplate: string | null;
   scrollPolicy: null;
+  extract: string | null;
   cache: CacheFlags;
   transition: RouteTransitionType;
   transitionIn: string[] | null;
   transitionOut: string[] | null;
-  render: RouteViewController['render'];
-  applyPreResolved: RouteViewController['applyPreResolved'];
+  resolveAndMountView: RouteViewController['resolveAndMountView'];
+  mountResolvedView: RouteViewController['mountResolvedView'];
   revertInFlightView: () => void;
   onUnmount: (ctx: RouteLifecycleContext) => void;
   onTransitionOut: (ctx: RouteLifecycleContext) => void;
@@ -70,7 +77,7 @@ export function wireRouteViewController(
     cacheDom = false,
     transition = NO_TRANSITION,
     wireUnmount = true,
-    wireApplyPreResolved = true,
+    wireMountResolvedView = true,
     wireRevertInFlight = false,
   } = options;
 
@@ -82,10 +89,14 @@ export function wireRouteViewController(
   routeRecord.layout = '';
   routeRecord.redirect = routeRecord.redirect ?? '';
   routeRecord.type = routeRecord.type ?? 'page';
-  routeRecord.view = routeRecord.view ?? null;
+  routeRecord.view = (routeRecord.view ?? null) as ViewAttrDescriptor | null;
   routeRecord.loadingTemplate = routeRecord.loadingTemplate ?? '';
+  routeRecord.loadingBodyClass = routeRecord.loadingBodyClass ?? null;
+  routeRecord.loadingStartEvent = routeRecord.loadingStartEvent ?? null;
+  routeRecord.loadingEndEvent = routeRecord.loadingEndEvent ?? null;
   routeRecord.errorTemplate = routeRecord.errorTemplate ?? '';
   routeRecord.scrollPolicy = null;
+  routeRecord.extract = routeRecord.extract ?? null;
   routeRecord.cache = options.cache ?? { dom: cacheDom, view: false, data: false };
   routeRecord.transition = transition;
   routeRecord.transitionIn = transition.in;
@@ -93,7 +104,7 @@ export function wireRouteViewController(
 
   const controller = new RouteViewController(
     {
-      route: routeRecord as import('../../../aura-route/core/types').AuraRouteInterface,
+      route: routeRecord,
       view: { loadView },
       cache: cacheDom
         ? {
@@ -120,12 +131,12 @@ export function wireRouteViewController(
     () => passId,
   );
 
-  routeRecord.render = (info, renderOptions) => controller.render(info, renderOptions);
+  routeRecord.resolveAndMountView = (info, renderOptions) => controller.resolveAndMountView(info, renderOptions);
   routeRecord.commitStagedView = () => controller.commitStagedView();
 
-  if (wireApplyPreResolved) {
-    routeRecord.applyPreResolved = (info, applyOptions) =>
-      controller.applyPreResolved(info, applyOptions);
+  if (wireMountResolvedView) {
+    routeRecord.mountResolvedView = (info, applyOptions) =>
+      controller.mountResolvedView(info, applyOptions);
   }
   if (wireRevertInFlight) {
     routeRecord.revertInFlightView = () => controller.revertInFlightView();

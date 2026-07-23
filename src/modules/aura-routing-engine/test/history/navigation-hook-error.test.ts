@@ -17,7 +17,7 @@ describe('onNavigationHookError', () => {
     const { engine } = createEngineHarness({
       routes: [
         createTestRoute('/broken', {
-          render: async () => ({ status: 'error', error: renderError }),
+          resolveAndMountView: async () => ({ status: 'error', error: renderError }),
           error: ['bad-error-hook'],
         }),
       ],

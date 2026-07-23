@@ -27,7 +27,7 @@ function wireRouteViewController(
     outlet,
     cache: NO_CACHE,
     wireUnmount: false,
-    wireApplyPreResolved: false,
+    wireMountResolvedView: false,
     loadView: async () => {
       resolveCount++;
       return { data: resolve() };
@@ -74,7 +74,7 @@ describe('param-change UPDATE integration (real view)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await from.route.render(from);
+    await from.route.resolveAndMountView(from);
     expect(outlet.textContent).toBe('User profile shell');
     expect(resolveCount()).toBe(1);
     const shellBefore = outlet.querySelector('#user-shell');

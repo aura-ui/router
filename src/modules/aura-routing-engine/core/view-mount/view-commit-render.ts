@@ -1,5 +1,5 @@
 /**
- * View commit render adapter during navigation (`route.render()` + abort guard).
+ * View commit render adapter during navigation (`route.resolveAndMountView()` + abort guard).
  *
  * Vocabulary: {@link ./view-commit-state}.
  *
@@ -45,7 +45,7 @@ export async function runViewCommit(
 ): Promise<ViewCommitResult> {
   if (cancellation.isAborted()) return 'aborted';
 
-  const result = await matchedRoute.route.render(matchedRoute, {
+  const result = await matchedRoute.route.resolveAndMountView(matchedRoute, {
     parentSignal: cancellation.signal,
     ...options,
   });

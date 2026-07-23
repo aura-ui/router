@@ -52,7 +52,7 @@ describe('RouteViewController render errors', () => {
       () => 1,
     );
 
-    const result = await controller.render(createMatchedRouteInfo('/broken'));
+    const result = await controller.resolveAndMountView(createMatchedRouteInfo('/broken'));
 
     expect(result).toEqual({ status: 'error', error: loadError });
     expect(passErrorEmitted).toBe(true);

@@ -13,7 +13,7 @@ export class ViewContext {
   mount: MountSnapshot = { ...EMPTY_MOUNT };
   /** Fallback when {@link RouteUnmountOptions.domCacheKey} is omitted. */
   lastCacheKey: string | null = null;
-  /** Set at the start of {@link RouteViewController.render} for param remount. */
+  /** Set at the start of {@link RouteViewController.resolveAndMountView} for param remount. */
   paramChangeRemount = false;
 
   constructor(config: RouteViewConfig, getPassId: () => number) {

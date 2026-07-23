@@ -1,6 +1,6 @@
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo, ViewRenderResult } from '../../../aura-routing-engine/route-api';
-import type { RouteRenderOptions, ApplyPreResolvedOptions, RouteUnmountOptions } from '../types';
+import type { RouteRenderOptions, MountResolvedViewOptions, RouteUnmountOptions } from '../types';
 
 import { domCacheKey } from './dom-cache';
 import type { RenderPass, RouteViewConfig, ViewPayload } from './types';
@@ -38,7 +38,7 @@ export class RouteViewController {
    * Resolves and mounts route content (or restores a keep-alive view).
    * Returns `{ status: 'error' }` after mounting recovery UI — does not rethrow.
    */
-  async render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
+  async resolveAndMountView(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
     const pass = this.beginPass(routeInfo, options);
     this.ctx.lastCacheKey = pass.domCacheKey;
     return this.renderPipeline.resolveAndMount(pass);
@@ -48,9 +48,9 @@ export class RouteViewController {
    * Sync mount with a pre-resolved payload — used by branch-atomic apply.
    * Parent→child calls must stay in one task (no `await` between routes).
    */
-  applyPreResolved(
+  mountResolvedView(
     routeInfo: MatchedRouteInfo,
-    options: ApplyPreResolvedOptions,
+    options: MountResolvedViewOptions,
   ): ViewRenderResult | 'aborted' {
     if (options.parentSignal?.aborted) return 'aborted';
     const pass = this.beginPass(routeInfo, options, options.preResolvedView);

@@ -163,7 +163,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     const renderError = new Error('load failed');
     const fromRoute = createTestRoute('/a', { onUnmount: fromLeft });
     const toRoute = createTestRoute('/d', {
-      render: jest.fn().mockResolvedValue({ status: 'error', error: renderError }),
+      resolveAndMountView: jest.fn().mockResolvedValue({ status: 'error', error: renderError }),
     });
     const { engine, provider } = createEngineHarness({
       href: '/a',

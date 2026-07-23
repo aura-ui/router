@@ -77,7 +77,7 @@ describe('param-change remount integration (branch commit)', () => {
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);
 
-    await from.route.render(from);
+    await from.route.resolveAndMountView(from);
     expect(outlet.textContent).toBe('view-1');
 
     const { result, transaction } = await runParamRemountNavigation(from, to, loadView);
@@ -108,7 +108,7 @@ describe('param-change remount integration (branch commit)', () => {
     const to2 = createUsersIdMatch('2', node);
     const back1 = createUsersIdMatch('1', node);
 
-    await from1.route.render(from1);
+    await from1.route.resolveAndMountView(from1);
     expect(outlet.textContent).toBe('view-1');
 
     await runParamRemountNavigation(from1, to2, loadView);
@@ -125,14 +125,14 @@ describe('param-change remount integration (branch commit)', () => {
 describe('NavigationTransactionPipeline branch remount options', () => {
   setupViewIntegrationTests({ resetHooks: true });
 
-  it('passes paramChangeRemount to applyPreResolved via branch mount', async () => {
-    const applyPreResolved = jest.fn().mockReturnValue({ status: 'ok' });
+  it('passes paramChangeRemount to mountResolvedView via branch mount', async () => {
+    const mountResolvedView = jest.fn().mockReturnValue({ status: 'ok' });
     const node = createUsersIdNode({
       view: { loader: 'url', content: 'content/user/{{id}}.html' },
     });
     const exitRoute = createUsersIdMatch('1', node);
     const enterRoute = createUsersIdMatch('2', node);
-    enterRoute.route.applyPreResolved = applyPreResolved;
+    enterRoute.route.mountResolvedView = mountResolvedView;
 
     const engine = createMockEngine();
     (engine.viewGraph!.loadView as jest.Mock).mockResolvedValue({ data: '<span>view-2</span>' });
@@ -148,8 +148,8 @@ describe('NavigationTransactionPipeline branch remount options', () => {
     expect(await pipeline.runLoads()).toBeNull();
     expect(await pipeline.runRender()).toBeNull();
 
-    expect(applyPreResolved).toHaveBeenCalledTimes(1);
-    expect(applyPreResolved).toHaveBeenCalledWith(
+    expect(mountResolvedView).toHaveBeenCalledTimes(1);
+    expect(mountResolvedView).toHaveBeenCalledWith(
       enterRoute,
       expect.objectContaining({
         parentSignal: transaction.signal,

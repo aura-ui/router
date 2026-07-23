@@ -46,8 +46,8 @@ function createController(
     originalOnUnmount(options);
   };
 
-  const originalRender = controller.render.bind(controller);
-  controller.render = async (...args) => {
+  const originalRender = controller.resolveAndMountView.bind(controller);
+  controller.resolveAndMountView = async (...args) => {
     passId++;
     return originalRender(...args);
   };
@@ -77,8 +77,8 @@ describe('RouteViewController keep-alive integration', () => {
 
     const route = createMatchedRouteInfo('/user/1', { pattern: '/user/:id' });
 
-    await controller.render(route);
-    await controller.render(route);
+    await controller.resolveAndMountView(route);
+    await controller.resolveAndMountView(route);
     controller.onUnmount();
 
     expect(stash.has(domCacheKey(route, 'user/:id'))).toBe(true);
@@ -108,12 +108,12 @@ describe('RouteViewController keep-alive integration', () => {
     const keyA = domCacheKey(routeA, 'search');
     const keyB = domCacheKey(routeB, 'search');
 
-    await controller.render(routeA);
+    await controller.resolveAndMountView(routeA);
     controller.onUnmount();
     expect(stash.has(keyA)).toBe(true);
     expect(keyA).toBe('/search|q=a');
 
-    await controller.render(routeB);
+    await controller.resolveAndMountView(routeB);
     expect(resolveCount).toBe(2);
     expect(stash.has(keyB)).toBe(false);
 
@@ -122,7 +122,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(stash.has(keyB)).toBe(true);
     expect(keyA).not.toBe(keyB);
 
-    await controller.render(routeA);
+    await controller.resolveAndMountView(routeA);
     expect(resolveCount).toBe(2);
     expect(root.textContent).toBe('result-1');
   });
@@ -149,10 +149,10 @@ describe('RouteViewController keep-alive integration', () => {
       domCache,
     );
 
-    await parent.render(createMatchedRouteInfo('/users', { pattern: '/users' }));
+    await parent.resolveAndMountView(createMatchedRouteInfo('/users', { pattern: '/users' }));
 
     const childRoute = createMatchedRouteInfo('/users/42', { pattern: '/users/:id' });
-    await child.render(childRoute);
+    await child.resolveAndMountView(childRoute);
     expect(parent.nestedOutlet?.querySelector('#child-view')).not.toBeNull();
 
     child.onUnmount();
@@ -174,7 +174,7 @@ describe('RouteViewController keep-alive integration', () => {
       domCache,
     );
 
-    await childAgain.render(childRoute);
+    await childAgain.resolveAndMountView(childRoute);
     expect(resolveAfterStash).toBe(0);
     expect(parent.nestedOutlet?.querySelector('#child-view')?.textContent).toBe('child');
   });
@@ -201,7 +201,7 @@ describe('RouteViewController keep-alive integration', () => {
         { loadView: async () => ({ data: `<span>${pathname}</span>` }) },
         domCache,
       );
-      await controller.render(createMatchedRouteInfo(pathname, { pattern: attrPath }));
+      await controller.resolveAndMountView(createMatchedRouteInfo(pathname, { pattern: attrPath }));
       controller.onUnmount();
     }
 
@@ -230,10 +230,10 @@ describe('RouteViewController keep-alive integration', () => {
     const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
     const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
-    await controller.render(route1);
+    await controller.resolveAndMountView(route1);
     expect(root.textContent).toBe('view-1');
 
-    await controller.render(route2, { paramChangeRemount: true });
+    await controller.resolveAndMountView(route2, { paramChangeRemount: true });
     expect(root.textContent).toBe('view-2');
 
     controller.onUnmount();
@@ -254,8 +254,8 @@ describe('RouteViewController keep-alive integration', () => {
 
     const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
 
-    await controller.render(route1);
-    await controller.render(route1);
+    await controller.resolveAndMountView(route1);
+    await controller.resolveAndMountView(route1);
 
     expect(resolveCount).toBe(1);
     expect(root.textContent).toBe('view-1');
@@ -275,8 +275,8 @@ describe('RouteViewController keep-alive integration', () => {
     const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
     const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
-    await controller.render(route1);
-    await controller.render(route2, { paramChangeRemount: true });
+    await controller.resolveAndMountView(route1);
+    await controller.resolveAndMountView(route2, { paramChangeRemount: true });
     controller.commitStagedView();
 
     expect(resolveCount).toBe(2);
@@ -296,8 +296,8 @@ describe('RouteViewController keep-alive integration', () => {
     const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
     const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
-    await controller.render(route1);
-    await controller.render(route2);
+    await controller.resolveAndMountView(route1);
+    await controller.resolveAndMountView(route2);
     expect(root.textContent).toBe('view-2');
 
     controller.onUnmount();
@@ -320,8 +320,8 @@ describe('RouteViewController keep-alive integration', () => {
     const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
     const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
-    await controller.render(route1);
-    await controller.render(route2, { paramChangeRemount: true });
+    await controller.resolveAndMountView(route1);
+    await controller.resolveAndMountView(route2, { paramChangeRemount: true });
 
     expect(root.children).toHaveLength(2);
 
@@ -357,8 +357,8 @@ describe('RouteViewController keep-alive integration', () => {
     const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
     const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
-    await controller.render(route1);
-    await controller.render(route2, { paramChangeRemount: true });
+    await controller.resolveAndMountView(route1);
+    await controller.resolveAndMountView(route2, { paramChangeRemount: true });
 
     expect(root.children).toHaveLength(2);
     expect(root.querySelector('[data-id="1"]')).not.toBeNull();
@@ -375,7 +375,7 @@ describe('RouteViewController keep-alive integration', () => {
     expect(root.textContent).toBe('view-2');
   });
 
-  it('applyPreResolved mounts content without calling view.loadView', () => {
+  it('mountResolvedView mounts content without calling view.loadView', () => {
     const root = createOutlet();
     const resolve = jest.fn(async () => ({ data: '<span>from-resolve</span>' }));
     const controller = createController(
@@ -386,7 +386,7 @@ describe('RouteViewController keep-alive integration', () => {
       false,
     );
 
-    const result = controller.applyPreResolved(createMatchedRouteInfo('/page'), {
+    const result = controller.mountResolvedView(createMatchedRouteInfo('/page'), {
       preResolvedView: '<span>instant</span>',
     });
 
@@ -418,10 +418,10 @@ describe('RouteViewController keep-alive integration', () => {
       false,
     );
 
-    parent.applyPreResolved(createMatchedRouteInfo('/users', { pattern: '/users' }), {
+    parent.mountResolvedView(createMatchedRouteInfo('/users', { pattern: '/users' }), {
       preResolvedView: layoutWithOutlet().fragment,
     });
-    child.applyPreResolved(createMatchedRouteInfo('/users/1', { pattern: '/users/:id' }), {
+    child.mountResolvedView(createMatchedRouteInfo('/users/1', { pattern: '/users/:id' }), {
       preResolvedView: '<span>user-list</span>',
     });
 
@@ -455,7 +455,7 @@ async function captureUseStagedMount(
     () => 1,
   );
 
-  await controller.render(routeInfo, options);
+  await controller.resolveAndMountView(routeInfo, options);
   return useStagedMount;
 }
 

@@ -39,7 +39,7 @@ import type {
 import type { TransitionOrderType } from './attr/transition-order-attr-parser';
 import type { ViewAttrDescriptor } from './attr/view-attr-parser';
 import type {
-  ApplyPreResolvedOptions,
+  MountResolvedViewOptions,
   AuraRouteInterface,
   RouteRenderOptions,
   RouteType,
@@ -290,25 +290,25 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     memoize.clear(this, ['transition', 'viewKeySuffix']);
   }
 
-  render(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
+  resolveAndMountView(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
     return this.setupDone.then(() => {
       this.throwIfInvalidAttrs();
       this.passId++;
-      return this.viewController.render(routeInfo, options);
+      return this.viewController.resolveAndMountView(routeInfo, options);
     });
   }
 
   /** Sync branch-atomic mount — caller must finish branch resolve first. */
-  applyPreResolved(
+  mountResolvedView(
     routeInfo: MatchedRouteInfo,
-    options: ApplyPreResolvedOptions,
+    options: MountResolvedViewOptions,
   ): ViewRenderResult | 'aborted' {
     if (!this.viewReady || !this.viewController) {
       return { status: 'error', error: new DOMException('AuraRoute not initialized', 'InvalidStateError') };
     }
     this.throwIfInvalidAttrs();
     this.passId++;
-    return this.viewController.applyPreResolved(routeInfo, options);
+    return this.viewController.mountResolvedView(routeInfo, options);
   }
 
   commitStagedView(): void {
@@ -355,7 +355,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     if (!this.loadingTemplate || !this.viewReady || !this.viewController) return;
 
     try {
-      this.applyPreResolved(routeInfo, {
+      this.mountResolvedView(routeInfo, {
         preResolvedView: getTemplate(this.loadingTemplate),
         immediate: true,
       });

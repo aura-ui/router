@@ -42,8 +42,8 @@ export type RouteRenderOptions = {
   paramChangeRemount?: boolean;
 };
 
-/** Options for sync branch-atomic mount ({@link RouteViewController.applyPreResolved}). */
-export type ApplyPreResolvedOptions = RouteRenderOptions & {
+/** Options for sync branch-atomic mount ({@link RouteViewController.mountResolvedView}). */
+export type MountResolvedViewOptions = RouteRenderOptions & {
   /** Payload from navigation `viewSnapshot`. `null` = empty view route. */
   preResolvedView: ViewPayload | null;
   /** Force visible replace mount (loading placeholder before prepare). */

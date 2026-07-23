@@ -1,4 +1,4 @@
-﻿jest.mock('../../aura-router/core/aura-router', () => {
+jest.mock('../../aura-router/core/aura-router', () => {
   const { AuraOutlet } = jest.requireActual('../../aura-outlet/core/aura-outlet');
 
   class MockAuraRouter extends HTMLElement {
@@ -37,7 +37,7 @@ describe('AuraRoute render validation', () => {
   it('throws on render when page has no view', async () => {
     const route = mountAuraRouteUnderRouter({ path: '/empty' });
 
-    await expect(route.render(createMatchedRouteInfo('/empty')))
+    await expect(route.resolveAndMountView(createMatchedRouteInfo('/empty')))
       .rejects.toThrow('AuraRoute page "/empty" has no view');
   });
 
@@ -48,7 +48,7 @@ describe('AuraRoute render validation', () => {
       { innerHTML: '<aura-route path="profile" view="html::<p/>"></aura-route>' },
     );
 
-    await expect(route.render(createMatchedRouteInfo('/settings')))
+    await expect(route.resolveAndMountView(createMatchedRouteInfo('/settings')))
       .rejects.toThrow('AuraRoute folder "/settings" has no layout');
   });
 
@@ -59,7 +59,7 @@ describe('AuraRoute render validation', () => {
       { innerHTML: '<aura-route path="profile" view="html::<p/>"></aura-route>' },
     );
 
-    await expect(route.render(createMatchedRouteInfo('/settings')))
+    await expect(route.resolveAndMountView(createMatchedRouteInfo('/settings')))
       .rejects.toThrow('cannot declare view');
   });
 });

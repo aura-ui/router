@@ -1,39 +1,18 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
-import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 import type { AuraRouteInterface, RouteRenderOptions } from '../../core/types';
 import { RouteViewController } from '../../core/view';
 import { RouteDomCache, destroyViewRoot, domCacheKey } from '../../core/view/dom-cache';
 import type { ViewResolverPort, DomCachePort } from '../../core/view/types';
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
-
-function matched(pathname: string, overrides: Partial<MatchedRouteInfo> = {}): MatchedRouteInfo {
-  return {
-    href: pathname,
-    pathname,
-    search: '',
-    hash: '',
-    pattern: pathname,
-    ...overrides,
-  } as MatchedRouteInfo;
-}
-
-function createMockDomCache(stash = new Map<string, Element>()): DomCachePort {
-  return {
-    has: (key) => stash.has(key),
-    extract: (key) => {
-      const root = stash.get(key);
-      if (root) stash.delete(key);
-      return root as HTMLElement;
-    },
-    put: (key, root) => stash.set(key, root),
-  };
-}
+import {
+  createMatchedRouteInfo,
+  createMockDomCache,
+  createNoopDomCache,
+  createOutlet,
+  createRouteStub,
+  defineAuraOutlet,
+  layoutWithOutlet,
+} from '../_helpers';
 
 function createController(
   path: string,
@@ -43,16 +22,10 @@ function createController(
   cacheDom = true,
 ): RouteViewController {
   let passId = 0;
-  const route = {
+  const route = createRouteStub({
     path,
-    layout: '',
-    view: null,
-    loadingTemplate: '',
-    errorTemplate: '',
-    scrollPolicy: null,
     cache: cacheDom ? { dom: true, view: false, data: false } : NO_CACHE,
-    transition: NO_TRANSITION,
-  } as AuraRouteInterface;
+  });
 
   const controller = new RouteViewController(
     {
@@ -82,18 +55,9 @@ function createController(
   return controller;
 }
 
-function layoutShell(): DocumentFragment {
-  const fragment = document.createDocumentFragment();
-  const nested = document.createElement(AuraOutlet.is);
-  fragment.append(document.createElement('header'), nested);
-  return fragment;
-}
-
 describe('RouteViewController keep-alive integration', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
+    defineAuraOutlet();
   });
 
   afterEach(() => {
@@ -111,7 +75,7 @@ describe('RouteViewController keep-alive integration', () => {
       domCache,
     );
 
-    const route = matched('/user/1', { pattern: '/user/:id' });
+    const route = createMatchedRouteInfo('/user/1', { pattern: '/user/:id' });
 
     await controller.render(route);
     await controller.render(route);
@@ -139,8 +103,8 @@ describe('RouteViewController keep-alive integration', () => {
       domCache,
     );
 
-    const routeA = matched('/search', { query: { q: 'a' }, pattern: '/search' });
-    const routeB = matched('/search', { query: { q: 'b' }, pattern: '/search' });
+    const routeA = createMatchedRouteInfo('/search', { query: { q: 'a' }, pattern: '/search' });
+    const routeB = createMatchedRouteInfo('/search', { query: { q: 'b' }, pattern: '/search' });
     const keyA = domCacheKey(routeA, 'search');
     const keyB = domCacheKey(routeB, 'search');
 
@@ -171,7 +135,7 @@ describe('RouteViewController keep-alive integration', () => {
     const parent = createController(
       'users',
       { root: () => root },
-      { loadView: async () => ({ data: layoutShell() }) },
+      { loadView: async () => ({ data: layoutWithOutlet().fragment }) },
       domCache,
     );
 
@@ -185,9 +149,9 @@ describe('RouteViewController keep-alive integration', () => {
       domCache,
     );
 
-    await parent.render(matched('/users', { pattern: '/users' }));
+    await parent.render(createMatchedRouteInfo('/users', { pattern: '/users' }));
 
-    const childRoute = matched('/users/42', { pattern: '/users/:id' });
+    const childRoute = createMatchedRouteInfo('/users/42', { pattern: '/users/:id' });
     await child.render(childRoute);
     expect(parent.nestedOutlet?.querySelector('#child-view')).not.toBeNull();
 
@@ -237,7 +201,7 @@ describe('RouteViewController keep-alive integration', () => {
         { loadView: async () => ({ data: `<span>${pathname}</span>` }) },
         domCache,
       );
-      await controller.render(matched(pathname, { pattern: attrPath }));
+      await controller.render(createMatchedRouteInfo(pathname, { pattern: attrPath }));
       controller.onUnmount();
     }
 
@@ -246,9 +210,9 @@ describe('RouteViewController keep-alive integration', () => {
     await visit('/c', 'c');
 
     expect(evicted).toHaveLength(1);
-    expect(domCache.extract(domCacheKey(matched('/a', { pattern: 'a' }), 'a'))).toBeUndefined();
-    expect(domCache.extract(domCacheKey(matched('/b', { pattern: 'b' }), 'b'))).toBeDefined();
-    expect(domCache.extract(domCacheKey(matched('/c', { pattern: 'c' }), 'c'))).toBeDefined();
+    expect(domCache.extract(domCacheKey(createMatchedRouteInfo('/a', { pattern: 'a' }), 'a'))).toBeUndefined();
+    expect(domCache.extract(domCacheKey(createMatchedRouteInfo('/b', { pattern: 'b' }), 'b'))).toBeDefined();
+    expect(domCache.extract(domCacheKey(createMatchedRouteInfo('/c', { pattern: 'c' }), 'c'))).toBeDefined();
     expect(evicted[0]?.isConnected).toBe(false);
   });
 
@@ -263,8 +227,8 @@ describe('RouteViewController keep-alive integration', () => {
       false,
     );
 
-    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
-    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+    const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
     await controller.render(route1);
     expect(root.textContent).toBe('view-1');
@@ -288,7 +252,7 @@ describe('RouteViewController keep-alive integration', () => {
       true,
     );
 
-    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
 
     await controller.render(route1);
     await controller.render(route1);
@@ -308,8 +272,8 @@ describe('RouteViewController keep-alive integration', () => {
       true,
     );
 
-    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
-    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+    const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
     await controller.render(route1);
     await controller.render(route2, { paramChangeRemount: true });
@@ -329,8 +293,8 @@ describe('RouteViewController keep-alive integration', () => {
       false,
     );
 
-    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
-    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+    const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
     await controller.render(route1);
     await controller.render(route2);
@@ -353,8 +317,8 @@ describe('RouteViewController keep-alive integration', () => {
       true,
     );
 
-    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
-    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+    const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
     await controller.render(route1);
     await controller.render(route2, { paramChangeRemount: true });
@@ -371,16 +335,10 @@ describe('RouteViewController keep-alive integration', () => {
 
   it('param-change remount with parallel transition stages both views; param unmount keeps incoming', async () => {
     const root = createOutlet();
-    const route = {
+    const route = createRouteStub({
       path: 'user/:id',
-      layout: '',
-      view: null,
-      loadingTemplate: '',
-      errorTemplate: '',
-      scrollPolicy: null,
-      cache: NO_CACHE,
       transition: { order: 'parallel' as const, in: null, out: null },
-    } as AuraRouteInterface;
+    });
 
     const controller = new RouteViewController(
       {
@@ -396,8 +354,8 @@ describe('RouteViewController keep-alive integration', () => {
       () => 1,
     );
 
-    const route1 = matched('/user/1', { pattern: '/user/:id', params: { id: '1' } });
-    const route2 = matched('/user/2', { pattern: '/user/:id', params: { id: '2' } });
+    const route1 = createMatchedRouteInfo('/user/1', { pattern: '/user/:id', params: { id: '1' } });
+    const route2 = createMatchedRouteInfo('/user/2', { pattern: '/user/:id', params: { id: '2' } });
 
     await controller.render(route1);
     await controller.render(route2, { paramChangeRemount: true });
@@ -428,7 +386,7 @@ describe('RouteViewController keep-alive integration', () => {
       false,
     );
 
-    const result = controller.applyPreResolved(matched('/page'), {
+    const result = controller.applyPreResolved(createMatchedRouteInfo('/page'), {
       preResolvedView: '<span>instant</span>',
     });
 
@@ -460,10 +418,10 @@ describe('RouteViewController keep-alive integration', () => {
       false,
     );
 
-    parent.applyPreResolved(matched('/users', { pattern: '/users' }), {
-      preResolvedView: layoutShell(),
+    parent.applyPreResolved(createMatchedRouteInfo('/users', { pattern: '/users' }), {
+      preResolvedView: layoutWithOutlet().fragment,
     });
-    child.applyPreResolved(matched('/users/1', { pattern: '/users/:id' }), {
+    child.applyPreResolved(createMatchedRouteInfo('/users/1', { pattern: '/users/:id' }), {
       preResolvedView: '<span>user-list</span>',
     });
 
@@ -473,50 +431,12 @@ describe('RouteViewController keep-alive integration', () => {
   });
 });
 
-function matchedUser(pathname: string): MatchedRouteInfo {
-  return {
-    href: pathname,
-    pathname,
-    search: '',
-    hash: '',
-    pattern: 'user/:id',
-  } as MatchedRouteInfo;
-}
-
-function routeConfig(overrides: Partial<AuraRouteInterface> = {}): AuraRouteInterface {
-  const { extract = null, ...rest } = overrides;
-  return {
-    path: 'user/:id',
-    layout: '',
-    redirect: '',
-    view: null,
-    loadingTemplate: '',
-    errorTemplate: '',
-    scrollPolicy: null,
-    cache: NO_CACHE,
-    transition: NO_TRANSITION,
-    type: 'page',
-    hasLayout: false,
-    hasViewContent: false,
-    hasGuard: false,
-    hasLeave: false,
-    hasLoad: false,
-    hasTransitionIn: false,
-    hasReady: false,
-    hasAsyncContent: false,
-    hasSyncContent: false,
-    ...rest,
-    extract,
-  };
-}
-
 async function captureUseStagedMount(
   config: AuraRouteInterface,
   routeInfo: MatchedRouteInfo,
   options?: RouteRenderOptions,
 ): Promise<boolean | undefined> {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
+  const outlet = createOutlet();
 
   let useStagedMount: boolean | undefined;
 
@@ -524,7 +444,7 @@ async function captureUseStagedMount(
     {
       route: config,
       view: { loadView: async () => ({ data: '<span>view</span>' }) },
-      cache: { has: () => false, extract: () => undefined, put: () => {} },
+      cache: createNoopDomCache(),
       mountTarget: { appOutlet: () => outlet, nestedOutlet: () => null },
       plugins: [{
         onContentResolved(pass) {
@@ -542,8 +462,11 @@ async function captureUseStagedMount(
 describe('RouteViewController useStagedMount', () => {
   it('stages when route declares transition order', async () => {
     const value = await captureUseStagedMount(
-      routeConfig({ transition: { order: 'parallel', in: ['fade'], out: ['fade'] } }),
-      matchedUser('/users/1'),
+      createRouteStub({
+        path: 'user/:id',
+        transition: { order: 'parallel', in: ['fade'], out: ['fade'] },
+      }),
+      createMatchedRouteInfo('/users/1', { pattern: 'user/:id' }),
     );
 
     expect(value).toBe(true);
@@ -551,8 +474,11 @@ describe('RouteViewController useStagedMount', () => {
 
   it('stages on param-change remount with cache.dom', async () => {
     const value = await captureUseStagedMount(
-      routeConfig({ cache: { dom: true, view: false, data: false } }),
-      matchedUser('/users/2'),
+      createRouteStub({
+        path: 'user/:id',
+        cache: { dom: true, view: false, data: false },
+      }),
+      createMatchedRouteInfo('/users/2', { pattern: 'user/:id' }),
       { paramChangeRemount: true },
     );
 
@@ -561,8 +487,8 @@ describe('RouteViewController useStagedMount', () => {
 
   it('replaces on param-change remount without cache.dom', async () => {
     const value = await captureUseStagedMount(
-      routeConfig({ cache: NO_CACHE }),
-      matchedUser('/users/2'),
+      createRouteStub({ path: 'user/:id', cache: NO_CACHE }),
+      createMatchedRouteInfo('/users/2', { pattern: 'user/:id' }),
       { paramChangeRemount: true },
     );
 
@@ -571,8 +497,11 @@ describe('RouteViewController useStagedMount', () => {
 
   it('replaces on ordinary navigation without transition', async () => {
     const value = await captureUseStagedMount(
-      routeConfig({ cache: { dom: true, view: false, data: false } }),
-      matchedUser('/users/2'),
+      createRouteStub({
+        path: 'user/:id',
+        cache: { dom: true, view: false, data: false },
+      }),
+      createMatchedRouteInfo('/users/2', { pattern: 'user/:id' }),
     );
 
     expect(value).toBe(false);

@@ -4,57 +4,43 @@ jest.mock('../../aura-router/core/aura-router', () => ({
   },
 }));
 
-import { AuraRoute } from '../core/aura-route';
+import { defineAuraRoute, mountAuraRouteUnderRouter } from './_helpers';
 
 describe('AuraRoute prefetch inherit', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraRoute.is)) {
-      customElements.define(AuraRoute.is, AuraRoute);
-    }
+    defineAuraRoute();
   });
 
   afterEach(() => {
     document.body.replaceChildren();
   });
 
-  function route(attrs: Record<string, string>, parent?: HTMLElement): AuraRoute {
-    const el = document.createElement(AuraRoute.is) as AuraRoute;
-    el.setAttribute('path', attrs.path ?? '/');
-    for (const [name, value] of Object.entries(attrs)) {
-      if (name === 'path') continue;
-      el.setAttribute(name, value);
-    }
-    parent?.append(el);
-    return el;
-  }
-
   it('inherits prefetch from aura-router', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('prefetch', 'tap');
-    const child = route({ path: '/feed' }, router);
+    const child = mountAuraRouteUnderRouter({ path: '/feed' }, { prefetch: 'tap' });
 
     expect(child.prefetch).toBe('tap');
   });
 
   it('child overrides inherited prefetch', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('prefetch', 'intent');
-    const child = route({ path: '/checkout', prefetch: 'false' }, router);
+    const child = mountAuraRouteUnderRouter(
+      { path: '/checkout', prefetch: 'false' },
+      { prefetch: 'intent' },
+    );
 
     expect(child.prefetch).toBe(false);
   });
 
   it('prefetch="none" disables inherited prefetch', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('prefetch', 'tap');
-    const child = route({ path: '/quiet', prefetch: 'none' }, router);
+    const child = mountAuraRouteUnderRouter(
+      { path: '/quiet', prefetch: 'none' },
+      { prefetch: 'tap' },
+    );
 
     expect(child.prefetch).toBe(false);
   });
 
   it('returns null when no prefetch on route or ancestors', () => {
-    const router = document.createElement('aura-router');
-    const child = route({ path: '/open' }, router);
+    const child = mountAuraRouteUnderRouter({ path: '/open' });
 
     expect(child.prefetch).toBeNull();
   });

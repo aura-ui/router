@@ -1,35 +1,22 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_CACHE } from '../../../aura-routing-engine/core';
 import type { AuraRouteInterface } from '../../core/types';
 import { ViewContext } from '../../core/view';
 import { ViewTeardownPipeline } from '../../core/view';
-import { defaultDomCache } from '../../core/view/dom-cache';
 import {
   applyMountToSnapshot,
   EMPTY_MOUNT,
   mergeMount,
   mountContent,
-  type MountContext,
   type MountSnapshot,
 } from '../../core/view/outlet-adapter';
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
-
-function mountCtx(root: AuraOutlet, overrides: Partial<MountContext> = {}): MountContext {
-  return { appOutlet: root, ...overrides } as MountContext;
-}
-
-function stageTwoViews(root: AuraOutlet): MountSnapshot {
-  const first = mountContent(mountCtx(root), '<span>old</span>')!;
-  const snapshot = mergeMount(EMPTY_MOUNT, first);
-  const second = mountContent(mountCtx(root, { useStagedMount: true }), '<span>new</span>')!;
-
-  return mergeMount(snapshot, second);
-}
+import {
+  createMockDomCache,
+  createMountContext,
+  createOutlet,
+  createViewContext,
+  defineAuraOutlet,
+  stageTwoViews,
+} from '../_helpers';
 
 function createTeardown(
   root: AuraOutlet,
@@ -39,41 +26,19 @@ function createTeardown(
     mount?: MountSnapshot;
   } = {},
 ): { teardown: ViewTeardownPipeline; ctx: ViewContext } {
-  const ctx = new ViewContext(
-    {
-      route: {
-        path: '/page',
-        layout: '',
-        view: '',
-        loadingTemplate: '',
-        errorTemplate: '',
-        cache: NO_CACHE,
-        scrollPolicy: null,
-        transition: { order: null, in: null, out: null },
-        ...overrides.route,
-      } as AuraRouteInterface,
-      view: { loadView: async () => ({ data: null }) },
-      cache: overrides.cache ?? defaultDomCache,
-      mountTarget: {
-        appOutlet: () => root,
-        nestedOutlet: () => null,
-      },
-    },
-    () => 1,
-  );
-
-  if (overrides.mount) {
-    ctx.mount = overrides.mount;
-  }
+  const ctx = createViewContext({
+    root,
+    route: overrides.route,
+    cache: overrides.cache,
+    mount: overrides.mount,
+  });
 
   return { teardown: new ViewTeardownPipeline(ctx), ctx };
 }
 
 describe('ViewTeardownPipeline', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
+    defineAuraOutlet();
   });
 
   afterEach(() => {
@@ -107,19 +72,11 @@ describe('ViewTeardownPipeline', () => {
     const stash = new Map<string, Element>();
     const mounted = mergeMount(
       EMPTY_MOUNT,
-      mountContent(mountCtx(root), '<span>cached</span>')!,
+      mountContent(createMountContext({ appOutlet: root }), '<span>cached</span>')!,
     );
     const { teardown, ctx } = createTeardown(root, {
       route: { cache: { dom: true, view: false, data: false } },
-      cache: {
-        has: (key) => stash.has(key),
-        extract: (key) => {
-          const node = stash.get(key);
-          if (node) stash.delete(key);
-          return node as never;
-        },
-        put: (key, node) => stash.set(key, node),
-      },
+      cache: createMockDomCache(stash),
       mount: mounted,
     });
     ctx.lastCacheKey = '/page';
@@ -147,10 +104,10 @@ describe('ViewTeardownPipeline', () => {
 
   it('param-change replace unmount discards pending outgoing snapshot', () => {
     const root = createOutlet();
-    const first = applyMountToSnapshot(EMPTY_MOUNT, mountCtx(root), '<span>view-1</span>')!;
+    const first = applyMountToSnapshot(EMPTY_MOUNT, createMountContext({ appOutlet: root }), '<span>view-1</span>')!;
     const replaced = applyMountToSnapshot(
       first,
-      mountCtx(root, { pattern: '/user/2' }),
+      createMountContext({ appOutlet: root, pattern: '/user/2' }),
       '<span>view-2</span>',
     )!;
     const pending = replaced.pendingOutgoingRoot!;
@@ -166,10 +123,10 @@ describe('ViewTeardownPipeline', () => {
 
   it('commitStaged discards pending outgoing on replace mount', () => {
     const root = createOutlet();
-    const first = applyMountToSnapshot(EMPTY_MOUNT, mountCtx(root), '<span>old</span>')!;
+    const first = applyMountToSnapshot(EMPTY_MOUNT, createMountContext({ appOutlet: root }), '<span>old</span>')!;
     const replaced = applyMountToSnapshot(
       first,
-      mountCtx(root, { pattern: '/new' }),
+      createMountContext({ appOutlet: root, pattern: '/new' }),
       '<span>new</span>',
     )!;
     const { teardown } = createTeardown(root, { mount: replaced });
@@ -182,10 +139,10 @@ describe('ViewTeardownPipeline', () => {
 
   it('revertInFlight restores replace mount from detached snapshot', () => {
     const root = createOutlet();
-    const first = applyMountToSnapshot(EMPTY_MOUNT, mountCtx(root), '<span>old</span>')!;
+    const first = applyMountToSnapshot(EMPTY_MOUNT, createMountContext({ appOutlet: root }), '<span>old</span>')!;
     const replaced = applyMountToSnapshot(
       first,
-      mountCtx(root, { pattern: '/new' }),
+      createMountContext({ appOutlet: root, pattern: '/new' }),
       '<span>new</span>',
     )!;
     const { teardown } = createTeardown(root, { mount: replaced });

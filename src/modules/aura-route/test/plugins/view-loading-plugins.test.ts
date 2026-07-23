@@ -1,22 +1,5 @@
 import { loadingBodyClass, loadingEvent } from '../../core/plugins/view-loading-plugins';
-import type { RenderPass } from '../../core/view/types';
-
-function renderPass(): RenderPass {
-  return {
-    id: 1,
-    routeInfo: {
-      href: '/',
-      pathname: '/',
-      search: '',
-      hash: '',
-      pattern: '/',
-    } as RenderPass['routeInfo'],
-    signal: new AbortController().signal,
-    domCacheKey: '/',
-    viewKind: 'view',
-    useStagedMount: false,
-  };
-}
+import { createRenderPass } from '../_helpers';
 
 describe('loadingBodyClass', () => {
   afterEach(() => {
@@ -26,10 +9,10 @@ describe('loadingBodyClass', () => {
   it('adds and removes body class around loading', () => {
     const plugin = loadingBodyClass('test-loading');
 
-    plugin.onLoadingStart?.(renderPass());
+    plugin.onLoadingStart?.(createRenderPass({ pathname: '/' }));
     expect(document.body.classList.contains('test-loading')).toBe(true);
 
-    plugin.onLoadingEnd?.(renderPass());
+    plugin.onLoadingEnd?.(createRenderPass({ pathname: '/' }));
     expect(document.body.classList.contains('test-loading')).toBe(false);
   });
 });
@@ -40,7 +23,7 @@ describe('loadingEvent', () => {
     const handler = jest.fn();
     target.addEventListener('aura-route-loading', handler);
 
-    const pass = renderPass();
+    const pass = createRenderPass({ pathname: '/' });
     loadingEvent(target).onLoadingStart?.(pass);
 
     expect(handler).toHaveBeenCalledTimes(1);

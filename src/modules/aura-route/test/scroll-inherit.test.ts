@@ -4,57 +4,43 @@ jest.mock('../../aura-router/core/aura-router', () => ({
   },
 }));
 
-import { AuraRoute } from '../core/aura-route';
+import { defineAuraRoute, mountAuraRouteUnderRouter } from './_helpers';
 
 describe('AuraRoute scroll inherit', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraRoute.is)) {
-      customElements.define(AuraRoute.is, AuraRoute);
-    }
+    defineAuraRoute();
   });
 
   afterEach(() => {
     document.body.replaceChildren();
   });
 
-  function route(attrs: Record<string, string>, parent?: HTMLElement): AuraRoute {
-    const el = document.createElement(AuraRoute.is) as AuraRoute;
-    el.setAttribute('path', attrs.path ?? '/');
-    for (const [name, value] of Object.entries(attrs)) {
-      if (name === 'path') continue;
-      el.setAttribute(name, value);
-    }
-    parent?.append(el);
-    return el;
-  }
-
   it('inherits scroll from aura-router', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('scroll', 'restore');
-    const child = route({ path: '/feed' }, router);
+    const child = mountAuraRouteUnderRouter({ path: '/feed' }, { scroll: 'restore' });
 
     expect(child.scrollPolicy).toBe('restore');
   });
 
   it('scroll="none" opts out of router default', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('scroll', 'restore');
-    const child = route({ path: '/checkout', scroll: 'none' }, router);
+    const child = mountAuraRouteUnderRouter(
+      { path: '/checkout', scroll: 'none' },
+      { scroll: 'restore' },
+    );
 
     expect(child.scrollPolicy).toBe('manual');
   });
 
   it('child overrides inherited scroll', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('scroll', 'restore');
-    const child = route({ path: '/checkout', scroll: 'top' }, router);
+    const child = mountAuraRouteUnderRouter(
+      { path: '/checkout', scroll: 'top' },
+      { scroll: 'restore' },
+    );
 
     expect(child.scrollPolicy).toBe('top');
   });
 
   it('returns null when no scroll on route or ancestors', () => {
-    const router = document.createElement('aura-router');
-    const child = route({ path: '/open' }, router);
+    const child = mountAuraRouteUnderRouter({ path: '/open' });
 
     expect(child.scrollPolicy).toBeNull();
   });

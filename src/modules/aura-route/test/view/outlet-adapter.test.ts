@@ -18,16 +18,13 @@ import {
   type MountSlice,
   type MountSnapshot,
 } from '../../core/view/outlet-adapter';
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
-
-function ctx(overrides: Partial<MountContext> & Pick<MountContext, 'appOutlet'>): MountContext {
-  return overrides as MountContext;
-}
+import {
+  createMountContext,
+  createOutlet,
+  defineAuraOutlet,
+  layoutWithOutlet,
+  stageTwoViews,
+} from '../_helpers';
 
 function mount(context: MountContext, content: Node | string): MountSlice {
   const slice = mountContent(context, content);
@@ -35,18 +32,9 @@ function mount(context: MountContext, content: Node | string): MountSlice {
   return slice;
 }
 
-function layoutWithOutlet(headerTag = 'header'): { fragment: DocumentFragment; nested: AuraOutlet } {
-  const fragment = document.createDocumentFragment();
-  const nested = document.createElement(AuraOutlet.is) as AuraOutlet;
-  fragment.append(document.createElement(headerTag), nested);
-  return { fragment, nested };
-}
-
 describe('outlet-adapter', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
+    defineAuraOutlet();
   });
 
   afterEach(() => {
@@ -58,7 +46,7 @@ describe('outlet-adapter', () => {
       const root = createOutlet();
       const { fragment, nested } = layoutWithOutlet();
 
-      const result = mount(ctx({ appOutlet: root, pattern: '/users' }), fragment);
+      const result = mount(createMountContext({ appOutlet: root, pattern: '/users' }), fragment);
 
       expect(result.nestedOutlet).toBe(nested);
       expect(root.querySelector('header')).toBeTruthy();
@@ -67,7 +55,7 @@ describe('outlet-adapter', () => {
     it('layout: null when template has no nested outlet', () => {
       const root = createOutlet();
 
-      const result = mount(ctx({ appOutlet: root, pattern: '/bare' }), '<header>only chrome</header>');
+      const result = mount(createMountContext({ appOutlet: root, pattern: '/bare' }), '<header>only chrome</header>');
 
       expect(result.nestedOutlet).toBeNull();
       expect(result.activeHandle).not.toBeNull();
@@ -76,7 +64,7 @@ describe('outlet-adapter', () => {
     it('content leaf at root: null nestedOutlet', () => {
       const root = createOutlet();
 
-      const result = mount(ctx({ appOutlet: root, pattern: '/' }), '<h1>Home</h1>');
+      const result = mount(createMountContext({ appOutlet: root, pattern: '/' }), '<h1>Home</h1>');
 
       expect(result.nestedOutlet).toBeNull();
       expect(result.activeHandle?.mountOutlet).toBe(root);
@@ -89,7 +77,7 @@ describe('outlet-adapter', () => {
       root.append(mountOutlet);
 
       const result = mount(
-        ctx({ appOutlet: root, mountOutlet, pattern: '/users/about' }),
+        createMountContext({ appOutlet: root, mountOutlet, pattern: '/users/about' }),
         '<span>about</span>',
       );
 
@@ -103,7 +91,7 @@ describe('outlet-adapter', () => {
       const shell =
         '<aside>Admin</aside><main><aura-outlet></aura-outlet></main>';
 
-      const parent = mount(ctx({ appOutlet: root, pattern: '/admin' }), shell);
+      const parent = mount(createMountContext({ appOutlet: root, pattern: '/admin' }), shell);
 
       const childSlot = parent.nestedOutlet;
       expect(childSlot).not.toBeNull();
@@ -111,7 +99,7 @@ describe('outlet-adapter', () => {
       expect(childSlot?.closest('[data-aura-view-root]')).toBe(parent.activeHandle?.viewRoot);
 
       const child = mount(
-        ctx({ appOutlet: root, mountOutlet: childSlot, pattern: '/admin/users' }),
+        createMountContext({ appOutlet: root, mountOutlet: childSlot, pattern: '/admin/users' }),
         '<span>users</span>',
       );
 
@@ -127,19 +115,19 @@ describe('outlet-adapter', () => {
       const root = createOutlet();
 
       const { fragment: l1Layout, nested: l1Slot } = layoutWithOutlet('header');
-      const l1 = mount(ctx({ appOutlet: root, pattern: '/users' }), l1Layout);
+      const l1 = mount(createMountContext({ appOutlet: root, pattern: '/users' }), l1Layout);
       expect(l1.nestedOutlet).toBe(l1Slot);
 
       const { fragment: l2Layout, nested: l2Slot } = layoutWithOutlet('nav');
       const l2 = mount(
-        ctx({ appOutlet: root, mountOutlet: l1.nestedOutlet, pattern: '/users/:id' }),
+        createMountContext({ appOutlet: root, mountOutlet: l1.nestedOutlet, pattern: '/users/:id' }),
         l2Layout,
       );
       expect(l2.nestedOutlet).toBe(l2Slot);
       expect(l1Slot.querySelector('nav')).toBeTruthy();
 
       const l3 = mount(
-        ctx({ appOutlet: root, mountOutlet: l2.nestedOutlet, pattern: '/users/:id/edit' }),
+        createMountContext({ appOutlet: root, mountOutlet: l2.nestedOutlet, pattern: '/users/:id/edit' }),
         '<p>edit form</p>',
       );
 
@@ -152,11 +140,11 @@ describe('outlet-adapter', () => {
     it('grandchild falls back to appOutlet (invalid nesting)', () => {
       const root = createOutlet();
 
-      const parent = mount(ctx({ appOutlet: root, pattern: '/parent' }), '<p>no nested outlet</p>');
+      const parent = mount(createMountContext({ appOutlet: root, pattern: '/parent' }), '<p>no nested outlet</p>');
       expect(parent.nestedOutlet).toBeNull();
 
       const child = mount(
-        ctx({ appOutlet: root, mountOutlet: parent.nestedOutlet, pattern: '/parent/child' }),
+        createMountContext({ appOutlet: root, mountOutlet: parent.nestedOutlet, pattern: '/parent/child' }),
         '<span>child</span>',
       );
 
@@ -168,7 +156,7 @@ describe('outlet-adapter', () => {
   describe('keepAlive re-attach', () => {
     it('unmountHandle returns detached root when keepAlive', () => {
       const root = createOutlet();
-      const mounted = mount(ctx({ appOutlet: root, pattern: '/cached' }), '<span>cached</span>');
+      const mounted = mount(createMountContext({ appOutlet: root, pattern: '/cached' }), '<span>cached</span>');
       const viewRoot = mounted.activeHandle!.viewRoot;
 
       const detached = unmountHandle(mounted.activeHandle, true);
@@ -180,7 +168,7 @@ describe('outlet-adapter', () => {
 
     it('unmountHandle destroys view when keepAlive is false', () => {
       const root = createOutlet();
-      const mounted = mount(ctx({ appOutlet: root }), '<span>gone</span>');
+      const mounted = mount(createMountContext({ appOutlet: root }), '<span>gone</span>');
 
       const detached = unmountHandle(mounted.activeHandle, false);
 
@@ -190,10 +178,10 @@ describe('outlet-adapter', () => {
 
     it('reattachContent re-inserts detached root from DomCache keep-alive', () => {
       const root = createOutlet();
-      const first = mount(ctx({ appOutlet: root, pattern: '/cached' }), '<span>cached</span>');
+      const first = mount(createMountContext({ appOutlet: root, pattern: '/cached' }), '<span>cached</span>');
       const detached = unmountHandle(first.activeHandle, true)!;
 
-      const restored = reattachContent(ctx({ appOutlet: root, pattern: '/cached' }), detached);
+      const restored = reattachContent(createMountContext({ appOutlet: root, pattern: '/cached' }), detached);
 
       expect(restored?.activeHandle?.viewRoot).toBe(detached);
       expect(restored?.appliedStrategy).toBe('replace');
@@ -204,29 +192,29 @@ describe('outlet-adapter', () => {
   describe('staged mount', () => {
     it('mountContent stages only when useStagedMount is true', () => {
       const root = createOutlet();
-      mount(ctx({ appOutlet: root }), '<span>old</span>');
+      mount(createMountContext({ appOutlet: root }), '<span>old</span>');
 
       expect(
-        mountContent(ctx({ appOutlet: root, useStagedMount: true }), '<span>x</span>')?.appliedStrategy,
+        mountContent(createMountContext({ appOutlet: root, useStagedMount: true }), '<span>x</span>')?.appliedStrategy,
       ).toBe('stage');
       expect(
-        mountContent(ctx({ appOutlet: root, useStagedMount: false }), '<span>y</span>')?.appliedStrategy,
+        mountContent(createMountContext({ appOutlet: root, useStagedMount: false }), '<span>y</span>')?.appliedStrategy,
       ).toBe('replace');
-      expect(mountContent(ctx({ appOutlet: root }), '<span>z</span>')?.appliedStrategy).toBe('replace');
+      expect(mountContent(createMountContext({ appOutlet: root }), '<span>z</span>')?.appliedStrategy).toBe('replace');
 
       const empty = createOutlet();
       expect(
-        mountContent(ctx({ appOutlet: empty, useStagedMount: true }), '<span>first</span>')?.appliedStrategy,
+        mountContent(createMountContext({ appOutlet: empty, useStagedMount: true }), '<span>first</span>')?.appliedStrategy,
       ).toBe('replace');
     });
 
     it('mountContent stages alongside existing view; commitStage swaps roots', () => {
       const root = createOutlet();
-      const old = mount(ctx({ appOutlet: root, pattern: '/old' }), '<span>old</span>');
+      const old = mount(createMountContext({ appOutlet: root, pattern: '/old' }), '<span>old</span>');
       const oldRoot = old.activeHandle!.viewRoot;
 
       const staged = mountContent(
-        ctx({ appOutlet: root, pattern: '/new', useStagedMount: true }),
+        createMountContext({ appOutlet: root, pattern: '/new', useStagedMount: true }),
         '<span>new</span>',
       )!;
 
@@ -243,10 +231,10 @@ describe('outlet-adapter', () => {
 
     it('reattachContent always uses replace even when useStagedMount is true', () => {
       const root = createOutlet();
-      const first = mount(ctx({ appOutlet: root }), '<span>cached</span>');
+      const first = mount(createMountContext({ appOutlet: root }), '<span>cached</span>');
       const detached = unmountHandle(first.activeHandle, true)!;
 
-      const restored = reattachContent(ctx({ appOutlet: root, useStagedMount: true }), detached);
+      const restored = reattachContent(createMountContext({ appOutlet: root, useStagedMount: true }), detached);
 
       expect(restored?.appliedStrategy).toBe('replace');
       expect(root.children).toHaveLength(1);
@@ -259,7 +247,7 @@ describe('outlet-adapter', () => {
       const controller = new AbortController();
       controller.abort();
 
-      const result = mountContent(ctx({ appOutlet: root, signal: controller.signal }), '<span>x</span>');
+      const result = mountContent(createMountContext({ appOutlet: root, signal: controller.signal }), '<span>x</span>');
 
       expect(result).toBeNull();
       expect(root.children).toHaveLength(0);
@@ -272,7 +260,7 @@ describe('outlet-adapter', () => {
       const layout = document.createDocumentFragment();
       layout.append(first, second);
 
-      const result = mount(ctx({ appOutlet: root }), layout);
+      const result = mount(createMountContext({ appOutlet: root }), layout);
 
       expect(result.nestedOutlet).toBe(first);
     });
@@ -333,17 +321,6 @@ describe('outlet-adapter', () => {
       });
     });
 
-    function stageTwoViews(root: AuraOutlet): MountSnapshot {
-      const first = mount(ctx({ appOutlet: root }), '<span>old</span>');
-      const snapshot = mergeMount(EMPTY_MOUNT, first);
-      const second = mountContent(
-        ctx({ appOutlet: root, useStagedMount: true }),
-        '<span>new</span>',
-      )!;
-
-      return mergeMount(snapshot, second);
-    }
-
     it('commitStaged promotes incoming view', () => {
       const root = createOutlet();
       const staged = stageTwoViews(root);
@@ -383,7 +360,7 @@ describe('outlet-adapter', () => {
       const root = createOutlet();
       const mounted = mergeMount(
         EMPTY_MOUNT,
-        mount(ctx({ appOutlet: root }), '<span>page</span>'),
+        mount(createMountContext({ appOutlet: root }), '<span>page</span>'),
       );
 
       const { snapshot, detachedRoot } = unmountOnLeave(mounted, false);
@@ -465,8 +442,8 @@ describe('outlet-adapter', () => {
 
   describe('replace rollback snapshot', () => {
     function replaceTwoViews(root: AuraOutlet): MountSnapshot {
-      const first = applyMountToSnapshot(EMPTY_MOUNT, ctx({ appOutlet: root }), '<span>old</span>')!;
-      return applyMountToSnapshot(first, ctx({ appOutlet: root, pattern: '/new' }), '<span>new</span>')!;
+      const first = applyMountToSnapshot(EMPTY_MOUNT, createMountContext({ appOutlet: root }), '<span>old</span>')!;
+      return applyMountToSnapshot(first, createMountContext({ appOutlet: root, pattern: '/new' }), '<span>new</span>')!;
     }
 
     it('applyMountToSnapshot detaches outgoing before replace', () => {
@@ -505,7 +482,7 @@ describe('outlet-adapter', () => {
       const root = createOutlet();
       const snapshot = applyMountToSnapshot(
         EMPTY_MOUNT,
-        ctx({ appOutlet: root }),
+        createMountContext({ appOutlet: root }),
         '<span>first</span>',
       );
 

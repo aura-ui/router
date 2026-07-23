@@ -1,34 +1,22 @@
 import { NO_TRANSITION } from '../core/attr/transition-attr-parser';
-import { AuraRoute } from '../core/aura-route';
+import {
+  createAuraRoute,
+  defineAuraRoute,
+  mountAuraRoute,
+  mountAuraRouteUnderRouter,
+} from './_helpers';
 
 describe('AuraRoute transition getter', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraRoute.is)) {
-      customElements.define(AuraRoute.is, AuraRoute);
-    }
+    defineAuraRoute();
   });
 
   afterEach(() => {
     document.body.replaceChildren();
   });
 
-  function mount(attrs: Record<string, string>, routerAttrs: Record<string, string> = {}): AuraRoute {
-    const router = document.createElement('aura-router');
-    for (const [name, value] of Object.entries(routerAttrs)) {
-      router.setAttribute(name, value);
-    }
-    const route = document.createElement(AuraRoute.is) as AuraRoute;
-    route.setAttribute('path', '/');
-    for (const [name, value] of Object.entries(attrs)) {
-      route.setAttribute(name, value);
-    }
-    router.append(route);
-    document.body.append(router);
-    return route;
-  }
-
   it('inherits transition attrs from aura-router', () => {
-    const route = mount({}, { 'transition-order': 'out-in', transition: 'fade' });
+    const route = mountAuraRouteUnderRouter({}, { 'transition-order': 'out-in', transition: 'fade' });
 
     expect(route.transition).toEqual({
       order: 'out-in',
@@ -38,15 +26,17 @@ describe('AuraRoute transition getter', () => {
   });
 
   it('transition="none" opts out', () => {
-    expect(mount({ transition: 'none' }, { transition: 'fade' }).transition).toEqual(NO_TRANSITION);
+    expect(mountAuraRouteUnderRouter({ transition: 'none' }, { transition: 'fade' }).transition)
+      .toEqual(NO_TRANSITION);
   });
 
   it('child overrides shortcut', () => {
-    expect(mount({ transition: 'slide' }, { transition: 'fade' }).transition.in).toEqual(['slide']);
+    expect(mountAuraRouteUnderRouter({ transition: 'slide' }, { transition: 'fade' }).transition.in)
+      .toEqual(['slide']);
   });
 
   it('transition-out overrides inherited shortcut out', () => {
-    const route = mount({ 'transition-out': 'zoom' }, { transition: 'fade' });
+    const route = mountAuraRouteUnderRouter({ 'transition-out': 'zoom' }, { transition: 'fade' });
 
     expect(route.transition).toEqual({
       order: 'parallel',
@@ -56,7 +46,7 @@ describe('AuraRoute transition getter', () => {
   });
 
   it('transition-out="none" clears out side from inherited shortcut', () => {
-    const route = mount({ 'transition-out': 'none' }, { transition: 'fade' });
+    const route = mountAuraRouteUnderRouter({ 'transition-out': 'none' }, { transition: 'fade' });
 
     expect(route.transition).toEqual({
       order: 'parallel',
@@ -66,88 +56,63 @@ describe('AuraRoute transition getter', () => {
   });
 
   it('exposes resolved hooks via getters', () => {
-    const route = mount({ transition: 'fade' });
+    const route = mountAuraRouteUnderRouter({ transition: 'fade' });
 
     expect(route.transitionIn).toEqual(['fade']);
     expect(route.transitionOut).toEqual(['fade']);
   });
 
   it('bare route is NO_TRANSITION', () => {
-    const route = document.createElement(AuraRoute.is) as AuraRoute;
-    route.setAttribute('path', '/');
+    const route = createAuraRoute();
     expect(route.transition).toEqual(NO_TRANSITION);
   });
 });
 
 describe('AuraRoute hasViewContent', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraRoute.is)) {
-      customElements.define(AuraRoute.is, AuraRoute);
-    }
+    defineAuraRoute();
   });
 
   afterEach(() => {
     document.body.replaceChildren();
   });
 
-  function mount(attrs: Record<string, string>): AuraRoute {
-    const route = document.createElement(AuraRoute.is) as AuraRoute;
-    route.setAttribute('path', '/');
-    for (const [name, value] of Object.entries(attrs)) {
-      route.setAttribute(name, value);
-    }
-    document.body.append(route);
-    return route;
-  }
-
   it('is true when layout or view is configured', () => {
-    expect(mount({ view: 'html::x' }).hasViewContent).toBe(true);
-    expect(mount({ layout: 'shell' }).hasViewContent).toBe(false);
-    expect(mount({}).hasViewContent).toBe(false);
+    expect(mountAuraRoute({ view: 'html::x' }).hasViewContent).toBe(true);
+    expect(mountAuraRoute({ layout: 'shell' }).hasViewContent).toBe(false);
+    expect(mountAuraRoute({}).hasViewContent).toBe(false);
   });
 });
 
 describe('AuraRoute viewKeySuffix', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraRoute.is)) {
-      customElements.define(AuraRoute.is, AuraRoute);
-    }
+    defineAuraRoute();
   });
 
   afterEach(() => {
     document.body.replaceChildren();
   });
 
-  function mount(attrs: Record<string, string>): AuraRoute {
-    const route = document.createElement(AuraRoute.is) as AuraRoute;
-    route.setAttribute('path', '/');
-    for (const [name, value] of Object.entries(attrs)) {
-      route.setAttribute(name, value);
-    }
-    document.body.append(route);
-    return route;
-  }
-
   it('builds layout and view slots', () => {
-    expect(mount({ layout: 'shell' }).viewKeySuffix).toBe('layout:template:shell');
-    expect(mount({ view: 'html::<p/>' }).viewKeySuffix).toBe('view:html:<p/>');
-    expect(mount({ view: 'html::<main id="m">x</main>', extract: '#m' }).viewKeySuffix).toBe(
+    expect(mountAuraRoute({ layout: 'shell' }).viewKeySuffix).toBe('layout:template:shell');
+    expect(mountAuraRoute({ view: 'html::<p/>' }).viewKeySuffix).toBe('view:html:<p/>');
+    expect(mountAuraRoute({ view: 'html::<main id="m">x</main>', extract: '#m' }).viewKeySuffix).toBe(
       'view:html:<main id="m">x</main>',
     );
-    expect(mount({ view: 'url::page.html', extract: '#main' }).viewKeySuffix).toBe(
+    expect(mountAuraRoute({ view: 'url::page.html', extract: '#main' }).viewKeySuffix).toBe(
       'view:url:page.html::#main',
     );
-    expect(mount({ view: 'url::page.html', extract: 'none' }).viewKeySuffix).toBe(
+    expect(mountAuraRoute({ view: 'url::page.html', extract: 'none' }).viewKeySuffix).toBe(
       'view:url:page.html',
     );
-    expect(mount({ view: 'component::x-card', extract: '#main' }).viewKeySuffix).toBe(
+    expect(mountAuraRoute({ view: 'component::x-card', extract: '#main' }).viewKeySuffix).toBe(
       'view:component:x-card',
     );
-    expect(mount({}).viewKeySuffix).toBeNull();
+    expect(mountAuraRoute({}).viewKeySuffix).toBeNull();
   });
 
   it('invalidates cached slot when layout/view/extract change', () => {
-    const route = mount({ view: 'html::a' });
+    const route = mountAuraRoute({ view: 'html::a' });
     expect(route.viewKeySuffix).toBe('view:html:a');
 
     route.setAttribute('view', 'html::b');

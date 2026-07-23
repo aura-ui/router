@@ -4,32 +4,19 @@ jest.mock('../../aura-router/core/aura-router', () => ({
   },
 }));
 
-import { AuraRoute } from '../core/aura-route';
+import { defineAuraRoute, mountAuraRoute } from './_helpers';
 
 describe('AuraRoute fast-path getters', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraRoute.is)) {
-      customElements.define(AuraRoute.is, AuraRoute);
-    }
+    defineAuraRoute();
   });
 
   afterEach(() => {
     document.body.replaceChildren();
   });
 
-  function route(attrs: Record<string, string>, parent?: HTMLElement): AuraRoute {
-    const el = document.createElement(AuraRoute.is) as AuraRoute;
-    el.setAttribute('path', attrs.path ?? '/');
-    for (const [name, value] of Object.entries(attrs)) {
-      if (name === 'path') continue;
-      el.setAttribute(name, value);
-    }
-    (parent ?? document.body).append(el);
-    return el;
-  }
-
   it('defaults to sync inline content', () => {
-    const el = route({ view: 'html::<p>ok</p>' });
+    const el = mountAuraRoute({ view: 'html::<p>ok</p>' });
     expect(el.hasLayout).toBe(false);
     expect(el.hasGuard).toBe(false);
     expect(el.hasAsyncContent).toBe(false);
@@ -37,43 +24,43 @@ describe('AuraRoute fast-path getters', () => {
   });
 
   it('hasSyncContent is false for fetch loaders and layout', () => {
-    expect(route({ view: 'about.html' }).hasSyncContent).toBe(false);
-    expect(route({ layout: 'shell', view: 'html::<p/>' }).hasSyncContent).toBe(false);
+    expect(mountAuraRoute({ view: 'about.html' }).hasSyncContent).toBe(false);
+    expect(mountAuraRoute({ layout: 'shell', view: 'html::<p/>' }).hasSyncContent).toBe(false);
   });
 
   it('detects url default and explicit async loaders', () => {
-    expect(route({ view: 'about.html' }).hasAsyncContent).toBe(true);
-    expect(route({ view: 'url::about.html' }).hasAsyncContent).toBe(true);
-    expect(route({ view: 'import::./x.js' }).hasAsyncContent).toBe(true);
-    expect(route({ view: 'iframe::https://example.com' }).hasAsyncContent).toBe(true);
+    expect(mountAuraRoute({ view: 'about.html' }).hasAsyncContent).toBe(true);
+    expect(mountAuraRoute({ view: 'url::about.html' }).hasAsyncContent).toBe(true);
+    expect(mountAuraRoute({ view: 'import::./x.js' }).hasAsyncContent).toBe(true);
+    expect(mountAuraRoute({ view: 'iframe::https://example.com' }).hasAsyncContent).toBe(true);
   });
 
   it('detects phase attrs', () => {
-    expect(route({ guard: 'auth', view: 'html::<p/>' }).hasGuard).toBe(true);
-    expect(route({ leave: 'x', view: 'html::<p/>' }).hasLeave).toBe(true);
-    expect(route({ load: 'data', view: 'html::<p/>' }).hasLoad).toBe(true);
-    expect(route({ load: 'data', view: 'html::<p/>' }).hasAsyncContent).toBe(true);
-    expect(route({ ready: 'analytics', view: 'html::<p/>' }).hasReady).toBe(true);
+    expect(mountAuraRoute({ guard: 'auth', view: 'html::<p/>' }).hasGuard).toBe(true);
+    expect(mountAuraRoute({ leave: 'x', view: 'html::<p/>' }).hasLeave).toBe(true);
+    expect(mountAuraRoute({ load: 'data', view: 'html::<p/>' }).hasLoad).toBe(true);
+    expect(mountAuraRoute({ load: 'data', view: 'html::<p/>' }).hasAsyncContent).toBe(true);
+    expect(mountAuraRoute({ ready: 'analytics', view: 'html::<p/>' }).hasReady).toBe(true);
   });
 
   it('guard="none" opts out of inherited guard', () => {
     const router = document.createElement('aura-router');
     router.setAttribute('guard', 'auth');
     document.body.append(router);
-    expect(route({ guard: 'none', view: 'html::<p/>' }, router).hasGuard).toBe(false);
+    expect(mountAuraRoute({ guard: 'none', view: 'html::<p/>' }, { parent: router }).hasGuard).toBe(false);
   });
 
   it('layout is sync; transition shortcut sets in/out effects', () => {
-    expect(route({ layout: 'shell' }).hasLayout).toBe(true);
-    expect(route({ layout: 'shell' }).hasAsyncContent).toBe(false);
+    expect(mountAuraRoute({ layout: 'shell' }).hasLayout).toBe(true);
+    expect(mountAuraRoute({ layout: 'shell' }).hasAsyncContent).toBe(false);
 
-    const el = route({ view: 'html::<p/>', transition: 'fade' });
+    const el = mountAuraRoute({ view: 'html::<p/>', transition: 'fade' });
     expect(el.hasTransitionIn).toBe(true);
     expect(el.hasReady).toBe(true);
   });
 
   it('transition-order alone sets order without in/out effects', () => {
-    const el = route({ view: 'html::<p/>', 'transition-order': 'parallel' });
+    const el = mountAuraRoute({ view: 'html::<p/>', 'transition-order': 'parallel' });
 
     expect(el.transition).toEqual({ order: 'parallel', in: null, out: null });
     expect(el.hasTransitionIn).toBe(false);

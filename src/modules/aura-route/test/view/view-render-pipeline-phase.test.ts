@@ -1,70 +1,34 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_CACHE } from '../../../aura-routing-engine/core';
-import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 import type { AuraRouteInterface } from '../../core/types';
-import { defaultDomCache } from '../../core/view/dom-cache';
-import { ViewContext } from '../../core/view/view-context';
 import { ViewRenderPipelinePhase } from '../../core/view/view-render-pipeline-phase';
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
-
-function renderPass(id = 1): import('../../core/view/types').RenderPass {
-  return {
-    id,
-    routeInfo: {
-      href: '/err',
-      pathname: '/err',
-      search: '',
-      hash: '',
-      pattern: '/err',
-    } as MatchedRouteInfo,
-    signal: new AbortController().signal,
-    domCacheKey: '/err',
-    viewKind: 'view',
-    useStagedMount: false,
-  };
-}
+import {
+  createOutlet,
+  createRenderPass,
+  createViewContext,
+  defineAuraOutlet,
+} from '../_helpers';
 
 function createPhase(
   root: AuraOutlet,
   route: Partial<AuraRouteInterface>,
   passId = 1,
 ): ViewRenderPipelinePhase {
-  const ctx = new ViewContext(
-    {
-      route: {
-        path: '/err',
-        layout: '',
-        view: '',
-        loadingTemplate: '',
-        errorTemplate: '',
-        cache: NO_CACHE,
-        scrollPolicy: null,
-        transition: { order: null, in: null, out: null },
-        ...route,
-      } as AuraRouteInterface,
-      view: { loadView: async () => ({ data: null }) },
-      cache: defaultDomCache,
-      mountTarget: {
-        appOutlet: () => root,
-        nestedOutlet: () => null,
-      },
-    },
-    () => passId,
+  return new ViewRenderPipelinePhase(
+    createViewContext({
+      root,
+      route: { path: '/err', ...route },
+      getPassId: () => passId,
+    }),
   );
+}
 
-  return new ViewRenderPipelinePhase(ctx);
+function errPass(id = 1) {
+  return createRenderPass({ id, pathname: '/err' });
 }
 
 describe('ViewRenderPipelinePhase', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
+    defineAuraOutlet();
   });
 
   afterEach(() => {
@@ -81,7 +45,7 @@ describe('ViewRenderPipelinePhase', () => {
       const root = createOutlet();
       const phase = createPhase(root, { errorTemplate: 'route-error-tpl' });
 
-      phase.handleError(renderPass(), new Error('fail'));
+      phase.handleError(errPass(), new Error('fail'));
 
       expect(root.textContent).toBe('Oops');
     });
@@ -90,7 +54,7 @@ describe('ViewRenderPipelinePhase', () => {
       const root = createOutlet();
       const phase = createPhase(root, { errorTemplate: '' });
 
-      phase.handleError(renderPass(), new Error('boom'));
+      phase.handleError(errPass(), new Error('boom'));
 
       expect(root.textContent).toContain('Content Loading Error');
       expect(root.textContent).toContain('boom');
@@ -102,7 +66,7 @@ describe('ViewRenderPipelinePhase', () => {
       const root = createOutlet();
       const phase = createPhase(root, {});
 
-      await phase.resolveContent(renderPass());
+      await phase.resolveContent(errPass());
 
       expect(root.textContent).toBe('No content to display');
     });
@@ -113,7 +77,7 @@ describe('ViewRenderPipelinePhase', () => {
       const root = createOutlet();
       const phase = createPhase(root, {});
 
-      phase.applyResolvedContent(renderPass(), '<span>ready</span>');
+      phase.applyResolvedContent(errPass(), '<span>ready</span>');
 
       expect(root.textContent).toBe('ready');
     });
@@ -122,7 +86,7 @@ describe('ViewRenderPipelinePhase', () => {
       const root = createOutlet();
       const phase = createPhase(root, {});
 
-      phase.applyResolvedContent(renderPass(), null);
+      phase.applyResolvedContent(errPass(), null);
 
       expect(root.textContent).toBe('No content to display');
     });

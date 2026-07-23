@@ -1,34 +1,13 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_CACHE } from '../../../aura-routing-engine/core';
-import type { MatchedRouteInfo } from '../../../aura-routing-engine/route-api';
 import type { AuraRouteInterface } from '../../core/types';
-import { defaultDomCache } from '../../core/view/dom-cache';
-import type { RenderPass } from '../../core/view/types';
-import { ViewContext } from '../../core/view/view-context';
+import type { ViewContext } from '../../core/view/view-context';
 import { ViewRenderPipeline } from '../../core/view/view-render-pipeline';
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
-
-function renderPass(id = 1): RenderPass {
-  return {
-    id,
-    routeInfo: {
-      href: '/page',
-      pathname: '/page',
-      search: '',
-      hash: '',
-      pattern: '/page',
-    } as MatchedRouteInfo,
-    signal: new AbortController().signal,
-    domCacheKey: '/page',
-    viewKind: 'view',
-    useStagedMount: false,
-  };
-}
+import {
+  createOutlet,
+  createRenderPass,
+  createViewContext,
+  defineAuraOutlet,
+} from '../_helpers';
 
 function createPipeline(
   root: AuraOutlet,
@@ -39,38 +18,20 @@ function createPipeline(
     plugins?: ViewContext['config']['plugins'];
   } = {},
 ): ViewRenderPipeline {
-  const ctx = new ViewContext(
-    {
-      route: {
-        path: '/page',
-        layout: '',
-        view: '',
-        loadingTemplate: '',
-        errorTemplate: '',
-        cache: NO_CACHE,
-        scrollPolicy: null,
-        transition: { order: null, in: null, out: null },
-        ...overrides.route,
-      } as AuraRouteInterface,
+  return new ViewRenderPipeline(
+    createViewContext({
+      root,
+      route: overrides.route,
       view: overrides.view ?? { loadView: async () => ({ data: '<span>ok</span>' }) },
-      cache: overrides.cache ?? defaultDomCache,
-      mountTarget: {
-        appOutlet: () => root,
-        nestedOutlet: () => null,
-      },
+      cache: overrides.cache,
       plugins: overrides.plugins,
-    },
-    () => 1,
+    }),
   );
-
-  return new ViewRenderPipeline(ctx);
 }
 
 describe('ViewRenderPipeline', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
+    defineAuraOutlet();
   });
 
   afterEach(() => {
@@ -81,7 +42,7 @@ describe('ViewRenderPipeline', () => {
     const root = createOutlet();
     const pipeline = createPipeline(root);
 
-    const result = await pipeline.resolveAndMount(renderPass());
+    const result = await pipeline.resolveAndMount(createRenderPass());
 
     expect(result).toEqual({ status: 'ok' });
     expect(root.textContent).toBe('ok');
@@ -94,7 +55,7 @@ describe('ViewRenderPipeline', () => {
     const pipeline = createPipeline(root, {
       plugins: [{ onLoadingStart, onLoadingEnd }],
     });
-    const pass = renderPass();
+    const pass = createRenderPass();
 
     await pipeline.resolveAndMount(pass);
 
@@ -113,7 +74,7 @@ describe('ViewRenderPipeline', () => {
       },
     });
 
-    const result = await pipeline.resolveAndMount(renderPass());
+    const result = await pipeline.resolveAndMount(createRenderPass());
 
     expect(result.status).toBe('error');
     expect(root.textContent).toContain('load failed');
@@ -131,7 +92,7 @@ describe('ViewRenderPipeline', () => {
     });
 
     const result = pipeline.syncBranchMount({
-      ...renderPass(),
+      ...createRenderPass(),
       preResolvedView: '<span>pre-resolved</span>',
     });
 
@@ -152,7 +113,7 @@ describe('ViewRenderPipeline', () => {
     const pipeline = createPipeline(root, { view: { loadView } });
 
     pipeline.syncBranchMount({
-      ...renderPass(),
+      ...createRenderPass(),
       preResolvedView: null,
     });
 
@@ -171,7 +132,7 @@ describe('ViewRenderPipeline', () => {
     });
 
     const result = pipeline.syncBranchMount({
-      ...renderPass(),
+      ...createRenderPass(),
       preResolvedView: '<span>from-branch</span>',
     });
 
@@ -189,7 +150,7 @@ describe('ViewRenderPipeline', () => {
     });
 
     const result = pipeline.syncBranchMount({
-      ...renderPass(),
+      ...createRenderPass(),
       preResolvedView: '<span>from-branch</span>',
     });
 

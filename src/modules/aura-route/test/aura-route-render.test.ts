@@ -14,85 +14,52 @@
   return { AuraRouter: MockAuraRouter };
 });
 
-import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRouter } from '../../aura-router/core/aura-router';
-import type { MatchedRouteInfo } from '../../aura-routing-engine/route-api';
-import { AuraRoute } from '../core/aura-route';
+import {
+  createMatchedRouteInfo,
+  defineAuraOutlet,
+  defineAuraRoute,
+  defineAuraRouter,
+  mountAuraRouteUnderRouter,
+} from './_helpers';
 
 describe('AuraRoute render validation', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
-    if (!customElements.get(AuraRoute.is)) {
-      customElements.define(AuraRoute.is, AuraRoute);
-    }
-    if (!customElements.get(AuraRouter.is)) {
-      customElements.define(AuraRouter.is, AuraRouter as CustomElementConstructor);
-    }
+    defineAuraOutlet();
+    defineAuraRoute();
+    defineAuraRouter(AuraRouter as CustomElementConstructor);
   });
 
   afterEach(() => {
     document.body.replaceChildren();
   });
 
-  function mountRoute(
-    attrs: Record<string, string>,
-    innerHTML = '',
-  ): AuraRoute {
-    const router = document.createElement(AuraRouter.is);
-    const route = document.createElement(AuraRoute.is) as AuraRoute;
-    route.setAttribute('path', attrs.path ?? '/page');
-    for (const [name, value] of Object.entries(attrs)) {
-      if (name === 'path') continue;
-      route.setAttribute(name, value);
-    }
-    route.innerHTML = innerHTML;
-    router.append(route);
-    document.body.append(router);
-    return route;
-  }
-
-  const routeInfo = {
-    href: '/page',
-    pathname: '/page',
-    search: '',
-    hash: '',
-    pattern: '/page',
-  } as MatchedRouteInfo;
-
   it('throws on render when page has no view', async () => {
-    const route = mountRoute({ path: '/empty' });
+    const route = mountAuraRouteUnderRouter({ path: '/empty' });
 
-    await expect(route.render({ ...routeInfo, href: '/empty', pathname: '/empty', pattern: '/empty' }))
+    await expect(route.render(createMatchedRouteInfo('/empty')))
       .rejects.toThrow('AuraRoute page "/empty" has no view');
   });
 
   it('throws on render when folder has no shell', async () => {
-    const route = mountRoute(
+    const route = mountAuraRouteUnderRouter(
       { path: '/settings' },
-      '<aura-route path="profile" view="html::<p/>"></aura-route>',
+      {},
+      { innerHTML: '<aura-route path="profile" view="html::<p/>"></aura-route>' },
     );
 
-    await expect(route.render({
-      ...routeInfo,
-      href: '/settings',
-      pathname: '/settings',
-      pattern: '/settings',
-    })).rejects.toThrow('AuraRoute folder "/settings" has no layout');
+    await expect(route.render(createMatchedRouteInfo('/settings')))
+      .rejects.toThrow('AuraRoute folder "/settings" has no layout');
   });
 
   it('throws when folder declares view and children', async () => {
-    const route = mountRoute(
+    const route = mountAuraRouteUnderRouter(
       { path: '/settings', layout: 'shell', view: 'html::<p/>' },
-      '<aura-route path="profile" view="html::<p/>"></aura-route>',
+      {},
+      { innerHTML: '<aura-route path="profile" view="html::<p/>"></aura-route>' },
     );
 
-    await expect(route.render({
-      ...routeInfo,
-      href: '/settings',
-      pathname: '/settings',
-      pattern: '/settings',
-    })).rejects.toThrow('cannot declare view');
+    await expect(route.render(createMatchedRouteInfo('/settings')))
+      .rejects.toThrow('cannot declare view');
   });
 });

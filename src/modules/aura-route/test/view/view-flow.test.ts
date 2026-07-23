@@ -1,26 +1,15 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import { NO_CACHE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
 import type { AuraRouteInterface } from '../../core/types';
 import { defaultDomCache } from '../../core/view/dom-cache';
 import type { ViewResolverPort } from '../../core/view/types';
 import { RouteViewController } from '../../core/view/view-controller';
-
-function createOutlet(): AuraOutlet {
-  const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-  document.body.append(outlet);
-  return outlet;
-}
-
-function matched(pathname: string, pattern = pathname): MatchedRouteInfo {
-  return {
-    href: pathname,
-    pathname,
-    search: '',
-    hash: '',
-    pattern,
-  } as MatchedRouteInfo;
-}
+import {
+  createMatchedRouteInfo,
+  createOutlet,
+  createRouteStub,
+  defineAuraOutlet,
+} from '../_helpers';
 
 function createController(
   root: AuraOutlet,
@@ -29,32 +18,14 @@ function createController(
   staged = false,
 ): { controller: RouteViewController; route: AuraRouteInterface } {
   let passId = 0;
-  const route: AuraRouteInterface = {
+  const route = createRouteStub({
     path,
-    layout: '',
-    redirect: '',
     view: { loader: 'html', content: '' },
-    loadingTemplate: '',
-    errorTemplate: '',
-    cache: NO_CACHE,
-    scrollPolicy: null,
-    extract: null,
-    type: 'page',
-    hasLayout: false,
     hasViewContent: true,
-    hasGuard: false,
-    hasLeave: false,
-    hasLoad: false,
-    hasTransitionIn: false,
-    hasReady: false,
-    hasAsyncContent: false,
-    hasSyncContent: false,
-    get transition() {
-      return staged
-        ? { order: 'parallel' as const, in: null, out: null }
-        : NO_TRANSITION;
-    },
-  };
+    transition: staged
+      ? { order: 'parallel', in: null, out: null }
+      : NO_TRANSITION,
+  });
 
   const controller = new RouteViewController(
     {
@@ -80,9 +51,7 @@ function createController(
 
 describe('view flow (controller → outlet)', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
+    defineAuraOutlet();
   });
 
   afterEach(() => {
@@ -100,11 +69,11 @@ describe('view flow (controller → outlet)', () => {
       },
     }, '/', true);
 
-    await controller.render(matched('/old'));
+    await controller.render(createMatchedRouteInfo('/old'));
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('old');
 
-    await controller.render(matched('/new'));
+    await controller.render(createMatchedRouteInfo('/new'));
     expect(root.children).toHaveLength(2);
     expect(root.textContent).toBe('oldnew');
 
@@ -121,8 +90,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
-    await controller.render(matched('/old'));
-    await controller.render(matched('/new'));
+    await controller.render(createMatchedRouteInfo('/old'));
+    await controller.render(createMatchedRouteInfo('/new'));
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('new');
   });
@@ -134,8 +103,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
-    await controller.render(matched('/old'));
-    await controller.render(matched('/new'));
+    await controller.render(createMatchedRouteInfo('/old'));
+    await controller.render(createMatchedRouteInfo('/new'));
     expect(root.textContent).toBe('new');
 
     controller.revertInFlightView();
@@ -149,8 +118,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
-    await controller.render(matched('/old'));
-    await controller.render(matched('/new'));
+    await controller.render(createMatchedRouteInfo('/old'));
+    await controller.render(createMatchedRouteInfo('/new'));
 
     controller.commitStagedView();
     controller.revertInFlightView();
@@ -165,19 +134,16 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     }, '/', true);
 
-    await controller.render(matched('/old'));
-    await controller.render(matched('/new'));
+    await controller.render(createMatchedRouteInfo('/old'));
+    await controller.render(createMatchedRouteInfo('/new'));
     expect(root.children).toHaveLength(2);
 
     controller.revertInFlightView();
     expect(root.children).toHaveLength(1);
     expect(root.textContent).toBe('old');
 
-    Object.defineProperty(route, 'transition', {
-      get: () => NO_TRANSITION,
-      configurable: true,
-    });
-    await controller.render(matched('/old'));
+    Object.assign(route, { transition: NO_TRANSITION });
+    await controller.render(createMatchedRouteInfo('/old'));
     expect(root.textContent).toBe('old');
     expect(root.children).toHaveLength(1);
   });
@@ -188,7 +154,7 @@ describe('view flow (controller → outlet)', () => {
       loadView: async () => ({ data: '<span>page</span>' }),
     });
 
-    await controller.render(matched('/page'));
+    await controller.render(createMatchedRouteInfo('/page'));
     const viewRoot = root.firstElementChild as HTMLElement;
     viewRoot.style.opacity = '0';
     viewRoot.style.transform = 'translateX(-1.25rem)';
@@ -206,8 +172,8 @@ describe('view flow (controller → outlet)', () => {
         ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     }, '/', true);
 
-    await controller.render(matched('/old'));
-    await controller.render(matched('/new'));
+    await controller.render(createMatchedRouteInfo('/old'));
+    await controller.render(createMatchedRouteInfo('/new'));
     expect(root.children).toHaveLength(2);
 
     controller.onUnmount();
@@ -220,7 +186,7 @@ describe('view flow (controller → outlet)', () => {
       loadView: async () => ({ data: '<span>page</span>' }),
     });
 
-    await controller.render(matched('/page'));
+    await controller.render(createMatchedRouteInfo('/page'));
     expect(root.children).toHaveLength(1);
 
     controller.onUnmount();

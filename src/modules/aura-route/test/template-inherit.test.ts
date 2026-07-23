@@ -4,70 +4,64 @@ jest.mock('../../aura-router/core/aura-router', () => ({
   },
 }));
 
-import { AuraRoute } from '../core/aura-route';
+import { defineAuraRoute, mountAuraRoute, mountAuraRouteUnderRouter } from './_helpers';
 
 describe('AuraRoute template inherit', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraRoute.is)) {
-      customElements.define(AuraRoute.is, AuraRoute);
-    }
+    defineAuraRoute();
   });
 
-  function route(attrs: Record<string, string>, parent?: HTMLElement): AuraRoute {
-    const el = document.createElement(AuraRoute.is) as AuraRoute;
-    el.setAttribute('path', attrs.path ?? '/');
-    for (const [name, value] of Object.entries(attrs)) {
-      if (name === 'path') continue;
-      el.setAttribute(name, value);
-    }
-    parent?.append(el);
-    return el;
-  }
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
 
   it('inherits loading-template and error-template from aura-router', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('loading-template', 'loading');
-    router.setAttribute('error-template', 'error');
-    const child = route({ path: '/app' }, router);
+    const child = mountAuraRouteUnderRouter(
+      { path: '/app' },
+      { 'loading-template': 'loading', 'error-template': 'error' },
+    );
 
     expect(child.loadingTemplate).toBe('loading');
     expect(child.errorTemplate).toBe('error');
   });
 
   it('loading-template="none" opts out of router default', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('loading-template', 'loading');
-    const child = route({ path: '/fast', 'loading-template': 'none' }, router);
+    const child = mountAuraRouteUnderRouter(
+      { path: '/fast', 'loading-template': 'none' },
+      { 'loading-template': 'loading' },
+    );
 
     expect(child.loadingTemplate).toBeNull();
   });
 
   it('error-template="off" opts out of router default', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('error-template', 'error');
-    const child = route({ path: '/quiet', 'error-template': 'off' }, router);
+    const child = mountAuraRouteUnderRouter(
+      { path: '/quiet', 'error-template': 'off' },
+      { 'error-template': 'error' },
+    );
 
     expect(child.errorTemplate).toBeNull();
   });
 
   it('child overrides inherited templates', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('loading-template', 'loading');
-    router.setAttribute('error-template', 'error');
-    const child = route({
-      path: '/editor',
-      'loading-template': 'editor-skeleton',
-      'error-template': 'editor-error',
-    }, router);
+    const child = mountAuraRouteUnderRouter(
+      {
+        path: '/editor',
+        'loading-template': 'editor-skeleton',
+        'error-template': 'editor-error',
+      },
+      { 'loading-template': 'loading', 'error-template': 'error' },
+    );
 
     expect(child.loadingTemplate).toBe('editor-skeleton');
     expect(child.errorTemplate).toBe('editor-error');
   });
 
   it('nested route inherits from parent route', () => {
-    const router = document.createElement('aura-router');
-    const parent = route({ path: '/users', 'error-template': 'users-error' }, router);
-    const child = route({ path: ':id' }, parent);
+    const parent = mountAuraRouteUnderRouter(
+      { path: '/users', 'error-template': 'users-error' },
+    );
+    const child = mountAuraRoute({ path: ':id' }, { parent });
 
     expect(child.errorTemplate).toBe('users-error');
   });

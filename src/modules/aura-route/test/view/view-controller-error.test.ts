@@ -1,28 +1,16 @@
-import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import {
-  NavigationError,
-  NO_CACHE,
-  type MatchedRouteInfo,
-} from '../../../aura-routing-engine/core';
-import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
-import type { AuraRouteInterface } from '../../core/types';
+import { NavigationError } from '../../../aura-routing-engine/core';
 import { RouteViewController } from '../../core/view/view-controller';
-
-function matched(pathname: string): MatchedRouteInfo {
-  return {
-    href: pathname,
-    pathname,
-    search: '',
-    hash: '',
-    pattern: pathname,
-  } as MatchedRouteInfo;
-}
+import {
+  createMatchedRouteInfo,
+  createNoopDomCache,
+  createOutlet,
+  createRouteStub,
+  defineAuraOutlet,
+} from '../_helpers';
 
 describe('RouteViewController render errors', () => {
   beforeAll(() => {
-    if (!customElements.get(AuraOutlet.is)) {
-      customElements.define(AuraOutlet.is, AuraOutlet);
-    }
+    defineAuraOutlet();
   });
 
   afterEach(() => {
@@ -30,8 +18,7 @@ describe('RouteViewController render errors', () => {
   });
 
   it('returns error result after mounting recovery UI without rethrowing', async () => {
-    const outlet = document.createElement(AuraOutlet.is) as AuraOutlet;
-    document.body.append(outlet);
+    const outlet = createOutlet();
 
     const loadError = new NavigationError({
       code: 'CONTENT_LOAD_FAILED',
@@ -43,22 +30,13 @@ describe('RouteViewController render errors', () => {
     let passErrorEmitted = false;
     const controller = new RouteViewController(
       {
-        route: {
-          path: '/broken',
-          layout: '',
-          view: null,
-          loadingTemplate: '',
-          errorTemplate: '',
-          scrollPolicy: null,
-          cache: NO_CACHE,
-          transition: NO_TRANSITION,
-        } as AuraRouteInterface,
+        route: createRouteStub({ path: '/broken' }),
         view: {
           loadView: async () => {
             throw loadError;
           },
         },
-        cache: { has: () => false, extract: () => undefined, put: () => {} },
+        cache: createNoopDomCache(),
         mountTarget: {
           appOutlet: () => outlet,
           nestedOutlet: () => null,
@@ -74,7 +52,7 @@ describe('RouteViewController render errors', () => {
       () => 1,
     );
 
-    const result = await controller.render(matched('/broken'));
+    const result = await controller.render(createMatchedRouteInfo('/broken'));
 
     expect(result).toEqual({ status: 'error', error: loadError });
     expect(passErrorEmitted).toBe(true);

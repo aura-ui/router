@@ -4,7 +4,7 @@
 
 | | |
 | --- | --- |
-| **Updated** | 2026-07-21 |
+| **Updated** | 2026-07-24 |
 | **Audience** | Library users, contributors, and reviewers |
 | **Public docs** | [README](./README.md) · [LIMITATIONS](./LIMITATIONS.md) · [CHANGELOG](./CHANGELOG.md) |
 
@@ -62,16 +62,19 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | --- | --- |
 | **Navigation pipeline** | Guards → loads → render → after hooks (`NavigationCoordinator` → transaction → pipeline) |
 | **Route tree diff** | Only changed branches re-render; shared parent layouts stay mounted |
-| **Nested routes + outlet** | Parent layouts, sibling swaps, scoped `path="*"`, `<aura-outlet>` |
+| **Nested routes + outlet** | Parent layouts, sibling swaps, scoped `path="*"`, `<aura-outlet>` (root outlet auto-created if missing) |
 | **Fast path** | Skip heavy work on simple link clicks with no guards or loaders |
 | **Commit point** | Staged render: prepare off-screen, swap when ready |
-| **Link prefetch** | Hover/tap intent with inherited prefetch policy |
-| **DataGraph** | Route `load` + `AuraResolvableSwrCache` (baseline; parity gaps in 2.1) |
-| **View loaders** | `view="…"` — `url`, `html`, `template`, `import`, `component`, `iframe` |
+| **Link prefetch** | Hover/tap intent on `[aura-router-link]` with inherited prefetch policy |
+| **Named hooks** | `AuraRouter.use(name, fn)` / `defineRouteHook(name, fn)` for lifecycle & transitions |
+| **Loading chrome** | `loading-template` / `loading-body-class` / loading events during prepare |
+| **DataGraph** | Route `load` + `AuraResolvableSwrCache` (per-entry `gcTime`/`staleTime`; parity gaps in 2.1) |
+| **View loaders** | `view="…"` — `url`, `html`, `template`, `import`, `component`, `iframe` (+ hardened `extract`) |
 | **Lifecycle attrs** | `guard`, `load`, `ready`, `leave`, … on `<aura-route>` / inherit from router |
-| **View cache** | `cache` attr (`dom` / `view` / `data` / `screen` / `all`) |
-| **EventBus** | Typed engine events via `router.events` / `NavigationPulse` |
-| **Navigation errors** | Structured errors + `navigation-error` / `not-found` DOM events |
+| **View cache** | `cache` ladder **off → `cache` → `dom` → `all`** (plus `view` / `data`) |
+| **Invalidate** | `router.invalidate({ cache: 'data' \| 'view' \| 'all' })` |
+| **Events** | DOM events on `<aura-router>` (`navigation-error`, `not-found`, …); engine `EventBus` is internal |
+| **Navigation errors** | Structured failures + `error-template` / catch-all `path="*"` |
 | **Scroll restoration** | Restore scroll position on back/forward |
 | **URLPattern matcher** | Native-style path matching with params |
 
@@ -82,12 +85,12 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | Phase | Theme | Overall | Notes |
 | --- | --- | :---: | --- |
 | **1** | [Routing engine](#shipped) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Shipped — see summary below |
-| **2** | [Data & cache](#phase-2--data-loading--cache) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | DataGraph parity, out-in prefetch |
+| **2** | [Data & cache](#phase-2--data-loading--cache) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Cache ladder / invalidate / entry timings <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; DataGraph parity + out-in prefetch open |
 | **3** | [View rendering](#phase-3--view-rendering) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Renderer API, incremental DOM |
-| **4** | [Navigation UX](#phase-4--navigation-experience) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | View Transitions API |
-| **5** | [Developer API](#phase-5--developer-facing-api) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Route API <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; folders <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; `/full` <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
-| **6** | [DevTools](#phase-6--debugging--performance-tooling) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Event stream <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; UI / CI gate open |
-| **7** | [Examples & docs](#phase-7--examples--docs) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Demo <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; recipes / E2E / playground open |
+| **4** | [Navigation UX](#phase-4--navigation-experience) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Loading chrome <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; View Transitions API <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
+| **5** | [Developer API](#phase-5--developer-facing-api) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Route API + named hooks <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; folders <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; `/full` <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
+| **6** | [DevTools](#phase-6--debugging--performance-tooling) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Event stream + smoke/size CI <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; DevTools UI / per-nav gate open |
+| **7** | [Examples & docs](#phase-7--examples--docs) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Demo + local playground <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; recipes / E2E / hosted playground open |
 | **8** | [MPA → SPA](#phase-8--mpa--spa) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Guide + static example |
 
 ---
@@ -98,20 +101,23 @@ Closed work kept here in short form. User-facing notes of the same work: [CHANGE
 
 ### Phase 1 — Routing engine <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span>
 
-Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `NavigationTransactionPipeline`. Modules under `src/modules/aura-routing-engine/core/` (route-tree, prefetch, DataGraph, view-mount, …). Typed `EventBus` + `NavigationPulse` (`router.events`). Layer map: [`core/ARCHITECTURE.md`](./src/modules/aura-routing-engine/core/ARCHITECTURE.md).
+Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `NavigationTransactionPipeline`. Modules under `src/modules/aura-routing-engine/core/` (route-tree, prefetch, DataGraph, view-mount, …). Typed engine `EventBus` + `NavigationPulse` (internal; host maps to DOM events). Layer map: [`core/ARCHITECTURE.md`](./src/modules/aura-routing-engine/core/ARCHITECTURE.md).
 
 | # | Task | Status |
 | ---: | --- | :---: |
 | 1.1 | Engine architecture (layer contracts + orchestration) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
 | 1.2 | Migrate engine modules onto that architecture | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
-| 1.3 | Typed EventBus | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
+| 1.3 | Typed EventBus (engine-internal; DOM events on host) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
 
 ### Also shipped (inside later phases)
 
 | # | Task | Status |
 | ---: | --- | :---: |
+| 2.x | Cache ladder + per-entry `gcTime`/`staleTime` + unified `invalidate({ cache })` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
+| 4.x | Loading chrome (`loading-template` / body class / events) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
 | 5.1 | Target route API — `view`, `guard`, `load`, `ready`, `cache` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
 | 5.2 | Lifecycle naming (`guard` / `load` / `ready` / …) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
+| 5.x | Named hooks — `AuraRouter.use` / `defineRouteHook`; `aura-router-link`; `error-template`; auto root outlet | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
 
 ---
 
@@ -121,7 +127,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 
 | # | Task | Status | Notes |
 | ---: | --- | :---: | --- |
-| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **2.1** | **DataGraph** — complete route data layer (cache, SWR, nested reuse) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | v1 shipped (parallel loads, LCA reuse, invalidate). Gaps: `shouldRevalidate`, public `defer()`, nav-time SWR |
+| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **2.1** | **DataGraph** — complete route data layer (cache, SWR, nested reuse) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | v1 shipped (parallel loads, LCA reuse, unified invalidate, per-entry `gcTime`/`staleTime`, `cache` ladder). Gaps: `shouldRevalidate`, public `defer()`, nav-time SWR |
 | 2.2 | **Out-in prefetch** — preload the next view off-screen, then animate out → in | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | `transition-order="out-in"` exists; dedicated out-in-prefetch policy does not |
 
 ---
@@ -143,6 +149,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 
 | # | Task | Status | Notes |
 | ---: | --- | :---: | --- |
+| 4.0 | **Loading chrome** — skeleton / body class / events while prepare runs | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | `loading-template` skipped when page transitions are defined; listed under [Shipped](#shipped) |
 | 4.1 | **View Transitions API** — optional cross-fade / slide via `document.startViewTransition` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | CSS / WAAPI transitions via attrs work in demo; browser VT API not wired in engine |
 
 ---
@@ -153,10 +160,11 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 
 | # | Task | Status | Notes |
 | ---: | --- | :---: | --- |
-| 5.1 | **Target route API** — `view`, `guard`, `load`, `ready`, `cache` on `<aura-route>` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | See [README](./README.md); listed again under [Shipped](#shipped) |
+| 5.1 | **Target route API** — `view`, `guard`, `load`, `ready`, `cache` on `<aura-route>` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | See [README](./README.md); `cache` ladder + `error-template` / `aura-router-link`; listed under [Shipped](#shipped) |
 | 5.2 | **Lifecycle naming** — align hook/phase names with familiar router terminology | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Listed again under [Shipped](#shipped) |
+| 5.2a | **Named hook registration** — `AuraRouter.use(name, fn)` / `defineRouteHook(name, fn)` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Listed under [Shipped](#shipped) |
 | 5.3 | **Nested route folders** — file-system-style nested routes and layouts | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Engine nested path + demo layouts <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; colocated folder templates still open |
-| 5.4 | **Default vs `/full` entry** — one package, two import surfaces | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | **Today:** only `"."` → full bundle. **Target:** default `@auraui/router` = lite (match, navigate, view mount; no loaders / DataGraph / `load`); `@auraui/router/full` = current full surface. Same package, different entries — not a second npm package |
+| 5.4 | **Default vs `/full` entry** — one package, two import surfaces | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | **Today:** only `"."` → full bundle (modular dist emit exists). **Target:** default `@auraui/router` = lite (match, navigate, view mount; no loaders / DataGraph / `load`); `@auraui/router/full` = current full surface. Same package, different entries — not a second npm package |
 
 ---
 
@@ -167,8 +175,8 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | # | Task | Status | Notes |
 | ---: | --- | :---: | --- |
 | 6.1 | **Cache DevTools** — inspect hits/misses, keys, and eviction in the browser | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | No hit/miss UI yet |
-| 6.2 | **Navigation timeline** — visual prepare → commit → post breakdown in DevTools | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Event stream <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span> (`EventBus` / `NavigationPulse`); DevTools timeline UI not built |
-| 6.3 | **Performance baseline** — measure prepare / commit / post per navigation | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | `bench/` + `npm run bench*` exist; not yet a product/CI per-nav metrics gate |
+| 6.2 | **Navigation timeline** — visual prepare → commit → post breakdown in DevTools | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Event stream <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span> (engine `EventBus` / `NavigationPulse` → host DOM events); DevTools timeline UI not built |
+| 6.3 | **Performance baseline** — measure prepare / commit / post per navigation | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | `bench/` + `npm run bench*` exist; CI smoke + size checks <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; per-nav metrics gate still open |
 
 ---
 
@@ -178,15 +186,15 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 
 | # | Task | Status | Notes |
 | ---: | --- | :---: | --- |
-| 7.1 | **Demo app** — interactive showcase of hooks, loaders, and transitions | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | [`src/examples/demo`](./src/examples/demo); not every feature covered yet |
+| 7.1 | **Demo app** — interactive showcase of hooks, loaders, and transitions | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | [`src/examples/demo`](./src/examples/demo); named hooks + loading chrome covered partially; not every feature yet |
 | 7.2 | **Minimal starter** — smallest app: flat routes, one hook, one loader | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | README Quick start covers it; no separate `examples/minimal/` package |
 | 7.3 | **Nested layouts** — parent layout + child outlet, sibling swaps, inherited guards | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Shown in demo (`routing-nested` / `routing-advanced`); not a standalone recipe |
 | 7.4 | **Auth recipe** — async guard, redirect to login, protected layout shell | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | |
-| 7.5 | **Prefetch & cache recipe** — link hover prefetch, stale-while-revalidate `load` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Prefetch engine <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; recipe + SWR parity still open (Phase 2.1) |
-| 7.6 | **Errors & 404 recipe** — custom error boundaries and not-found pages | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Partially shown in demo (catch-all / not-found) |
-| 7.7 | **Public playground** — hosted demo linked from README (one-click try) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Local [`playground/`](./playground/) exists; not hosted / not linked from README |
+| 7.5 | **Prefetch & cache recipe** — link hover prefetch, stale-while-revalidate `load` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Prefetch + `cache` ladder + per-entry timings <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; dedicated recipe + SWR parity still open (Phase 2.1) |
+| 7.6 | **Errors & 404 recipe** — custom error boundaries and not-found pages | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | `error-template` + catch-all in demo; dedicated recipe still open |
+| 7.7 | **Public playground** — hosted demo linked from README (one-click try) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Local Fastify [`playground/`](./playground/) exists; not hosted / not linked from README |
 | 7.8 | **E2E tests** — Playwright suite against example apps | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | No Playwright config yet |
-| 7.9 | **Pre-release 0.0.1** — merge to `main`, npm publish | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Build/tests/pack green; merge + publish pending |
+| 7.9 | **Pre-release 0.0.1** — merge to `main`, npm publish | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Build/tests/pack + CI smoke/size green; merge + publish pending |
 
 > **Done when:** every major feature has a small, documented example; the playground is one click from README.
 

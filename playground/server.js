@@ -27,9 +27,9 @@ fastify.get('/users', async function handler(request, reply) {
   return reply.type('text/html').send(html);
 });
 
-fastify.get('/user', async function handler(request, reply) {
+fastify.get('/user/:id', async function handler(request, reply) {
   await new Promise((r) => setTimeout(r, 3000));
-  const html = await loadPage('user.html');
+  const html = await loadPage(`user${request.params.id}.html`);
   return reply.type('text/html').send(html);
 });
 
@@ -41,6 +41,16 @@ fastify.get('/contacts', async function handler(request, reply) {
 
 fastify.get('/login', async function handler(request, reply) {
   const html = await loadPage('login.html');
+  return reply.type('text/html').send(html);
+});
+
+fastify.get('/profile/settings', async function handler(request, reply) {
+  const html = await loadPage('profile-settings.html');
+  return reply.type('text/html').send(html);
+});
+
+fastify.get('/profile', async function handler(request, reply) {
+  const html = await loadPage('profile.html');
   return reply.type('text/html').send(html);
 });
 

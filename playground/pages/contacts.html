@@ -1,12 +1,14 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <script src="./static/main.js" defer></script>
+  <title>Contacts</title>
 </head>
 <body>
-Страница - Контакты
+Страница - Контакты (оболочка MPA, в SPA не попадает при extract)
 <div class="main">
-  Контакты - содержание
+  <h1>Contacts</h1>
+  <p>Контакты — содержание из серверного HTML (extract=".main").</p>
+  <p>На сервере искусственная задержка ~1s; у роута cache="off".</p>
 </div>
 </body>
 </html>

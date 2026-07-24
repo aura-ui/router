@@ -25,14 +25,27 @@
              loading-template="loading"
              loading-body-class="loading"
              error-template="error"
+             cache-time="30 20 13"
+             cache-view-time=""
+             cache-data-time=""
+             cache-dom-time=""
              cache>
   <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>
-  <aura-route path="/contacts" view="contacts" extract=".main" cache="off"   loading-template="loading-contacts"></aura-route>
+  <aura-route path="/login" view="login"></aura-route>
+
+  <aura-route path="/contacts" view="contacts" extract=".main" cache="off"
+              loading-template="loading-contacts"></aura-route>
+
   <aura-route path="/users" layout="users">
-    <aura-route path="1" view="user"></aura-route>
-    <aura-route path="2" view="user"></aura-route>
+    <aura-route path="." view="users" guard="auth"></aura-route>
+    <aura-route path=":id"
+                view="user"
+                ready="show-user"
+                update="show-user">
+    </aura-route>
   </aura-route>
+
   <aura-route path="*" view="template::not-found"></aura-route>
 </aura-router>
 

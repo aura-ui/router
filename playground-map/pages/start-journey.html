@@ -1,0 +1,28 @@
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Книга Странника</title>
+</head>
+<body>
+  оболочка
+  <div class="main">
+    <article class="scroll-mark">
+      <h1>Книга Странника</h1>
+      <p class="lede">
+        Впишите имя — и заставы Стены узнают вас.
+        Без записи путь <code>/wall/beyond</code> вернёт сюда (guard="journey").
+      </p>
+      <form class="journey-form" data-journey-form>
+        <label>
+          Имя в журнале
+          <input name="name" type="text" placeholder="например, Иво Лесная" required maxlength="40" />
+        </label>
+        <button class="btn" type="submit">Открыть путь за Стену</button>
+      </form>
+      <p class="hint" style="margin-top: 16px">
+        Имя хранится в sessionStorage — только для этого наброска демо.
+      </p>
+    </article>
+  </div>
+</body>
+</html>

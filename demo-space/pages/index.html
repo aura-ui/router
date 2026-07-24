@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Орбитальный атлас — освоение космоса</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Sora:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="./static/main.css" />
+  <script src="./static/main.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aura-router-link>
+      Орбитальный атлас
+      <span>Космос · человек · маршруты Aura</span>
+    </a>
+    <nav class="top-nav">
+      <a href="/" aura-router-link>ЦУП</a>
+      <a href="/chronicle/flight" aura-router-link>Хроника</a>
+      <a href="/system/earth" aura-router-link>Система</a>
+      <a href="/mir" aura-router-link>Мир</a>
+      <a href="/deep/solar" aura-router-link>Глубина</a>
+      <a href="/fleet" aura-router-link>Флот</a>
+    </nav>
+  </header>
+
+  <aside class="tour-rail" data-tour-rail hidden>
+    <p class="tour-rail-label">Экспедиция</p>
+    <ol class="tour-steps" data-tour-steps></ol>
+    <a class="tour-next btn" data-tour-next href="/" aura-router-link>Дальше</a>
+  </aside>
+
+  <main class="shell">
+    <aura-router
+      link-active-class="active"
+      loading-template="loading"
+      loading-body-class="loading"
+      error-template="error"
+      cache-time="20000"
+      cache
+      prefetch="true"
+    >
+      <aura-route path="/" view="template::home"></aura-route>
+
+      <aura-route path="/about" view="about" extract=".main"></aura-route>
+      <aura-route path="/briefing" view="briefing" extract=".main"></aura-route>
+
+      <aura-route path="/fleet" view="fleet" extract=".main" cache></aura-route>
+      <aura-route path="/fleet/:id" view="fleet/{{id}}" extract=".main"></aura-route>
+
+      <aura-route
+        path="/chronicle/:eraId"
+        layout="era-layout"
+        ready="era-chrome"
+        update="era-chrome"
+      >
+        <aura-route path="." view="chronicle/{{eraId}}" extract=".main"></aura-route>
+        <aura-route
+          path=":eventId"
+          view="chronicle/{{eraId}}/{{eventId}}"
+          extract=".main"
+        ></aura-route>
+      </aura-route>
+
+      <aura-route
+        path="/system/:bodyId"
+        layout="system-layout"
+        ready="system-chrome"
+        update="system-chrome"
+      >
+        <aura-route path="." view="system/{{bodyId}}" extract=".main"></aura-route>
+        <aura-route
+          path="missions/:id"
+          view="system/{{bodyId}}/missions/{{id}}"
+          extract=".main"
+        ></aura-route>
+      </aura-route>
+
+      <aura-route
+        path="/mir"
+        layout="mir-layout"
+        ready="mir-chrome"
+        update="mir-chrome"
+      >
+        <aura-route path="." view="mir" extract=".main"></aura-route>
+        <aura-route
+          path="modules/:moduleId"
+          view="mir/modules/{{moduleId}}"
+          extract=".main"
+          loading-template="loading-telemetry"
+        ></aura-route>
+      </aura-route>
+
+      <aura-route
+        path="/deep"
+        layout="deep-layout"
+        ready="deep-chrome"
+        update="deep-chrome"
+      >
+        <aura-route
+          path="horizon"
+          view="deep/horizon"
+          extract=".main"
+          guard="callsign"
+        ></aura-route>
+        <aura-route path=":scaleId" view="deep/{{scaleId}}" extract=".main"></aura-route>
+      </aura-route>
+
+      <aura-route path="*" view="template::not-found"></aura-route>
+    </aura-router>
+  </main>
+
+  <details class="dev-panel">
+    <summary>Как устроен роутер на этой странице</summary>
+    <p data-dev-note>Выберите маршрут — здесь появится подсказка по фичам Aura.</p>
+  </details>
+
+  <!-- —— Local templates —— -->
+
+  <template id="home">
+    <section class="hero">
+      <p class="eyebrow">Центр управления полётами</p>
+      <h1 class="hero-title">Орбитальный атлас</h1>
+      <p class="lede hero-lede">
+        Четыре пульта одного полёта: время советской космонавтики, Солнечная система,
+        станция «Мир» и лестница масштабов до горизонта Вселенной.
+      </p>
+      <div class="actions hero-actions">
+        <a class="btn" href="/chronicle/flight" aura-router-link>Начать экспедицию</a>
+        <a class="btn ghost" href="/about" aura-router-link>О проекте</a>
+      </div>
+
+      <nav class="orbit-hub" aria-label="Четыре пульта">
+        <a class="orbit-node is-start" href="/chronicle/flight" aura-router-link>
+          <span class="orbit-kicker">01 · время</span>
+          <strong>Хроника</strong>
+          <span>От Циолковского к орбите</span>
+        </a>
+        <a class="orbit-node" href="/system/earth" aura-router-link>
+          <span class="orbit-kicker">02 · рядом</span>
+          <strong>Система</strong>
+          <span>Планеты и экспедиции</span>
+        </a>
+        <a class="orbit-node" href="/mir" aura-router-link>
+          <span class="orbit-kicker">03 · дом</span>
+          <strong>Мир</strong>
+          <span>Станция по отсекам</span>
+        </a>
+        <a class="orbit-node" href="/deep/solar" aura-router-link>
+          <span class="orbit-kicker">04 · дальше</span>
+          <strong>Глубина</strong>
+          <span>До метагалактики</span>
+        </a>
+      </nav>
+    </section>
+  </template>
+
+  <template id="era-layout">
+    <section class="panel layout">
+      <header class="layout-chrome">
+        <div>
+          <nav class="breadcrumbs" data-crumbs aria-label="Путь"></nav>
+          <p class="hint layout-kicker">Эпоха хроники</p>
+          <h1 data-layout-title>Хроника</h1>
+        </div>
+        <nav class="subnav">
+          <a data-nav="overview" href=".">Обзор эпохи</a>
+          <a href="/chronicle/dreams" aura-router-link>Мечта</a>
+          <a href="/chronicle/dawn" aura-router-link>Рассвет</a>
+          <a href="/chronicle/flight" aura-router-link>Полёт</a>
+          <a href="/chronicle/orbit" aura-router-link>Орбита</a>
+        </nav>
+      </header>
+      <aura-outlet></aura-outlet>
+    </section>
+  </template>
+
+  <template id="system-layout">
+    <section class="panel layout">
+      <header class="layout-chrome">
+        <div>
+          <nav class="breadcrumbs" data-crumbs aria-label="Путь"></nav>
+          <p class="hint layout-kicker">Тело системы</p>
+          <h1 data-layout-title>Система</h1>
+        </div>
+        <nav class="subnav planet-nav">
+          <a data-nav="overview" href=".">Обзор</a>
+          <a href="/system/earth" aura-router-link>Земля</a>
+          <a href="/system/moon" aura-router-link>Луна</a>
+          <a href="/system/venus" aura-router-link>Венера</a>
+          <a href="/system/mars" aura-router-link>Марс</a>
+        </nav>
+      </header>
+      <aura-outlet></aura-outlet>
+    </section>
+  </template>
+
+  <template id="mir-layout">
+    <section class="panel layout mir-layout">
+      <header class="layout-chrome">
+        <div>
+          <nav class="breadcrumbs" data-crumbs aria-label="Путь"></nav>
+          <p class="hint layout-kicker">Орбитальный комплекс</p>
+          <h1 data-layout-title>Станция «Мир»</h1>
+        </div>
+        <a class="btn ghost" href="/mir" aura-router-link>Схема</a>
+      </header>
+      <div class="mir-shell">
+        <nav class="mir-map" data-mir-map aria-label="Модули станции">
+          <a href="/mir" data-module="" aura-router-link>Обзор</a>
+          <a href="/mir/modules/base" data-module="base" aura-router-link>Базовый</a>
+          <a href="/mir/modules/kvant" data-module="kvant" aura-router-link>Квант</a>
+          <a href="/mir/modules/kvant-2" data-module="kvant-2" aura-router-link>Квант-2</a>
+          <a href="/mir/modules/kristall" data-module="kristall" aura-router-link>Кристалл</a>
+          <a href="/mir/modules/spektr" data-module="spektr" aura-router-link>Спектр</a>
+          <a href="/mir/modules/priroda" data-module="priroda" aura-router-link>Природа</a>
+        </nav>
+        <aura-outlet></aura-outlet>
+      </div>
+    </section>
+  </template>
+
+  <template id="deep-layout">
+    <section class="panel layout">
+      <header class="layout-chrome">
+        <div>
+          <nav class="breadcrumbs" data-crumbs aria-label="Путь"></nav>
+          <p class="hint layout-kicker">Масштаб</p>
+          <h1 data-layout-title>Далёкий космос</h1>
+        </div>
+      </header>
+      <nav class="scale-rail" data-scale-rail aria-label="Лестница масштабов">
+        <a href="/deep/solar" data-scale="solar" aura-router-link>Система</a>
+        <a href="/deep/oort" data-scale="oort" aura-router-link>Оорт</a>
+        <a href="/deep/milky-way" data-scale="milky-way" aura-router-link>Галактика</a>
+        <a href="/deep/local-group" data-scale="local-group" aura-router-link>Группа</a>
+        <a href="/deep/observable" data-scale="observable" aura-router-link>Вселенная</a>
+        <a href="/deep/horizon" data-scale="horizon" aura-router-link>Горизонт</a>
+      </nav>
+      <aura-outlet></aura-outlet>
+    </section>
+  </template>
+
+  <template id="loading">
+    <div class="panel state-panel">
+      <h1>Связь с бортом…</h1>
+      <p>Подгружаем фрагмент атласа</p>
+    </div>
+  </template>
+
+  <template id="loading-telemetry">
+    <div class="panel state-panel">
+      <h1>Телеметрия модуля…</h1>
+      <p>Ждём пакет с орбиты</p>
+    </div>
+  </template>
+
+  <template id="error">
+    <div class="panel state-panel">
+      <h1>Потеряна телеметрия</h1>
+      <p>Не удалось загрузить страницу.</p>
+      <a class="btn" href="/" aura-router-link>В ЦУП</a>
+    </div>
+  </template>
+
+  <template id="not-found">
+    <div class="panel state-panel">
+      <h1>Координаты не найдены</h1>
+      <p>Такой маршрут ещё не нанесён на атлас.</p>
+      <a class="btn" href="/" aura-router-link>Вернуться</a>
+    </div>
+  </template>
+</body>
+</html>

@@ -6,6 +6,19 @@ describe('ResolvableCache', () => {
   afterEach(() => {
     cache?.destroy();
     cache = undefined;
+    jest.useRealTimers();
+  });
+
+  it('set forwards per-entry timings to the store', () => {
+    jest.useFakeTimers();
+    cache = new AuraResolvableSwrCache({ gcTime: 10_000, gcSweepInterval: false });
+    cache.set('short', 'a', { gcTime: 1_000 });
+    cache.set('long', 'b');
+
+    jest.advanceTimersByTime(1_001);
+
+    expect(cache.get('short')).toBeUndefined();
+    expect(cache.get('long')).toBe('b');
   });
 
   it('dedupes in-flight loads', async () => {

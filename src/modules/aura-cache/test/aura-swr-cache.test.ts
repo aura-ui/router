@@ -118,6 +118,197 @@ describe('AuraSwrCache', () => {
         new AuraSwrCache<string>({ staleTime: 1_000, gcTime: Infinity, gcSweepInterval: 500 }),
       ).toThrow('gcSweepInterval requires a finite gcTime');
     });
+
+    it('throws when per-entry timings are negative or NaN', () => {
+      cache = new AuraSwrCache<string>({ gcSweepInterval: false });
+      expect(() => cache!.set('a', 'one', { gcTime: -1 })).toThrow('gcTime must be >= 0');
+      expect(() => cache!.set('a', 'one', { staleTime: Number.NaN })).toThrow(
+        'staleTime must be >= 0',
+      );
+    });
+  });
+
+  describe('per-entry timings', () => {
+    it('expires by entry gcTime shorter than store default', () => {
+      cache = new AuraSwrCache<string>({ gcTime: 10_000, gcSweepInterval: false });
+      cache.set('short', 'a', { gcTime: 1_000 });
+      cache.set('long', 'b');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.get('short')).toBeUndefined();
+      expect(cache.get('long')).toBe('b');
+    });
+
+    it('keeps entry longer than store gcTime when entry overrides', () => {
+      cache = new AuraSwrCache<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('kept', 'a', { gcTime: 10_000 });
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.get('kept')).toBe('a');
+    });
+
+    it('set without options preserves per-entry timings', () => {
+      cache = new AuraSwrCache<string>({ gcTime: 10_000, gcSweepInterval: false });
+      cache.set('k', 'a', { gcTime: 1_000 });
+      cache.set('k', 'b');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.get('k')).toBeUndefined();
+    });
+
+    it('expires per-entry gcTime when store has no gcTime', () => {
+      cache = new AuraSwrCache<string>({ gcSweepInterval: false });
+      cache.set('k', 'a', { gcTime: 1_000 });
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.get('k')).toBeUndefined();
+      expect(cache.has('k')).toBe(false);
+    });
+
+    it('purgeExpired respects per-entry gcTime', () => {
+      cache = new AuraSwrCache<string>({ gcTime: 10_000, gcSweepInterval: false });
+      cache.set('short', 'a', { gcTime: 1_000 });
+      cache.set('long', 'b');
+
+      jest.advanceTimersByTime(1_001);
+      expect(cache.purgeExpired()).toBe(1);
+      expect(cache.get('short')).toBeUndefined();
+      expect(cache.get('long')).toBe('b');
+    });
+
+    it('uses per-entry staleTime for lookup', () => {
+      cache = new AuraSwrCache<string>({ gcTime: 10_000, gcSweepInterval: false });
+      cache.set('k', 'a', { staleTime: 500 });
+
+      jest.advanceTimersByTime(501);
+
+      expect(cache.lookup('k')).toEqual({ status: 'stale', value: 'a' });
+    });
+
+    it('per-entry staleTime overrides store staleTime', () => {
+      cache = new AuraSwrCache<string>({
+        staleTime: 5_000,
+        gcTime: 10_000,
+        gcSweepInterval: false,
+      });
+      cache.set('short', 'a', { staleTime: 500 });
+      cache.set('default', 'b');
+
+      jest.advanceTimersByTime(501);
+
+      expect(cache.lookup('short')).toEqual({ status: 'stale', value: 'a' });
+      expect(cache.lookup('default')).toEqual({ status: 'fresh', value: 'b' });
+      expect(cache.isStale('short')).toBe(true);
+      expect(cache.isStale('default')).toBe(false);
+    });
+
+    it('set with options replaces both overrides (partial clears the other)', () => {
+      cache = new AuraSwrCache<string>({
+        staleTime: 5_000,
+        gcTime: 10_000,
+        gcSweepInterval: false,
+      });
+      cache.set('k', 'a', { staleTime: 500, gcTime: 2_000 });
+      cache.set('k', 'b', { gcTime: 2_000 });
+
+      jest.advanceTimersByTime(501);
+
+      // per-entry staleTime cleared → store staleTime (5s) still fresh
+      expect(cache.lookup('k')).toEqual({ status: 'fresh', value: 'b' });
+
+      jest.advanceTimersByTime(1_500);
+      expect(cache.get('k')).toBeUndefined();
+    });
+
+    it('set with empty options clears per-entry overrides to store defaults', () => {
+      cache = new AuraSwrCache<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('k', 'a', { gcTime: 10_000 });
+      cache.set('k', 'b', {});
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.get('k')).toBeUndefined();
+    });
+
+    it('per-entry gcTime Infinity disables TTL removal for that entry', () => {
+      cache = new AuraSwrCache<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('kept', 'a', { gcTime: Infinity });
+      cache.set('gone', 'b');
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.get('kept')).toBe('a');
+      expect(cache.get('gone')).toBeUndefined();
+    });
+
+    it('per-entry staleTime Infinity keeps entry age-fresh', () => {
+      cache = new AuraSwrCache<string>({
+        staleTime: 500,
+        gcTime: 10_000,
+        gcSweepInterval: false,
+      });
+      cache.set('k', 'a', { staleTime: Infinity });
+
+      jest.advanceTimersByTime(2_000);
+
+      expect(cache.lookup('k')).toEqual({ status: 'fresh', value: 'a' });
+    });
+
+    it('per-entry staleTime without store TTL stales but never GC-expires', () => {
+      cache = new AuraSwrCache<string>({ gcSweepInterval: false });
+      cache.set('k', 'a', { staleTime: 500 });
+
+      jest.advanceTimersByTime(501);
+      expect(cache.lookup('k')).toEqual({ status: 'stale', value: 'a' });
+
+      jest.advanceTimersByTime(60_000);
+      expect(cache.has('k')).toBe(true);
+      expect(cache.purgeExpired()).toBe(0);
+    });
+
+    it('set without options refreshes storedAt so TTL restarts', () => {
+      cache = new AuraSwrCache<string>({ gcTime: 1_000, gcSweepInterval: false });
+      cache.set('k', 'a', { gcTime: 1_000 });
+
+      jest.advanceTimersByTime(800);
+      cache.set('k', 'b');
+      jest.advanceTimersByTime(800);
+
+      expect(cache.get('k')).toBe('b');
+
+      jest.advanceTimersByTime(201);
+      expect(cache.get('k')).toBeUndefined();
+    });
+
+    it('peek and extract remove per-entry GC-expired entries', () => {
+      cache = new AuraSwrCache<string>({ gcSweepInterval: false });
+      cache.set('peek', 'a', { gcTime: 1_000 });
+      cache.set('extract', 'b', { gcTime: 1_000 });
+
+      jest.advanceTimersByTime(1_001);
+
+      expect(cache.peek('peek')).toBeUndefined();
+      expect(cache.extract('extract')).toBeUndefined();
+      expect(cache.size).toBe(0);
+    });
+
+    it('entry SWR lifecycle: fresh → stale → removed by entry timings', () => {
+      cache = new AuraSwrCache<string>({ gcSweepInterval: false });
+      cache.set('k', 'a', { staleTime: 500, gcTime: 2_000 });
+
+      expect(cache.lookup('k')).toEqual({ status: 'fresh', value: 'a' });
+
+      jest.advanceTimersByTime(501);
+      expect(cache.lookup('k')).toEqual({ status: 'stale', value: 'a' });
+      expect(cache.get('k')).toBe('a');
+
+      jest.advanceTimersByTime(1_500);
+      expect(cache.lookup('k')).toEqual({ status: 'missing' });
+    });
   });
 
   describe('gcTime without SWR', () => {

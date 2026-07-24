@@ -1,6 +1,6 @@
 import { Singleflight } from '../../aura-utils/async/singleflight';
 
-import { AuraSwrCache, type SwrCacheOptions, type InvalidatePolicy } from './aura-swr-cache';
+import { AuraSwrCache, type SwrCacheOptions, type InvalidatePolicy, type EntryTimesOptions } from './aura-swr-cache';
 
 /**
  * Resolve policy for {@link AuraResolvableSwrCache} — fixed at construction, not per `resolve` call.
@@ -42,6 +42,9 @@ export class AuraResolvableSwrCache<T> {
    */
   private epoch = 0;
 
+  /**
+   * @param options - Store config plus fixed {@link ResolvableSwrCachePolicy}.
+   */
   constructor(options: ResolvableSwrCacheOptions<T> = {}) {
     const { write, onSettled, ...storeOptions } = options;
     this.store = new AuraSwrCache(storeOptions);
@@ -49,6 +52,12 @@ export class AuraResolvableSwrCache<T> {
     this.onSettled = onSettled;
   }
 
+  /**
+   * Returns a cached value when present (fresh or stale) and promotes LRU order.
+   *
+   * @param key - Cache key.
+   * @returns The stored value, or `undefined` if missing or GC-expired.
+   */
   get(key: string): T | undefined {
     return this.store.get(key);
   }
@@ -73,25 +82,52 @@ export class AuraResolvableSwrCache<T> {
     return undefined;
   }
 
-  set(key: string, value: T): void {
-    this.store.set(key, value);
+  /**
+   * Stores a value under `key`. See {@link AuraSwrCache.set}.
+   *
+   * @param key - Cache key.
+   * @param value - Value to store.
+   * @param options - Per-entry `gcTime` / `staleTime` overrides.
+   */
+  set(key: string, value: T, options?: EntryTimesOptions): void {
+    this.store.set(key, value, options);
   }
 
+  /**
+   * Removes the entry and drops any in-flight `resolve` for `key`.
+   *
+   * @param key - Cache key.
+   */
   delete(key: string): void {
     this.store.delete(key);
     this.singleflight.delete(key);
   }
 
+  /**
+   * Clears the store and in-flight map; bumps epoch so prior loads cannot commit.
+   */
   clear(): void {
     this.epoch++;
     this.store.clear();
     this.singleflight.clear();
   }
 
+  /**
+   * Marks an entry outdated or removes it. See {@link AuraSwrCache.invalidate}.
+   *
+   * @param key - Cache key.
+   * @param policy - `'stale'` or `'remove'`; defaults to store `invalidatePolicy`.
+   */
   invalidate(key: string, policy?: InvalidatePolicy): boolean {
     return this.store.invalidate(key, policy);
   }
 
+  /**
+   * Invalidates entries whose keys match `predicate`.
+   *
+   * @param predicate - Key filter.
+   * @param policy - Defaults to store `invalidatePolicy`.
+   */
   invalidateMatch(
     predicate: (key: string) => boolean,
     policy?: InvalidatePolicy,
@@ -99,10 +135,18 @@ export class AuraResolvableSwrCache<T> {
     return this.store.invalidateMatch(predicate, policy);
   }
 
+  /**
+   * Invalidates every entry. See {@link AuraSwrCache.invalidateAll}.
+   *
+   * @param policy - Defaults to store `invalidatePolicy`.
+   */
   invalidateAll(policy?: InvalidatePolicy): number {
     return this.store.invalidateAll(policy);
   }
 
+  /**
+   * Releases the store and in-flight map (same epoch bump as {@link clear}).
+   */
   destroy(): void {
     this.epoch++;
     this.store.destroy();
@@ -133,6 +177,7 @@ export class AuraResolvableSwrCache<T> {
     return this.runLoad(key, load) as Promise<R>;
   }
 
+  /** Runs `load` once per in-flight key via singleflight, then {@link commit}. */
   private runLoad<R>(key: string, load: () => Promise<R>): Promise<R> {
     const epoch = this.epoch;
     return this.singleflight.do(key, () =>
@@ -144,6 +189,7 @@ export class AuraResolvableSwrCache<T> {
     ) as Promise<R>;
   }
 
+  /** Writes settled value when policy allows, then runs `onSettled`. */
   private commit(key: string, value: unknown): void {
     if (this.shouldWrite(value)) {
       this.store.set(key, value as T);
@@ -151,6 +197,7 @@ export class AuraResolvableSwrCache<T> {
     this.onSettled?.(key, value);
   }
 
+  /** Resolves constructor `write` policy for a settled value. */
   private shouldWrite(value: unknown): boolean {
     const write = this.write;
     if (write === undefined) return true;

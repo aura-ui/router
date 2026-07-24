@@ -99,6 +99,10 @@ export interface RouteInstance extends RouteHookNamesSource {
   paramChange?: ParamChangePolicy | null;
   /** From `<aura-route cache="…">` — dom / view-loader / load-hook retention. */
   cache?: CacheFlags;
+  /** From `<aura-route cache-time>` — per-entry long-cache `gcTime` (ms); `null` → store default. */
+  readonly cacheTime?: number | null;
+  /** From `<aura-route cache-refresh>` — per-entry long-cache `staleTime` (ms); `null` → store default. */
+  readonly cacheRefresh?: number | null;
   /** Inherited from `<aura-route prefetch>` / `<aura-router prefetch>`. */
   readonly prefetch?: RouterPrefetchPolicy | null;
   /** Inherited from `<aura-route mount-strategy>` / `<aura-router mount-strategy>` (default `branch`). */

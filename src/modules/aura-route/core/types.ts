@@ -19,6 +19,10 @@ export interface AuraRouteInterface {
   loadingEndEvent: string | null;
   errorTemplate: string | null;
   cache: CacheFlags;
+  /** `cache-time` — per-entry `gcTime` ms; `null` → store default. */
+  cacheTime: number | null;
+  /** `cache-refresh` — per-entry `staleTime` ms; `null` → store default. */
+  cacheRefresh: number | null;
   scrollPolicy: ScrollAttr | null;
   extract: string | null;
   readonly type: RouteType;

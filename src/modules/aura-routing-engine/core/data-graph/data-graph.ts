@@ -293,7 +293,11 @@ export class DataGraph {
       const { data, error } = await load();
       if (error) throw new DataGraphTerminalError(error);
 
-      if (useLongCache) this.cache.set(dataKey, data);
+      if (useLongCache) this.cache.set(dataKey, data, {
+        gcTime: match.route.cacheTime ?? undefined,
+        staleTime: match.route.cacheRefresh ?? undefined,
+      });
+
       return data;
     });
   }

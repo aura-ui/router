@@ -1,7 +1,7 @@
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import { routeAttr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
-import { dispatchCustomEvent, getTemplate } from '../../aura-utils/misc';
+import { dispatchCustomEvent, getTemplate, parseNumber } from '../../aura-utils/misc';
 import { parseCacheAttr } from './attr/cache-attr-parser';
 import { parseHookList, parseInheritableNullableString } from './attr/inherit-attr-parser';
 import { parseMountStrategyAttr } from './attr/mount-strategy-attr-parser';
@@ -148,6 +148,18 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseCacheAttr })
   cache: CacheFlags;
 
+  /** Per-entry long-cache `gcTime` (ms). `null` when attr absent → store default. */
+  @routeAttr({ parser: parseNumber })
+  cacheTime: number | null;
+
+  /**
+   * Per-entry long-cache `staleTime` (ms). `null` when attr absent → store default.
+   * Unused on current Data/View nav `get`/`set` path (kept for future `resolve`).
+   */
+  @routeAttr({ parser: parseNumber })
+  cacheRefresh: number | null;
+
+  /** route unique id, not changed after reconnection, uses fast like key for some operations */
   readonly uid = ++idCounter;
   private viewController!: RouteViewController;
   private setupDone!: Promise<void>;

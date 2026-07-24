@@ -212,7 +212,7 @@ export class ViewGraph {
     const waiter = this.sharedBuffer.hold(key, mode);
 
     try {
-      const shared = this.runSharedLoad(key, useLongCache, () =>
+      const shared = this.runSharedLoad(match, key, useLongCache, () =>
         this.runViewLoader(descriptor, match, waiter.workSignal, data),
       );
       // Interest may detach before settle; don't leave an unhandled rejection on shared.
@@ -277,6 +277,7 @@ export class ViewGraph {
    * Factory uses the waiter {@link HandoffWaiter.workSignal}, not caller interest.
    */
   private runSharedLoad(
+    match: MatchedRouteInfo,
     key: string,
     useLongCache: boolean,
     load: () => Promise<ViewPayload | null>,
@@ -291,7 +292,10 @@ export class ViewGraph {
 
       // Strings only — DocumentFragment is one-shot DOM (mount empties it).
       if (useLongCache && typeof payload === 'string') {
-        this.cache.set(key, payload);
+        this.cache.set(key, payload, {
+          gcTime: match.route.cacheTime ?? undefined,
+          staleTime: match.route.cacheRefresh ?? undefined,
+        });
       }
 
       return payload;

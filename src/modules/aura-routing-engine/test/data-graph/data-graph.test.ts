@@ -52,6 +52,47 @@ describe('DataGraph', () => {
     expect(onLoadCalls).toBe(2);
   });
 
+  it('honors per-route cacheTime for long-cache expiry', async () => {
+    jest.useFakeTimers();
+    // Short handoff TTL so revisit hits long `cache.data`, not the prepare buffer.
+    const graph = new DataGraph(new HandoffCache({ ttl: 100 }), {
+      hooks: hookRegistry,
+      cache: { staleTime: 60_000, gcTime: 60_000 },
+    });
+
+    try {
+      let hookCalls = 0;
+      hookRegistry.register({
+        name: 'data',
+        version: '1.0.0',
+        fn: asLoadHook(async () => {
+          hookCalls++;
+          return { id: hookCalls };
+        }),
+      });
+
+      const short = matchedRoute('/short');
+      short.route.cacheTime = 1_000;
+      const long = matchedRoute('/long');
+      long.route.cacheTime = 10_000;
+
+      await graph.load([short], navOptions(hookRegistry, [short]));
+      await graph.load([long], navOptions(hookRegistry, [long]));
+      expect(hookCalls).toBe(2);
+
+      jest.advanceTimersByTime(1_001);
+
+      await graph.load([short], navOptions(hookRegistry, [short]));
+      await graph.load([long], navOptions(hookRegistry, [long]));
+
+      expect(hookCalls).toBe(3);
+      expect(graph.getData(long)).toEqual({ id: 2 });
+    } finally {
+      graph.destroy();
+      jest.useRealTimers();
+    }
+  });
+
   it('stores hook payload in cache and data map', async () => {
     hookRegistry.register({
       name: 'data',

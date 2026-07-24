@@ -22,7 +22,7 @@ Plans: [ROADMAP.md](./ROADMAP.md) · history: [CHANGELOG.md](./CHANGELOG.md).
 ## Data layer
 
 - **`cache="data"` is opt-in for long-lived data cache** — without it, `load` does not keep a durable DataGraph entry across navigations. Prefetch → navigate can still reuse work via the short-lived **handoff buffer** (~30s TTL) even without `cache="data"`.
-- **Global `staleTime` only** (~30s via `configure({ dataCache })`) — no per-route TTL attrs.
+- **Per-route TTL** — `cache-time` / `cache-refresh` override store defaults from `configure({ dataCache })`. On the current nav path (`get`/`set`) only `cache-time` (`gcTime`) affects hit/miss; `cache-refresh` is for future `resolve`.
 - **Navigation path is cache hit/miss, not product SWR** — DataGraph uses get/set on navigate; no background revalidate of a stale entry into the visible page. No public `shouldRevalidate` or `defer()` API yet.
 - **Cache key includes the full query** — unrelated params (e.g. `utm_*`) can reduce cache hits.
 - **`invalidate()` vs `invalidateView()`** — `invalidate()` clears data cache; `invalidateView()` clears view-loader cache. There is no `router.load()`. Navigate or prefetch again to refetch. Invalidate alone does not refresh stay-on-page UI.

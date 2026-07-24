@@ -55,6 +55,18 @@ export type SwrCacheOptions<T> = {
   onRemove?: (key: string, value: T) => void;
 };
 
+/**
+ * Per-entry timing overrides for {@link AuraSwrCache.set}.
+ * When the options object is passed, both fields are applied (missing → store default).
+ * Omitting the argument keeps the entry's previous overrides.
+ */
+export type EntryTimesOptions = {
+  /** Max age in ms since `storedAt` before removal. Omit → store `gcTime`. */
+  gcTime?: number;
+  /** SWR fresh window in ms. Omit → store `staleTime`. */
+  staleTime?: number;
+};
+
 /** Doubly-linked list node for LRU order. */
 interface Node<T> {
   /** Cache key. */
@@ -63,6 +75,10 @@ interface Node<T> {
   value: T;
   /** `Date.now()` when the entry was last written via `set`. */
   storedAt: number;
+  /** Per-entry `gcTime`; `undefined` → store default. */
+  gcTime: number | undefined;
+  /** Per-entry `staleTime`; `undefined` → store default. */
+  staleTime: number | undefined;
   /** Manual stale flag set by `invalidate(..., 'stale')`. */
   stale: boolean;
   /** Previous node in the LRU list. */
@@ -89,19 +105,26 @@ interface Node<T> {
  * elsewhere). `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order.
  */
 export class AuraSwrCache<T> {
+  /** Max entries; `undefined` → unbounded (aside from explicit deletes / GC). */
   private readonly max?: number;
-  private readonly swrEnabled: boolean;
+  /** Store-level SWR fresh window in ms. */
   private readonly staleTimeMs?: number;
+  /** Store-level max age in ms before removal. */
   private readonly gcTimeMs?: number;
+  /** Background sweep period in ms, or `null` when disabled. */
   private readonly gcSweepIntervalMs: number | null;
+  /** Default policy for {@link invalidate} / match / all. */
   private readonly defaultInvalidatePolicy: InvalidatePolicy;
+  /** Optional dispose hook when a value is discarded. */
   private readonly onRemove?: (key: string, value: T) => void;
-  /** Whether entries need `storedAt` / age checks (`staleTime` or `gcTime`). */
-  private readonly trackAge: boolean;
 
+  /** Key → node index for O(1) lookup. */
   private readonly map = new Map<string, Node<T>>();
+  /** LRU head (least recently used). */
   private head: Node<T> | null = null;
+  /** LRU tail (most recently used). */
   private tail: Node<T> | null = null;
+  /** Active `setInterval` handle for background GC, if any. */
   private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
   /**
@@ -119,10 +142,8 @@ export class AuraSwrCache<T> {
     }
 
     this.max = options.max;
-    this.swrEnabled = options.staleTime !== undefined;
     this.staleTimeMs = options.staleTime;
-    this.gcTimeMs =
-      options.gcTime ?? (options.staleTime !== undefined ? DEFAULT_GC_TIME : undefined);
+    this.gcTimeMs = options.gcTime ?? (options.staleTime !== undefined ? DEFAULT_GC_TIME : undefined);
 
     if (
       options.gcSweepInterval !== undefined &&
@@ -137,7 +158,6 @@ export class AuraSwrCache<T> {
     this.gcSweepIntervalMs = resolveGcSweepInterval(this.gcTimeMs, options.gcSweepInterval);
     this.defaultInvalidatePolicy = options.invalidatePolicy ?? 'stale';
     this.onRemove = options.onRemove;
-    this.trackAge = this.gcTimeMs !== undefined || this.swrEnabled;
   }
 
   /**
@@ -154,7 +174,7 @@ export class AuraSwrCache<T> {
     const node = this.map.get(key);
     if (!node) return undefined;
 
-    if (this.gcTimeMs !== undefined && this.removeIfExpired(node, Date.now())) {
+    if (this.removeIfExpired(node, Date.now())) {
       return undefined;
     }
 
@@ -183,31 +203,16 @@ export class AuraSwrCache<T> {
       return { status: 'missing' };
     }
 
-    if (this.trackAge) {
-      const now = Date.now();
-      if (this.gcTimeMs !== undefined && this.removeIfExpired(node, now)) {
-        return { status: 'missing' };
-      }
-
-      if (touch && node !== this.tail) {
-        this.moveToEnd(node);
-      }
-
-      const status = this.readStatus(node, now);
-      return status === 'fresh'
-        ? { status: 'fresh', value: node.value }
-        : { status: 'stale', value: node.value };
+    const now = Date.now();
+    if (this.removeIfExpired(node, now)) {
+      return { status: 'missing' };
     }
 
     if (touch && node !== this.tail) {
       this.moveToEnd(node);
     }
 
-    if (node.stale) {
-      return { status: 'stale', value: node.value };
-    }
-
-    return { status: 'fresh', value: node.value };
+    return { status: this.readStatus(node, now), value: node.value };
   }
 
   /**
@@ -219,10 +224,17 @@ export class AuraSwrCache<T> {
    *
    * @param key - Cache key.
    * @param value - Value to store.
+   * @param options - Per-entry timings. When passed, replaces both overrides
+   *   (`undefined` fields fall back to store defaults). Omitted → keep previous overrides.
    */
-  set(key: string, value: T): void {
+  set(key: string, value: T, options?: EntryTimesOptions): void {
+    if (options) {
+      assertTiming('gcTime', options.gcTime);
+      assertTiming('staleTime', options.staleTime);
+    }
+
     const existingNode = this.map.get(key);
-    const now = this.trackAge ? Date.now() : 0;
+    const now = Date.now();
 
     if (existingNode) {
       const previous = existingNode.value;
@@ -232,10 +244,12 @@ export class AuraSwrCache<T> {
       }
 
       existingNode.value = value;
-      existingNode.stale = false;
-      if (this.trackAge) {
-        existingNode.storedAt = now;
+      if (options) {
+        existingNode.gcTime = options.gcTime;
+        existingNode.staleTime = options.staleTime;
       }
+      existingNode.stale = false;
+      existingNode.storedAt = now;
 
       if (existingNode !== this.tail) {
         this.moveToEnd(existingNode);
@@ -249,6 +263,8 @@ export class AuraSwrCache<T> {
       key,
       value,
       storedAt: now,
+      gcTime: options?.gcTime,
+      staleTime: options?.staleTime,
       stale: false,
       prev: null,
       next: null,
@@ -274,7 +290,7 @@ export class AuraSwrCache<T> {
   peek(key: string): T | undefined {
     const node = this.map.get(key);
     if (!node) return undefined;
-    if (this.gcTimeMs !== undefined && this.removeIfExpired(node, Date.now())) {
+    if (this.removeIfExpired(node, Date.now())) {
       return undefined;
     }
     return node.value;
@@ -291,7 +307,6 @@ export class AuraSwrCache<T> {
   has(key: string): boolean {
     const node = this.map.get(key);
     if (!node) return false;
-    if (this.gcTimeMs === undefined) return true;
     return !this.removeIfExpired(node, Date.now());
   }
 
@@ -306,18 +321,15 @@ export class AuraSwrCache<T> {
     if (!node) return false;
 
     const now = Date.now();
-    if (this.gcTimeMs !== undefined && this.removeIfExpired(node, now)) return false;
-
-    if (node.stale) return true;
-    if (!this.swrEnabled) return false;
+    if (this.removeIfExpired(node, now)) return false;
 
     return this.readStatus(node, now) === 'stale';
   }
 
   /**
-   * Removes all GC-expired entries.
+   * Removes all GC-expired entries (store default and per-entry `gcTime`).
    *
-   * @returns Number of removed entries. No-op when `gcTime` is not configured.
+   * @returns Number of removed entries.
    */
   purgeExpired(): number {
     return this.sweepExpired();
@@ -402,7 +414,7 @@ export class AuraSwrCache<T> {
     const node = this.map.get(key);
     if (!node) return undefined;
 
-    if (this.gcTimeMs !== undefined && this.removeIfExpired(node, Date.now())) {
+    if (this.removeIfExpired(node, Date.now())) {
       return undefined;
     }
 
@@ -482,8 +494,9 @@ export class AuraSwrCache<T> {
    * @returns `true` if the entry was removed.
    */
   private removeIfExpired(node: Node<T>, now: number): boolean {
-    if (this.gcTimeMs === undefined) return false;
-    if (now - node.storedAt <= this.gcTimeMs) return false;
+    const gcTimeMs = node.gcTime ?? this.gcTimeMs;
+    if (gcTimeMs === undefined) return false;
+    if (now - node.storedAt <= gcTimeMs) return false;
 
     this.removeNode(node);
     return true;
@@ -499,12 +512,11 @@ export class AuraSwrCache<T> {
   private readStatus(node: Node<T>, now: number): 'fresh' | 'stale' {
     if (node.stale) return 'stale';
 
-    if (!this.swrEnabled) return 'fresh';
-
-    const staleTime = this.staleTimeMs;
+    const staleTime = node.staleTime ?? this.staleTimeMs;
+    if (staleTime === undefined) return 'fresh';
     if (staleTime === Infinity) return 'fresh';
 
-    return now - node.storedAt > staleTime! ? 'stale' : 'fresh';
+    return now - node.storedAt > staleTime ? 'stale' : 'fresh';
   }
 
   /**
@@ -513,17 +525,13 @@ export class AuraSwrCache<T> {
    * @returns Number of removed entries.
    */
   private sweepExpired(): number {
-    const gcTimeMs = this.gcTimeMs;
-    if (gcTimeMs === undefined) return 0;
-
     const now = Date.now();
     let count = 0;
     let current = this.head;
 
     while (current) {
       const next = current.next;
-      if (now - current.storedAt > gcTimeMs) {
-        this.removeNode(current);
+      if (this.removeIfExpired(current, now)) {
         count++;
       }
       current = next;

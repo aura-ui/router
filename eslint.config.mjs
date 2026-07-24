@@ -10,6 +10,7 @@ export default [
     ignores: [
       'dist/**',
       'dist-demo/**',
+      'docs-wip/**',
       'node_modules/**',
       '.vite/**',
       '.tmp/**',

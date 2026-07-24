@@ -22,8 +22,3 @@ export function parseCommaSeparated(val: string | null): string[] | null {
   if (!trimmed) return null;
   return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
 }
-
-export function parseNumber(str: string | null): number | null {
-  const num = +(str || NaN);
-  return isNaN(num) ? null : num;
-}

@@ -1,13 +1,14 @@
 import { AuraRouter } from '../../aura-router/core/aura-router';
 import { routeAttr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
-import { dispatchCustomEvent, getTemplate, parseNumber } from '../../aura-utils/misc';
+import { dispatchCustomEvent, getTemplate } from '../../aura-utils/misc';
 import { parseCacheAttr } from './attr/cache-attr-parser';
 import { parseHookList, parseInheritableNullableString } from './attr/inherit-attr-parser';
 import { parseMountStrategyAttr } from './attr/mount-strategy-attr-parser';
 import { parseParamChangeAttr } from './attr/param-change-attr-parser';
 import { parsePrefetchAttr } from './attr/prefetch-attr-parser';
 import { parseScrollAttr } from './attr/scroll-attr-parser';
+import { parseCacheTimeAttr } from './attr/cache-time-attr-parser';
 import {
   NO_TRANSITION,
   parseTransitionShortcutAttr,
@@ -148,15 +149,15 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseCacheAttr })
   cache: CacheFlags;
 
-  /** Per-entry long-cache `gcTime` (ms). `null` when attr absent → store default. */
-  @routeAttr({ parser: parseNumber })
+  /** Per-entry long-cache `gcTime` (sec). `null` when attr absent → store default. */
+  @routeAttr({ parser: parseCacheTimeAttr })
   cacheTime: number | null;
 
   /**
-   * Per-entry long-cache `staleTime` (ms). `null` when attr absent → store default.
+   * Per-entry long-cache `staleTime` (sec). `null` when attr absent → store default.
    * Unused on current Data/View nav `get`/`set` path (kept for future `resolve`).
    */
-  @routeAttr({ parser: parseNumber })
+  @routeAttr({ parser: parseCacheTimeAttr })
   cacheRefresh: number | null;
 
   /** route unique id, not changed after reconnection, uses fast like key for some operations */

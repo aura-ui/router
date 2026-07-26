@@ -3,9 +3,9 @@
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
-**Declarative routing for Web Components — SSR-first, from static HTML to client navigation.**
+**Declarative routing for Web Components — HTML-first, MPA→SPA.**
 
-Composable lifecycle hooks and nested routes, declared in markup.
+Full HTML on first load; SPA navigation after `AuraRouter.install()`.
 
 ```bash
 npm install @auraui/router
@@ -34,13 +34,17 @@ npm install @auraui/router
 
 ## Why Aura Router
 
+Built for HTML-first apps that declare routes in markup and use Web Components — full documents on first load, SPA navigation after.
+
 | | |
 | --- | --- |
-| **No framework lock-in** | Plain HTML + Web Components — vanilla custom elements or legacy pages |
-| **MPA → SPA** | Server-rendered `.html` partials, then client-side navigation after hydration |
-| **Progressive enhancement** | Routes live in HTML; plain links work without JS — `aura-router-link` upgrades them to SPA navigation |
-| **Legacy-friendly** | One `url` loader for partials and full pages — fragment extract via `extract` attr |
-| **Predictable lifecycle** | Composable hooks (`AuraRouter.use()` + HTML attributes) — guards, load, ready |
+| **Routes in HTML** | Declare `<aura-router>`, `<aura-route>`, `layout`, and `view` in markup instead of owning the app from a JS route table |
+| **HTML-first, MPA → SPA** | Each URL is a full HTML page (router included). The first visit paints that document; later in-app navigations fetch HTML and update the outlet |
+| **SEO-friendly** | Search engines and link previews can read real HTML when your server renders the page — no empty client shell required |
+| **Web Components, no lock-in** | Works with vanilla custom elements, Lit, or existing HTML pages |
+| **Nested layouts & lifecycle** | Nested outlets plus `guard`, `load`, `ready`, and cache — declared on the route |
+| **Progressive enhancement** | Plain `href` links keep working without JavaScript; `aura-router-link` upgrades them to client navigation |
+| **Legacy-friendly** | Load full server pages with the `url` view and take a fragment via `extract` |
 
 ---
 
@@ -102,31 +106,31 @@ router?.navigate('/users', { replace: true });
 | Mechanism | Usage |
 | --- | --- |
 | **Link interception** | `aura-router-link` on `<a href="…">` |
-| **Programmatic** | `router.navigate('/path', { replace?: boolean })` |
+| **Programmatic** | `router.navigate('/path', { replace?: boolean, syncHistory?: boolean })` |
 | **404 catch-all** | `<aura-route path="*" view="template::not-found">` |
 | **Fallback 404** | `error-template` on `<aura-router>` — see [Router defaults](#router-defaults) |
 
 ### How `href` resolves
 
-The **`href` attribute is the source of truth** — for crawlers, noscript, and the router. On click, Aura resolves links the same way the browser does: `new URL(href, location.href)`.
+The **`href` attribute is the source of truth** — for crawlers, noscript, and the router. On click, Aura resolves relative links against the current app URL (hash stripped from the base), then normalizes the pathname (no trailing slash except `/`).
 
 | Link in markup | Current URL | Resolves to |
 | --- | --- | --- |
 | `href="/users"` | any | `/users` |
 | `href="profile"` | `/app/settings/` | `/app/settings/profile` |
-| `href="."` | `/app/settings/profile` | `/app/settings/` |
+| `href="."` | `/app/settings/profile` | `/app/settings` |
 
-Use **path-relative** `href` inside layout templates; use **absolute** `/…` paths when leaving a branch.
+Use **path-relative** `href` inside layout templates; use **absolute** `/…` paths when leaving a branch. External (`http(s):`, `//…`) and hash-only (`#…`) links are not intercepted.
 
 ### Route `path` vs address bar
 
 | | Route `path` attr | Browser URL (canonical) |
 | --- | --- | --- |
-| **Folder** | `/app/settings` — trailing `/` optional, normalized away | index → `/app/settings/` |
+| **Folder + index** | `/app/settings` + child `path="."` | index → `/app/settings/` |
 | **Index child** | `path="."` | same as folder URL |
 | **Leaf** | `profile` → `/app/settings/profile` | `/app/settings/profile` — no trailing slash |
 
-On index navigation, the engine **canonicalizes** the address bar (`/app/settings` → `/app/settings/` via `replaceState`) so path-relative links in the layout resolve correctly.
+On **index** navigation (`path="."`), the engine **canonicalizes** the address bar (`/app/settings` → `/app/settings/` via `replaceState`) so path-relative links in the layout resolve correctly. A folder without an index child does not get that slash rewrite.
 
 ---
 
@@ -214,7 +218,7 @@ Nest routes. A parent with `layout` is a shell; children render into its inner `
 | `path="settings"` | Child segment → `/app/settings` |
 | `href="settings"` / `href="."` | Path-relative links inside the layout |
 
-Folder URLs get a trailing slash in the address bar (`/app` → `/app/`) so relative links resolve like the browser expects.
+Folder index URLs get a trailing slash in the address bar (`/app` → `/app/` when `path="."` matches) so relative links resolve like the browser expects.
 
 Shared layouts stay mounted across sibling hops. Hook inheritance — see [Lifecycle hooks](#lifecycle-hooks).
 
@@ -300,11 +304,11 @@ AuraRouter.use(authHook);
 
 Control what is kept when leaving a route with the `cache` attribute on `<aura-route>` or `<aura-router>` (inherited; child overrides).
 
-Ladder: **off → `cache` → `dom` → `all`**.
+Modes (not a strict ladder — `cache="dom"` keeps DOM + view, but **not** `load` data):
 
 | Attr | DOM keep-alive | View payload | `load` data | Use when |
 | --- | --- | --- | --- | --- |
-| *(absent)* | | | | No cache |
+| *(absent)* | | | | Inherit parent / router; else no cache |
 | `cache` | | ✓ | ✓ | Cache network/content; remount UI |
 | `cache="view"` | | ✓ | | Only HTML / loader payload |
 | `cache="data"` | | | ✓ | Only `load` hooks |
@@ -337,12 +341,12 @@ const router = document.querySelector('aura-router');
 
 router?.invalidate();                         // clear cached load data
 router?.invalidate({ cache: 'view' });         // clear cached HTML / views
-router?.invalidate({ cache: 'all' });          // both
+router?.invalidate({ cache: 'all' });          // data + view (not detached DOM)
 router?.invalidate({ path: '/users/:id' });    // one route pattern (not the URL)
 router?.invalidate({ path: '/items', policy: 'remove' }); // drop now (default: mark stale)
 ```
 
-Does not remount the current page — navigate again to refetch. Emits `data-invalidated` (except for `cache: 'view'`).
+Does not remount the current page — navigate again to refetch. Does not clear `cache="dom"` keep-alive. Emits `data-invalidated` (except for `cache: 'view'`).
 
 ---
 
@@ -469,7 +473,7 @@ router?.invalidate({ path: '/users/:id' }); // see [Cache](#cache)
 
 > **Experimental:** DOM event names on `<aura-router>` may change before `0.1.0`.
 
-DOM events include `navigation-start`, `navigation`, `navigation-complete`, `navigation-error`, `not-found`, `data-invalidated`, and load `load-start` / `load-end` / `load-error`.
+DOM events include `navigation-start`, `navigation`, `navigation-complete`, `navigation-cancel`, `navigation-redirect`, `navigation-error`, `navigation-hook-error`, `not-found`, `data-invalidated`, and load `load-start` / `load-end` / `load-error`.
 
 ---
 

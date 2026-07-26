@@ -1,22 +1,22 @@
-<html lang="ru">
+﻿<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <title>Ледяная Стена</title>
 </head>
 <body>
-  оболочка
   <div class="main">
     <article class="scroll-mark">
       <div class="wall-banner">
         <h1>Ледяная Стена</h1>
         <p class="lede" style="margin-bottom: 0">
-          Антарктида здесь — не материк «внизу», а <strong>белое кольцо</strong>,
-          держащее море у края диска. Заставы стоят по кругу.
+          Море упирается в белый обод. В трещинах — гул.
+          Заставы пропускают тех, чьё имя уже вписано в Книгу странника.
         </p>
       </div>
       <p>
-        Сквозь трещины льда слышен гул. Стражи пропускают тех,
-        чьё имя уже есть в Книге Странника.
+        Здесь кончаются обычные карты. Можно
+        <a href="/regions/icewall" aura-router-link>подойти к воротам по тропе</a>
+        — или сразу спросить стражей.
       </p>
       <div class="card-grid">
         <a class="card" href="/wall/gates/north-hum" aura-router-link>
@@ -29,16 +29,15 @@
           <h3>Ворота Восточного Блеска</h3>
           <p>Сияние по вертикали обода.</p>
         </a>
-        <a class="card" href="/regions/icewall" aura-router-link>
-          <span class="tag ice">Регион</span>
-          <h3>Тропы у Стены</h3>
-          <p>Войти в регион icewall с живым layout.</p>
-        </a>
-        <a class="card" href="/wall/beyond" aura-router-link>
+        <a class="card is-primary-path" href="/wall/beyond" aura-router-link>
           <span class="tag ice">За краем</span>
           <h3>Что за Стеной?</h3>
-          <p>Нужна запись в журнале (guard).</p>
+          <p>Нужна запись в Книге странника.</p>
         </a>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/start-journey" aura-router-link>Вписать имя в книгу</a>
+        <a class="btn ghost" href="/wall/beyond" aura-router-link>Подойти к краю</a>
       </div>
     </article>
   </div>

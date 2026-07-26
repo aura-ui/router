@@ -273,6 +273,10 @@ aura-outlet > .main {
   color: var(--sky-deep);
 }
 
+.map-cta {
+  margin-top: 20px;
+}
+
 /* —— Cards / lists —— */
 .card-grid {
   display: grid;
@@ -500,6 +504,248 @@ aura-outlet > .main {
     color-mix(in srgb, var(--ice) 55%, var(--parchment));
 }
 
+/* —— Guided tour —— */
+.tour-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--parchment) 70%, white);
+  border: 1px solid rgba(28, 42, 36, 0.12);
+}
+
+.tour-rail[hidden] {
+  display: none !important;
+}
+
+.tour-rail-label {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--moss-deep);
+}
+
+.tour-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.tour-steps a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.tour-steps span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  background: rgba(28, 42, 36, 0.08);
+}
+
+.tour-steps .is-done a {
+  color: var(--moss);
+}
+
+.tour-steps .is-done span {
+  background: rgba(47, 93, 69, 0.2);
+}
+
+.tour-steps .is-current a {
+  color: var(--ink);
+  background: rgba(111, 168, 122, 0.22);
+  font-weight: 600;
+}
+
+.tour-steps .is-todo a {
+  opacity: 0.55;
+}
+
+.tour-next {
+  margin-left: auto;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+}
+
+.tour-intro {
+  max-width: 34rem;
+  margin: 0 auto 8px;
+  padding: 18px 20px;
+  text-align: left;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--parchment) 82%, white);
+  border: 1px solid rgba(28, 42, 36, 0.1);
+}
+
+.tour-intro h2 {
+  font-family: var(--font-display);
+  margin: 0 0 0.35em;
+  font-size: 1.35rem;
+}
+
+.tour-intro p {
+  margin: 0 0 0.8em;
+  color: var(--ink-soft);
+}
+
+.tour-preview {
+  margin: 0 0 0.5em;
+  padding-left: 1.2em;
+  color: var(--ink-soft);
+}
+
+.tour-preview li {
+  margin-bottom: 0.25em;
+}
+
+.soon-badge,
+.start-badge {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.soon-badge {
+  color: var(--ink-soft);
+}
+
+.start-badge {
+  color: var(--moss-deep);
+}
+
+.sector-note {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--sky-deep);
+}
+
+.disk-sector.is-start {
+  border-color: rgba(47, 93, 69, 0.45);
+  box-shadow: 0 0 0 2px rgba(111, 168, 122, 0.35);
+  animation: start-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes start-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(111, 168, 122, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(111, 168, 122, 0.15);
+  }
+}
+
+.disk-sector.is-soon:hover,
+.disk-sector.is-soon:focus-visible {
+  transform: none;
+  box-shadow: none;
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.breadcrumbs a {
+  text-decoration: none;
+  color: var(--moss-deep);
+}
+
+.breadcrumbs a:hover {
+  color: var(--ember);
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.crumb-sep {
+  opacity: 0.45;
+}
+
+.region-here {
+  font-size: 0.85rem;
+}
+
+.callout {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ember) 14%, white);
+  border: 1px solid rgba(196, 120, 74, 0.35);
+  color: var(--ink);
+}
+
+.callout[hidden] {
+  display: none !important;
+}
+
+.card.is-primary-path,
+.trail-steps a.is-primary-path {
+  border-color: rgba(47, 93, 69, 0.4);
+  background: color-mix(in srgb, rgba(111, 168, 122, 0.18) 50%, rgba(255, 255, 255, 0.45));
+}
+
+.about-list {
+  margin: 0 0 1.2em;
+  padding-left: 1.2em;
+  color: var(--ink-soft);
+}
+
+.about-list li {
+  margin-bottom: 0.4em;
+}
+
+.dev-panel {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto 40px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(28, 42, 36, 0.06);
+  border: 1px dashed rgba(28, 42, 36, 0.18);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.dev-panel summary {
+  cursor: pointer;
+  font-family: var(--font-display);
+  color: var(--moss-deep);
+}
+
+.dev-panel p {
+  margin: 8px 0 0;
+}
+
 @media (max-width: 640px) {
   .site-header {
     padding-top: 14px;
@@ -509,5 +755,14 @@ aura-outlet > .main {
     width: 32%;
     height: 16%;
     font-size: 0.68rem;
+  }
+
+  .tour-rail {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tour-next {
+    margin-left: 0;
   }
 }

@@ -2,7 +2,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Diskora Atlas — плоский мир сказочных зверей</title>
+  <title>Атлас Края — плоский мир сказочных зверей</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -15,23 +15,27 @@
 <body>
   <header class="site-header">
     <a class="brand" href="/" aura-router-link>
-      Diskora Atlas
-      <span>Бестиарий диска, у которого есть край</span>
+      Атлас Края
+      <span>Плоский мир. Край изо льда. Звери между страницами.</span>
     </a>
     <nav class="top-nav">
       <a href="/" aura-router-link>Карта</a>
-      <a href="/bestiary" aura-router-link>Бестиарий</a>
+      <a href="/bestiary" aura-router-link>Книга зверей</a>
       <a href="/wall" aura-router-link>Стена</a>
-      <a href="/seasons" aura-router-link>Сезоны</a>
       <a href="/about" aura-router-link>О мире</a>
-      <a href="/start-journey" aura-router-link>Журнал</a>
     </nav>
   </header>
+
+  <aside class="tour-rail" data-tour-rail hidden>
+    <p class="tour-rail-label">Маршрут атласа</p>
+    <ol class="tour-steps" data-tour-steps></ol>
+    <a class="tour-next btn" data-tour-next href="/" aura-router-link>Дальше</a>
+  </aside>
 
   <main class="shell">
     <aura-router
       link-active-class="active"
-      loading-template="loading"
+      load1ing-template="loading"
       loading-body-class="loading"
       error-template="error"
       cache-time="20000"
@@ -102,33 +106,37 @@
     </aura-router>
   </main>
 
+  <details class="dev-panel">
+    <summary>Как устроен роутер на этой странице</summary>
+    <p data-dev-note>Выберите маршрут — здесь появится короткая подсказка по фичам Aura.</p>
+  </details>
+
   <template id="home-page">
     <section class="disk-hero scroll-mark">
-      <h1 class="hero-title">Земля — круглый стол</h1>
+      <h1 class="hero-title">Диск кончается льдом</h1>
       <p class="lede" style="margin-inline: auto">
-        За горизонтом не падают — упираются в Ледяную Стену.
-        Внутри диска бродят сказочные звери. Атлас ведут странники и сказители.
+        Внутри — леса, моря и звери, которых слышат чаще, чем видят.
+        Атлас ведёт от Шепчущего Леса к Ледяной Стене — и ставит многоточие
+        там, где кончаются карты.
       </p>
 
       <div class="disk-map" aria-label="Карта плоского мира">
-        <a
+        <span
           class="disk-sector is-soon"
           data-region="hearthlands"
-          href="/regions/hearthlands"
-          title="Скоро"
-        >Срединные<br />Земли</a>
+          title="Ещё закрыто странникам"
+        >Срединные<br />Земли<span class="soon-badge">закрыто</span></span>
         <a
-          class="disk-sector"
+          class="disk-sector is-start"
           data-region="whisperwood"
           href="/regions/whisperwood"
           aura-router-link
-        >Шепчущий<br />Лес</a>
-        <a
+        >Шепчущий<br />Лес<span class="start-badge">начните здесь</span></a>
+        <span
           class="disk-sector is-soon"
           data-region="sunsteppe"
-          href="/regions/sunsteppe"
-          title="Скоро"
-        >Солнечная<br />Степь</a>
+          title="Ещё закрыто странникам"
+        >Солнечная<br />Степь<span class="soon-badge">закрыто</span></span>
         <a
           class="disk-sector"
           data-region="mirrorsea"
@@ -140,13 +148,12 @@
           data-region="icewall"
           href="/regions/icewall"
           aura-router-link
-        >Ледяная<br />Стена</a>
+        >У Стены<br /><span class="sector-note">тропы к воротам</span></a>
       </div>
-      <p class="wall-ring-label">Белое кольцо по краю — Антарктида-обод</p>
-
-      <div class="actions" style="justify-content: center">
-        <a class="btn" href="/bestiary" aura-router-link>Открыть бестиарий</a>
-        <a class="btn ghost" href="/wall" aura-router-link>К Стене</a>
+      <p class="wall-ring-label">Белое кольцо — обод мира. Заставы и путь за край — в разделе «Стена».</p>
+      <div class="map-cta actions" style="justify-content: center">
+        <a class="btn" href="/regions/whisperwood" aura-router-link>Начать путь атласа</a>
+        <a class="btn ghost" href="/bestiary" aura-router-link>Открыть Книгу зверей</a>
       </div>
     </section>
   </template>
@@ -155,21 +162,23 @@
     <article class="panel scroll-mark">
       <h1>Как устроен диск</h1>
       <p class="lede">
-        Это не спор о форме мира — это сказка в духе старых карт:
-        «здесь водятся драконы», только добрее и с ободом изо льда.
+        Это сказка в духе старых карт: «здесь водятся драконы» —
+        только добрее и с ободом изо льда. Земля здесь — круглый стол,
+        а не шар, и край у него настоящий.
       </p>
-      <ul>
-        <li><strong>Центр</strong> — Срединные Земли и знакомые поля.</li>
-        <li><strong>Кольца</strong> — леса, моря, степи странников.</li>
-        <li><strong>Край</strong> — Ледяная Стена (Антарктида как ограничивающее кольцо).</li>
+      <ul class="about-list">
+        <li><strong>Центр</strong> — Срединные Земли: поля, овины и знакомый свет.</li>
+        <li><strong>Кольца</strong> — Шепчущий Лес, Зеркальное Море, степи странников.</li>
+        <li><strong>Край</strong> — Ледяная Стена: заставы на ободе и тропы, что к ним ведут.</li>
       </ul>
       <p>
         Солнце ходит над столом. Карты кончаются у ворот Стены.
-        За ними — только гул и многоточие.
+        За ними — гул, сияние и многоточие, которое атлас не заполняет.
       </p>
       <div class="actions">
-        <a class="btn" href="/" aura-router-link>К карте</a>
-        <a class="btn ghost" href="/start-journey" aura-router-link>Вписать имя в журнал</a>
+        <a class="btn" href="/regions/whisperwood" aura-router-link>Начать путь</a>
+        <a class="btn ghost" href="/seasons" aura-router-link>Сезоны света</a>
+        <a class="btn ghost" href="/" aura-router-link>К карте</a>
       </div>
     </article>
   </template>
@@ -178,7 +187,8 @@
     <section class="panel layout scroll-mark">
       <header class="region-chrome">
         <div>
-          <p class="hint" style="margin: 0 0 4px">Регион диска · layout живёт при смене троп</p>
+          <nav class="breadcrumbs" data-region-crumbs aria-label="Путь"></nav>
+          <p class="hint region-here" style="margin: 8px 0 4px">Вы в регионе</p>
           <h1 class="region-name">Путешествие</h1>
         </div>
         <nav class="subnav" data-region-subnav>
@@ -193,7 +203,7 @@
   <template id="loading">
     <div class="panel loading-panel">
       <h1>Сказитель листает свиток…</h1>
-      <p>Подгружаем фрагмент карты</p>
+      <p>Ищем нужный лист атласа</p>
     </div>
   </template>
 
@@ -215,7 +225,7 @@
   <template id="not-found">
     <div class="panel not-found-panel">
       <h1>Край карты оборван</h1>
-      <p>Зверь или тропа не записаны в атласе (path="*").</p>
+      <p>Такой зверь или тропа ещё не записаны в атласе.</p>
       <a class="btn" href="/" aura-router-link>Вернуться к диску</a>
     </div>
   </template>

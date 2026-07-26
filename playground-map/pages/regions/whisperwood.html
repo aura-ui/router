@@ -1,34 +1,37 @@
-<html lang="ru">
+﻿<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <title>Шепчущий Лес</title>
 </head>
 <body>
-  оболочка
   <div class="main">
     <article class="scroll-mark">
-      <p class="hint">Обзор региона · nested parent остаётся смонтированным</p>
-      <h2>Шепчущий Лес</h2>
+      <h2>Между корнями</h2>
       <p class="lede">
-        Между корнями хранятся шорохи старых сказок. Тропы ведут к полянам,
-        где звери больше слушают, чем говорят.
+        Здесь хранятся шорохи старых сказок. Тропы ведут к полянам,
+        где звери больше слушают, чем говорят. Если идти тихо —
+        лес сам подскажет следующий шаг.
       </p>
       <div class="card-grid">
-        <a class="card" href="/regions/whisperwood/trails/echo-glade" aura-router-link>
-          <span class="tag">Тропа</span>
+        <a class="card is-primary-path" href="/regions/whisperwood/trails/echo-glade" aura-router-link>
+          <span class="tag">Главная тропа</span>
           <h3>Поляна Эха</h3>
-          <p>Четыре точки интереса до окна в корнях.</p>
+          <p>От следа на мху — к жердочке совы и окну в корнях.</p>
         </a>
         <a class="card" href="/bestiary/owl-librarian" aura-router-link>
           <span class="tag">Зверь</span>
           <h3>Сова-библиотекарь</h3>
-          <p>Частый гость этих крон.</p>
+          <p>Частый гость этих крон. Отвечает кивком.</p>
         </a>
         <a class="card" href="/regions/whisperwood/journal" aura-router-link>
           <span class="tag">Дневник</span>
           <h3>Полевые заметки</h3>
-          <p>С задержкой сервера — свой loading.</p>
+          <p>Утро, полдень и вечер одного странника.</p>
         </a>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/regions/whisperwood/trails/echo-glade" aura-router-link>Идти по тропе</a>
+        <a class="btn ghost" href="/" aura-router-link>К карте</a>
       </div>
     </article>
   </div>

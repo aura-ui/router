@@ -1,19 +1,18 @@
-<html lang="ru">
+﻿<html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <title>Бестиарий</title>
+  <title>Книга зверей</title>
 </head>
 <body>
-  оболочка MPA
   <div class="main">
     <article class="scroll-mark">
-      <h1>Бестиарий диска</h1>
+      <h1>Книга зверей</h1>
       <p class="lede">
-        Сказочные звери Срединных Земель, лесов, морей и Ледяной Стены.
-        Карточки подгружаются с сервера (extract + cache).
+        Том, который сова не отдаёт в руки — только кивком.
+        Здесь звери леса, моря и обода: имена полные, следы — по желанию.
       </p>
       <div class="card-grid">
-        <a class="card" href="/bestiary/owl-librarian" aura-router-link>
+        <a class="card is-primary-path" href="/bestiary/owl-librarian" aura-router-link>
           <span class="tag">Лес</span>
           <h3>Сова-библиотекарь</h3>
           <p>Хранит шорохи между страницами корней.</p>
@@ -53,6 +52,10 @@
           <h3>Грифон степной</h3>
           <p>Караулит курганы на ветру.</p>
         </a>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/regions/whisperwood/trails/echo-glade/sights/owl-perch" aura-router-link>К жердочке совы</a>
+        <a class="btn ghost" href="/wall" aura-router-link>К Ледяной Стене</a>
       </div>
     </article>
   </div>

@@ -107,7 +107,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseHookList })
   guard: string[] | null;
 
-  @routeAttr({ parser: parseHookList })
+  @routeAttr({ parser: parseHookList, inherit: false })
   load: string[] | null;
 
   @routeAttr({ parser: parseHookList })

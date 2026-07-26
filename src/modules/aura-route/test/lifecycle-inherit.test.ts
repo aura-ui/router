@@ -82,4 +82,32 @@ describe('AuraRoute lifecycle inherit', () => {
     expect(child.guard).toBeNull();
     expect(child.ready).toBeNull();
   });
+
+  it('does not inherit load from aura-router', () => {
+    const child = mountAuraRouteUnderRouter(
+      { path: '/app' },
+      { load: 'fetch-global' },
+    );
+
+    expect(child.load).toBeNull();
+    expect(child.hasLoad).toBe(false);
+  });
+
+  it('does not inherit load from parent route', () => {
+    const parent = mountAuraRouteUnderRouter({ path: '/users', load: 'fetch-users' });
+    const child = mountAuraRoute({ path: ':id' }, { parent });
+
+    expect(parent.load).toEqual(['fetch-users']);
+    expect(parent.hasLoad).toBe(true);
+    expect(child.load).toBeNull();
+    expect(child.hasLoad).toBe(false);
+  });
+
+  it('keeps an explicit load on the route that declares it', () => {
+    const parent = mountAuraRouteUnderRouter({ path: '/users', load: 'fetch-users' });
+    const child = mountAuraRoute({ path: ':id', load: 'fetch-user' }, { parent });
+
+    expect(parent.load).toEqual(['fetch-users']);
+    expect(child.load).toEqual(['fetch-user']);
+  });
 });

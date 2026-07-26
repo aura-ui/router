@@ -3,17 +3,50 @@
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
-**Declarative routing for Web Components** — declare routes in HTML, navigate without a full page reload.
+**Declarative routing for Web Components — SSR-first, from static HTML to client navigation.**
 
-> **Experimental (pre-alpha).** `@auraui/router@0.0.x` may change before `0.1.0`. Pin exact versions.
+Composable lifecycle hooks and nested routes, declared in markup.
 
 ```bash
 npm install @auraui/router
 ```
 
+> **Experimental (pre-alpha).** `@auraui/router@0.0.1` may change before `0.1.0`. Pin exact versions; use for evaluation and feedback, not as a frozen production contract yet. Lifecycle attribute names in this README (`guard`, `load`, `ready`, …) are the intended public surface — see [ROADMAP](./ROADMAP.md) and [LIMITATIONS](./LIMITATIONS.md) for gaps and in-flight work.
+
 ---
 
-## 1. Install once
+## Table of contents
+
+- [Why Aura Router](#why-aura-router)
+- [Quick start](#quick-start)
+- [Navigation](#navigation)
+- [Views](#views)
+- [Nested routes & layouts](#nested-routes--layouts)
+- [Lifecycle hooks](#lifecycle-hooks)
+- [Cache](#cache)
+- [Loading](#loading)
+- [Router defaults](#router-defaults)
+- [Programmatic API](#programmatic-api)
+- [More](#more)
+- [License](#license)
+
+---
+
+## Why Aura Router
+
+| | |
+| --- | --- |
+| **No framework lock-in** | Plain HTML + Web Components — vanilla custom elements or legacy pages |
+| **MPA → SPA** | Server-rendered `.html` partials, then client-side navigation after hydration |
+| **Progressive enhancement** | Routes live in HTML; plain links work without JS — `aura-router-link` upgrades them to SPA navigation |
+| **Legacy-friendly** | One `url` loader for partials and full pages — fragment extract via `extract` attr |
+| **Predictable lifecycle** | Composable hooks (`AuraRouter.use()` + HTML attributes) — guards, load, ready |
+
+---
+
+## Quick start
+
+**1. Install once**
 
 ```ts
 import { AuraRouter } from '@auraui/router';
@@ -23,15 +56,12 @@ AuraRouter.install();
 
 This registers `<aura-router>`, `<aura-route>`, and `<aura-outlet>`.
 
----
-
-## 2. Declare routes
-
-Put an outlet where content should appear, and list routes under `<aura-router>`:
+**2. Declare routes in HTML**
 
 ```html
 <aura-router>
   <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
+  <aura-route path="/users" view="users.html"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>
   <aura-route path="*" view="template::not-found"></aura-route>
 </aura-router>
@@ -46,21 +76,13 @@ Put an outlet where content should appear, and list routes under `<aura-router>`
 </template>
 ```
 
-| Piece | Role |
-| --- | --- |
-| `<aura-outlet>` | Where the matched view mounts |
-| `<aura-route path="…">` | URL pattern |
-| `view="…"` | What to render (see below) |
-| `extract="…"` | CSS selector for a fragment from fetched (`url`) HTML |
-| `path="*"` | Catch-all 404 |
+A bare `view` value (e.g. `users.html`) defaults to the **`url`** loader — it fetches HTML from the server.
 
----
-
-## 3. Add links
+**3. Add in-app links**
 
 ```html
 <a href="/" aura-router-link>Home</a>
-<a href="/about" aura-router-link>About</a>
+<a href="/users" aura-router-link>Users</a>
 ```
 
 Clicks on `[aura-router-link]` update the URL and swap the outlet — no full reload.
@@ -69,31 +91,76 @@ Or navigate from code:
 
 ```ts
 const router = document.querySelector('aura-router');
-router?.navigate('/about');
-router?.navigate('/about', { replace: true });
+router?.navigate('/users');
+router?.navigate('/users', { replace: true });
 ```
 
 ---
 
-## 4. Views (slim)
+## Navigation
 
-Slim ships two built-in ways to put content in the outlet:
-
-| `view` | Meaning |
+| Mechanism | Usage |
 | --- | --- |
-| `html::<markup>` | Inline HTML in the attribute |
-| `template::id` | Clone `<template id="id">` |
+| **Link interception** | `aura-router-link` on `<a href="…">` |
+| **Programmatic** | `router.navigate('/path', { replace?: boolean })` |
+| **404 catch-all** | `<aura-route path="*" view="template::not-found">` |
+| **Fallback 404** | `error-template` on `<aura-router>` — see [Router defaults](#router-defaults) |
+
+### How `href` resolves
+
+The **`href` attribute is the source of truth** — for crawlers, noscript, and the router. On click, Aura resolves links the same way the browser does: `new URL(href, location.href)`.
+
+| Link in markup | Current URL | Resolves to |
+| --- | --- | --- |
+| `href="/users"` | any | `/users` |
+| `href="profile"` | `/app/settings/` | `/app/settings/profile` |
+| `href="."` | `/app/settings/profile` | `/app/settings/` |
+
+Use **path-relative** `href` inside layout templates; use **absolute** `/…` paths when leaving a branch.
+
+### Route `path` vs address bar
+
+| | Route `path` attr | Browser URL (canonical) |
+| --- | --- | --- |
+| **Folder** | `/app/settings` — trailing `/` optional, normalized away | index → `/app/settings/` |
+| **Index child** | `path="."` | same as folder URL |
+| **Leaf** | `profile` → `/app/settings/profile` | `/app/settings/profile` — no trailing slash |
+
+On index navigation, the engine **canonicalizes** the address bar (`/app/settings` → `/app/settings/` via `replaceState`) so path-relative links in the layout resolve correctly.
+
+---
+
+## Views
+
+The `view` attribute tells the router **what to render**.
+
+**Syntax:** `view="content"` or `view="loader::content"`.
+
+- **No `::`** — shorthand for fetching HTML: `view="users.html"` → `url` loader.
+- **With `::`** — pick a loader explicitly: `html::<p/>`, `template::app-shell`, …
+
+### Built-in loaders
+
+| Loader | `content` | Description |
+| --- | --- | --- |
+| `url` | `.html` path | Fetch **HTML** from server |
+| `html` | markup | Inline HTML in the attribute |
+| `template` | template id | Clone from `<template id="…">` |
+| `component` | tag name | Mount a registered custom element |
+| `import` | module path | Dynamic `import()` and register the component |
+| `iframe` | URL | Embed external page in `<iframe>` |
 
 ```html
+<aura-route path="/users" view="users.html"></aura-route>
 <aura-route path="/hello" view="html::<p>Hello</p>"></aura-route>
 <aura-route path="/card" view="template::card"></aura-route>
+<aura-route path="/app" view="import::./pages/app.ts"></aura-route>
+<aura-route path="/embed" view="iframe::https://example.com/widget"></aura-route>
 ```
 
-Put custom elements inside the template or HTML string — they work like any Web Component page.
+Use `import` for `.js` / `.ts`, not bare `url` content. Put custom elements inside a template or HTML string — they work like any Web Component page.
 
----
-
-## 5. Extract fragments
+### `extract` — fragment from full HTML pages
 
 Use `extract` when a fetched page is full HTML and the outlet should mount only one node — a CSS selector for that root. Applies to `url` views (`view="page.html"` / `url::…`), not to inline `html::…`.
 
@@ -119,7 +186,7 @@ Selector stays in `extract`, not inside `view`.
 
 ---
 
-## 6. Nested routes & layouts
+## Nested routes & layouts
 
 Nest routes. A parent with `layout` is a shell; children render into its inner `<aura-outlet>`.
 
@@ -149,9 +216,87 @@ Nest routes. A parent with `layout` is a shell; children render into its inner `
 
 Folder URLs get a trailing slash in the address bar (`/app` → `/app/`) so relative links resolve like the browser expects.
 
+Shared layouts stay mounted across sibling hops. Hook inheritance — see [Lifecycle hooks](#lifecycle-hooks).
+
 ---
 
-## 7. Cache
+## Lifecycle hooks
+
+Register hooks with `defineRouteHook(name, fn)` then `AuraRouter.use(…)`, or directly `AuraRouter.use(name, fn)`. Phase attributes (`guard`, `load`, `ready`, …) list **hook names** to run at that phase — comma-separated.
+
+```ts
+import { defineRouteHook, AuraRouter } from '@auraui/router';
+
+const AUTH_KEY = 'aura-demo-auth';
+
+const authHook = defineRouteHook('auth', async () => {
+  if (sessionStorage.getItem(AUTH_KEY) === '1') return;
+  return { type: 'redirect', url: '/login', replace: true };
+});
+
+AuraRouter.use(authHook);
+// or: AuraRouter.use('show-user', async (ctx) => { … });
+```
+
+`guard="auth"` runs the hook named `auth` during the guard phase. Most lifecycle attrs **inherit** from `<aura-router>` and parent `<aura-route>` down the tree; **`load` is local only** (set it on the route that owns the data).
+
+**Override** with your own value (`guard="admin-only"`). **Opt out** of inheritance with `none`, `off`, or `false` — e.g. `guard="none"`, `cache="off"`, `loading-template="none"`.
+
+### Lifecycle
+
+| Attribute | When | Blocking | Inherit |
+| --- | --- | --- | :---: |
+| `leave` | Before leaving the route | yes | ✓ |
+| `guard` | Before entering the route (auth, redirect) | yes | ✓ |
+| `load` | Fetch data before render | yes | |
+| `ready` | After view is committed (analytics, focus) | no | ✓ |
+| `unmount` | Exit cleanup after commit | no | ✓ |
+| `update` | Same route leaf; query, hash or params may change | no | ✓ |
+| `error` | Navigation or render failure | terminal | ✓ |
+
+### Presentation
+
+> **Experimental.** Transition attrs are still settling and may change before `0.1.0`.
+
+| Attribute | Description |
+| --- | --- |
+| `transition-in` | Enter animation hooks |
+| `transition-out` | Exit animation hooks |
+| `transition-order` | `out-in`, `in-out`, or `parallel` |
+| `transition` | Shortcut for symmetric in/out hooks |
+
+### Example
+
+```html
+<template id="users-shell">
+  <nav>
+    <a href="." aura-router-link>List</a>
+  </nav>
+  <aura-outlet></aura-outlet>
+</template>
+
+<aura-router guard="auth" ready="analytics">
+  <aura-route path="/login" view="login.html" guard="none"></aura-route>
+  <aura-route path="/users" layout="users-shell">
+    <aura-route path="." view="users.html"></aura-route>
+    <aura-route
+      path=":id"
+      view="users{{id}}.html"
+      load="fetch-user"
+      ready="track-view">
+    </aura-route>
+  </aura-route>
+  <aura-route
+    path="/settings"
+    view="settings.html"
+    leave="confirm-unsaved">
+  </aura-route>
+</aura-router>
+```
+
+---
+
+## Cache
 
 Control what is kept when leaving a route with the `cache` attribute on `<aura-route>` or `<aura-router>` (inherited; child overrides).
 
@@ -160,12 +305,12 @@ Ladder: **off → `cache` → `dom` → `all`**.
 | Attr | DOM keep-alive | View payload | `load` data | Use when |
 | --- | --- | --- | --- | --- |
 | *(absent)* | | | | No cache |
-| `cache` / `cache=""` | | ✓ | ✓ | Cache network/content; remount UI |
-| `view` | | ✓ | | Only HTML / loader payload |
-| `data` | | | ✓ | Only `load` hooks |
-| `dom` | ✓ | ✓ | | Tabs / forms — keep live DOM (`view` is LRU fallback) |
-| `all` | ✓ | ✓ | ✓ | Keep-alive + cached data |
-| `off` / `none` / `false` | | | | Opt out of inherited cache |
+| `cache` | | ✓ | ✓ | Cache network/content; remount UI |
+| `cache="view"` | | ✓ | | Only HTML / loader payload |
+| `cache="data"` | | | ✓ | Only `load` hooks |
+| `cache="dom"` | ✓ | ✓ | | Tabs / forms — keep live DOM (`view` is LRU fallback) |
+| `cache="all"` | ✓ | ✓ | ✓ | Keep-alive + cached data |
+| `cache="off"` / `none` / `false` | | | | Opt out of inherited cache |
 
 ```html
 <!-- typical page: cache HTML + load, fresh DOM each visit -->
@@ -176,15 +321,38 @@ Ladder: **off → `cache` → `dom` → `all`**.
 
 <!-- sticky UI + cached load -->
 <aura-route path="/inbox" view="inbox.html" load="fetch-inbox" cache="all"></aura-route>
+
+<!-- how long view/data entries live (seconds → gcTime); omit → store default -->
+<aura-route path="/report" view="report.html" load="fetch-report" cache cache-time="60"></aura-route>
 ```
 
 Unknown values disable cache and log a `console.warn`.
 
+`cache-time` (seconds, inheritable) overrides the long-cache TTL (`gcTime`) for that route’s `view` / `data` entries. It has no effect without a cache mode that keeps those layers. Absent → store default from `AuraRouter.configure`.
+
+### Invalidate from code
+
+```ts
+const router = document.querySelector('aura-router');
+
+router?.invalidate();                         // clear cached load data
+router?.invalidate({ cache: 'view' });         // clear cached HTML / views
+router?.invalidate({ cache: 'all' });          // both
+router?.invalidate({ path: '/users/:id' });    // one route pattern (not the URL)
+router?.invalidate({ path: '/items', policy: 'remove' }); // drop now (default: mark stale)
+```
+
+Does not remount the current page — navigate again to refetch. Emits `data-invalidated` (except for `cache: 'view'`).
+
 ---
 
-## 8. Loading
+## Loading
 
-While a route is preparing (after guards → until loads finish), you can show loading chrome. Prefer a **body class / events** and keep the previous page on screen — that works with page transitions and matches typical SPA UX. Optional `loading-template` mounts a skeleton in the outlet when there is **no** page transition.
+While a route is preparing (after guards → until loads finish), you can show loading chrome. Prefer a **body class / events** and keep the previous page on screen — that works with page transitions and matches typical SPA UX.
+
+> **Experimental:** `loading-template` may be removed — outlet skeletons rarely match modern SPA loading (previous page + overlay / body chrome). Prefer `loading-body-class` and loading events.
+
+Optional `loading-template` mounts a skeleton in the outlet when there is **no** page transition.
 
 ```html
 <template id="loading">
@@ -239,42 +407,83 @@ Attrs inherit from `<aura-router>` (and parent routes) like `extract` / `cache`.
 
 ---
 
-## Mental model
+## Router defaults
 
-```text
-click / navigate
-    → match path against <aura-route> tree
-    → (optional) loading class / skeleton while loads run
-    → render view / layout into <aura-outlet>
+Some attrs on `<aura-router>` are **defaults for child routes** (override per route; opt out with `none` / `off` / `false`). Others configure the **host only**.
+
+### Inherited by routes
+
+| Attribute | Description |
+| --- | --- |
+| `guard`, `ready`, `leave`, `unmount`, `update`, `error` | Global hook lists (comma-separated names); **`load` is not inherited** — set per route |
+| `cache` / `cache-time` | Cache ladder + TTL (seconds) — see [Cache](#cache) |
+| `loading-body-class` | Body class during prepare |
+| `loading-template` | Skeleton template id (experimental — see [Loading](#loading)) |
+| `loading-start-event` / `loading-end-event` | Loading event names (`none` / `off` / `false` disables) |
+| `error-template` | Template id on render error; also thin fallback 404 when no `path="*"` |
+| `extract` | Default CSS selector for `url` fragment extract |
+
+### Host only (`<aura-router>`)
+
+| Attribute | Description |
+| --- | --- |
+| `links-selector` | In-app links to intercept / scan (default: `[aura-router-link]`) |
+| `links-container-selector` | Limit active-link scan to a subtree (default: whole document) |
+| `link-active-class` | Class on the matching link |
+| `link-active-branch-class` | Class on section/folder links (prefix match) |
+| `outlet` | CSS selector for the root `<aura-outlet>` |
+
+```html
+<aura-router
+  loading-body-class="loading"
+  extract="#main"
+  link-active-class="is-active"
+  link-active-branch-class="is-active-branch">
+  …
+</aura-router>
 ```
-
-That’s the slim loop. Data `load`, prefetch, and network loaders are optional on top of this.
 
 ---
 
-## Try the demo
+## Programmatic API
 
-```bash
-git clone https://github.com/aura-ui/router.git
-cd router
-npm install
-npm run dev
+```ts
+import { AuraRouter } from '@auraui/router';
+
+AuraRouter.use('auth', async () => { /* … */ });
+
+// Global defaults — layers match route `cache` (dom / view / data)
+AuraRouter.configure({
+  domCache: { max: 10 },                          // detached DOM (`cache="dom"`)
+  viewCache: { max: 50, gcTime: 43_200_000 },     // HTML / loader payloads (~12h)
+  dataCache: { staleTime: 30_000, gcTime: 300_000 }, // `load` payloads (30s fresh / 5min GC)
+});
+
+AuraRouter.install();
+
+const router = document.querySelector('aura-router');
+router?.navigate('/users', { replace: true });
+router?.refreshRoutes();
+router?.invalidate({ path: '/users/:id' }); // see [Cache](#cache)
 ```
+
+> **Experimental:** DOM event names on `<aura-router>` may change before `0.1.0`.
+
+DOM events include `navigation-start`, `navigation`, `navigation-complete`, `navigation-error`, `not-found`, `data-invalidated`, and load `load-start` / `load-end` / `load-error`.
 
 ---
 
 ## More
 
-> **Slim model** (this README): match URL → render a view into `<aura-outlet>`, plus optional [`extract`](#5-extract-fragments), [`cache`](#7-cache), and [`loading`](#8-loading).  
-> Further advanced features (prefetch, network loaders, hooks) — separate docs (coming).
-
 | | |
 | --- | --- |
 | Known gaps | [LIMITATIONS.md](./LIMITATIONS.md) |
 | Roadmap | [ROADMAP.md](./ROADMAP.md) |
+| Changelog | [CHANGELOG.md](./CHANGELOG.md) |
 | npm | [@auraui/router](https://www.npmjs.com/package/@auraui/router) |
-| Site | [auraui.dev](https://auraui.dev) |
+
+---
 
 ## License
 
-MIT — see [LICENSE](./LICENSE) and [TRADEMARKS.md](./TRADEMARKS.md).
+MIT covers source code only — not the project name or logos. See [LICENSE](./LICENSE) and [TRADEMARKS.md](./TRADEMARKS.md).

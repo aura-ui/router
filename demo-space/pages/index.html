@@ -20,12 +20,11 @@
       <span>Космос · человек · маршруты Aura</span>
     </a>
     <nav class="top-nav">
-      <a href="/" aura-router-link>ЦУП</a>
-      <a href="/chronicle/flight" aura-router-link>Хроника</a>
-      <a href="/system/earth" aura-router-link>Система</a>
-      <a href="/mir" aura-router-link>Мир</a>
-      <a href="/deep/solar" aura-router-link>Глубина</a>
-      <a href="/fleet" aura-router-link>Флот</a>
+      <a href="/" aura-router-link>Атлас</a>
+      <a href="/chronicle" aura-router-link>Хроника</a>
+      <a href="/system" aura-router-link>Система</a>
+      <a href="/mir" aura-router-link>Станция «Мир»</a>
+      <a href="/deep" aura-router-link>Масштабы</a>
     </nav>
   </header>
 
@@ -53,6 +52,7 @@
       <aura-route path="/fleet" view="fleet" extract=".main" cache></aura-route>
       <aura-route path="/fleet/:id" view="fleet/{{id}}" extract=".main"></aura-route>
 
+      <aura-route path="/chronicle" view="chronicle" extract=".main"></aura-route>
       <aura-route
         path="/chronicle/:eraId"
         layout="era-layout"
@@ -67,6 +67,7 @@
         ></aura-route>
       </aura-route>
 
+      <aura-route path="/system" view="system" extract=".main"></aura-route>
       <aura-route
         path="/system/:bodyId"
         layout="system-layout"
@@ -102,6 +103,7 @@
         ready="deep-chrome"
         update="deep-chrome"
       >
+        <aura-route path="." view="deep" extract=".main"></aura-route>
         <aura-route
           path="horizon"
           view="deep/horizon"
@@ -115,6 +117,12 @@
     </aura-router>
   </main>
 
+  <footer class="site-footer">
+    <a href="/fleet" aura-router-link>Флот</a>
+    <a href="/briefing" aura-router-link>Брифинг</a>
+    <a href="/about" aura-router-link>О проекте</a>
+  </footer>
+
   <details class="dev-panel">
     <summary>Как устроен роутер на этой странице</summary>
     <p data-dev-note>Выберите маршрут — здесь появится подсказка по фичам Aura.</p>
@@ -124,37 +132,36 @@
 
   <template id="home">
     <section class="hero">
-      <p class="eyebrow">Центр управления полётами</p>
+      <p class="eyebrow">Четыре раздела одного атласа</p>
       <h1 class="hero-title">Орбитальный атлас</h1>
       <p class="lede hero-lede">
-        Четыре пульта одного полёта: время советской космонавтики, Солнечная система,
-        станция «Мир» и лестница масштабов до горизонта Вселенной.
+        Сначала обзор раздела, потом детали. Время → планеты → станция «Мир» → масштабы Вселенной.
       </p>
       <div class="actions hero-actions">
-        <a class="btn" href="/chronicle/flight" aura-router-link>Начать экспедицию</a>
+        <a class="btn" href="/chronicle" aura-router-link>Начать с хроники</a>
         <a class="btn ghost" href="/about" aura-router-link>О проекте</a>
       </div>
 
-      <nav class="orbit-hub" aria-label="Четыре пульта">
-        <a class="orbit-node is-start" href="/chronicle/flight" aura-router-link>
+      <nav class="orbit-hub" aria-label="Разделы атласа">
+        <a class="orbit-node is-start" href="/chronicle" aura-router-link>
           <span class="orbit-kicker">01 · время</span>
           <strong>Хроника</strong>
-          <span>От Циолковского к орбите</span>
+          <span>Лента эпох и дат</span>
         </a>
-        <a class="orbit-node" href="/system/earth" aura-router-link>
+        <a class="orbit-node" href="/system" aura-router-link>
           <span class="orbit-kicker">02 · рядом</span>
           <strong>Система</strong>
           <span>Планеты и экспедиции</span>
         </a>
         <a class="orbit-node" href="/mir" aura-router-link>
           <span class="orbit-kicker">03 · дом</span>
-          <strong>Мир</strong>
-          <span>Станция по отсекам</span>
+          <strong>Станция «Мир»</strong>
+          <span>Обход по отсекам</span>
         </a>
-        <a class="orbit-node" href="/deep/solar" aura-router-link>
+        <a class="orbit-node" href="/deep" aura-router-link>
           <span class="orbit-kicker">04 · дальше</span>
-          <strong>Глубина</strong>
-          <span>До метагалактики</span>
+          <strong>Масштабы</strong>
+          <span>От гелиосферы вверх</span>
         </a>
       </nav>
     </section>
@@ -169,6 +176,7 @@
           <h1 data-layout-title>Хроника</h1>
         </div>
         <nav class="subnav">
+          <a href="/chronicle" aura-router-link>Вся лента</a>
           <a data-nav="overview" href=".">Обзор эпохи</a>
           <a href="/chronicle/dreams" aura-router-link>Мечта</a>
           <a href="/chronicle/dawn" aura-router-link>Рассвет</a>
@@ -189,6 +197,7 @@
           <h1 data-layout-title>Система</h1>
         </div>
         <nav class="subnav planet-nav">
+          <a href="/system" aura-router-link>Карта</a>
           <a data-nav="overview" href=".">Обзор</a>
           <a href="/system/earth" aura-router-link>Земля</a>
           <a href="/system/moon" aura-router-link>Луна</a>
@@ -230,12 +239,14 @@
       <header class="layout-chrome">
         <div>
           <nav class="breadcrumbs" data-crumbs aria-label="Путь"></nav>
-          <p class="hint layout-kicker">Масштаб</p>
-          <h1 data-layout-title>Далёкий космос</h1>
+          <p class="hint layout-kicker">Лестница масштабов</p>
+          <h1 data-layout-title>Масштабы</h1>
         </div>
+        <a class="btn ghost" href="/deep" aura-router-link>Обзор</a>
       </header>
-      <nav class="scale-rail" data-scale-rail aria-label="Лестница масштабов">
-        <a href="/deep/solar" data-scale="solar" aura-router-link>Система</a>
+      <nav class="scale-rail" data-scale-rail aria-label="Уровни">
+        <a href="/deep" data-scale="" aura-router-link>Обзор</a>
+        <a href="/deep/heliosphere" data-scale="heliosphere" aura-router-link>Гелиосфера</a>
         <a href="/deep/oort" data-scale="oort" aura-router-link>Оорт</a>
         <a href="/deep/milky-way" data-scale="milky-way" aura-router-link>Галактика</a>
         <a href="/deep/local-group" data-scale="local-group" aura-router-link>Группа</a>
@@ -264,7 +275,7 @@
     <div class="panel state-panel">
       <h1>Потеряна телеметрия</h1>
       <p>Не удалось загрузить страницу.</p>
-      <a class="btn" href="/" aura-router-link>В ЦУП</a>
+      <a class="btn" href="/" aura-router-link>В атлас</a>
     </div>
   </template>
 

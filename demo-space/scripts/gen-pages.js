@@ -29,16 +29,16 @@ page(
   'О проекте',
   `
   <h1>Орбитальный атлас</h1>
-  <p class="lede">Образовательный демо-сайт для <strong>@auraui/router</strong>: маршруты рассказывают про космос, а попутно показывают nested layouts, extract, cache, loading и guard.</p>
+  <p class="lede">Образовательный демо-сайт для <strong>@auraui/router</strong>: сначала хаб раздела, потом детали. Попутно — nested layouts, extract, cache, loading и guard.</p>
   <ul class="lede" style="padding-left:1.2em">
-    <li><strong>Хроника</strong> — время советской космонавтики.</li>
+    <li><strong>Хроника</strong> — лента эпох советской космонавтики.</li>
     <li><strong>Система</strong> — планеты и экспедиции.</li>
-    <li><strong>Мир</strong> — прогулка по отсекам станции.</li>
-    <li><strong>Глубина</strong> — масштабы от системы до горизонта.</li>
+    <li><strong>Станция «Мир»</strong> — обход по отсекам.</li>
+    <li><strong>Масштабы</strong> — от гелиосферы до горизонта.</li>
   </ul>
   <div class="actions">
-    <a class="btn" href="/chronicle/flight" aura-router-link>Начать экспедицию</a>
-    <a class="btn ghost" href="/" aura-router-link>В ЦУП</a>
+    <a class="btn" href="/chronicle" aura-router-link>Начать с хроники</a>
+    <a class="btn ghost" href="/" aura-router-link>В атлас</a>
   </div>
 `,
 );
@@ -48,10 +48,10 @@ page(
   'Брифинг',
   `
   <div class="callout" data-guard-banner hidden>
-    <strong>Сначала позывной.</strong> Путь за горизонт закрыт. Вас вернули на брифинг.
+    <strong>Сначала позывной.</strong> Путь за горизонт закрыт — guard вернул вас сюда.
   </div>
-  <h1>Брифинг исследователя</h1>
-  <p class="lede">Впишите позывной — и дальняя зона атласа узнает вас. Без записи guard вернёт сюда.</p>
+  <h1>Допуск за горизонт</h1>
+  <p class="lede">Это не отдельный раздел атласа, а ключ к охраняемому маршруту. Впишите позывной — и откроется <strong>/deep/horizon</strong>.</p>
   <form class="brief-form" data-briefing-form>
     <label>Позывной
       <input name="callsign" type="text" placeholder="например, Восток" required maxlength="32" />
@@ -60,7 +60,187 @@ page(
   </form>
   <p class="hint" style="margin-top:16px">Хранится только в sessionStorage этой вкладки.</p>
   <div class="actions">
-    <a class="btn ghost" href="/deep/observable" aura-router-link>К наблюдаемой Вселенной</a>
+    <a class="btn ghost" href="/deep" aura-router-link>К масштабам</a>
+  </div>
+`,
+);
+
+page(
+  'chronicle.html',
+  'Хроника',
+  `
+  <h1>Хроника космонавтики</h1>
+  <p class="lede">Вся лента на одном экране. Выберите эпоху или сразу ключевое событие — шапка эпохи останется при углублении.</p>
+
+  <section class="hub-era">
+    <h2><a href="/chronicle/dreams" aura-router-link>Мечта · до стартов</a></h2>
+    <ol class="timeline">
+      <li>
+        <a href="/chronicle/dreams/tsiolkovsky" aura-router-link>
+          <div class="when">1903+</div>
+          <strong>Циолковский</strong>
+          <div class="hint">Ракета как путь к звёздам</div>
+        </a>
+      </li>
+    </ol>
+  </section>
+
+  <section class="hub-era">
+    <h2><a href="/chronicle/dawn" aura-router-link>Рассвет · 1957</a></h2>
+    <ol class="timeline">
+      <li>
+        <a href="/chronicle/dawn/sputnik" aura-router-link>
+          <div class="when">4 окт 1957</div>
+          <strong>Спутник-1</strong>
+          <div class="hint">Первый искусственный спутник Земли</div>
+        </a>
+      </li>
+    </ol>
+  </section>
+
+  <section class="hub-era">
+    <h2><a href="/chronicle/flight" aura-router-link>Полёт · 1961–1965</a></h2>
+    <ol class="timeline">
+      <li>
+        <a class="is-primary-path" href="/chronicle/flight/gagarin" aura-router-link>
+          <div class="when">12 апр 1961</div>
+          <strong>Гагарин</strong>
+          <div class="hint">Первый человек в космосе · дальше по экспедиции</div>
+        </a>
+      </li>
+      <li>
+        <a href="/chronicle/flight/tereshkova" aura-router-link>
+          <div class="when">16 июн 1963</div>
+          <strong>Терешкова</strong>
+          <div class="hint">Первая женщина на орбите</div>
+        </a>
+      </li>
+      <li>
+        <a href="/chronicle/flight/leonov" aura-router-link>
+          <div class="when">18 мар 1965</div>
+          <strong>Леонов</strong>
+          <div class="hint">Первый выход в открытый космос</div>
+        </a>
+      </li>
+    </ol>
+  </section>
+
+  <section class="hub-era">
+    <h2><a href="/chronicle/orbit" aura-router-link>Орбита · 1971–1986</a></h2>
+    <ol class="timeline">
+      <li>
+        <a href="/chronicle/orbit/salyut" aura-router-link>
+          <div class="when">1971+</div>
+          <strong>Салют</strong>
+          <div class="hint">Первые орбитальные станции</div>
+        </a>
+      </li>
+      <li>
+        <a href="/chronicle/orbit/mir" aura-router-link>
+          <div class="when">20 фев 1986</div>
+          <strong>Станция «Мир»</strong>
+          <div class="hint">Модульный дом на орбите</div>
+        </a>
+      </li>
+    </ol>
+  </section>
+
+  <div class="actions">
+    <a class="btn" href="/chronicle/flight/gagarin" aura-router-link>К полёту Гагарина</a>
+    <a class="btn ghost" href="/system" aura-router-link>К системе</a>
+  </div>
+`,
+);
+
+page(
+  'system.html',
+  'Система',
+  `
+  <h1>Солнечная система</h1>
+  <p class="lede">Выберите тело — откроются описание и список экспедиций. Планеты здесь; далёкий космос — в разделе «Масштабы».</p>
+  <div class="system-map" aria-label="Выбор планеты">
+    <a class="planet-chip" data-body="earth" href="/system/earth" aura-router-link>Земля</a>
+    <a class="planet-chip" data-body="moon" href="/system/moon" aura-router-link>Луна</a>
+    <a class="planet-chip" data-body="venus" href="/system/venus" aura-router-link>Венера</a>
+    <a class="planet-chip" data-body="mars" href="/system/mars" aura-router-link>Марс</a>
+  </div>
+  <div class="card-grid">
+    <a class="card is-primary-path" href="/system/earth/missions/vostok-1" aura-router-link>
+      <span class="tag">Экспедиция</span>
+      <h3>Восток-1</h3>
+      <p>Земля · 1961 · дальше по маршруту</p>
+    </a>
+    <a class="card" href="/system/moon/missions/luna-9" aura-router-link>
+      <span class="tag">Экспедиция</span>
+      <h3>Луна-9</h3>
+      <p>Первая мягкая посадка</p>
+    </a>
+    <a class="card" href="/fleet" aura-router-link>
+      <span class="tag">Справочник</span>
+      <h3>Флот</h3>
+      <p>Корабли и аппараты атласа</p>
+    </a>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/system/earth" aura-router-link>К Земле</a>
+    <a class="btn ghost" href="/deep" aura-router-link>К масштабам</a>
+  </div>
+`,
+);
+
+page(
+  'deep.html',
+  'Масштабы',
+  `
+  <h2>Лестница масштабов</h2>
+  <p class="lede">Не карта планет — зум наружу: от края солнечного ветра до предела сигнала. Планеты смотрите в «Системе».</p>
+  <ol class="scale-steps">
+    <li>
+      <a class="is-primary-path" href="/deep/heliosphere" aura-router-link>
+        <div class="step-n">1 · старт</div>
+        <strong>Гелиосфера</strong>
+        <div class="hint">Где кончается «погода» Солнца</div>
+      </a>
+    </li>
+    <li>
+      <a href="/deep/oort" aura-router-link>
+        <div class="step-n">2</div>
+        <strong>Облако Оорта</strong>
+        <div class="hint">Кометный край солнечного влияния</div>
+      </a>
+    </li>
+    <li>
+      <a href="/deep/milky-way" aura-router-link>
+        <div class="step-n">3</div>
+        <strong>Млечный Путь</strong>
+        <div class="hint">Наша галактика</div>
+      </a>
+    </li>
+    <li>
+      <a href="/deep/local-group" aura-router-link>
+        <div class="step-n">4</div>
+        <strong>Местная группа</strong>
+        <div class="hint">Соседние галактики</div>
+      </a>
+    </li>
+    <li>
+      <a href="/deep/observable" aura-router-link>
+        <div class="step-n">5</div>
+        <strong>Наблюдаемая Вселенная</strong>
+        <div class="hint">Предел дошедшего света</div>
+      </a>
+    </li>
+    <li>
+      <a href="/deep/horizon" aura-router-link>
+        <div class="step-n">6 · guard</div>
+        <strong>За горизонтом</strong>
+        <div class="hint">Нужен позывной из брифинга</div>
+      </a>
+    </li>
+  </ol>
+  <div class="actions">
+    <a class="btn" href="/deep/heliosphere" aura-router-link>Начать с гелиосферы</a>
+    <a class="btn ghost" href="/system" aura-router-link>К планетам</a>
   </div>
 `,
 );
@@ -70,7 +250,7 @@ page(
   'Флот',
   `
   <h1>Флот атласа</h1>
-  <p class="lede">Корабли и аппараты, которые связывают хронику, планеты и станцию. Плоская ветка с cache на списке.</p>
+  <p class="lede">Справочник кораблей и аппаратов. Не главный раздел — связка между хроникой, планетами и станцией.</p>
   <div class="card-grid">
     <a class="card is-primary-path" href="/fleet/vostok" aura-router-link>
       <span class="tag">Пилотируемый</span>
@@ -94,7 +274,7 @@ page(
     </a>
   </div>
   <div class="actions">
-    <a class="btn ghost" href="/" aura-router-link>В ЦУП</a>
+    <a class="btn ghost" href="/" aura-router-link>В атлас</a>
   </div>
 `,
 );
@@ -207,7 +387,7 @@ for (const [id, era] of Object.entries(eras)) {
     <ol class="timeline">${list}</ol>
     <div class="actions">
       <a class="btn" href="/chronicle/${id}/${era.items[0][2]}" aura-router-link>К первому событию</a>
-      <a class="btn ghost" href="/" aura-router-link>В ЦУП</a>
+      <a class="btn ghost" href="/" aura-router-link>В атлас</a>
     </div>
   `,
   );
@@ -406,7 +586,7 @@ const missions = [
     'Мягкая посадка на Марс. Сигнал с поверхности был коротким — но историческим.',
     '/system/mars',
     'К Марсу',
-    '/deep/solar',
+    '/deep',
     'К масштабам',
   ],
 ];
@@ -495,8 +675,8 @@ const modules = [
     'Природа',
     '1996',
     'Последний модуль: экология Земли, исследования атмосферы и поверхности.',
-    '/deep/milky-way',
-    'К Млечному Пути',
+    '/deep',
+    'К масштабам',
   ],
 ];
 
@@ -518,10 +698,10 @@ for (const [id, name, when, text, next, nextLabel] of modules) {
 
 const scales = [
   [
-    'solar',
-    'Солнечная система',
-    '~2 св. года до границы гелиосферы',
-    'Планеты, пояса, гелиосфера — наш «дворик». Дальше ветер Солнца слабеет.',
+    'heliosphere',
+    'Гелиосфера',
+    'край солнечного ветра',
+    'Пузырь, внутри которого «погода» задаётся Солнцем. Планеты остаются в разделе «Система» — здесь только выход наружу.',
     '/deep/oort',
     'Дальше: облако Оорта',
   ],
@@ -569,7 +749,7 @@ for (const [id, name, scale, text, next, nextLabel] of scales) {
     <p class="lede">${text}</p>
     <div class="actions">
       <a class="btn" href="${next}" aura-router-link>${nextLabel}</a>
-      <a class="btn ghost" href="/briefing" aura-router-link>Получить позывной</a>
+      <a class="btn ghost" href="/deep" aura-router-link>К обзору масштабов</a>
     </div>
   `,
   );
@@ -581,10 +761,10 @@ page(
   `
   <div class="horizon-panel">
     <h2>За горизонтом сигнала</h2>
-    <p class="lede">Карты кончаются там, куда ещё не дошёл свет. Здесь атлас ставит многоточие — и напоминает, что маршруты роутера тоже умеют охранять границы.</p>
-    <p class="hint">Вы прошли экспедицию: время → система → станция → глубина.</p>
+    <p class="lede">Карты кончаются там, куда ещё не дошёл свет. Здесь атлас ставит многоточие — и показывает, что маршруты роутера умеют охранять границы.</p>
+    <p class="hint">Путь: хроника → миссия → «Мир» → масштабы → горизонт.</p>
     <div class="actions">
-      <a class="btn" href="/" aura-router-link>Вернуться в ЦУП</a>
+      <a class="btn" href="/" aura-router-link>Вернуться в атлас</a>
       <a class="btn ghost" href="/fleet" aura-router-link>Флот</a>
       <button type="button" class="btn ghost" data-callsign-reset>Сбросить позывной</button>
     </div>

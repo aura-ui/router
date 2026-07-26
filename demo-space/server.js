@@ -17,15 +17,18 @@ const fragments = [
   ['/fleet', 'fleet.html'],
   ['/fleet/:id', (p) => `fleet/${p.id}.html`, 350],
 
+  ['/chronicle', 'chronicle.html'],
   ['/chronicle/:eraId', (p) => `chronicle/${p.eraId}.html`],
   ['/chronicle/:eraId/:eventId', (p) => `chronicle/events/${p.eventId}.html`, 280],
 
+  ['/system', 'system.html'],
   ['/system/:bodyId', (p) => `system/${p.bodyId}.html`],
   ['/system/:bodyId/missions/:id', (p) => `system/missions/${p.id}.html`, 320],
 
   ['/mir', 'mir.html'],
   ['/mir/modules/:moduleId', (p) => `mir/${p.moduleId}.html`, 450],
 
+  ['/deep', 'deep.html'],
   // Static path before :scaleId so "horizon" is not captured as a param.
   ['/deep/horizon', 'deep/horizon.html', 500],
   ['/deep/:scaleId', (p) => `deep/${p.scaleId}.html`],

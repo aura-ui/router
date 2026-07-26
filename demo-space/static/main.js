@@ -7122,7 +7122,7 @@ var MODULES = {
   priroda: "\u041F\u0440\u0438\u0440\u043E\u0434\u0430"
 };
 var SCALES = {
-  solar: "\u0421\u043E\u043B\u043D\u0435\u0447\u043D\u0430\u044F \u0441\u0438\u0441\u0442\u0435\u043C\u0430",
+  heliosphere: "\u0413\u0435\u043B\u0438\u043E\u0441\u0444\u0435\u0440\u0430",
   oort: "\u041E\u0431\u043B\u0430\u043A\u043E \u041E\u043E\u0440\u0442\u0430",
   "milky-way": "\u041C\u043B\u0435\u0447\u043D\u044B\u0439 \u041F\u0443\u0442\u044C",
   "local-group": "\u041C\u0435\u0441\u0442\u043D\u0430\u044F \u0433\u0440\u0443\u043F\u043F\u0430",
@@ -7134,74 +7134,56 @@ var KEYS = {
 };
 var TOUR = [
   {
-    id: "era",
-    label: "\u042D\u043F\u043E\u0445\u0430",
-    href: "/chronicle/flight",
-    match: (p) => p === "/chronicle/flight",
+    id: "chronicle",
+    label: "\u0425\u0440\u043E\u043D\u0438\u043A\u0430",
+    href: "/chronicle",
+    match: (p) => p === "/chronicle",
     nextLabel: "\u041A \u043F\u043E\u043B\u0451\u0442\u0443 \u0413\u0430\u0433\u0430\u0440\u0438\u043D\u0430",
     nextHref: "/chronicle/flight/gagarin",
-    aura: "Nested layout: \u0448\u0430\u043F\u043A\u0430 \u044D\u043F\u043E\u0445\u0438 \u043E\u0441\u0442\u0430\u0451\u0442\u0441\u044F \u043F\u0440\u0438 \u0441\u043C\u0435\u043D\u0435 \u0441\u043E\u0431\u044B\u0442\u0438\u044F."
+    aura: "\u0425\u0430\u0431 \u0440\u0430\u0437\u0434\u0435\u043B\u0430: \u043E\u0431\u0437\u043E\u0440 \u0432\u0441\u0435\u0439 \u043B\u0435\u043D\u0442\u044B \u0434\u043E \u0432\u0445\u043E\u0434\u0430 \u0432 nested-\u044D\u043F\u043E\u0445\u0438."
   },
   {
     id: "event",
     label: "\u0421\u043E\u0431\u044B\u0442\u0438\u0435",
     href: "/chronicle/flight/gagarin",
     match: (p) => p === "/chronicle/flight/gagarin",
-    nextLabel: "\u041A \u0417\u0435\u043C\u043B\u0435 \u0432 \u0441\u0438\u0441\u0442\u0435\u043C\u0435",
-    nextHref: "/system/earth",
-    aura: "\u0413\u043B\u0443\u0431\u0436\u0435 \u0432 nested: chronicle \u2192 era \u2192 event."
-  },
-  {
-    id: "planet",
-    label: "\u041F\u043B\u0430\u043D\u0435\u0442\u0430",
-    href: "/system/earth",
-    match: (p) => p === "/system/earth",
     nextLabel: "\u041C\u0438\u0441\u0441\u0438\u044F \u0412\u043E\u0441\u0442\u043E\u043A-1",
     nextHref: "/system/earth/missions/vostok-1",
-    aura: "\u0414\u0440\u0443\u0433\u0430\u044F nested-\u0432\u0435\u0442\u043A\u0430: system \u2192 body (+ layout)."
+    aura: "Nested: \u044D\u043F\u043E\u0445\u0430 \u043E\u0441\u0442\u0430\u0451\u0442\u0441\u044F, \u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F \u0441\u043E\u0431\u044B\u0442\u0438\u0435 (era-chrome)."
   },
   {
     id: "mission",
     label: "\u041C\u0438\u0441\u0441\u0438\u044F",
     href: "/system/earth/missions/vostok-1",
     match: (p) => p === "/system/earth/missions/vostok-1",
-    aura: "\u0412\u043B\u043E\u0436\u0435\u043D\u043D\u0430\u044F \u043C\u0438\u0441\u0441\u0438\u044F + extract \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 (\u0437\u0430\u0434\u0435\u0440\u0436\u043A\u0430).",
     nextLabel: "\u041D\u0430 \u0441\u0442\u0430\u043D\u0446\u0438\u044E \xAB\u041C\u0438\u0440\xBB",
-    nextHref: "/mir/modules/base"
+    nextHref: "/mir/modules/base",
+    aura: "\u0412\u043B\u043E\u0436\u0435\u043D\u043D\u0430\u044F \u043C\u0438\u0441\u0441\u0438\u044F \u0432 layout \u043F\u043B\u0430\u043D\u0435\u0442\u044B + extract \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u0430."
   },
   {
     id: "mir",
-    label: "\u041C\u0438\u0440",
+    label: "\xAB\u041C\u0438\u0440\xBB",
     href: "/mir/modules/base",
     match: (p) => p === "/mir/modules/base",
-    nextLabel: "\u041A \u041C\u043B\u0435\u0447\u043D\u043E\u043C\u0443 \u041F\u0443\u0442\u0438",
-    nextHref: "/deep/milky-way",
+    nextLabel: "\u041A \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u0430\u043C",
+    nextHref: "/deep/heliosphere",
     aura: "Layout \u0441\u0442\u0430\u043D\u0446\u0438\u0438 + hook \u043F\u043E\u0434\u0441\u0432\u0435\u0447\u0438\u0432\u0430\u0435\u0442 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u043C\u043E\u0434\u0443\u043B\u044C."
   },
   {
     id: "deep",
-    label: "\u0413\u043B\u0443\u0431\u0438\u043D\u0430",
-    href: "/deep/milky-way",
-    match: (p) => p === "/deep/milky-way",
-    nextLabel: "\u0411\u0440\u0438\u0444\u0438\u043D\u0433 \u043F\u043E\u0437\u044B\u0432\u043D\u043E\u0433\u043E",
-    nextHref: "/briefing",
-    aura: "\u041B\u0435\u0441\u0442\u043D\u0438\u0446\u0430 \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u043E\u0432 /deep/:scaleId."
-  },
-  {
-    id: "brief",
-    label: "\u0411\u0440\u0438\u0444\u0438\u043D\u0433",
-    href: "/briefing",
-    match: (p) => p === "/briefing",
+    label: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431",
+    href: "/deep/heliosphere",
+    match: (p) => p === "/deep/heliosphere",
     nextLabel: "\u0417\u0430 \u0433\u043E\u0440\u0438\u0437\u043E\u043D\u0442",
     nextHref: "/deep/horizon",
-    aura: "sessionStorage \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u043C\u0430\u0440\u0448\u0440\u0443\u0442 \u0441 guard."
+    aura: "\u041B\u0435\u0441\u0442\u043D\u0438\u0446\u0430 \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u043E\u0432; \u0441\u0442\u0430\u0440\u0442 \u0432\u044B\u0448\u0435 \u043A\u0430\u0440\u0442\u044B \u043F\u043B\u0430\u043D\u0435\u0442."
   },
   {
     id: "horizon",
     label: "\u0413\u043E\u0440\u0438\u0437\u043E\u043D\u0442",
     href: "/deep/horizon",
     match: (p) => p === "/deep/horizon",
-    nextLabel: "\u0412 \u0426\u0423\u041F",
+    nextLabel: "\u0412 \u0430\u0442\u043B\u0430\u0441",
     nextHref: "/",
     aura: 'guard="callsign" \u2014 \u0431\u0435\u0437 \u043F\u043E\u0437\u044B\u0432\u043D\u043E\u0433\u043E \u0440\u0435\u0434\u0438\u0440\u0435\u043A\u0442 \u043D\u0430 /briefing.'
   }
@@ -7209,15 +7191,27 @@ var TOUR = [
 var NOTES = [
   {
     test: (p) => p === "/",
-    text: "\u0421\u0442\u0430\u0440\u0442: template::home \u0432\u043D\u0443\u0442\u0440\u0438 shell. \u041D\u0430 \u0440\u043E\u0443\u0442\u0435\u0440\u0435 \u2014 cache \u0438 prefetch."
+    text: "\u0421\u0442\u0430\u0440\u0442: template::home. \u041C\u0435\u043D\u044E \u0432\u0435\u0434\u0451\u0442 \u043D\u0430 \u0445\u0430\u0431\u044B \u0440\u0430\u0437\u0434\u0435\u043B\u043E\u0432, \u043D\u0435 \u0432 \u0441\u0435\u0440\u0435\u0434\u0438\u043D\u0443."
   },
   {
     test: (p) => p === "/about",
     text: 'MPA-\u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430 /about \u0441 extract=".main".'
   },
   {
+    test: (p) => p === "/chronicle",
+    text: "\u0425\u0430\u0431 \u0445\u0440\u043E\u043D\u0438\u043A\u0438: \u0432\u0441\u044F \u043B\u0435\u043D\u0442\u0430 \u043D\u0430 \u043E\u0434\u043D\u043E\u043C \u044D\u043A\u0440\u0430\u043D\u0435, \u0434\u0430\u043B\u044C\u0448\u0435 \u2014 nested \u044D\u043F\u043E\u0445\u0438."
+  },
+  {
+    test: (p) => p === "/system",
+    text: "\u0425\u0430\u0431 \u0441\u0438\u0441\u0442\u0435\u043C\u044B: \u0432\u044B\u0431\u043E\u0440 \u043F\u043B\u0430\u043D\u0435\u0442\u044B \u0437\u0434\u0435\u0441\u044C, \u043D\u0435 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435 \u0417\u0435\u043C\u043B\u0438."
+  },
+  {
+    test: (p) => p === "/deep",
+    text: '\u0425\u0430\u0431 \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u043E\u0432 \u0432\u043D\u0443\u0442\u0440\u0438 deep-layout (path=".").'
+  },
+  {
     test: (p) => p.startsWith("/fleet"),
-    text: "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 /fleet \u2014 \u043F\u043B\u043E\u0441\u043A\u0430\u044F \u0432\u0435\u0442\u043A\u0430 \u0441 cache \u043D\u0430 \u0441\u043F\u0438\u0441\u043A\u0435."
+    text: "\u0421\u043F\u0440\u0430\u0432\u043E\u0447\u043D\u0438\u043A /fleet \u2014 \u0432\u043D\u0435 \u0433\u043B\u0430\u0432\u043D\u043E\u0433\u043E \u043C\u0435\u043D\u044E, cache \u043D\u0430 \u0441\u043F\u0438\u0441\u043A\u0435."
   },
   {
     test: (p) => /\/chronicle\/[^/]+\/[^/]+/.test(p),
@@ -7225,7 +7219,7 @@ var NOTES = [
   },
   {
     test: (p) => p.startsWith("/chronicle/"),
-    text: "\u0425\u0440\u043E\u043D\u0438\u043A\u0430: nested layout + breadcrumbs \u0438\u0437 params."
+    text: "\u0425\u0440\u043E\u043D\u0438\u043A\u0430: nested layout + breadcrumbs \u043D\u0430 \u0445\u0430\u0431 /chronicle."
   },
   {
     test: (p) => /\/system\/[^/]+\/missions\//.test(p),
@@ -7233,11 +7227,11 @@ var NOTES = [
   },
   {
     test: (p) => p.startsWith("/system/"),
-    text: "\u0421\u043E\u043B\u043D\u0435\u0447\u043D\u0430\u044F \u0441\u0438\u0441\u0442\u0435\u043C\u0430: layout \u0442\u0435\u043B\u0430 + \u0441\u043F\u0438\u0441\u043E\u043A \u043C\u0438\u0441\u0441\u0438\u0439."
+    text: "\u041F\u043B\u0430\u043D\u0435\u0442\u0430: layout + \u0441\u043F\u0438\u0441\u043E\u043A \u043C\u0438\u0441\u0441\u0438\u0439; \u0445\u0430\u0431 \u0432\u044B\u0431\u043E\u0440\u0430 \u2014 /system."
   },
   {
     test: (p) => p.startsWith("/mir"),
-    text: "\xAB\u041C\u0438\u0440\xBB: schema layout + loading-template \u0434\u043B\u044F \u043C\u043E\u0434\u0443\u043B\u0435\u0439."
+    text: "\u0421\u0442\u0430\u043D\u0446\u0438\u044F \xAB\u041C\u0438\u0440\xBB: schema layout + loading-template \u0434\u043B\u044F \u043C\u043E\u0434\u0443\u043B\u0435\u0439."
   },
   {
     test: (p) => p === "/deep/horizon",
@@ -7245,11 +7239,11 @@ var NOTES = [
   },
   {
     test: (p) => p.startsWith("/deep/"),
-    text: "\u0414\u0430\u043B\u0451\u043A\u0438\u0439 \u043A\u043E\u0441\u043C\u043E\u0441: \u0443\u0440\u043E\u0432\u043D\u0438 \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u0430 /deep/:scaleId."
+    text: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431\u044B /deep/:scaleId \u2014 \u043E\u0442 \u0433\u0435\u043B\u0438\u043E\u0441\u0444\u0435\u0440\u044B \u0432\u0432\u0435\u0440\u0445, \u0431\u0435\u0437 \u0434\u0443\u0431\u043B\u044F \u043F\u043B\u0430\u043D\u0435\u0442."
   },
   {
     test: (p) => p === "/briefing",
-    text: "\u0424\u043E\u0440\u043C\u0430 \u043F\u0438\u0448\u0435\u0442 \u043F\u043E\u0437\u044B\u0432\u043D\u043E\u0439 \u0432 sessionStorage \u2014 \u043A\u043B\u044E\u0447 \u0434\u043B\u044F guard."
+    text: "\u0414\u043E\u043F\u0443\u0441\u043A: \u0444\u043E\u0440\u043C\u0430 \u2192 sessionStorage. \u041D\u0435 \u0448\u0430\u0433 \u0442\u0443\u0440\u0430, \u0430 unlock \u0434\u043B\u044F guard."
   }
 ];
 
@@ -7293,7 +7287,10 @@ var eraChrome = defineRouteHook("era-chrome", async (ctx) => {
   const name = ERAS[eraId] || eraId;
   setText("[data-layout-title]", name);
   setHref('[data-nav="overview"]', `/chronicle/${eraId}`);
-  const parts = [["\u0426\u0423\u041F", "/"], ["\u0425\u0440\u043E\u043D\u0438\u043A\u0430", "/chronicle/flight"]];
+  const parts = [
+    ["\u0410\u0442\u043B\u0430\u0441", "/"],
+    ["\u0425\u0440\u043E\u043D\u0438\u043A\u0430", "/chronicle"]
+  ];
   if (eventId) {
     parts.push([name, `/chronicle/${eraId}`]);
     parts.push([EVENTS[eventId] || eventId]);
@@ -7308,7 +7305,10 @@ var systemChrome = defineRouteHook("system-chrome", async (ctx) => {
   const name = BODIES[bodyId] || bodyId;
   setText("[data-layout-title]", name);
   setHref('[data-nav="overview"]', `/system/${bodyId}`);
-  const parts = [["\u0426\u0423\u041F", "/"], ["\u0421\u0438\u0441\u0442\u0435\u043C\u0430", "/system/earth"]];
+  const parts = [
+    ["\u0410\u0442\u043B\u0430\u0441", "/"],
+    ["\u0421\u0438\u0441\u0442\u0435\u043C\u0430", "/system"]
+  ];
   if (missionId) {
     parts.push([name, `/system/${bodyId}`]);
     parts.push([MISSIONS[missionId] || missionId]);
@@ -7324,7 +7324,10 @@ var mirChrome = defineRouteHook("mir-chrome", async (ctx) => {
     "[data-layout-title]",
     moduleId ? MODULES[moduleId] || moduleId : "\u0421\u0442\u0430\u043D\u0446\u0438\u044F \xAB\u041C\u0438\u0440\xBB"
   );
-  const parts = [["\u0426\u0423\u041F", "/"], ["\u041C\u0438\u0440", "/mir"]];
+  const parts = [
+    ["\u0410\u0442\u043B\u0430\u0441", "/"],
+    ["\u0421\u0442\u0430\u043D\u0446\u0438\u044F \xAB\u041C\u0438\u0440\xBB", "/mir"]
+  ];
   if (moduleId) parts.push([MODULES[moduleId] || moduleId]);
   renderCrumbs(parts);
   const onOverview = path === "/mir" || path === "/mir/";
@@ -7334,16 +7337,20 @@ var deepChrome = defineRouteHook("deep-chrome", async (ctx) => {
   const { scaleId } = ctx.to.params || {};
   const path = ctx.to.pathname || "";
   const isHorizon = path === "/deep/horizon";
-  const title = isHorizon ? "\u0417\u0430 \u0433\u043E\u0440\u0438\u0437\u043E\u043D\u0442\u043E\u043C" : SCALES[scaleId] || scaleId || "\u0414\u0430\u043B\u0451\u043A\u0438\u0439 \u043A\u043E\u0441\u043C\u043E\u0441";
+  const isHub = path === "/deep" || path === "/deep/";
+  const title = isHorizon ? "\u0417\u0430 \u0433\u043E\u0440\u0438\u0437\u043E\u043D\u0442\u043E\u043C" : isHub ? "\u041C\u0430\u0441\u0448\u0442\u0430\u0431\u044B" : SCALES[scaleId] || scaleId || "\u041C\u0430\u0441\u0448\u0442\u0430\u0431\u044B";
   setText("[data-layout-title]", title);
-  const parts = [["\u0426\u0423\u041F", "/"], ["\u0413\u043B\u0443\u0431\u0438\u043D\u0430", "/deep/solar"]];
+  const parts = [
+    ["\u0410\u0442\u043B\u0430\u0441", "/"],
+    ["\u041C\u0430\u0441\u0448\u0442\u0430\u0431\u044B", isHub ? void 0 : "/deep"]
+  ];
   if (isHorizon) parts.push(["\u0413\u043E\u0440\u0438\u0437\u043E\u043D\u0442"]);
-  else if (scaleId) parts.push([SCALES[scaleId] || scaleId]);
-  renderCrumbs(parts);
+  else if (!isHub && scaleId) parts.push([SCALES[scaleId] || scaleId]);
+  renderCrumbs(parts.filter((p) => p[0]));
   markActive(
     "[data-scale-rail]",
     "data-scale",
-    isHorizon ? "horizon" : scaleId || ""
+    isHorizon ? "horizon" : isHub ? "" : scaleId || ""
   );
 });
 AuraRouter.use(callsignGuard);

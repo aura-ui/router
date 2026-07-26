@@ -65,7 +65,10 @@ const eraChrome = defineRouteHook('era-chrome', async (ctx) => {
   setText('[data-layout-title]', name);
   setHref('[data-nav="overview"]', `/chronicle/${eraId}`);
 
-  const parts = [['ЦУП', '/'], ['Хроника', '/chronicle/flight']];
+  const parts = [
+    ['Атлас', '/'],
+    ['Хроника', '/chronicle'],
+  ];
   if (eventId) {
     parts.push([name, `/chronicle/${eraId}`]);
     parts.push([EVENTS[eventId] || eventId]);
@@ -83,7 +86,10 @@ const systemChrome = defineRouteHook('system-chrome', async (ctx) => {
   setText('[data-layout-title]', name);
   setHref('[data-nav="overview"]', `/system/${bodyId}`);
 
-  const parts = [['ЦУП', '/'], ['Система', '/system/earth']];
+  const parts = [
+    ['Атлас', '/'],
+    ['Система', '/system'],
+  ];
   if (missionId) {
     parts.push([name, `/system/${bodyId}`]);
     parts.push([MISSIONS[missionId] || missionId]);
@@ -102,7 +108,10 @@ const mirChrome = defineRouteHook('mir-chrome', async (ctx) => {
     moduleId ? MODULES[moduleId] || moduleId : 'Станция «Мир»',
   );
 
-  const parts = [['ЦУП', '/'], ['Мир', '/mir']];
+  const parts = [
+    ['Атлас', '/'],
+    ['Станция «Мир»', '/mir'],
+  ];
   if (moduleId) parts.push([MODULES[moduleId] || moduleId]);
   renderCrumbs(parts);
 
@@ -114,21 +123,27 @@ const deepChrome = defineRouteHook('deep-chrome', async (ctx) => {
   const { scaleId } = ctx.to.params || {};
   const path = ctx.to.pathname || '';
   const isHorizon = path === '/deep/horizon';
+  const isHub = path === '/deep' || path === '/deep/';
 
   const title = isHorizon
     ? 'За горизонтом'
-    : SCALES[scaleId] || scaleId || 'Далёкий космос';
+    : isHub
+      ? 'Масштабы'
+      : SCALES[scaleId] || scaleId || 'Масштабы';
   setText('[data-layout-title]', title);
 
-  const parts = [['ЦУП', '/'], ['Глубина', '/deep/solar']];
+  const parts = [
+    ['Атлас', '/'],
+    ['Масштабы', isHub ? undefined : '/deep'],
+  ];
   if (isHorizon) parts.push(['Горизонт']);
-  else if (scaleId) parts.push([SCALES[scaleId] || scaleId]);
-  renderCrumbs(parts);
+  else if (!isHub && scaleId) parts.push([SCALES[scaleId] || scaleId]);
+  renderCrumbs(parts.filter((p) => p[0]));
 
   markActive(
     '[data-scale-rail]',
     'data-scale',
-    isHorizon ? 'horizon' : scaleId || '',
+    isHorizon ? 'horizon' : isHub ? '' : scaleId || '',
   );
 });
 

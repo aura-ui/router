@@ -729,6 +729,77 @@ aura-outlet > .main {
   margin: 8px 0 0;
 }
 
+.site-footer {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  width: min(1080px, calc(100% - 32px));
+  margin: 0 auto 16px;
+  padding: 0 2px;
+  font-size: 0.9rem;
+}
+
+.site-footer a {
+  text-decoration: none;
+  color: var(--ink-dim);
+}
+
+.site-footer a:hover {
+  color: var(--brass);
+}
+
+.hub-era {
+  margin: 0 0 1.4em;
+}
+
+.hub-era h2 {
+  font-family: var(--font-ui);
+  font-size: 1.1rem;
+  margin: 0 0 0.35em;
+}
+
+.hub-era h2 a {
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.hub-era h2 a:hover {
+  color: var(--brass);
+}
+
+.scale-steps {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.scale-steps a {
+  display: grid;
+  gap: 4px;
+  text-decoration: none;
+  color: inherit;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(232, 238, 246, 0.08);
+}
+
+.scale-steps a:hover,
+.scale-steps a.is-primary-path {
+  border-color: rgba(110, 180, 200, 0.4);
+}
+
+.scale-steps .step-n {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
 @media (max-width: 860px) {
   .orbit-hub,
   .system-map {

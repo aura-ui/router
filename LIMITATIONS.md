@@ -17,7 +17,7 @@ Plans: [ROADMAP.md](./ROADMAP.md) · history: [CHANGELOG.md](./CHANGELOG.md).
 - **No typed routes or codegen** — paths and hook names are strings in HTML; TypeScript will not catch `navigate('/settigns')`.
 - **`navigate` is a path string** — `navigate(path, { replace?, syncHistory? })`. No `navigate({ search })` object form; no search-schema attr. Put filters in `?query` and read `ctx.to.query` (raw parsed search).
 - **Lifecycle attrs shipped today** — `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error`, plus transition attrs. There is no `reenter` / `detach` / `destroy` / `restore` route attr.
-- **`preserve` is gone** — use `cache` (`dom` / `view` / `data` / `screen` / `all`).
+- **`preserve` is gone** — use `cache` (`dom` / `view` / `data` / `all`; bare `cache` = view + data). There is no `screen` mode.
 
 ## Data layer
 
@@ -25,7 +25,7 @@ Plans: [ROADMAP.md](./ROADMAP.md) · history: [CHANGELOG.md](./CHANGELOG.md).
 - **Per-route TTL** — `cache-time` / `cache-refresh` override store defaults from `configure({ dataCache })`. On the current nav path (`get`/`set`) only `cache-time` (`gcTime`) affects hit/miss; `cache-refresh` is for future `resolve`.
 - **Navigation path is cache hit/miss, not product SWR** — DataGraph uses get/set on navigate; no background revalidate of a stale entry into the visible page. No public `shouldRevalidate` or `defer()` API yet.
 - **Cache key includes the full query** — unrelated params (e.g. `utm_*`) can reduce cache hits.
-- **`invalidate()` vs `invalidateView()`** — `invalidate()` clears data cache; `invalidateView()` clears view-loader cache. There is no `router.load()`. Navigate or prefetch again to refetch. Invalidate alone does not refresh stay-on-page UI.
+- **`invalidate({ cache? })`** — default clears **data** cache; `cache: 'view'` clears view-loader cache; `cache: 'all'` clears both. There is no `router.load()`. Navigate or prefetch again to refetch. Invalidate alone does not refresh stay-on-page UI.
 - **No `cause` in hook context** — enter / prefetch / stay is not exposed on `RouteLifecycleContext`.
 
 ## Views & rendering
@@ -47,4 +47,4 @@ Plans: [ROADMAP.md](./ROADMAP.md) · history: [CHANGELOG.md](./CHANGELOG.md).
 
 ## What already works
 
-Nested routes + LCA diff, nested `<aura-outlet>`, lifecycle hooks (`guard` / `load` / `ready` / …), declarative / hook redirects, `param-change`, `mount-strategy`, active links, DataGraph + view loaders (`url` / `import` / `iframe` / `html` / `template` / `component`), prefetch cascade (intent/tap), staged commit / fast path, scroll restoration, URLPattern matcher, `router.events`, `router.invalidate()` / `invalidateView()`, structured `navigation-error` / `not-found`, progressive enhancement with `aura-router-link`.
+Nested routes + LCA diff, nested `<aura-outlet>`, lifecycle hooks (`guard` / `load` / `ready` / …), declarative / hook redirects, `param-change`, `mount-strategy`, active links, DataGraph + view loaders (`url` / `import` / `iframe` / `html` / `template` / `component`), prefetch cascade (intent/tap), staged commit / fast path, scroll restoration, URLPattern matcher, `router.events`, `router.invalidate({ cache: 'data' | 'view' | 'all' })`, structured `navigation-error` / `not-found`, progressive enhancement with `aura-router-link`.

@@ -16,7 +16,7 @@ npm install @auraui/router
 
 ## Why Aura Router
 
-Built for sites that stay HTML on the server and add client navigation in the browser: routes in markup; your UI can be plain HTML or Web Components.
+A thin layer over real HTML — not a meta-framework. Keep pages on the server; add client navigation in the browser. Routes live in markup; UI can be plain HTML or Web Components.
 
 | | |
 | --- | --- |

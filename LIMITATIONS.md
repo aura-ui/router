@@ -10,7 +10,7 @@ Plans: [ROADMAP.md](./ROADMAP.md) · history: [CHANGELOG.md](./CHANGELOG.md).
 - **Packaging** — `exports` / `types` → `dist/`; `npm run build` + `npm run smoke` for local verification.
 - **0.x semver** — expect breaking changes until `1.0.0`.
 - **Single full entry today** — only `import … from '@auraui/router'`. A lite default + `@auraui/router/full` split is planned (see ROADMAP 5.4), not shipped.
-- **Docs may lag code** — trust shipped attrs on `<aura-route>` / README over older design notes.
+- **Docs may lag code** — trust shipped attrs on `<aura-route>` / [README](./README.md) / [docs/guide.md](./docs/guide.md) over older design notes.
 
 ## API & types
 

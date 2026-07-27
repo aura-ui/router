@@ -7,7 +7,7 @@
 | **Version** | `0.0.1` |
 | **Updated** | 2026-07-24 |
 | **Audience** | Library users, contributors, and reviewers |
-| **Public docs** | [README](./README.md) · [LIMITATIONS](./LIMITATIONS.md) · [CHANGELOG](./CHANGELOG.md) |
+| **Public docs** | [README](./README.md) · [Guide](./docs/guide.md) · [LIMITATIONS](./LIMITATIONS.md) · [CHANGELOG](./CHANGELOG.md) |
 
 ---
 
@@ -159,7 +159,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 
 | # | Task | Status | Notes |
 | ---: | --- | :---: | --- |
-| 5.1 | **Target route API** — `view`, `guard`, `load`, `ready`, `cache` on `<aura-route>` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | See [README](./README.md); `cache` ladder + `error-template` / `aura-router-link`; listed under [Shipped](#shipped) |
+| 5.1 | **Target route API** — `view`, `guard`, `load`, `ready`, `cache` on `<aura-route>` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | See [docs/guide.md](./docs/guide.md); `cache` ladder + `error-template` / `aura-router-link`; listed under [Shipped](#shipped) |
 | 5.2 | **Lifecycle naming** — align hook/phase names with familiar router terminology | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Listed again under [Shipped](#shipped) |
 | 5.2a | **Named hook registration** — `AuraRouter.use(name, fn)` / `defineRouteHook(name, fn)` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Listed under [Shipped](#shipped) |
 | 5.3 | **Nested route folders** — file-system-style nested routes and layouts | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Engine nested path + demo layouts <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; colocated folder templates still open |
@@ -191,7 +191,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | 7.4 | **Auth recipe** — async guard, redirect to login, protected layout shell | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | |
 | 7.5 | **Prefetch & cache recipe** — link hover prefetch, stale-while-revalidate `load` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Prefetch + `cache` ladder + per-entry timings <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; dedicated recipe + SWR parity still open (Phase 2.1) |
 | 7.6 | **Errors & 404 recipe** — custom error boundaries and not-found pages | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | `error-template` + catch-all in demo; dedicated recipe still open |
-| 7.7 | **Public playground** — hosted demo linked from README (one-click try) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Local Fastify [`playground/`](./playground/) exists; not hosted / not linked from README |
+| 7.7 | **Public playground** — hosted demo linked from README (one-click try) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Local [`demo-space/`](./demo-space) linked from README (scratch); Fastify [`playground/`](./playground/) exists; not hosted |
 | 7.8 | **E2E tests** — Playwright suite against example apps | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | No Playwright config yet |
 | 7.9 | **Pre-release 0.0.1** — merge to `main`, npm publish | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Build/tests/pack + CI smoke/size green; merge + publish pending |
 
@@ -209,7 +209,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | ---: | --- | :---: | --- |
 | 8.1 | **MPA → SPA migration guide** — step-by-step for existing multi-page sites | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Default adoption path; server unchanged |
 | 8.2 | **Shared layout pattern** — inject `<aura-router>` + routes from CMS/template (EJS, PHP, static partial) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Routes in HTML; server does not run Aura pipeline |
-| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.3** | **Client hydration recipe** — full HTML from server + `AuraRouter.install()` without refetch on first paint | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Patterns in README (`url` + `extract` + `aura-router-link`); dedicated first-paint recipe still missing |
+| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.3** | **Client hydration recipe** — full HTML from server + `AuraRouter.install()` without refetch on first paint | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Patterns in [docs/guide.md](./docs/guide.md) (`url` + `extract` + `aura-router-link`); dedicated first-paint recipe still missing |
 | 8.4 | **Static MPA example** — nginx or Express static: one `.html` per URL + client bundle | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Fastest path; no Node adapter |
 
 > **Done when:** guide + example show server serving `.html` directly and Aura handling navigation only in the browser.

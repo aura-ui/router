@@ -17,7 +17,8 @@
     "LICENSE",
     "README.md",
     "CHANGELOG.md",
-    "LIMITATIONS.md"
+    "LIMITATIONS.md",
+    "docs/guide.md"
   ],
   "sideEffects": false,
   "publishConfig": {

@@ -86,6 +86,7 @@ Try the local demo in [`demo-space/`](./demo-space) (`cd demo-space && npm insta
 | --- | --- |
 | **Usage guide** | [docs/guide.md](./docs/guide.md) — navigation, views, layouts, lifecycle, cache, loading, API |
 | Known gaps | [LIMITATIONS.md](./LIMITATIONS.md) |
+| Security | [SECURITY.md](./SECURITY.md) |
 | Roadmap | [ROADMAP.md](./ROADMAP.md) |
 | Changelog | [CHANGELOG.md](./CHANGELOG.md) |
 | Contributing | [CONTRIBUTING.md](./CONTRIBUTING.md) |

@@ -7,7 +7,7 @@
 | **Version** | `0.0.1` |
 | **Updated** | 2026-07-24 |
 | **Audience** | Library users, contributors, and reviewers |
-| **Public docs** | [README](./README.md) · [Guide](./docs/guide.md) · [LIMITATIONS](./LIMITATIONS.md) · [CHANGELOG](./CHANGELOG.md) |
+| **Public docs** | [README](./README.md) · [Guide](./docs/guide.md) · [LIMITATIONS](./LIMITATIONS.md) · [SECURITY](./SECURITY.md) · [CHANGELOG](./CHANGELOG.md) |
 
 ---
 

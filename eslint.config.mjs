@@ -18,6 +18,8 @@ export default [
       'coverage/**',
       'scripts/**',
       'playground/**',
+      'playground-map/**',
+      'demo-space/**',
       'vite.config.ts',
       'vite.lib.config.ts',
       'jest.config.cjs',

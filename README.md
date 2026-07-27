@@ -1,6 +1,7 @@
 # Aura Router
 
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
+[![CI](https://github.com/aura-ui/router/actions/workflows/ci.yml/badge.svg)](https://github.com/aura-ui/router/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
 **Declarative routing for Web Components — HTML-first, MPA→SPA.**
@@ -31,10 +32,23 @@ Built for sites that stay HTML on the server and add client navigation in the br
 
 **1. Install once**
 
+```bash
+npm install @auraui/router
+```
+
 ```ts
 import { AuraRouter } from '@auraui/router';
 
 AuraRouter.install();
+```
+
+Or without a bundler (CDN — pin the version):
+
+```html
+<script type="module">
+  import { AuraRouter } from 'https://esm.sh/@auraui/router@0.0.1';
+  AuraRouter.install();
+</script>
 ```
 
 This registers the custom elements: `<aura-router>`, `<aura-route>`, and `<aura-outlet>` (the place where page content appears).
@@ -79,6 +93,18 @@ router?.navigate('/users', { replace: true });
 ```
 
 Try the local demo in [`demo-space/`](./demo-space) (`cd demo-space && npm install && npm run dev`) — scratch pad, not a reference app; it will change.
+
+## Browsers
+
+Modern evergreen browsers (Chrome, Firefox, Safari, Edge) with:
+
+- ES modules
+- Custom Elements
+- History API (`pushState` / `popstate`)
+- `fetch`
+- `URLPattern` (required for `:param` routes)
+
+No Internet Explorer. No Node SSR runtime — the router runs in the browser (HTML-first / MPA→SPA). See [LIMITATIONS](./LIMITATIONS.md).
 
 ## Docs
 

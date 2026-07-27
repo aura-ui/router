@@ -1,11 +1,11 @@
-# Aura UI Router
+# Aura Router
 
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
 **Declarative routing for Web Components — HTML-first, MPA→SPA.**
 
-Full HTML on first load; SPA navigation after `AuraRouter.install()`.
+First visit shows a normal HTML page. After `AuraRouter.install()`, in-app links update the page content without a full reload (SPA-style).
 
 ```bash
 npm install @auraui/router
@@ -34,7 +34,7 @@ npm install @auraui/router
 
 ## Why Aura Router
 
-Built for HTML-first apps that declare routes in markup and use Web Components — full documents on first load, SPA navigation after.
+Built for sites that stay HTML on the server and add client navigation in the browser: routes in markup; your UI can be plain HTML or Web Components.
 
 | | |
 | --- | --- |
@@ -58,13 +58,13 @@ import { AuraRouter } from '@auraui/router';
 AuraRouter.install();
 ```
 
-This registers `<aura-router>`, `<aura-route>`, and `<aura-outlet>`.
+This registers the custom elements: `<aura-router>`, `<aura-route>`, and `<aura-outlet>` (the place where page content appears).
 
 **2. Declare routes in HTML**
 
 ```html
 <aura-router>
-  <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
+  <aura-route path="/" view="index.html"></aura-route>
   <aura-route path="/users" view="users.html"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>
   <aura-route path="*" view="template::not-found"></aura-route>
@@ -80,7 +80,7 @@ This registers `<aura-router>`, `<aura-route>`, and `<aura-outlet>`.
 </template>
 ```
 
-A bare `view` value (e.g. `users.html`) defaults to the **`url`** loader — it fetches HTML from the server.
+If `view` is just a file name (e.g. `users.html`), Aura fetches that HTML from the server. That is the usual way to load pages after the first full page load.
 
 **3. Add in-app links**
 
@@ -112,7 +112,7 @@ router?.navigate('/users', { replace: true });
 
 ### How `href` resolves
 
-The **`href` attribute is the source of truth** — for crawlers, noscript, and the router. On click, Aura resolves relative links against the current app URL (hash stripped from the base), then normalizes the pathname (no trailing slash except `/`).
+The link’s **`href`** is what matters — for search engines, users without JavaScript, and the router. Relative links (like `href="profile"`) are resolved from the current page URL, same idea as in a normal website.
 
 | Link in markup | Current URL | Resolves to |
 | --- | --- | --- |
@@ -120,7 +120,7 @@ The **`href` attribute is the source of truth** — for crawlers, noscript, and 
 | `href="profile"` | `/app/settings/` | `/app/settings/profile` |
 | `href="."` | `/app/settings/profile` | `/app/settings` |
 
-Use **path-relative** `href` inside layout templates; use **absolute** `/…` paths when leaving a branch. External (`http(s):`, `//…`) and hash-only (`#…`) links are not intercepted.
+Inside a layout, prefer short relative links (`settings`, `.`). Use absolute paths (`/login`) when leaving that section. Normal external links and `#hash`-only links are left alone.
 
 ### Route `path` vs address bar
 
@@ -130,7 +130,7 @@ Use **path-relative** `href` inside layout templates; use **absolute** `/…` pa
 | **Index child** | `path="."` | same as folder URL |
 | **Leaf** | `profile` → `/app/settings/profile` | `/app/settings/profile` — no trailing slash |
 
-On **index** navigation (`path="."`), the engine **canonicalizes** the address bar (`/app/settings` → `/app/settings/` via `replaceState`) so path-relative links in the layout resolve correctly. A folder without an index child does not get that slash rewrite.
+When you open a section’s home route (`path="."`), Aura may add a trailing slash in the address bar (`/app/settings` → `/app/settings/`) so relative links inside the layout behave like a normal folder URL. If the section has no `path="."` child, that slash rewrite does not run.
 
 ---
 
@@ -140,19 +140,21 @@ The `view` attribute tells the router **what to render**.
 
 **Syntax:** `view="content"` or `view="loader::content"`.
 
-- **No `::`** — shorthand for fetching HTML: `view="users.html"` → `url` loader.
+- **No `::`** — shorthand for fetching HTML: `view="users.html"` → `url` loader (HTML-first / MPA→SPA default).
 - **With `::`** — pick a loader explicitly: `html::<p/>`, `template::app-shell`, …
 
 ### Built-in loaders
 
 | Loader | `content` | Description |
 | --- | --- | --- |
-| `url` | `.html` path | Fetch **HTML** from server |
+| `url` | `.html` path | Fetch **HTML** from server — primary HTML-first path |
 | `html` | markup | Inline HTML in the attribute |
 | `template` | template id | Clone from `<template id="…">` |
-| `component` | tag name | Mount a registered custom element |
-| `import` | module path | Dynamic `import()` and register the component |
+| `component` | tag name | Mount a registered custom element (client-side) |
+| `import` | module path | Dynamic `import()` and register the component (client-side) |
 | `iframe` | URL | Embed external page in `<iframe>` |
+
+Prefer `url`, `html`, and `template` when the page should be real HTML (good for first visit and SEO). Use `component` or `import` when a part of the UI is a Web Component loaded from JavaScript — helpful inside an app, but not a replacement for a full HTML page on first visit.
 
 ```html
 <aura-route path="/users" view="users.html"></aura-route>
@@ -162,7 +164,7 @@ The `view` attribute tells the router **what to render**.
 <aura-route path="/embed" view="iframe::https://example.com/widget"></aura-route>
 ```
 
-Use `import` for `.js` / `.ts`, not bare `url` content. Put custom elements inside a template or HTML string — they work like any Web Component page.
+Use `import` for `.js` / `.ts`, not bare `url` content. Custom elements can also live **inside** fetched or templated HTML — they upgrade like any Web Component page.
 
 ### `extract` — fragment from full HTML pages
 
@@ -192,7 +194,7 @@ Selector stays in `extract`, not inside `view`.
 
 ## Nested routes & layouts
 
-Nest routes. A parent with `layout` is a shell; children render into its inner `<aura-outlet>`.
+You can nest routes. A parent with `layout` is a shared chrome (nav, sidebar); child pages render into the `<aura-outlet>` inside that layout.
 
 ```html
 <template id="app-shell">
@@ -205,16 +207,16 @@ Nest routes. A parent with `layout` is a shell; children render into its inner `
 
 <aura-router>
   <aura-route path="/app" layout="app-shell">
-    <aura-route path="." view="html::<h1>Overview</h1>"></aura-route>
-    <aura-route path="settings" view="template::settings"></aura-route>
+    <aura-route path="." view="app/index.html"></aura-route>
+    <aura-route path="settings" view="app/settings.html"></aura-route>
   </aura-route>
 </aura-router>
 ```
 
 | Pattern | Meaning |
 | --- | --- |
-| `layout="template-id"` | Parent shell (`<template>` must contain `<aura-outlet>`) |
-| `path="."` | Index of the parent folder |
+| `layout="template-id"` | Shared layout (`<template>` must contain `<aura-outlet>`) |
+| `path="."` | The section’s home page (e.g. `/app/`) |
 | `path="settings"` | Child segment → `/app/settings` |
 | `href="settings"` / `href="."` | Path-relative links inside the layout |
 
@@ -420,7 +422,7 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 | Attribute | Description |
 | --- | --- |
 | `guard`, `ready`, `leave`, `unmount`, `update`, `error` | Global hook lists (comma-separated names); **`load` is not inherited** — set per route |
-| `cache` / `cache-time` | Cache ladder + TTL (seconds) — see [Cache](#cache) |
+| `cache` / `cache-time` | Cache modes + TTL (seconds) — see [Cache](#cache) |
 | `loading-body-class` | Body class during prepare |
 | `loading-template` | Skeleton template id (experimental — see [Loading](#loading)) |
 | `loading-start-event` / `loading-end-event` | Loading event names (`none` / `off` / `false` disables) |

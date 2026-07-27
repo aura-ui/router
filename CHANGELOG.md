@@ -4,9 +4,9 @@ All notable changes to `@auraui/router` are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Package version in `package.json` is **`0.0.1`**. Nothing from this tree has been merged to `main` or published to npm yet — everything below is unreleased WIP toward the first public cut.
+Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router). Everything below is that first public cut.
 
-## [Unreleased]
+## [0.0.1]
 
 ### Added
 
@@ -14,11 +14,11 @@ Package version in `package.json` is **`0.0.1`**. Nothing from this tree has bee
 - **Named route hooks** — `AuraRouter.use(name, fn)` / `defineRouteHook(name, fn)` for registering lifecycle / transition hooks by name.
 - **Loading chrome** — `loading-template`, `loading-body-class`, `loading-start-event` / `loading-end-event` during prepare (after guards → until loads finish); skeleton mounts as staged view when there is no page transition.
 - Typed engine `EventBus` + `NavigationPulse` (internal); host surfaces navigation / load via DOM events on `<aura-router>`.
-- Jest test suite and Vite demo (`src/examples/demo`; feature branches, not on `main` yet).
+- Jest test suite and Vite demo (`src/examples/demo`) — raw / experimental scratch demo; a proper product demo is still in development.
 - Local Fastify playground (`playground/`) for multi-page demos.
 - Declarative `redirect` attr (max hop limit); redirect chains resolve pre-commit in a single navigation run.
 - View loaders: `url`, `import`, `iframe`, `html`, `template`, `component`; `extract` attr for fragment selection on URL fetches; `view="loader::content"` form; hardened `extract` (`outerHTML` + selector-miss fallback).
-- Public lifecycle attrs on `<aura-route>` / inherit from router: `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error` (plus transition attrs).
+- Public lifecycle attrs on `<aura-route>`: `guard`, `load`, `ready`, `leave`, `unmount`, `update`, `error` (plus transition attrs). Most inherit from router / parent; **`load` is local only** (data ownership per route).
 - `cache` attr ladder **off → `cache` → `dom` → `all`** (plus `view` / `data`; inherit opt-out) — replaces legacy `preserve`; bare `cache` / `cache=""` = view + data (no DOM keep-alive).
 - Per-entry `gcTime` / `staleTime` overrides on `AuraSwrCache` / `AuraResolvableSwrCache.set`.
 - `param-change` attr (`update` | `navigate`) for same-route param updates / remount.
@@ -39,6 +39,7 @@ Package version in `package.json` is **`0.0.1`**. Nothing from this tree has bee
 ### Changed
 
 - `preserve` attr removed in favor of `cache`; ladder reworked (`screen` removed; bare `cache` = view + data; `dom` includes view-loader fallback); inherit opt-out standardized (`none` / `off` / `false`).
+- `load` no longer inherits from `<aura-router>` / parent `<aura-route>` — set on the route that owns the data; children use `ctx.parent()` for ancestor payloads.
 - In-app link marker renamed to `aura-router-link`; host link API uses `link-*` attrs (`link-active-class`, …).
 - Router `not-found-template` renamed to `error-template`.
 - EventBus no longer exposed on `<aura-router>` public API — use DOM events; engine bus stays internal via engine bridge.
@@ -72,4 +73,4 @@ Package version in `package.json` is **`0.0.1`**. Nothing from this tree has bee
 
 ### Known limitations
 
-See [LIMITATIONS.md](./LIMITATIONS.md). First publish still needs merge to `main` (registry stub `@auraui/router@0.0.0` is expected until then). Planned later: lite default entry vs `@auraui/router/full`, DataGraph SWR parity (`shouldRevalidate`, public `defer()`), engine `renderNode()`, View Transitions API — see [ROADMAP.md](./ROADMAP.md).
+See [LIMITATIONS.md](./LIMITATIONS.md). Published as [`@auraui/router@0.0.1`](https://www.npmjs.com/package/@auraui/router). Planned later: lite default entry vs `@auraui/router/full`, DataGraph SWR parity (`shouldRevalidate`, public `defer()`), engine `renderNode()`, View Transitions API — see [ROADMAP.md](./ROADMAP.md).

@@ -6,8 +6,8 @@ Plans: [ROADMAP.md](./ROADMAP.md) · history: [CHANGELOG.md](./CHANGELOG.md).
 
 ## Status
 
-- **Not on npm / `main` yet** — evaluate from the repo (`npm run dev`) or a local `npm pack` tarball. Registry stub `@auraui/router@0.0.0` is expected until the first merge + publish.
-- **Packaging works locally** — `exports` / `types` → `dist/`, `npm run build`, `npm run smoke`. Still pre-alpha: pin exact versions; do not treat as a frozen contract.
+- **Published on npm** — [`@auraui/router@0.0.1`](https://www.npmjs.com/package/@auraui/router). Still pre-alpha: pin exact versions; do not treat as a frozen contract.
+- **Packaging** — `exports` / `types` → `dist/`; `npm run build` + `npm run smoke` for local verification.
 - **0.x semver** — expect breaking changes until `1.0.0`.
 - **Single full entry today** — only `import … from '@auraui/router'`. A lite default + `@auraui/router/full` split is planned (see ROADMAP 5.4), not shipped.
 - **Docs may lag code** — trust shipped attrs on `<aura-route>` / README over older design notes.

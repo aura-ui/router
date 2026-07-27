@@ -1,7 +1,7 @@
 {
   "name": "@auraui/router",
   "version": "0.0.1",
-  "description": "SSR-first declarative router for Web Components — from static HTML to client navigation.",
+  "description": "Declarative routing for Web Components — HTML-first, MPA→SPA.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -66,7 +66,8 @@
     "web-components",
     "custom-elements",
     "router",
-    "ssr",
+    "html-first",
+    "mpa",
     "spa"
   ],
   "author": "Aleksandr Buryakov",

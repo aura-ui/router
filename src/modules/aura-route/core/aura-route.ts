@@ -180,7 +180,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     await this.setupDone;
   }
 
-  /** @internal Used by hydrate engine */
+  /** @internal Used by hydrate engine — call after {@link whenReady}. */
   adopt(handle: ViewHandle, routeInfo: MatchedRouteInfo) {
     this.viewController.adopt(handle, routeInfo);
   }

@@ -14,19 +14,19 @@ function ensureOutletElement(): void {
   }
 }
 
-function stubHydrateHooks(route: HTMLElement & { whenReady?: unknown; reuse?: unknown }) {
-  const reuse = jest.fn();
+function stubHydrateHooks(route: HTMLElement & { whenReady?: unknown; adopt?: unknown }) {
+  const adopt = jest.fn();
   Object.defineProperties(route, {
     whenReady: {
       configurable: true,
       value: async () => undefined,
     },
-    reuse: {
+    adopt: {
       configurable: true,
-      value: reuse,
+      value: adopt,
     },
   });
-  return reuse;
+  return adopt;
 }
 
 describe('hydrate', () => {
@@ -39,10 +39,10 @@ describe('hydrate', () => {
     history.replaceState(null, '', '/');
   });
 
-  it('flat: single leaf reuses initial view without fetch path', async () => {
+  it('flat: single leaf adopts initial view without fetch path', async () => {
     history.replaceState(null, '', '/about');
     const about = createDomRoute('/about');
-    const reuse = stubHydrateHooks(about);
+    const adopt = stubHydrateHooks(about);
 
     const { engine } = createEngineHarness({
       href: '/about',
@@ -59,16 +59,16 @@ describe('hydrate', () => {
     const leaf = await hydrate(initialView, engine, rootOutlet);
 
     expect(leaf?.pathname).toBe('/about');
-    expect(reuse).toHaveBeenCalledTimes(1);
+    expect(adopt).toHaveBeenCalledTimes(1);
     expect(initialView.hasAttribute('data-aura-view-root')).toBe(true);
   });
 
-  it('tree: reuses layout + leaf when nested markup matches chain', async () => {
+  it('tree: adopts layout + leaf when nested markup matches chain', async () => {
     history.replaceState(null, '', '/settings/profile');
     const profile = createDomRoute('profile');
     const settings = createDomRoute('/settings', [profile]);
-    const settingsReuse = stubHydrateHooks(settings);
-    const profileReuse = stubHydrateHooks(profile);
+    const settingsAdopt = stubHydrateHooks(settings);
+    const profileAdopt = stubHydrateHooks(profile);
 
     const { engine } = createEngineHarness({
       href: '/settings/profile',
@@ -93,16 +93,16 @@ describe('hydrate', () => {
 
     expect(leaf?.pathname).toBe('/settings/profile');
     expect(leaf?.chain).toHaveLength(2);
-    expect(settingsReuse).toHaveBeenCalledTimes(1);
-    expect(profileReuse).toHaveBeenCalledTimes(1);
+    expect(settingsAdopt).toHaveBeenCalledTimes(1);
+    expect(profileAdopt).toHaveBeenCalledTimes(1);
   });
 
-  it('tree: missing leaf data-aura-view-root aborts without reuse', async () => {
+  it('tree: missing leaf data-aura-view-root aborts without adopt', async () => {
     history.replaceState(null, '', '/settings/profile');
     const profile = createDomRoute('profile');
     const settings = createDomRoute('/settings', [profile]);
-    const settingsReuse = stubHydrateHooks(settings);
-    const profileReuse = stubHydrateHooks(profile);
+    const settingsAdopt = stubHydrateHooks(settings);
+    const profileAdopt = stubHydrateHooks(profile);
 
     const { engine } = createEngineHarness({
       href: '/settings/profile',
@@ -124,16 +124,16 @@ describe('hydrate', () => {
     const leaf = await hydrate(layoutRoot, engine, rootOutlet);
 
     expect(leaf).toBeNull();
-    expect(settingsReuse).not.toHaveBeenCalled();
-    expect(profileReuse).not.toHaveBeenCalled();
+    expect(settingsAdopt).not.toHaveBeenCalled();
+    expect(profileAdopt).not.toHaveBeenCalled();
   });
 
-  it('multi-segment without nested outlet aborts (no leaf-only reuse)', async () => {
+  it('multi-segment without nested outlet aborts (no leaf-only adopt)', async () => {
     history.replaceState(null, '', '/settings/profile');
     const profile = createDomRoute('profile');
     const settings = createDomRoute('/settings', [profile]);
-    const settingsReuse = stubHydrateHooks(settings);
-    const profileReuse = stubHydrateHooks(profile);
+    const settingsAdopt = stubHydrateHooks(settings);
+    const profileAdopt = stubHydrateHooks(profile);
 
     const { engine } = createEngineHarness({
       href: '/settings/profile',
@@ -150,8 +150,8 @@ describe('hydrate', () => {
     const leaf = await hydrate(blob, engine, rootOutlet);
 
     expect(leaf).toBeNull();
-    expect(settingsReuse).not.toHaveBeenCalled();
-    expect(profileReuse).not.toHaveBeenCalled();
+    expect(settingsAdopt).not.toHaveBeenCalled();
+    expect(profileAdopt).not.toHaveBeenCalled();
   });
 
   it('redirect match returns null', async () => {
@@ -171,5 +171,39 @@ describe('hydrate', () => {
     document.body.append(rootOutlet);
 
     await expect(hydrate(initialView, engine, rootOutlet)).resolves.toBeNull();
+  });
+
+  it('whenReady rejection aborts without adopt', async () => {
+    history.replaceState(null, '', '/about');
+    const about = createDomRoute('/about');
+    const adopt = jest.fn();
+    Object.defineProperties(about, {
+      whenReady: {
+        configurable: true,
+        value: async () => {
+          throw new Error('setup failed');
+        },
+      },
+      adopt: {
+        configurable: true,
+        value: adopt,
+      },
+    });
+
+    const { engine } = createEngineHarness({
+      href: '/about',
+      domRoutes: [about],
+    });
+
+    const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const initialView = document.createElement('div');
+    initialView.setAttribute('aura-router-initial-view', '');
+    rootOutlet.append(initialView);
+    document.body.append(rootOutlet);
+
+    const leaf = await hydrate(initialView, engine, rootOutlet);
+
+    expect(leaf).toBeNull();
+    expect(adopt).not.toHaveBeenCalled();
   });
 });

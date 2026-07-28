@@ -1,4 +1,4 @@
-import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import { AuraOutlet, AURA_VIEW_ROOT_ATTR } from '../../../aura-outlet/core/aura-outlet';
 import { AuraRoutingEngine } from '../aura-routing-engine';
 import { resolveDocumentHrefParts } from '../link-active';
 import type { MatchedRouteInfo } from '../match/url-matcher';
@@ -35,16 +35,20 @@ export async function hydrate(
   const plan = buildHydratePlan(chain, initialView, rootOutlet);
   if (!plan) return null;
 
-  for (const step of plan) {
-    await step.entry.route.whenReady();
-    const handle = step.outlet.adopt(step.root, step.entry.viewKey ?? step.entry.pathname);
-    step.entry.route.adopt(handle, step.entry);
+  try {
+    await Promise.all(plan.map((step) => step.entry.route.whenReady()));
+    for (const step of plan) {
+      const handle = step.outlet.adopt(step.root, step.entry.viewKey ?? step.entry.pathname);
+      step.entry.route.adopt(handle, step.entry);
+    }
+  } catch {
+    return null;
   }
 
   return leaf;
 }
 
-/** Dry-run: validate server markup for the full chain before any reuse. */
+/** Dry-run: validate server markup for the full chain before any adopt. */
 function buildHydratePlan(
   chain: readonly MatchedRouteInfo[],
   initialView: HTMLElement,
@@ -64,7 +68,7 @@ function buildHydratePlan(
     const nested = peekChildOutlet(root);
     if (!nested) return null;
 
-    const nextRoot = nested.querySelector<HTMLElement>(':scope > [data-aura-view-root]');
+    const nextRoot = nested.querySelector<HTMLElement>(`:scope > [${AURA_VIEW_ROOT_ATTR}]`);
     if (!nextRoot) return null;
 
     outlet = nested;

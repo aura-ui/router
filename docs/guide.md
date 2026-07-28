@@ -143,8 +143,31 @@ Add `aura-router-initial-view` on the content root the server already rendered:
 | When | Behavior |
 | --- | --- |
 | Marker present + URL matches a **flat** page route (no layout parent in the match) | Adopt the marked node; skip first-paint fetch/remount; sync active links |
+| Marker present + URL matches a **nested** chain (layout + leaf), and markup mirrors the outlet tree | Adopt each level; skip first-paint fetch/remount; sync active links |
 | No marker, no match, or `redirect` route | Normal first navigation (load `view` as usual) |
-| Match includes a **layout** parent, but markup is only a single blob (no nested outlets) | Falls back to a normal first navigation |
+| Match includes a **layout** parent, but markup is only a single blob (no nested outlets / view roots) | Falls back to a normal first navigation |
+
+**Nested adopt** needs the same shape the client would mount: each layout root is a direct child of its outlet, marked `data-aura-view-root`, and contains a direct child `<aura-outlet>` whose next view root is also `data-aura-view-root` (and so on down the chain). Index-folder URLs are normalized to a trailing slash after adopt (`/app/settings` → `/app/settings/`) so path-relative links resolve under the folder.
+
+```html
+<!-- Server HTML for /settings/profile -->
+<aura-outlet>
+  <div aura-router-initial-view data-aura-view-root>
+    <!-- settings layout chrome -->
+    <aura-outlet>
+      <div data-aura-view-root>
+        <!-- profile page -->
+      </div>
+    </aura-outlet>
+  </div>
+</aura-outlet>
+
+<aura-router>
+  <aura-route path="/settings" layout="settings-shell">
+    <aura-route path="profile" view="settings/profile.html"></aura-route>
+  </aura-route>
+</aura-router>
+```
 
 Keep durable chrome (site header, primary nav) **outside** the marked node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` in the same layout slot (sibling or nearby) so after the first SPA transition new pages appear where the server content was.
 

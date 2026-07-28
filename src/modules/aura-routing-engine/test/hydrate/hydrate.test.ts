@@ -173,6 +173,41 @@ describe('hydrate', () => {
     await expect(hydrate(initialView, engine, rootOutlet)).resolves.toBeNull();
   });
 
+  it('index folder: canonicalizes trailing slash after adopt', async () => {
+    history.replaceState(null, '', '/app/settings');
+    const index = createDomRoute('.');
+    const settings = createDomRoute('/app/settings', [index]);
+    const settingsAdopt = stubHydrateHooks(settings);
+    const indexAdopt = stubHydrateHooks(index);
+
+    const { engine, provider } = createEngineHarness({
+      href: '/app/settings',
+      domRoutes: [settings],
+    });
+
+    const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const layoutRoot = document.createElement('div');
+    layoutRoot.setAttribute('aura-router-initial-view', '');
+    layoutRoot.setAttribute('data-aura-view-root', '');
+
+    const nested = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const leafRoot = document.createElement('div');
+    leafRoot.setAttribute('data-aura-view-root', '');
+    leafRoot.textContent = 'INDEX';
+    nested.append(leafRoot);
+    layoutRoot.append(nested);
+    rootOutlet.append(layoutRoot);
+    document.body.append(rootOutlet);
+
+    const leaf = await hydrate(layoutRoot, engine, rootOutlet);
+
+    expect(leaf?.pathname).toBe('/app/settings/');
+    expect(leaf?.href).toBe('/app/settings/');
+    expect(provider.currentHref).toBe('/app/settings/');
+    expect(settingsAdopt).toHaveBeenCalledTimes(1);
+    expect(indexAdopt).toHaveBeenCalledTimes(1);
+  });
+
   it('whenReady rejection aborts without adopt', async () => {
     history.replaceState(null, '', '/about');
     const about = createDomRoute('/about');

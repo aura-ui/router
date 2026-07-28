@@ -20,7 +20,7 @@ import {
 import { isAsyncLoader, isSyncLoader, parseViewAttr } from './attr/view-attr-parser';
 import { RouteViewController } from './view';
 import { domCacheKey, defaultDomCache } from './view/dom-cache';
-import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
+import type { AuraOutlet, ViewHandle } from '../../aura-outlet/core/aura-outlet';
 import type {
   MatchedRouteInfo,
   RouteErrorContext,
@@ -173,6 +173,16 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   get nestedOutlet(): AuraOutlet | null {
     return this.viewController?.nestedOutlet ?? null;
+  }
+
+  /** @internal Used by hydrate engine */
+  async whenReady(): Promise<void> {
+    await this.setupDone;
+  }
+
+  /** @internal Used by hydrate engine */
+  adopt(handle: ViewHandle, routeInfo: MatchedRouteInfo) {
+    this.viewController.adopt(handle, routeInfo);
   }
 
   get type(): RouteType {

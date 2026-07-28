@@ -153,6 +153,12 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return resolveAppOutlet(this);
   }
 
+  /** initial view markup from server */
+  get initialView(): HTMLElement | null {
+    return this.appOutlet.querySelector('[aura-router-initial-view]')
+      ?? document.querySelector('[aura-router-initial-view]');
+  }
+
   /** Also registers `<aura-outlet>` and `<aura-route>`. */
   static install(): void {
     installAuraRouter();
@@ -213,10 +219,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     const engine = this.ensureEngine();
     if (engine.isRunning) engine.stop();
 
-    void customElements.whenDefined(AuraRoute.is).then(() => {
+    void customElements.whenDefined(AuraRoute.is).then(async () => {
       if (!this.isConnected) return;
       this.refreshRoutes();
-      this.ensureEngine().start();
+      const leaf = await this.ensureEngine().bootstrap(this.initialView, this.appOutlet);
+      if (leaf) this.syncBranchAndActiveLinks(leaf.href, leaf);
     });
   }
 

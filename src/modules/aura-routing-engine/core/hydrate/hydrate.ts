@@ -32,34 +32,19 @@ export async function hydrate(
   );
   const chain = leaf.chain ?? [leaf];
 
-  // Flat: only a single matched segment. Multi-segment without nested outlet → abort
-  // (leaf-only reuse would leave layout routes unmounted while prev.chain lists them).
-  if (chain.length === 1) {
-    await leaf.route.whenReady();
-    const handle = rootOutlet.reuse(initialView, leaf.viewKey ?? leaf.pathname);
-    leaf.route.reuse(handle, leaf);
-    return leaf;
-  }
-
-  if (!peekChildOutlet(initialView)) return null;
-
-  for (const entry of chain) {
-    await entry.route.whenReady();
-  }
-
-  // 1) Dry-run — validate server markup before any reuse
   const plan = buildHydratePlan(chain, initialView, rootOutlet);
   if (!plan) return null;
 
-  // 2) Commit — only when the full chain is covered
   for (const step of plan) {
-    const handle = step.outlet.reuse(step.root, step.entry.viewKey ?? step.entry.pathname);
-    step.entry.route.reuse(handle, step.entry);
+    await step.entry.route.whenReady();
+    const handle = step.outlet.adopt(step.root, step.entry.viewKey ?? step.entry.pathname);
+    step.entry.route.adopt(handle, step.entry);
   }
 
   return leaf;
 }
 
+/** Dry-run: validate server markup for the full chain before any reuse. */
 function buildHydratePlan(
   chain: readonly MatchedRouteInfo[],
   initialView: HTMLElement,

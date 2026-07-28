@@ -32,6 +32,8 @@ import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import type { PrefetchConfig, PrefetchOptions, PrefetchPlan } from './prefetch/types';
 import type { RouterInstance } from './route/types';
 import type { ViewGraph } from './view-graph';
+import { hydrate } from './hydrate/hydrate';
+import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 
 export class AuraRoutingEngine implements NavigationHost {
   readonly router: RouterInstance;
@@ -73,6 +75,17 @@ export class AuraRoutingEngine implements NavigationHost {
   /** {@link NavigationHost.engine} — probe transactions and pipeline need `this`. */
   get engine(): AuraRoutingEngine {
     return this;
+  }
+
+  async bootstrap(initialView: HTMLElement | null, rootOutlet: AuraOutlet): Promise<MatchedRouteInfo | null> {
+    this.start();
+    const leaf = initialView ? await hydrate(initialView, this, rootOutlet) : null;
+    if (!leaf) {
+      this.initNavigate();
+      return null;
+    }
+    this.prev = leaf;
+    return leaf;
   }
 
   constructor(router: RouterInstance, config: AuraRoutingEngineConfig = {}) {
@@ -122,11 +135,6 @@ export class AuraRoutingEngine implements NavigationHost {
     this.provider.start();
     this.linkNavigation.start();
     this.prefetchPipeline?.start();
-
-    void this.navigateTo(this.provider.currentHref, 'system', {
-      replace: true,
-      syncHistory: false,
-    });
   }
 
   /**
@@ -160,6 +168,13 @@ export class AuraRoutingEngine implements NavigationHost {
     this.prev = null;
     this.resourceGraph.destroy();
     this.events.destroy();
+  }
+
+  initNavigate() {
+    void this.navigateTo(this.provider.currentHref, 'system', {
+      replace: true,
+      syncHistory: false,
+    });
   }
 
   registerRoutes(routes: Parameters<AuraRoutingRouteRegistry['register']>[0]) {

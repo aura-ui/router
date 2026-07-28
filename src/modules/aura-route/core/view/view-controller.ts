@@ -1,4 +1,4 @@
-import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import type { AuraOutlet, ViewHandle } from '../../../aura-outlet/core/aura-outlet';
 import type { MatchedRouteInfo, ViewRenderResult } from '../../../aura-routing-engine/route-api';
 import type { RouteRenderOptions, MountResolvedViewOptions, RouteUnmountOptions } from '../types';
 
@@ -32,6 +32,16 @@ export class RouteViewController {
 
   get signal(): AbortSignal {
     return this.ctx.signal;
+  }
+
+  /** @internal Used by hydrate engine */
+  adopt(handle: ViewHandle, routeInfo: MatchedRouteInfo) {
+    this.ctx.mount.strategy = 'replace';
+    this.ctx.mount.activeHandle = handle;
+    this.ctx.mount.nestedOutlet = handle.findChildOutlet();
+    this.ctx.mount.stageOutgoingHandle = null;
+    this.ctx.mount.pendingOutgoingRoot = null;
+    this.ctx.lastCacheKey = domCacheKey(routeInfo, this.ctx.config.route.path);
   }
 
   /**

@@ -123,6 +123,15 @@ export class AuraOutlet extends AuraDom {
     return root.querySelector(AuraOutlet.is) as AuraOutlet | null;
   }
 
+  /** @internal Used by hydrate engine */
+  adopt(root: ViewRoot, key?: string): ViewHandle {
+    root.setAttribute(AURA_VIEW_ROOT_ATTR, '');
+    if (key) root.dataset.auraKey = key;
+    this.activeRoot = root;
+    this.stagedRoot = undefined;
+    return this.makeHandle(root); // detach/destroy/findChildOutlet
+  }
+
   /** Replace outlet content with a single view root. */
   private applyReplace(root: ViewRoot, key?: string): ViewHandle {
     this.stagedRoot = undefined;

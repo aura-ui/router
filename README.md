@@ -82,7 +82,7 @@ If `view` is just a file name (e.g. `users.html`), Aura fetches that HTML from t
 <a href="/users" aura-router-link>Users</a>
 ```
 
-Prefer **root-absolute** paths (`/users`, `/users/1`) so links work with and without JavaScript. Aura matches `/users` and `/users/` as the same route and does not rewrite trailing slashes in the address bar.
+Prefer **root-absolute** paths (`/users`, `/users/1`) so links work with and without JavaScript. Aura matches `/users` and `/users/` as the same route and keeps the pathname as in the link (does not strip or add a trailing `/`).
 
 Clicks on `[aura-router-link]` update the URL and swap the outlet — no full reload.
 

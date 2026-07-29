@@ -53,8 +53,8 @@ describe('followDeclarativeRedirects', () => {
 
       expect(outcome.target.node?.isIndex).toBe(true);
       expect(outcome.target.pattern).toBe('/app/settings');
-      expect(outcome.target.pathname).toBe('/app/settings');
-      expect(outcome.target.href).toBe('/app/settings');
+      expect(outcome.target.pathname).toBe(href);
+      expect(outcome.target.href).toBe(href);
     }
   });
 

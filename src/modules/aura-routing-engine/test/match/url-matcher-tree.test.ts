@@ -193,6 +193,14 @@ describe('AuraRoutingUrlMatcher', () => {
     });
   });
 
+  describe('trailing slash', () => {
+    it('matches pathname with or without trailing slash', () => {
+      const { matchableNodes } = buildRouteTree(collectRoutesFromDom(createDomRoute('/about')));
+      expect(matcher.matchPath('/about', matchableNodes)?.node.pattern).toBe('/about');
+      expect(matcher.matchPath('/about/', matchableNodes)?.node.pattern).toBe('/about');
+    });
+  });
+
   describe('re-exports', () => {
     it('exposes route-score helpers and CATCH_ALL_SEGMENT', () => {
       expect(CATCH_ALL_SEGMENT).toBe('*');

@@ -24,11 +24,12 @@ describe('app-href helpers', () => {
     });
 
     it('resolves . on folder index base', () => {
-      expect(resolveDocumentHref('.', 'https://example.com/app/settings/')).toBe('/app/settings');
+      expect(resolveDocumentHref('.', 'https://example.com/app/settings/')).toBe('/app/settings/');
     });
 
     it('leaves absolute in-app paths unchanged', () => {
       expect(resolveDocumentHref('/about', base)).toBe('/about');
+      expect(resolveDocumentHref('/about/', base)).toBe('/about/');
     });
   });
 

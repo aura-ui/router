@@ -1,6 +1,6 @@
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import { memoize } from '../../../aura-utils/decorators/memoize';
-import { parseSearch } from '../../../aura-utils/misc/url';
+import { parseSearch, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import { buildActiveChain, getActiveChain } from '../route-tree/matched-chain';
 import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
 import type { ResolvedView } from '../route-tree/resolved-view';
@@ -106,16 +106,17 @@ export class AuraRoutingUrlMatcher {
    * @param nodes - Usually `routeTree.matchableNodes`.
    * @returns Winning node + params, or `null` if nothing matched.
    */
-  @memoize((pathname: string) => pathname)
+  @memoize((pathname: string) => stripTrailingSlash(pathname))
   matchPath(pathname: string, nodes: readonly RouteNode[]): NodePathMatch | null {
+    const key = stripTrailingSlash(pathname);
     const { exact, rest } = this.getMatchIndex(nodes);
 
-    let bestNode = exact.get(pathname) ?? null;
+    let bestNode = exact.get(key) ?? null;
     let bestParams: Record<string, string> = {};
     let bestScore = bestNode?.matchScore ?? -Infinity;
 
     for (const node of rest) {
-      const params = this.getPathParams(pathname, node.pattern);
+      const params = this.getPathParams(key, node.pattern);
       if (params === null || node.matchScore <= bestScore) continue;
       bestNode = node;
       bestParams = params;

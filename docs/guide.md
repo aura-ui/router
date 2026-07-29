@@ -38,7 +38,7 @@ The link’s **`href`** is what matters — for search engines, users without Ja
 | `href="/users"` | any | `/users` |
 | `href="profile"` | `/app/settings/` | `/app/settings/profile` |
 | `href="profile"` | `/app/settings` | `/app/profile` ← not under settings |
-| `href="."` | `/app/settings/profile` | `/app/settings` |
+| `href="."` | `/app/settings/profile` | `/app/settings/` |
 
 For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). They work with and without JavaScript and do not depend on trailing slashes.
 
@@ -46,12 +46,12 @@ For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). The
 
 | | Route `path` attr | Browser URL |
 | --- | --- | --- |
-| **Folder + index** | `/app/settings` + child `path="."` | `/app/settings` ( `/app/settings/` matches the same route) |
+| **Folder + index** | `/app/settings` + child `path="."` | `/app/settings` or `/app/settings/` (same route; form from the link is kept) |
 | **Index child** | `path="."` | same URL as the folder |
 | **Child segment** | `profile` under `/app/settings` | `/app/settings/profile` |
 | **Leaf** | absolute `/app/settings/profile` | `/app/settings/profile` |
 
-Aura **joins** nested `path` values into one pattern (`/app` + `settings` → `/app/settings`; `/users` + `:id` → `/users/:id`). It does **not** rewrite trailing slashes in the address bar. Matching treats `/users` and `/users/` as the same route. If you need one public canonical URL, handle redirects on the server.
+Aura **joins** nested `path` values into one pattern (`/app` + `settings` → `/app/settings`; `/users` + `:id` → `/users/:id`). Matching treats `/users` and `/users/` as the same route. The address bar keeps the pathname as resolved from the link (including a trailing `/` when present) — Aura does not strip or add one. If you need one public canonical URL, handle redirects on the server.
 
 ---
 

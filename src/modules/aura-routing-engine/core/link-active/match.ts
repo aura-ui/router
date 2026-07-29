@@ -1,5 +1,6 @@
 import {
   splitAppHref,
+  stripTrailingSlash,
   type AppHrefParts,
 } from '../../../aura-utils/misc/url';
 
@@ -9,10 +10,13 @@ export interface LinkActiveMatch {
 }
 
 function matchLinkActiveParts(link: AppHrefParts, current: AppHrefParts): LinkActiveMatch {
+  const linkPath = stripTrailingSlash(link.pathname);
+  const currentPath = stripTrailingSlash(current.pathname);
+
   if (link.hash) {
     return {
       exact:
-        link.pathname === current.pathname &&
+        linkPath === currentPath &&
         link.search === current.search &&
         link.hash === current.hash,
       prefix: false,
@@ -21,14 +25,11 @@ function matchLinkActiveParts(link: AppHrefParts, current: AppHrefParts): LinkAc
 
   if (current.hash) return { exact: false, prefix: false };
 
-  const { pathname: linkPath, search: linkSearch } = link;
-  const { pathname: currentPath, search: currentSearch } = current;
-
-  if (linkSearch && linkSearch !== currentSearch) {
+  if (link.search && link.search !== current.search) {
     return { exact: false, prefix: false };
   }
 
-  const exact = linkSearch === currentSearch && linkPath === currentPath;
+  const exact = link.search === current.search && linkPath === currentPath;
 
   let prefix = exact;
 

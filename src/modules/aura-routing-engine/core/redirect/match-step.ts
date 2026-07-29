@@ -1,4 +1,4 @@
-import { joinAppHref, stripTrailingSlash } from '../../../aura-utils/misc/url';
+import { joinAppHref } from '../../../aura-utils/misc/url';
 import { resolveDocumentHrefParts } from '../link-active/app-href';
 import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
 import { resolvePattern } from '../route-tree/resolve-pattern';
@@ -33,7 +33,7 @@ export function lookupNavigationStep(
   preservedHash: string,
 ): NavigationMatchStep | null {
   const { pathname } = resolveDocumentHrefParts(href);
-  const found = matcher.matchPath(stripTrailingSlash(pathname), nodes);
+  const found = matcher.matchPath(pathname, nodes);
   if (!found) return null;
 
   if (found.node.route.type === 'redirect') {

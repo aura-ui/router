@@ -1,6 +1,7 @@
 import {
   joinAppHref,
-  type AppHrefParts, stripTrailingSlash,
+  stripTrailingSlash,
+  type AppHrefParts,
 } from '../../../aura-utils/misc/url';
 
 /** App-relative href after document resolution (`pathname + search + hash` + parts). */
@@ -36,12 +37,11 @@ export function resolveDocumentHrefParts(
   baseHref = window.location.href,
 ): ResolvedDocumentHref {
   const { pathname, search, hash } = new URL(href, baseHref);
-  const normalizedPathname = stripTrailingSlash(pathname);
   return {
-    pathname: normalizedPathname,
+    pathname,
     search,
     hash,
-    href: joinAppHref({ pathname: normalizedPathname, search, hash }),
+    href: joinAppHref({ pathname, search, hash }),
   };
 }
 

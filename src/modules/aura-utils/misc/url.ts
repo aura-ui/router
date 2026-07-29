@@ -33,7 +33,7 @@ export function splitAppHref(href: string): AppHrefParts {
     parts = { pathname, search, hash };
   }
 
-  return { pathname: stripTrailingSlash(parts.pathname), search: parts.search, hash: parts.hash };
+  return parts;
 }
 
 export function joinAppHref(parts: AppHrefParts): string {

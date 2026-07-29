@@ -42,9 +42,9 @@ describe('url helpers (generic)', () => {
       });
     });
 
-    it('normalizes trailing slash on pathname', () => {
+    it('preserves trailing slash on pathname', () => {
       expect(splitAppHref('/app/settings/')).toEqual({
-        pathname: '/app/settings',
+        pathname: '/app/settings/',
         search: '',
         hash: '',
       });

@@ -102,6 +102,18 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(provider.currentHref).toBe('/app/settings');
   });
 
+  it('clickLink preserves trailing slash in committed URL', async () => {
+    const { engine, provider } = createEngineHarness({
+      routes: [createTestRoute('/'), createTestRoute('/about')],
+    });
+
+    await bootEngine(engine, '/');
+    provider.clickLink('/about/');
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(provider.currentHref).toBe('/about/');
+  });
+
   it('clickLink проходит через engine и commit-ит URL', async () => {
     const { engine, provider } = createEngineHarness({
       routes: [createTestRoute('/'), createTestRoute('/about')],

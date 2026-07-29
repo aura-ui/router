@@ -1,35 +1,131 @@
+:root {
+  --bg: #fff;
+  --bg-soft: #f5f5f5;
+  --border: rgba(0, 0, 0, 0.08);
+  --text: #000;
+  --muted: #666;
+  --yellow: #fc0;
+  --yellow-hover: #f5c400;
+  --link: #06c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-    font-size: 18px;
+  margin: 0;
+  padding: 1.25rem 1.5rem 2rem;
+  font: 15px/1.5 Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+header {
+  margin-bottom: 0.75rem;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+h1, h2 {
+  margin: 0 0 0.5rem;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: 20px;
+}
+
+p {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  color: #f00;
+}
+
+code {
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 0.9em;
+}
+
+.main {
+  max-width: 42rem;
+}
+
+.nav,
+.subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: 16px 0 24px;
-}
-
-.layout .hint {
-    color: #666;
-    font-size: 0.9em;
+  margin: 0 0 1.25rem;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .subnav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: 8px 0 16px;
+  margin: 8px 0 12px;
+}
+
+.nav a,
+.subnav a {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.nav a:hover,
+.subnav a:hover {
+  background: #eee;
+  color: var(--text);
+}
+
+.nav a.active,
+.subnav a.active {
+  border-color: transparent;
+  background: var(--yellow);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.layout .hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+button {
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--yellow);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--yellow-hover);
 }
 
 body.loading {
-    cursor: progress;
-}
-
-.nav a {
-    border: 1px dotted gray;
-    border-radius: 5px;
-    padding: 5px 10px;
-    background: white;
-    text-decoration: none;
-    color: gray;
+  cursor: progress;
 }

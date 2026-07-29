@@ -1,0 +1,15 @@
+<article class="demo-site-view demo-layout-view" data-demo-view="features/hydration/page-b.html">
+  <h1>Страница B</h1>
+  <p class="demo-site-view__lead">
+    Обычный SPA-переход: <code>view</code> загружен fetch’ем и смонтирован в том же
+    корневом outlet.
+  </p>
+  <p class="demo-hint">
+    Назад на About — в документе уже нет <code>aura-router-initial-view</code>, поэтому
+    роутер загрузит <code>features/hydration/about.html</code> (не повторный adopt).
+  </p>
+
+  <nav class="demo-links">
+    <a href="/features/hydration" aura-router-link>← About</a>
+  </nav>
+</article>

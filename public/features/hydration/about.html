@@ -1,0 +1,18 @@
+<article class="demo-site-view demo-layout-view" data-demo-view="features/hydration/about.html">
+  <p class="demo-hydrate-badge demo-hydrate-badge--spa" role="status">SPA · view fetch</p>
+  <h1>About</h1>
+  <p class="demo-site-view__lead">
+    Тот же маршрут, но этот экземпляр view пришёл обычным
+    <code>view</code> fetch — после ухода на «Страница B» и возврата.
+  </p>
+  <p class="demo-hint">
+    Первый заход на <code>/features/hydration</code> (оглавление или прямая ссылка)
+    использует inline-разметку с <code>aura-router-initial-view</code> и не запрашивает
+    этот файл. После SPA-навигации marker в документе уже нет — грузится
+    <code>about.html</code>.
+  </p>
+
+  <nav class="demo-links">
+    <a href="/features/hydration/b" aura-router-link>Страница B →</a>
+  </nav>
+</article>

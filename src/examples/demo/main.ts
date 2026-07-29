@@ -17,6 +17,9 @@ installDemoTransitionHooks();
 AuraRouter.install();
 void customElements.whenDefined(AuraRoute.is).then(() => {
   installAnimationsDemoControls();
+  // Hydrate boot skips `navigation` — refresh chrome / code after adopt settles.
+  scheduleDemoUiRefresh();
+  setTimeout(refreshDemoUi, 50);
 });
 
 function scheduleDemoUiRefresh(): void {

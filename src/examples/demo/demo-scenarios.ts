@@ -91,6 +91,10 @@ export const DEMO_SCENARIOS: Record<string, DemoScenario> = {
   },
   animations: {
     root: '/features/animations',
+    nextStep: [{ href: '/features/hydration', label: 'hydration: MPA → SPA first paint' }],
+  },
+  hydration: {
+    root: '/features/hydration',
     nextStep: [{ href: '/', label: 'оглавление демо' }],
   },
 };

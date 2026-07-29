@@ -7,6 +7,7 @@ const DEMO_SHELLS: Record<string, string> = {
   '/features/routing-advanced': '/features/routing-advanced/index.html',
   '/features/phase-update': '/features/phase-update/index.html',
   '/features/animations': '/features/animations/index.html',
+  '/features/hydration': '/features/hydration/index.html',
 };
 
 function rewriteDemoShell(req: Connect.IncomingMessage): void {

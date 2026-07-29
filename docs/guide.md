@@ -113,7 +113,7 @@ Selector stays in `extract`, not inside `view`.
 
 ## First paint (MPA → SPA)
 
-Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. If that markup is marked, the router **adopts** it on boot instead of fetching the route `view` again. Later in-app navigations use the normal SPA pipeline.
+Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. If that markup is marked with `aura-router-initial-view`, the router **adopts** it on boot instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) — put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
 
 ### Marker
 
@@ -142,12 +142,12 @@ Add `aura-router-initial-view` on the content root the server already rendered:
 
 | When | Behavior |
 | --- | --- |
-| Marker present + URL matches a **flat** page route (no layout parent in the match) | Adopt the marked node; skip first-paint fetch/remount; sync active links |
-| Marker present + URL matches a **nested** chain (layout + leaf), and markup mirrors the outlet tree | Adopt each level; skip first-paint fetch/remount; sync active links |
+| Marker present + URL matches a **flat** page route (no layout parent in the match) | Adopt the marked node; skip first-paint fetch/remount and lifecycle; sync active links |
+| Marker present + URL matches a **nested** chain (layout + leaf), and markup mirrors the outlet tree | Adopt each level; skip first-paint fetch/remount and lifecycle; sync active links |
 | No marker, no match, or `redirect` route | Normal first navigation (load `view` as usual) |
 | Match includes a **layout** parent, but markup is only a single blob (no nested outlets / view roots) | Falls back to a normal first navigation |
 
-**Nested adopt** needs the same shape the client would mount: each layout root is a direct child of its outlet, marked `data-aura-view-root`, and contains a direct child `<aura-outlet>` whose next view root is also `data-aura-view-root` (and so on down the chain). Index-folder URLs are normalized to a trailing slash after adopt (`/app/settings` → `/app/settings/`) so path-relative links resolve under the folder.
+**Nested adopt** needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` — `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed. Index-folder URLs are normalized to a trailing slash after adopt (`/app/settings` → `/app/settings/`) so path-relative links resolve under the folder.
 
 ```html
 <!-- Server HTML for /settings/profile -->

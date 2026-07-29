@@ -37,13 +37,22 @@ function findFactsAnchor(view: HTMLElement): Element | null {
 
 function findDemoViews(root: ParentNode): HTMLElement[] {
   const views: HTMLElement[] = [];
+  const seen = new Set<HTMLElement>();
+
+  const pushFrom = (viewRoot: HTMLElement) => {
+    const view = viewRoot.querySelector<HTMLElement>('.demo-site-view[data-demo-view]');
+    if (view && !seen.has(view)) {
+      seen.add(view);
+      views.push(view);
+    }
+  };
 
   root.querySelectorAll('.demo-site-outlet').forEach((outlet) => {
-    outlet.querySelectorAll<HTMLElement>(`:scope > [${AURA_VIEW_ROOT_ATTR}]`).forEach((viewRoot) => {
-      const view = viewRoot.querySelector<HTMLElement>('.demo-site-view[data-demo-view]');
-      if (view) views.push(view);
-    });
+    outlet.querySelectorAll<HTMLElement>(`:scope > [${AURA_VIEW_ROOT_ATTR}]`).forEach(pushFrom);
   });
+
+  // Guide-shaped first paint: marker is a sibling of the outlet, not inside it.
+  root.querySelectorAll<HTMLElement>(`[aura-router-initial-view][${AURA_VIEW_ROOT_ATTR}]`).forEach(pushFrom);
 
   if (views.length) return views;
 
@@ -91,12 +100,21 @@ export function renderRouteFacts(root: ParentNode = document): void {
 
 /**
  * Сразу после mount staged view — до конца transitionIn.
- * Без этого блок demo-facts вставляется только на событии `navigation` (после анимации).
+ * Также ловит hydrate adopt: `data-aura-view-root` на marker / root
+ * (в т.ч. sibling снаружи outlet — guide-shaped first paint).
  */
 export function installDemoRouteFactsObserver(root: ParentNode = document): void {
-  root.querySelectorAll('.demo-site-outlet').forEach((outlet) => {
+  const observeTarget = (target: ParentNode) => {
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
+          const node = mutation.target;
+          if (!node.hasAttribute(AURA_VIEW_ROOT_ATTR)) continue;
+          const view = node.querySelector<HTMLElement>('.demo-site-view[data-demo-view]');
+          if (view) hydrateDemoView(view);
+          continue;
+        }
+
         mutation.addedNodes.forEach((node) => {
           if (!(node instanceof HTMLElement)) return;
           if (!node.hasAttribute(AURA_VIEW_ROOT_ATTR)) return;
@@ -107,6 +125,19 @@ export function installDemoRouteFactsObserver(root: ParentNode = document): void
       }
     });
 
-    observer.observe(outlet, { childList: true });
-  });
+    observer.observe(target as Node, {
+      childList: true,
+      attributes: true,
+      attributeFilter: [AURA_VIEW_ROOT_ATTR],
+      subtree: true,
+    });
+  };
+
+  const stages = root.querySelectorAll('.demo-site-stage');
+  if (stages.length) {
+    stages.forEach((stage) => observeTarget(stage));
+    return;
+  }
+
+  root.querySelectorAll('.demo-site-outlet').forEach((outlet) => observeTarget(outlet));
 }

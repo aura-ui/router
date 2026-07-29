@@ -247,6 +247,31 @@ export const DEMO_VIEW_META: Record<string, DemoRouteFact[]> = {
       value: 'После commit staged view становится active; outgoing root размонтирован.',
     },
   ],
+  'features/hydration/about.html': [
+    { term: 'Path', kind: 'code', value: '/features/hydration' },
+    { term: 'View', kind: 'code', value: 'features/hydration/about.html' },
+    {
+      term: 'First paint vs SPA',
+      kind: 'text',
+      value:
+        'Shell с marker → adopt без fetch. После ухода на B возврат грузит about.html.',
+    },
+    {
+      term: 'Действие роутера',
+      kind: 'text',
+      value:
+        'Boot: hydrate → outlet/route.adopt (без guard/load/ready). SPA-возврат: обычный view mount.',
+    },
+  ],
+  'features/hydration/page-b.html': [
+    { term: 'Path', kind: 'code', value: '/features/hydration/b' },
+    { term: 'View', kind: 'code', value: 'features/hydration/page-b.html' },
+    {
+      term: 'Действие роутера',
+      kind: 'text',
+      value: 'Обычный SPA-переход: fetch view → mount в корневом outlet.',
+    },
+  ],
 };
 
 export function getViewMeta(viewId: string | undefined): DemoRouteFact[] | undefined {

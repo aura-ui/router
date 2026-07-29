@@ -10,9 +10,9 @@ Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/rout
 
 - [Navigation](#navigation)
 - [Views](#views)
-- [First paint (MPA → SPA)](#first-paint-mpa--spa)
 - [Nested routes & layouts](#nested-routes--layouts)
 - [Lifecycle hooks](#lifecycle-hooks)
+- [First paint (MPA → SPA)](#first-paint-mpa--spa)
 - [Cache](#cache)
 - [Loading](#loading)
 - [Router defaults](#router-defaults)
@@ -108,84 +108,6 @@ Use `extract` when a fetched page is full HTML and the outlet should mount only 
 | *(absent)* | Inherit from `<aura-router>` / parent `<aura-route>` |
 
 Selector stays in `extract`, not inside `view`.
-
----
-
-## First paint (MPA → SPA)
-
-Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. If that markup is marked with `aura-router-initial-view`, the router **adopts** it on boot instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) — put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
-
-### Marker
-
-Add `aura-router-initial-view` on the content root the server already rendered:
-
-```html
-<body>
-  <header>…</header>
-
-  <div aura-router-initial-view>
-    <h1>About</h1>
-    <p>…</p>
-  </div>
-
-  <aura-router>
-    <aura-route path="/about" view="about.html"></aura-route>
-    <aura-route path="/users" view="users.html"></aura-route>
-  </aura-router>
-
-  <script type="module">
-    import { AuraRouter } from '@auraui/router';
-    AuraRouter.install();
-  </script>
-</body>
-```
-
-| When | Behavior |
-| --- | --- |
-| Marker present + URL matches a **flat** page route (no layout parent in the match) | Adopt the marked node; skip first-paint fetch/remount and lifecycle; sync active links |
-| Marker present + URL matches a **nested** chain (layout + leaf), and markup mirrors the outlet tree | Adopt each level; skip first-paint fetch/remount and lifecycle; sync active links |
-| No marker, no match, or `redirect` route | Normal first navigation (load `view` as usual) |
-| Match includes a **layout** parent, but markup is only a single blob (no nested outlets / view roots) | Falls back to a normal first navigation |
-
-**Nested adopt** needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` — `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed. Index-folder URLs are normalized to a trailing slash after adopt (`/app/settings` → `/app/settings/`) so path-relative links resolve under the folder.
-
-```html
-<!-- Server HTML for /settings/profile -->
-<aura-outlet>
-  <div aura-router-initial-view data-aura-view-root>
-    <!-- settings layout chrome -->
-    <aura-outlet>
-      <div data-aura-view-root>
-        <!-- profile page -->
-      </div>
-    </aura-outlet>
-  </div>
-</aura-outlet>
-
-<aura-router>
-  <aura-route path="/settings" layout="settings-shell">
-    <aura-route path="profile" view="settings/profile.html"></aura-route>
-  </aura-route>
-</aura-router>
-```
-
-Keep durable chrome (site header, primary nav) **outside** the marked node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` in the same layout slot (sibling or nearby) so after the first SPA transition new pages appear where the server content was.
-
-### With `url` + `extract`
-
-Declare `view` / `extract` for **later** navigations as usual. First paint still uses the marked DOM; returning to the URL later may fetch and extract:
-
-```html
-<aura-router extract="#main">
-  <aura-route path="/about" view="about.html"></aura-route>
-</aura-router>
-
-<div id="main" aura-router-initial-view>
-  <!-- same fragment extract would take from about.html -->
-</div>
-```
-
-No extra API beyond `AuraRouter.install()` and a connected `<aura-router>`.
 
 ---
 
@@ -296,6 +218,84 @@ AuraRouter.use(authHook);
   </aura-route>
 </aura-router>
 ```
+
+---
+
+## First paint (MPA → SPA)
+
+Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. If that markup is marked with `aura-router-initial-view`, the router **adopts** it on boot instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) — put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
+
+### Marker
+
+Add `aura-router-initial-view` on the content root the server already rendered:
+
+```html
+<body>
+  <header>…</header>
+
+  <div aura-router-initial-view>
+    <h1>About</h1>
+    <p>…</p>
+  </div>
+
+  <aura-router>
+    <aura-route path="/about" view="about.html"></aura-route>
+    <aura-route path="/users" view="users.html"></aura-route>
+  </aura-router>
+
+  <script type="module">
+    import { AuraRouter } from '@auraui/router';
+    AuraRouter.install();
+  </script>
+</body>
+```
+
+| When | Behavior |
+| --- | --- |
+| Marker present + URL matches a **flat** page route (no layout parent in the match) | Adopt the marked node; skip first-paint fetch/remount and lifecycle; sync active links |
+| Marker present + URL matches a **nested** chain (layout + leaf), and markup mirrors the outlet tree | Adopt each level; skip first-paint fetch/remount and lifecycle; sync active links |
+| No marker, no match, or `redirect` route | Normal first navigation (load `view` as usual) |
+| Match includes a **layout** parent, but markup is only a single blob (no nested outlets / view roots) | Falls back to a normal first navigation |
+
+**Nested adopt** needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` — `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed. Index-folder URLs are normalized to a trailing slash after adopt (`/app/settings` → `/app/settings/`) so path-relative links resolve under the folder.
+
+```html
+<!-- Server HTML for /settings/profile -->
+<aura-outlet>
+  <div aura-router-initial-view data-aura-view-root>
+    <!-- settings layout chrome -->
+    <aura-outlet>
+      <div data-aura-view-root>
+        <!-- profile page -->
+      </div>
+    </aura-outlet>
+  </div>
+</aura-outlet>
+
+<aura-router>
+  <aura-route path="/settings" layout="settings-shell">
+    <aura-route path="profile" view="settings/profile.html"></aura-route>
+  </aura-route>
+</aura-router>
+```
+
+Keep durable chrome (site header, primary nav) **outside** the marked node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` in the same layout slot (sibling or nearby) so after the first SPA transition new pages appear where the server content was.
+
+### With `url` + `extract`
+
+Declare `view` / `extract` for **later** navigations as usual. First paint still uses the marked DOM; returning to the URL later may fetch and extract:
+
+```html
+<aura-router extract="#main">
+  <aura-route path="/about" view="about.html"></aura-route>
+</aura-router>
+
+<div id="main" aura-router-initial-view>
+  <!-- same fragment extract would take from about.html -->
+</div>
+```
+
+No extra API beyond `AuraRouter.install()` and a connected `<aura-router>`.
 
 ---
 

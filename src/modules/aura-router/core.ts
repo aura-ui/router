@@ -1,4 +1,8 @@
-export { AuraRouter, type AuraRouterConfigureOptions } from './core/aura-router';
+export {
+  AuraRouter,
+  AURA_ROUTER_SSR_ATTR,
+  type AuraRouterConfigureOptions,
+} from './core/aura-router';
 export type {
   RouterInstance,
   NavigationErrorPhase,

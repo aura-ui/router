@@ -45,6 +45,9 @@ import type {
 import type { ActiveRouteBranchEntry } from '../../aura-routing-engine/core/link-active';
 import type { NotFoundHandler } from './navigation-events';
 
+/** Boolean marker: server HTML to adopt on first paint (`[aura-router-ssr]`). */
+export const AURA_ROUTER_SSR_ATTR = 'aura-router-ssr';
+
 export interface AuraRouterConfigureOptions {
   /** Detached DOM keep-alive (`cache.dom`). */
   domCache?: SwrCacheOptions<ViewRoot>;
@@ -155,8 +158,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   /** initial view markup from server */
   get initialView(): HTMLElement | null {
-    return this.appOutlet.querySelector('[aura-router-initial-view]')
-      ?? document.querySelector('[aura-router-initial-view]');
+    const selector = `[${AURA_ROUTER_SSR_ATTR}]`;
+    return this.appOutlet.querySelector(selector)
+      ?? document.querySelector(selector);
   }
 
   /** Also registers `<aura-outlet>` and `<aura-route>`. */

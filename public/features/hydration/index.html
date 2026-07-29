@@ -34,13 +34,13 @@
           First paint adopts the marker; later SPA hops remount into the same outlet.
         -->
         <aura-outlet class="demo-site-outlet">
-          <div aura-router-initial-view>
+          <div aura-router-ssr>
             <article class="demo-site-view demo-layout-view" data-demo-view="features/hydration/about.html">
               <p class="demo-hydrate-badge" role="status">First paint · adopt · без fetch view</p>
               <h1>About</h1>
               <p class="demo-site-view__lead">
                 Этот HTML уже был в документе с маркером
-                <code>aura-router-initial-view</code> (внутри слота
+                <code>aura-router-ssr</code> (внутри слота
                 <code>&lt;aura-outlet&gt;</code>, снаружи
                 <code>&lt;aura-router&gt;</code>). На boot роутер
                 <strong>adopt</strong>-нул узел (ставит
@@ -65,7 +65,7 @@
               </div>
               <template id="hydrate-code-flat">
 <aura-outlet>
-  <div aura-router-initial-view>
+  <div aura-router-ssr>
     <h1>About</h1>
     <p>…</p>
   </div>
@@ -99,7 +99,7 @@
     (() => {
       const path = location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '') || '/';
       if (path === '/features/hydration') return;
-      document.querySelectorAll('[aura-router-initial-view]').forEach((el) => el.remove());
+      document.querySelectorAll('[aura-router-ssr]').forEach((el) => el.remove());
     })();
   </script>
   <script type="module" src="/src/examples/demo/main.ts"></script>

@@ -222,17 +222,17 @@ AuraRouter.use(authHook);
 
 ## First paint (MPA → SPA)
 
-Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. If that markup is marked with `aura-router-initial-view`, the router **adopts** it on boot instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) — put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
+Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. If that markup is marked with `aura-router-ssr`, the router **adopts** it on boot instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) — put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
 
 ### Marker
 
-Add `aura-router-initial-view` on the content root the server already rendered:
+Add `aura-router-ssr` on the content root the server already rendered:
 
 ```html
 <body>
   <header>…</header>
 
-  <div aura-router-initial-view>
+  <div aura-router-ssr>
     <h1>About</h1>
     <p>…</p>
   </div>
@@ -261,7 +261,7 @@ Add `aura-router-initial-view` on the content root the server already rendered:
 ```html
 <!-- Server HTML for /settings/profile -->
 <aura-outlet>
-  <div aura-router-initial-view data-aura-view-root>
+  <div aura-router-ssr data-aura-view-root>
     <!-- settings layout chrome -->
     <aura-outlet>
       <div data-aura-view-root>
@@ -289,7 +289,7 @@ Declare `view` / `extract` for **later** navigations as usual. First paint still
   <aura-route path="/about" view="about.html"></aura-route>
 </aura-router>
 
-<div id="main" aura-router-initial-view>
+<div id="main" aura-router-ssr>
   <!-- same fragment extract would take from about.html -->
 </div>
 ```

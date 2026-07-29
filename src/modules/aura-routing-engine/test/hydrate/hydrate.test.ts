@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
+import { AURA_ROUTER_SSR_ATTR } from '../../../aura-router/core';
 import { hydrate } from '../../core/hydrate/hydrate';
 import { createEngineHarness } from '../_helpers/engine-harness';
 import {
@@ -51,7 +52,7 @@ describe('hydrate', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const initialView = document.createElement('div');
-    initialView.setAttribute('aura-router-initial-view', '');
+    initialView.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     initialView.textContent = 'ABOUT';
     rootOutlet.append(initialView);
     document.body.append(rootOutlet);
@@ -77,7 +78,7 @@ describe('hydrate', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const layoutRoot = document.createElement('div');
-    layoutRoot.setAttribute('aura-router-initial-view', '');
+    layoutRoot.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     layoutRoot.setAttribute('data-aura-view-root', '');
 
     const nested = document.createElement(AuraOutlet.is) as AuraOutlet;
@@ -113,7 +114,7 @@ describe('hydrate', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const layoutRoot = document.createElement('div');
-    layoutRoot.setAttribute('aura-router-initial-view', '');
+    layoutRoot.setAttribute(AURA_ROUTER_SSR_ATTR, '');
 
     const nested = document.createElement(AuraOutlet.is) as AuraOutlet;
     const leafRoot = document.createElement('div');
@@ -147,7 +148,7 @@ describe('hydrate', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const blob = document.createElement('div');
-    blob.setAttribute('aura-router-initial-view', '');
+    blob.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     blob.textContent = 'flat blob';
     rootOutlet.append(blob);
     document.body.append(rootOutlet);
@@ -171,7 +172,7 @@ describe('hydrate', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const initialView = document.createElement('div');
-    initialView.setAttribute('aura-router-initial-view', '');
+    initialView.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     rootOutlet.append(initialView);
     document.body.append(rootOutlet);
 
@@ -192,7 +193,7 @@ describe('hydrate', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const layoutRoot = document.createElement('div');
-    layoutRoot.setAttribute('aura-router-initial-view', '');
+    layoutRoot.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     layoutRoot.setAttribute('data-aura-view-root', '');
 
     const nested = document.createElement(AuraOutlet.is) as AuraOutlet;
@@ -239,7 +240,7 @@ describe('hydrate', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const initialView = document.createElement('div');
-    initialView.setAttribute('aura-router-initial-view', '');
+    initialView.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     rootOutlet.append(initialView);
     document.body.append(rootOutlet);
 
@@ -275,7 +276,7 @@ describe('bootstrap SSR structure-error recovery', () => {
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     // External SSR layout (outside appOutlet) — matches playground broken markup.
     const layoutRoot = document.createElement('div');
-    layoutRoot.setAttribute('aura-router-initial-view', '');
+    layoutRoot.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     layoutRoot.textContent = 'SSR LAYOUT';
     document.body.append(layoutRoot, rootOutlet);
 
@@ -302,7 +303,7 @@ describe('bootstrap SSR structure-error recovery', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const layoutRoot = document.createElement('div');
-    layoutRoot.setAttribute('aura-router-initial-view', '');
+    layoutRoot.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     layoutRoot.textContent = 'SSR LAYOUT';
     document.body.append(layoutRoot, rootOutlet);
 
@@ -333,7 +334,7 @@ describe('bootstrap SSR structure-error recovery', () => {
 
     const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
     const layoutRoot = document.createElement('div');
-    layoutRoot.setAttribute('aura-router-initial-view', '');
+    layoutRoot.setAttribute(AURA_ROUTER_SSR_ATTR, '');
     layoutRoot.textContent = 'SSR LAYOUT';
     document.body.append(layoutRoot, rootOutlet);
 

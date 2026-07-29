@@ -1,4 +1,5 @@
 import { AURA_VIEW_ROOT_ATTR } from '../../modules/aura-outlet/core/aura-outlet';
+import { AURA_ROUTER_SSR_ATTR } from '../../modules/aura-router/core';
 
 import { getViewMeta, type DemoRouteFact } from './demo-route-meta';
 import { syncRouteParams } from './demo-route-params';
@@ -52,7 +53,7 @@ function findDemoViews(root: ParentNode): HTMLElement[] {
   });
 
   // Guide-shaped first paint: marker is a sibling of the outlet, not inside it.
-  root.querySelectorAll<HTMLElement>(`[aura-router-initial-view][${AURA_VIEW_ROOT_ATTR}]`).forEach(pushFrom);
+  root.querySelectorAll<HTMLElement>(`[${AURA_ROUTER_SSR_ATTR}][${AURA_VIEW_ROOT_ATTR}]`).forEach(pushFrom);
 
   if (views.length) return views;
 

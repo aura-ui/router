@@ -62,7 +62,7 @@ export class AuraRoutingEngine implements NavigationHost {
   public isRunning = false;
   private prev: MatchedRouteInfo | null = null;
   /**
-   * Broken SSR `[aura-router-initial-view]` after hydrate structure-error.
+   * Broken SSR `[aura-router-ssr]` after hydrate structure-error.
    * Hidden for the next navigate; removed on commit, unhidden if navigate does not commit.
    */
   private brokenInitialView: HTMLElement | null = null;
@@ -83,7 +83,7 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
   /**
-   * Start the engine and optionally adopt SSR `[aura-router-initial-view]`.
+   * Start the engine and optionally adopt SSR `[aura-router-ssr]`.
    *
    * - adopt OK → commit `prev`, return leaf
    * - structure-error → keep SSR, `prev = null`, no `initNavigate`; return leaf for chrome sync

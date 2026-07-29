@@ -12,6 +12,13 @@ const loadPage = async (pageName) => {
   return await readFile(join(__dirname, 'pages', pageName), 'utf8');
 };
 
+const adobeRouter = async (html) => {
+  const nav = await loadPage('parts/nav.html');
+  const router = await loadPage('parts/router.html');
+  html = html.replace('@nav@', nav);
+  return html.replace('@router@', router);
+};
+
 const fastify = Fastify({
   logger: true,
 });
@@ -24,39 +31,40 @@ fastify.register(fastifyStatic, {
 // Declare a route
 fastify.get('/users', async function handler(request, reply) {
   const html = await loadPage('users.html');
-  return reply.type('text/html').send(html);
+  return reply.type('text/html').send(await adobeRouter(html));
 });
 
 fastify.get('/user/:id', async function handler(request, reply) {
   await new Promise((r) => setTimeout(r, 3000));
-  const html = await loadPage(`user${request.params.id}.html`);
-  return reply.type('text/html').send(html);
+  let html = await loadPage(`user.html`);
+  html = html.replace(/{{id}}/g, request.params.id);
+  return reply.type('text/html').send(await adobeRouter(html));
 });
 
 fastify.get('/contacts', async function handler(request, reply) {
   await new Promise((r) => setTimeout(r, 1000));
   const html = await loadPage('contacts.html');
-  return reply.type('text/html').send(html);
+  return reply.type('text/html').send(await adobeRouter(html));
 });
 
 fastify.get('/login', async function handler(request, reply) {
   const html = await loadPage('login.html');
-  return reply.type('text/html').send(html);
+  return reply.type('text/html').send(await adobeRouter(html));
 });
 
 fastify.get('/profile/settings', async function handler(request, reply) {
   const html = await loadPage('profile-settings.html');
-  return reply.type('text/html').send(html);
+  return reply.type('text/html').send(await adobeRouter(html));
 });
 
 fastify.get('/profile', async function handler(request, reply) {
   const html = await loadPage('profile.html');
-  return reply.type('text/html').send(html);
+  return reply.type('text/html').send(await adobeRouter(html));
 });
 
 fastify.get('/*', async function handler(request, reply) {
   const html = await loadPage('index.html');
-  return reply.type('text/html').send(html);
+  return reply.type('text/html').send(await adobeRouter(html));
 });
 
 // Run the server!

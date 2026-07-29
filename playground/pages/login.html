@@ -2,11 +2,17 @@
 <head>
   <meta charset="utf-8" />
   <title>Login</title>
+  <link rel="stylesheet" href="./static/main.css" />
+  <script src="./static/main.js" defer></script>
 </head>
 <body>
+@nav@
+<div class="main" aura-router-initial-view>
   <h1>Login</h1>
   <p>Полный HTML с сервера (у роута нет extract) — в outlet попадает весь документ.</p>
   <p>После входа guard="auth" пустит на /profile.</p>
   <button type="button" data-demo-login>Sign in</button>
+</div>
+@router@
 </body>
 </html>

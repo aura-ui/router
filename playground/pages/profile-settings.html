@@ -2,12 +2,16 @@
 <head>
   <meta charset="utf-8" />
   <title>Profile settings</title>
+  <link rel="stylesheet" href="./static/main.css" />
+  <script src="./static/main.js" defer></script>
 </head>
 <body>
+@nav@
 Страница - Настройки профиля
-<div class="main">
+<div class="main" aura-router-initial-view>
   <h1>Settings</h1>
   <p>Nested /profile/settings — тот же guard и layout, другой view с сервера.</p>
 </div>
+@router@
 </body>
 </html>

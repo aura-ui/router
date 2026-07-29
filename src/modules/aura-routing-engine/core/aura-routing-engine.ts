@@ -60,7 +60,12 @@ export class AuraRoutingEngine implements NavigationHost {
   private prefetchPipeline?: PrefetchPipeline;
 
   public isRunning = false;
-  private prev: MatchedRouteInfo | null;
+  private prev: MatchedRouteInfo | null = null;
+  /**
+   * Broken SSR `[aura-router-initial-view]` after hydrate structure-error.
+   * Hidden for the next navigate; removed on commit, unhidden if navigate does not commit.
+   */
+  private brokenInitialView: HTMLElement | null = null;
 
   /** Facade to {@link ResourceGraph.viewGraph} (AuraRouter / branch resolve). */
   get viewGraph(): ViewGraph {
@@ -77,15 +82,37 @@ export class AuraRoutingEngine implements NavigationHost {
     return this;
   }
 
+  /**
+   * Start the engine and optionally adopt SSR `[aura-router-initial-view]`.
+   *
+   * - adopt OK → commit `prev`, return leaf
+   * - structure-error → keep SSR, `prev = null`, no `initNavigate`; return leaf for chrome sync
+   * - fallback / no initial view → `initNavigate` (cold CSR)
+   */
   async bootstrap(initialView: HTMLElement | null, rootOutlet: AuraOutlet): Promise<MatchedRouteInfo | null> {
     this.start();
-    const leaf = initialView ? await hydrate(initialView, this, rootOutlet) : null;
-    if (!leaf) {
+    this.brokenInitialView = null;
+
+    if (!initialView) {
       this.initNavigate();
       return null;
     }
-    this.prev = leaf;
-    return leaf;
+
+    const result = await hydrate(initialView, this, rootOutlet);
+
+    if (result.status === 'adopted') {
+      this.prev = result.leaf;
+      return result.leaf;
+    }
+
+    if (result.status === 'structure-error') {
+      this.brokenInitialView = initialView;
+      this.prev = null;
+      return result.leaf;
+    }
+
+    this.initNavigate();
+    return null;
   }
 
   constructor(router: RouterInstance, config: AuraRoutingEngineConfig = {}) {
@@ -166,6 +193,7 @@ export class AuraRoutingEngine implements NavigationHost {
     this.matcher.destroy();
     this.registry.clear();
     this.prev = null;
+    this.brokenInitialView = null;
     this.resourceGraph.destroy();
     this.events.destroy();
   }
@@ -232,7 +260,16 @@ export class AuraRoutingEngine implements NavigationHost {
       return;
     }
 
+    if (this.brokenInitialView) {
+      this.brokenInitialView.hidden = true;
+    }
+
     await this.navigationCoordinator.navigate(href, action, options);
+
+    // Still present ⇒ navigation did not commit — undo temporary hide.
+    if (this.brokenInitialView?.hidden) {
+      this.brokenInitialView.hidden = false;
+    }
   }
 
   prefetch(href: string, options?: PrefetchOptions): Promise<void> {
@@ -364,6 +401,10 @@ export class AuraRoutingEngine implements NavigationHost {
     this.pulse.commitEnd(transition);
     if (transition.hash) this.scrollToHash?.(transition.hash);
     this.prev = transition.to;
+    if (this.brokenInitialView) {
+      this.brokenInitialView.remove();
+      this.brokenInitialView = null;
+    }
   }
 
   reportNavigationHookError(hookError: unknown, parent: NavigationFailure): void {

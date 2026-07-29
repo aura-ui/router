@@ -2,12 +2,16 @@
 <head>
   <meta charset="utf-8" />
   <title>Profile</title>
+  <link rel="stylesheet" href="./static/main.css" />
+  <script src="./static/main.js" defer></script>
 </head>
 <body>
+@nav@
 Страница - Профиль
-<div class="main">
+<div class="main" aura-router-initial-view>
   <h1>Profile</h1>
   <p>Защищённый HTML с сервера. Откроется только после Sign in.</p>
 </div>
+@router@
 </body>
 </html>

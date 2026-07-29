@@ -11,17 +11,27 @@ type HydrateStep = {
 };
 
 /**
+ * - `adopted` — SSR markup matched the route chain and was adopted.
+ * - `structure-error` — route matched, but nested SSR structure is invalid
+ *   (missing outlet / view-root). Caller must keep SSR and defer CSR remount.
+ * - `fallback` — no usable match / redirect / adopt failure → normal init navigate.
+ */
+export type HydrateResult =
+  | { status: 'adopted'; leaf: MatchedRouteInfo }
+  | { status: 'structure-error'; leaf: MatchedRouteInfo }
+  | { status: 'fallback' };
+
+/**
  * Adopt server markup into the matched route chain without fetch/remount.
- * @returns leaf match on success; `null` → caller should run a normal init navigate.
  */
 export async function hydrate(
   initialView: HTMLElement,
   engine: AuraRoutingEngine,
   rootOutlet: AuraOutlet,
-): Promise<MatchedRouteInfo | null> {
+): Promise<HydrateResult> {
   const { pathname, search, hash } = resolveDocumentHrefParts(location.href);
   const found = engine.matcher.matchPath(pathname, engine.getMatchableNodes());
-  if (!found || found.node.route.type === 'redirect') return null;
+  if (!found || found.node.route.type === 'redirect') return { status: 'fallback' };
 
   // Same canonical as lookupNavigationStep — index folders keep a trailing `/`
   // so path-relative links resolve under the folder after adopt.
@@ -37,7 +47,7 @@ export async function hydrate(
   const chain = leaf.chain ?? [leaf];
 
   const plan = buildHydratePlan(chain, initialView, rootOutlet);
-  if (!plan) return null;
+  if (!plan) return { status: 'structure-error', leaf };
 
   try {
     await Promise.all(plan.map((step) => step.entry.route.whenReady()));
@@ -46,14 +56,14 @@ export async function hydrate(
       step.entry.route.adopt(handle, step.entry);
     }
   } catch {
-    return null;
+    return { status: 'fallback' };
   }
 
   if (canonical.href !== getCurrentAppHref()) {
     engine.commitPopSlashFix(canonical.href);
   }
 
-  return leaf;
+  return { status: 'adopted', leaf };
 }
 
 /** Dry-run: validate server markup for the full chain before any adopt. */

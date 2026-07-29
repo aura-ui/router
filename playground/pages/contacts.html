@@ -2,13 +2,17 @@
 <head>
   <meta charset="utf-8" />
   <title>Contacts</title>
+  <link rel="stylesheet" href="./static/main.css" />
+  <script src="./static/main.js" defer></script>
 </head>
 <body>
+@nav@
 Страница - Контакты (оболочка MPA, в SPA не попадает при extract)
-<div class="main">
+<div class="main" aura-router-initial-view>
   <h1>Contacts</h1>
   <p>Контакты — содержание из серверного HTML (extract=".main").</p>
   <p>На сервере искусственная задержка ~1s; у роута cache="off".</p>
 </div>
+@router@
 </body>
 </html>

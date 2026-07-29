@@ -1,0 +1,35 @@
+<nav class="nav">
+  <!-- База: SPA-ссылки + active -->
+  <a href="/" aura-router-link>Index</a>
+  <a href="/about" aura-router-link>About (template::)</a>
+
+  <!-- Server HTML → SPA -->
+  <a href="/contacts" aura-router-link>
+    Contacts — extract + delay + свой loading
+  </a>
+  <a href="/login" aura-router-link>
+    Login — полный HTML с сервера (без extract)
+  </a>
+
+  <!-- Nested layout + outlet -->
+  <a href="/users" aura-router-link>
+    Users list — layout + view
+  </a>
+  <a href="/user/1" aura-router-link>
+    User 1 — :id + delay + cache
+  </a>
+  <a href="/user/2" aura-router-link>
+    User 2 — тот же роут, другой param
+  </a>
+
+  <!-- Guards -->
+  <a href="/profile" aura-router-link>
+    Profile — guard="auth"
+  </a>
+  <a href="/profile/settings" aura-router-link>
+    Settings — nested + guard
+  </a>
+
+  <!-- 404 -->
+  <a href="/error" aura-router-link>404 — path="*"</a>
+</nav>

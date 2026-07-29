@@ -44,8 +44,8 @@
 
 | | Item | What |
 | :---: | --- | --- |
-| <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **8.1 / 8.4** MPA adoption path | migration guide + static `.html` per URL example |
-| <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **7.x** Adoption artifacts | recipes, Playwright E2E, hosted playground |
+| <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **8.1 / 8.4** MPA adoption path | migration guide + pure static `.html` per URL (playground is Fastify, not static-only) |
+| <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **7.x** Adoption artifacts | document recipes from [`playground/`](./playground/), Playwright E2E, hosted playground |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | Pre-release **0.0.1** | merge → `main`, npm publish |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | **6.x** Debugging & performance | Cache DevTools, nav timeline UI, per-nav metrics gate |
 
@@ -53,7 +53,7 @@
 
 ## Available today
 
-Pre-release baseline — [demo](./src/examples/demo) via `npm run dev`, or [`index.html`](./index.html).
+Pre-release baseline — [demo](./src/examples/demo) via `npm run dev`, or [`index.html`](./index.html). MPA→SPA reference app: [`playground/`](./playground/) (`cd playground && npm install && npm run dev`).
 
 Today’s sole package entry (`@auraui/router`) ships the **full** surface (loaders + data). That remains the default — see [5.4](#phase-5--developer-facing-api) for a possible future `@auraui/router/min`.
 
@@ -90,8 +90,8 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | **4** | [Navigation UX](#phase-4--navigation-experience) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Loading chrome <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; View Transitions API <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
 | **5** | [Developer API](#phase-5--developer-facing-api) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Route API + named hooks <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; folders <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; optional `/min` later <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
 | **6** | [DevTools](#phase-6--debugging--performance-tooling) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Event stream + smoke/size CI <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; DevTools UI / per-nav gate open |
-| **7** | [Examples & docs](#phase-7--examples--docs) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Demo + local playground <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; recipes / E2E / hosted playground open |
-| **8** | [MPA → SPA](#phase-8--mpa--spa) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Client hydrate <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; migration guide / static example open |
+| **7** | [Examples & docs](#phase-7--examples--docs) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | [`playground/`](./playground/) covers nested / auth / cache / 404 <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; dedicated recipes / E2E / hosted still open |
+| **8** | [MPA → SPA](#phase-8--mpa--spa) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Hydrate + shared layout inject <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; migration guide / pure static example open |
 
 ---
 
@@ -118,6 +118,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | 5.1 | Target route API — `view`, `guard`, `load`, `ready`, `cache` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
 | 5.2 | Lifecycle naming (`guard` / `load` / `ready` / …) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
 | 5.x | Named hooks — `AuraRouter.use` / `defineRouteHook`; `aura-router-link`; `error-template`; auto root outlet | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
+| 8.2 | Shared layout inject — `parts/nav` + `parts/router` in [`playground/`](./playground/) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> |
 
 ---
 
@@ -188,12 +189,12 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | ---: | --- | :---: | --- |
 | 7.1 | **Demo app** — interactive showcase of hooks, loaders, and transitions | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | [`src/examples/demo`](./src/examples/demo); named hooks + loading chrome covered partially; not every feature yet |
 | 7.2 | **Minimal starter** — smallest app: flat routes, one hook, one loader | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | README Quick start covers it; no separate `examples/minimal/` package |
-| 7.3 | **Nested layouts** — parent layout + child outlet, sibling swaps, inherited guards | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Shown in demo (`routing-nested` / `routing-advanced`); not a standalone recipe |
-| 7.4 | **Auth recipe** — async guard, redirect to login, protected layout shell | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | |
-| 7.5 | **Prefetch & cache recipe** — link hover prefetch, stale-while-revalidate `load` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Prefetch + `cache` ladder + per-entry timings <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; dedicated recipe + SWR parity still open (Phase 2.1) |
-| 7.6 | **Errors & 404 recipe** — custom error boundaries and not-found pages | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | `error-template` + catch-all in demo; dedicated recipe still open |
-| 7.7 | **Public playground** — hosted demo linked from README (one-click try) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Local [`demo-space/`](./demo-space) linked from README (scratch); Fastify [`playground/`](./playground/) exists; not hosted |
-| 7.8 | **E2E tests** — Playwright suite against example apps | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | No Playwright config yet |
+| 7.3 | **Nested layouts** — parent layout + child outlet, sibling swaps, inherited guards | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Demo + [`playground/`](./playground/) `/users` layout + `:id` siblings; dedicated markdown recipe optional |
+| 7.4 | **Auth recipe** — async guard, redirect to login, protected layout shell | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Working in [`playground/`](./playground/) (`guard="auth"`, login/logout, `/profile` shell); not extracted as a standalone recipe doc |
+| 7.5 | **Prefetch & cache recipe** — link hover prefetch, stale-while-revalidate `load` | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Playground: `prefetch`, `cache` / `cache-time`, `cache="off"`; engine ladder <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; dedicated recipe + SWR `load` parity still open (Phase 2.1) |
+| 7.6 | **Errors & 404 recipe** — custom error boundaries and not-found pages | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | `error-template` + `path="*"` in demo and playground (`/error`); dedicated markdown recipe optional |
+| 7.7 | **Public playground** — hosted demo linked from README (one-click try) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Local Fastify [`playground/`](./playground/) is the MPA→SPA reference; [`demo-space/`](./demo-space) scratch linked from README; not hosted |
+| 7.8 | **E2E tests** — Playwright suite against example apps | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | No Playwright config yet; natural target: [`playground/`](./playground/) |
 | 7.9 | **Pre-release 0.0.1** — merge to `main`, npm publish | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Build/tests/pack + CI smoke/size green; merge + publish pending |
 
 > **Done when:** every major feature has a small, documented example; the playground is one click from README.
@@ -208,9 +209,9 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 
 | # | Task | Status | Notes |
 | ---: | --- | :---: | --- |
-| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.1** | **MPA → SPA migration guide** — step-by-step for existing multi-page sites | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Default adoption path; server unchanged; first-paint section lives in [guide](./docs/guide.md#first-paint-mpa--spa) |
-| 8.2 | **Shared layout pattern** — inject `<aura-router>` + routes from CMS/template (EJS, PHP, static partial) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Routes in HTML; server does not run Aura pipeline |
-| **8.3** | **Client hydration** — `aura-router-ssr` adopt on boot (flat + nested); no refetch; slash-fix for index folders | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Engine + [guide First paint](./docs/guide.md#first-paint-mpa--spa); adopt skips `guard`/`load`/`ready` — see [LIMITATIONS](./LIMITATIONS.md) |
-| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.4** | **Static MPA example** — nginx or Express static: one `.html` per URL + client bundle | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Fastest path; no Node adapter |
+| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.1** | **MPA → SPA migration guide** — step-by-step for existing multi-page sites | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Default adoption path; first-paint section in [guide](./docs/guide.md#first-paint-mpa--spa); walkthrough should point at [`playground/`](./playground/) |
+| **8.2** | **Shared layout pattern** — inject `<aura-router>` + routes from CMS/template (EJS, PHP, static partial) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | [`playground/`](./playground/): `@nav@` / `@router@` → `parts/nav.html` + `parts/router.html`; routes in HTML; server does not run Aura — listed under [Shipped](#shipped) |
+| **8.3** | **Client hydration** — `aura-router-ssr` adopt on boot (flat + nested); no refetch; slash-fix for index folders | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Engine + [guide First paint](./docs/guide.md#first-paint-mpa--spa); playground pages mark SSR roots (flat + nested `/users/:id`); adopt skips `guard`/`load`/`ready` — see [LIMITATIONS](./LIMITATIONS.md) |
+| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.4** | **Static MPA example** — nginx or Express static: one `.html` per URL + client bundle | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Playground is one HTML per URL + bundle, but Fastify + layout inject (not pure static); still need nginx / `express.static` without a template step |
 
 > **Done when:** guide + example show server serving `.html` directly and Aura handling navigation only in the browser.

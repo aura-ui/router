@@ -1,12 +1,13 @@
 <aura-router link-active-class="active"
-             loading-templa1te="loading"
+             loading-template="loading"
              loading-body-class="loading"
              error-template="error"
              cache-time="15000"
              cache
              extract=".main"
              prefetch="true">
-  <aura-route path="/" view="html::<h1>Index</h1><p>Server HTML pages подтягиваются роутом (url loader).</p>"></aura-route>
+  <aura-route path="/"
+              view="html::<h1>Index</h1><p>Server HTML pages подтягиваются роутом (url loader).</p>"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>
   <aura-route path="/login" view="login"></aura-route>
 
@@ -16,14 +17,10 @@
               cache="off"
               loading-template="loading-contacts"></aura-route>
 
-  <aura-route path="/user" layout="users" cache cache-time="10000">
-    <aura-route path="." view="users" extract=".main"></aura-route>
-    <aura-route path=":id"
-                view="user/{{id}}"
-                extract=".main"
-                ready="show-user"
-                update="show-user">
-    </aura-route>
+  <aura-route path="/users/" layout="users" extract=".main" cache cache-time="10000">
+    <!-- path = browser URL; view = content source (url loader). Prefer absolute nav links. -->
+    <aura-route path="." view="users"></aura-route>
+    <aura-route path=":id" view="users/{{id}}" ready="show-user" update="show-user"></aura-route>
   </aura-route>
 
   <aura-route path="/profile" layout="profile-layout" guard="auth">
@@ -37,7 +34,7 @@
 <template id="users">
   <section class="layout">
     <h2>Пользователи</h2>
-    <p class="hint">layout остаётся смонтированным при смене /user ↔ /user/:id</p>
+    <p class="hint">layout остаётся смонтированным при смене /users ↔ /users/:id</p>
     <aura-outlet></aura-outlet>
   </section>
 </template>

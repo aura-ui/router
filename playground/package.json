@@ -13,7 +13,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@auraui/router": "file:../auraui-router-0.0.1-16.tgz",
+    "@auraui/router": "file:./dist/auraui-router-0.0.1.tgz",
     "@fastify/static": "^10.1.2",
     "fastify": "^5.10.0"
   }

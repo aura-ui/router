@@ -2,7 +2,7 @@
              loading-template="loading"
              loading-body-class="loading"
              error-template="error"
-             cache-time="15000"
+             cache-time="15"
              cache
              extract=".main"
              prefetch="true">
@@ -17,7 +17,7 @@
               cache="off"
               loading-template="loading-contacts"></aura-route>
 
-  <aura-route path="/users/" layout="users" extract=".main" cache cache-time="10000">
+  <aura-route path="/users/" layout="users" extract=".main" cache cache-time="10">
     <!-- path = browser URL; view = content source (url loader). Prefer absolute nav links. -->
     <aura-route path="." view="users"></aura-route>
     <aura-route path=":id" view="users/{{id}}" ready="show-user" update="show-user"></aura-route>

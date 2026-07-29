@@ -8,6 +8,7 @@ Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/rout
 
 ## Table of contents
 
+- [Recipes](./recipes/README.md) — short copy-paste patterns (auth, nested, cache, 404, first paint)
 - [Navigation](#navigation)
 - [Views](#views)
 - [Nested routes & layouts](#nested-routes--layouts)
@@ -434,6 +435,7 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 | `link-active-class` | Class on the matching link |
 | `link-active-branch-class` | Class on section/folder links (prefix match) |
 | `outlet` | CSS selector for the root `<aura-outlet>` |
+| `prefetch` | Link prefetch mode: `intent` (default when `true`), `tap`, or `false` / `off`. Per-link: `data-prefetch` on `<a>` — see [Prefetch & cache recipe](./recipes/prefetch-cache.md) |
 
 ```html
 <aura-router

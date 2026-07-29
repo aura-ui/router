@@ -38,7 +38,7 @@ fastify.get('/users', async function handler(request, reply) {
 });
 
 fastify.get('/users/:id', async function handler(request, reply) {
-  await new Promise((r) => setTimeout(r, 3000));
+  await new Promise((r) => setTimeout(r, 2000));
   let html = await loadPage(`user.html`);
   html = html.replace(/{{id}}/g, request.params.id);
   return reply.type('text/html').send(await adobeRouter(html));

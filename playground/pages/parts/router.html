@@ -1,19 +1,17 @@
 <aura-router link-active-class="active"
-             loading-template="loading"
              loading-body-class="loading"
              error-template="error"
              extract=".main"
              prefetch="true"
              cache
              cache-time="15">
-  <aura-route path="/"
-              view="html::<h1>Index</h1><p>Playground Aura Router. Hard reload здесь — adopt (flat). SPA-возврат на / — <code>view=&quot;html::…&quot;</code>, без сети.</p><ul><li><strong>About</strong> — <code>template::</code>, без fetch</li><li><strong>Contacts</strong> — flat url, adopt; SPA: delay ~1s, <code>cache=&quot;off&quot;</code></li><li><strong>Login</strong> — flat url + adopt; Sign in → session + /profile</li><li><strong>Users / User 1–2</strong> — nested layout; :id → remount + <code>ready</code>; hard reload без adopt</li><li><strong>Profile / Settings</strong> — nested + <code>guard=&quot;auth&quot;</code></li><li><strong>404</strong> — <code>path=&quot;*&quot;</code> → not-found template</li></ul>"></aura-route>
+  <aura-route path="/" view="/"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>
   <aura-route path="/login" view="login"></aura-route>
 
-  <aura-route path="/contacts" view="contacts" cache="off"></aura-route>
+  <aura-route path="/contacts" view="contacts" cache="off" loading-template="loading"></aura-route>
 
-  <aura-route path="/users/" layout="users" cache-time="10">
+  <aura-route path="/users/" layout="users" cache-time="10" loading-template="loading">
     <aura-route path="." view="users"></aura-route>
     <aura-route path=":id" view="users/{{id}}" ready="show-user"></aura-route>
   </aura-route>
@@ -28,8 +26,8 @@
 
 <template id="users">
   <section class="layout">
-    <h2>Пользователи</h2>
-    <p class="hint">layout остаётся при /users ↔ /users/:id</p>
+    <h2>Users</h2>
+    <p class="hint">layout stays across /users ↔ /users/:id</p>
     <aura-outlet></aura-outlet>
   </section>
 </template>
@@ -37,7 +35,7 @@
 <template id="profile-layout">
   <section class="layout">
     <h2>Profile</h2>
-    <p class="hint">нужен login (guard="auth")</p>
+    <p class="hint">requires login (guard="auth")</p>
     <div class="subnav">
       <a href="/profile" aura-router-link>Overview</a>
       <a href="/profile/settings" aura-router-link>Settings</a>
@@ -48,14 +46,18 @@
 </template>
 
 <template id="about-page">
-  <h1>About</h1>
-  <p>Static markup из &lt;template&gt; — без сети.</p>
+  <div class="main">
+    <h1>About</h1>
+    <p>Static markup from a &lt;template&gt; — no network.</p>
+  </div>
 </template>
 
 <template id="not-found">
-  <h1>404</h1>
-  <p>Маршрут не найден (path="*").</p>
-  <p><a href="/" aura-router-link>Home</a></p>
+  <div class="main">
+    <h1>404</h1>
+    <p>Route not found (path="*").</p>
+    <p><a href="/" aura-router-link>Home</a></p>
+  </div>
 </template>
 
 <template id="loading">

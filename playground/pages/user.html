@@ -1,4 +1,4 @@
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>User</title>
@@ -9,11 +9,11 @@
 @header@
 @nav@
 <section class="layout" aura-router-ssr>
-  <h2>Пользователи</h2>
-  <p class="hint">layout остаётся при /users ↔ /users/:id</p>
+  <h2>Users</h2>
+  <p class="hint">layout stays across /users ↔ /users/:id</p>
   <div class="main" data-aura-view-root>
     <h1>User {{id}}</h1>
-    <p><code>view="users/{{id}}"</code> — delay ~3s, <code>cache-time="10"</code>. Смена :id → remount + <code>ready</code> (не update). Без &lt;aura-outlet&gt; в SSR → hard reload без adopt.</p>
+    <p><code>view="users/{{id}}"</code> — delay ~3s, <code>cache-time="10"</code>. Changing :id → remount + <code>ready</code> (not update). No &lt;aura-outlet&gt; in SSR → hard reload without adopt.</p>
   </div>
 </section>
 @router@

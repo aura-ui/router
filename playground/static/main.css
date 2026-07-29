@@ -22,9 +22,34 @@ body {
 }
 
 header {
-  margin-bottom: 0.75rem;
-  color: var(--muted);
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  margin-bottom: 0.85rem;
   font-size: 13px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-mark {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+  background: var(--yellow);
+  flex-shrink: 0;
+}
+
+.brand-tag {
+  color: var(--muted);
 }
 
 h1, h2 {

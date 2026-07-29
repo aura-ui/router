@@ -94,7 +94,7 @@ router?.navigate('/users');
 router?.navigate('/users', { replace: true });
 ```
 
-Try the local demo in [`demo-space/`](./demo-space) (`cd demo-space && npm install && npm run dev`) — scratch pad, not a reference app; it will change.
+MPA→SPA reference app: [`playground/`](./playground/) (`cd playground && npm install && npm run dev`). Recipes live under [`docs/recipes/`](./docs/recipes/).
 
 ## Browsers
 

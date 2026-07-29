@@ -49,7 +49,7 @@ Bugs in this library that increase impact even when route config is trusted, for
 
 - XSS or data exfiltration from untrusted values in route attrs, loader targets, or `extract` selectors
 - Pointing `url` / `iframe` at untrusted origins (no allowlist by design)
-- Issues only in `demo-space/`, `playground/`, or other sample apps
+- Issues only in `playground/` or other sample apps
 - Denial of service against a host page, social engineering, or vulnerabilities solely in third-party dependencies
 - Feature requests, API design, and docs gaps → [Issues](https://github.com/aura-ui/router/issues)
 

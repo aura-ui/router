@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Version** | `0.0.1` |
-| **Updated** | 2026-07-24 |
+| **Updated** | 2026-07-29 |
 | **Audience** | Library users, contributors, and reviewers |
 | **Public docs** | [README](./README.md) · [Guide](./docs/guide.md) · [LIMITATIONS](./LIMITATIONS.md) · [SECURITY](./SECURITY.md) · [CHANGELOG](./CHANGELOG.md) |
 
@@ -44,7 +44,7 @@
 
 | | Item | What |
 | :---: | --- | --- |
-| <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **8.3** Client hydration recipe | full HTML from server + `AuraRouter.install()` without refetch on first paint |
+| <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **8.1 / 8.4** MPA adoption path | migration guide + static `.html` per URL example |
 | <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **7.x** Adoption artifacts | recipes, Playwright E2E, hosted playground |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | Pre-release **0.0.1** | merge → `main`, npm publish |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | **6.x** Debugging & performance | Cache DevTools, nav timeline UI, per-nav metrics gate |
@@ -76,6 +76,7 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | **Navigation errors** | Structured failures + `error-template` / catch-all `path="*"` |
 | **Scroll restoration** | Restore scroll position on back/forward |
 | **URLPattern matcher** | Native-style path matching with params |
+| **First-paint hydrate** | `aura-router-initial-view` adopt (flat + nested outlet tree); no refetch on boot; index-folder slash fix — [guide](./docs/guide.md#first-paint-mpa--spa) |
 
 ---
 
@@ -90,7 +91,7 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | **5** | [Developer API](#phase-5--developer-facing-api) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Route API + named hooks <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; folders <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; optional `/min` later <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
 | **6** | [DevTools](#phase-6--debugging--performance-tooling) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Event stream + smoke/size CI <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; DevTools UI / per-nav gate open |
 | **7** | [Examples & docs](#phase-7--examples--docs) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Demo + local playground <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; recipes / E2E / hosted playground open |
-| **8** | [MPA → SPA](#phase-8--mpa--spa) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Guide + static example |
+| **8** | [MPA → SPA](#phase-8--mpa--spa) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Client hydrate <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; migration guide / static example open |
 
 ---
 
@@ -207,9 +208,9 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 
 | # | Task | Status | Notes |
 | ---: | --- | :---: | --- |
-| 8.1 | **MPA → SPA migration guide** — step-by-step for existing multi-page sites | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Default adoption path; server unchanged |
+| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.1** | **MPA → SPA migration guide** — step-by-step for existing multi-page sites | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Default adoption path; server unchanged; first-paint section lives in [guide](./docs/guide.md#first-paint-mpa--spa) |
 | 8.2 | **Shared layout pattern** — inject `<aura-router>` + routes from CMS/template (EJS, PHP, static partial) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Routes in HTML; server does not run Aura pipeline |
-| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.3** | **Client hydration recipe** — full HTML from server + `AuraRouter.install()` without refetch on first paint | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Patterns in [docs/guide.md](./docs/guide.md) (`url` + `extract` + `aura-router-link`); dedicated first-paint recipe still missing |
-| 8.4 | **Static MPA example** — nginx or Express static: one `.html` per URL + client bundle | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Fastest path; no Node adapter |
+| **8.3** | **Client hydration** — `aura-router-initial-view` adopt on boot (flat + nested); no refetch; slash-fix for index folders | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Engine + [guide First paint](./docs/guide.md#first-paint-mpa--spa); adopt skips `guard`/`load`/`ready` — see [LIMITATIONS](./LIMITATIONS.md) |
+| <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.4** | **Static MPA example** — nginx or Express static: one `.html` per URL + client bundle | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Fastest path; no Node adapter |
 
 > **Done when:** guide + example show server serving `.html` directly and Aura handling navigation only in the browser.

@@ -26,6 +26,7 @@ Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`
 - Canonical href resolution and trailing-slash policy for nested routes.
 - Active links (class + `aria-current`) for `[aura-router-link]`; host `link-*` attrs; branch active class.
 - Nested `<aura-outlet>`; root outlet auto-created as sibling of `<aura-router>` when missing; `AuraRouter.prefetch()`, link prefetch cascade (intent / tap).
+- **First-paint hydration (MPA → SPA)** — mark server HTML with `aura-router-initial-view`; on boot the engine **adopts** flat or nested markup (nested needs outlet + `data-aura-view-root` chain) instead of refetching; mismatch / redirect / missing marker falls back to normal `initNavigate`. Index-folder URLs get trailing-slash canonicalization after adopt. Guide: [docs/guide.md](./docs/guide.md#first-paint-mpa--spa).
 - DataGraph long cache with global `staleTime` (~30s); unified `router.invalidate({ cache: 'data' | 'view' | 'all' })` and `data-invalidated` event.
 - Resource graph (data + view load, resource keys, handoff / shared buffer, in-flight join).
 - Transition-plan fast paths (`canUseDomCacheFastPath`, `canUseViewCacheFastPath`).

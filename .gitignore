@@ -40,5 +40,6 @@ src/__depricated
 # Local WIP docs (keep on disk, not in git)
 docs-wip/
 
-# Local playground (keep on disk, not in git)
+# Local playgrounds (keep on disk, not in git)
 playground-map/
+demo-space/

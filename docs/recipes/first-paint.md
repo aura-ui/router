@@ -1,74 +1,64 @@
 # Recipe: First paint (MPA → SPA)
 
-> **Goal:** Server sends ready HTML for the current URL; Aura adopts it on boot without refetching, then handles later navigations as SPA.  
-> **Live:** [`playground/`](../../playground/) — hard-reload a **flat** page such as `/contacts` or `/login`.  
-> **API:** [First paint (MPA → SPA)](../guide.md#first-paint-mpa--spa) · [`extract`](../guide.md#extract--fragment-from-full-html-pages)
+> **Goal:** Server HTML for the current URL is adopted on boot; later clicks are SPA.  
+> **Live:** [`playground/`](../../playground/) — hard-reload `/contacts` or `/login` (flat routes).  
+> **API:** [First paint](../guide.md#first-paint-mpa--spa) · [`extract`](../guide.md#extract--fragment-from-full-html-pages)
 
 ---
 
 ## What you get
 
 ```text
-First visit  → full HTML from server + aura-router-ssr → adopt (no fetch, no guard/load/ready)
-Next clicks  → aura-router-link → fetch view (url + extract) → SPA swap
+First visit (adopt OK)  → aura-router-ssr → no view fetch, no guard/load/ready
+Later clicks            → aura-router-link → fetch view (+ extract) → SPA
 ```
 
-Aura does **not** run on the server. The host (Express, nginx, CMS) keeps serving pages; the client upgrades in-app links.
+Aura does not run on the server. The host keeps serving HTML pages.
 
 ---
 
-## 1. Server page
+## Page
 
 ```html
 <body>
-  <nav>… durable chrome (outside the marked node) …</nav>
+  <nav>… durable chrome outside the marked node …</nav>
 
   <div class="main" aura-router-ssr>
     <h1>Contacts</h1>
-    <p>Rendered by the server for this URL.</p>
   </div>
 
-  <!-- same router declaration on every page -->
-  <aura-router extract=".main" prefetch="true">
-    <aura-route path="/contacts" view="contacts" extract=".main"></aura-route>
+  <aura-router extract=".main">
+    <aura-route path="/contacts" view="contacts"></aura-route>
     <aura-route path="/about" view="template::about-page"></aura-route>
   </aura-router>
 
-  <script type="module" src="/static/main.js"></script>
+  <script src="/static/main.js" defer></script>
 </body>
+```
+
+```js
+import { AuraRouter } from '@auraui/router';
+AuraRouter.install();
 ```
 
 | Piece | Role |
 | --- | --- |
-| `aura-router-ssr` | Mark the content root already painted for this URL |
-| `extract=".main"` | Later SPA navigations take the same fragment from fetched HTML |
-| `<aura-router>` in the page | Client route table (playground injects it via `@router@`) |
+| `aura-router-ssr` | Mark the node that already is the current view |
+| `extract=".main"` | Fragment selector for **later** SPA `url` fetches |
 
-On successful adopt, first-paint lifecycle (`guard` / `load` / `ready`) is **skipped** — put critical content (and auth, if needed) in the server HTML.
-
----
-
-## 2. Client install
-
-```js
-import { AuraRouter } from '@auraui/router';
-
-AuraRouter.install();
-```
-
-No extra adopt API — install + a connected `<aura-router>` + matching URL is enough.
+Playground injects the same `<aura-router>` via `@router@` and bundles install in `/static/main.js`.
 
 ---
 
-## 3. Flat vs nested
+## Flat vs nested
 
-| Match | Server markup | Boot behavior |
+| Match | Server markup | Boot |
 | --- | --- | --- |
-| **Flat** route (no layout parent) | Marker on the content root | Adopt; skip fetch + lifecycle |
-| **Nested** (layout + leaf) | Must mirror outlets: layout → `<aura-outlet>` → leaf `data-aura-view-root` | Adopt only if the tree matches |
-| Nested match + flat blob | e.g. only `.main` without outlets | **Falls back** to a normal first navigation (refetch) |
+| **Flat** route (no layout parent) | Marker on the content root | Adopt |
+| **Nested** + outlet-shaped markup | layout → `<aura-outlet>` → leaf `data-aura-view-root` | Adopt |
+| **Nested** + flat blob | e.g. only `.main`, no outlets | Normal first navigation (fetch `view`) |
 
-Playground `/contacts` and `/login` are flat — good adopt demos. `/users` and `/profile` are nested; their pages are mostly flat blobs, so hard reload often refetches instead of adopting. Full nested shape: [guide](../guide.md#first-paint-mpa--spa).
+Playground: `/contacts` and `/login` are flat → good adopt demos. `/users` and `/profile` are nested with flat markup → hard reload does **not** adopt; the client fetches like a cold SPA entry. Nested adopt shape: [guide](../guide.md#first-paint-mpa--spa).
 
 ---
 
@@ -78,17 +68,14 @@ Playground `/contacts` and `/login` are flat — good adopt demos. `/users` and 
 cd playground && npm install && npm run dev
 ```
 
-1. Hard-reload `/contacts` — HTML is in the response; the client should **not** refetch `contacts` for adopt.
-2. Click **About** — SPA navigation (`template::`, no full reload).
-3. Click **Contacts** again — SPA fetch + `extract=".main"` (and `cache="off"` → ~1s delay every time).
-4. Hard-reload `/login` — another flat adopt. Compare with hard-reload `/users` (nested) — likely a normal first fetch, not adopt.
+1. Hard-reload `/contacts` — response already has the HTML; client should not refetch `contacts` for adopt.
+2. Click **About** — SPA (`template::`, no full reload).
+3. Click **Contacts** — SPA fetch + `extract=".main"`; `cache="off"` → ~1s every time.
+4. Hard-reload `/users` — nested fallback (fetch), unlike step 1.
 
 ---
 
 ## See also
 
-- Playground layout inject: [`server.js`](../../playground/server.js) (`@nav@` / `@router@`)
-- Example page: [`contacts.html`](../../playground/pages/contacts.html)
-- Guide: [First paint](../guide.md#first-paint-mpa--spa) · [LIMITATIONS](../../LIMITATIONS.md)
-- [Prefetch & cache](./prefetch-cache.md) — later navigations
-- [Auth](./auth.md) — why hard reload can skip `guard`
+- [`contacts.html`](../../playground/pages/contacts.html) · [`server.js`](../../playground/server.js)
+- [LIMITATIONS](../../LIMITATIONS.md) · [Auth](./auth.md) (when adopt skips `guard`)

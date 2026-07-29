@@ -7,11 +7,9 @@
 </head>
 <body>
 @nav@
-Страница - Контакты (оболочка MPA, в SPA не попадает при extract)
 <div class="main" aura-router-ssr>
   <h1>Contacts</h1>
-  <p>Контакты — содержание из серверного HTML (extract=".main").</p>
-  <p>На сервере искусственная задержка ~1s; у роута cache="off".</p>
+  <p>Серверный HTML (extract=".main"). Delay ~1s, cache="off".</p>
 </div>
 @router@
 </body>

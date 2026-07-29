@@ -1,26 +1,20 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <title>User 1</title>
-  <link rel="stylesheet" href="../static/main.css" />
-  <script src="../static/main.js" defer></script>
+  <title>User</title>
+  <link rel="stylesheet" href="/static/main.css" />
+  <script src="/static/main.js" defer></script>
 </head>
 <body>
 @nav@
-Страница - Пользователь {{id}}
-
 <section class="layout" aura-router-ssr>
   <h2>Пользователи</h2>
-  <p class="hint">layout остаётся смонтированным при смене /users ↔ /users/:id</p>
-<!--  <aura-outlet>-->
-    <div class="main" data-aura-view-root>
-      <h1>User {{id}}</h1>
-      <p>view="users/{{id}}" → fetch /users/1 (delay ~3s, cache ~10s на родителе).</p>
-    </div>
-<!--  </aura-outlet>-->
+  <p class="hint">layout остаётся при смене :id</p>
+  <div class="main" data-aura-view-root>
+    <h1>User {{id}}</h1>
+    <p>view="users/{{id}}" — delay ~3s, cache ~10s. Смена :id → remount + ready.</p>
+  </div>
 </section>
-
-
 @router@
 </body>
 </html>

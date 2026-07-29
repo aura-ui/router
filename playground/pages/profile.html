@@ -10,7 +10,7 @@
 Страница - Профиль
 <div class="main" aura-router-ssr>
   <h1>Profile</h1>
-  <p>Защищённый HTML с сервера. Откроется только после Sign in.</p>
+  <p>Защищённый раздел (guard="auth" на SPA-входе). Сервер всё равно может отдать HTML — проверка в guard.</p>
 </div>
 @router@
 </body>

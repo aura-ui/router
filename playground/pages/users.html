@@ -7,11 +7,9 @@
 </head>
 <body>
 @nav@
-<h2>Пользователи</h2>
-<p class="hint">layout остаётся смонтированным при смене /users ↔ /users/:id</p>
 <div class="main" aura-router-ssr>
   <h1>Users</h1>
-  <p>Список с сервера (view="users", extract=".main").</p>
+  <p>Список с сервера (view="users"). Nested layout — hard reload обычно без adopt.</p>
   <ul>
     <li><a href="/users/1" aura-router-link>User 1</a></li>
     <li><a href="/users/2" aura-router-link>User 2</a></li>

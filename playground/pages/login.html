@@ -9,8 +9,8 @@
 @nav@
 <div class="main" aura-router-ssr>
   <h1>Login</h1>
-  <p>Полный HTML с сервера (у роута нет extract) — в outlet попадает весь документ.</p>
-  <p>После входа guard="auth" пустит на /profile.</p>
+  <p>HTML с сервера; в SPA попадает фрагмент <code>.main</code> (extract с роутера).</p>
+  <p>После Sign in guard="auth" пустит на /profile.</p>
   <button type="button" data-demo-login>Sign in</button>
 </div>
 @router@

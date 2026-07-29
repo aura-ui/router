@@ -8,18 +8,6 @@
 <body>
 @header@
 @nav@
-<div class="main" aura-router-ssr>
-  <h1>Index</h1>
-  <p>Aura Router playground. Hard reload — adopt (flat). SPA — <code>view="/"</code> + <code>extract=".main"</code>.</p>
-  <ul>
-    <li><strong>About</strong> — <code>template::</code>, no fetch</li>
-    <li><strong>Contacts</strong> — flat url, adopt; SPA: delay ~1s, <code>cache="off"</code></li>
-    <li><strong>Login</strong> — flat url + adopt; Sign in → session + /profile</li>
-    <li><strong>Users / User 1–2</strong> — nested layout; :id → remount + <code>ready</code>; hard reload without adopt</li>
-    <li><strong>Profile / Settings</strong> — nested + <code>guard="auth"</code></li>
-    <li><strong>404</strong> — <code>path="*"</code> → not-found template</li>
-  </ul>
-</div>
 @router@
 </body>
 </html>

@@ -65,6 +65,11 @@ fastify.get('/profile', async function handler(request, reply) {
   return reply.type('text/html').send(await adobeRouter(html));
 });
 
+fastify.get('/', async function handler(request, reply) {
+  const html = await loadPage('home.html');
+  return reply.type('text/html').send(await adobeRouter(html));
+});
+
 fastify.get('/*', async function handler(request, reply) {
   const html = await loadPage('index.html');
   return reply.type('text/html').send(await adobeRouter(html));

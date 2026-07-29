@@ -8,10 +8,22 @@
 <body>
 @header@
 @nav@
-<div class="main" aura-router-ssr>
-  <h1>Profile</h1>
-  <p>Nested + <code>guard="auth"</code>. Flat SSR → hard reload without adopt; the guard still runs. No session → redirect to /login.</p>
-</div>
+<section class="layout" aura-router-ssr>
+  <h2>Profile</h2>
+  <p class="hint">requires login (guard="auth")</p>
+  <div class="subnav">
+    <a href="/profile" aura-router-link>Overview</a>
+    <a href="/profile/settings" aura-router-link>Settings</a>
+    <button type="button" data-demo-logout>Log out</button>
+  </div>
+  <aura-outlet>
+    <div class="main" data-aura-view-root data-aura-key="/profile">
+      <h1>Profile</h1>
+      <p>Nested + <code>guard="auth"</code>. Flat SSR → hard reload without adopt; the guard still runs. No session →
+        redirect to /login.</p>
+    </div>
+  </aura-outlet>
+</section>
 @router@
 </body>
 </html>

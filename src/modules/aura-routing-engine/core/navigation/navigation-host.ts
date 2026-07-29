@@ -19,9 +19,6 @@ export interface NavigationHost {
   getCommittedRoute(): MatchedRouteInfo | null;
   getMatchableNodes(): readonly RouteNode[];
 
-  /** Pop/system URL sync when redirect resolution normalizes trailing slashes. */
-  commitPopSlashFix(href: string): void;
-
   /** Guard/load short-circuit during pre-commit redirect resolution. */
   finalizeResolveTerminal(
     result: Exclude<PipelineStepResult, null>,

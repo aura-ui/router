@@ -318,7 +318,6 @@ export function createCoordinatorMockHost(): NavigationHost & {
     matcher: { matchPath: jest.fn(), buildMatchedRouteInfo: jest.fn() },
     getCommittedRoute: jest.fn().mockReturnValue(null),
     getMatchableNodes: jest.fn().mockReturnValue([]),
-    commitPopSlashFix: jest.fn(),
     finalizeResolveTerminal: jest.fn(),
     handleUnmatchedNavigation: jest.fn(),
     handleRedirectError: jest.fn(),

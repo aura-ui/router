@@ -23,10 +23,10 @@ Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`
 - Per-entry `gcTime` / `staleTime` overrides on `AuraSwrCache` / `AuraResolvableSwrCache.set`.
 - `param-change` attr (`update` | `navigate`) for same-route param updates / remount.
 - `mount-strategy` attr; parallel enter-branch resolve then sync mount (branch-atomic).
-- Canonical href resolution and trailing-slash policy for nested routes.
+- Href matching for nested routes ignores trailing `/` (`/users` ≈ `/users/`); the address bar is not rewritten — prefer root-absolute nav links for MPA→SPA.
 - Active links (class + `aria-current`) for `[aura-router-link]`; host `link-*` attrs; branch active class.
 - Nested `<aura-outlet>`; root outlet auto-created as sibling of `<aura-router>` when missing; `AuraRouter.prefetch()`, link prefetch cascade (intent / tap).
-- **First-paint hydration (MPA → SPA)** — mark server HTML with `aura-router-initial-view`; on boot the engine **adopts** flat or nested markup (nested needs outlet + `data-aura-view-root` chain) instead of refetching; mismatch / redirect / missing marker falls back to normal `initNavigate`. Index-folder URLs get trailing-slash canonicalization after adopt. Guide: [docs/guide.md](./docs/guide.md#first-paint-mpa--spa).
+- **First-paint hydration (MPA → SPA)** — mark server HTML with `aura-router-initial-view`; on boot the engine **adopts** flat or nested markup (nested needs outlet + `data-aura-view-root` chain) instead of refetching; mismatch / redirect / missing marker falls back to normal `initNavigate`. Guide: [docs/guide.md](./docs/guide.md#first-paint-mpa--spa).
 - DataGraph long cache with global `staleTime` (~30s); unified `router.invalidate({ cache: 'data' | 'view' | 'all' })` and `data-invalidated` event.
 - Resource graph (data + view load, resource keys, handoff / shared buffer, in-flight join).
 - Transition-plan fast paths (`canUseDomCacheFastPath`, `canUseViewCacheFastPath`).
@@ -52,6 +52,7 @@ Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`
 - View attr form is `loader::content` (view-graph module; formerly content-graph).
 - Router host split into focused modules (`install`, engine bridge, not-found controller, …); `engine.stop()` stops without destroying.
 - `npm run build` emits the library via `scripts/build-lib.mjs` (`tsc -p tsconfig.build.json` + Vite lib); demo shells use `npm run build:demo` / `vite build`.
+- No index-folder trailing-slash rewrite in history (`folder-index-url` / `commitPopSlashFix` / canonical slash policy) — match only.
 
 ### Fixed
 

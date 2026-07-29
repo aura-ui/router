@@ -104,15 +104,10 @@ export class NavigationCoordinator {
       }
 
       const found = chain.target;
-      const slashFix = found.href !== resolved.href;
       const historyOptions: NavigateHistoryOptions = {
         ...options,
-        replace: chain.replace || found.viaRedirect || slashFix || options.replace,
+        replace: chain.replace || found.viaRedirect || options.replace,
       };
-
-      if (slashFix && !historyOptions.syncHistory && (action === 'system' || action === 'pop')) {
-        this.host.commitPopSlashFix(found.href);
-      }
 
       await this.run({
         from: this.host.getCommittedRoute(),

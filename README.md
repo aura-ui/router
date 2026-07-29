@@ -25,7 +25,7 @@ A thin layer over real HTML — not a meta-framework. Keep pages on the server; 
 | **SEO-friendly** | Search engines and link previews can read real HTML when your server renders the page — no empty client shell required |
 | **Web Components, no lock-in** | Works with vanilla custom elements, Lit, or existing HTML pages |
 | **Nested layouts & lifecycle** | Nested outlets plus `guard`, `load`, `ready`, and cache — declared on the route |
-| **Progressive enhancement** | Plain `href` links keep working without JavaScript; `aura-router-link` upgrades them to client navigation |
+| **Progressive enhancement** | Plain root-absolute `href` links (`/users`) keep working without JavaScript; `aura-router-link` upgrades them to client navigation |
 | **Legacy-friendly** | Load full server pages with the `url` view and take a fragment via `extract` |
 
 ## Quick start
@@ -81,6 +81,8 @@ If `view` is just a file name (e.g. `users.html`), Aura fetches that HTML from t
 <a href="/" aura-router-link>Home</a>
 <a href="/users" aura-router-link>Users</a>
 ```
+
+Prefer **root-absolute** paths (`/users`, `/users/1`) so links work with and without JavaScript. Aura matches `/users` and `/users/` as the same route and does not rewrite trailing slashes in the address bar.
 
 Clicks on `[aura-router-link]` update the URL and swap the outlet — no full reload.
 

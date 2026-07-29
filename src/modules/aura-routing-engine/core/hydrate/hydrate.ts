@@ -1,7 +1,6 @@
 import { AuraOutlet, AURA_VIEW_ROOT_ATTR } from '../../../aura-outlet/core/aura-outlet';
 import { AuraRoutingEngine } from '../aura-routing-engine';
-import { getCurrentAppHref, resolveDocumentHrefParts } from '../link-active';
-import { applyCanonicalIndexFolderHref } from '../match/canonical-index-href';
+import { resolveDocumentHrefParts } from '../link-active';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 
 type HydrateStep = {
@@ -29,16 +28,13 @@ export async function hydrate(
   engine: AuraRoutingEngine,
   rootOutlet: AuraOutlet,
 ): Promise<HydrateResult> {
-  const { pathname, search, hash } = resolveDocumentHrefParts(location.href);
+  const { pathname, search, hash, href } = resolveDocumentHrefParts(location.href);
   const found = engine.matcher.matchPath(pathname, engine.getMatchableNodes());
   if (!found || found.node.route.type === 'redirect') return { status: 'fallback' };
 
-  // Same canonical as lookupNavigationStep — index folders keep a trailing `/`
-  // so path-relative links resolve under the folder after adopt.
-  const canonical = applyCanonicalIndexFolderHref(pathname, search, hash, found.node);
   const leaf = engine.matcher.buildMatchedRouteInfo(
-    canonical.href,
-    canonical.pathname,
+    href,
+    pathname,
     search,
     hash,
     found.node,
@@ -57,10 +53,6 @@ export async function hydrate(
     }
   } catch {
     return { status: 'fallback' };
-  }
-
-  if (canonical.href !== getCurrentAppHref()) {
-    engine.commitPopSlashFix(canonical.href);
   }
 
   return { status: 'adopted', leaf };

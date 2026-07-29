@@ -178,7 +178,7 @@ describe('hydrate', () => {
     await expect(hydrate(initialView, engine, rootOutlet)).resolves.toEqual({ status: 'fallback' });
   });
 
-  it('index folder: canonicalizes trailing slash after adopt', async () => {
+  it('index folder: adopts without rewriting the address bar', async () => {
     history.replaceState(null, '', '/app/settings');
     const index = createDomRoute('.');
     const settings = createDomRoute('/app/settings', [index]);
@@ -208,9 +208,9 @@ describe('hydrate', () => {
 
     expect(result.status).toBe('adopted');
     if (result.status !== 'adopted') return;
-    expect(result.leaf.pathname).toBe('/app/settings/');
-    expect(result.leaf.href).toBe('/app/settings/');
-    expect(provider.currentHref).toBe('/app/settings/');
+    expect(result.leaf.pathname).toBe('/app/settings');
+    expect(result.leaf.href).toBe('/app/settings');
+    expect(provider.currentHref).toBe('/app/settings');
     expect(settingsAdopt).toHaveBeenCalledTimes(1);
     expect(indexAdopt).toHaveBeenCalledTimes(1);
   });

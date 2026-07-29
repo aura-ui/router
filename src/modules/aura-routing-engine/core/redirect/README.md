@@ -227,7 +227,7 @@ if (chain.status === 'unmatched') { host.handleUnmatchedNavigation(chain.href, .
 if (chain.status === 'resolved') {
   const historyOptions = {
     ...options,
-    replace: chain.replace || chain.target.viaRedirect || slashFix || options.replace,
+    replace: chain.replace || chain.target.viaRedirect || options.replace,
   };
   await run({ to: chain.target, skipBlockingPhases: chain.skipBlockingPhases, ... });
 }
@@ -290,7 +290,7 @@ matchPath(stripTrailingSlash(pathname))
 
 ### Index folder
 
-Для index child под folder [`applyCanonicalIndexFolderHref`](../match/canonical-index-href.ts) может добавить trailing `/` на pathname leaf (`/app/settings` → `/app/settings/`), при этом `search` / `hash` остаются из исходного запроса.
+Index child (`path="."`) shares the parent pattern. Trailing `/` in the request URL is stripped for matching (`/app/settings/` → `/app/settings`); the address bar is not rewritten. `search` / `hash` остаются из исходного запроса.
 
 ---
 
@@ -462,7 +462,6 @@ PrefetchPlanResolver.resolve
 redirect/
   ◄── match/url-matcher (matchPath, buildMatchedRouteInfo)
   ◄── route-tree (RouteNode, resolvePattern)
-  ◄── match/canonical-index-href
   ──► navigation/coordinator (RedirectResolveResult)
   ──► prefetch/plan (DeclarativeRedirectOutcome)
 ```

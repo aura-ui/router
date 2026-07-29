@@ -297,10 +297,6 @@ export class AuraRoutingEngine implements NavigationHost {
     return this.prev;
   }
 
-  commitPopSlashFix(href: string): void {
-    this.provider.commit(href, { replace: true, syncHistory: true });
-  }
-
   /**
    * Terminal outcome from pre-commit redirect resolution (before pipeline run).
    * Probe txs use `id: 0` and never call {@link NavigationTransaction.run}.

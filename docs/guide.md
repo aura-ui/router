@@ -31,25 +31,27 @@ Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/rout
 
 ### How `href` resolves
 
-The link’s **`href`** is what matters — for search engines, users without JavaScript, and the router. Relative links (like `href="profile"`) are resolved from the current page URL, same idea as in a normal website.
+The link’s **`href`** is what matters — for search engines, users without JavaScript, and the router. The browser resolves relative `href` from the current page URL (same as a normal website). Aura does **not** add a trailing `/` to folder indexes, so path-relative links are easy to get wrong.
 
 | Link in markup | Current URL | Resolves to |
 | --- | --- | --- |
 | `href="/users"` | any | `/users` |
 | `href="profile"` | `/app/settings/` | `/app/settings/profile` |
+| `href="profile"` | `/app/settings` | `/app/profile` ← not under settings |
 | `href="."` | `/app/settings/profile` | `/app/settings` |
 
-Inside a layout, prefer short relative links (`settings`, `.`). Use absolute paths (`/login`) when leaving that section. Normal external links and `#hash`-only links are left alone.
+For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). They work with and without JavaScript and do not depend on trailing slashes.
 
 ### Route `path` vs address bar
 
-| | Route `path` attr | Browser URL (canonical) |
+| | Route `path` attr | Browser URL |
 | --- | --- | --- |
-| **Folder + index** | `/app/settings` + child `path="."` | index → `/app/settings/` |
-| **Index child** | `path="."` | same as folder URL |
-| **Leaf** | `profile` → `/app/settings/profile` | `/app/settings/profile` — no trailing slash |
+| **Folder + index** | `/app/settings` + child `path="."` | `/app/settings` ( `/app/settings/` matches the same route) |
+| **Index child** | `path="."` | same URL as the folder |
+| **Child segment** | `profile` under `/app/settings` | `/app/settings/profile` |
+| **Leaf** | absolute `/app/settings/profile` | `/app/settings/profile` |
 
-When you open a section’s home route (`path="."`), Aura may add a trailing slash in the address bar (`/app/settings` → `/app/settings/`) so relative links inside the layout behave like a normal folder URL. If the section has no `path="."` child, that slash rewrite does not run.
+Aura **joins** nested `path` values into one pattern (`/app` + `settings` → `/app/settings`; `/users` + `:id` → `/users/:id`). It does **not** rewrite trailing slashes in the address bar. Matching treats `/users` and `/users/` as the same route. If you need one public canonical URL, handle redirects on the server.
 
 ---
 
@@ -118,8 +120,8 @@ You can nest routes. A parent with `layout` is a shared chrome (nav, sidebar); c
 ```html
 <template id="app-shell">
   <nav>
-    <a href="." aura-router-link>Overview</a>
-    <a href="settings" aura-router-link>Settings</a>
+    <a href="/app" aura-router-link>Overview</a>
+    <a href="/app/settings" aura-router-link>Settings</a>
   </nav>
   <aura-outlet></aura-outlet>
 </template>
@@ -135,12 +137,9 @@ You can nest routes. A parent with `layout` is a shared chrome (nav, sidebar); c
 | Pattern | Meaning |
 | --- | --- |
 | `layout="template-id"` | Shared layout (`<template>` must contain `<aura-outlet>`) |
-| `path="."` | The section’s home page (e.g. `/app/`) |
-| `path="settings"` | Child segment → `/app/settings` |
-| `href="settings"` / `href="."` | Path-relative links inside the layout |
-
-Folder index URLs get a trailing slash in the address bar (`/app` → `/app/` when `path="."` matches) so relative links resolve like the browser expects.
-
+| `path="."` | Section home — same URL as the parent folder (e.g. `/app`) |
+| `path="settings"` | Child segment joined to parent → `/app/settings` |
+| `href="/app/settings"` | Root-absolute link (recommended in layouts) |
 Shared layouts stay mounted across sibling hops. Hook inheritance — see [Lifecycle hooks](#lifecycle-hooks).
 
 ---
@@ -195,7 +194,7 @@ AuraRouter.use(authHook);
 ```html
 <template id="users-shell">
   <nav>
-    <a href="." aura-router-link>List</a>
+    <a href="/users" aura-router-link>List</a>
   </nav>
   <aura-outlet></aura-outlet>
 </template>
@@ -257,7 +256,7 @@ Add `aura-router-initial-view` on the content root the server already rendered:
 | No marker, no match, or `redirect` route | Normal first navigation (load `view` as usual) |
 | Match includes a **layout** parent, but markup is only a single blob (no nested outlets / view roots) | Falls back to a normal first navigation |
 
-**Nested adopt** needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` — `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed. Index-folder URLs are normalized to a trailing slash after adopt (`/app/settings` → `/app/settings/`) so path-relative links resolve under the folder.
+**Nested adopt** needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` — `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed.
 
 ```html
 <!-- Server HTML for /settings/profile -->

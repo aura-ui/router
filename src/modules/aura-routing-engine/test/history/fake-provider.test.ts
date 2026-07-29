@@ -87,7 +87,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     expect(provider.currentHref).toBe('/docs#intro');
   });
 
-  it('canonicalizes index folder URL without trailing slash on system navigate', async () => {
+  it('index folder: keeps URL without trailing slash on system navigate', async () => {
     const index = createDomRoute('.');
     const settings = createDomRoute('/app/settings', [index]);
     const { engine, provider } = createEngineHarness({
@@ -99,7 +99,7 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
     engine.start();
     await bootEngine(engine, '/app/settings');
 
-    expect(provider.currentHref).toBe('/app/settings/');
+    expect(provider.currentHref).toBe('/app/settings');
   });
 
   it('clickLink проходит через engine и commit-ит URL', async () => {

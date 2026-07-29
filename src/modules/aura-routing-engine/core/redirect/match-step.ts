@@ -1,6 +1,5 @@
-import { stripTrailingSlash } from '../../../aura-utils/misc/url';
+import { joinAppHref, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import { resolveDocumentHrefParts } from '../link-active/app-href';
-import { applyCanonicalIndexFolderHref } from '../match/canonical-index-href';
 import type { AuraRoutingUrlMatcher } from '../match/url-matcher';
 import { resolvePattern } from '../route-tree/resolve-pattern';
 import type { RouteNode } from '../route-tree/route-node.types';
@@ -44,16 +43,10 @@ export function lookupNavigationStep(
     };
   }
 
-  const canonical = applyCanonicalIndexFolderHref(
-    pathname,
-    preservedSearch,
-    preservedHash,
-    found.node,
-  );
-
+  const leafHref = joinAppHref({ pathname, search: preservedSearch, hash: preservedHash });
   const leaf = matcher.buildMatchedRouteInfo(
-    canonical.href,
-    canonical.pathname,
+    leafHref,
+    pathname,
     preservedSearch,
     preservedHash,
     found.node,

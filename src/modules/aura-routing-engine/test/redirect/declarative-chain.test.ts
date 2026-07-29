@@ -40,34 +40,22 @@ describe('followDeclarativeRedirects', () => {
     });
   });
 
-  it('matches index folder with trailing slash in URL', () => {
+  it('matches index folder with or without trailing slash in the URL', () => {
     const index = createDomRoute('.');
     const settings = createDomRoute('/app/settings', [index]);
     const { matchableNodes } = buildTreeFromDom(settings);
 
-    const outcome = followDeclarativeRedirects(matcher, '/app/settings/', matchableNodes);
+    for (const href of ['/app/settings', '/app/settings/'] as const) {
+      const outcome = followDeclarativeRedirects(matcher, href, matchableNodes);
 
-    expect(outcome.status).toBe('resolved');
-    if (outcome.status !== 'resolved') return;
+      expect(outcome.status).toBe('resolved');
+      if (outcome.status !== 'resolved') return;
 
-    expect(outcome.target.node?.isIndex).toBe(true);
-    expect(outcome.target.pattern).toBe('/app/settings');
-    expect(outcome.target.pathname).toBe('/app/settings/');
-    expect(outcome.target.href).toBe('/app/settings/');
-  });
-
-  it('canonicalizes index folder URL without trailing slash', () => {
-    const index = createDomRoute('.');
-    const settings = createDomRoute('/app/settings', [index]);
-    const { matchableNodes } = buildTreeFromDom(settings);
-
-    const outcome = followDeclarativeRedirects(matcher, '/app/settings', matchableNodes);
-
-    expect(outcome.status).toBe('resolved');
-    if (outcome.status !== 'resolved') return;
-
-    expect(outcome.target.href).toBe('/app/settings/');
-    expect(outcome.target.pathname).toBe('/app/settings/');
+      expect(outcome.target.node?.isIndex).toBe(true);
+      expect(outcome.target.pattern).toBe('/app/settings');
+      expect(outcome.target.pathname).toBe('/app/settings');
+      expect(outcome.target.href).toBe('/app/settings');
+    }
   });
 
   it('follows top-level absolute redirect to final leaf', () => {

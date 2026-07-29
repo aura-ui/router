@@ -6,10 +6,11 @@
   <script src="./static/main.js" defer></script>
 </head>
 <body>
+@header@
 @nav@
 <div class="main" aura-router-ssr>
   <h1>Contacts</h1>
-  <p>Серверный HTML (extract=".main"). Delay ~1s, cache="off".</p>
+  <p>Flat url + <code>extract=".main"</code>. Hard reload → adopt (без refetch). SPA: delay ~1s, <code>cache="off"</code>.</p>
 </div>
 @router@
 </body>

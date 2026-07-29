@@ -6,11 +6,11 @@
   <script src="./static/main.js" defer></script>
 </head>
 <body>
+@header@
 @nav@
-Страница - Профиль
 <div class="main" aura-router-ssr>
   <h1>Profile</h1>
-  <p>Защищённый раздел (guard="auth" на SPA-входе). Сервер всё равно может отдать HTML — проверка в guard.</p>
+  <p>Nested + <code>guard="auth"</code>. Flat SSR → hard reload без adopt, guard всё равно срабатывает. Без сессии → redirect на /login.</p>
 </div>
 @router@
 </body>

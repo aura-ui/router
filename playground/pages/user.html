@@ -6,13 +6,14 @@
   <script src="/static/main.js" defer></script>
 </head>
 <body>
+@header@
 @nav@
 <section class="layout" aura-router-ssr>
   <h2>Пользователи</h2>
-  <p class="hint">layout остаётся при смене :id</p>
+  <p class="hint">layout остаётся при /users ↔ /users/:id</p>
   <div class="main" data-aura-view-root>
     <h1>User {{id}}</h1>
-    <p>view="users/{{id}}" — delay ~3s, cache ~10s. Смена :id → remount + ready.</p>
+    <p><code>view="users/{{id}}"</code> — delay ~3s, <code>cache-time="10"</code>. Смена :id → remount + <code>ready</code> (не update). Без &lt;aura-outlet&gt; в SSR → hard reload без adopt.</p>
   </div>
 </section>
 @router@

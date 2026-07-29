@@ -7,7 +7,7 @@
              cache
              cache-time="15">
   <aura-route path="/"
-              view="html::<h1>Index</h1><p>Server HTML pages подтягиваются роутом (url loader).</p>"></aura-route>
+              view="html::<h1>Index</h1><p>First paint: adopt серверного HTML (flat). SPA на / — <code>view=&quot;html::…&quot;</code> (без сети). Contacts/Users/Login/Profile — url + <code>extract=&quot;.main&quot;</code>; About/404 — <code>template::</code>.</p>"></aura-route>
   <aura-route path="/about" view="template::about-page"></aura-route>
   <aura-route path="/login" view="login"></aura-route>
 

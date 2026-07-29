@@ -59,21 +59,21 @@ header {
   flex-shrink: 0;
   /* aura layers: soft ripples rightward, fading out */
   box-shadow:
-    0.42em 0 0.5px 0.05em rgba(255, 204, 0, 0.36),
-    0.92em 0 1px 0.09em rgba(255, 204, 0, 0.22),
-    1.48em 0 1.5px 0.13em rgba(255, 204, 0, 0.12),
-    2.1em 0 2px 0.16em rgba(255, 204, 0, 0.06),
-    2.8em 0 2.5px 0.18em rgba(255, 204, 0, 0.025);
+    0.38em 0 0.5px 0.05em rgba(255, 204, 0, 0.36),
+    0.84em 0 1px 0.09em rgba(255, 204, 0, 0.22),
+    1.36em 0 1.5px 0.13em rgba(255, 204, 0, 0.12),
+    1.94em 0 2px 0.16em rgba(255, 204, 0, 0.06),
+    2.58em 0 2.5px 0.18em rgba(255, 204, 0, 0.025);
   transition: box-shadow 0.35s ease;
 }
 
 .brand:hover .brand-mark {
   box-shadow:
-    0.42em 0 0.5px 0.06em rgba(255, 204, 0, 0.4),
-    0.92em 0 1px 0.11em rgba(255, 204, 0, 0.26),
-    1.48em 0 1.5px 0.16em rgba(255, 204, 0, 0.15),
-    2.1em 0 2px 0.2em rgba(255, 204, 0, 0.09),
-    2.8em 0 2.5px 0.24em rgba(255, 204, 0, 0.045);
+    0.38em 0 0.5px 0.06em rgba(255, 204, 0, 0.4),
+    0.84em 0 1px 0.11em rgba(255, 204, 0, 0.26),
+    1.36em 0 1.5px 0.16em rgba(255, 204, 0, 0.15),
+    1.94em 0 2px 0.2em rgba(255, 204, 0, 0.09),
+    2.58em 0 2.5px 0.24em rgba(255, 204, 0, 0.045);
 }
 
 .brand-text {

@@ -6,11 +6,11 @@
   <script src="../static/main.js" defer></script>
 </head>
 <body>
+@header@
 @nav@
-Страница - Настройки профиля
 <div class="main" aura-router-ssr>
   <h1>Settings</h1>
-  <p>Nested /profile/settings — тот же guard и layout, другой view с сервера.</p>
+  <p>Nested /profile/settings — тот же <code>guard</code> и layout, другой view с сервера. Flat SSR → без adopt.</p>
 </div>
 @router@
 </body>

@@ -12,9 +12,12 @@ const loadPage = async (pageName) => {
   return await readFile(join(__dirname, 'pages', pageName), 'utf8');
 };
 
+// Emulation of view engine work
 const adobeRouter = async (html) => {
   const nav = await loadPage('parts/nav.html');
   const router = await loadPage('parts/router.html');
+  const header = await loadPage('parts/header.html');
+  html = html.replace('@header@', header);
   html = html.replace('@nav@', nav);
   return html.replace('@router@', router);
 };

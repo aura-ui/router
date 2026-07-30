@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Вложенные маршруты — Aura UI - Router</title>
+  <link rel="stylesheet" href="/demo.css" />
+</head>
+<body>
+  <div class="shell">
+    <div class="demo-page demo-site" data-demo-scenario="routing-nested">
+      <header class="demo-header">
+        <div class="demo-header__brand">
+          <span class="demo-header__title">Aura UI</span>
+          <code class="demo-header__tag">&lt;aura-router&gt;</code>
+        </div>
+        <a href="/" class="demo-header__back">← Оглавление</a>
+      </header>
+
+      <div class="demo-site-bar">
+        <div class="demo-site-bar__url">
+          <span class="demo-site-bar__label">URL</span>
+          <code id="demo-site-url" aria-live="polite"></code>
+        </div>
+        <nav class="demo-links demo-site-nav" aria-label="Навигация">
+          <a href="/features/routing-nested" aura-router-link>Обзор</a>
+          <a href="/features/routing-nested/users" aura-router-link>Список</a>
+          <a href="/features/routing-nested/users/1" aura-router-link>User 1</a>
+          <a href="/features/routing-nested/users/2" aura-router-link>User 2</a>
+          <a href="/features/routing-nested/users/3" aura-router-link>User 3</a>
+          <a href="/features/routing-nested/users/unknown" aura-router-link>404 demo</a>
+        </nav>
+      </div>
+
+      <div class="demo-site-stage">
+        <aura-router id="app" link-active-class="is-active" link-active-branch-class="is-branch-active" links-container-selector=".demo-site">
+          <aura-outlet class="demo-site-outlet"></aura-outlet>
+
+          <aura-route path="/features/routing-nested/index.html" view="features/routing-nested/intro.html"></aura-route>
+          <aura-route path="/features/routing-nested" view="features/routing-nested/intro.html"></aura-route>
+
+          <aura-route path="/features/routing-nested/users" layout="users-layout">
+            <aura-route path="." view="features/routing-nested/users-list.html"></aura-route>
+            <aura-route path=":id" view="features/routing-nested/user.html"></aura-route>
+            <aura-route path="*" view="features/routing-nested/not-found.html"></aura-route>
+          </aura-route>
+        </aura-router>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/examples/demo/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,701 @@
+/** Default `gcTime` in SWR mode when omitted (5 minutes). */
+export const DEFAULT_GC_TIME = 5 * 60_000;
+
+/** `'stale'` — mark outdated, keep serving until revalidated; `'remove'` — delete from cache. */
+export type InvalidatePolicy = 'remove' | 'stale';
+
+/** Status returned by {@link AuraSwrCache.lookup}. */
+export type CacheEntryStatus = 'fresh' | 'stale' | 'missing';
+
+/** Result of {@link AuraSwrCache.lookup}. */
+export type CacheLookup<T> =
+  | { status: 'missing' }
+  | { status: 'fresh'; value: T }
+  | { status: 'stale'; value: T };
+
+/** Configuration for {@link AuraSwrCache}. */
+export type SwrCacheOptions<T> = {
+  /** Max entries; removes least recently used key first. */
+  max?: number;
+  /**
+   * SWR fresh window in ms (stale-while-revalidate).
+   * Enables SWR mode: after this age entries become stale but stay readable until removed.
+   */
+  staleTime?: number;
+  /**
+   * Max age in ms since `storedAt` before an entry is removed.
+   * With `staleTime`, defaults to {@link DEFAULT_GC_TIME}. Pass `Infinity` to disable TTL removal.
+   * Without `staleTime`, expired entries are removed on access (no stale phase).
+   */
+  gcTime?: number;
+  /**
+   * Background GC sweep interval in ms.
+   *
+   * - `undefined` — auto when `gcTime` is a finite positive ms value: `clamp(gcTime / 2, 5s … 60s)`
+   * - `number` — run {@link AuraSwrCache.purgeExpired} every N ms (requires finite `gcTime`)
+   * - `false` — disabled; removal on access or manual {@link AuraSwrCache.purgeExpired} only
+   *
+   * Timer starts on the first `set()` while the store is non-empty, stops when the store
+   * becomes empty or on {@link AuraSwrCache.clear}, and restarts on the next `set()`.
+   */
+  gcSweepInterval?: number | false;
+  /** Default invalidation policy. See {@link InvalidatePolicy}. */
+  invalidatePolicy?: InvalidatePolicy;
+  /**
+   * Called when a value is discarded: LRU eviction; GC ({@link AuraSwrCache.purgeExpired},
+   * background sweep, or lazy GC on `get` / `lookup` / `has` / `peek` / `isStale` / GC-expired
+   * `extract`); `set` overwrite when the value changes (not when the same reference is reused);
+   * `delete` / `clear`; `invalidate` with `'remove'` (including `invalidateMatch` /
+   * `invalidateAll`). Not called on live `extract`, `invalidate(..., 'stale')`, or `size` / `keys`.
+   *
+   * **Do not call store methods from this callback** (`get`, `set`, `delete`, `clear`,
+   * `invalidate`, `extract`, etc.). The store may be mid-removal; reentrant mutations can
+   * corrupt the LRU list, skip entries, or recurse. Release the `value` only (e.g. DOM teardown).
+   */
+  onRemove?: (key: string, value: T) => void;
+};
+
+/**
+ * Per-entry timing overrides for {@link AuraSwrCache.set}.
+ * When the options object is passed, both fields are applied (missing → store default).
+ * Omitting the argument keeps the entry's previous overrides.
+ */
+export type EntryTimesOptions = {
+  /** Max age in ms since `storedAt` before removal. Omit → store `gcTime`. */
+  gcTime?: number;
+  /** SWR fresh window in ms. Omit → store `staleTime`. */
+  staleTime?: number;
+};
+
+/** Doubly-linked list node for LRU order. */
+interface Node<T> {
+  /** Cache key. */
+  key: string;
+  /** Stored value. */
+  value: T;
+  /** `Date.now()` when the entry was last written via `set`. */
+  storedAt: number;
+  /** Per-entry `gcTime`; `undefined` → store default. */
+  gcTime: number | undefined;
+  /** Per-entry `staleTime`; `undefined` → store default. */
+  staleTime: number | undefined;
+  /** Manual stale flag set by `invalidate(..., 'stale')`. */
+  stale: boolean;
+  /** Previous node in the LRU list. */
+  prev: Node<T> | null;
+  /** Next node in the LRU list. */
+  next: Node<T> | null;
+}
+
+/**
+ * String-key in-memory cache for content/DOM snapshots.
+ *
+ * `Map` + doubly-linked list: O(1) lookup, LRU promotion, and removal.
+ *
+ * **Simple GC** (`gcTime` without `staleTime`): remove on access after TTL.
+ *
+ * **SWR** (`staleTime`, stale-while-revalidate): serve cached data immediately;
+ * when outdated, keep serving stale value and revalidate in the background.
+ * Lifecycle: `fresh` → `stale` → removed after `gcTime` (default {@link DEFAULT_GC_TIME}).
+ * Use {@link AuraSwrCache.lookup} to read status. `gcTime: Infinity` disables TTL removal.
+ *
+ * GC is lazy on access (`get`, `has`, `peek`, `lookup`, `isStale`, `extract`) and proactive via
+ * {@link AuraSwrCache.purgeExpired} or background sweep (`gcSweepInterval`).
+ * `size` and `keys` are passive introspection (may include GC-expired entries until removed
+ * elsewhere). `peek`, `keys`, `isStale`, and `lookup` without `touch` do not promote LRU order.
+ */
+export class AuraSwrCache<T> {
+  /** Max entries; `undefined` → unbounded (aside from explicit deletes / GC). */
+  private readonly max?: number;
+  /** Store-level SWR fresh window in ms. */
+  private readonly staleTimeMs?: number;
+  /** Store-level max age in ms before removal. */
+  private readonly gcTimeMs?: number;
+  /** Background sweep period in ms, or `null` when disabled. */
+  private readonly gcSweepIntervalMs: number | null;
+  /** Default policy for {@link invalidate} / match / all. */
+  private readonly defaultInvalidatePolicy: InvalidatePolicy;
+  /** Optional dispose hook when a value is discarded. */
+  private readonly onRemove?: (key: string, value: T) => void;
+
+  /** Key → node index for O(1) lookup. */
+  private readonly map = new Map<string, Node<T>>();
+  /** LRU head (least recently used). */
+  private head: Node<T> | null = null;
+  /** LRU tail (most recently used). */
+  private tail: Node<T> | null = null;
+  /** Active `setInterval` handle for background GC, if any. */
+  private sweepTimer: ReturnType<typeof setInterval> | null = null;
+
+  /**
+   * @param options - Cache limits, SWR timings, invalidation defaults, and removal callback.
+   */
+  constructor(options: SwrCacheOptions<T> = {}) {
+    if (options.max !== undefined && options.max < 1) {
+      throw new Error(`AuraSwrCache: max must be >= 1, got ${options.max}`);
+    }
+
+    assertTiming('staleTime', options.staleTime);
+    assertTiming('gcTime', options.gcTime);
+    if (options.gcSweepInterval !== undefined && options.gcSweepInterval !== false) {
+      assertPositiveInterval('gcSweepInterval', options.gcSweepInterval);
+    }
+
+    this.max = options.max;
+    this.staleTimeMs = options.staleTime;
+    this.gcTimeMs = options.gcTime ?? (options.staleTime !== undefined ? DEFAULT_GC_TIME : undefined);
+
+    if (
+      options.gcSweepInterval !== undefined &&
+      options.gcSweepInterval !== false &&
+      !isFiniteGcTime(this.gcTimeMs)
+    ) {
+      throw new Error(
+        'AuraSwrCache: gcSweepInterval requires a finite gcTime (Infinity disables TTL removal)',
+      );
+    }
+
+    this.gcSweepIntervalMs = resolveGcSweepInterval(this.gcTimeMs, options.gcSweepInterval);
+    this.defaultInvalidatePolicy = options.invalidatePolicy ?? 'stale';
+    this.onRemove = options.onRemove;
+  }
+
+  /**
+   * Returns a cached value when present (fresh or stale) and promotes LRU order.
+   * GC-expired entries are removed on access.
+   *
+   * Does not report whether the entry is stale. In SWR mode (`staleTime`), use
+   * {@link AuraSwrCache.lookup} to decide whether to revalidate.
+   *
+   * @param key - Cache key.
+   * @returns The stored value, or `undefined` if missing or GC-expired.
+   */
+  get(key: string): T | undefined {
+    const node = this.map.get(key);
+    if (!node) return undefined;
+
+    if (this.removeIfExpired(node, Date.now())) {
+      return undefined;
+    }
+
+    if (node !== this.tail) {
+      this.moveToEnd(node);
+    }
+
+    return node.value;
+  }
+
+  /**
+   * Reads an entry with `fresh` / `stale` / `missing` status.
+   *
+   * In SWR mode (`staleTime`), age past `staleTime` yields `stale` while the entry
+   * remains readable. GC-expired entries are removed on access (same as {@link get}).
+   * Stale-but-readable entries are not removed by this method.
+   *
+   * @param key - Cache key.
+   * @param touch - When `true`, promote the entry in the LRU list. Default `false`.
+   * @returns Lookup result with `fresh`, `stale`, or `missing` status.
+   */
+  lookup(key: string, touch = false): CacheLookup<T> {
+    const node = this.map.get(key);
+
+    if (!node) {
+      return { status: 'missing' };
+    }
+
+    const now = Date.now();
+    if (this.removeIfExpired(node, now)) {
+      return { status: 'missing' };
+    }
+
+    if (touch && node !== this.tail) {
+      this.moveToEnd(node);
+    }
+
+    return { status: this.readStatus(node, now), value: node.value };
+  }
+
+  /**
+   * Stores a value under `key`, clearing stale flag and refreshing `storedAt`.
+   *
+   * Updates an existing entry in place without LRU trim. Overwriting invokes
+   * `onRemove` for the previous value when it differs, before the new value is stored.
+   * New entries may remove the least recently used key when `max` is exceeded.
+   *
+   * @param key - Cache key.
+   * @param value - Value to store.
+   * @param options - Per-entry timings. When passed, replaces both overrides
+   *   (`undefined` fields fall back to store defaults). Omitted → keep previous overrides.
+   */
+  set(key: string, value: T, options?: EntryTimesOptions): void {
+    if (options) {
+      assertTiming('gcTime', options.gcTime);
+      assertTiming('staleTime', options.staleTime);
+    }
+
+    const existingNode = this.map.get(key);
+    const now = Date.now();
+
+    if (existingNode) {
+      const previous = existingNode.value;
+
+      if (previous !== value) {
+        this.onRemove?.(key, previous);
+      }
+
+      existingNode.value = value;
+      if (options) {
+        existingNode.gcTime = options.gcTime;
+        existingNode.staleTime = options.staleTime;
+      }
+      existingNode.stale = false;
+      existingNode.storedAt = now;
+
+      if (existingNode !== this.tail) {
+        this.moveToEnd(existingNode);
+      }
+
+      this.ensureSweepRunning();
+      return;
+    }
+
+    const newNode: Node<T> = {
+      key,
+      value,
+      storedAt: now,
+      gcTime: options?.gcTime,
+      staleTime: options?.staleTime,
+      stale: false,
+      prev: null,
+      next: null,
+    };
+
+    this.addToEnd(newNode);
+    this.map.set(key, newNode);
+
+    if (this.max !== undefined && this.map.size > this.max) {
+      this.removeLruHead();
+    }
+
+    this.ensureSweepRunning();
+  }
+
+  /**
+   * Returns a cached value without promoting LRU order.
+   * GC-expired entries are removed on access (same as {@link has}), with `onRemove` when configured.
+   *
+   * @param key - Cache key.
+   * @returns The stored value, or `undefined` if missing or GC-expired.
+   */
+  peek(key: string): T | undefined {
+    const node = this.map.get(key);
+    if (!node) return undefined;
+    if (this.removeIfExpired(node, Date.now())) {
+      return undefined;
+    }
+    return node.value;
+  }
+
+  /**
+   * Returns whether a readable, non-GC-expired entry exists.
+   *
+   * Does not promote LRU order. GC-expired entries are removed and return `false`.
+   *
+   * @param key - Cache key.
+   * @returns `true` if the entry exists and is readable.
+   */
+  has(key: string): boolean {
+    const node = this.map.get(key);
+    if (!node) return false;
+    return !this.removeIfExpired(node, Date.now());
+  }
+
+  /**
+   * Returns whether an entry is stale (by age or manual invalidation) but still readable.
+   *
+   * @param key - Cache key.
+   * @returns `true` if stale and readable; `false` if missing, fresh, or GC-expired.
+   */
+  isStale(key: string): boolean {
+    const node = this.map.get(key);
+    if (!node) return false;
+
+    const now = Date.now();
+    if (this.removeIfExpired(node, now)) return false;
+
+    return this.readStatus(node, now) === 'stale';
+  }
+
+  /**
+   * Removes all GC-expired entries (store default and per-entry `gcTime`).
+   *
+   * @returns Number of removed entries.
+   */
+  purgeExpired(): number {
+    return this.sweepExpired();
+  }
+
+  /**
+   * Marks an entry outdated or removes it. Use after mutations or route changes.
+   * Does not promote LRU order.
+   *
+   * @param key - Cache key.
+   * @param policy - `'stale'` keeps value for SWR reads; `'remove'` deletes immediately.
+   *   Defaults to `invalidatePolicy`.
+   * @returns `true` if an entry was affected.
+   */
+  invalidate(key: string, policy: InvalidatePolicy = this.defaultInvalidatePolicy): boolean {
+    const node = this.map.get(key);
+    if (!node) return false;
+
+    if (policy === 'remove') {
+      this.removeNode(node);
+    } else {
+      node.stale = true;
+    }
+    return true;
+  }
+
+  /**
+   * Marks matching entries outdated or removes them. See {@link AuraSwrCache.invalidate}.
+   *
+   * @param predicate - Key filter.
+   * @param policy - Defaults to `invalidatePolicy`.
+   * @returns Number of affected entries.
+   */
+  invalidateMatch(
+    predicate: (key: string) => boolean,
+    policy: InvalidatePolicy = this.defaultInvalidatePolicy,
+  ): number {
+    if (policy === 'remove') {
+      return this.invalidateMatchRemove(predicate);
+    }
+
+    let count = 0;
+
+    for (const [key, node] of this.map) {
+      if (predicate(key)) {
+        node.stale = true;
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * Marks every entry outdated or removes all. See {@link AuraSwrCache.invalidate}.
+   *
+   * @param policy - Defaults to `invalidatePolicy`.
+   * @returns Number of affected entries.
+   */
+  invalidateAll(policy: InvalidatePolicy = this.defaultInvalidatePolicy): number {
+    if (policy === 'stale') {
+      let count = 0;
+      for (const node of this.map.values()) {
+        node.stale = true;
+        count++;
+      }
+      return count;
+    }
+
+    return this.invalidateMatch(() => true, policy);
+  }
+
+  /**
+   * Removes the entry and returns the value (keep-alive checkout).
+   *
+   * Live entry: no `onRemove` — value can be reattached. GC-expired: `onRemove` runs,
+   * returns `undefined`. Missing key: `undefined`.
+   *
+   * @param key - Cache key.
+   * @returns The stored value, or `undefined` if missing or GC-expired.
+   */
+  extract(key: string): T | undefined {
+    const node = this.map.get(key);
+    if (!node) return undefined;
+
+    if (this.removeIfExpired(node, Date.now())) {
+      return undefined;
+    }
+
+    const value = node.value;
+    this.unlinkNode(node);
+    return value;
+  }
+
+  /**
+   * Removes an entry and invokes `onRemove` when configured.
+   *
+   * @param key - Cache key.
+   * @returns `true` if an entry was removed.
+   */
+  delete(key: string): boolean {
+    const node = this.map.get(key);
+    if (!node) return false;
+    this.removeNode(node);
+    return true;
+  }
+
+  /**
+   * Removes all entries, stops the background sweep, and invokes `onRemove` for each when configured.
+   * The store can be reused; the next `set()` restarts the background sweep when configured.
+   */
+  clear(): void {
+    this.stopSweep();
+
+    const onRemove = this.onRemove;
+    if (onRemove) {
+      let current = this.head;
+      while (current) {
+        const next = current.next;
+        onRemove(current.key, current.value);
+        current = next;
+      }
+    }
+    this.map.clear();
+    this.head = null;
+    this.tail = null;
+  }
+
+  /**
+   * Releases the store. Same as {@link AuraSwrCache.clear}.
+   */
+  destroy(): void {
+    this.clear();
+  }
+
+  /**
+   * Number of entries in the map (includes stale and GC-expired until removed elsewhere).
+   * Does not run GC or promote LRU.
+   *
+   * @returns Current `map` size. Use {@link AuraSwrCache.purgeExpired} or read accessors
+   *   first when you need a count of readable entries only.
+   */
+  get size(): number {
+    return this.map.size;
+  }
+
+  /**
+   * Snapshot of map keys in insertion order (not LRU order). Does not promote LRU or run GC.
+   * May include GC-expired keys until removed by access, {@link AuraSwrCache.purgeExpired},
+   * or background sweep.
+   *
+   * @returns All keys currently in the map.
+   */
+  keys(): string[] {
+    return Array.from(this.map.keys());
+  }
+
+  /**
+   * Removes the entry when it exceeded `gcTime`.
+   *
+   * @param node - Entry to check.
+   * @param now - Current timestamp.
+   * @returns `true` if the entry was removed.
+   */
+  private removeIfExpired(node: Node<T>, now: number): boolean {
+    const gcTimeMs = node.gcTime ?? this.gcTimeMs;
+    if (gcTimeMs === undefined) return false;
+    if (now - node.storedAt <= gcTimeMs) return false;
+
+    this.removeNode(node);
+    return true;
+  }
+
+  /**
+   * Resolves SWR status from entry age and manual stale flag.
+   *
+   * @param node - Entry to read.
+   * @param now - Current timestamp.
+   * @returns `'fresh'` or `'stale'`.
+   */
+  private readStatus(node: Node<T>, now: number): 'fresh' | 'stale' {
+    if (node.stale) return 'stale';
+
+    const staleTime = node.staleTime ?? this.staleTimeMs;
+    if (staleTime === undefined) return 'fresh';
+    if (staleTime === Infinity) return 'fresh';
+
+    return now - node.storedAt > staleTime ? 'stale' : 'fresh';
+  }
+
+  /**
+   * Walks the LRU list and removes all GC-expired entries.
+   *
+   * @returns Number of removed entries.
+   */
+  private sweepExpired(): number {
+    const now = Date.now();
+    let count = 0;
+    let current = this.head;
+
+    while (current) {
+      const next = current.next;
+      if (this.removeIfExpired(current, now)) {
+        count++;
+      }
+      current = next;
+    }
+
+    return count;
+  }
+
+  /** Starts background sweep when `gcSweepInterval` is configured and the store is non-empty. */
+  private ensureSweepRunning(): void {
+    if (this.gcSweepIntervalMs === null || this.map.size === 0) return;
+    this.startSweep();
+  }
+
+  /** Schedules periodic GC sweep via `setInterval`. */
+  private startSweep(): void {
+    if (this.gcSweepIntervalMs === null || this.sweepTimer !== null) return;
+    if (typeof setInterval === 'undefined') return;
+
+    this.sweepTimer = setInterval(() => {
+      this.sweepExpired();
+    }, this.gcSweepIntervalMs);
+  }
+
+  /** Clears the background sweep timer. */
+  private stopSweep(): void {
+    if (this.sweepTimer === null) return;
+    clearInterval(this.sweepTimer);
+    this.sweepTimer = null;
+  }
+
+  /**
+   * Removes entries matching `predicate` and invokes `onRemove` for each.
+   *
+   * @param predicate - Key filter.
+   * @returns Number of removed entries.
+   */
+  private invalidateMatchRemove(predicate: (key: string) => boolean): number {
+    let count = 0;
+    let current = this.head;
+
+    while (current) {
+      const next = current.next;
+      if (predicate(current.key)) {
+        this.removeNode(current);
+        count++;
+      }
+      current = next;
+    }
+    return count;
+  }
+
+  /**
+   * Detaches `node` from its current position and appends it to the LRU tail.
+   *
+   * @param node - Entry to promote.
+   */
+  private moveToEnd(node: Node<T>): void {
+    if (node === this.tail) return;
+
+    const prev = node.prev;
+    const next = node.next;
+
+    if (prev) prev.next = next;
+    if (next) next.prev = prev;
+
+    if (node === this.head) this.head = next;
+
+    this.addToEnd(node);
+  }
+
+  /**
+   * Appends `node` to the LRU tail.
+   *
+   * @param node - Entry to append. `prev`/`next` are rewritten.
+   */
+  private addToEnd(node: Node<T>): void {
+    node.next = null;
+    if (this.tail) {
+      this.tail.next = node;
+      node.prev = this.tail;
+      this.tail = node;
+    } else {
+      node.prev = null;
+      this.head = node;
+      this.tail = node;
+    }
+  }
+
+  /**
+   * Detaches `node` from the map and LRU list without invoking `onRemove`.
+   * Stops background sweep when the store becomes empty.
+   *
+   * @param node - Entry to unlink.
+   */
+  private unlinkNode(node: Node<T>): void {
+    const { key } = node;
+
+    const prev = node.prev;
+    const next = node.next;
+
+    if (prev) prev.next = next;
+    if (next) next.prev = prev;
+
+    if (node === this.head) this.head = next;
+    if (node === this.tail) this.tail = prev;
+
+    this.map.delete(key);
+
+    if (this.map.size === 0) {
+      this.stopSweep();
+    }
+  }
+
+  /** Unlinks `node` and invokes `onRemove` when configured. */
+  private removeNode(node: Node<T>): void {
+    const { key, value } = node;
+    this.unlinkNode(node);
+
+    const onRemove = this.onRemove;
+    if (onRemove) onRemove(key, value);
+  }
+
+  /** Removes the least recently used entry (LRU head). */
+  private removeLruHead(): void {
+    if (!this.head) return;
+    this.removeNode(this.head);
+  }
+}
+
+/**
+ * Resolves background sweep interval from `gcTime` and `gcSweepInterval` options.
+ *
+ * @param gcTime - Resolved GC TTL.
+ * @param gcSweepInterval - User override.
+ * @returns Interval in ms, or `null` when sweep is disabled.
+ */
+function resolveGcSweepInterval(
+  gcTime: number | undefined,
+  gcSweepInterval: number | false | undefined,
+): number | null {
+  if (gcSweepInterval === false) return null;
+  if (!isFiniteGcTime(gcTime)) return null;
+  if (gcSweepInterval !== undefined) return gcSweepInterval;
+
+  return Math.min(Math.max(gcTime / 2, 5_000), 60_000);
+}
+
+/** `true` when `gcTime` enables TTL removal (finite, non-negative). */
+function isFiniteGcTime(gcTime: number | undefined): gcTime is number {
+  return gcTime !== undefined && Number.isFinite(gcTime);
+}
+
+/** Validates `staleTime` / `gcTime`: non-negative number or `Infinity`. */
+function assertTiming(name: string, value: number | undefined): void {
+  if (value === undefined) return;
+  if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
+    throw new Error(`AuraSwrCache: ${name} must be >= 0 or Infinity, got ${value}`);
+  }
+}
+
+/** Validates explicit `gcSweepInterval` ms value. */
+function assertPositiveInterval(name: string, value: number): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`AuraSwrCache: ${name} must be a positive number, got ${value}`);
+  }
+}

@@ -1,0 +1,69 @@
+<aura-router link-active-class="active"
+             loading-body-class="loading"
+             error-template="error"
+             extract=".main"
+             prefetch="true"
+             cache
+             cache-time="15">
+  <aura-route path="/" view="/"></aura-route>
+  <aura-route path="/about" view="template::about-page"></aura-route>
+  <aura-route path="/login" view="login"></aura-route>
+
+  <aura-route path="/contacts" view="contacts" cache="off" loading-template="loading"></aura-route>
+
+  <aura-route path="/users/" layout="users" cache-time="10" loading-template="loading">
+    <aura-route path="." view="users"></aura-route>
+    <aura-route path=":id" view="users/{{id}}" ready="show-user"></aura-route>
+  </aura-route>
+
+  <aura-route path="/profile" layout="profile-layout" guard="auth">
+    <aura-route path="." view="profile"></aura-route>
+    <aura-route path="settings" view="profile/settings"></aura-route>
+  </aura-route>
+
+  <aura-route path="*" view="template::not-found"></aura-route>
+</aura-router>
+
+<template id="users">
+  <section class="layout">
+    <h2>Users</h2>
+    <p class="hint">layout stays across /users ↔ /users/:id</p>
+    <aura-outlet></aura-outlet>
+  </section>
+</template>
+
+<template id="profile-layout">
+  <section class="layout">
+    <h2>Profile</h2>
+    <p class="hint">requires login (guard="auth")</p>
+    <div class="subnav">
+      <a href="/profile" aura-router-link>Overview</a>
+      <a href="/profile/settings" aura-router-link>Settings</a>
+      <button type="button" data-demo-logout>Log out</button>
+    </div>
+    <aura-outlet></aura-outlet>
+  </section>
+</template>
+
+<template id="about-page">
+  <div class="main">
+    <h1>About</h1>
+    <p>Static markup from a &lt;template&gt; — no network.</p>
+  </div>
+</template>
+
+<template id="not-found">
+  <div class="main">
+    <h1>404</h1>
+    <p>Route not found (path="*").</p>
+    <p><a href="/" aura-router-link>Home</a></p>
+  </div>
+</template>
+
+<template id="loading">
+  <h1>Loading…</h1>
+</template>
+
+<template id="error">
+  <h1>Error</h1>
+</template>

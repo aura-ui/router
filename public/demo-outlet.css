@@ -1,0 +1,269 @@
+@charset "UTF-8";
+
+/**
+ * Визуализация outlet / layout / view в demo-сценариях.
+ * Подключается через @import в demo.css.
+ * Пастельная радуга: мягкие оттенки, тонкие рамки.
+ */
+
+:root {
+  --demo-border-root: #ebc4d0;
+  --demo-border-layout-l1: #ecd8c4;
+  --demo-border-slot: #e4dcc0;
+  --demo-border-outlet: #b8ddd0;
+  --demo-border-layout-l2: #b8d5e4;
+  --demo-border-outlet-l2: #d0c8e8;
+  --demo-border-view: #e8c4d8;
+
+  --demo-label-root: #b06880;
+  --demo-label-layout-l1: #b07848;
+  --demo-label-slot: #9a8848;
+  --demo-label-outlet: #4a9470;
+  --demo-label-layout-l2: #4a8aa8;
+  --demo-label-outlet-l2: #7868a8;
+  --demo-label-view: #a86888;
+}
+
+/* ── Shared label pill ── */
+
+.demo-root-outlet::before,
+.demo-nested-outlet::before,
+.demo-layout-slot__label,
+.demo-site-view.demo-layout-view::before,
+.demo-layout-badge {
+  display: inline-block;
+  padding: 0.2rem 0.625rem;
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.4;
+  box-shadow: none;
+}
+
+/* ── Root outlet ── */
+
+.demo-root-outlet {
+  position: relative;
+  padding: 1.25rem;
+  border: 2px solid var(--demo-border-root);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(155deg, #fffcfd 0%, #f9f5f7 48%, #fffafb 100%);
+  overflow: visible;
+}
+
+.demo-root-outlet::before {
+  content: 'Корневой <aura-outlet>';
+  position: absolute;
+  top: -0.6875rem;
+  left: 0.875rem;
+  margin: 0;
+  color: var(--demo-label-root);
+  background: var(--surface, #fff);
+  border: 1px solid var(--demo-border-root);
+}
+
+/* Crossfade: staged incoming поверх outgoing в одном слоте (parallel / in-out) */
+.demo-root-outlet > [data-aura-view-root] + [data-aura-view-root] {
+  position: absolute;
+  inset: 1.25rem;
+  z-index: 1;
+}
+
+/* Staged incoming — скрыт до transitionIn; снимается классом .demo-view-entering */
+.demo-root-outlet > [data-aura-view-root][data-demo-staged]:not(.demo-view-entering) {
+  /*opacity: 0;*/
+  transform: translate3d(2.25rem, 0, 0);
+  pointer-events: none;
+}
+
+.demo-root-outlet > [data-aura-view-root].demo-view-entering {
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-root-outlet > [data-aura-view-root][data-demo-staged]:not(.demo-view-entering) {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Nested outlet ── */
+
+.demo-nested-outlet {
+  display: block;
+  position: relative;
+  min-height: 6rem;
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border: 2px solid var(--demo-border-outlet);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(155deg, #fcfefd 0%, #f4faf7 48%, #fbfffe 100%);
+}
+
+.demo-nested-outlet::before {
+  content: '<aura-outlet>';
+  position: absolute;
+  top: -0.6875rem;
+  left: 0.75rem;
+  margin: 0;
+  color: var(--demo-label-outlet);
+  background: var(--surface, #fff);
+  border: 1px solid var(--demo-border-outlet);
+}
+
+.demo-nested-outlet--l2 {
+  border-color: var(--demo-border-outlet-l2);
+  background: linear-gradient(155deg, #fdfcfe 0%, #f7f5fa 48%, #fefdff 100%);
+}
+
+.demo-nested-outlet--l2::before {
+  content: '<aura-outlet> L2';
+  color: var(--demo-label-outlet-l2);
+  border-color: var(--demo-border-outlet-l2);
+}
+
+/* ── Layout containers ── */
+
+.demo-nested-label {
+  margin: 0 0 0.625rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+[data-nested-layout],
+[data-user-layout] {
+  position: relative;
+  margin: 0;
+  padding: 1.25rem;
+  border-radius: var(--radius-sm);
+}
+
+[data-nested-layout] {
+  border: 2px solid var(--demo-border-layout-l1);
+  background: linear-gradient(155deg, #fffdfb 0%, #faf7f3 48%, #fffef9 100%);
+}
+
+[data-user-layout] {
+  border: 2px solid var(--demo-border-layout-l2);
+  background: linear-gradient(155deg, #fbfdfe 0%, #f3f8fa 48%, #fafeff 100%);
+}
+
+.demo-layout-badge {
+  margin: 0 0 1rem;
+}
+
+[data-nested-layout] > .demo-layout-badge {
+  color: var(--demo-label-layout-l1);
+  background: var(--surface, #fff);
+  border: 1px solid var(--demo-border-layout-l1);
+}
+
+[data-user-layout] > .demo-layout-badge {
+  color: var(--demo-label-layout-l2);
+  background: var(--surface, #fff);
+  border: 1px solid var(--demo-border-layout-l2);
+}
+
+/* ── Layout chrome (nav area) ── */
+
+.demo-layout-chrome {
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+}
+
+.demo-layout-chrome > .demo-nested-label {
+  margin-top: 0;
+}
+
+.demo-layout-chrome .demo-links {
+  margin-bottom: 0;
+}
+
+/* ── Layout slot ── */
+
+.demo-layout-slot {
+  position: relative;
+  margin-top: 1rem;
+  padding: 1rem;
+  min-height: 8rem;
+  border: 2px dashed var(--demo-border-slot);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(155deg, #fffef9 0%, #faf8f2 48%, #fffdf8 100%);
+}
+
+.demo-layout-slot__label {
+  margin-bottom: 0.5rem;
+  color: var(--demo-label-slot);
+  background: var(--surface, #fff);
+  border: 1px solid var(--demo-border-slot);
+}
+
+/* ── Final view ── */
+
+.demo-site-view.demo-layout-view {
+  position: relative;
+  margin: 0;
+  padding: 1.25rem;
+  border: 2px solid var(--demo-border-view);
+  border-radius: var(--radius-sm);
+  background: var(--surface, #fff);
+  box-shadow: none;
+  max-width: var(--code-prose, 52rem);
+}
+
+.demo-site-view.demo-layout-view::before {
+  content: 'Конечный view';
+  position: absolute;
+  top: -0.6875rem;
+  left: 0.875rem;
+  margin: 0;
+  color: var(--demo-label-view);
+  background: var(--surface, #fff);
+  border: 1px solid var(--demo-border-view);
+}
+
+/* ── Hash sections ── */
+
+.demo-hash-section {
+  margin-top: 1rem;
+  padding: 1rem 1.125rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--demo-border-view);
+  background: linear-gradient(155deg, #fffcfd 0%, #faf6f8 100%);
+  scroll-margin-top: 0.75rem;
+}
+
+.demo-hash-section h2 {
+  margin-top: 0;
+}
+
+/* ── Transition demo panels ── */
+
+.demo-transition-panel {
+  margin: 1.25rem 0;
+  padding: 1.25rem 1.375rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.demo-transition-panel p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+}
+
+.demo-transition-panel--a {
+  background: linear-gradient(155deg, rgba(84, 138, 118, 0.14) 0%, rgba(84, 138, 118, 0.06) 100%);
+  border-color: rgba(84, 138, 118, 0.28);
+}
+
+.demo-transition-panel--b {
+  background: linear-gradient(155deg, rgba(188, 111, 176, 0.16) 0%, rgba(188, 111, 176, 0.06) 100%);
+  border-color: rgba(188, 111, 176, 0.32);
+}

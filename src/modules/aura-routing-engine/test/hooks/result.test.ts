@@ -1,0 +1,24 @@
+import { normalizeHookResult } from '../../core/hooks/registry';
+
+describe('normalizeHookResult', () => {
+  it('maps legacy values to GuardResult', () => {
+    expect(normalizeHookResult(undefined)).toBeUndefined();
+    expect(normalizeHookResult(true)).toBeUndefined();
+    expect(normalizeHookResult(false)).toBe(false);
+    expect(normalizeHookResult('/login')).toBe('/login');
+    expect(normalizeHookResult({ url: '/login', replace: true })).toEqual({
+      url: '/login',
+      replace: true,
+    });
+  });
+
+  it('maps explicit HookResult shapes', () => {
+    expect(normalizeHookResult({ type: 'continue' })).toBeUndefined();
+    expect(normalizeHookResult({ type: 'cancel' })).toBe(false);
+    expect(normalizeHookResult({ type: 'redirect', url: '/home' })).toEqual({ url: '/home' });
+    expect(normalizeHookResult({ type: 'redirect', url: '/home', replace: true })).toEqual({
+      url: '/home',
+      replace: true,
+    });
+  });
+});

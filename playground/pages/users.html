@@ -1,0 +1,29 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Users</title>
+  <link rel="stylesheet" href="./static/main.css" />
+  <script src="./static/main.js" defer></script>
+</head>
+<body>
+@header@
+@nav@
+<section class="layout" aura-router-ssr>
+  <h2>Users</h2>
+  <p class="hint">layout stays across /users ↔ /users/:id</p>
+  <aura-outlet>
+    <div class="main" data-aura-view-root data-aura-key="/users">
+      <h1>Users</h1>
+      <p>List from the server (<code>view="users"</code>). Nested layout + flat SSR → hard reload without adopt (cold
+        fetch).</p>
+      <ul>
+        <li><a href="/users/1" aura-router-link>User 1</a></li>
+        <li><a href="/users/2" aura-router-link>User 2</a></li>
+        <li><a href="/users/3" aura-router-link>User 3</a></li>
+      </ul>
+    </div>
+  </aura-outlet>
+</section>
+@router@
+</body>
+</html>

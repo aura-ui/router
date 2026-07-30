@@ -1,0 +1,17 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Profile settings</title>
+  <link rel="stylesheet" href="../static/main.css" />
+  <script src="../static/main.js" defer></script>
+</head>
+<body>
+@header@
+@nav@
+<div class="main" aura-router-ssr>
+  <h1>Settings</h1>
+  <p>Nested /profile/settings — same <code>guard</code> and layout, different view from the server. Flat SSR → no adopt.</p>
+</div>
+@router@
+</body>
+</html>

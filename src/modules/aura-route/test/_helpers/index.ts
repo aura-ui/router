@@ -1,0 +1,11 @@
+export { createMatchedRouteInfo } from './create-matched-route-info';
+export { createMockDomCache, createNoopDomCache } from './create-mock-dom-cache';
+export { createMountContext, stageTwoViews } from './create-mount-context';
+export { createOutlet, layoutWithOutlet } from './create-outlet';
+export { createRenderPass } from './create-render-pass';
+export { createRouteStub } from './create-route-stub';
+export { createViewContext } from './create-view-context';
+export type { CreateViewContextOptions } from './create-view-context';
+export { defineAuraOutlet, defineAuraRoute, defineAuraRouter } from './define-custom-elements';
+export { createAuraRoute, mountAuraRoute, mountAuraRouteUnderRouter } from './mount-aura-route';
+export type { MountAuraRouteOptions } from './mount-aura-route';

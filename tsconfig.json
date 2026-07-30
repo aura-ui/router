@@ -1,0 +1,51 @@
+{
+  "compilerOptions": {
+    /* File Layout */
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    /* Environment */
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "ES6",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node", "jest"],
+
+    /* Emit */
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    /* Type Checking */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    //    "exactOptionalPropertyTypes": true,
+
+    /* Bundler mode */
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Decorators */
+    "experimentalDecorators": true,
+
+    /* Strict*/
+    "alwaysStrict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "strictPropertyInitialization": false
+  },
+
+  /* Project Files — IDE / typecheck. Library emit: `npm run build` → tsconfig.build.json */
+  "include": ["src"],
+  "exclude": ["src/**/test/**"]
+}

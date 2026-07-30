@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hydration (MPA → SPA) — Aura UI - Router</title>
+  <link rel="stylesheet" href="/demo.css" />
+</head>
+<body>
+  <div class="shell">
+    <div class="demo-page demo-site" data-demo-scenario="hydration">
+      <header class="demo-header">
+        <div class="demo-header__brand">
+          <span class="demo-header__title">Aura UI</span>
+          <code class="demo-header__tag">&lt;aura-router&gt;</code>
+        </div>
+        <a href="/" class="demo-header__back">← Оглавление</a>
+      </header>
+
+      <div class="demo-site-bar">
+        <div class="demo-site-bar__url">
+          <span class="demo-site-bar__label">URL</span>
+          <code id="demo-site-url" aria-live="polite"></code>
+        </div>
+        <nav class="demo-links demo-site-nav" aria-label="Навигация">
+          <a href="/features/hydration" aura-router-link>About (hydrate)</a>
+          <a href="/features/hydration/b" aura-router-link>Страница B</a>
+        </nav>
+      </div>
+
+      <div class="demo-site-stage">
+        <!--
+          Guide shape: server markup outside <aura-router>, inside the slot <aura-outlet>.
+          First paint adopts the marker; later SPA hops remount into the same outlet.
+        -->
+        <aura-outlet class="demo-site-outlet">
+          <div aura-router-ssr>
+            <article class="demo-site-view demo-layout-view" data-demo-view="features/hydration/about.html">
+              <p class="demo-hydrate-badge" role="status">First paint · adopt · без fetch view</p>
+              <h1>About</h1>
+              <p class="demo-site-view__lead">
+                Этот HTML уже был в документе с маркером
+                <code>aura-router-ssr</code> (внутри слота
+                <code>&lt;aura-outlet&gt;</code>, снаружи
+                <code>&lt;aura-router&gt;</code>). На boot роутер
+                <strong>adopt</strong>-нул узел (ставит
+                <code>data-aura-view-root</code>) вместо загрузки
+                <code>view</code>.
+              </p>
+              <p class="demo-hint">
+                Проверка: при первом открытии <code>/features/hydration</code> в Network
+                нет запроса <code>about.html</code>. Lifecycle
+                (<code>guard</code> / <code>load</code> / <code>ready</code>) на adopt не
+                бежит. Переход на «Страница B» и обратно — обычный SPA fetch в тот же
+                <code>&lt;aura-outlet&gt;</code>.
+              </p>
+
+              <h2>Маркер</h2>
+              <div class="demo-code-window">
+                <div class="demo-code-window__bar">
+                  <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="demo-code-window__lang">HTML</span>
+                </div>
+                <pre class="demo-code"><code class="language-html" data-code-from="hydrate-code-flat"></code></pre>
+              </div>
+              <template id="hydrate-code-flat">
+<aura-outlet>
+  <div aura-router-ssr>
+    <h1>About</h1>
+    <p>…</p>
+  </div>
+</aura-outlet>
+
+<aura-router>
+  <aura-route path="/features/hydration" view="features/hydration/about.html"></aura-route>
+  <aura-route path="/features/hydration/b" view="features/hydration/page-b.html"></aura-route>
+</aura-router>
+              </template>
+
+              <nav class="demo-links">
+                <a href="/features/hydration/b" aura-router-link>Страница B →</a>
+              </nav>
+            </article>
+          </div>
+        </aura-outlet>
+
+        <aura-router id="app" link-active-class="is-active" links-container-selector=".demo-site">
+          <aura-route path="/features/hydration/index.html" view="features/hydration/about.html"></aura-route>
+          <aura-route path="/features/hydration" view="features/hydration/about.html"></aura-route>
+          <aura-route path="/features/hydration/b" view="features/hydration/page-b.html"></aura-route>
+        </aura-router>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Shell fallback serves this HTML for all /features/hydration/* URLs.
+    // Keep server markup only for the about landing; deep links must SPA-fetch.
+    (() => {
+      const path = location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '') || '/';
+      if (path === '/features/hydration') return;
+      document.querySelectorAll('[aura-router-ssr]').forEach((el) => el.remove());
+    })();
+  </script>
+  <script type="module" src="/src/examples/demo/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<article class="demo-site-view demo-layout-view" data-demo-view="features/phase-update/hash.html">
+  <h1>Hash — якорь</h1>
+  <p class="demo-site-view__lead">Pathname и search не меняются — только <code>#…</code>. Engine вызывает <code>finalizeHashOnlyNavigation</code>: history + scroll, без processor и хуков.</p>
+
+  <p>Активный якорь: <code>#<span data-demo-param="section">—</span></code></p>
+
+  <nav class="demo-links">
+    <a href="/features/phase-update/hash#one" aura-router-link>#one</a>
+    <a href="/features/phase-update/hash#two" aura-router-link>#two</a>
+    <a href="/features/phase-update/hash#three" aura-router-link>#three</a>
+  </nav>
+
+  <p class="demo-hint">Переключайте якоря: view не remount-ится, обновляются только URL и scroll.</p>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="phase-update-hash-code"></code></pre>
+  </div>
+  <template id="phase-update-hash-code">
+<aura-route path="/features/phase-update/hash" view="features/phase-update/hash.html"></aura-route>
+
+<a href="/features/phase-update/hash#one" aura-router-link>#one</a>
+<a href="/features/phase-update/hash#two" aura-router-link>#two</a>
+  </template>
+
+  <section id="one" class="demo-hash-section">
+    <h2>Секция one</h2>
+    <p>Элемент <code>id="one"</code> — цель якоря <code>#one</code>.</p>
+  </section>
+  <section id="two" class="demo-hash-section">
+    <h2>Секция two</h2>
+    <p>Элемент <code>id="two"</code> — цель якоря <code>#two</code>.</p>
+  </section>
+  <section id="three" class="demo-hash-section">
+    <h2>Секция three</h2>
+    <p>Элемент <code>id="three"</code> — цель якоря <code>#three</code>.</p>
+  </section>
+</article>

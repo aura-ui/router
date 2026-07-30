@@ -1,0 +1,44 @@
+<article class="demo-site-view demo-layout-view">
+  <h1>Анимации: fade</h1>
+  <p class="demo-site-view__lead">Плоские маршруты с пакетом <code>transition="fade"</code>. Выберите <code>transition-order</code> в панели над outlet — затем переключайтесь A ↔ B и сравните поведение.</p>
+  <p class="demo-hint">Розовая рамка — корневой <code>&lt;aura-outlet&gt;</code>. При <code>parallel</code> в outlet на время перехода два <code>[data-aura-view-root]</code>; при <code>out-in</code> сначала исчезает старый view, потом появляется новый.</p>
+
+  <h2>transition-order</h2>
+  <p>Атрибут на <code>&lt;aura-router&gt;</code> задаёт порядок фаз <code>transitionOut</code> и <code>transitionIn</code>. Кнопки в панели URL меняют значение на лету — следующая навигация уже с новой политикой.</p>
+  <ul class="demo-order-legend">
+    <li><code>parallel</code> — crossfade: outgoing и incoming одновременно в outlet</li>
+    <li><code>out-in</code> — сначала fade-out, затем fade-in</li>
+    <li><code>in-out</code> — incoming монтируется в stage, fade-in, затем fade-out outgoing</li>
+  </ul>
+  <p>Текущий режим: <code data-demo-param="transition-order">parallel</code></p>
+  <nav class="demo-links">
+    <a href="/features/animations/a" aura-router-link>Страница A</a>
+    <a href="/features/animations/b" aura-router-link>Страница B</a>
+  </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="animations-code-fade"></code></pre>
+  </div>
+  <template id="animations-code-fade">
+<aura-router transition="fade" transition-order="parallel">
+  <aura-outlet></aura-outlet>
+
+  <aura-route path="/features/animations/a" view="features/animations/page-a.html"></aura-route>
+  <aura-route path="/features/animations/b" view="features/animations/page-b.html"></aura-route>
+</aura-router>
+
+<!-- main.ts: AuraRouter.use(fadeHook) -->
+  </template>
+
+  <h2>Хук fade</h2>
+  <p>Core не содержит встроенных анимаций — только фазы pipeline и staged mount. Хук <code>fade</code> анимирует <code>[data-aura-view-root]</code> на фазах <code>transitionOut</code> / <code>transitionIn</code>. При <code>prefers-reduced-motion</code> анимация пропускается.</p>
+  <nav class="demo-links">
+    <a href="/features/animations/a" aura-router-link>Страница A</a>
+    <a href="/features/animations/b" aura-router-link>Страница B</a>
+  </nav>
+  <p class="demo-hint">Смените порядок на панели, затем несколько раз переключитесь A ↔ B — шапка и URL-бар остаются, меняется только timing перехода.</p>
+</article>

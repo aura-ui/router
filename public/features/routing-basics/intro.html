@@ -1,0 +1,39 @@
+<article class="demo-site-view demo-layout-view">
+  <h1>Основы маршрутизации</h1>
+  <p class="demo-site-view__lead">Плоские маршруты: один корневой outlet, при смене URL содержимое полностью заменяется.</p>
+  <p class="demo-hint">Розовая рамка — корневой <code>&lt;aura-outlet&gt;</code>, нежно-розовая — конечный view. При переходе A → B view полностью заменяется в том же outlet.</p>
+
+  <h2>Плоские маршруты</h2>
+  <p>Два независимых path ссылаются на разные view. При переходе между «Страница A» и «Страница B» роутер выгружает текущий view и монтирует новый в тот же outlet. Шапка и панель навигации остаются на месте — они объявлены вне роутера.</p>
+  <nav class="demo-links">
+    <a href="/features/routing-basics/a" aura-router-link>Страница A</a>
+    <a href="/features/routing-basics/b" aura-router-link>Страница B</a>
+  </nav>
+
+  <div class="demo-code-window">
+    <div class="demo-code-window__bar">
+      <span class="demo-code-window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="demo-code-window__lang">HTML</span>
+    </div>
+    <pre class="demo-code"><code class="language-html" data-code-from="basics-code-flat"></code></pre>
+  </div>
+  <template id="basics-code-flat">
+<aura-router>
+  <aura-outlet></aura-outlet>
+
+  <aura-route path="/features/routing-basics/a" view="features/routing-basics/page-a.html"></aura-route>
+  <aura-route path="/features/routing-basics/b" view="features/routing-basics/page-b.html"></aura-route>
+</aura-router>
+
+<a href="/features/routing-basics/a" aura-router-link>Страница A</a>
+<a href="/features/routing-basics/b" aura-router-link>Страница B</a>
+  </template>
+
+  <h2>История браузера</h2>
+  <p>Клик по ссылке с <code>aura-router-link</code> добавляет запись в session history. Последовательность A → B → «Назад» вернёт страницу A: и URL, и контент восстановятся без перезагрузки документа.</p>
+  <nav class="demo-links">
+    <a href="/features/routing-basics/a" aura-router-link>Страница A</a>
+    <a href="/features/routing-basics/b" aura-router-link>Страница B</a>
+  </nav>
+  <p class="demo-hint">Откройте A, перейдите на B, затем нажмите «Назад» в браузере.</p>
+</article>

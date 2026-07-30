@@ -1,0 +1,15 @@
+import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
+import { Loader } from '../loader';
+import { componentMarkup } from '../markup';
+import type { ViewLoadContext, ViewLoadResult } from '../types';
+
+/** `view="component::tag-name"` — registered custom element + `aura-data`. */
+export class ComponentLoader extends Loader {
+  static readonly type = 'component' as const satisfies LoaderId;
+  static readonly needsData = true;
+
+  load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
+    if (!customElements.get(ctx.content)) throw new Error(`Component '${ctx.content}' is not registered`);
+    return Promise.resolve({ kind: 'markup', value: componentMarkup(ctx.content, ctx) });
+  }
+}

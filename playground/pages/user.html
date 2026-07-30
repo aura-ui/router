@@ -1,0 +1,21 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>User</title>
+  <link rel="stylesheet" href="/static/main.css" />
+  <script src="/static/main.js" defer></script>
+</head>
+<body>
+@header@
+@nav@
+<section class="layout" aura-router-ssr>
+  <h2>Users</h2>
+  <p class="hint">layout stays across /users ↔ /users/:id</p>
+  <div class="main" data-aura-view-root>
+    <h1>User {{id}}</h1>
+    <p><code>view="users/{{id}}"</code> — delay ~3s, <code>cache-time="10"</code>. Changing :id → remount + <code>ready</code> (not update). No &lt;aura-outlet&gt; in SSR → hard reload without adopt.</p>
+  </div>
+</section>
+@router@
+</body>
+</html>

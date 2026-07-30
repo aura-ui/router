@@ -1,0 +1,109 @@
+{
+  "name": "@auraui/router",
+  "version": "0.0.1",
+  "description": "Declarative routing for Web Components — HTML-first, MPA→SPA.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md",
+    "LIMITATIONS.md",
+    "docs/guide.md",
+    "docs/recipes/*"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/build-lib.mjs",
+    "build:demo": "vite build",
+    "build:smoke": "npm run build && npm run smoke",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build",
+    "smoke": "node scripts/smoke-dist.mjs",
+    "size": "size-limit",
+    "size:analyze": "size-limit --why",
+    "size:vite": "node scripts/measure-app-bundle.mjs",
+    "size:report": "npm run size && npm run size:analyze",
+    "test": "jest",
+    "bench:cache": "tsx src/modules/aura-cache/bench/aura-swr-cache.bench.ts",
+    "bench:cache:gc": "node --expose-gc node_modules/tsx/dist/cli.mjs src/modules/aura-cache/bench/aura-swr-cache.bench.ts",
+    "bench": "tsx bench/run-all.ts",
+    "bench:gc": "node --expose-gc node_modules/tsx/dist/cli.mjs bench/run-all.ts",
+    "bench:url-matcher": "tsx bench/scenarios/url-matcher.bench.ts",
+    "bench:matched-chain": "tsx bench/scenarios/matched-chain.bench.ts",
+    "bench:transition-plan": "tsx bench/scenarios/transition-plan.bench.ts",
+    "bench:prefetch-plan": "tsx bench/scenarios/prefetch-plan.bench.ts",
+    "bench:dom-patch": "tsx bench/scenarios/dom-patch.bench.ts",
+    "bench:route-tree": "tsx bench/scenarios/route-tree.bench.ts",
+    "bench:navigation-pipeline": "tsx bench/scenarios/navigation-pipeline.bench.ts",
+    "bench:data-graph": "tsx bench/scenarios/data-graph.bench.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:watch": "chokidar \"src/**/*.{ts,tsx}\" -c \"npm run lint\"",
+    "check": "npm run lint && npm run build:smoke",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "commitlint": "commitlint --edit",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aura-ui/router.git"
+  },
+  "keywords": [
+    "aura-ui",
+    "web-components",
+    "custom-elements",
+    "router",
+    "html-first",
+    "mpa",
+    "spa"
+  ],
+  "author": "Aleksandr Buryakov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aura-ui/router/issues"
+  },
+  "homepage": "https://github.com/aura-ui/router#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.2",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@eslint/js": "^9.39.4",
+    "@size-limit/esbuild-why": "^12.1.0",
+    "@size-limit/preset-small-lib": "^12.1.0",
+    "@types/jest": "^30.0.0",
+    "chokidar-cli": "^3.0.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-security": "^4.0.0",
+    "eslint-plugin-unicorn": "^64.0.0",
+    "globals": "^17.5.0",
+    "highlight.js": "^11.11.1",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.8.3",
+    "size-limit": "^12.1.0",
+    "ts-jest": "^29.4.11",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.1",
+    "urlpattern-polyfill": "^10.1.0",
+    "vite": "^8.0.10"
+  }
+}

@@ -1,0 +1,66 @@
+name: Bug report
+description: Something does not work as documented or as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. `@auraui/router` is **pre-alpha** — pin exact versions and check [LIMITATIONS](https://github.com/aura-ui/router/blob/main/LIMITATIONS.md) before filing.
+
+        Usage questions belong in [Discussions](https://github.com/aura-ui/router/discussions).
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: Exact npm version (or commit SHA if from git).
+      placeholder: "@auraui/router@0.0.1"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: Name and version. `URLPattern` matters for `:param` routes.
+      placeholder: "Chrome 128 / Firefox 129 / Safari 17.6"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Expected vs actual behavior in a few sentences.
+      placeholder: |
+        Expected: navigate to /users keeps the layout outlet.
+        Actual: full page reload / blank outlet / …
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Smallest HTML + JS that shows the bug, or a link to a fork/playground. Prefer root-absolute paths and `aura-router-link`.
+      placeholder: |
+        ```html
+        <aura-router>
+          <aura-route path="/" view="index.html"></aura-route>
+        </aura-router>
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra context
+      description: Console errors, network failures, hydrate/`aura-router-ssr`, cache attrs, etc. (optional)
+    validations:
+      required: false
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked [LIMITATIONS.md](https://github.com/aura-ui/router/blob/main/LIMITATIONS.md) and [docs/guide.md](https://github.com/aura-ui/router/blob/main/docs/guide.md)
+          required: true
+        - label: This is not a security report (those go to a private advisory)
+          required: true

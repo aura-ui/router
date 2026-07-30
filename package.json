@@ -18,7 +18,8 @@
     "README.md",
     "CHANGELOG.md",
     "LIMITATIONS.md",
-    "docs/guide.md"
+    "docs/guide.md",
+    "docs/recipes/*"
   ],
   "sideEffects": false,
   "publishConfig": {

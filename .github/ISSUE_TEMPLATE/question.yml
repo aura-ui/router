@@ -1,0 +1,42 @@
+name: Question
+description: Only if Discussions is a poor fit. Prefer Discussions for usage help.
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Prefer [Discussions](https://github.com/aura-ui/router/discussions)** for “how do I…?” and general feedback.
+
+        Use this form only when you need a tracked, closable thread tied to a concrete docs/API gap.
+  - type: dropdown
+    id: why-issue
+    attributes:
+      label: Why an Issue instead of a Discussion?
+      options:
+        - Docs are missing or wrong for a specific API/attr
+        - Behavior is unclear and may be a bug (not sure yet)
+        - Other (explain below)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      placeholder: "@auraui/router@0.0.1"
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do, and what did you already try?
+    validations:
+      required: true
+  - type: textarea
+    id: snippet
+    attributes:
+      label: Relevant markup / code
+      description: Optional, but speeds up answers a lot.
+    validations:
+      required: false

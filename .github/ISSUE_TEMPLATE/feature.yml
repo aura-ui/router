@@ -1,0 +1,57 @@
+name: Feature request
+description: Propose a new capability or change to the public API / HTML attrs.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pre-alpha feedback is welcome. Check [ROADMAP](https://github.com/aura-ui/router/blob/main/ROADMAP.md) and [LIMITATIONS](https://github.com/aura-ui/router/blob/main/LIMITATIONS.md) — the ask may already be planned or intentionally out of scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that is awkward or impossible today?
+      placeholder: I need to … but currently I have to …
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Concrete idea — HTML attrs, API shape, or behavior. Rough sketches are fine.
+      placeholder: |
+        Add an attr / method / option that …
+        Example markup or call site:
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you tried, or APIs from other routers you compared (optional).
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Routing / matching
+        - Views / loaders
+        - Layouts / outlets
+        - Lifecycle (guard, load, ready, …)
+        - Cache / prefetch
+        - Hydration (aura-router-ssr)
+        - Docs / DX
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I looked at ROADMAP.md / LIMITATIONS.md for overlap
+          required: true

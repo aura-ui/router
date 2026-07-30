@@ -65,12 +65,18 @@
   },
   "keywords": [
     "aura-ui",
+    "auraui",
     "web-components",
+    "custom-element",
     "custom-elements",
+    "client-side-routing",
+    "lit",
     "router",
     "html-first",
     "mpa",
-    "spa"
+    "spa",
+    "progressive-enhancement",
+    "typescript"
   ],
   "author": "Aleksandr Buryakov",
   "license": "MIT",

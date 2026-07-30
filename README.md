@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![CI](https://github.com/aura-ui/router/actions/workflows/ci.yml/badge.svg)](https://github.com/aura-ui/router/actions/workflows/ci.yml)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@auraui/router)](https://bundlephobia.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
 **Declarative routing for Web Components — HTML-first, MPA→SPA.**
@@ -113,6 +114,7 @@ No Internet Explorer. No Node SSR runtime — the router runs in the browser (HT
 | | |
 | --- | --- |
 | **Usage guide** | [docs/guide.md](./docs/guide.md) — navigation, views, layouts, lifecycle, cache, loading, API |
+| Questions / feedback | [GitHub Discussions](https://github.com/aura-ui/router/discussions) |
 | Known gaps | [LIMITATIONS.md](./LIMITATIONS.md) |
 | Security | [SECURITY.md](./SECURITY.md) |
 | Roadmap | [ROADMAP.md](./ROADMAP.md) |

@@ -53,7 +53,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
-[auraui@yandex.ru](mailto:auraui@yandex.ru).
+[hello@aura-ui.dev](mailto:hello@aura-ui.dev).
 
 **Do not** open a public issue, discussion, or pull request to report a Code of
 Conduct violation.

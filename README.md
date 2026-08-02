@@ -114,7 +114,7 @@ No Internet Explorer. No Node SSR runtime — the router runs in the browser (HT
 | | |
 | --- | --- |
 | **Usage guide** | [docs/guide.md](./docs/guide.md) — navigation, views, layouts, lifecycle, cache, loading, API |
-| Questions / feedback | [GitHub Discussions](https://github.com/aura-ui/router/discussions) |
+| Questions / feedback | [GitHub Discussions](https://github.com/aura-ui/router/discussions) · private: [hello@aura-ui.dev](mailto:hello@aura-ui.dev) |
 | Known gaps | [LIMITATIONS.md](./LIMITATIONS.md) |
 | Security | [SECURITY.md](./SECURITY.md) |
 | Roadmap | [ROADMAP.md](./ROADMAP.md) |

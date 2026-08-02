@@ -8,4 +8,4 @@ The source code in this repository is licensed under MIT (see [LICENSE](./LICENS
 
 The MIT license does not grant rights to use the project name, logos, or branding in a way that suggests endorsement, affiliation, or official status.
 
-Questions about name or logo usage: [GitHub Issues](https://github.com/aura-ui/router/issues).
+Questions about name or logo usage: [hello@aura-ui.dev](mailto:hello@aura-ui.dev).

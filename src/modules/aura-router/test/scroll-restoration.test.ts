@@ -51,8 +51,8 @@ describe('ScrollRestoration', () => {
     expect(mock.scrollTo).toHaveBeenCalledWith(0, 0);
   });
 
-  it('restores saved scroll on pop when policy is restore', () => {
-    const feed = createRoute('/feed', 'restore');
+  it('restores saved scroll on pop when policy is auto', () => {
+    const feed = createRoute('/feed', 'auto');
     const checkout = createRoute('/checkout', 'top');
     const restoration = new ScrollRestoration(container);
 
@@ -75,8 +75,8 @@ describe('ScrollRestoration', () => {
     expect(mock.scrollTo).toHaveBeenLastCalledWith(0, 480);
   });
 
-  it('does nothing when policy is manual', () => {
-    const route = createRoute('/quiet', '');
+  it('does nothing when policy is none', () => {
+    const route = createRoute('/quiet', 'none');
     const restoration = new ScrollRestoration(container);
 
     restoration.apply({

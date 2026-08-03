@@ -2,25 +2,29 @@ import { parseScrollAttr } from '../../core/attr/scroll-attr-parser';
 
 describe('parseScrollAttr', () => {
   it('parses known scroll modes', () => {
-    expect(parseScrollAttr('restore')).toBe('restore');
+    expect(parseScrollAttr('auto')).toBe('auto');
     expect(parseScrollAttr('top')).toBe('top');
   });
 
   it('normalizes case and whitespace', () => {
-    expect(parseScrollAttr('  RESTORE  ')).toBe('restore');
+    expect(parseScrollAttr('  AUTO  ')).toBe('auto');
     expect(parseScrollAttr(' Top')).toBe('top');
   });
 
-  it('treats inherit opt-out keywords as manual', () => {
-    expect(parseScrollAttr('none')).toBe('manual');
-    expect(parseScrollAttr('off')).toBe('manual');
-    expect(parseScrollAttr('false')).toBe('manual');
+  it('treats inherit opt-out keywords as none', () => {
+    expect(parseScrollAttr('none')).toBe('none');
+    expect(parseScrollAttr('off')).toBe('none');
+    expect(parseScrollAttr('false')).toBe('none');
   });
 
-  it('returns null for empty or invalid values', () => {
-    expect(parseScrollAttr('')).toBeNull();
-    expect(parseScrollAttr('   ')).toBeNull();
-    expect(parseScrollAttr(null)).toBeNull();
+  it('defaults to auto when absent or empty', () => {
+    expect(parseScrollAttr(null)).toBe('auto');
+    expect(parseScrollAttr('')).toBe('auto');
+    expect(parseScrollAttr('   ')).toBe('auto');
+  });
+
+  it('returns null for invalid values', () => {
+    expect(parseScrollAttr('restore')).toBeNull();
     expect(parseScrollAttr('manual')).toBeNull();
     expect(parseScrollAttr('unknown')).toBeNull();
   });

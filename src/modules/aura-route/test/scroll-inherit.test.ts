@@ -16,32 +16,32 @@ describe('AuraRoute scroll inherit', () => {
   });
 
   it('inherits scroll from aura-router', () => {
-    const child = mountAuraRouteUnderRouter({ path: '/feed' }, { scroll: 'restore' });
+    const child = mountAuraRouteUnderRouter({ path: '/feed' }, { scroll: 'auto' });
 
-    expect(child.scrollPolicy).toBe('restore');
+    expect(child.scrollPolicy).toBe('auto');
   });
 
   it('scroll="none" opts out of router default', () => {
     const child = mountAuraRouteUnderRouter(
       { path: '/checkout', scroll: 'none' },
-      { scroll: 'restore' },
+      { scroll: 'auto' },
     );
 
-    expect(child.scrollPolicy).toBe('manual');
+    expect(child.scrollPolicy).toBe('none');
   });
 
   it('child overrides inherited scroll', () => {
     const child = mountAuraRouteUnderRouter(
       { path: '/checkout', scroll: 'top' },
-      { scroll: 'restore' },
+      { scroll: 'auto' },
     );
 
     expect(child.scrollPolicy).toBe('top');
   });
 
-  it('returns null when no scroll on route or ancestors', () => {
+  it('defaults to auto when no scroll on route or ancestors', () => {
     const child = mountAuraRouteUnderRouter({ path: '/open' });
 
-    expect(child.scrollPolicy).toBeNull();
+    expect(child.scrollPolicy).toBe('auto');
   });
 });

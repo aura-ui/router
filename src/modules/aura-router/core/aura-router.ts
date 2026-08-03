@@ -110,7 +110,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ parser: parseNullableString, cached: true })
   linkActiveBranchClass: string | null;
 
-  /** Default scroll policy for child routes (`restore` | `top`; `scroll="none"` opts out). HTML attr: `scroll`. */
+  /**
+   * Default scroll policy for child routes (`auto` | `top`; default `auto`).
+   * `scroll="none"` opts out. HTML attr: `scroll`.
+   */
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' })
   scrollPolicy: ScrollAttr | null;
 

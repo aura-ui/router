@@ -71,3 +71,14 @@ fixed stuff
 - Husky runs Commitlint on `git commit` via `.husky/commit-msg`.
 
 If you are unsure which type to use, prefer the smallest accurate label: `fix` for bugs, `feat` for new behavior, `chore` or `docs` for everything else that is not code logic.
+
+## Releases
+
+Releases are prepared by [release-please](https://github.com/googleapis/release-please) on push to `main`. Do **not** bump `package.json` version in feature PRs.
+
+### Flow
+
+1. Merge conventional commits into `main` (`feat` / `fix` / `feat!` + `BREAKING CHANGE:` as needed).
+2. The bot opens or updates a **Release PR** with version bump + `CHANGELOG.md` (commit links included).
+3. Review that PR: edit wording, drop duplicates, add anything missing — then merge.
+4. Merge creates the git tag and GitHub Release. Publish to npm separately when ready (`npm publish` from the tag, or a follow-up workflow).

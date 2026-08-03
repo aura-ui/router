@@ -35,25 +35,18 @@ describe('resolveAppOutlet', () => {
     );
   });
 
-  it('reuses previous sibling outlet', () => {
+  it('reuses the first aura-outlet in the document', () => {
     const existing = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const wrap = document.createElement('div');
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    document.body.append(existing, router);
+    wrap.append(router);
+    document.body.append(existing, wrap);
 
     expect(resolveAppOutlet(router)).toBe(existing);
     expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
   });
 
-  it('reuses next sibling outlet', () => {
-    const existing = document.createElement(AuraOutlet.is) as AuraOutlet;
-    const router = document.createElement(AuraRouter.is) as AuraRouter;
-    document.body.append(router, existing);
-
-    expect(resolveAppOutlet(router)).toBe(existing);
-    expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
-  });
-
-  it('reuses nested outlet inside the router', () => {
+  it('reuses a nested outlet inside the router', () => {
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     const nested = document.createElement(AuraOutlet.is) as AuraOutlet;
     router.append(nested);
@@ -63,17 +56,13 @@ describe('resolveAppOutlet', () => {
     expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
   });
 
-  it('ignores a distant document outlet and creates a sibling', () => {
-    const distant = document.createElement(AuraOutlet.is) as AuraOutlet;
-    const wrap = document.createElement('div');
+  it('prefers the first document outlet when several exist', () => {
+    const first = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const second = document.createElement(AuraOutlet.is) as AuraOutlet;
     const router = document.createElement(AuraRouter.is) as AuraRouter;
-    wrap.append(router);
-    document.body.append(distant, wrap);
+    document.body.append(first, second, router);
 
-    const outlet = resolveAppOutlet(router);
-
-    expect(outlet).not.toBe(distant);
-    expect(outlet.nextElementSibling).toBe(router);
+    expect(resolveAppOutlet(router)).toBe(first);
     expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(2);
   });
 
@@ -123,26 +112,29 @@ describe('AuraRouter.appOutlet', () => {
     expect(router.previousElementSibling).toBe(router.appOutlet);
   });
 
-  it('reuses the sibling outlet after disconnect/reconnect and remounts', async () => {
+  it('reuses a distant document outlet after disconnect/reconnect and remounts', async () => {
+    const existing = document.createElement(AuraOutlet.is) as AuraOutlet;
     const router = document.createElement(AuraRouter.is) as AuraRouter;
     router.innerHTML = `<aura-route path="/" view="html::<p data-home>home</p>"></aura-route>`;
-    document.body.append(router);
+    const wrap = document.createElement('div');
+    wrap.append(router);
+    document.body.append(existing, wrap);
 
     await customElements.whenDefined('aura-route');
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-    const outlet = router.appOutlet;
-    expect(outlet.querySelector('[data-home]')?.textContent).toBe('home');
+    expect(router.appOutlet).toBe(existing);
+    expect(existing.querySelector('[data-home]')?.textContent).toBe('home');
 
     router.remove();
     expect(router.activeRouteBranch).toEqual([]);
 
-    document.body.append(router);
+    wrap.append(router);
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-    expect(router.appOutlet).toBe(outlet);
+    expect(router.appOutlet).toBe(existing);
     expect(document.querySelectorAll(AuraOutlet.is)).toHaveLength(1);
     expect(router.appOutlet.querySelector('[data-home]')?.textContent).toBe('home');
   });

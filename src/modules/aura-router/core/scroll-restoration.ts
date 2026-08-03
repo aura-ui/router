@@ -18,17 +18,17 @@ export class ScrollRestoration {
   apply(ctx: NavigationCommittedContext): void {
     const { from, to, action, hash } = ctx;
 
-    if (from?.route.scrollPolicy === 'restore') {
+    if (from?.route.scrollPolicy === 'auto') {
       this.positions.set(from.pathname + from.search, this.container.scrollY);
     }
 
     if (hash) return;
 
     const policy = to.route.scrollPolicy;
-    if (policy !== 'top' && policy !== 'restore') return;
+    if (policy !== 'top' && policy !== 'auto') return;
 
     const y =
-      policy === 'restore' && action === 'pop'
+      policy === 'auto' && action === 'pop'
         ? this.positions.get(to.pathname + to.search)
         : 0;
 

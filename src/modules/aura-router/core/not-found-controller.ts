@@ -41,16 +41,17 @@ export class AuraRouterNotFoundController {
       return;
     }
 
+    const decoded = decodeURIComponent(url);
     const content = this.router.errorTemplate
       ? getTemplate(this.router.errorTemplate)
-      : `Page not found: ${url}`;
+      : `Page not found: ${decoded}`;
 
     const handle = this.router.appOutlet.apply(content, { strategy: 'replace', key: NOT_FOUND_VIEW_KEY });
     if (!handle) return;
 
     this.viewHandle = handle;
     handle.viewRoot.querySelectorAll('[data-not-found-url]').forEach((el) => {
-      el.textContent = url;
+      el.textContent = decoded;
     });
   }
 

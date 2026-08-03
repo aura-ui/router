@@ -54,6 +54,12 @@ For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). The
 
 Aura **joins** nested `path` values into one pattern (`/app` + `settings` → `/app/settings`; `/users` + `:id` → `/users/:id`). Matching treats `/users` and `/users/` as the same route. The address bar keeps the pathname as resolved from the link (including a trailing `/` when present) — Aura does not strip or add one. If you need one public canonical URL, handle redirects on the server.
 
+**Unicode paths.** Write UTF-8 in the `path` attr (Cyrillic, Chinese, etc.). The address bar may show a percent-encoded form (`/%D0%B0…`); Aura decodes it for matching, so both sides resolve to the same route. Percent-encoded `path` attrs are accepted too. The server must still serve those URLs.
+
+```html
+<aura-route path="/мир-труд-май" view="мир-труд-май.html"></aura-route>
+```
+
 ---
 
 ## Views
@@ -279,7 +285,7 @@ Add `aura-router-ssr` on the content root the server already rendered:
 </aura-router>
 ```
 
-Keep durable chrome (site header, primary nav) **outside** the marked node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` in the same layout slot (sibling or nearby) so after the first SPA transition new pages appear where the server content was.
+Keep durable chrome (site header, primary nav) **outside** the marked node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` where new pages should appear after the first SPA transition (anywhere in the document — the router reuses the first `<aura-outlet>` it finds unless `outlet` is set).
 
 ### With `url` + `extract`
 
@@ -434,7 +440,7 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 | `links-container-selector` | Limit active-link scan to a subtree (default: whole document) |
 | `link-active-class` | Class on the matching link |
 | `link-active-branch-class` | Class on section/folder links (prefix match) |
-| `outlet` | CSS selector for the root `<aura-outlet>` |
+| `outlet` | CSS selector for the root `<aura-outlet>`. When unset: first `<aura-outlet>` in the document, else auto-create a sibling before the router |
 | `prefetch` | Link prefetch mode: `intent` (default when `true`), `tap`, or `false` / `off`. Per-link: `data-prefetch` on `<a>` — see [Prefetch & cache recipe](./recipes/prefetch-cache.md) |
 
 ```html

@@ -1,7 +1,7 @@
 import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import type { AuraRouter } from './aura-router';
 
-/** Resolve order: `outlet` attr → siblings → nested → create sibling before host. */
+/** Resolve order: `outlet` attr → first `<aura-outlet>` in document → create sibling before host. */
 export function resolveAppOutlet(host: AuraRouter): AuraOutlet {
   const selector = host.outletSelector;
   if (selector) {
@@ -12,11 +12,8 @@ export function resolveAppOutlet(host: AuraRouter): AuraOutlet {
     return found;
   }
 
-  if (isAuraOutlet(host.previousElementSibling)) return host.previousElementSibling;
-  if (isAuraOutlet(host.nextElementSibling)) return host.nextElementSibling;
-
-  const nested = host.querySelector(AuraOutlet.is);
-  if (isAuraOutlet(nested)) return nested;
+  const found = document.querySelector<AuraOutlet>(AuraOutlet.is);
+  if (found) return found;
 
   const created = document.createElement(AuraOutlet.is) as AuraOutlet;
   host.parentNode?.insertBefore(created, host);

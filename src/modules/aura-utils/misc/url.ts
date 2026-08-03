@@ -7,12 +7,24 @@ export function stripTrailingSlash(path: string): string {
 }
 
 /**
+ * `decodeURI` with a `%` fast-path (skip when nothing to decode).
+ * Does not decode reserved marks like `%2F` (same as `decodeURI`).
+ */
+export function decodeURIFast(uri: string): string {
+  if (!uri.includes('%')) return uri;
+  try {
+    return decodeURI(uri);
+  } catch {
+    return uri;
+  }
+}
+
+/**
  * Split an origin-root absolute in-app href (`/path?search#hash`).
  * Does not resolve document-relative segments — use app-href resolution first.
+ * Pathname is decoded once here.
  */
 export function splitAppHref(href: string): AppHrefParts {
-  let parts: AppHrefParts;
-
   if (href.startsWith('/') && !href.startsWith('//')) {
     let pathname = href;
     let search = '';
@@ -27,13 +39,11 @@ export function splitAppHref(href: string): AppHrefParts {
       search = pathname.slice(searchIndex);
       pathname = pathname.slice(0, searchIndex);
     }
-    parts = { pathname, search, hash };
-  } else {
-    const { pathname, search, hash } = new URL(href, window.location.origin);
-    parts = { pathname, search, hash };
+    return { pathname: decodeURIFast(pathname), search, hash };
   }
 
-  return parts;
+  const { pathname, search, hash } = new URL(href, window.location.origin);
+  return { pathname: decodeURIFast(pathname), search, hash };
 }
 
 export function joinAppHref(parts: AppHrefParts): string {

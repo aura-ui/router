@@ -1,6 +1,6 @@
 import type { AuraRoute } from '../../../aura-route/core/aura-route';
 import { memoize } from '../../../aura-utils/decorators/memoize';
-import { parseSearch, stripTrailingSlash } from '../../../aura-utils/misc/url';
+import { decodeURIFast, parseSearch, stripTrailingSlash } from '../../../aura-utils/misc/url';
 import { buildActiveChain, getActiveChain } from '../route-tree/matched-chain';
 import { isGlobalCatchAllPattern, isScopedCatchAllPattern } from '../route-tree/resolve-pattern';
 import type { ResolvedView } from '../route-tree/resolved-view';
@@ -84,6 +84,8 @@ interface MatchIndex {
  * 1. {@link matchPath} — best node among `matchableNodes`
  * 2. {@link buildMatchedRouteInfo} — leaf + nested `chain` + resource keys
  *
+ * Expects pathname already decoded at URL ingress (`splitAppHref` / `resolveDocumentHrefParts`).
+ *
  * Caches: memoized `matchPath`, compiled `URLPattern`, node index (`WeakMap`).
  * Call {@link destroy} after the route tree changes (memoize + `URLPattern`;
  * the WeakMap index is GC'd with the old `nodes` array).
@@ -102,7 +104,7 @@ export class AuraRoutingUrlMatcher {
    *
    * Memoized by pathname — call {@link destroy} after the route tree changes.
    *
-   * @param pathname - Browser pathname (no search/hash).
+   * @param pathname - Decoded pathname (no search/hash).
    * @param nodes - Usually `routeTree.matchableNodes`.
    * @returns Winning node + params, or `null` if nothing matched.
    */
@@ -166,7 +168,7 @@ export class AuraRoutingUrlMatcher {
    *
    * Check order: global `*` → scoped `/*` → static `===` → `:param` (URLPattern).
    *
-   * @param pathname - Browser pathname.
+   * @param pathname - Decoded pathname.
    * @param pattern - Route pattern (`node.pattern`).
    */
   getPathParams(pathname: string, pattern: string): Record<string, string> | null {
@@ -217,6 +219,7 @@ export class AuraRoutingUrlMatcher {
   /**
    * Params via compiled {@link URLPattern} for `:param` patterns.
    * On compile/exec failure, falls back to static `pathname === pattern`.
+   * Group values are decoded again — URLPattern may return them percent-encoded.
    */
   private getUrlPatternParams(pathname: string, pattern: string): Record<string, string> | null {
     try {
@@ -225,7 +228,7 @@ export class AuraRoutingUrlMatcher {
 
       const params: Record<string, string> = {};
       for (const [key, value] of Object.entries(result.pathname.groups)) {
-        if (value !== undefined) params[key] = value;
+        if (value !== undefined) params[key] = decodeURIFast(value);
       }
       return params;
     } catch {

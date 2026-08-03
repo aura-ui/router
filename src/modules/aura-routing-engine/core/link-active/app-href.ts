@@ -1,5 +1,5 @@
 import {
-  joinAppHref,
+  decodeURIFast,
   stripTrailingSlash,
   type AppHrefParts,
 } from '../../../aura-utils/misc/url';
@@ -9,11 +9,11 @@ export type ResolvedDocumentHref = AppHrefParts & { href: string };
 
 /** App-relative href from the address bar (`pathname + search + hash`). */
 export function getCurrentAppHref(): string {
-  return joinAppHref({
-    pathname: window.location.pathname,
-    search: window.location.search,
-    hash: window.location.hash,
-  });
+  return (
+    decodeURIFast(window.location.pathname) +
+    window.location.search +
+    window.location.hash
+  );
 }
 
 /**
@@ -31,21 +31,26 @@ export function toDocumentResolutionBase(appHref: string): string {
 }
 
 
-/** HTML resolution: `new URL(href, base)` → app-relative parts + `href` (`pathname + search + hash`). */
+/**
+ * Navigation ingress: turn a raw href into app-relative parts.
+ * Resolves against the document (`new URL(href, base)`), splits pathname/search/hash,
+ * and decodes the pathname (`/%D0%B0…` → `/а…`) for stable matching.
+ */
 export function resolveDocumentHrefParts(
   href: string,
   baseHref = window.location.href,
 ): ResolvedDocumentHref {
   const { pathname, search, hash } = new URL(href, baseHref);
+  const decoded = decodeURIFast(pathname);
   return {
-    pathname,
+    pathname: decoded,
     search,
     hash,
-    href: joinAppHref({ pathname, search, hash }),
+    href: decoded + search + hash,
   };
 }
 
-/** HTML resolution: `new URL(href, base)` → app-relative href (`pathname + search + hash`). */
+/** Same as {@link resolveDocumentHrefParts}, but returns only the joined `href` string. */
 export function resolveDocumentHref(href: string, baseHref = window.location.href): string {
   return resolveDocumentHrefParts(href, baseHref).href;
 }

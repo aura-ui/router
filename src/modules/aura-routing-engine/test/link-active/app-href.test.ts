@@ -70,6 +70,22 @@ describe('app-href helpers', () => {
     });
   });
 
+  describe('resolveDocumentHrefParts encoding', () => {
+    it('decodes percent-encoded pathnames at URL ingress', () => {
+      expect(
+        resolveDocumentHrefParts(
+          '/%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%B0%D1%8F.html',
+          'https://example.com/',
+        ),
+      ).toEqual({
+        pathname: '/главная.html',
+        search: '',
+        hash: '',
+        href: '/главная.html',
+      });
+    });
+  });
+
   describe('isHashOnlyChange', () => {
     it('detects hash-only navigation on the same path', () => {
       const current = splitAppHref('/page#old');

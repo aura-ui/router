@@ -1,5 +1,5 @@
 import { bind } from '../../../aura-utils/decorators/bind';
-import { joinAppHref } from '../../../aura-utils/misc/url';
+import { getCurrentAppHref } from '../link-active/app-href';
 
 import type {
   NavigationHandler,
@@ -13,8 +13,7 @@ export class BrowserHistoryProvider implements NavigationProvider {
   private listening = false;
 
   get currentHref(): string {
-    const { pathname, search, hash } = window.location;
-    return joinAppHref({ pathname, search, hash });
+    return getCurrentAppHref();
   }
 
   onNavigation(handler: NavigationHandler): void {

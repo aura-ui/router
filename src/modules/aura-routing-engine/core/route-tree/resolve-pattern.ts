@@ -1,4 +1,4 @@
-import { stripTrailingSlash } from '../../../aura-utils/misc/url';
+import { decodeURIFast, stripTrailingSlash } from '../../../aura-utils/misc/url';
 
 const CATCH_ALL_SEGMENT = new Set(['*', '/*']);
 const SCOPED_CATCH_ALL_SUFFIX = '/*';
@@ -54,8 +54,13 @@ export function isScopedCatchAllPattern(pattern: string): boolean {
   return pattern.endsWith(SCOPED_CATCH_ALL_SUFFIX) && !isGlobalCatchAllPattern(pattern);
 }
 
-/** Убирает лишние слэши и trailing `/` (кроме корня `/`). @example '//a//b/' → '/a/b' */
+/**
+ * Collapse duplicate `/`, strip trailing `/`, decode percent-encoding.
+ * `decodeURIFast` so `path="/%D0%B3…"` matches a decoded browser URL (`/главная…`) —
+ * attrs may arrive already-encoded (DevTools, CMS, copy-paste).
+ * @example '//a//b/' → '/a/b'
+ */
 function normalizePath(path: string): string {
   const collapsed = path.replace(/\/{2,}/g, '/');
-  return stripTrailingSlash(collapsed) || '/';
+  return stripTrailingSlash(decodeURIFast(collapsed)) || '/';
 }

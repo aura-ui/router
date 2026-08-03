@@ -45,6 +45,15 @@ describe('AuraRouterNotFoundController', () => {
     expect(router.appOutlet.children).toHaveLength(1);
   });
 
+  it('decodes percent-encoded URLs in fallback text', () => {
+    const router = createHost();
+    const controller = new AuraRouterNotFoundController(router);
+
+    controller.recover('/%D0%B0%D0%B2%D1%82%D0%BE%D1%80%D1%81%D0%BA%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B0.html');
+
+    expect(router.appOutlet.textContent).toBe('Page not found: /авторские-права.html');
+  });
+
   it('renders error-template and fills data-not-found-url', () => {
     const template = document.createElement('template');
     template.id = 'error-template';
@@ -58,6 +67,20 @@ describe('AuraRouterNotFoundController', () => {
 
     expect(router.appOutlet.querySelector('h1')?.textContent).toBe('404');
     expect(router.appOutlet.querySelector('[data-not-found-url]')?.textContent).toBe('/gone');
+  });
+
+  it('fills data-not-found-url with a decoded path', () => {
+    const template = document.createElement('template');
+    template.id = 'error-template';
+    template.innerHTML = '<span data-not-found-url></span>';
+    document.body.appendChild(template);
+
+    const router = createHost({ errorTemplate: 'error-template' });
+    const controller = new AuraRouterNotFoundController(router);
+
+    controller.recover('/%D0%BF%D1%83%D1%82%D1%8C.html');
+
+    expect(router.appOutlet.querySelector('[data-not-found-url]')?.textContent).toBe('/путь.html');
   });
 
   it('uses custom handler and clears built-in fallback view', () => {

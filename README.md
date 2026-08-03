@@ -5,9 +5,7 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/@auraui/router)](https://bundlephobia.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
-**Declarative routing for Web Components — HTML-first, MPA→SPA.**
-
-First visit shows a normal HTML page. After `AuraRouter.install()`, in-app links update the page content without a full reload (SPA-style).
+**Declarative router for Web Components** — routes, nested layouts, and lifecycle in HTML. HTML-first: real pages on first visit, client navigation after (MPA→SPA).
 
 ```bash
 npm install @auraui/router
@@ -17,25 +15,21 @@ npm install @auraui/router
 
 ## Why Aura Router
 
-A thin layer over real HTML — not a meta-framework. Keep pages on the server; add client navigation in the browser. Routes live in markup; UI can be plain HTML or Web Components.
-
 | | |
 | --- | --- |
-| **Routes in HTML** | Declare `<aura-router>`, `<aura-route>`, `layout`, and `view` in markup instead of owning the app from a JS route table |
-| **HTML-first, MPA → SPA** | Each URL is a full HTML page (router included). The first visit paints that document; later in-app navigations fetch HTML and update the outlet |
-| **SEO-friendly** | Search engines and link previews can read real HTML when your server renders the page — no empty client shell required |
-| **Web Components, no lock-in** | Works with vanilla custom elements, Lit, or existing HTML pages |
-| **Nested layouts & lifecycle** | Nested outlets plus `guard`, `load`, `ready`, and cache — declared on the route |
-| **Progressive enhancement** | Plain root-absolute `href` links (`/users`) keep working without JavaScript; `aura-router-link` upgrades them to client navigation |
-| **Legacy-friendly** | Load full server pages with the `url` view and take a fragment via `extract` |
+| **Routes in HTML** | `<aura-router>`, `<aura-route>`, `<aura-outlet>` — path, layout, view, hooks, and cache in markup |
+| **Nested layouts** | Shared shell stays mounted; only the matched leaf updates in the outlet |
+| **Route lifecycle** | `guard`, `load`, `ready`, `leave`, `unmount`, … — including client redirect chains |
+| **Cache & prefetch** | Route-scoped `cache` (view / data / DOM); intent/tap prefetch on in-app links |
+| **HTML-first, MPA → SPA** | First visit paints server HTML; later navigations update the outlet without a full reload |
+| **SEO-friendly** | Crawlers and link previews read real HTML when the server renders the page — no empty client shell |
+| **Progressive enhancement** | Root-absolute `href`s work without JS; `aura-router-link` upgrades them to client navigation |
+
+Works with plain HTML, vanilla custom elements, or Lit. Load full server pages with `url` + `extract` when you need a fragment. See the [guide](./docs/guide.md).
 
 ## Quick start
 
-**1. Install once**
-
-```bash
-npm install @auraui/router
-```
+**1. Install**
 
 ```ts
 import { AuraRouter } from '@auraui/router';
@@ -43,7 +37,7 @@ import { AuraRouter } from '@auraui/router';
 AuraRouter.install();
 ```
 
-Or without a bundler (CDN — pin the version):
+Or CDN (pin the version):
 
 ```html
 <script type="module">
@@ -52,9 +46,9 @@ Or without a bundler (CDN — pin the version):
 </script>
 ```
 
-This registers the custom elements: `<aura-router>`, `<aura-route>`, and `<aura-outlet>` (the place where page content appears).
+Registers `<aura-router>`, `<aura-route>`, and `<aura-outlet>`.
 
-**2. Declare routes in HTML**
+**2. Declare routes**
 
 ```html
 <aura-router>
@@ -74,47 +68,56 @@ This registers the custom elements: `<aura-router>`, `<aura-route>`, and `<aura-
 </template>
 ```
 
-If `view` is just a file name (e.g. `users.html`), Aura fetches that HTML from the server. That is the usual way to load pages after the first full page load.
+Nested shell (layout stays mounted across children):
 
-**3. Add in-app links**
+```html
+<aura-router>
+  <aura-route path="/app" layout="app-shell" guard="auth">
+    <aura-route path="users" view="users.html" load="users"></aura-route>
+    <aura-route path="settings" view="template::settings"></aura-route>
+  </aura-route>
+  <aura-route path="*" view="template::not-found"></aura-route>
+</aura-router>
+
+<template id="app-shell">
+  <nav><!-- durable chrome --></nav>
+  <aura-outlet></aura-outlet>
+</template>
+
+<template id="settings">
+  <h1>Settings</h1>
+</template>
+```
+
+`guard` / `load` are hook names from `AuraRouter.use` — see [lifecycle hooks](./docs/guide.md#lifecycle-hooks). A bare `view` file name (e.g. `users.html`) is fetched from the server after the first full load.
+
+**3. Links**
 
 ```html
 <a href="/" aura-router-link>Home</a>
-<a href="/users" aura-router-link>Users</a>
+<a href="/app/users" aura-router-link>Users</a>
 ```
 
-Prefer **root-absolute** paths (`/users`, `/users/1`) so links work with and without JavaScript. Aura matches `/users` and `/users/` as the same route and keeps the pathname as in the link (does not strip or add a trailing `/`).
-
-Clicks on `[aura-router-link]` update the URL and swap the outlet — no full reload.
-
-Or navigate from code:
+Prefer root-absolute paths (`/users`). Aura matches `/users` and `/users/` as the same route and keeps the pathname as in the link.
 
 ```ts
-const router = document.querySelector('aura-router');
-router?.navigate('/users');
-router?.navigate('/users', { replace: true });
+document.querySelector('aura-router')?.navigate('/app/users');
 ```
 
-MPA→SPA reference app: [`playground/`](./playground/) (`cd playground && npm install && npm run dev`). Recipes live under [`docs/recipes/`](./docs/recipes/).
+Playground: [`playground/`](./playground/). Recipes: [`docs/recipes/`](./docs/recipes/).
 
 ## Browsers
 
-Modern evergreen browsers (Chrome, Firefox, Safari, Edge) with:
+Modern evergreen browsers (Chrome, Firefox, Safari, Edge) with ES modules, Custom Elements, History API, `fetch`, and `URLPattern` (for `:param` routes).
 
-- ES modules
-- Custom Elements
-- History API (`pushState` / `popstate`)
-- `fetch`
-- `URLPattern` (required for `:param` routes)
-
-No Internet Explorer. No Node SSR runtime — the router runs in the browser (HTML-first / MPA→SPA). See [LIMITATIONS](./LIMITATIONS.md).
+No Internet Explorer. No Node SSR runtime — the router runs in the browser. See [LIMITATIONS](./LIMITATIONS.md).
 
 ## Docs
 
 | | |
 | --- | --- |
-| **Usage guide** | [docs/guide.md](./docs/guide.md) — navigation, views, layouts, lifecycle, cache, loading, API |
-| Questions / feedback | [GitHub Discussions](https://github.com/aura-ui/router/discussions) · private: [hello@aura-ui.dev](mailto:hello@aura-ui.dev) |
+| **Usage guide** | [docs/guide.md](./docs/guide.md) |
+| Questions / feedback | [GitHub Discussions](https://github.com/aura-ui/router/discussions) · [hello@aura-ui.dev](mailto:hello@aura-ui.dev) |
 | Known gaps | [LIMITATIONS.md](./LIMITATIONS.md) |
 | Security | [SECURITY.md](./SECURITY.md) |
 | Roadmap | [ROADMAP.md](./ROADMAP.md) |

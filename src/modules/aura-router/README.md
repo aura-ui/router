@@ -40,7 +40,7 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 | `loading-body-class` | Default CSS-класс на `document.body` в том же окне. Без атрибута класс не ставится. |
 | `loading-start-event` | Default имя start-события в том же окне. На route по умолчанию `aura-route-loading`; `none`/`off`/`false` — выкл. |
 | `loading-end-event` | Default имя end-события в том же окне. На route по умолчанию `aura-route-loading-end`; `none`/`off`/`false` — выкл. |
-| `outlet` | Опциональный CSS-селектор корневого `<aura-outlet>`. Если не задан: prev/next sibling → nested `<aura-outlet>` → автосоздание sibling перед router. |
+| `outlet` | Опциональный CSS-селектор корневого `<aura-outlet>`. Если не задан: первый `<aura-outlet>` в документе → автосоздание sibling перед router. |
 
 ### Атрибуты `<aura-route>` (prefetch)
 

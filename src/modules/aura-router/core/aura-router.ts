@@ -67,7 +67,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   /**
    * Optional CSS selector for the root `<aura-outlet>`.
-   * When unset: previous/next sibling → nested `querySelector` → auto-create sibling.
+   * When unset: first `<aura-outlet>` in the document → auto-create sibling before host.
    */
   @attr({ parser: parseNullableString, cached: true, name: 'outlet' })
   outletSelector: string | null;
@@ -149,7 +149,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
   /**
    * Outlet for fallback 404 / top-level mounts.
-   * Resolve order: `outlet` attr → prev/next sibling → nested → create sibling before host.
+   * Resolve order: `outlet` attr → first `<aura-outlet>` in document → create sibling before host.
    */
   @memoize()
   get appOutlet(): AuraOutlet {

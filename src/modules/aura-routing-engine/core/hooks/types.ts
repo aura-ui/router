@@ -35,7 +35,7 @@ export type HookResultInput = HookResult | boolean | RedirectTarget;
 
 export type RouteHookFn<TOptions = Record<string, unknown>> = (
   ctx: RouteHookContext<TOptions>,
-) => Promise<HookResultInput>;
+) => HookResultInput | Promise<HookResultInput>;
 
 /**
  * Registered route hook — global by name, invoked when a route references it.

@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Version** | `0.0.1` |
-| **Updated** | 2026-07-29 |
+| **Updated** | 2026-08-04 |
 | **Audience** | Library users, contributors, and reviewers |
 | **Public docs** | [README](./README.md) · [Guide](./docs/guide.md) · [LIMITATIONS](./LIMITATIONS.md) · [SECURITY](./SECURITY.md) · [CHANGELOG](./CHANGELOG.md) |
 
@@ -46,6 +46,8 @@
 | :---: | --- | --- |
 | <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **8.1 / 8.4** MPA adoption path | migration guide + pure static `.html` per URL (playground is Fastify, not static-only) |
 | <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **7.x** Adoption artifacts | document recipes from [`playground/`](./playground/), Playwright E2E, hosted playground |
+| <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | **5.5 / 5.6** Basename + typed params | subfolder mount + `:id(int)`-style path types |
+| <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | **4.2** Navigation API transport | preferred `window.navigation` + History API fallback |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | Pre-release **0.0.1** | merge → `main`, npm publish |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | **6.x** Debugging & performance | Cache DevTools, nav timeline UI, per-nav metrics gate |
 
@@ -87,8 +89,8 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | **1** | [Routing engine](#shipped) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Shipped — see summary below |
 | **2** | [Data & cache](#phase-2--data-loading--cache) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Cache ladder / invalidate / entry timings <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; DataGraph parity + out-in prefetch open |
 | **3** | [View rendering](#phase-3--view-rendering) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Renderer API, incremental DOM |
-| **4** | [Navigation UX](#phase-4--navigation-experience) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Loading chrome <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; View Transitions API <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
-| **5** | [Developer API](#phase-5--developer-facing-api) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Route API + named hooks <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; folders <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; optional `/min` later <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
+| **4** | [Navigation UX](#phase-4--navigation-experience) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Loading chrome <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; View Transitions / Navigation API transport <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
+| **5** | [Developer API](#phase-5--developer-facing-api) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Route API + named hooks <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; folders <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; basename / typed params / optional `/min` <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
 | **6** | [DevTools](#phase-6--debugging--performance-tooling) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Event stream + smoke/size CI <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; DevTools UI / per-nav gate open |
 | **7** | [Examples & docs](#phase-7--examples--docs) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | [`playground/`](./playground/) covers nested / auth / cache / 404 <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; dedicated recipes / E2E / hosted still open |
 | **8** | [MPA → SPA](#phase-8--mpa--spa) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Hydrate + shared layout inject <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; migration guide / pure static example open |
@@ -152,6 +154,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | ---: | --- | :---: | --- |
 | 4.0 | **Loading chrome** — skeleton / body class / events while prepare runs | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | `loading-template` skipped when page transitions are defined; listed under [Shipped](#shipped) |
 | 4.1 | **View Transitions API** — optional cross-fade / slide via `document.startViewTransition` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | CSS / WAAPI transitions via attrs work in demo; browser VT API not wired in engine |
+| 4.2 | **Navigation API transport** — prefer `window.navigation` (`navigate` + `intercept`); keep History API fallback | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Today: History API only. Dual provider; drop fallback only after wide Baseline (~2028+) + metrics. caniuse ~87% (June 2026) |
 
 ---
 
@@ -166,6 +169,8 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | 5.2a | **Named hook registration** — `AuraRouter.use(name, fn)` / `defineRouteHook(name, fn)` | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Listed under [Shipped](#shipped) |
 | 5.3 | **Nested route folders** — file-system-style nested routes and layouts | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Engine nested path + demo layouts <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; colocated folder templates still open |
 | 5.4 | **Default vs `/min` entry** — one package, optional slim import | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | **Default stays full:** `@auraui/router` always ships the full surface. **Later (optional):** `@auraui/router/min` — minimal working core, with plugins to opt into loaders / DataGraph / other pieces as needed |
+| 5.5 | **Basename / subfolder mode** — mount app under `/app`, GitHub Pages, multi-SPA on one host | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Attr/config on `<aura-router>`; strip/join for match + links + `navigate` |
+| 5.6 | **Typed path params** — e.g. `:userId(int)`, `:slug(slug)` in `path` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Inline in `path` (not a separate `params` attr). Small builtin set; fail match on type mismatch. Avoid `:id&lt;int&gt;` in HTML attrs |
 
 ---
 

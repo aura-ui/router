@@ -12,6 +12,7 @@ Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/rout
 - [Navigation](#navigation)
 - [Route match priority](#route-match-priority)
 - [Views](#views)
+- [Scroll](#scroll)
 - [Nested routes & layouts](#nested-routes--layouts)
 - [Lifecycle hooks](#lifecycle-hooks)
 - [First paint (MPA → SPA)](#first-paint-mpa--spa)
@@ -157,6 +158,36 @@ Use `extract` when a fetched page is full HTML and the outlet should mount only 
 | *(absent)* | Inherit from `<aura-router>` / parent `<aura-route>` |
 
 Selector stays in `extract`, not inside `view`.
+
+---
+
+## Scroll
+
+After a successful navigation commit, the router adjusts the viewport. Policy is `scroll`; optional landing spot is `scroll-target`.
+
+```html
+<aura-router scroll="auto" scroll-target="#main">
+  <aura-route path="/feed" view="feed.html"></aura-route>
+  <!-- always land at top (or scroll-target) -->
+  <aura-route path="/checkout" view="checkout.html" scroll="top"></aura-route>
+  <!-- no scroll adjustment -->
+  <aura-route path="/quiet" view="quiet.html" scroll="none"></aura-route>
+  <!-- override inherited target -->
+  <aura-route path="/docs" view="docs.html" scroll-target="#content"></aura-route>
+</aura-router>
+```
+
+| Attr | Meaning |
+| --- | --- |
+| `scroll="auto"` *(default)* | Forward nav → top (or `scroll-target`); back/forward → restore saved position |
+| `scroll="top"` | Always scroll to top (or `scroll-target`) |
+| `scroll="none"` / `off` / `false` | No scroll adjustment; opt out of an inherited default |
+| `scroll-target="#main"` | CSS selector; `scrollIntoView` on forward nav / `top` when the node exists |
+| *(no match / invalid selector)* | Fall back to top |
+| URL hash (`#section`) | Wins — restoration and `scroll-target` are skipped |
+| *(absent)* | Inherit from `<aura-router>` / parent `<aura-route>` |
+
+`scroll-target` is ignored on back/forward restore and when `scroll="none"`.
 
 ---
 
@@ -471,6 +502,8 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 | `loading-start-event` / `loading-end-event` | Loading event names (`none` / `off` / `false` disables) |
 | `error-template` | Template id on render error; also thin fallback 404 when no `path="*"` |
 | `extract` | Default CSS selector for `url` fragment extract |
+| `scroll` | Viewport policy after commit (`auto` default, `top`, `none`) — see [Scroll](#scroll) |
+| `scroll-target` | Default CSS selector for post-nav `scrollIntoView` |
 
 ### Host only (`<aura-router>`)
 
@@ -487,6 +520,8 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 <aura-router
   loading-body-class="loading"
   extract="#main"
+  scroll="auto"
+  scroll-target="#main"
   link-active-class="is-active"
   link-active-branch-class="is-active-branch">
   …

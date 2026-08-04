@@ -27,12 +27,26 @@ export class ScrollRestoration {
     const policy = to.route.scrollPolicy;
     if (policy !== 'top' && policy !== 'auto') return;
 
-    const y =
-      policy === 'auto' && action === 'pop'
-        ? this.positions.get(to.pathname + to.search)
-        : 0;
-
+    const restoring = policy === 'auto' && action === 'pop';
+    const y = restoring ? this.positions.get(to.pathname + to.search) : 0;
     if (y === undefined) return;
-    requestAnimationFrame(() => this.container.scrollTo(0, y));
+
+    requestAnimationFrame(() => {
+      if (!restoring) {
+        const target = to.route.scrollTarget;
+        if (target) {
+          try {
+            const el = document.querySelector(target);
+            if (el) {
+              el.scrollIntoView();
+              return;
+            }
+          } catch {
+            // invalid selector → fall through to top
+          }
+        }
+      }
+      this.container.scrollTo(0, y);
+    });
   }
 }

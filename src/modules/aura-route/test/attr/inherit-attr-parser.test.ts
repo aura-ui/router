@@ -1,6 +1,6 @@
 import {
   parseHookList,
-  parseInheritableNullableString,
+  parseOffableString,
 } from '../../core/attr/inherit-attr-parser';
 import { isOffKeyword } from '../../core/attr/off-keyword';
 
@@ -21,17 +21,17 @@ describe('parseHookList', () => {
   });
 });
 
-describe('parseInheritableNullableString', () => {
+describe('parseOffableString', () => {
   it('returns null when absent, off, or empty', () => {
-    expect(parseInheritableNullableString(null)).toBeNull();
-    expect(parseInheritableNullableString('none')).toBeNull();
-    expect(parseInheritableNullableString('off')).toBeNull();
-    expect(parseInheritableNullableString('false')).toBeNull();
-    expect(parseInheritableNullableString('   ')).toBeNull();
+    expect(parseOffableString(null)).toBeNull();
+    expect(parseOffableString('none')).toBeNull();
+    expect(parseOffableString('off')).toBeNull();
+    expect(parseOffableString('false')).toBeNull();
+    expect(parseOffableString('   ')).toBeNull();
   });
 
   it('returns trimmed value when set', () => {
-    expect(parseInheritableNullableString('#main')).toBe('#main');
-    expect(parseInheritableNullableString('loading')).toBe('loading');
+    expect(parseOffableString('#main')).toBe('#main');
+    expect(parseOffableString('loading')).toBe('loading');
   });
 });

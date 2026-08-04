@@ -10,8 +10,8 @@ export function parseHookList(raw: string | null): string[] | null {
   return parseCommaSeparated(trimmed);
 }
 
-/** Inheritable nullable string (`extract`, `loading-*`, `error-template`): off → `null`. */
-export function parseInheritableNullableString(raw: string | null): string | null {
+/** Nullable string with off keywords (`extract`, `loading-*`, `error-template`, `scroll-target`): empty/`none`/`off`/`false` → `null`. */
+export function parseOffableString(raw: string | null): string | null {
   if (raw === null) return null;
   const trimmed = raw.trim();
   if (!trimmed || isOffKeyword(trimmed)) return null;

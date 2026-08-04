@@ -3,7 +3,7 @@ import { routeAttr } from '../../aura-utils/decorators';
 import { memoize } from '../../aura-utils/decorators/memoize';
 import { dispatchCustomEvent, getTemplate } from '../../aura-utils/misc';
 import { parseCacheAttr } from './attr/cache-attr-parser';
-import { parseHookList, parseInheritableNullableString } from './attr/inherit-attr-parser';
+import { parseHookList, parseOffableString } from './attr/inherit-attr-parser';
 import { parseMountStrategyAttr } from './attr/mount-strategy-attr-parser';
 import { parseParamChangeAttr } from './attr/param-change-attr-parser';
 import { parsePrefetchAttr } from './attr/prefetch-attr-parser';
@@ -37,6 +37,7 @@ import type {
   RouteTransitionType,
   TransitionShortcutType,
 } from './attr/transition-attr-parser';
+
 import type { TransitionOrderType } from './attr/transition-order-attr-parser';
 import type { ViewAttrDescriptor } from './attr/view-attr-parser';
 import type {
@@ -77,28 +78,28 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ inherit: false, parser: parseViewAttr })
   view: ViewAttrDescriptor | null;
 
-  @routeAttr({ parser: parseInheritableNullableString })
+  @routeAttr({ parser: parseOffableString })
   extract: string | null;
 
-  @routeAttr({ parser: parseInheritableNullableString })
+  @routeAttr({ parser: parseOffableString })
   loadingTemplate: string | null;
 
-  @routeAttr({ parser: parseInheritableNullableString })
+  @routeAttr({ parser: parseOffableString })
   loadingBodyClass: string | null;
 
   @routeAttr({
-    parser: parseInheritableNullableString,
+    parser: parseOffableString,
     defaultValue: AURA_ROUTE_LOADING_START,
   })
   loadingStartEvent: string | null;
 
   @routeAttr({
-    parser: parseInheritableNullableString,
+    parser: parseOffableString,
     defaultValue: AURA_ROUTE_LOADING_END,
   })
   loadingEndEvent: string | null;
 
-  @routeAttr({ parser: parseInheritableNullableString })
+  @routeAttr({ parser: parseOffableString })
   errorTemplate: string | null;
 
   @routeAttr({ parser: parseHookList })
@@ -139,6 +140,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
 
   @routeAttr({ parser: parseScrollAttr, name: 'scroll' })
   scrollPolicy: ScrollAttr | null;
+
+  /** CSS selector for post-nav scroll; `none` opts out. HTML attr: `scroll-target`. */
+  @routeAttr({ parser: parseOffableString })
+  scrollTarget: string | null;
 
   @routeAttr({ parser: parsePrefetchAttr })
   prefetch: PrefetchType | false | null;

@@ -27,6 +27,7 @@ describe('ScrollRestoration', () => {
   beforeEach(() => {
     mock = new ScrollContainerMock();
     container = mock as unknown as ScrollContainer;
+    document.body.replaceChildren();
     jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
       cb(0);
       return 0;
@@ -35,6 +36,7 @@ describe('ScrollRestoration', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    document.body.replaceChildren();
   });
 
   it('scrolls to top on push when policy is top', () => {
@@ -102,12 +104,82 @@ describe('ScrollRestoration', () => {
 
     expect(mock.scrollTo).not.toHaveBeenCalled();
   });
+
+  it('scrolls into view when scroll-target matches', () => {
+    const target = document.createElement('div');
+    target.id = 'main';
+    target.scrollIntoView = jest.fn();
+    document.body.append(target);
+
+    const route = createRoute('/docs', 'top', '#main');
+    new ScrollRestoration(container).apply({
+      from: null,
+      to: matched('/docs', route),
+      action: 'push',
+      hash: '',
+    });
+
+    expect(target.scrollIntoView).toHaveBeenCalled();
+    expect(mock.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('falls back to top when scroll-target misses or is invalid', () => {
+    const restoration = new ScrollRestoration(container);
+
+    restoration.apply({
+      from: null,
+      to: matched('/docs', createRoute('/docs', 'top', '#missing')),
+      action: 'push',
+      hash: '',
+    });
+    expect(mock.scrollTo).toHaveBeenCalledWith(0, 0);
+
+    mock.scrollTo.mockClear();
+    restoration.apply({
+      from: null,
+      to: matched('/docs', createRoute('/docs', 'top', '##')),
+      action: 'push',
+      hash: '',
+    });
+    expect(mock.scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it('ignores scroll-target on pop restore', () => {
+    const feed = createRoute('/feed', 'auto', '#main');
+    const checkout = createRoute('/checkout', 'top');
+    const restoration = new ScrollRestoration(container);
+
+    const target = document.createElement('div');
+    target.id = 'main';
+    target.scrollIntoView = jest.fn();
+    document.body.append(target);
+
+    mock.scrollY = 320;
+    restoration.apply({
+      from: matched('/feed', feed),
+      to: matched('/checkout', checkout),
+      action: 'push',
+      hash: '',
+    });
+
+    mock.scrollY = 0;
+    restoration.apply({
+      from: matched('/checkout', checkout),
+      to: matched('/feed', feed),
+      action: 'pop',
+      hash: '',
+    });
+
+    expect(mock.scrollTo).toHaveBeenLastCalledWith(0, 320);
+    expect(target.scrollIntoView).not.toHaveBeenCalled();
+  });
 });
 
-function createRoute(path: string, scroll: string): AuraRoute {
+function createRoute(path: string, scroll: string, scrollTarget?: string): AuraRoute {
   const route = document.createElement(AuraRoute.is) as AuraRoute;
   route.setAttribute('path', path);
   route.setAttribute('scroll', scroll);
+  if (scrollTarget) route.setAttribute('scroll-target', scrollTarget);
   return route;
 }
 

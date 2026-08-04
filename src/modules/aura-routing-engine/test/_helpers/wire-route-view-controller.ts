@@ -53,6 +53,9 @@ type MutableRouteRecord = Omit<RouteInstance, 'extract' | 'transition'> & {
   loadingEndEvent: string | null;
   errorTemplate: string | null;
   scrollPolicy: null;
+  scrollTarget: null;
+  cacheTime: null;
+  cacheRefresh: null;
   extract: string | null;
   cache: CacheFlags;
   transition: RouteTransitionType;
@@ -96,6 +99,9 @@ export function wireRouteViewController(
   routeRecord.loadingEndEvent = routeRecord.loadingEndEvent ?? null;
   routeRecord.errorTemplate = routeRecord.errorTemplate ?? '';
   routeRecord.scrollPolicy = null;
+  routeRecord.scrollTarget = null;
+  routeRecord.cacheTime = null;
+  routeRecord.cacheRefresh = null;
   routeRecord.extract = routeRecord.extract ?? null;
   routeRecord.cache = options.cache ?? { dom: cacheDom, view: false, data: false };
   routeRecord.transition = transition;

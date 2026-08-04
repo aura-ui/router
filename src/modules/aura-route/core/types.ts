@@ -24,6 +24,8 @@ export interface AuraRouteInterface {
   /** `cache-refresh` — per-entry `staleTime` ms; `null` → store default. */
   cacheRefresh: number | null;
   scrollPolicy: ScrollAttr | null;
+  /** `scroll-target` — CSS selector; `null` → top / restore only. */
+  scrollTarget: string | null;
   extract: string | null;
   readonly type: RouteType;
   readonly transition: RouteTransitionType;

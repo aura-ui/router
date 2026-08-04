@@ -10,6 +10,7 @@ Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/rout
 
 - [Recipes](./recipes/README.md) — short copy-paste patterns (auth, nested, cache, 404, first paint)
 - [Navigation](#navigation)
+- [Route match priority](#route-match-priority)
 - [Views](#views)
 - [Nested routes & layouts](#nested-routes--layouts)
 - [Lifecycle hooks](#lifecycle-hooks)
@@ -59,6 +60,45 @@ Aura **joins** nested `path` values into one pattern (`/app` + `settings` → `/
 ```html
 <aura-route path="/мир-труд-май" view="мир-труд-май.html"></aura-route>
 ```
+
+### Route match priority
+
+When several patterns could match the same URL, Aura picks **one** leaf among `matchableNodes` (joined nested patterns). Matching uses the pathname with a trailing `/` stripped (`/users/` → `/users`); the address bar still keeps the link’s form.
+
+**Score (`matchScore`) — higher wins:**
+
+| Pattern kind | Example | Score rule |
+| --- | --- | --- |
+| Static or `:param` | `/users/about`, `/users/:id` | Number of path segments (`/a/b` → `2`) |
+| Scoped catch-all | `/users/*` | Parent segment count − `0.5` (`/users/*` → `0.5`) |
+| Global catch-all | `*` | `-1` (always last resort) |
+
+**How the winner is chosen:**
+
+1. Look up an **exact static** pattern (`pathname === pattern`, no `:param`, no `*`). That hit is the baseline.
+2. Probe dynamic candidates (`:param`, scoped `/*`, global `*`). A dynamic route wins only if it matches **and** its `matchScore` is **strictly greater** than the current best.
+3. On a **tie**, the current winner stays — so a static route beats a param at the same depth (`/users/about` wins over `/users/:id` for `/users/about`).
+4. Among dynamics with the same score, the first matchable candidate that set the best score wins (tree build / declaration order).
+
+```html
+<aura-route path="/users">
+  <aura-route path="about" view="..."></aura-route>   <!-- /users/about — static, score 2 -->
+  <aura-route path=":id" view="..."></aura-route>     <!-- /users/:id — param, score 2 -->
+  <aura-route path="*" view="..."></aura-route>       <!-- /users/* — scoped, score 0.5 -->
+</aura-route>
+<aura-route path="*" view="template::not-found"></aura-route>  <!-- global * — score -1 -->
+```
+
+| URL | Wins | Why |
+| --- | --- | --- |
+| `/users/about` | `/users/about` | Static baseline; param has the same score → tie keeps static |
+| `/users/42` | `/users/:id` | Param matches; score `2` > scoped `/*` (`0.5`) |
+| `/users/x/y` | `/users/*` | Param is one segment; scoped catch-all takes the rest (`splat`) |
+| `/other` | `*` | Only global catch-all matches |
+
+`:param` routes need `URLPattern`. Catch-all params use `params.splat` (scoped `/users/*` needs a non-empty tail — `/users/` alone does not match `/users/*`).
+
+Duplicate **identical** static patterns: the later node in the tree index overwrites the earlier one in the exact map.
 
 ---
 

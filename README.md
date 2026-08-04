@@ -5,7 +5,7 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/@auraui/router)](https://bundlephobia.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
-**Declarative router for Web Components** — routes, nested layouts, and lifecycle in HTML. HTML-first: real pages on first visit, client navigation after (MPA→SPA).
+**HTML-first declarative router for Web Components with nested outlets and route lifecycle.** First visit renders a real HTML page; after `AuraRouter.install()`, in-app navigation updates content without a full reload (MPA→SPA).
 
 ```bash
 npm install @auraui/router

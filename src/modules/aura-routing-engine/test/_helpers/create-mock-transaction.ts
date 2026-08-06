@@ -11,7 +11,6 @@ import type {
 import { HookRegistry } from '../../core/hooks/registry';
 import { resourceKeys } from '../../core/match/resource-keys';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { NavigationHost } from '../../core/navigation/navigation-host';
 import { NavigationPulse } from '../../core/navigation/navigation-pulse';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import type { NavigationTransactionOptions } from '../../core/navigation/types';
@@ -306,12 +305,13 @@ export function createMockEngine(): AuraRoutingEngine {
   return engine as unknown as AuraRoutingEngine;
 }
 
-export function createCoordinatorMockHost(): NavigationHost & {
+/** Partial engine stub for {@link NavigationCoordinator} unit tests. */
+export function createCoordinatorMockEngine(): AuraRoutingEngine & {
   applyTerminalOutcome: jest.Mock;
 } {
   const hookRegistry = new HookRegistry();
   const events = new EventBus();
-  const host = {
+  const engine = {
     isRunning: true,
     events,
     pulse: new NavigationPulse(events),
@@ -335,10 +335,8 @@ export function createCoordinatorMockHost(): NavigationHost & {
     hooksRegistry: hookRegistry,
     router: { navigate: jest.fn() },
     reportNavigationHookError: jest.fn(),
-    engine: null as unknown as AuraRoutingEngine,
   };
-  host.engine = host as unknown as AuraRoutingEngine;
-  return host as NavigationHost & {
+  return engine as unknown as AuraRoutingEngine & {
     applyTerminalOutcome: jest.Mock;
   };
 }
@@ -416,7 +414,7 @@ export function createPairTransaction(options: {
   isTransactionStale?: () => boolean;
   transitionOrder?: TransitionOrderType | null;
 }): NavigationTransaction {
-  const engine = createCoordinatorMockHost() as unknown as AuraRoutingEngine;
+  const engine = createCoordinatorMockEngine() as unknown as AuraRoutingEngine;
   return createNavigationTransaction({
     engine,
     from: options.from,

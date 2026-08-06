@@ -75,7 +75,7 @@ export type NavigationErrorResult = { status: 'error'; failure: NavigationFailur
  * Terminal navigation outcome returned by {@link ./navigation-transaction!NavigationTransaction.run}.
  *
  * Dispatched by {@link ./navigation-coordinator!NavigationCoordinator} via
- * {@link ./navigation-host!NavigationHost.applyTerminalOutcome}
+ * {@link ../aura-routing-engine!AuraRoutingEngine.applyTerminalOutcome}
  * → {@link ./navigation-outcome!applyNavigationOutcome}.
  *
  * - `navigationSucceeded` — full pipeline completed (not the same as view `committed`

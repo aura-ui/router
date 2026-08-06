@@ -28,14 +28,13 @@ import type { HookRegistry } from './hooks/registry';
 import type { HistoryAction, NavigateHistoryOptions, NavigationProvider } from './history/provider.types';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
 import type { MatchedRouteInfo } from './match/url-matcher';
-import type { NavigationHost } from './navigation/navigation-host';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import type { PrefetchConfig, PrefetchOptions, PrefetchPlan } from './prefetch/types';
 import type { RouterInstance } from './route/types';
 import type { ViewGraph } from './view-graph';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 
-export class AuraRoutingEngine implements NavigationHost {
+export class AuraRoutingEngine {
   readonly router: RouterInstance;
   private readonly config: ResolvedAuraRoutingEngineConfig;
   private readonly provider: NavigationProvider;
@@ -75,11 +74,6 @@ export class AuraRoutingEngine implements NavigationHost {
   /** Facade to {@link ResourceGraph.dataGraph} (invalidate / tests). */
   get dataGraph(): DataGraph {
     return this.resourceGraph.dataGraph;
-  }
-
-  /** {@link NavigationHost.engine} — probe transactions and pipeline need `this`. */
-  get engine(): AuraRoutingEngine {
-    return this;
   }
 
   /**

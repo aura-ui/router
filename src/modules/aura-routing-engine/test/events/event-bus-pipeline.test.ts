@@ -13,7 +13,7 @@ import {
   eventTypes,
 } from '../_helpers/collect-navigation-errors';
 import {
-  createCoordinatorMockHost,
+  createCoordinatorMockEngine,
   createMatchedRoute,
   createMockTransaction,
 } from '../_helpers/create-mock-transaction';
@@ -105,9 +105,9 @@ describe('EventBus pipeline emits (EB1)', () => {
   });
 
   it('coordinator emits finish after successful run', async () => {
-    const host = createCoordinatorMockHost();
-    const coordinator = new NavigationCoordinator(host);
-    const seen = collectEngineEvents(host.engine);
+    const engine = createCoordinatorMockEngine();
+    const coordinator = new NavigationCoordinator(engine);
+    const seen = collectEngineEvents(engine);
 
     jest.spyOn(NavigationTransaction.prototype, 'run')
       .mockResolvedValue({ status: 'navigationSucceeded' });
@@ -124,9 +124,9 @@ describe('EventBus pipeline emits (EB1)', () => {
   });
 
   it('coordinator emits cancel for cancelled run', async () => {
-    const host = createCoordinatorMockHost();
-    const coordinator = new NavigationCoordinator(host);
-    const seen = collectEngineEvents(host.engine);
+    const engine = createCoordinatorMockEngine();
+    const coordinator = new NavigationCoordinator(engine);
+    const seen = collectEngineEvents(engine);
 
     jest.spyOn(NavigationTransaction.prototype, 'run')
       .mockResolvedValue({ status: 'cancelled' });
@@ -140,16 +140,16 @@ describe('EventBus pipeline emits (EB1)', () => {
     );
 
     expect(eventTypes(seen)).toEqual(['navigation:cancel']);
-    expect(host.applyTerminalOutcome).toHaveBeenCalledWith(
+    expect(engine.applyTerminalOutcome).toHaveBeenCalledWith(
       { status: 'cancelled' },
       expect.objectContaining({ href: '/b' }),
     );
   });
 
   it('coordinator emits redirect and error terminals', async () => {
-    const host = createCoordinatorMockHost();
-    const coordinator = new NavigationCoordinator(host);
-    const seen = collectEngineEvents(host.engine);
+    const engine = createCoordinatorMockEngine();
+    const coordinator = new NavigationCoordinator(engine);
+    const seen = collectEngineEvents(engine);
 
     const runSpy = jest.spyOn(NavigationTransaction.prototype, 'run');
     const to = createMatchedRoute('/b');

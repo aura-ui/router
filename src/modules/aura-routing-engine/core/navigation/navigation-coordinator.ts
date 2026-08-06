@@ -1,9 +1,9 @@
+import type { AuraRoutingEngine } from '../aura-routing-engine';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import { resolveDocumentHrefParts } from '../link-active/app-href';
 import { followRedirectsWithGuardWalk } from '../redirect/redirect-resolver';
 import { isSameNavigationTarget } from '../route-tree/transition-plan';
 
-import type { NavigationHost } from './navigation-host';
 import { NavigationTransaction } from './navigation-transaction';
 import type { NavigationTransactionOptions, TransactionResult } from './types';
 
@@ -24,7 +24,7 @@ export type NavigationAttempt = {
  * Concurrency state for overlapping attempts lives here; the engine owns committed route state.
  */
 export class NavigationCoordinator {
-  private readonly host: NavigationHost;
+  private readonly engine: AuraRoutingEngine;
 
   /** Transaction the coordinator actively manages (cancel / supersede). */
   activeTransaction: NavigationTransaction | null;
@@ -43,8 +43,8 @@ export class NavigationCoordinator {
   /** Open {@link navigate} attempts keyed by requested href until {@link settleNavigation}. */
   private readonly openNavigations = new Map<string, NavigationAttempt>();
 
-  constructor(host: NavigationHost) {
-    this.host = host;
+  constructor(engine: AuraRoutingEngine) {
+    this.engine = engine;
     this.activeTransaction = null;
     this.activeTransactionId = 0;
     this.activeNavigationAttemptId = 0;
@@ -65,14 +65,14 @@ export class NavigationCoordinator {
     try {
       const chain = await followRedirectsWithGuardWalk(
         {
-          engine: this.host.engine,
-          matcher: this.host.matcher,
-          getMatchableNodes: () => this.host.getMatchableNodes(),
+          engine: this.engine,
+          matcher: this.engine.matcher,
+          getMatchableNodes: () => this.engine.getMatchableNodes(),
           isActive: () => this.isAttemptCurrent(attempt),
         },
         {
           href: resolved,
-          from: this.host.getCommittedRoute(),
+          from: this.engine.getCommittedRoute(),
           action,
           options,
         },
@@ -89,17 +89,17 @@ export class NavigationCoordinator {
       }
 
       if (chain.status === 'redirect-error') {
-        this.host.handleRedirectError(chain.code, chain.href, action, options);
+        this.engine.handleRedirectError(chain.code, chain.href, action, options);
         return;
       }
 
       if (chain.status === 'terminal') {
-        this.host.finalizeResolveTerminal(chain.result, chain.probe);
+        this.engine.finalizeResolveTerminal(chain.result, chain.probe);
         return;
       }
 
       if (chain.status === 'unmatched') {
-        this.host.handleUnmatchedNavigation(chain.href, action, options);
+        this.engine.handleUnmatchedNavigation(chain.href, action, options);
         return;
       }
 
@@ -110,7 +110,7 @@ export class NavigationCoordinator {
       };
 
       await this.run({
-        from: this.host.getCommittedRoute(),
+        from: this.engine.getCommittedRoute(),
         to: found,
         action,
         href: found.href,
@@ -153,7 +153,7 @@ export class NavigationCoordinator {
 
     if (plan.action === 'noop') {
       if (options.action === 'push' || options.action === 'replace') {
-        this.host.engine.handleSameUrlNavigation(options.to, options.hash);
+        this.engine.handleSameUrlNavigation(options.to, options.hash);
       }
       return;
     }
@@ -162,7 +162,7 @@ export class NavigationCoordinator {
       const pending = this.activeTransaction;
       pending?.cancel();
       this.activeTransaction = null;
-      this.host.restoreCommittedNavState(pending);
+      this.engine.restoreCommittedNavState(pending);
       return;
     }
 
@@ -171,10 +171,10 @@ export class NavigationCoordinator {
       this.activeTransactionId,
       options,
       this.isTransactionStale.bind(this),
-      this.host.engine,
+      this.engine,
     );
 
-    const resources = this.host.engine.resourceGraph;
+    const resources = this.engine.resourceGraph;
 
     // Supersede only: pin B’s keys before cancel(A); unpin in finally (`'pin'` kind).
     // Skip when no active tx. See ResourceGraph.pinSharedBufferFor / HandoffWaiterKind.
@@ -230,9 +230,9 @@ export class NavigationCoordinator {
 
   /** Observe ({@link NavigationPulse.settle}), then apply terminal side effects. */
   private processResult(result: TransactionResult, transaction: NavigationTransaction): void {
-    this.host.engine.pulse.settle(transaction.transactionId, result);
-    if (!this.host.isRunning) return;
-    this.host.applyTerminalOutcome(result, transaction);
+    this.engine.pulse.settle(transaction.transactionId, result);
+    if (!this.engine.isRunning) return;
+    this.engine.applyTerminalOutcome(result, transaction);
   }
 
   private plan(options: NavigationTransactionOptions): NavigationPlan {

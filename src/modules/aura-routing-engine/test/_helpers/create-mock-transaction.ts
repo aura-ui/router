@@ -324,6 +324,7 @@ export function createCoordinatorMockHost(): NavigationHost & {
     commitNavigation: jest.fn(),
     applyTerminalOutcome: jest.fn(),
     restoreCommittedNavState: jest.fn(),
+    handleSameUrlNavigation: jest.fn(),
     resourceGraph: createTestResourceGraph({ hooks: hookRegistry }),
     get dataGraph() {
       return this.resourceGraph.dataGraph;

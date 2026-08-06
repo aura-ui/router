@@ -152,6 +152,9 @@ export class NavigationCoordinator {
     const plan = this.plan(options);
 
     if (plan.action === 'noop') {
+      if (options.action === 'push' || options.action === 'replace') {
+        this.host.engine.handleSameUrlNavigation(options.to, options.hash);
+      }
       return;
     }
 

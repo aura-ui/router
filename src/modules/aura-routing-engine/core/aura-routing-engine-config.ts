@@ -1,6 +1,7 @@
 import type { DataGraphCacheOptions } from './data-graph';
 import type { NavigationFailure, NavigationHookErrorDetail } from './failure';
 import type { NavigationProvider } from './history/provider.types';
+import type { MatchedRouteInfo } from './match/url-matcher';
 import type { PrefetchConfig } from './prefetch/types';
 import type { HandoffCacheOptions } from './resource-graph/handoff-cache';
 import type { LoaderRegistry, ViewGraph, ViewGraphCacheOptions } from './view-graph';
@@ -63,6 +64,12 @@ export interface AuraRoutingEngineConfig {
   prefetch?: false | PrefetchConfig;
 
   onHashOnlyNavigation?: (href: string) => void;
+  /**
+   * Same pathname+search again (`push` / `replace`, pipeline `noop`).
+   * Not the same as same-route-record updates (`/users/1` → `/users/2`).
+   * Host typically reasserts scroll (top / scroll-target). Hash re-clicks are handled in-engine.
+   */
+  onSameUrlNavigation?: (to: MatchedRouteInfo) => void;
   onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
   /** Fallback NOT_FOUND — host owns event + recovery UI. */
   onNotFound?: (failure: NavigationFailure) => void;

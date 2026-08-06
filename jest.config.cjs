@@ -2,7 +2,10 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  setupFiles: ['<rootDir>/src/modules/aura-routing-engine/test/_helpers/jest/urlpattern-setup.ts'],
+  setupFiles: [
+    '<rootDir>/src/modules/aura-routing-engine/test/_helpers/jest/urlpattern-setup.ts',
+    '<rootDir>/src/modules/aura-routing-engine/test/_helpers/jest/jsdom-scroll-setup.ts',
+  ],
   roots: [
     '<rootDir>/src/modules/aura-routing-engine/test',
     '<rootDir>/src/modules/aura-dom/test',

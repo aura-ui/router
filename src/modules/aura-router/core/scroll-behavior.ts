@@ -2,8 +2,10 @@ import type { NavigationCommittedContext } from '../../aura-routing-engine/core'
 
 export type ScrollContainer = Pick<Window, 'scrollY' | 'scrollTo'>;
 
-/** Saves and restores viewport scroll keyed by pathname + search. */
-export class ScrollRestoration {
+/**
+ * Host scroll after navigation: top / scroll-target / none, plus save+restore on `auto`+`pop`.
+ */
+export class ScrollBehavior {
   private readonly positions = new Map<string, number>();
   private readonly container: ScrollContainer;
 

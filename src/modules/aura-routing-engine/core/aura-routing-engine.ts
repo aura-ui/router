@@ -351,6 +351,19 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
   /**
+   * Already on this URL (`noop` / already-active): hash → scrollToHash; else host scroll via
+   * {@link AuraRoutingEngineConfig.onSameUrlNavigation}.
+   * Distinct from same-route-record param/query updates (those run the update pipeline).
+   */
+  handleSameUrlNavigation(to: MatchedRouteInfo, hash: string): void {
+    if (hash) {
+      this.scrollToHash(hash);
+      return;
+    }
+    this.config.onSameUrlNavigation?.(to);
+  }
+
+  /**
    * Write address bar when policy requires (`push` / `replace` + `syncHistory`).
    * Call {@link notifyUrlAligned} after this. Idempotent via `historyCommitted`.
    */

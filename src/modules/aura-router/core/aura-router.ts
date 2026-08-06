@@ -21,7 +21,7 @@ import { resolveAppOutlet } from './outlet-resolver';
 import { AURA_ROUTER_DATA_INVALIDATED, emit } from './navigation-events';
 import { connectRouterEngine } from './engine-bridge';
 import { AuraRouterNotFoundController } from './not-found-controller';
-import { ScrollRestoration } from './scroll-restoration';
+import { ScrollBehavior } from './scroll-behavior';
 import type { SwrCacheOptions } from '../../aura-cache/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import type { ViewResolverPort } from '../../aura-route/core';
@@ -133,7 +133,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   mountStrategy: MountStrategy;
 
   private engine?: AuraRoutingEngine;
-  private readonly scrollRestoration = new ScrollRestoration();
+  private readonly scrollBehavior = new ScrollBehavior();
   private readonly notFound = new AuraRouterNotFoundController(this);
   private _activeRouteBranch: ActiveRouteBranchEntry[] = [];
 
@@ -244,7 +244,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.engine = undefined;
     this._activeRouteBranch = [];
     memoize.clear(this, 'appOutlet');
-    this.scrollRestoration.clear();
+    this.scrollBehavior.clear();
     this.notFound.clear();
   }
 
@@ -291,7 +291,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (!this.engine) {
       const { config, onEvent } = connectRouterEngine(this, {
         syncBranchAndActiveLinks: (href, to) => this.syncBranchAndActiveLinks(href, to),
-        scrollRestoration: this.scrollRestoration,
+        scrollBehavior: this.scrollBehavior,
         notFound: this.notFound,
         onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
       });

@@ -20,6 +20,7 @@ export function createRouteStub(overrides: Partial<AuraRouteInterface> = {}): Au
     errorTemplate: '',
     scrollPolicy: null,
     scrollTarget: null,
+    scrollBehavior: null,
     cacheTime: null,
     cacheRefresh: null,
     cache: NO_CACHE,

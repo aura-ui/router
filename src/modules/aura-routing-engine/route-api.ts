@@ -13,6 +13,10 @@ export {
   type ScrollAttr,
 } from '../aura-route/core/attr/scroll-attr-parser';
 export {
+  parseScrollBehaviorAttr,
+  type ScrollBehaviorAttr,
+} from '../aura-route/core/attr/scroll-behavior-attr-parser';
+export {
   DEFAULT_ROUTER_PREFETCH_MODE,
   LINK_PREFETCH_MODES,
   parsePrefetchAttr,

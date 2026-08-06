@@ -137,7 +137,9 @@ Use `import` for `.js` / `.ts`, not bare `url` content. Custom elements can also
 
 ### `extract` — fragment from full HTML pages
 
-Use `extract` when a fetched page is full HTML and the outlet should mount only one node — a CSS selector for that root. Applies to `url` views (`view="page.html"` / `url::…`), not to inline `html::…`.
+Use `extract` when a fetched page is full HTML and only one node should become the route view — a CSS selector for that root. Applies to `url` views (`view="page.html"` / `url::…`), not to inline `html::…`.
+
+On **flat** routes the same selector also drives **first-paint adopt**: if the current document already has that node, boot adopts it instead of refetching (no separate `aura-router-ssr` needed). Nested layout shells that are not the extract node still use [`aura-router-ssr`](#first-paint-mpa--spa).
 
 ```html
 <!-- default for every child route -->
@@ -152,8 +154,8 @@ Use `extract` when a fetched page is full HTML and the outlet should mount only 
 
 | Attr | Meaning |
 | --- | --- |
-| `extract="#main"` | Take `outerHTML` of the first match |
-| *(no match)* | Fall back to the full HTML (`console.warn`) |
+| `extract="#main"` | Take `outerHTML` of the first match (SPA); adopt that node on boot when flat |
+| *(no match on fetch)* | Fall back to the full HTML (`console.warn`) |
 | `extract="none"` / `off` / `false` / `""` | Opt out of an inherited default |
 | *(absent)* | Inherit from `<aura-router>` / parent `<aura-route>` |
 
@@ -163,31 +165,36 @@ Selector stays in `extract`, not inside `view`.
 
 ## Scroll
 
-After a successful navigation commit, the router adjusts the viewport. Policy is `scroll`; optional landing spot is `scroll-target`.
+After a successful navigation commit, and when you navigate again to the **same pathname+search** (`push` / `replace`), the router adjusts the viewport. Policy is `scroll`; landing spot is `scroll-target`; animation is `scroll-behavior`. A URL **hash** scrolls to that anchor with `scroll-behavior` only (see table).
 
 ```html
-<aura-router scroll="auto" scroll-target="#main">
+<aura-router scroll="auto" scroll-target="#main" scroll-behavior="smooth">
   <aura-route path="/feed" view="feed.html"></aura-route>
   <!-- always land at top (or scroll-target) -->
   <aura-route path="/checkout" view="checkout.html" scroll="top"></aura-route>
   <!-- no scroll adjustment -->
   <aura-route path="/quiet" view="quiet.html" scroll="none"></aura-route>
-  <!-- override inherited target -->
-  <aura-route path="/docs" view="docs.html" scroll-target="#content"></aura-route>
+  <!-- override inherited target / animation -->
+  <aura-route path="/docs" view="docs.html" scroll-target="#content" scroll-behavior="instant"></aura-route>
 </aura-router>
 ```
 
 | Attr | Meaning |
 | --- | --- |
 | `scroll="auto"` *(default)* | Forward nav → top (or `scroll-target`); back/forward → restore saved position |
-| `scroll="top"` | Always scroll to top (or `scroll-target`) |
+| `scroll="top"` | Always scroll to top (or `scroll-target`), including on back/forward |
 | `scroll="none"` / `off` / `false` | No scroll adjustment; opt out of an inherited default |
-| `scroll-target="#main"` | CSS selector; `scrollIntoView` on forward nav / `top` when the node exists |
-| *(no match / invalid selector)* | Fall back to top |
-| URL hash (`#section`) | Wins — restoration and `scroll-target` are skipped |
+| `scroll-target="#main"` | CSS selector; `scrollIntoView` when not restoring a saved position |
+| `scroll-behavior="auto"` *(default)* | Native CSSOM `behavior` for `scrollTo` / `scrollIntoView` (`smooth` \| `instant` \| `auto`) |
+| *(no match / invalid selector)* | Fall back to window top |
+| URL hash (`#section`) | Anchor `scrollIntoView` with `scroll-behavior` (+ reduced-motion); `scroll` / `scroll-target` are not applied |
 | *(absent)* | Inherit from `<aura-router>` / parent `<aura-route>` |
 
-`scroll-target` is ignored on back/forward restore and when `scroll="none"`.
+`scroll-target` is ignored when restoring a saved position (`scroll="auto"` + back/forward) and when `scroll="none"`.
+
+**Same URL again** (active nav link / `navigate` to the current pathname+search, no pipeline): scroll reasserts like a fresh push — same `scroll` / `scroll-target` / `scroll-behavior` rules. Not the same as a param/query change on one route record (`/users/1` → `/users/2`), which runs the update pipeline and then commit scroll. A same-URL click that only carries a hash (or hash-only change) uses the hash path above (`scroll-behavior` only).
+
+**`scroll-behavior`:** browser values only. `auto` follows the UA / CSS `scroll-behavior` on the scrolling box; `smooth` / `instant` force that mode. If the user has `prefers-reduced-motion: reduce`, `smooth` is forced to `instant`.
 
 ---
 
@@ -300,22 +307,22 @@ AuraRouter.use(authHook);
 
 ## First paint (MPA → SPA)
 
-Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. If that markup is marked with `aura-router-ssr`, the router **adopts** it on boot instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) — put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
+Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. On boot the router **adopts** that markup instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) — put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
 
-### Marker
+### Flat pages — `extract`
 
-Add `aura-router-ssr` on the content root the server already rendered:
+For a page route (no `layout` parent), set `extract` to the content root. The same selector is used for SPA fragment cuts **and** first-paint adopt:
 
 ```html
 <body>
   <header>…</header>
 
-  <div aura-router-ssr>
+  <div id="main">
     <h1>About</h1>
     <p>…</p>
   </div>
 
-  <aura-router>
+  <aura-router extract="#main">
     <aura-route path="/about" view="about.html"></aura-route>
     <aura-route path="/users" view="users.html"></aura-route>
   </aura-router>
@@ -327,14 +334,11 @@ Add `aura-router-ssr` on the content root the server already rendered:
 </body>
 ```
 
-| When | Behavior |
-| --- | --- |
-| Marker present + URL matches a **flat** page route (no layout parent in the match) | Adopt the marked node; skip first-paint fetch/remount and lifecycle; sync active links |
-| Marker present + URL matches a **nested** chain (layout + leaf), and markup mirrors the outlet tree | Adopt each level; skip first-paint fetch/remount and lifecycle; sync active links |
-| No marker, no match, or `redirect` route | Normal first navigation (load `view` as usual) |
-| Match includes a **layout** parent, but markup is only a single blob (no nested outlets / view roots) | Falls back to a normal first navigation |
+No `aura-router-ssr` marker is required for this flat happy path.
 
-**Nested adopt** needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` — `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed.
+### Nested layouts — `aura-router-ssr`
+
+When the match includes a **layout** parent, the shell to adopt is often **not** the same node as `extract` (shell vs leaf). Mark the layout root with `aura-router-ssr`. Nested adopt still needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` — `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed.
 
 ```html
 <!-- Server HTML for /settings/profile -->
@@ -342,32 +346,40 @@ Add `aura-router-ssr` on the content root the server already rendered:
   <div aura-router-ssr data-aura-view-root>
     <!-- settings layout chrome -->
     <aura-outlet>
-      <div data-aura-view-root>
-        <!-- profile page -->
+      <div class="main" data-aura-view-root>
+        <!-- profile page (also the extract target for later SPA fetches) -->
       </div>
     </aura-outlet>
   </div>
 </aura-outlet>
 
-<aura-router>
+<aura-router extract=".main">
   <aura-route path="/settings" layout="settings-shell">
     <aura-route path="profile" view="settings/profile.html"></aura-route>
   </aura-route>
 </aura-router>
 ```
 
-Keep durable chrome (site header, primary nav) **outside** the marked node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` where new pages should appear after the first SPA transition (anywhere in the document — the router reuses the first `<aura-outlet>` it finds unless `outlet` is set).
+| When | Behavior |
+| --- | --- |
+| `extract` matches a node + URL is a **flat** page route | Adopt that node; skip first-paint fetch/remount and lifecycle; sync active links |
+| `[aura-router-ssr]` present + URL matches a **nested** chain, markup mirrors the outlet tree | Adopt each level; skip first-paint fetch/remount and lifecycle; sync active links |
+| `[aura-router-ssr]` present + flat match | Adopt the marked node (marker wins over `extract` when both exist) |
+| No marker, no `extract` hit, no match, or `redirect` route | Normal first navigation (load `view` as usual) |
+| Match includes a **layout** parent, but markup is only a leaf blob (`extract` / flat SSR) | `structure-error`: keep server HTML, no immediate remount |
 
-### With `url` + `extract`
+Keep durable chrome (site header, primary nav) **outside** the adopted / extract node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` where new pages should appear after the first SPA transition (anywhere in the document — the router reuses the first `<aura-outlet>` it finds unless `outlet` is set).
 
-Declare `view` / `extract` for **later** navigations as usual. First paint still uses the marked DOM; returning to the URL later may fetch and extract:
+### With `url` + `extract` (revisit)
+
+Declare `view` / `extract` as usual. First paint adopts the live node; returning to the URL later may fetch and extract the same selector:
 
 ```html
 <aura-router extract="#main">
   <aura-route path="/about" view="about.html"></aura-route>
 </aura-router>
 
-<div id="main" aura-router-ssr>
+<div id="main">
   <!-- same fragment extract would take from about.html -->
 </div>
 ```
@@ -501,9 +513,10 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 | `loading-template` | Skeleton template id (experimental — see [Loading](#loading)) |
 | `loading-start-event` / `loading-end-event` | Loading event names (`none` / `off` / `false` disables) |
 | `error-template` | Template id on render error; also thin fallback 404 when no `path="*"` |
-| `extract` | Default CSS selector for `url` fragment extract |
+| `extract` | Default CSS selector for `url` fragment extract **and** flat first-paint adopt |
 | `scroll` | Viewport policy after commit (`auto` default, `top`, `none`) — see [Scroll](#scroll) |
 | `scroll-target` | Default CSS selector for post-nav `scrollIntoView` |
+| `scroll-behavior` | Default scroll animation (`auto` default, `smooth`, `instant`) — see [Scroll](#scroll) |
 
 ### Host only (`<aura-router>`)
 
@@ -522,6 +535,7 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
   extract="#main"
   scroll="auto"
   scroll-target="#main"
+  scroll-behavior="smooth"
   link-active-class="is-active"
   link-active-branch-class="is-active-branch">
   …

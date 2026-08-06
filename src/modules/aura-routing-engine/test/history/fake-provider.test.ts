@@ -73,10 +73,12 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
   it('calls onHashOnlyNavigation for hash-only navigateTo', async () => {
     const onHashOnlyNavigation = jest.fn();
+    const onScroll = jest.fn();
     const { engine, provider } = createEngineHarness({
       href: '/docs',
       routes: [createTestRoute('/docs')],
       onHashOnlyNavigation,
+      onScroll,
     });
 
     await bootEngine(engine, '/docs');
@@ -84,7 +86,26 @@ describe('AuraRoutingEngine + FakeHistoryProvider', () => {
 
     expect(onHashOnlyNavigation).toHaveBeenCalledTimes(1);
     expect(onHashOnlyNavigation).toHaveBeenCalledWith('/docs#intro');
+    expect(onScroll).toHaveBeenCalledTimes(1);
+    expect(onScroll.mock.calls[0][0].to.pathname).toBe('/docs');
+    expect(onScroll.mock.calls[0][0].hash).toBe('#intro');
     expect(provider.currentHref).toBe('/docs#intro');
+  });
+
+  it('calls onScroll when navigating to the committed URL', async () => {
+    const onScroll = jest.fn();
+    const { engine } = createEngineHarness({
+      href: '/about',
+      routes: [createTestRoute('/about')],
+      onScroll,
+    });
+
+    await bootEngine(engine, '/about');
+    await engine.navigateTo('/about', 'push', { replace: false, syncHistory: true });
+
+    expect(onScroll).toHaveBeenCalledTimes(1);
+    expect(onScroll.mock.calls[0][0].to.pathname).toBe('/about');
+    expect(onScroll.mock.calls[0][0].hash).toBe('');
   });
 
   it('index folder: keeps URL without trailing slash on system navigate', async () => {

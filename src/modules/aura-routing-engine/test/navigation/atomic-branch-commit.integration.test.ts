@@ -27,16 +27,24 @@ const BRANCH_TEMPLATES = `
   <template id="intro-view">INTRO PAGE</template>
 `;
 
+  type SlowChildFn = (ctx: { signal?: AbortSignal }) => Promise<string>;
+
 type Fixture = {
   router: AuraRouter;
   childGate: { release: () => void };
 };
 
-function registerSlowChildLoader(gate: { loader: (ctx: { signal?: AbortSignal }) => Promise<string> }): void {
-  AuraRouter.registerLoader(
-    SLOW_CHILD_LOADER,
-    ((ctx: { signal?: AbortSignal }) => gate.loader(ctx)) as unknown as LoaderFn,
-  );
+/** Process-wide registry: register once, swap impl per test (avoids overwrite warn). */
+let slowChildFn: SlowChildFn = async () => {
+  throw new Error(`${SLOW_CHILD_LOADER} not configured`);
+};
+
+function useSlowChild(fn: SlowChildFn): void {
+  slowChildFn = fn;
+}
+
+function registerSlowChildLoader(gate: { loader: SlowChildFn }): void {
+  useSlowChild((ctx) => gate.loader(ctx));
 }
 
 function buildBranchRoutes(options: {
@@ -143,6 +151,22 @@ function isLayoutOnlyGap(text: string): boolean {
 }
 
 describe('atomic branch commit integration', () => {
+  beforeAll(() => {
+    AuraRouter.registerLoader(
+      SLOW_CHILD_LOADER,
+      ((ctx: { signal?: AbortSignal }) => slowChildFn(ctx)) as unknown as LoaderFn,
+    );
+    AuraRouter.registerLoader(FAIL_CHILD_LOADER, async () => {
+      throw new Error('branch resolve failed');
+    });
+  });
+
+  beforeEach(() => {
+    slowChildFn = async () => {
+      throw new Error(`${SLOW_CHILD_LOADER} not configured`);
+    };
+  });
+
   afterEach(() => {
     document.body.replaceChildren();
     history.replaceState(null, '', '/');
@@ -216,13 +240,10 @@ describe('atomic branch commit integration', () => {
 
   it('prefetch resolves child content before navigate', async () => {
     let loads = 0;
-    AuraRouter.registerLoader(
-      SLOW_CHILD_LOADER,
-      (async () => {
-        loads++;
-        return '<span data-child-marker>CACHED-CHILD</span>';
-      }) as unknown as LoaderFn,
-    );
+    useSlowChild(async () => {
+      loads++;
+      return '<span data-child-marker>CACHED-CHILD</span>';
+    });
 
     const { router } = await mountDomRouter({
       templates: BRANCH_TEMPLATES,
@@ -258,10 +279,6 @@ describe('atomic branch commit integration', () => {
   });
 
   it('render error during branch resolve leaves outgoing DOM intact', async () => {
-    AuraRouter.registerLoader(FAIL_CHILD_LOADER, async () => {
-      throw new Error('branch resolve failed');
-    });
-
     const { router } = await mountDomRouter({
       templates: BRANCH_TEMPLATES,
       routes: buildBranchRoutes({ childLoader: FAIL_CHILD_LOADER, includeGallery: false }),

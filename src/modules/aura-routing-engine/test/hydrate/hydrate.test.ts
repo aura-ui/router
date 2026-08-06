@@ -40,6 +40,105 @@ describe('hydrate', () => {
     history.replaceState(null, '', '/');
   });
 
+  it('flat: adopts via route extract when no aura-router-ssr marker', async () => {
+    history.replaceState(null, '', '/about');
+    const about = createDomRoute('/about');
+    about.setAttribute('extract', '.main');
+    const adopt = stubHydrateHooks(about);
+
+    const { engine } = createEngineHarness({
+      href: '/about',
+      domRoutes: [about],
+    });
+
+    const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const initialView = document.createElement('div');
+    initialView.className = 'main';
+    initialView.textContent = 'ABOUT';
+    document.body.append(initialView, rootOutlet);
+
+    const result = await hydrate(null, engine, rootOutlet);
+
+    expect(result).toEqual({ status: 'adopted', leaf: expect.objectContaining({ pathname: '/about' }) });
+    expect(adopt).toHaveBeenCalledTimes(1);
+    expect(initialView.hasAttribute('data-aura-view-root')).toBe(true);
+  });
+
+  it('flat: aura-router-ssr wins over extract when both are present', async () => {
+    history.replaceState(null, '', '/about');
+    const about = createDomRoute('/about');
+    about.setAttribute('extract', '.main');
+    const adopt = stubHydrateHooks(about);
+
+    const { engine } = createEngineHarness({
+      href: '/about',
+      domRoutes: [about],
+    });
+
+    const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const ssrView = document.createElement('div');
+    ssrView.setAttribute(AURA_ROUTER_SSR_ATTR, '');
+    ssrView.textContent = 'SSR';
+    const extractView = document.createElement('div');
+    extractView.className = 'main';
+    extractView.textContent = 'EXTRACT';
+    rootOutlet.append(ssrView);
+    document.body.append(extractView, rootOutlet);
+
+    const result = await hydrate(ssrView, engine, rootOutlet);
+
+    expect(result.status).toBe('adopted');
+    expect(adopt).toHaveBeenCalledTimes(1);
+    expect(ssrView.hasAttribute('data-aura-view-root')).toBe(true);
+    expect(extractView.hasAttribute('data-aura-view-root')).toBe(false);
+  });
+
+  it('flat: no marker and no extract is fallback', async () => {
+    history.replaceState(null, '', '/about');
+    const about = createDomRoute('/about');
+    stubHydrateHooks(about);
+
+    const { engine } = createEngineHarness({
+      href: '/about',
+      domRoutes: [about],
+    });
+
+    const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const orphan = document.createElement('div');
+    orphan.className = 'main';
+    document.body.append(orphan, rootOutlet);
+
+    await expect(hydrate(null, engine, rootOutlet)).resolves.toEqual({ status: 'fallback' });
+  });
+
+  it('tree: extract-only leaf blob is structure-error (ssr marker still needed for shell)', async () => {
+    history.replaceState(null, '', '/settings/profile');
+    const profile = createDomRoute('profile');
+    profile.setAttribute('extract', '.main');
+    const settings = createDomRoute('/settings', [profile]);
+    stubHydrateHooks(settings);
+    stubHydrateHooks(profile);
+
+    const { engine } = createEngineHarness({
+      href: '/settings/profile',
+      domRoutes: [settings],
+    });
+
+    const rootOutlet = document.createElement(AuraOutlet.is) as AuraOutlet;
+    const leaf = document.createElement('div');
+    leaf.className = 'main';
+    leaf.textContent = 'PROFILE';
+    document.body.append(leaf, rootOutlet);
+
+    const result = await hydrate(null, engine, rootOutlet);
+
+    expect(result).toEqual({
+      status: 'structure-error',
+      leaf: expect.objectContaining({ pathname: '/settings/profile' }),
+      root: leaf,
+    });
+  });
+
   it('flat: single leaf adopts initial view without fetch path', async () => {
     history.replaceState(null, '', '/about');
     const about = createDomRoute('/about');
@@ -129,6 +228,7 @@ describe('hydrate', () => {
     expect(result).toEqual({
       status: 'structure-error',
       leaf: expect.objectContaining({ pathname: '/settings/profile' }),
+      root: layoutRoot,
     });
     expect(settingsAdopt).not.toHaveBeenCalled();
     expect(profileAdopt).not.toHaveBeenCalled();

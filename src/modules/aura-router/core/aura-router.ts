@@ -3,6 +3,7 @@ import { AuraRoute, RouteDomCache } from '../../aura-route/core';
 import { parseMountStrategyAttr } from '../../aura-route/core/attr/mount-strategy-attr-parser';
 import { parsePrefetchAttr } from '../../aura-route/core/attr/prefetch-attr-parser';
 import { parseScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
+import { parseScrollBehaviorAttr } from '../../aura-route/core/attr/scroll-behavior-attr-parser';
 import {
   AuraRoutingEngine,
   ViewGraph,
@@ -21,13 +22,14 @@ import { resolveAppOutlet } from './outlet-resolver';
 import { AURA_ROUTER_DATA_INVALIDATED, emit } from './navigation-events';
 import { connectRouterEngine } from './engine-bridge';
 import { AuraRouterNotFoundController } from './not-found-controller';
-import { ScrollRestoration } from './scroll-restoration';
+import { Scroller } from './scroller';
 import type { SwrCacheOptions } from '../../aura-cache/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
 import type { ViewResolverPort } from '../../aura-route/core';
 import type { MountStrategy } from '../../aura-route/core/attr/mount-strategy-attr-parser';
 import type { PrefetchType } from '../../aura-route/core/attr/prefetch-attr-parser';
 import type { ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
+import type { ScrollBehaviorAttr } from '../../aura-route/core/attr/scroll-behavior-attr-parser';
 import type {
   DataGraphCacheOptions,
   Loader,
@@ -45,7 +47,7 @@ import type {
 import type { ActiveRouteBranchEntry } from '../../aura-routing-engine/core/link-active';
 import type { NotFoundHandler } from './navigation-events';
 
-/** Boolean marker: server HTML to adopt on first paint (`[aura-router-ssr]`). */
+/** Boolean marker: nested layout shell to adopt when it differs from `extract`. */
 export const AURA_ROUTER_SSR_ATTR = 'aura-router-ssr';
 
 export interface AuraRouterConfigureOptions {
@@ -117,7 +119,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' })
   scrollPolicy: ScrollAttr | null;
 
-  /** Default CSS selector for `url` fragment extract on child routes (`extract="none"` opts out). */
+  /**
+   * Default scroll animation for child routes (`smooth` | `instant` | `auto`; default `auto`).
+   * HTML attr: `scroll-behavior`.
+   */
+  @attr({ parser: parseScrollBehaviorAttr, cached: true })
+  scrollBehavior: ScrollBehaviorAttr | null;
+
+  /** Default CSS selector: SPA `url` fragment + flat first-paint adopt when no `aura-router-ssr`. */
   @attr({ parser: parseNullableString, cached: true })
   extract: string | null;
 
@@ -133,7 +142,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   mountStrategy: MountStrategy;
 
   private engine?: AuraRoutingEngine;
-  private readonly scrollRestoration = new ScrollRestoration();
+  private readonly scroller = new Scroller();
   private readonly notFound = new AuraRouterNotFoundController(this);
   private _activeRouteBranch: ActiveRouteBranchEntry[] = [];
 
@@ -159,11 +168,16 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return resolveAppOutlet(this);
   }
 
-  /** initial view markup from server */
-  get initialView(): HTMLElement | null {
+  /**
+   * First-paint `[aura-router-ssr]` shell when present (nested layouts).
+   * Flat pages omit it — {@link hydrate} adopts via the matched leaf `extract`.
+   */
+  private get ssrView(): HTMLElement | null {
     const selector = `[${AURA_ROUTER_SSR_ATTR}]`;
-    return this.appOutlet.querySelector(selector)
-      ?? document.querySelector(selector);
+    return (
+      this.appOutlet.querySelector<HTMLElement>(selector) ??
+      document.querySelector<HTMLElement>(selector)
+    );
   }
 
   /** Also registers `<aura-outlet>` and `<aura-route>`. */
@@ -229,7 +243,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     void customElements.whenDefined(AuraRoute.is).then(async () => {
       if (!this.isConnected) return;
       this.refreshRoutes();
-      const leaf = await this.ensureEngine().bootstrap(this.initialView, this.appOutlet);
+      const leaf = await this.ensureEngine().bootstrap(this.ssrView, this.appOutlet);
       if (leaf) this.syncBranchAndActiveLinks(leaf.href, leaf);
     });
   }
@@ -239,7 +253,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     this.engine = undefined;
     this._activeRouteBranch = [];
     memoize.clear(this, 'appOutlet');
-    this.scrollRestoration.clear();
+    this.scroller.clear();
     this.notFound.clear();
   }
 
@@ -286,7 +300,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if (!this.engine) {
       const { config, onEvent } = connectRouterEngine(this, {
         syncBranchAndActiveLinks: (href, to) => this.syncBranchAndActiveLinks(href, to),
-        scrollRestoration: this.scrollRestoration,
+        scroller: this.scroller,
         notFound: this.notFound,
         onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
       });

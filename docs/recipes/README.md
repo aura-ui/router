@@ -8,7 +8,7 @@ Short copy-paste patterns on top of the live [`playground/`](../../playground/).
 | [Nested layout](./nested.md) | Parent `layout` + `<aura-outlet>` + `:id` |
 | [Prefetch & cache](./prefetch-cache.md) | Link prefetch, `cache` / `cache-time` / `cache="off"` |
 | [404 & errors](./not-found.md) | `path="*"` + `error-template` |
-| [First paint (MPA→SPA)](./first-paint.md) | Server HTML + `aura-router-ssr` adopt |
+| [First paint (MPA→SPA)](./first-paint.md) | Server HTML + `extract` adopt (flat); `aura-router-ssr` for nested shell |
 
 ```bash
 cd playground && npm install && npm run dev

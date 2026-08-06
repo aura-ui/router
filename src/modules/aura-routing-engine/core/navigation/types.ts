@@ -47,6 +47,7 @@ export interface NavigationCommittedContext {
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;
   action: HistoryAction;
+  /** URL hash; when set, host does anchor scroll (`scroll-behavior` only). */
   hash: string;
 }
 
@@ -75,7 +76,7 @@ export type NavigationErrorResult = { status: 'error'; failure: NavigationFailur
  * Terminal navigation outcome returned by {@link ./navigation-transaction!NavigationTransaction.run}.
  *
  * Dispatched by {@link ./navigation-coordinator!NavigationCoordinator} via
- * {@link ./navigation-host!NavigationHost.applyTerminalOutcome}
+ * {@link ../aura-routing-engine!AuraRoutingEngine.applyTerminalOutcome}
  * → {@link ./navigation-outcome!applyNavigationOutcome}.
  *
  * - `navigationSucceeded` — full pipeline completed (not the same as view `committed`
@@ -112,7 +113,7 @@ export interface NavigationTransactionOptions {
   action: HistoryAction;
   /** Resolved target href written to history on success. */
   href: string;
-  /** URL hash fragment for scroll restoration. */
+  /** URL hash fragment for host anchor scroll (empty → policy scroll on same-URL). */
   hash: string;
   /** Provider-specific history options (scroll, state, etc.). */
   options: NavigateHistoryOptions;

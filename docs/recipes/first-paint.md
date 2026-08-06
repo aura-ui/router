@@ -9,21 +9,22 @@
 ## What you get
 
 ```text
-First visit (adopt OK)  → aura-router-ssr → no view fetch, no guard/load/ready
-Later clicks            → aura-router-link → fetch view (+ extract) → SPA
+First visit (flat + extract)  → adopt #main / .main → no view fetch, no guard/load/ready
+Later clicks                  → aura-router-link → fetch view (+ extract) → SPA
+Nested layout shell           → aura-router-ssr on shell (when shell ≠ extract)
 ```
 
 Aura does not run on the server. The host keeps serving HTML pages.
 
 ---
 
-## Page
+## Page (flat)
 
 ```html
 <body>
-  <nav>… durable chrome outside the marked node …</nav>
+  <nav>… durable chrome outside the content root …</nav>
 
-  <div class="main" aura-router-ssr>
+  <div class="main">
     <h1>Contacts</h1>
   </div>
 
@@ -43,8 +44,8 @@ AuraRouter.install();
 
 | Piece | Role |
 | --- | --- |
-| `aura-router-ssr` | Mark the node that already is the current view |
-| `extract=".main"` | Fragment selector for **later** SPA `url` fetches |
+| `extract=".main"` | Fragment for SPA fetches **and** flat first-paint adopt |
+| `aura-router-ssr` | Only when a nested **layout shell** differs from the extract node |
 
 Playground injects the same `<aura-router>` via `@router@` and bundles install in `/static/main.js`.
 
@@ -54,11 +55,11 @@ Playground injects the same `<aura-router>` via `@router@` and bundles install i
 
 | Match | Server markup | Boot |
 | --- | --- | --- |
-| **Flat** route (no layout parent) | Marker on the content root | Adopt |
-| **Nested** + outlet-shaped markup | layout → `<aura-outlet>` → leaf `data-aura-view-root` | Adopt |
-| **Nested** + flat blob | e.g. only `.main`, no outlets | Normal first navigation (fetch `view`) |
+| **Flat** route (no layout parent) | Content root matches `extract` | Adopt via `extract` |
+| **Nested** + outlet-shaped markup | `aura-router-ssr` on shell → `<aura-outlet>` → leaf `data-aura-view-root` | Adopt chain |
+| **Nested** + flat blob | e.g. only `.main`, no shell marker / outlets | structure-error / cold entry |
 
-Playground: `/contacts` and `/login` are flat → good adopt demos. `/users` and `/profile` are nested with flat markup → hard reload does **not** adopt; the client fetches like a cold SPA entry. Nested adopt shape: [guide](../guide.md#first-paint-mpa--spa).
+Playground: `/contacts` and `/login` are flat → adopt via `extract=".main"`. `/users` and `/profile` are nested — hard reload does **not** fully adopt a flat leaf blob; use the nested outlet shape + `aura-router-ssr` on the shell when you need adopt. Details: [guide](../guide.md#first-paint-mpa--spa).
 
 ---
 
@@ -68,10 +69,10 @@ Playground: `/contacts` and `/login` are flat → good adopt demos. `/users` and
 cd playground && npm install && npm run dev
 ```
 
-1. Hard-reload `/contacts` — response already has the HTML; client should not refetch `contacts` for adopt.
+1. Hard-reload `/contacts` — response already has `.main`; client should not refetch `contacts` for adopt.
 2. Click **About** — SPA (`template::`, no full reload).
 3. Click **Contacts** — SPA fetch + `extract=".main"`; `cache="off"` → ~1s every time.
-4. Hard-reload `/users` — nested fallback (fetch), unlike step 1.
+4. Hard-reload `/users` — nested mismatch / cold path, unlike step 1.
 
 ---
 

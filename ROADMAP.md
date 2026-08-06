@@ -78,7 +78,7 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | **Navigation errors** | Structured failures + `error-template` / catch-all `path="*"` |
 | **Scroll restoration** | Restore scroll position on back/forward |
 | **URLPattern matcher** | Native-style path matching with params |
-| **First-paint hydrate** | `aura-router-ssr` adopt (flat + nested outlet tree); no refetch on boot; index-folder slash fix — [guide](./docs/guide.md#first-paint-mpa--spa) |
+| **First-paint hydrate** | Flat adopt via `extract`; nested shell via `aura-router-ssr` + outlet tree; no refetch on boot; index-folder slash fix — [guide](./docs/guide.md#first-paint-mpa--spa) |
 
 ---
 
@@ -216,7 +216,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | ---: | --- | :---: | --- |
 | <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.1** | **MPA → SPA migration guide** — step-by-step for existing multi-page sites | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Default adoption path; first-paint section in [guide](./docs/guide.md#first-paint-mpa--spa); walkthrough should point at [`playground/`](./playground/) |
 | **8.2** | **Shared layout pattern** — inject `<aura-router>` + routes from CMS/template (EJS, PHP, static partial) | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | [`playground/`](./playground/): `@nav@` / `@router@` → `parts/nav.html` + `parts/router.html`; routes in HTML; server does not run Aura — listed under [Shipped](#shipped) |
-| **8.3** | **Client hydration** — `aura-router-ssr` adopt on boot (flat + nested); no refetch; slash-fix for index folders | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Engine + [guide First paint](./docs/guide.md#first-paint-mpa--spa); playground pages mark SSR roots (flat + nested `/users/:id`); adopt skips `guard`/`load`/`ready` — see [LIMITATIONS](./LIMITATIONS.md) |
+| **8.3** | **Client hydration** — flat adopt via `extract`; nested via `aura-router-ssr` when shell ≠ leaf; no refetch; slash-fix for index folders | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Engine + [guide First paint](./docs/guide.md#first-paint-mpa--spa); playground flat pages use `extract`; nested demos keep SSR marker; adopt skips `guard`/`load`/`ready` — see [LIMITATIONS](./LIMITATIONS.md) |
 | <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700">→</span> **8.4** | **Static MPA example** — nginx or Express static: one `.html` per URL + client bundle | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Playground is one HTML per URL + bundle, but Fastify + layout inject (not pure static); still need nginx / `express.static` without a template step |
 
 > **Done when:** guide + example show server serving `.html` directly and Aura handling navigation only in the browser.

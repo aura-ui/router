@@ -4,6 +4,7 @@ import { resolveAuraRoutingEngineConfig } from './aura-routing-engine-config';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import { EventBus } from './events';
 import { NavigationFailure } from './failure';
+import { hydrate } from './hydrate/hydrate';
 import { defaultHookRegistry } from './hooks/registry';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import { applyTransactionHistory } from './history/history-policy';
@@ -27,15 +28,13 @@ import type { HookRegistry } from './hooks/registry';
 import type { HistoryAction, NavigateHistoryOptions, NavigationProvider } from './history/provider.types';
 import type { InvalidateScope, RouterInvalidateOptions } from './invalidate-router-cache';
 import type { MatchedRouteInfo } from './match/url-matcher';
-import type { NavigationHost } from './navigation/navigation-host';
 import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import type { PrefetchConfig, PrefetchOptions, PrefetchPlan } from './prefetch/types';
 import type { RouterInstance } from './route/types';
 import type { ViewGraph } from './view-graph';
-import { hydrate } from './hydrate/hydrate';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 
-export class AuraRoutingEngine implements NavigationHost {
+export class AuraRoutingEngine {
   readonly router: RouterInstance;
   private readonly config: ResolvedAuraRoutingEngineConfig;
   private readonly provider: NavigationProvider;
@@ -62,7 +61,7 @@ export class AuraRoutingEngine implements NavigationHost {
   public isRunning = false;
   private prev: MatchedRouteInfo | null = null;
   /**
-   * Broken SSR `[aura-router-ssr]` after hydrate structure-error.
+   * Broken first-paint root after hydrate structure-error (`[aura-router-ssr]` or `extract` node).
    * Hidden for the next navigate; removed on commit, unhidden if navigate does not commit.
    */
   private brokenInitialView: HTMLElement | null = null;
@@ -77,28 +76,15 @@ export class AuraRoutingEngine implements NavigationHost {
     return this.resourceGraph.dataGraph;
   }
 
-  /** {@link NavigationHost.engine} — probe transactions and pipeline need `this`. */
-  get engine(): AuraRoutingEngine {
-    return this;
-  }
-
   /**
-   * Start the engine and optionally adopt SSR `[aura-router-ssr]`.
-   *
-   * - adopt OK → commit `prev`, return leaf
-   * - structure-error → keep SSR, `prev = null`, no `initNavigate`; return leaf for chrome sync
-   * - fallback / no initial view → `initNavigate` (cold CSR)
+   * Start the engine and optionally adopt first-paint markup.
+   * `ssrView` — nested shell marker; flat pages use leaf `extract` inside hydrate.
    */
-  async bootstrap(initialView: HTMLElement | null, rootOutlet: AuraOutlet): Promise<MatchedRouteInfo | null> {
+  async bootstrap(ssrView: HTMLElement | null, rootOutlet: AuraOutlet): Promise<MatchedRouteInfo | null> {
     this.start();
     this.brokenInitialView = null;
 
-    if (!initialView) {
-      this.initNavigate();
-      return null;
-    }
-
-    const result = await hydrate(initialView, this, rootOutlet);
+    const result = await hydrate(ssrView, this, rootOutlet);
 
     if (result.status === 'adopted') {
       this.prev = result.leaf;
@@ -106,7 +92,7 @@ export class AuraRoutingEngine implements NavigationHost {
     }
 
     if (result.status === 'structure-error') {
-      this.brokenInitialView = initialView;
+      this.brokenInitialView = result.root;
       this.prev = null;
       return result.leaf;
     }
@@ -359,6 +345,15 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
   /**
+   * Already on this URL (`noop` / already-active): host scroll via
+   * {@link AuraRoutingEngineConfig.onScroll} (empty hash → top / scroll-target; hash → anchor).
+   * Distinct from same-route-record param/query updates (those run the update pipeline).
+   */
+  handleSameUrlNavigation(to: MatchedRouteInfo, hash: string): void {
+    this.config.onScroll?.({ to, hash });
+  }
+
+  /**
    * Write address bar when policy requires (`push` / `replace` + `syncHistory`).
    * Call {@link notifyUrlAligned} after this. Idempotent via `historyCommitted`.
    */
@@ -391,11 +386,10 @@ export class AuraRoutingEngine implements NavigationHost {
 
   /**
    * View promoted: {@link NavigationPulse.commitEnd} (`commit:end` + `node:activate`),
-   * then update `prev` and optional hash scroll.
+   * then update `prev`. Host scrolls from `commit:end` (policy / hash via `Scroller`).
    */
   commitNavigation(transition: NavigationTransaction): void {
     this.pulse.commitEnd(transition);
-    if (transition.hash) this.scrollToHash?.(transition.hash);
     this.prev = transition.to;
     if (this.brokenInitialView) {
       this.brokenInitialView.remove();
@@ -513,7 +507,10 @@ export class AuraRoutingEngine implements NavigationHost {
     };
   }
 
-  /** Hash-only на том же path — без processor. */
+  /**
+   * Hash-only on the same path — no processor.
+   * Chrome via {@link AuraRoutingEngineConfig.onHashOnlyNavigation}; scroll via {@link AuraRoutingEngineConfig.onScroll}.
+   */
   private finalizeHashOnlyNavigation(
     href: string,
     options: NavigateHistoryOptions,
@@ -522,14 +519,6 @@ export class AuraRoutingEngine implements NavigationHost {
     this.provider.commit(href, options);
     if (this.prev) syncChainHref(this.prev, href, hash);
     this.config.onHashOnlyNavigation?.(href);
-    if (hash) this.scrollToHash(hash);
-  }
-
-  private scrollToHash(hash: string): void {
-    const id = hash.startsWith('#') ? hash.slice(1) : hash;
-    if (!id) return;
-    requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView();
-    });
+    if (hash && this.prev) this.config.onScroll?.({ to: this.prev, hash });
   }
 }

@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 
-import { Scroller } from '../core/scroller';
+import { resolveNativeScrollBehavior, Scroller } from '../core/scroller';
 import {
   asScrollContainer,
   createScrollRoute,
@@ -9,6 +9,37 @@ import {
   mockScrollRaf,
   ScrollContainerMock,
 } from './_helpers/scroll-fixtures';
+
+describe('resolveNativeScrollBehavior', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('defaults null/undefined to auto', () => {
+    expect(resolveNativeScrollBehavior(null)).toBe('auto');
+    expect(resolveNativeScrollBehavior(undefined)).toBe('auto');
+  });
+
+  it('passes through smooth and instant', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: jest.fn().mockReturnValue({ matches: false }),
+    });
+    expect(resolveNativeScrollBehavior('smooth')).toBe('smooth');
+    expect(resolveNativeScrollBehavior('instant')).toBe('instant');
+  });
+
+  it('forces instant when prefers-reduced-motion and behavior is smooth', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: jest.fn().mockReturnValue({ matches: true }),
+    });
+    expect(resolveNativeScrollBehavior('smooth')).toBe('instant');
+    expect(resolveNativeScrollBehavior('auto')).toBe('auto');
+  });
+});
 
 describe('Scroller', () => {
   let mock: ScrollContainerMock;
@@ -23,6 +54,11 @@ describe('Scroller', () => {
     scroller = new Scroller(asScrollContainer(mock));
     document.body.replaceChildren();
     mockScrollRaf();
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: jest.fn().mockReturnValue({ matches: false }),
+    });
   });
 
   afterEach(() => {
@@ -75,15 +111,49 @@ describe('Scroller', () => {
     expect(mock.scrollTo).not.toHaveBeenCalled();
   });
 
-  it('skips auto scroll when hash is present', () => {
+  it('scrolls to hash with scroll-behavior and skips scroll / scroll-target', () => {
+    const section = document.createElement('div');
+    section.id = 'section';
+    section.scrollIntoView = jest.fn();
+    document.body.append(section);
+
     scroller.apply({
       from: null,
-      to: matchedScrollRoute('/docs', createScrollRoute('/docs', 'top')),
+      to: matchedScrollRoute(
+        '/docs',
+        createScrollRoute('/docs', 'top', '#main', 'smooth'),
+      ),
       action: 'push',
       hash: '#section',
     });
 
+    expect(section.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' });
     expect(mock.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('forces instant on hash scroll when prefers-reduced-motion', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: jest.fn().mockReturnValue({ matches: true }),
+    });
+
+    const section = document.createElement('div');
+    section.id = 'section';
+    section.scrollIntoView = jest.fn();
+    document.body.append(section);
+
+    scroller.apply({
+      from: null,
+      to: matchedScrollRoute(
+        '/docs',
+        createScrollRoute('/docs', 'top', undefined, 'smooth'),
+      ),
+      action: 'push',
+      hash: '#section',
+    });
+
+    expect(section.scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant' });
   });
 
   it('scrolls into view when scroll-target matches', () => {

@@ -6,8 +6,25 @@ export type ScrollContainer = Pick<Window, 'scrollY'> & {
 };
 
 /**
+ * CSSOM `behavior` for router scroll, with `prefers-reduced-motion: reduce` → `instant`.
+ */
+export function resolveNativeScrollBehavior(
+  attr: ScrollBehaviorAttr | null | undefined,
+): ScrollBehaviorAttr {
+  const behavior = attr ?? 'auto';
+  if (
+    behavior === 'smooth'
+    && typeof matchMedia === 'function'
+    && matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    return 'instant';
+  }
+  return behavior;
+}
+
+/**
  * Host scroll after navigation: top / scroll-target / none, plus save+restore on `auto`+`pop`.
- * Animation from route `scroll-behavior` (`smooth` | `instant` | `auto`).
+ * Hash → `scrollIntoView` with `scroll-behavior` only (`scroll` / `scroll-target` skipped).
  */
 export class Scroller {
   private readonly positions = new Map<string, number>();
@@ -28,7 +45,10 @@ export class Scroller {
       this.positions.set(from.pathname + from.search, this.container.scrollY);
     }
 
-    if (hash) return;
+    if (hash) {
+      this.scrollToHash(hash, to.route.scrollBehavior);
+      return;
+    }
 
     const policy = to.route.scrollPolicy;
     if (policy !== 'top' && policy !== 'auto') return;
@@ -37,15 +57,7 @@ export class Scroller {
     const y = restoring ? this.positions.get(to.pathname + to.search) : 0;
     if (y === undefined) return;
 
-    let behavior: ScrollBehaviorAttr = to.route.scrollBehavior ?? 'auto';
-    // Respect OS/browser "reduce motion": don't animate scroll even if attr asks for smooth.
-    if (
-      behavior === 'smooth'
-      && typeof matchMedia === 'function'
-      && matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      behavior = 'instant';
-    }
+    const behavior = resolveNativeScrollBehavior(to.route.scrollBehavior);
 
     requestAnimationFrame(() => {
       if (!restoring) {
@@ -63,6 +75,15 @@ export class Scroller {
         }
       }
       this.container.scrollTo({ top: y, left: 0, behavior });
+    });
+  }
+
+  private scrollToHash(hash: string, scrollBehavior?: ScrollBehaviorAttr | null): void {
+    const id = hash.startsWith('#') ? hash.slice(1) : hash;
+    if (!id) return;
+    const behavior = resolveNativeScrollBehavior(scrollBehavior);
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior });
     });
   }
 }

@@ -47,6 +47,7 @@ export interface NavigationCommittedContext {
   from: MatchedRouteInfo | null;
   to: MatchedRouteInfo;
   action: HistoryAction;
+  /** URL hash; when set, host does anchor scroll (`scroll-behavior` only). */
   hash: string;
 }
 
@@ -112,7 +113,7 @@ export interface NavigationTransactionOptions {
   action: HistoryAction;
   /** Resolved target href written to history on success. */
   href: string;
-  /** URL hash fragment for scroll restoration. */
+  /** URL hash fragment for host anchor scroll (empty → policy scroll on same-URL). */
   hash: string;
   /** Provider-specific history options (scroll, state, etc.). */
   options: NavigateHistoryOptions;

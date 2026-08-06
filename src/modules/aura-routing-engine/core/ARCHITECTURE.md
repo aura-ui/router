@@ -163,9 +163,11 @@ The engine keeps three related concepts separate:
   `resolveHistoryPolicy()`; load/render errors after early commit preserve the URL.
 
 `commitNavigation()` on the engine is the view-success boundary after staged views
-are already promoted (`commitStagedView` on enter routes): it emits bus `commit:end`,
-optional hash scroll, and updates `prev`. It does not promote DOM itself and does not
-perform a second `pushState` when history was already committed.
+are already promoted (`commitStagedView` on enter routes): it emits bus `commit:end`
+and updates `prev`. Host scrolls on `commit:end` (policy / hash via `Scroller`).
+Same-URL reassert and hash-only scroll use config `onScroll` → host `Scroller`
+(not inlined in the engine). It does not promote DOM itself and does not perform a
+second `pushState` when history was already committed.
 
 ### Commit-slice invariant (do not break)
 
@@ -174,7 +176,7 @@ the **view commit slice** must stay synchronous:
 
 ```text
 for enter: commitStagedView()   // promote staged → active
-commitNavigation()              // view-success gate (commit:end → scroll → prev)
+commitNavigation()              // view-success gate (commit:end → prev; host scrolls on commit:end)
 // ← no await between these two
 ready                           // may await — outside the slice
 ```

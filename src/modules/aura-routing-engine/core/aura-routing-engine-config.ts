@@ -63,13 +63,18 @@ export interface AuraRoutingEngineConfig {
   /** Default: ENGINE_DEFAULTS.prefetch; `false` disables. */
   prefetch?: false | PrefetchConfig;
 
+  /**
+   * Links / branch chrome after a hash-only URL change (same pathname+search).
+   * Does not scroll — that is {@link AuraRoutingEngineConfig.onScroll}.
+   */
   onHashOnlyNavigation?: (href: string) => void;
   /**
-   * Same pathname+search again (`push` / `replace`, pipeline `noop`).
+   * Host-owned scroll outside `commit:end`: same-URL reassert and hash-only.
+   * Empty `hash` → `scroll` / `scroll-target`; non-empty → anchor + `scroll-behavior` only.
+   * Commit navigation scroll stays on the event bus → host `Scroller.apply`.
    * Not the same as same-route-record updates (`/users/1` → `/users/2`).
-   * Host typically reasserts scroll (top / scroll-target). Hash re-clicks are handled in-engine.
    */
-  onSameUrlNavigation?: (to: MatchedRouteInfo) => void;
+  onScroll?: (ctx: { to: MatchedRouteInfo; hash: string }) => void;
   onNavigationHookError?: (detail: NavigationHookErrorDetail) => void;
   /** Fallback NOT_FOUND — host owns event + recovery UI. */
   onNotFound?: (failure: NavigationFailure) => void;

@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+
 import { parseScrollBehaviorAttr } from '../../core/attr/scroll-behavior-attr-parser';
 
 describe('parseScrollBehaviorAttr', () => {

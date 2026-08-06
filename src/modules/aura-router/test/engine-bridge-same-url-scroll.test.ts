@@ -11,7 +11,7 @@ import {
   ScrollContainerMock,
 } from './_helpers/scroll-fixtures';
 
-describe('connectRouterEngine same-URL scroll', () => {
+describe('connectRouterEngine onScroll', () => {
   let mock: ScrollContainerMock;
 
   beforeAll(() => {
@@ -29,7 +29,7 @@ describe('connectRouterEngine same-URL scroll', () => {
     document.body.replaceChildren();
   });
 
-  it('wires onSameUrlNavigation to apply as a fresh push (no save)', () => {
+  it('wires onScroll to apply as a fresh push (no save)', () => {
     const apply = jest.fn();
     const { config } = connectRouterEngine(document.createElement('div'), {
       syncBranchAndActiveLinks: jest.fn(),
@@ -39,13 +39,33 @@ describe('connectRouterEngine same-URL scroll', () => {
     });
     const to = matchedScrollRoute('/about', createScrollRoute('/about', 'top'));
 
-    config.onSameUrlNavigation?.(to);
+    config.onScroll?.({ to, hash: '' });
 
     expect(apply).toHaveBeenCalledWith({
       from: null,
       to,
       action: 'push',
       hash: '',
+    });
+  });
+
+  it('passes hash through to Scroller', () => {
+    const apply = jest.fn();
+    const { config } = connectRouterEngine(document.createElement('div'), {
+      syncBranchAndActiveLinks: jest.fn(),
+      scroller: { apply },
+      notFound: { recover: jest.fn(), clear: jest.fn() },
+      onHashOnlyNavigation: jest.fn(),
+    });
+    const to = matchedScrollRoute('/docs', createScrollRoute('/docs', 'top', undefined, 'smooth'));
+
+    config.onScroll?.({ to, hash: '#intro' });
+
+    expect(apply).toHaveBeenCalledWith({
+      from: null,
+      to,
+      action: 'push',
+      hash: '#intro',
     });
   });
 
@@ -58,9 +78,10 @@ describe('connectRouterEngine same-URL scroll', () => {
       onHashOnlyNavigation: jest.fn(),
     });
 
-    config.onSameUrlNavigation?.(
-      matchedScrollRoute('/about', createScrollRoute('/about', 'top')),
-    );
+    config.onScroll?.({
+      to: matchedScrollRoute('/about', createScrollRoute('/about', 'top')),
+      hash: '',
+    });
 
     expect(mock.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
   });

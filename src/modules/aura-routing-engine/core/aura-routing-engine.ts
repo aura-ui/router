@@ -345,16 +345,12 @@ export class AuraRoutingEngine {
   }
 
   /**
-   * Already on this URL (`noop` / already-active): hash → scrollToHash; else host scroll via
-   * {@link AuraRoutingEngineConfig.onSameUrlNavigation}.
+   * Already on this URL (`noop` / already-active): host scroll via
+   * {@link AuraRoutingEngineConfig.onScroll} (empty hash → top / scroll-target; hash → anchor).
    * Distinct from same-route-record param/query updates (those run the update pipeline).
    */
   handleSameUrlNavigation(to: MatchedRouteInfo, hash: string): void {
-    if (hash) {
-      this.scrollToHash(hash);
-      return;
-    }
-    this.config.onSameUrlNavigation?.(to);
+    this.config.onScroll?.({ to, hash });
   }
 
   /**
@@ -390,11 +386,10 @@ export class AuraRoutingEngine {
 
   /**
    * View promoted: {@link NavigationPulse.commitEnd} (`commit:end` + `node:activate`),
-   * then update `prev` and optional hash scroll.
+   * then update `prev`. Host scrolls from `commit:end` (policy / hash via `Scroller`).
    */
   commitNavigation(transition: NavigationTransaction): void {
     this.pulse.commitEnd(transition);
-    if (transition.hash) this.scrollToHash?.(transition.hash);
     this.prev = transition.to;
     if (this.brokenInitialView) {
       this.brokenInitialView.remove();
@@ -512,7 +507,10 @@ export class AuraRoutingEngine {
     };
   }
 
-  /** Hash-only на том же path — без processor. */
+  /**
+   * Hash-only on the same path — no processor.
+   * Chrome via {@link AuraRoutingEngineConfig.onHashOnlyNavigation}; scroll via {@link AuraRoutingEngineConfig.onScroll}.
+   */
   private finalizeHashOnlyNavigation(
     href: string,
     options: NavigateHistoryOptions,
@@ -521,14 +519,6 @@ export class AuraRoutingEngine {
     this.provider.commit(href, options);
     if (this.prev) syncChainHref(this.prev, href, hash);
     this.config.onHashOnlyNavigation?.(href);
-    if (hash) this.scrollToHash(hash);
-  }
-
-  private scrollToHash(hash: string): void {
-    const id = hash.startsWith('#') ? hash.slice(1) : hash;
-    if (!id) return;
-    requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView();
-    });
+    if (hash && this.prev) this.config.onScroll?.({ to: this.prev, hash });
   }
 }

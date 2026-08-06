@@ -33,7 +33,7 @@ export type RouterEngineBridgeDeps = {
 export type RouterEngineBridge = {
   config: Pick<
     AuraRoutingEngineConfig,
-    'onHashOnlyNavigation' | 'onSameUrlNavigation' | 'onNavigationHookError' | 'onNotFound'
+    'onHashOnlyNavigation' | 'onScroll' | 'onNavigationHookError' | 'onNotFound'
   >;
   onEvent: (event: EngineEvent) => void;
 };
@@ -51,9 +51,9 @@ export function connectRouterEngine(host: HTMLElement, deps: RouterEngineBridgeD
   return {
     config: {
       onHashOnlyNavigation: deps.onHashOnlyNavigation,
-      onSameUrlNavigation: (to) => {
-        // Same URL again: scroll like a fresh push, without saving the current Y.
-        deps.scroller.apply({ from: null, to, action: 'push', hash: '' });
+      onScroll: ({ to, hash }) => {
+        // Outside commit:end: same-URL reassert / hash-only → Scroller (no Y save).
+        deps.scroller.apply({ from: null, to, action: 'push', hash });
       },
       onNavigationHookError: (detail) => {
         dispatchNavigationHookError(host, detail);

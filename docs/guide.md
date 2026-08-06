@@ -165,7 +165,7 @@ Selector stays in `extract`, not inside `view`.
 
 ## Scroll
 
-After a successful navigation commit, and when you navigate again to the **same pathname+search** (`push` / `replace`), the router adjusts the viewport. Policy is `scroll`; landing spot is `scroll-target`; animation is `scroll-behavior`.
+After a successful navigation commit, and when you navigate again to the **same pathname+search** (`push` / `replace`), the router adjusts the viewport. Policy is `scroll`; landing spot is `scroll-target`; animation is `scroll-behavior`. A URL **hash** scrolls to that anchor with `scroll-behavior` only (see table).
 
 ```html
 <aura-router scroll="auto" scroll-target="#main" scroll-behavior="smooth">
@@ -187,12 +187,12 @@ After a successful navigation commit, and when you navigate again to the **same 
 | `scroll-target="#main"` | CSS selector; `scrollIntoView` when not restoring a saved position |
 | `scroll-behavior="auto"` *(default)* | Native CSSOM `behavior` for `scrollTo` / `scrollIntoView` (`smooth` \| `instant` \| `auto`) |
 | *(no match / invalid selector)* | Fall back to window top |
-| URL hash (`#section`) | Anchor scroll via `scrollIntoView` — `scroll` / `scroll-target` / `scroll-behavior` are not applied |
+| URL hash (`#section`) | Anchor `scrollIntoView` with `scroll-behavior` (+ reduced-motion); `scroll` / `scroll-target` are not applied |
 | *(absent)* | Inherit from `<aura-router>` / parent `<aura-route>` |
 
 `scroll-target` is ignored when restoring a saved position (`scroll="auto"` + back/forward) and when `scroll="none"`.
 
-**Same URL again** (active nav link / `navigate` to the current pathname+search, no pipeline): scroll reasserts like a fresh push — same `scroll` / `scroll-target` / `scroll-behavior` rules. Not the same as a param/query change on one route record (`/users/1` → `/users/2`), which runs the update pipeline and then commit scroll. A same-URL click that only carries a hash uses the hash path above.
+**Same URL again** (active nav link / `navigate` to the current pathname+search, no pipeline): scroll reasserts like a fresh push — same `scroll` / `scroll-target` / `scroll-behavior` rules. Not the same as a param/query change on one route record (`/users/1` → `/users/2`), which runs the update pipeline and then commit scroll. A same-URL click that only carries a hash (or hash-only change) uses the hash path above (`scroll-behavior` only).
 
 **`scroll-behavior`:** browser values only. `auto` follows the UA / CSS `scroll-behavior` on the scrolling box; `smooth` / `instant` force that mode. If the user has `prefers-reduced-motion: reduce`, `smooth` is forced to `instant`.
 

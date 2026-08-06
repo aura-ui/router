@@ -271,4 +271,40 @@ describe('Scroller', () => {
     expect(mock.scrollTo).toHaveBeenLastCalledWith({ top: 320, left: 0, behavior: 'auto' });
     expect(target.scrollIntoView).not.toHaveBeenCalled();
   });
+
+  it('cancels pending scroll when a newer apply runs', () => {
+    jest.restoreAllMocks();
+    let nextId = 1;
+    const byId = new Map<number, FrameRequestCallback>();
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      const id = nextId++;
+      byId.set(id, cb);
+      return id;
+    });
+    jest.spyOn(window, 'cancelAnimationFrame').mockImplementation((id) => {
+      byId.delete(id);
+    });
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: jest.fn().mockReturnValue({ matches: false }),
+    });
+
+    scroller.apply({
+      from: null,
+      to: matchedScrollRoute('/a', createScrollRoute('/a', 'top')),
+      action: 'push',
+      hash: '',
+    });
+    scroller.apply({
+      from: null,
+      to: matchedScrollRoute('/b', createScrollRoute('/b', 'none')),
+      action: 'push',
+      hash: '',
+    });
+
+    for (const cb of byId.values()) cb(0);
+    expect(mock.scrollTo).not.toHaveBeenCalled();
+  });
 });
+

@@ -45,9 +45,11 @@ export function installScrollTestDom(): void {
   }
 }
 
+/** Sync rAF; cancelAnimationFrame is a no-op (callback already ran). */
 export function mockScrollRaf(): void {
   jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
     cb(0);
     return 0;
   });
+  jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
 }

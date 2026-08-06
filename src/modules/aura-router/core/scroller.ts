@@ -29,12 +29,14 @@ export function resolveNativeScrollBehavior(
 export class Scroller {
   private readonly positions = new Map<string, number>();
   private readonly container: ScrollContainer;
+  private pendingRaf: number | null = null;
 
   constructor(container: ScrollContainer = window) {
     this.container = container;
   }
 
   clear(): void {
+    this.cancelPendingScroll();
     this.positions.clear();
   }
 
@@ -44,6 +46,8 @@ export class Scroller {
     if (from?.route.scrollPolicy === 'auto') {
       this.positions.set(from.pathname + from.search, this.container.scrollY);
     }
+
+    this.cancelPendingScroll();
 
     if (hash) {
       this.scrollToHash(hash, to.route.scrollBehavior);
@@ -59,7 +63,8 @@ export class Scroller {
 
     const behavior = resolveNativeScrollBehavior(to.route.scrollBehavior);
 
-    requestAnimationFrame(() => {
+    this.pendingRaf = requestAnimationFrame(() => {
+      this.pendingRaf = null;
       if (!restoring) {
         const target = to.route.scrollTarget;
         if (target) {
@@ -82,8 +87,15 @@ export class Scroller {
     const id = hash.startsWith('#') ? hash.slice(1) : hash;
     if (!id) return;
     const behavior = resolveNativeScrollBehavior(scrollBehavior);
-    requestAnimationFrame(() => {
+    this.pendingRaf = requestAnimationFrame(() => {
+      this.pendingRaf = null;
       document.getElementById(id)?.scrollIntoView({ behavior });
     });
+  }
+
+  private cancelPendingScroll(): void {
+    if (this.pendingRaf === null) return;
+    cancelAnimationFrame(this.pendingRaf);
+    this.pendingRaf = null;
   }
 }

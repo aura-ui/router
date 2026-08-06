@@ -4,6 +4,7 @@ import { resolveAuraRoutingEngineConfig } from './aura-routing-engine-config';
 import { AuraRoutingRouteRegistry } from './aura-routing-route-registry';
 import { EventBus } from './events';
 import { NavigationFailure } from './failure';
+import { hydrate } from './hydrate/hydrate';
 import { defaultHookRegistry } from './hooks/registry';
 import { BrowserHistoryProvider } from './history/browser-provider';
 import { applyTransactionHistory } from './history/history-policy';
@@ -32,7 +33,6 @@ import type { PipelineStepResult, TransactionResult } from './navigation/types';
 import type { PrefetchConfig, PrefetchOptions, PrefetchPlan } from './prefetch/types';
 import type { RouterInstance } from './route/types';
 import type { ViewGraph } from './view-graph';
-import { hydrate } from './hydrate/hydrate';
 import type { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 
 export class AuraRoutingEngine implements NavigationHost {
@@ -62,7 +62,7 @@ export class AuraRoutingEngine implements NavigationHost {
   public isRunning = false;
   private prev: MatchedRouteInfo | null = null;
   /**
-   * Broken SSR `[aura-router-ssr]` after hydrate structure-error.
+   * Broken first-paint root after hydrate structure-error (`[aura-router-ssr]` or `extract` node).
    * Hidden for the next navigate; removed on commit, unhidden if navigate does not commit.
    */
   private brokenInitialView: HTMLElement | null = null;
@@ -83,22 +83,14 @@ export class AuraRoutingEngine implements NavigationHost {
   }
 
   /**
-   * Start the engine and optionally adopt SSR `[aura-router-ssr]`.
-   *
-   * - adopt OK → commit `prev`, return leaf
-   * - structure-error → keep SSR, `prev = null`, no `initNavigate`; return leaf for chrome sync
-   * - fallback / no initial view → `initNavigate` (cold CSR)
+   * Start the engine and optionally adopt first-paint markup.
+   * `ssrView` — nested shell marker; flat pages use leaf `extract` inside hydrate.
    */
-  async bootstrap(initialView: HTMLElement | null, rootOutlet: AuraOutlet): Promise<MatchedRouteInfo | null> {
+  async bootstrap(ssrView: HTMLElement | null, rootOutlet: AuraOutlet): Promise<MatchedRouteInfo | null> {
     this.start();
     this.brokenInitialView = null;
 
-    if (!initialView) {
-      this.initNavigate();
-      return null;
-    }
-
-    const result = await hydrate(initialView, this, rootOutlet);
+    const result = await hydrate(ssrView, this, rootOutlet);
 
     if (result.status === 'adopted') {
       this.prev = result.leaf;
@@ -106,7 +98,7 @@ export class AuraRoutingEngine implements NavigationHost {
     }
 
     if (result.status === 'structure-error') {
-      this.brokenInitialView = initialView;
+      this.brokenInitialView = result.root;
       this.prev = null;
       return result.leaf;
     }

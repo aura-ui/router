@@ -8,9 +8,9 @@
 <body>
 @header@
 @nav@
-<div class="main" aura-router-ssr>
+<div class="main">
   <h1>Login</h1>
-  <p>Flat url; hard reload → adopt. In SPA — the <code>.main</code> fragment (<code>extract</code> from the router).</p>
+  <p>Flat url; hard reload → adopt via <code>extract=".main"</code>. In SPA — the same <code>.main</code> fragment.</p>
   <p>Sign in writes sessionStorage and <code>navigate('/profile')</code>; <code>guard="auth"</code> allows access.</p>
   <button type="button" data-demo-login>Sign in</button>
 </div>

@@ -19,8 +19,9 @@
   <aura-outlet>
     <div class="main" data-aura-view-root data-aura-key="/profile">
       <h1>Profile</h1>
-      <p>Nested + <code>guard="auth"</code>. Flat SSR → hard reload without adopt; the guard still runs. No session →
-        redirect to /login.</p>
+      <p>Nested + <code>guard="auth"</code>. Shell uses <code>aura-router-ssr</code>; leaf is
+        <code>extract=".main"</code>. Mismatched tree → hard reload without full adopt; the guard still runs. No
+        session → redirect to /login.</p>
     </div>
   </aura-outlet>
 </section>

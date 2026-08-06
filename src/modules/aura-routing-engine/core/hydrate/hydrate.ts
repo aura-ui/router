@@ -17,14 +17,15 @@ type HydrateStep = {
  */
 export type HydrateResult =
   | { status: 'adopted'; leaf: MatchedRouteInfo }
-  | { status: 'structure-error'; leaf: MatchedRouteInfo }
+  | { status: 'structure-error'; leaf: MatchedRouteInfo; root: HTMLElement }
   | { status: 'fallback' };
 
 /**
  * Adopt server markup into the matched route chain without fetch/remount.
+ * `ssrView` — `[aura-router-ssr]` shell when set; else matched leaf `extract`.
  */
 export async function hydrate(
-  initialView: HTMLElement,
+  ssrView: HTMLElement | null,
   engine: AuraRoutingEngine,
   rootOutlet: AuraOutlet,
 ): Promise<HydrateResult> {
@@ -42,8 +43,11 @@ export async function hydrate(
   );
   const chain = leaf.chain ?? [leaf];
 
+  const initialView = ssrView ?? findExtractRoot(leaf, rootOutlet);
+  if (!initialView) return { status: 'fallback' };
+
   const plan = buildHydratePlan(chain, initialView, rootOutlet);
-  if (!plan) return { status: 'structure-error', leaf };
+  if (!plan) return { status: 'structure-error', leaf, root: initialView };
 
   try {
     await Promise.all(plan.map((step) => step.entry.route.whenReady()));
@@ -56,6 +60,19 @@ export async function hydrate(
   }
 
   return { status: 'adopted', leaf };
+}
+
+/** Matched leaf `extract` → live DOM node for flat first-paint adopt. */
+function findExtractRoot(leaf: MatchedRouteInfo, rootOutlet: AuraOutlet): HTMLElement | null {
+  const extract = leaf.route.extract;
+  if (!extract) return null;
+
+  try {
+    const el = rootOutlet.querySelector(extract) ?? document.querySelector(extract);
+    return el instanceof HTMLElement ? el : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Dry-run: validate server markup for the full chain before any adopt. */

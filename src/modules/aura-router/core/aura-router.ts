@@ -45,7 +45,7 @@ import type {
 import type { ActiveRouteBranchEntry } from '../../aura-routing-engine/core/link-active';
 import type { NotFoundHandler } from './navigation-events';
 
-/** Boolean marker: server HTML to adopt on first paint (`[aura-router-ssr]`). */
+/** Boolean marker: nested layout shell to adopt when it differs from `extract`. */
 export const AURA_ROUTER_SSR_ATTR = 'aura-router-ssr';
 
 export interface AuraRouterConfigureOptions {
@@ -117,7 +117,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ parser: parseScrollAttr, cached: true, name: 'scroll' })
   scrollPolicy: ScrollAttr | null;
 
-  /** Default CSS selector for `url` fragment extract on child routes (`extract="none"` opts out). */
+  /** Default CSS selector: SPA `url` fragment + flat first-paint adopt when no `aura-router-ssr`. */
   @attr({ parser: parseNullableString, cached: true })
   extract: string | null;
 
@@ -159,11 +159,16 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     return resolveAppOutlet(this);
   }
 
-  /** initial view markup from server */
-  get initialView(): HTMLElement | null {
+  /**
+   * First-paint `[aura-router-ssr]` shell when present (nested layouts).
+   * Flat pages omit it — {@link hydrate} adopts via the matched leaf `extract`.
+   */
+  private get ssrView(): HTMLElement | null {
     const selector = `[${AURA_ROUTER_SSR_ATTR}]`;
-    return this.appOutlet.querySelector(selector)
-      ?? document.querySelector(selector);
+    return (
+      this.appOutlet.querySelector<HTMLElement>(selector) ??
+      document.querySelector<HTMLElement>(selector)
+    );
   }
 
   /** Also registers `<aura-outlet>` and `<aura-route>`. */
@@ -229,7 +234,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     void customElements.whenDefined(AuraRoute.is).then(async () => {
       if (!this.isConnected) return;
       this.refreshRoutes();
-      const leaf = await this.ensureEngine().bootstrap(this.initialView, this.appOutlet);
+      const leaf = await this.ensureEngine().bootstrap(this.ssrView, this.appOutlet);
       if (leaf) this.syncBranchAndActiveLinks(leaf.href, leaf);
     });
   }

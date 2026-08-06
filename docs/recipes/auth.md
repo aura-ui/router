@@ -17,7 +17,7 @@
 **SPA** navigation to `/profile` without a session → `guard="auth"` redirects to `/login`.  
 After Sign in → layout stays mounted; overview ↔ settings swap in the outlet.
 
-> **Adopt vs guard:** successful first-paint adopt skips `guard` / `load` / `ready`. That applies to **flat** routes with `aura-router-ssr`. Playground `/profile` is **nested** with flat server markup, so a hard reload usually runs a normal first navigation — **guard still runs**. See [First paint](./first-paint.md).
+> **Adopt vs guard:** successful first-paint adopt skips `guard` / `load` / `ready`. That applies to **flat** routes adopted via `extract` (or `aura-router-ssr`). Playground `/profile` is **nested** with flat server markup, so a hard reload usually runs a normal first navigation — **guard still runs**. See [First paint](./first-paint.md).
 
 ---
 

@@ -254,7 +254,7 @@ export const DEMO_VIEW_META: Record<string, DemoRouteFact[]> = {
       term: 'First paint vs SPA',
       kind: 'text',
       value:
-        'Shell с marker → adopt без fetch. После ухода на B возврат грузит about.html.',
+        'Shell с extract (flat) или aura-router-ssr (nested shell) → adopt без fetch. После ухода на B возврат грузит about.html.',
     },
     {
       term: 'Действие роутера',

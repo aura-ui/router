@@ -1,11 +1,15 @@
+import type { ScrollBehaviorAttr } from '../../aura-route/core/attr/scroll-behavior-attr-parser';
 import type { NavigationCommittedContext } from '../../aura-routing-engine/core';
 
-export type ScrollContainer = Pick<Window, 'scrollY' | 'scrollTo'>;
+export type ScrollContainer = Pick<Window, 'scrollY'> & {
+  scrollTo(options: ScrollToOptions): void;
+};
 
 /**
  * Host scroll after navigation: top / scroll-target / none, plus save+restore on `auto`+`pop`.
+ * Animation from route `scroll-behavior` (`smooth` | `instant` | `auto`).
  */
-export class ScrollBehavior {
+export class Scroller {
   private readonly positions = new Map<string, number>();
   private readonly container: ScrollContainer;
 
@@ -33,6 +37,16 @@ export class ScrollBehavior {
     const y = restoring ? this.positions.get(to.pathname + to.search) : 0;
     if (y === undefined) return;
 
+    let behavior: ScrollBehaviorAttr = to.route.scrollBehavior ?? 'auto';
+    // Respect OS/browser "reduce motion": don't animate scroll even if attr asks for smooth.
+    if (
+      behavior === 'smooth'
+      && typeof matchMedia === 'function'
+      && matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      behavior = 'instant';
+    }
+
     requestAnimationFrame(() => {
       if (!restoring) {
         const target = to.route.scrollTarget;
@@ -40,7 +54,7 @@ export class ScrollBehavior {
           try {
             const el = document.querySelector(target);
             if (el) {
-              el.scrollIntoView();
+              el.scrollIntoView({ behavior });
               return;
             }
           } catch {
@@ -48,7 +62,7 @@ export class ScrollBehavior {
           }
         }
       }
-      this.container.scrollTo(0, y);
+      this.container.scrollTo({ top: y, left: 0, behavior });
     });
   }
 }

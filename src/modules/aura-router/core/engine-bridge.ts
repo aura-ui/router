@@ -19,13 +19,13 @@ import type {
   MatchedRouteInfo,
 } from '../../aura-routing-engine/core';
 import type { AuraRouterNotFoundController } from './not-found-controller';
-import type { ScrollBehavior } from './scroll-behavior';
+import type { Scroller } from './scroller';
 
 /** Deps the engine↔host bridge needs from `<aura-router>` (not the whole element API). */
 export type RouterEngineBridgeDeps = {
   /** Refresh active links; pass `to` when a route matched, omit/null for fallback 404. */
   syncBranchAndActiveLinks: (href: string, to?: MatchedRouteInfo | null) => void;
-  scrollBehavior: Pick<ScrollBehavior, 'apply'>;
+  scroller: Pick<Scroller, 'apply'>;
   notFound: Pick<AuraRouterNotFoundController, 'recover' | 'clear'>;
   onHashOnlyNavigation: (href: string) => void;
 };
@@ -53,7 +53,7 @@ export function connectRouterEngine(host: HTMLElement, deps: RouterEngineBridgeD
       onHashOnlyNavigation: deps.onHashOnlyNavigation,
       onSameUrlNavigation: (to) => {
         // Same URL again: scroll like a fresh push, without saving the current Y.
-        deps.scrollBehavior.apply({ from: null, to, action: 'push', hash: '' });
+        deps.scroller.apply({ from: null, to, action: 'push', hash: '' });
       },
       onNavigationHookError: (detail) => {
         dispatchNavigationHookError(host, detail);
@@ -77,7 +77,7 @@ export function connectRouterEngine(host: HTMLElement, deps: RouterEngineBridgeD
  * Stay: `nav-state-restore` → active links / branch after cancel-pending.
  */
 function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: EngineEvent): void {
-  const { syncBranchAndActiveLinks, scrollBehavior, notFound } = deps;
+  const { syncBranchAndActiveLinks, scroller, notFound } = deps;
 
   switch (event.type) {
     case 'navigation:url-aligned':
@@ -115,7 +115,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
       if (isCatchAllRoutePattern(event.to.pattern)) {
         dispatchNotFound(host, event.to.href, 'route');
       }
-      scrollBehavior.apply({
+      scroller.apply({
         from: event.from,
         to: event.to,
         action: event.action,

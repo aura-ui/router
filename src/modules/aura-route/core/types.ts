@@ -1,6 +1,8 @@
 import type { MatchedRouteInfo, CacheFlags } from '../../aura-routing-engine/route-api';
 
 import type { ScrollAttr } from './attr/scroll-attr-parser';
+import type { ScrollBehaviorAttr } from './attr/scroll-behavior-attr-parser';
+
 import type { RouteTransitionType } from './attr/transition-attr-parser';
 import type { ViewAttrDescriptor } from './attr/view-attr-parser';
 import type { ViewPayload } from './view/types';
@@ -26,6 +28,8 @@ export interface AuraRouteInterface {
   scrollPolicy: ScrollAttr | null;
   /** `scroll-target` — CSS selector; `null` → top / restore only. */
   scrollTarget: string | null;
+  /** `scroll-behavior` — native smooth | instant | auto. */
+  scrollBehavior: ScrollBehaviorAttr | null;
   extract: string | null;
   readonly type: RouteType;
   readonly transition: RouteTransitionType;

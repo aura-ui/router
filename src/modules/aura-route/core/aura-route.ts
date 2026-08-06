@@ -8,6 +8,7 @@ import { parseMountStrategyAttr } from './attr/mount-strategy-attr-parser';
 import { parseParamChangeAttr } from './attr/param-change-attr-parser';
 import { parsePrefetchAttr } from './attr/prefetch-attr-parser';
 import { parseScrollAttr } from './attr/scroll-attr-parser';
+import { parseScrollBehaviorAttr } from './attr/scroll-behavior-attr-parser';
 import { parseCacheTimeAttr } from './attr/cache-time-attr-parser';
 import {
   NO_TRANSITION,
@@ -33,6 +34,7 @@ import type { MountStrategy } from './attr/mount-strategy-attr-parser';
 import type { ParamChangePolicy } from './attr/param-change-attr-parser';
 import type { PrefetchType } from './attr/prefetch-attr-parser';
 import type { ScrollAttr } from './attr/scroll-attr-parser';
+import type { ScrollBehaviorAttr } from './attr/scroll-behavior-attr-parser';
 import type {
   RouteTransitionType,
   TransitionShortcutType,
@@ -144,6 +146,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   /** CSS selector for post-nav scroll; `none` opts out. HTML attr: `scroll-target`. */
   @routeAttr({ parser: parseOffableString })
   scrollTarget: string | null;
+
+  /** Native scroll animation (`smooth` | `instant` | `auto`). HTML attr: `scroll-behavior`. */
+  @routeAttr({ parser: parseScrollBehaviorAttr })
+  scrollBehavior: ScrollBehaviorAttr | null;
 
   @routeAttr({ parser: parsePrefetchAttr })
   prefetch: PrefetchType | false | null;

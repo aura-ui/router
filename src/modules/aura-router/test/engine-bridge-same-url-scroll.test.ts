@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 
 import { connectRouterEngine } from '../core/engine-bridge';
-import { ScrollBehavior } from '../core/scroll-behavior';
+import { Scroller } from '../core/scroller';
 import {
   asScrollContainer,
   createScrollRoute,
@@ -33,7 +33,7 @@ describe('connectRouterEngine same-URL scroll', () => {
     const apply = jest.fn();
     const { config } = connectRouterEngine(document.createElement('div'), {
       syncBranchAndActiveLinks: jest.fn(),
-      scrollBehavior: { apply },
+      scroller: { apply },
       notFound: { recover: jest.fn(), clear: jest.fn() },
       onHashOnlyNavigation: jest.fn(),
     });
@@ -49,11 +49,11 @@ describe('connectRouterEngine same-URL scroll', () => {
     });
   });
 
-  it('scrolls to top through ScrollBehavior when policy is top', () => {
-    const scrollBehavior = new ScrollBehavior(asScrollContainer(mock));
+  it('scrolls to top through Scroller when policy is top', () => {
+    const scroller = new Scroller(asScrollContainer(mock));
     const { config } = connectRouterEngine(document.createElement('div'), {
       syncBranchAndActiveLinks: jest.fn(),
-      scrollBehavior,
+      scroller,
       notFound: { recover: jest.fn(), clear: jest.fn() },
       onHashOnlyNavigation: jest.fn(),
     });
@@ -62,6 +62,6 @@ describe('connectRouterEngine same-URL scroll', () => {
       matchedScrollRoute('/about', createScrollRoute('/about', 'top')),
     );
 
-    expect(mock.scrollTo).toHaveBeenCalledWith(0, 0);
+    expect(mock.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
   });
 });

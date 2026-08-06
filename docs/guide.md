@@ -165,31 +165,36 @@ Selector stays in `extract`, not inside `view`.
 
 ## Scroll
 
-After a successful navigation commit, the router adjusts the viewport. Policy is `scroll`; optional landing spot is `scroll-target`.
+After a successful navigation commit, and when you navigate again to the **same pathname+search** (`push` / `replace`), the router adjusts the viewport. Policy is `scroll`; landing spot is `scroll-target`; animation is `scroll-behavior`.
 
 ```html
-<aura-router scroll="auto" scroll-target="#main">
+<aura-router scroll="auto" scroll-target="#main" scroll-behavior="smooth">
   <aura-route path="/feed" view="feed.html"></aura-route>
   <!-- always land at top (or scroll-target) -->
   <aura-route path="/checkout" view="checkout.html" scroll="top"></aura-route>
   <!-- no scroll adjustment -->
   <aura-route path="/quiet" view="quiet.html" scroll="none"></aura-route>
-  <!-- override inherited target -->
-  <aura-route path="/docs" view="docs.html" scroll-target="#content"></aura-route>
+  <!-- override inherited target / animation -->
+  <aura-route path="/docs" view="docs.html" scroll-target="#content" scroll-behavior="instant"></aura-route>
 </aura-router>
 ```
 
 | Attr | Meaning |
 | --- | --- |
 | `scroll="auto"` *(default)* | Forward nav → top (or `scroll-target`); back/forward → restore saved position |
-| `scroll="top"` | Always scroll to top (or `scroll-target`) |
+| `scroll="top"` | Always scroll to top (or `scroll-target`), including on back/forward |
 | `scroll="none"` / `off` / `false` | No scroll adjustment; opt out of an inherited default |
-| `scroll-target="#main"` | CSS selector; `scrollIntoView` on forward nav / `top` when the node exists |
-| *(no match / invalid selector)* | Fall back to top |
-| URL hash (`#section`) | Wins — restoration and `scroll-target` are skipped |
+| `scroll-target="#main"` | CSS selector; `scrollIntoView` when not restoring a saved position |
+| `scroll-behavior="auto"` *(default)* | Native CSSOM `behavior` for `scrollTo` / `scrollIntoView` (`smooth` \| `instant` \| `auto`) |
+| *(no match / invalid selector)* | Fall back to window top |
+| URL hash (`#section`) | Anchor scroll via `scrollIntoView` — `scroll` / `scroll-target` / `scroll-behavior` are not applied |
 | *(absent)* | Inherit from `<aura-router>` / parent `<aura-route>` |
 
-`scroll-target` is ignored on back/forward restore and when `scroll="none"`.
+`scroll-target` is ignored when restoring a saved position (`scroll="auto"` + back/forward) and when `scroll="none"`.
+
+**Same URL again** (active nav link / `navigate` to the current pathname+search, no pipeline): scroll reasserts like a fresh push — same `scroll` / `scroll-target` / `scroll-behavior` rules. Not the same as a param/query change on one route record (`/users/1` → `/users/2`), which runs the update pipeline and then commit scroll. A same-URL click that only carries a hash uses the hash path above.
+
+**`scroll-behavior`:** browser values only. `auto` follows the UA / CSS `scroll-behavior` on the scrolling box; `smooth` / `instant` force that mode. If the user has `prefers-reduced-motion: reduce`, `smooth` is forced to `instant`.
 
 ---
 
@@ -511,6 +516,7 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 | `extract` | Default CSS selector for `url` fragment extract **and** flat first-paint adopt |
 | `scroll` | Viewport policy after commit (`auto` default, `top`, `none`) — see [Scroll](#scroll) |
 | `scroll-target` | Default CSS selector for post-nav `scrollIntoView` |
+| `scroll-behavior` | Default scroll animation (`auto` default, `smooth`, `instant`) — see [Scroll](#scroll) |
 
 ### Host only (`<aura-router>`)
 
@@ -529,6 +535,7 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
   extract="#main"
   scroll="auto"
   scroll-target="#main"
+  scroll-behavior="smooth"
   link-active-class="is-active"
   link-active-branch-class="is-active-branch">
   …

@@ -1,5 +1,5 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
-import type { ScrollContainer } from '../../core/scroll-behavior';
+import type { ScrollContainer } from '../../core/scroller';
 
 /** Minimal matched leaf for scroll tests. */
 export function matchedScrollRoute(path: string, route: AuraRoute) {
@@ -17,18 +17,20 @@ export function createScrollRoute(
   path: string,
   scroll: string,
   scrollTarget?: string,
+  scrollBehavior?: string,
 ): AuraRoute {
   const route = document.createElement(AuraRoute.is) as AuraRoute;
   route.setAttribute('path', path);
   route.setAttribute('scroll', scroll);
   if (scrollTarget) route.setAttribute('scroll-target', scrollTarget);
+  if (scrollBehavior) route.setAttribute('scroll-behavior', scrollBehavior);
   return route;
 }
 
 export class ScrollContainerMock {
   scrollY = 0;
-  scrollTo = jest.fn((x: number | ScrollToOptions = 0, y = 0) => {
-    this.scrollY = typeof x === 'number' ? y : (x.top ?? 0);
+  scrollTo = jest.fn((options: ScrollToOptions = {}) => {
+    this.scrollY = options.top ?? 0;
   });
 }
 

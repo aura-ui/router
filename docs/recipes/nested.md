@@ -13,7 +13,7 @@
 /users/:id  → same layout + detail in the outlet
 ```
 
-Prefer root-absolute links (`/users/1`). Route `path="/users/"` and URL `/users` match the same folder index.
+Prefer root-absolute links (`/users/1`). Same-origin absolute / protocol-relative URLs work too; see [How `href` resolves](../guide.md#how-href-resolves). Route `path="/users/"` and URL `/users` match the same folder index.
 
 ---
 

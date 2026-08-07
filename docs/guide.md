@@ -36,16 +36,32 @@ Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/rout
 
 ### How `href` resolves
 
-The link’s **`href`** is what matters — for search engines, users without JavaScript, and the router. The browser resolves relative `href` from the current page URL (same as a normal website). Aura does **not** add a trailing `/` to folder indexes, so path-relative links are easy to get wrong.
+The link’s **`href`** is what matters — for search engines, users without JavaScript, and the router. Only anchors matching `links-selector` (default `[aura-router-link]`) are intercepted. Resolution uses the document URL as base (same rules as a normal `<a>`), then keeps the result only if it stays on the **same origin**.
 
-| Link in markup | Current URL | Resolves to |
+Aura does **not** add a trailing `/` to folder indexes, so path-relative links are easy to get wrong.
+
+| Link in markup | Current URL | In-app result (SPA) |
 | --- | --- | --- |
 | `href="/users"` | any | `/users` |
 | `href="profile"` | `/app/settings/` | `/app/settings/profile` |
 | `href="profile"` | `/app/settings` | `/app/profile` ← not under settings |
 | `href="."` | `/app/settings/profile` | `/app/settings/` |
+| `href="https://same-origin/users"` | any on that origin | `/users` |
+| `href="https://same-origin/"` or bare origin | any on that origin | `/` |
+| `href="//same-host/users"` | same origin after resolve | `/users` |
+| `href="/p?q=1#tab"` | any | `/p?q=1#tab` |
 
-For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). They work with and without JavaScript and do not depend on trailing slashes.
+| Link in markup | Behavior |
+| --- | --- |
+| `href="https://other-site/…"` or `//other-host/…` | Not intercepted — full browser navigation |
+| `href="#section"` | Not intercepted — normal in-page hash |
+| empty / missing `href` | Ignored |
+
+Same-origin checks use the URL `origin` (scheme + host + port), including IDN hosts as the browser normalizes them. Prefetch and active-link matching on `[aura-router-link]` use the same rules.
+
+For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). They work with and without JavaScript, do not depend on trailing slashes, and stay readable in markup. Same-origin absolute URLs (`https://…`, `location.origin`) are fine when a full URL is already in the attribute (e.g. a logo built at runtime) — the router maps them to an in-app path before matching.
+
+`router.navigate(path)` takes an **app path** (`/users`, optionally `?query` / `#hash`). Prefer that over full `https://…` strings (link interception is where same-origin absolute URLs are handled).
 
 ### Route `path` vs address bar
 
@@ -532,7 +548,7 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 
 | Attribute | Description |
 | --- | --- |
-| `links-selector` | In-app links to intercept / scan (default: `[aura-router-link]`) |
+| `links-selector` | In-app links to intercept / scan (default: `[aura-router-link]`). Intercepted `href`s must resolve to the same origin — see [How `href` resolves](#how-href-resolves) |
 | `links-container-selector` | Limit active-link scan to a subtree (default: whole document) |
 | `link-active-class` | Class on the matching link |
 | `link-active-branch-class` | Class on section/folder links (prefix match) |

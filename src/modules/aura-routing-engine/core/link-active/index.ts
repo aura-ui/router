@@ -6,6 +6,7 @@ export {
   resolveDocumentHref,
   resolveDocumentHrefParts,
   toDocumentResolutionBase,
+  resolveInAppHref,
   type ResolvedDocumentHref,
 } from './app-href';
 export {

@@ -98,7 +98,7 @@ Nested shell (layout stays mounted across children):
 <a href="/app/users" aura-router-link>Users</a>
 ```
 
-Prefer root-absolute paths (`/users`). Aura matches `/users` and `/users/` as the same route and keeps the pathname as in the link.
+Prefer root-absolute paths (`/users`). Aura matches `/users` and `/users/` as the same route and keeps the pathname as in the link. Same-origin absolute URLs (`https://your-host/…`) on `[aura-router-link]` also SPA-navigate; other origins keep a full page load — see [How `href` resolves](./docs/guide.md#how-href-resolves).
 
 ```ts
 document.querySelector('aura-router')?.navigate('/app/users');

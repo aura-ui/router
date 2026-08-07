@@ -55,6 +55,24 @@ export function resolveDocumentHref(href: string, baseHref = window.location.hre
   return resolveDocumentHrefParts(href, baseHref).href;
 }
 
+/**
+ * Raw `<a href>` → in-app href (`pathname + search + hash`), or `null` if external / invalid / hash-only.
+ * Same-origin absolute (`https://…`) and protocol-relative (`//…`) URLs are accepted (incl. IDN hosts).
+ */
+export function resolveInAppHref(href: string, baseHref = window.location.href): string | null {
+  const raw = href.trim();
+  if (!raw || raw.startsWith('#')) return null;
+  try {
+    const base = new URL(baseHref);
+    const url = new URL(raw, base);
+    if (url.origin !== base.origin) return null;
+    const pathname = decodeURIFast(url.pathname);
+    return pathname + url.search + url.hash;
+  } catch {
+    return null;
+  }
+}
+
 /** Compare pathnames (trailing `/` ignored via {@link stripTrailingSlash}). */
 export function pathnamesEqual(a: string, b: string): boolean {
   if (a === b) return true;

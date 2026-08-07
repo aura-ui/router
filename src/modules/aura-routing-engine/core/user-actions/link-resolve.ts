@@ -1,7 +1,7 @@
 import {
   getCurrentAppHref,
-  resolveDocumentHref,
   toDocumentResolutionBase,
+  resolveInAppHref,
 } from '../link-active/app-href';
 
 export function findRouterLink(
@@ -14,18 +14,10 @@ export function findRouterLink(
   return anchor;
 }
 
-function readLinkHref(anchor: HTMLAnchorElement): string | null {
-  const href = anchor.getAttribute('href');
-  if (!href || href.startsWith('http') || href.startsWith('//') || href.startsWith('#')) {
-    return null;
-  }
-  return href;
-}
-
 export function resolveLinkHref(anchor: HTMLAnchorElement, baseAppHref?: string): string | null {
-  const raw = readLinkHref(anchor);
+  const raw = anchor.getAttribute('href');
   if (!raw) return null;
-  return resolveDocumentHref(raw, toDocumentResolutionBase(baseAppHref ?? getCurrentAppHref()));
+  return resolveInAppHref(raw, toDocumentResolutionBase(baseAppHref ?? getCurrentAppHref()));
 }
 
 export function readRouterLinkFromEvent(

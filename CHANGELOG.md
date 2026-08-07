@@ -6,6 +6,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router). Everything below is that first public cut.
 
+## Unreleased
+
+### Changed
+
+- **Same-origin absolute links** — `[aura-router-link]` with `https://…` / `//…` on the document origin (incl. IDN) resolve via `resolveInAppHref` to in-app `pathname+search+hash` (clicks + prefetch); other origins stay full navigations. Docs: [How `href` resolves](./docs/guide.md#how-href-resolves).
+
 ## [0.0.1]
 
 ### Added

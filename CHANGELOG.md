@@ -75,4 +75,4 @@ Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`
 
 ### Known limitations
 
-See [LIMITATIONS.md](./LIMITATIONS.md). Published as [`@auraui/router@0.0.1`](https://www.npmjs.com/package/@auraui/router). Planned later: lite default entry vs `@auraui/router/full`, DataGraph SWR parity (`shouldRevalidate`, public `defer()`), engine `renderNode()`, View Transitions API — see [ROADMAP.md](./ROADMAP.md).
+See [LIMITATIONS.md](./LIMITATIONS.md) for known gaps. Published as [`@auraui/router@0.0.1`](https://www.npmjs.com/package/@auraui/router). Planned later: optional `@auraui/router/min`, DataGraph SWR parity (`shouldRevalidate`, public `defer()`), engine `renderNode()`, View Transitions API — see [ROADMAP.md](./ROADMAP.md).

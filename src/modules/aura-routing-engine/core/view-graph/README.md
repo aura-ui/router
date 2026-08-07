@@ -316,7 +316,7 @@ Prefetch (hover/intent) идёт через speculative prepare → `viewGraph.p
 | ошибка prefetch | подавляется |
 | неизвестный loader id | throw из `registry.get` |
 
-**Безопасность:** `url`, bare `view` и `iframe::` используют значения из атрибутов маршрута без allowlist — разметка `<aura-route>` считается доверенной. См. [LIMITATIONS.md](../../../../LIMITATIONS.md#view-layer-viewgraph).
+**Безопасность:** `url`, bare `view` и `iframe::` используют значения из атрибутов маршрута без allowlist — разметка `<aura-route>` считается доверенной. См. [guide — Views](../../../../docs/guide.md#views) · [SECURITY.md](../../../../SECURITY.md).
 
 `loadPayload(descriptor, …)` — загрузка по готовому descriptor, минуя route attrs. Используется в тестах и при явном resolve.
 

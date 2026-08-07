@@ -2,9 +2,9 @@
 
 Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/router). For install and a 30-second example, see the [README](../README.md).
 
-> **Experimental (pre-alpha).** Attribute names below (`guard`, `load`, `ready`, …) are the intended public surface — see [ROADMAP](../ROADMAP.md) and [LIMITATIONS](../LIMITATIONS.md) for gaps and in-flight work.
+> **Experimental (pre-alpha).** Attribute names below (`guard`, `load`, `ready`, …) are the intended public surface — see [ROADMAP](../ROADMAP.md) and [LIMITATIONS](../LIMITATIONS.md) for known gaps.
 
-**Browsers:** modern evergreen (Chrome, Firefox, Safari, Edge) with ES modules, Custom Elements, History API, `fetch`, and `URLPattern` (for `:param` routes). No IE. No Node SSR — see the [README](../README.md#browsers).
+**Browsers:** modern evergreen (Chrome, Firefox, Safari, Edge) with ES modules, Custom Elements, History API, `fetch`, and `URLPattern` (for `:param` routes). No IE. **Browser-only** — no Node SSR runtime; first paint is host HTML + client [adopt](#first-paint-mpa--spa). See the [README](../README.md#browsers). HTML-first Web Components package — no React / Vue adapters in this package.
 
 ## Table of contents
 
@@ -28,9 +28,11 @@ Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/rout
 | Mechanism | Usage |
 | --- | --- |
 | **Link interception** | `aura-router-link` on `<a href="…">` |
-| **Programmatic** | `router.navigate('/path', { replace?: boolean, syncHistory?: boolean })` |
+| **Programmatic** | `router.navigate(path, { replace?, syncHistory? })` — path string only |
 | **404 catch-all** | `<aura-route path="*" view="template::not-found">` |
 | **Fallback 404** | `error-template` on `<aura-router>` — see [Router defaults](#router-defaults) |
+
+`navigate` takes a **path string** (and optional flags). There is no object form and no search-schema attr — put filters in `?query` and read them from the hook context (`ctx.to.query`).
 
 ### How `href` resolves
 
@@ -111,6 +113,8 @@ The `view` attribute tells the router **what to render**.
 
 - **No `::`** — shorthand for fetching HTML: `view="users.html"` → `url` loader (HTML-first / MPA→SPA default).
 - **With `::`** — pick a loader explicitly: `html::<p/>`, `template::app-shell`, …
+
+Route markup is **trusted app config** — `url` / bare `view`, `html::`, and `iframe::` have no allowlist. Treat `<aura-route>` attrs like server templates; untrusted strings there are an application XSS risk. Details: [SECURITY.md](../SECURITY.md).
 
 ### Built-in loaders
 
@@ -263,6 +267,8 @@ AuraRouter.use(authHook);
 | `update` | Same route leaf; query, hash or params may change | no | ✓ |
 | `error` | Navigation or render failure | terminal | ✓ |
 
+That is the full lifecycle surface — there are no `reenter` / `detach` / `destroy` / `restore` route attrs.
+
 ### Presentation
 
 > **Experimental.** Transition attrs are still settling and may change before `0.1.0`.
@@ -390,7 +396,7 @@ No extra API beyond `AuraRouter.install()` and a connected `<aura-router>`.
 
 ## Cache
 
-Control what is kept when leaving a route with the `cache` attribute on `<aura-route>` or `<aura-router>` (inherited; child overrides).
+Control what is kept when leaving a route with the `cache` attribute on `<aura-route>` or `<aura-router>` (inherited; child overrides). (Older docs said `preserve` — use `cache` instead. There is no `screen` mode.)
 
 Modes (not a strict ladder — `cache="dom"` keeps DOM + view, but **not** `load` data):
 
@@ -403,6 +409,10 @@ Modes (not a strict ladder — `cache="dom"` keeps DOM + view, but **not** `load
 | `cache="dom"` | ✓ | ✓ | | Tabs / forms — keep live DOM (`view` is LRU fallback) |
 | `cache="all"` | ✓ | ✓ | ✓ | Keep-alive + cached data |
 | `cache="off"` / `none` / `false` | | | | Opt out of inherited cache |
+
+**Long-lived `load` data** needs `cache="data"` (or bare `cache` / `all`). Without it, leaving the route does not keep a durable DataGraph entry. Prefetch → navigate can still reuse in-flight work via a short **handoff buffer** (~30s TTL) even without `cache="data"`.
+
+On navigate, DataGraph is **get/set hit or miss** — not background SWR into the already-visible page. Cache identity includes pathname, params, and the **full** query string (`utm_*` and other noise create separate entries).
 
 ```html
 <!-- typical page: cache HTML + load, fresh DOM each visit -->
@@ -434,7 +444,7 @@ router?.invalidate({ path: '/users/:id' });    // one route pattern (not the URL
 router?.invalidate({ path: '/items', policy: 'remove' }); // drop now (default: mark stale)
 ```
 
-Does not remount the current page — navigate again to refetch. Does not clear `cache="dom"` keep-alive. Emits `data-invalidated` (except for `cache: 'view'`).
+Does not remount the current page — navigate or prefetch again to refetch (there is no `router.load()`). Does not clear `cache="dom"` keep-alive. Emits `data-invalidated` (except for `cache: 'view'`).
 
 ---
 
@@ -512,7 +522,7 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 | `loading-body-class` | Body class during prepare |
 | `loading-template` | Skeleton template id (experimental — see [Loading](#loading)) |
 | `loading-start-event` / `loading-end-event` | Loading event names (`none` / `off` / `false` disables) |
-| `error-template` | Template id on render error; also thin fallback 404 when no `path="*"` |
+| `error-template` | Template id on render error; also thin fallback 404 when no `path="*"` (not a nested error-boundary tree) |
 | `extract` | Default CSS selector for `url` fragment extract **and** flat first-paint adopt |
 | `scroll` | Viewport policy after commit (`auto` default, `top`, `none`) — see [Scroll](#scroll) |
 | `scroll-target` | Default CSS selector for post-nav `scrollIntoView` |

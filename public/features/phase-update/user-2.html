@@ -1,6 +1,6 @@
 <article class="demo-site-view demo-layout-view" data-demo-view="features/phase-update/user-2.html">
   <h1>Пользователь 2</h1>
-  <p class="demo-site-view__lead">Leaf <code>remount/:id</code>, viewKey <code>user-2.html</code> (шаблон <code>user-{{id}}.html</code>). Смена id — другой resolved view → FULL remount, не <code>runUpdate()</code>.</p>
+  <p class="demo-site-view__lead">Leaf <code>remount/:id</code>, viewKey <code>user-2.html</code> (шаблон <code>user-:id.html</code>). Смена id — другой resolved view → FULL remount, не <code>runUpdate()</code>.</p>
   <p>Параметр <code>id</code>: <strong data-demo-param="id">—</strong></p>
 
   <nav class="demo-links">
@@ -19,7 +19,7 @@
   </div>
   <template id="phase-update-remount-code">
 <aura-route path="/features/phase-update/remount/:id"
-            view="features/phase-update/user-{{id}}.html"></aura-route>
+            view="features/phase-update/user-:id.html"></aura-route>
 
 <a href="/features/phase-update/remount/1" aura-router-link>User 1</a>
 <a href="/features/phase-update/remount/2" aura-router-link>User 2</a>

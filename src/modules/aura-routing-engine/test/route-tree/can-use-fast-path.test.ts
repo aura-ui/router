@@ -110,7 +110,7 @@ describe('TransitionMap.canUseFastPath', () => {
 
   it('blocks param-change remount plans', () => {
     const node = createUsersIdNode({
-      view: { loader: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/:id.html' },
     });
     const from = createUsersIdMatch('1', node);
     const to = createUsersIdMatch('2', node);

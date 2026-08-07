@@ -250,7 +250,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 | Поле | Откуда | Пример |
 |------|--------|--------|
-| `content` | правая часть `view` после `::` (или bare content для `url`); `{{param}}` подставляются в `resolvedView` до load | `dashboard` из `charts::dashboard`; `user/1.html` из `user/{{id}}.html` |
+| `content` | правая часть `view` после `::` (или bare content для `url`); `:param` подставляются в `resolvedView` до load | `dashboard` из `charts::dashboard`; `user/1.html` из `user/:id.html` |
 | `kind` | `layout` или `view` | `view` |
 | `extract` | атрибут `extract` на маршруте (только `url`) | `#main` |
 | `signal` | abort навигации | `AbortSignal` |

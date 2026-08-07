@@ -82,7 +82,7 @@ async function runParamRemountNavigation(
 
 function createTransitionNode(transition: RouteTransitionType) {
   return createUsersIdNode({
-    view: { loader: 'url', content: 'content/user/{{id}}.html' },
+    view: { loader: 'url', content: 'content/user/:id.html' },
     transition,
     transitionIn: transition.in,
     transitionOut: transition.out,
@@ -283,7 +283,7 @@ describe('param-change in-place + transition integration (real view)', () => {
 
     const node = createUsersIdNode({
       cache: { dom: true, view: false, data: false },
-      view: { loader: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/:id.html' },
       transition: PARALLEL_CROSS_FADE_TRANSITION,
       transitionIn: PARALLEL_CROSS_FADE_TRANSITION.in,
       transitionOut: PARALLEL_CROSS_FADE_TRANSITION.out,

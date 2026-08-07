@@ -130,6 +130,13 @@ The `view` attribute tells the router **what to render**.
 - **No `::`** — shorthand for fetching HTML: `view="users.html"` → `url` loader (HTML-first / MPA→SPA default).
 - **With `::`** — pick a loader explicitly: `html::<p/>`, `template::app-shell`, …
 
+**Path params in `view`:** use the same `:name` tokens as in `path`. Matched values are substituted into content before load. Only names present in the route params are replaced; unknown `:x` stays as written. Avoids clashes with SSR engines that own `{{ }}` (doT, Handlebars, Twig, …).
+
+```html
+<aura-route path=":lang/about.html" view=":lang/about.html"></aura-route>
+<aura-route path="/users/:id" view="users/:id.html"></aura-route>
+```
+
 Route markup is **trusted app config** — `url` / bare `view`, `html::`, and `iframe::` have no allowlist. Treat `<aura-route>` attrs like server templates; untrusted strings there are an application XSS risk. Details: [SECURITY.md](../SECURITY.md).
 
 ### Built-in loaders
@@ -312,7 +319,7 @@ That is the full lifecycle surface — there are no `reenter` / `detach` / `dest
     <aura-route path="." view="users.html"></aura-route>
     <aura-route
       path=":id"
-      view="users{{id}}.html"
+      view="users/:id.html"
       load="fetch-user"
       ready="track-view">
     </aura-route>

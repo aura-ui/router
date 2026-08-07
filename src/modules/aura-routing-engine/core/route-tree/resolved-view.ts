@@ -7,11 +7,12 @@ export type ResolvedView = {
   viewKey: string;
 };
 
-const PARAM_PLACEHOLDER = /\{\{(\w+)\}\}/g;
+const PATH_PARAM_TOKEN = /:(\w+)/g;
 
+/** Replace `:name` in `view` content with matched route params (same tokens as `path`). */
 function resolveContent(content: string, params?: Record<string, string>): string {
-  if (!params || !content.includes('{{')) return content;
-  return content.replace(PARAM_PLACEHOLDER, (_, name: string) => params[name] ?? `{{${name}}}`);
+  if (!params || !content.includes(':')) return content;
+  return content.replace(PATH_PARAM_TOKEN, (token, name: string) => params[name] ?? token);
 }
 
 function resolveView(view: ViewAttrDescriptor, params?: Record<string, string>): ResolvedView {

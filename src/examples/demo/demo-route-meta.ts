@@ -205,7 +205,7 @@ export const DEMO_VIEW_META: Record<string, DemoRouteFact[]> = {
       term: 'Действие роутера',
       kind: 'text',
       value:
-        'Шаблон user-{{id}}.html → user-1.html; тот же leaf, другой viewKey — FULL, не update.',
+        'Шаблон user-:id.html → user-1.html; тот же leaf, другой viewKey — FULL, не update.',
     },
   ],
   'features/phase-update/user-2.html': [
@@ -222,7 +222,7 @@ export const DEMO_VIEW_META: Record<string, DemoRouteFact[]> = {
       term: 'Действие роутера',
       kind: 'text',
       value:
-        'Шаблон user-{{id}}.html → user-2.html; тот же leaf, другой viewKey — FULL, не update.',
+        'Шаблон user-:id.html → user-2.html; тот же leaf, другой viewKey — FULL, не update.',
     },
   ],
   'features/animations/page-a.html': [

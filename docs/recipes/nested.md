@@ -22,7 +22,7 @@ Prefer root-absolute links (`/users/1`). Same-origin absolute / protocol-relativ
 ```html
 <aura-route path="/users/" layout="users">
   <aura-route path="." view="users"></aura-route>
-  <aura-route path=":id" view="users/{{id}}" ready="show-user"></aura-route>
+  <aura-route path=":id" view="users/:id" ready="show-user"></aura-route>
 </aura-route>
 
 <template id="users">
@@ -38,13 +38,13 @@ Prefer root-absolute links (`/users/1`). Same-origin absolute / protocol-relativ
 | `layout="users"` | Chrome; must contain `<aura-outlet>` |
 | `path="."` | Folder index (`/users`) |
 | `path=":id"` | → `/users/:id` |
-| `view="users/{{id}}"` | URL loader; `{{id}}` from params → fetch `/users/1`, … |
+| `view="users/:id"` | URL loader; `:id` from params → fetch `/users/1`, … |
 
 ---
 
 ## 2. `:id` change and hooks
 
-With **per-id** `view` (`users/{{id}}`), `/users/1` → `/users/2` **remounts** the leaf (new view URL / `viewKey`). Lifecycle: `ready` again — **not** `update`.
+With **per-id** `view` (`users/:id`), `/users/1` → `/users/2` **remounts** the leaf (new view URL / `viewKey`). Lifecycle: `ready` again — **not** `update`.
 
 ```js
 AuraRouter.use('show-user', (ctx) => {

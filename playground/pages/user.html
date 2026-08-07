@@ -13,7 +13,7 @@
   <p class="hint">layout stays across /users ↔ /users/:id</p>
   <div class="main" data-aura-view-root>
     <h1>User {{id}}</h1>
-    <p><code>view="users/{{id}}"</code> — delay ~3s, <code>cache-time="10"</code>. Changing :id → remount + <code>ready</code> (not update). No &lt;aura-outlet&gt; in SSR → hard reload without adopt.</p>
+    <p><code>view="users/:id"</code> — delay ~3s, <code>cache-time="10"</code>. Changing :id → remount + <code>ready</code> (not update). No &lt;aura-outlet&gt; in SSR → hard reload without adopt.</p>
   </div>
 </section>
 @router@

@@ -8,6 +8,10 @@ Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`
 
 ## Unreleased
 
+### Added
+
+- **`:param` in `view` content** — path tokens like `view=":lang/page.html"` / `users/:id.html` resolve from matched route params (same shape as `path`; SSR-friendly vs mustache). **Breaking (alpha):** `{{param}}` placeholders in `view` are removed. Docs: [Views](./docs/guide.md#views).
+
 ### Changed
 
 - **Same-origin absolute links** — `[aura-router-link]` with `https://…` / `//…` on the document origin (incl. IDN) resolve via `resolveInAppHref` to in-app `pathname+search+hash` (clicks + prefetch); other origins stay full navigations. Docs: [How `href` resolves](./docs/guide.md#how-href-resolves).

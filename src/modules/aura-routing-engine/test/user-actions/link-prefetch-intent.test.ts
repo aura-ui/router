@@ -1,5 +1,6 @@
 import { resolvePrefetchMode } from '../../core/prefetch/prefetch-policy';
 import { LinkPrefetchIntentTracker } from '../../core/user-actions/link-prefetch-intent';
+import { dispatchAnchorMouseEvent } from '../_helpers/anchor-events';
 
 function createTracker(handlers: {
   scheduleIntent: jest.Mock;
@@ -28,9 +29,7 @@ describe('LinkPrefetchIntentTracker', () => {
     const tracker = createTracker({ scheduleIntent, cancelIntent });
 
     tracker.start();
-
-    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
-    document.querySelector('a')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    dispatchAnchorMouseEvent('mouseover', '<a href="/about" aura-router-link>About</a>');
 
     expect(scheduleIntent).toHaveBeenCalledWith('/about', 'intent');
   });
@@ -40,9 +39,10 @@ describe('LinkPrefetchIntentTracker', () => {
     const tracker = createTracker({ scheduleIntent, cancelIntent: jest.fn() });
 
     tracker.start();
-
-    document.body.innerHTML = '<a href="/about" aura-router-link data-prefetch="false">About</a>';
-    document.querySelector('a')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    dispatchAnchorMouseEvent(
+      'mouseover',
+      '<a href="/about" aura-router-link data-prefetch="false">About</a>',
+    );
 
     expect(scheduleIntent).not.toHaveBeenCalled();
   });
@@ -52,10 +52,9 @@ describe('LinkPrefetchIntentTracker', () => {
     const tracker = createTracker({ scheduleIntent: jest.fn(), cancelIntent });
 
     tracker.start();
-
-    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
-    const link = document.querySelector('a')!;
-    link.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
+    dispatchAnchorMouseEvent('mouseout', '<a href="/about" aura-router-link>About</a>', {
+      relatedTarget: document.body,
+    });
 
     expect(cancelIntent).toHaveBeenCalledWith('/about');
   });

@@ -19,7 +19,7 @@ function matchFixture(
 describe('attachResolvedView', () => {
   it('sets resolved view from route attrs and params', () => {
     const info = matchFixture({
-      view: { loader: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/:id.html' },
     });
 
     attachResolvedView(info);
@@ -31,14 +31,14 @@ describe('attachResolvedView', () => {
     });
   });
 
-  it('leaves unknown placeholders intact', () => {
+  it('leaves unknown :param tokens intact', () => {
     const info = matchFixture({
-      view: { loader: 'url', content: 'content/{{missing}}.html' },
+      view: { loader: 'url', content: ':lang/page.html' },
     });
 
     attachResolvedView(info);
 
-    expect(info.resolvedView?.content).toBe('content/{{missing}}.html');
+    expect(info.resolvedView?.content).toBe(':lang/page.html');
   });
 
   it('sets null for layout routes and routes without view', () => {

@@ -6,6 +6,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router). Everything below is that first public cut.
 
+## Unreleased
+
+### Added
+
+- **Path groups** — nested `<aura-route>` without `layout`: joins path/params, stays on the match chain / inheritable attrs, no shell, not a matchable URL by itself. Example: `path=":lang"` wrapping localized pages. Docs: [Nested routes & layouts](./docs/guide.md#nested-routes--layouts).
+- **`:param` in `view` content** — path tokens like `view=":lang/page.html"` / `users/:id.html` resolve from matched route params (same shape as `path`; SSR-friendly vs mustache). **Breaking (alpha):** `{{param}}` placeholders in `view` are removed. Docs: [Views](./docs/guide.md#views).
+
+### Changed
+
+- **Same-origin absolute links** — `[aura-router-link]` with `https://…` / `//…` on the document origin (incl. IDN) resolve via `resolveInAppHref` to in-app `pathname+search+hash` (clicks + prefetch); other origins stay full navigations. Docs: [How `href` resolves](./docs/guide.md#how-href-resolves).
+
 ## [0.0.1]
 
 ### Added
@@ -75,4 +86,4 @@ Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`
 
 ### Known limitations
 
-See [LIMITATIONS.md](./LIMITATIONS.md). Published as [`@auraui/router@0.0.1`](https://www.npmjs.com/package/@auraui/router). Planned later: lite default entry vs `@auraui/router/full`, DataGraph SWR parity (`shouldRevalidate`, public `defer()`), engine `renderNode()`, View Transitions API — see [ROADMAP.md](./ROADMAP.md).
+See [LIMITATIONS.md](./LIMITATIONS.md) for known gaps. Published as [`@auraui/router@0.0.1`](https://www.npmjs.com/package/@auraui/router). Planned later: optional `@auraui/router/min`, DataGraph SWR parity (`shouldRevalidate`, public `defer()`), engine `renderNode()`, View Transitions API — see [ROADMAP.md](./ROADMAP.md).

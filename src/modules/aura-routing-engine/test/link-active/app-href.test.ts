@@ -8,6 +8,7 @@ import {
   resolveDocumentHref,
   resolveDocumentHrefParts,
   toDocumentResolutionBase,
+  resolveInAppHref,
 } from '../../core/link-active/app-href';
 
 describe('app-href helpers', () => {
@@ -83,6 +84,25 @@ describe('app-href helpers', () => {
         hash: '',
         href: '/главная.html',
       });
+    });
+  });
+
+  describe('resolveInAppHref', () => {
+    it('accepts relative and same-origin absolute / protocol-relative hrefs', () => {
+      expect(resolveInAppHref('./users', base)).toBe('/app/settings/users');
+      expect(resolveInAppHref('/about')).toBe('/about');
+      expect(resolveInAppHref(`${window.location.origin}/главная.html`)).toBe('/главная.html');
+      expect(resolveInAppHref(`${window.location.origin}/`)).toBe('/');
+      expect(resolveInAppHref(window.location.origin)).toBe('/');
+      expect(resolveInAppHref(`${window.location.origin}/p?q=1#tab`)).toBe('/p?q=1#tab');
+      expect(resolveInAppHref(`//${window.location.host}/p`)).toBe('/p');
+    });
+
+    it('rejects external, hash-only, and empty hrefs', () => {
+      expect(resolveInAppHref('https://other.test/x')).toBeNull();
+      expect(resolveInAppHref('//other.test/x')).toBeNull();
+      expect(resolveInAppHref('#section')).toBeNull();
+      expect(resolveInAppHref('   ')).toBeNull();
     });
   });
 

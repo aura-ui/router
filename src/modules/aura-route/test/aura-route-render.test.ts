@@ -41,15 +41,16 @@ describe('AuraRoute render validation', () => {
       .rejects.toThrow('AuraRoute page "/empty" has no view');
   });
 
-  it('throws on render when folder has no shell', async () => {
+  it('allows path-group folder without layout on render', async () => {
     const route = mountAuraRouteUnderRouter(
       { path: '/settings' },
       {},
       { innerHTML: '<aura-route path="profile" view="html::<p/>"></aura-route>' },
     );
 
-    await expect(route.resolveAndMountView(createMatchedRouteInfo('/settings')))
-      .rejects.toThrow('AuraRoute folder "/settings" has no layout');
+    await expect(route.resolveAndMountView(createMatchedRouteInfo('/settings'))).resolves.toEqual({
+      status: 'ok',
+    });
   });
 
   it('throws when folder declares view and children', async () => {

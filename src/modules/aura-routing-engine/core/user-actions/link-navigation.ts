@@ -8,6 +8,19 @@ export interface LinkNavigationTrackerConfig {
   linksSelector?: string;
 }
 
+/**
+ * True when the router should own the click (plain primary click, same tab).
+ * Modifier keys, non-primary button, `download`, and non-`_self` targets stay with the browser.
+ */
+function shouldHandleLinkClick(event: MouseEvent, anchor: HTMLAnchorElement): boolean {
+  if (event.defaultPrevented || event.button !== 0) return false;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+  if (anchor.hasAttribute('download')) return false;
+  // DOM `target` is "" when unset (same as _self).
+  if (anchor.target && anchor.target.toLowerCase() !== '_self') return false;
+  return true;
+}
+
 /** Click on `[aura-router-link]` → navigation request. */
 export class LinkNavigationTracker {
   private handler?: NavigationHandler;
@@ -43,7 +56,7 @@ export class LinkNavigationTracker {
   @bind
   private onDocumentClick(event: MouseEvent): void {
     const anchor = findRouterLink(event.target, this.linksSelector);
-    if (!anchor) return;
+    if (!anchor || !shouldHandleLinkClick(event, anchor)) return;
 
     const href = resolveLinkHref(anchor);
     if (!href) return;

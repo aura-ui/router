@@ -3,9 +3,13 @@ import { PrefetchPolicy } from '../../core/prefetch/policy';
 describe('prefetch policy', () => {
   const policy = new PrefetchPolicy();
 
-  it('normalizePrefetchHref rejects external and hash-only links', () => {
+  it('normalizeHref accepts same-origin absolute and rejects external / hash-only', () => {
     expect(policy.normalizeHref('/users')).toBe('/users');
+    expect(policy.normalizeHref(`${window.location.origin}/users`)).toBe('/users');
+    expect(policy.normalizeHref(`${window.location.origin}/`)).toBe('/');
+    expect(policy.normalizeHref(`//${window.location.host}/users`)).toBe('/users');
     expect(policy.normalizeHref('https://example.com/x')).toBeNull();
+    expect(policy.normalizeHref('//example.com/x')).toBeNull();
     expect(policy.normalizeHref('#section')).toBeNull();
   });
 

@@ -169,30 +169,14 @@ function isIndexChildOf(existing: RouteNode, parentNode: RouteNode | null, segme
 }
 
 /**
- * Решает, участвует ли узел в URL-matching, и при необходимости добавляет его в `matchableNodes`.
+ * Whether `node` is a URL-matching endpoint (`matchableNodes`).
  *
- * `matchableNodes` — подмножество всех `RouteNode`, по которым `AuraRoutingUrlMatcher.matchPath()`
- * сопоставляет pathname. Не каждый узел дерева matchable: layout-родитель с index child
- * покрывает тот же URL, что и ребёнок с `path=""`, поэтому дублировать parent в matcher не нужно
- * (модель как в React Router).
- *
- * Узел регистрируется, если выполняется хотя бы одно условие:
- * - **лист** (`children.length === 0`) — конечный endpoint, например `/settings/profile`;
- * - **index child** (`isIndex`, т.е. `path=""`) — URL совпадает с родителем, например `/settings`;
- * - **родитель без index child** — у узла есть дети, но ни один не index; тогда URL родителя
- *   (`/settings`) matchable сам по себе, без отдельного index route.
- *
- * Узел НЕ регистрируется, если у него есть дети и среди них есть index child: тот же `pattern`
- * обрабатывает index, parent остаётся layout-only для nested lifecycle/outlet.
- *
- * @example settings + profile + security (без index)
- *   matchable: `/settings`, `/settings/profile`, `/settings/security`
- * @example settings + index (`path=""`)
- *   matchable: только `/settings` (index); parent settings не попадает в matcher
+ * Leaves and index children always register. A non-index parent registers only when it has
+ * `layout` (shell URL). Path groups (children, no layout) stay off the matcher.
  */
 function registerMatchableNode(node: RouteNode, matchableNodes: RouteNode[]): void {
-  const hasIndexChild = node.children.some((child) => child.isIndex);
-  if (node.children.length === 0 || node.isIndex || !hasIndexChild) {
+  const isMatchableLayoutParent = node.route.hasLayout && !node.children.some((c) => c.isIndex);
+  if (node.children.length === 0 || node.isIndex || isMatchableLayoutParent) {
     matchableNodes.push(node);
   }
 }

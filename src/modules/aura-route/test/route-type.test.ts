@@ -34,13 +34,14 @@ describe('AuraRoute.type', () => {
   it('validates attrs by type', () => {
     expect(() => mountAuraRoute({ path: '/empty' }).validateAttrs()).toThrow('has no view');
 
-    const folder = mountAuraRoute(
+    const pathGroup = mountAuraRoute(
       { path: '/settings' },
       {
         innerHTML: '<aura-route path="profile" view="html::<p/>"></aura-route>',
       },
     );
-    expect(() => folder.validateAttrs()).toThrow('has no layout');
+    expect(() => pathGroup.validateAttrs()).not.toThrow();
+    expect(pathGroup.hasViewContent).toBe(false);
 
     expect(() => mountAuraRoute({ redirect: '/home', view: 'html::<p/>' }).validateAttrs())
       .toThrow('cannot declare view');

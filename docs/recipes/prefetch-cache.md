@@ -26,7 +26,7 @@ Bare `cache` is valid (view + `load` data). Bare `prefetch` is **not** — use `
 
   <aura-route path="/users/" layout="users" cache-time="10">
     <aura-route path="." view="users"></aura-route>
-    <aura-route path=":id" view="users/{{id}}"></aura-route>
+    <aura-route path=":id" view="users/:id"></aura-route>
   </aura-route>
 </aura-router>
 ```

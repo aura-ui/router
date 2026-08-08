@@ -1,6 +1,7 @@
-import { buildTreeFromDom, createDomRoute } from '../_helpers/test-route-dom';
+import { buildTreeFromDom, createDomPathGroup, createDomRoute } from '../_helpers/test-route-dom';
 
-describe('buildRouteTree', () => {  it('builds nested tree with resolved pattern', () => {
+describe('buildRouteTree', () => {
+  it('builds nested tree with resolved pattern', () => {
     const profile = createDomRoute('profile');
     const security = createDomRoute('security');
     const settings = createDomRoute('/settings', [profile, security]);
@@ -57,5 +58,14 @@ describe('buildRouteTree', () => {  it('builds nested tree with resolved pattern
 
     expect(roots.map((node) => node.pattern)).toEqual(['/', '/settings']);
     expect(roots[1]?.children[0]?.pattern).toBe('/settings/profile');
+  });
+
+  it('does not register path-group parents (no layout) as matchable', () => {
+    const page = createDomRoute('page.html');
+    const group = createDomPathGroup(':lang', [page]);
+    const { matchableNodes, nodesByPattern } = buildTreeFromDom(group);
+
+    expect(nodesByPattern.get('/:lang')?.route.hasLayout).toBe(false);
+    expect(matchableNodes.map((node) => node.pattern)).toEqual(['/:lang/page.html']);
   });
 });

@@ -329,6 +329,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   resolveAndMountView(routeInfo: MatchedRouteInfo, options?: RouteRenderOptions): Promise<ViewRenderResult> {
     return this.setupDone.then(() => {
       this.throwIfInvalidAttrs();
+      if (!this.hasViewContent) return { status: 'ok' };
       this.passId++;
       return this.viewController.resolveAndMountView(routeInfo, options);
     });
@@ -339,10 +340,12 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     routeInfo: MatchedRouteInfo,
     options: MountResolvedViewOptions,
   ): ViewRenderResult | 'aborted' {
+    this.throwIfInvalidAttrs();
+    // Path group / redirect-like: no DOM work; do not require viewController.
+    if (!this.hasViewContent) return { status: 'ok' };
     if (!this.viewReady || !this.viewController) {
       return { status: 'error', error: new DOMException('AuraRoute not initialized', 'InvalidStateError') };
     }
-    this.throwIfInvalidAttrs();
     this.passId++;
     return this.viewController.mountResolvedView(routeInfo, options);
   }
@@ -504,9 +507,6 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     if (this.type === 'folder') {
       if (this.view) {
         throw new Error(`AuraRoute folder "${path}" cannot declare view — use nested child routes`);
-      }
-      if (!this.hasLayout) {
-        throw new Error(`AuraRoute folder "${path}" has no layout`);
       }
       return;
     }

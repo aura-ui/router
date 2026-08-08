@@ -2,7 +2,7 @@ import { splitAppHref } from '../../../aura-utils/misc/url';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import {
   isHashOnlyChange,
-  resolveDocumentHref,
+  resolveInAppHref,
 } from '../link-active/app-href';
 
 import type {
@@ -36,11 +36,7 @@ export class PrefetchPolicy {
   }
 
   normalizeHref(href: string): string | null {
-    const trimmed = href.trim();
-    if (!trimmed || trimmed.startsWith('http') || trimmed.startsWith('//')) return null;
-    if (trimmed.startsWith('#')) return null;
-
-    return resolveDocumentHref(trimmed);
+    return resolveInAppHref(href);
   }
 
   delayFor(mode: PrefetchMode): number {

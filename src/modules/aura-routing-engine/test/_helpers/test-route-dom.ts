@@ -26,6 +26,17 @@ export function createDomRoute(path: string, children: AuraRoute[] = []): AuraRo
   return route;
 }
 
+/** Nested prefix without `layout` — path group (params / join only). */
+export function createDomPathGroup(path: string, children: AuraRoute[]): AuraRoute {
+  ensureTestRouteElement();
+  const route = document.createElement(ROUTE_TAG) as AuraRoute;
+  route.setAttribute('path', path);
+  for (const child of children) {
+    route.appendChild(child);
+  }
+  return route;
+}
+
 export function createDomRedirectRoute(path: string, redirect: string): AuraRoute {
   ensureTestRouteElement();
   const route = document.createElement(ROUTE_TAG) as AuraRoute;

@@ -66,7 +66,7 @@ describe('param-change remount integration (branch commit)', () => {
     const outlet = createTestOutlet();
     let serial = 0;
     const node = createUsersIdNode({
-      view: { loader: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/:id.html' },
     });
     const { loadView } = wireRouteViewController(
       node,
@@ -94,7 +94,7 @@ describe('param-change remount integration (branch commit)', () => {
     let serial = 0;
     const node = createUsersIdNode({
       cache: { dom: true, view: false, data: false },
-      view: { loader: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/:id.html' },
     });
 
     const { stash, loadView } = wireRouteViewController(
@@ -128,7 +128,7 @@ describe('NavigationTransactionPipeline branch remount options', () => {
   it('passes paramChangeRemount to mountResolvedView via branch mount', async () => {
     const mountResolvedView = jest.fn().mockReturnValue({ status: 'ok' });
     const node = createUsersIdNode({
-      view: { loader: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/:id.html' },
     });
     const exitRoute = createUsersIdMatch('1', node);
     const enterRoute = createUsersIdMatch('2', node);

@@ -250,7 +250,7 @@ defaultLoaderRegistry.register(new MarkdownLoader(customEnv));
 
 | Поле | Откуда | Пример |
 |------|--------|--------|
-| `content` | правая часть `view` после `::` (или bare content для `url`); `{{param}}` подставляются в `resolvedView` до load | `dashboard` из `charts::dashboard`; `user/1.html` из `user/{{id}}.html` |
+| `content` | правая часть `view` после `::` (или bare content для `url`); `:param` подставляются в `resolvedView` до load | `dashboard` из `charts::dashboard`; `user/1.html` из `user/:id.html` |
 | `kind` | `layout` или `view` | `view` |
 | `extract` | атрибут `extract` на маршруте (только `url`) | `#main` |
 | `signal` | abort навигации | `AbortSignal` |
@@ -316,7 +316,7 @@ Prefetch (hover/intent) идёт через speculative prepare → `viewGraph.p
 | ошибка prefetch | подавляется |
 | неизвестный loader id | throw из `registry.get` |
 
-**Безопасность:** `url`, bare `view` и `iframe::` используют значения из атрибутов маршрута без allowlist — разметка `<aura-route>` считается доверенной. См. [LIMITATIONS.md](../../../../LIMITATIONS.md#view-layer-viewgraph).
+**Безопасность:** `url`, bare `view` и `iframe::` используют значения из атрибутов маршрута без allowlist — разметка `<aura-route>` считается доверенной. См. [guide — Views](../../../../docs/guide.md#views) · [SECURITY.md](../../../../SECURITY.md).
 
 `loadPayload(descriptor, …)` — загрузка по готовому descriptor, минуя route attrs. Используется в тестах и при явном resolve.
 

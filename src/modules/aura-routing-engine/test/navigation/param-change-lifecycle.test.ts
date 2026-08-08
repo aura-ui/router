@@ -80,7 +80,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
     });
 
     const node = createUsersIdNode({
-      view: { loader: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/:id.html' },
       unmount: ['teardown'],
       ready: ['analytics'],
       update: ['apply-user'],
@@ -127,7 +127,7 @@ describe('param-change lifecycle (RFC cases A/B/C)', () => {
 
   it('nested layout stays as lca on synthetic param remount', async () => {
     const { leaf } = createNestedUsersIdSetup({
-      view: { loader: 'url', content: 'content/user/{{id}}.html' },
+      view: { loader: 'url', content: 'content/user/:id.html' },
       unmount: ['teardown'],
       ready: ['analytics'],
     });
@@ -193,8 +193,8 @@ describe('param-change lifecycle by view loader', () => {
   });
 
   it.each([
-    ['html', 'content/user/{{id}}.html'],
-    ['import', 'widgets/user-{{id}}'],
+    ['html', 'content/user/:id.html'],
+    ['import', 'widgets/user-:id'],
   ] as const)('%s per-id content > FULL with render', async (loader, content) => {
     const node = createUsersIdNode({
       view: { loader, content },

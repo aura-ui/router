@@ -48,7 +48,7 @@
   </template>
 
   <h2><code>:id</code> remount — не update, свой HTML на id</h2>
-  <p>Один leaf <code>remount/:id</code>, param меняется, но view — шаблон <code>user-{{id}}.html</code>: <code>viewKey</code> разный (<code>user-1.html</code> ≠ <code>user-2.html</code>). Engine выбирает FULL, не <code>runUpdate()</code> — synthetic exit/enter leaf, render, unmount, ready.</p>
+  <p>Один leaf <code>remount/:id</code>, param меняется, но view — шаблон <code>user-:id.html</code>: <code>viewKey</code> разный (<code>user-1.html</code> ≠ <code>user-2.html</code>). Engine выбирает FULL, не <code>runUpdate()</code> — synthetic exit/enter leaf, render, unmount, ready.</p>
   <nav class="demo-links">
     <a href="/features/phase-update/remount/1" aura-router-link>User 1</a>
     <a href="/features/phase-update/remount/2" aura-router-link>User 2</a>
@@ -63,7 +63,7 @@
   </div>
   <template id="phase-update-code-remount">
 <aura-route path="/features/phase-update/remount/:id"
-            view="features/phase-update/user-{{id}}.html"></aura-route>
+            view="features/phase-update/user-:id.html"></aura-route>
 
 <a href="/features/phase-update/remount/1" aura-router-link>User 1</a>
 <a href="/features/phase-update/remount/2" aura-router-link>User 2</a>

@@ -10,6 +10,7 @@ Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`
 
 ### Added
 
+- **Path groups** — nested `<aura-route>` without `layout`: joins path/params, stays on the match chain / inheritable attrs, no shell, not a matchable URL by itself. Example: `path=":lang"` wrapping localized pages. Docs: [Nested routes & layouts](./docs/guide.md#nested-routes--layouts).
 - **`:param` in `view` content** — path tokens like `view=":lang/page.html"` / `users/:id.html` resolve from matched route params (same shape as `path`; SSR-friendly vs mustache). **Breaking (alpha):** `{{param}}` placeholders in `view` are removed. Docs: [Views](./docs/guide.md#views).
 
 ### Changed

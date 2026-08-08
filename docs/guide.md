@@ -227,7 +227,12 @@ After a successful navigation commit, and when you navigate again to the **same 
 
 ## Nested routes & layouts
 
-You can nest routes. A parent with `layout` is a shared chrome (nav, sidebar); child pages render into the `<aura-outlet>` inside that layout.
+You can nest routes in two ways:
+
+1. **Layout folder** — parent has `layout` (shared chrome + `<aura-outlet>`). The parent’s own URL is matchable when there is no index child.
+2. **Path group** — parent has children but **no** `layout`: joins path segments / params into child patterns (e.g. `:lang/…`), stays on the match chain, and is **not** a URL endpoint by itself (no shell mounted). Child pages render like flat routes into the router outlet.
+
+Both kinds of parent are normal ancestors for **inheritable** attrs (`guard`, `cache`, `extract`, `scroll`, templates, transitions, …) — same rules as any nested `<aura-route>`. `path` itself is not inherited; segments are joined when the route tree is built. `load` / `view` / `layout` / `redirect` stay local (see [Lifecycle hooks](#lifecycle-hooks)).
 
 ```html
 <template id="app-shell">
@@ -243,16 +248,23 @@ You can nest routes. A parent with `layout` is a shared chrome (nav, sidebar); c
     <aura-route path="." view="app/index.html"></aura-route>
     <aura-route path="settings" view="app/settings.html"></aura-route>
   </aura-route>
+
+  <!-- path group: prefix + inherit; /ru/about.html → view ru/about.html -->
+  <aura-route path=":lang" guard="locale">
+    <aura-route path="about.html" view=":lang/about.html"></aura-route>
+  </aura-route>
 </aura-router>
 ```
 
 | Pattern | Meaning |
 | --- | --- |
 | `layout="template-id"` | Shared layout (`<template>` must contain `<aura-outlet>`) |
+| folder **without** `layout` | Path group — path/params prefix + inherit parent; not a matchable URL by itself |
 | `path="."` | Section home — same URL as the parent folder (e.g. `/app`) |
 | `path="settings"` | Child segment joined to parent → `/app/settings` |
 | `href="/app/settings"` | Root-absolute link (recommended in layouts) |
-Shared layouts stay mounted across sibling hops. Hook inheritance — see [Lifecycle hooks](#lifecycle-hooks).
+
+Shared layouts stay mounted across sibling hops.
 
 ---
 

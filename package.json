@@ -1,6 +1,6 @@
 {
   "name": "@auraui/router",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "HTML-first declarative router. Real HTML pages with client navigation (MPA→SPA). Works with plain HTML or Web Components.",
   "type": "module",
   "main": "./dist/index.js",

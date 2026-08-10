@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the report. `@auraui/router` is **pre-alpha** — pin exact versions and check [LIMITATIONS](https://github.com/aura-ui/router/blob/main/LIMITATIONS.md) before filing.
+        Thanks for the report. `@auraui/router` is **0.x** — pin exact versions and check [LIMITATIONS](https://github.com/aura-ui/router/blob/main/LIMITATIONS.md) before filing.
 
         Usage questions belong in [Discussions](https://github.com/aura-ui/router/discussions).
   - type: input
@@ -14,7 +14,7 @@ body:
     attributes:
       label: Package version
       description: Exact npm version (or commit SHA if from git).
-      placeholder: "@auraui/router@0.0.1"
+      placeholder: "@auraui/router@0.1.0"
     validations:
       required: true
   - type: input

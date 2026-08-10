@@ -4,20 +4,52 @@ All notable changes to `@auraui/router` are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router). Everything below is that first public cut.
+Package version in `package.json` is **`0.1.0`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router).
 
 ## Unreleased
 
+## [0.1.0](https://github.com/aura-ui/router/compare/v0.0.1...v0.1.0) - 10.08.2026
+
+### ⚠ BREAKING CHANGES
+
+- **`scroll` attr** — values are `auto` | `top` | `none` (was `restore` | `top` | `manual`). Absent `scroll` now defaults to `auto` (push → top, back → restore). Opt out with `scroll="none"`. See [#9](https://github.com/aura-ui/router/pull/9).
+- **`:param` in `view` content** — path tokens like `view=":lang/page.html"` / `users/:id.html` resolve from matched route params (same shape as `path`; SSR-friendly vs mustache). `{{param}}` placeholders in `view` are removed. Docs: [Views](./docs/guide.md#views).
+- **Flat first-paint adopt** — flat pages adopt via `extract` (same selector as SPA fragments); nested layout shells that differ from `extract` still use `aura-router-ssr`. See [#15](https://github.com/aura-ui/router/pull/15). Guide: [First paint (MPA → SPA)](./docs/guide.md#first-paint-mpa--spa).
+
 ### Added
 
-- **Path groups** — nested `<aura-route>` without `layout`: joins path/params, stays on the match chain / inheritable attrs, no shell, not a matchable URL by itself. Example: `path=":lang"` wrapping localized pages. Docs: [Nested routes & layouts](./docs/guide.md#nested-routes--layouts).
-- **`:param` in `view` content** — path tokens like `view=":lang/page.html"` / `users/:id.html` resolve from matched route params (same shape as `path`; SSR-friendly vs mustache). **Breaking (alpha):** `{{param}}` placeholders in `view` are removed. Docs: [Views](./docs/guide.md#views).
+- **Path groups** — nested `<aura-route>` without `layout`: joins path/params, stays on the match chain / inheritable attrs, no shell, not a matchable URL by itself. Example: `path=":lang"` wrapping localized pages. Docs: [Nested routes & layouts](./docs/guide.md#nested-routes--layouts). See [#16](https://github.com/aura-ui/router/pull/16).
+- **`scroll-target`** — CSS selector for post-nav `scrollIntoView` (ignored when restoring a saved position or `scroll="none"`). See [#14](https://github.com/aura-ui/router/pull/14).
+- **`scroll-behavior`** — native scroll animation (`smooth` | `instant` | `auto`); also applied on URL hash anchor scroll. See [#15](https://github.com/aura-ui/router/pull/15).
+- **Same-route re-click** — navigating again to the current pathname+search reasserts scroll like a fresh push (`scroll` / `scroll-target` / `scroll-behavior`).
 
 ### Changed
 
 - **Same-origin absolute links** — `[aura-router-link]` with `https://…` / `//…` on the document origin (incl. IDN) resolve via `resolveInAppHref` to in-app `pathname+search+hash` (clicks + prefetch); other origins stay full navigations. Docs: [How `href` resolves](./docs/guide.md#how-href-resolves).
 
-## [0.0.1]
+### Fixed
+
+- Decode percent-encoded UTF-8 pathnames at URL ingress (non-ASCII paths match correctly).
+- Decode percent-encoded UTF-8 paths in the 404 / not-found message.
+- Resolve the app outlet via the first document `<aura-outlet>` (more reliable root outlet lookup).
+- Allow synchronous `RouteHookFn` returns (hooks need not always return a Promise).
+- Let Ctrl/Cmd/middle-click open router links in a new tab (do not SPA-hijack modified clicks).
+- Cancel stale `requestAnimationFrame` scroll work on rapid navigation.
+
+### Documentation
+
+- Reposition README around declarative Web Components routing.
+- Add `hello@aura-ui.dev` contact on README / community docs.
+- Document route match priority scoring. See [#13](https://github.com/aura-ui/router/pull/13).
+- Document release-please flow; show docs entries in the changelog. See [#12](https://github.com/aura-ui/router/pull/12).
+- Slim `LIMITATIONS.md` to real footguns; move contract detail into the guide.
+
+### Miscellaneous
+
+- Polish GitHub community files (issue/PR templates, Code of Conduct) and package metadata.
+- Automate version bumps and changelog drafting with release-please (CI).
+
+## [0.0.1](https://github.com/aura-ui/router/releases/tag/v0.0.1) - 30.07.2026
 
 ### Added
 
@@ -37,7 +69,7 @@ Package version in `package.json` is **`0.0.1`**, published as [`@auraui/router`
 - Href matching for nested routes ignores trailing `/` (`/users` ≈ `/users/`); the address bar is not rewritten — prefer root-absolute nav links for MPA→SPA.
 - Active links (class + `aria-current`) for `[aura-router-link]`; host `link-*` attrs; branch active class.
 - Nested `<aura-outlet>`; root outlet auto-created as sibling of `<aura-router>` when missing; `AuraRouter.prefetch()`, link prefetch cascade (intent / tap).
-- **First-paint hydration (MPA → SPA)** — flat pages adopt via `extract` (same selector as SPA fragments); nested layout shells that differ from `extract` use `aura-router-ssr`. Nested adopt needs outlet + `data-aura-view-root` chain; mismatch / redirect / missing adoptable node falls back to normal `initNavigate` (or structure-error keep). Guide: [docs/guide.md](./docs/guide.md#first-paint-mpa--spa).
+- **First-paint hydration (MPA → SPA)** — mark server HTML with `aura-router-ssr`; on boot the engine **adopts** flat or nested markup (nested needs outlet + `data-aura-view-root` chain) instead of refetching; mismatch / redirect / missing marker falls back to normal `initNavigate`. Guide: [docs/guide.md](./docs/guide.md#first-paint-mpa--spa).
 - DataGraph long cache with global `staleTime` (~30s); unified `router.invalidate({ cache: 'data' | 'view' | 'all' })` and `data-invalidated` event.
 - Resource graph (data + view load, resource keys, handoff / shared buffer, in-flight join).
 - Transition-plan fast paths (`canUseDomCacheFastPath`, `canUseViewCacheFastPath`).

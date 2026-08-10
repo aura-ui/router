@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![CI](https://github.com/aura-ui/router/actions/workflows/ci.yml/badge.svg)](https://github.com/aura-ui/router/actions/workflows/ci.yml)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/@auraui/router)](https://bundlephobia.com/package/@auraui/router)
+[![bundle size](https://img.shields.io/badge/minzip-33.2%20kB-blue)](https://bundlephobia.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
 **HTML-first declarative router for Web Components with nested outlets and route lifecycle.** First visit renders a real HTML page; after `AuraRouter.install()`, in-app navigation updates content without a full reload (MPA→SPA).
@@ -10,8 +10,6 @@
 ```bash
 npm install @auraui/router
 ```
-
-> **Experimental (pre-alpha).** `@auraui/router@0.0.1` may change before `0.1.0`. Pin exact versions; use for evaluation and feedback, not as a frozen production contract yet. See [ROADMAP](./ROADMAP.md) and [LIMITATIONS](./LIMITATIONS.md).
 
 ## Why Aura Router
 
@@ -41,7 +39,7 @@ Or CDN (pin the version):
 
 ```html
 <script type="module">
-  import { AuraRouter } from 'https://esm.sh/@auraui/router@0.0.1';
+  import { AuraRouter } from 'https://esm.sh/@auraui/router@0.1.0';
   AuraRouter.install();
 </script>
 ```
@@ -124,6 +122,10 @@ No Internet Explorer. No Node SSR runtime — the router runs in the browser. Se
 | Changelog | [CHANGELOG.md](./CHANGELOG.md) |
 | Contributing | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 | npm | [@auraui/router](https://www.npmjs.com/package/@auraui/router) |
+
+## Stability
+
+Each version before `1.0.0` may include breaking changes — check the [CHANGELOG](./CHANGELOG.md). See [ROADMAP](./ROADMAP.md).
 
 ## License
 

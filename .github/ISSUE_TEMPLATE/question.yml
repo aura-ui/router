@@ -23,7 +23,7 @@ body:
     id: version
     attributes:
       label: Package version
-      placeholder: "@auraui/router@0.0.1"
+      placeholder: "@auraui/router@0.1.0"
     validations:
       required: true
   - type: textarea

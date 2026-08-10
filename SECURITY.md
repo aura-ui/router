@@ -5,11 +5,11 @@
 We accept security reports for:
 
 - The **latest published** `@auraui/router` release on [npm](https://www.npmjs.com/package/@auraui/router), and
-- The **current default branch** of this repository (pre-alpha; API may change).
+- The **current default branch** of this repository (0.x; API may still change before `1.0.0`).
 
 Older commits, forks, and unmodified demos are unsupported.
 
-> Pre-alpha (`0.0.x`): fixes are best-effort. Pin exact versions in apps.
+> 0.x: security fixes are best-effort. Pin exact versions in apps.
 
 ## Reporting a vulnerability
 
@@ -19,7 +19,7 @@ Report via a [private GitHub security advisory](https://github.com/aura-ui/route
 
 Please include:
 
-1. Package / commit (e.g. `@auraui/router@0.0.1` or a commit SHA)
+1. Package / commit (e.g. `@auraui/router@0.1.0` or a commit SHA)
 2. Impact (what an attacker can do)
 3. Minimal reproduction (HTML + JS)
 4. Whether the attack needs attacker-controlled route markup or other already-trusted app config

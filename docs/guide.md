@@ -2,7 +2,7 @@
 
 Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/router). For install and a 30-second example, see the [README](../README.md).
 
-> **Experimental (pre-alpha).** Attribute names below (`guard`, `load`, `ready`, …) are the intended public surface — see [ROADMAP](../ROADMAP.md) and [LIMITATIONS](../LIMITATIONS.md) for known gaps.
+> **Experimental (0.x).** Attribute names below (`guard`, `load`, `ready`, …) are the intended public surface — see [ROADMAP](../ROADMAP.md) and [LIMITATIONS](../LIMITATIONS.md) for known gaps. Breaking changes remain possible until `1.0.0`.
 
 **Browsers:** modern evergreen (Chrome, Firefox, Safari, Edge) with ES modules, Custom Elements, History API, `fetch`, and `URLPattern` (for `:param` routes). No IE. **Browser-only** — no Node SSR runtime; first paint is host HTML + client [adopt](#first-paint-mpa--spa). See the [README](../README.md#browsers). HTML-first Web Components package — no React / Vue adapters in this package.
 
@@ -306,7 +306,7 @@ That is the full lifecycle surface — there are no `reenter` / `detach` / `dest
 
 ### Presentation
 
-> **Experimental.** Transition attrs are still settling and may change before `0.1.0`.
+> **Experimental.** Transition attrs are still settling and may change before `1.0.0`.
 
 | Attribute | Description |
 | --- | --- |
@@ -611,6 +611,6 @@ router?.refreshRoutes();
 router?.invalidate({ path: '/users/:id' }); // see [Cache](#cache)
 ```
 
-> **Experimental:** DOM event names on `<aura-router>` may change before `0.1.0`.
+> **Experimental:** DOM event names on `<aura-router>` may change before `1.0.0`.
 
 DOM events include `navigation-start`, `navigation`, `navigation-complete`, `navigation-cancel`, `navigation-redirect`, `navigation-error`, `navigation-hook-error`, `not-found`, `data-invalidated`, and load `load-start` / `load-end` / `load-error`.

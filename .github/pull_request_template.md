@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- Why this change exists; 1–3 short bullets. Call out breaking / pre-alpha API changes. -->
+<!-- Why this change exists; 1–3 short bullets. Call out breaking / 0.x API changes. -->
 
 ## Test plan
 

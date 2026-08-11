@@ -8,6 +8,10 @@ Package version in `package.json` is **`0.1.0`**, published as [`@auraui/router`
 
 ## Unreleased
 
+### Added
+
+- Explicit `{ type: 'cancel', reason? }` hook results propagate their optional machine-readable reason to the `navigation-cancel` event.
+
 ## [0.1.0](https://github.com/aura-ui/router/compare/v0.0.1...v0.1.0) - 10.08.2026
 
 ### ⚠ BREAKING CHANGES

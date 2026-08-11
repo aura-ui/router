@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Version** | `0.1.0` |
-| **Updated** | 2026-08-10 |
+| **Updated** | 2026-08-11 |
 | **Audience** | Library users, contributors, and reviewers |
 | **Public docs** | [README](./README.md) · [Guide](./docs/guide.md) · [LIMITATIONS](./LIMITATIONS.md) · [SECURITY](./SECURITY.md) · [CHANGELOG](./CHANGELOG.md) |
 
@@ -89,7 +89,7 @@ Today’s sole package entry (`@auraui/router`) ships the **full** surface (load
 | **2** | [Data & cache](#phase-2--data-loading--cache) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Cache ladder / invalidate / entry timings <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; DataGraph parity + out-in prefetch open |
 | **3** | [View rendering](#phase-3--view-rendering) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Renderer API, incremental DOM |
 | **4** | [Navigation UX](#phase-4--navigation-experience) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Loading chrome <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; View Transitions / Navigation API transport <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
-| **5** | [Developer API](#phase-5--developer-facing-api) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Route API + named hooks <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; folders <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; basename / typed params / hook `cause` / optional `/min` <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
+| **5** | [Developer API](#phase-5--developer-facing-api) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Route API + named hooks <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; folders <span style="background:#f59e0b;color:#111;padding:1px 6px;border-radius:3px;font-weight:700">~</span>; basename / typed params / structured navigation target / hook `cause` / optional `/min` <span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✗</span> |
 | **6** | [DevTools](#phase-6--debugging--performance-tooling) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Event stream + smoke/size CI <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; DevTools UI / per-nav gate open |
 | **7** | [Examples & docs](#phase-7--examples--docs) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | [`playground/`](./playground/) covers nested / auth / cache / 404 <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; dedicated recipes / E2E / hosted still open |
 | **8** | [MPA → SPA](#phase-8--mpa--spa) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Hydrate + shared layout inject <span style="background:#16a34a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:700">✓</span>; migration guide / pure static example open |
@@ -171,6 +171,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | 5.5 | **Basename / subfolder mode** — mount app under `/app`, GitHub Pages, multi-SPA on one host | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Attr/config on `<aura-router>`; strip/join for match + links + `navigate` |
 | 5.6 | **Typed path params** — e.g. `:userId(int)`, `:slug(slug)` in `path` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Inline in `path` (not a separate `params` attr). Small builtin set; fail match on type mismatch. Avoid `:id&lt;int&gt;` in HTML attrs |
 | 5.7 | **Hook `cause` on `RouteLifecycleContext`** — expose why a hook runs (`enter` / `prefetch` / `stay`) | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | So `load` / `ready` can skip analytics or DOM side effects on speculative prefetch vs real navigation / same-leaf update |
+| 5.8 | **Structured navigation target** — object overload for `navigate({ pathname, query, hash }, options?)` | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | Keep the string overload; serialize query values consistently and preserve `replace` / `syncHistory` options |
 
 ---
 

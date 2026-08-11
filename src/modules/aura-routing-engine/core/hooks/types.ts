@@ -29,7 +29,6 @@ export interface RouteHookContext<
  */
 export type HookResult =
   | void
-  | { readonly type: 'continue' }
   | { readonly type: 'cancel'; reason?: string }
   | { readonly type: 'redirect'; url: string; replace?: boolean };
 

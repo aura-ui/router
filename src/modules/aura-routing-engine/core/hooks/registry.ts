@@ -60,7 +60,6 @@ export function normalizeHookResult(result: HookResultInput | undefined): GuardR
         ...(typed.replace !== undefined && { replace: typed.replace }),
       };
     }
-    if (typed.type === 'continue') return undefined;
     if (typed.type === 'cancel') {
       return {
         cancelled: true,

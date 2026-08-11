@@ -13,14 +13,21 @@ describe('normalizeHookResult', () => {
   });
 
   it('maps explicit HookResult shapes', () => {
-    expect(normalizeHookResult({ type: 'continue' })).toBeUndefined();
-    expect(normalizeHookResult({ type: 'cancel' })).toEqual({ cancelled: true });
-    expect(normalizeHookResult({ type: 'cancel', reason: 'unsaved-changes' })).toEqual({
+    expect(normalizeHookResult({ type: 'cancel' })).toEqual({
+      cancelled: true,
+    });
+    expect(
+      normalizeHookResult({ type: 'cancel', reason: 'unsaved-changes' })
+    ).toEqual({
       cancelled: true,
       reason: 'unsaved-changes',
     });
-    expect(normalizeHookResult({ type: 'redirect', url: '/home' })).toEqual({ url: '/home' });
-    expect(normalizeHookResult({ type: 'redirect', url: '/home', replace: true })).toEqual({
+    expect(normalizeHookResult({ type: 'redirect', url: '/home' })).toEqual({
+      url: '/home',
+    });
+    expect(
+      normalizeHookResult({ type: 'redirect', url: '/home', replace: true })
+    ).toEqual({
       url: '/home',
       replace: true,
     });

@@ -2,7 +2,7 @@
 
 > **Goal:** Prepare links before navigation, retain reusable work, and disable durable caching where content should not be kept.
 > **Live:** [`playground/`](../../playground/) — compare durable caching on `/contacts` and `/users/1`.
-> **API:** [Prefetch](../guide.md#prefetch) · [Cache](../guide.md#cache)
+> **API:** [Prefetch](../guide/06-navigation-ux.md#prefetch) · [Cache](../guide/06-navigation-ux.md#cache)
 
 ## Configuration
 
@@ -36,10 +36,10 @@ Aura may still reuse recent work through a short handoff buffer even when durabl
 document.querySelector('aura-router')?.invalidate({ cache: 'view' });
 ```
 
-Use invalidation when cached content becomes stale. The [guide](../guide.md#invalidate-cached-entries) covers data, path, key, and removal options.
+Use invalidation when cached content becomes stale. The [guide](../guide/06-navigation-ux.md#invalidate-cached-entries) covers data, path, key, and removal options.
 
 ## See also
 
 - [Recipes index](./README.md)
 - [`router.html`](../../playground/pages/parts/router.html) · [`server.js`](../../playground/server.js) delays
-- Guide: [Cache](../guide.md#cache)
+- Guide: [Cache](../guide/06-navigation-ux.md#cache)

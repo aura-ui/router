@@ -2,7 +2,7 @@
 
 > **Goal:** Redirect signed-out users to `/login` before they enter `/profile`.
 > **Live:** In [`playground/`](../../playground/), click **Profile**, then **Sign in**.
-> **API:** [Control navigation](../guide.md#control-navigation)
+> **API:** [Control navigation](../guide/04-lifecycle-and-data.md#control-navigation)
 
 ## 1. Protect the route
 
@@ -46,4 +46,4 @@ To protect a complete nested branch, put `guard="auth"` on its parent route; see
 
 - [Recipes index](./README.md)
 - [Playground implementation](../../playground/src/main.js)
-- Guide: [Control navigation](../guide.md#control-navigation)
+- Guide: [Control navigation](../guide/04-lifecycle-and-data.md#control-navigation)

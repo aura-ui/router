@@ -92,12 +92,12 @@ Direct nested URLs need matching outlet-shaped HTML and an `aura-router-ssr` mar
 
 ## Add features when you need them
 
-- [Lifecycle hooks](./docs/guide.md#lifecycle-hooks) – guard, load, ready, leave, and unmount
+- [Lifecycle hooks](./docs/guide/04-lifecycle-and-data.md#lifecycle-hooks) – guard, load, ready, leave, and unmount
 - [Prefetch and cache](./docs/recipes/prefetch-cache.md) – configure link prefetch and route-scoped view, data, or DOM cache policies
 - [Authentication guards](./docs/recipes/auth.md) – protect client navigation without hiding server responsibilities
 - [First-paint adoption](./docs/recipes/first-paint.md) – reuse flat or nested HTML on startup
 - [404 handling](./docs/recipes/not-found.md) – keep client and server fallbacks honest
-- [Programmatic navigation](./docs/guide.md#programmatic-api) – navigate from application code
+- [Programmatic navigation](./docs/guide/08-api-reference.md#programmatic-api) – navigate from application code
 
 ## Compatibility
 

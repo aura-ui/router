@@ -2,7 +2,7 @@
 
 > **Goal:** Server HTML for the current URL is adopted on boot; later clicks are SPA.  
 > **Live:** [`playground/`](../../playground/) — hard-reload `/contacts` or `/login` (flat routes).  
-> **API:** [First paint](../guide.md#first-paint-mpa--spa) · [`extract`](../guide.md#extract--fragment-from-full-html-pages)
+> **API:** [First paint](../guide/05-mpa-to-spa.md#first-paint-mpa--spa) · [`extract`](../guide/03-views-and-layouts.md#extract--fragment-from-full-html-pages)
 
 Aura does not render on the server. Your host still returns complete HTML for each URL; Aura adopts that HTML and handles later links as SPA navigation.
 

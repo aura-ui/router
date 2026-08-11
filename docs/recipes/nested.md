@@ -2,7 +2,7 @@
 
 > **Goal:** Keep shared chrome mounted while sibling pages swap in `<aura-outlet>`.  
 > **Live:** [`playground/`](../../playground/) — `/users` ↔ `/users/1` ↔ `/users/2`.  
-> **API:** [Nested routes & layouts](../guide.md#nested-routes--layouts) · [Same-route updates](../guide.md#same-route-updates)
+> **API:** [Nested routes & layouts](../guide/03-views-and-layouts.md#nested-routes--layouts) · [Same-route updates](../guide/03-views-and-layouts.md#same-route-updates)
 
 ## Routes
 
@@ -40,4 +40,4 @@ Because the resolved view URL changes with `:id`, moving from `/users/1` to `/us
 - [Recipes index](./README.md)
 - [`router.html`](../../playground/pages/parts/router.html) · [`users.html`](../../playground/pages/users.html)
 - [Auth](./auth.md) — nested + `guard`
-- Guide: [Nested routes & layouts](../guide.md#nested-routes--layouts)
+- Guide: [Nested routes & layouts](../guide/03-views-and-layouts.md#nested-routes--layouts)

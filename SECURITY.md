@@ -33,7 +33,7 @@ Aura Router runs in the browser and renders content from **app-supplied configur
 - `<aura-router>` / `<aura-route>` attributes (`view`, `layout`, `html::…`, `url` / `iframe` targets, `extract`, lifecycle attrs, …)
 - Registered hooks and any HTML they cause the app to insert
 
-That configuration is **trusted**, same as server-rendered templates. Putting attacker-controlled strings into those attrs without sanitization is an **application** vulnerability, not a router bug. See [guide — Views](./docs/guide.md#views) and this policy.
+That configuration is **trusted**, same as server-rendered templates. Putting attacker-controlled strings into those attrs without sanitization is an **application** vulnerability, not a router bug. See [guide — Views](./docs/guide/03-views-and-layouts.md#views) and this policy.
 
 ## Scope
 

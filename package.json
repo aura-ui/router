@@ -19,6 +19,7 @@
     "CHANGELOG.md",
     "LIMITATIONS.md",
     "docs/guide.md",
+    "docs/guide/*",
     "docs/recipes/*"
   ],
   "sideEffects": false,

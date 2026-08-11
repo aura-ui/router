@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![CI](https://github.com/aura-ui/router/actions/workflows/ci.yml/badge.svg)](https://github.com/aura-ui/router/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/demo-live-brightgreen)](https://aura-ui.github.io/router-preview/)
 [![bundle size](https://img.shields.io/badge/minzip-33.2%20kB-blue)](https://bundlephobia.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
@@ -11,11 +12,13 @@ Aura Router adds client-side navigation to complete static or server-rendered HT
 
 Your host keeps serving real pages. Aura adopts the HTML already on screen and upgrades marked links after load.
 
+Try it: [Live demo](https://aura-ui.github.io/router-preview/) · [Source](https://github.com/aura-ui/router-preview)
+
 ```bash
 npm install @auraui/router
 ```
 
-[Quick start](#quick-start) · [Demo source](https://github.com/aura-ui/router-preview) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/)
+[Quick start](#quick-start) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/)
 
 ## Why Aura Router?
 

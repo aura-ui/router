@@ -5,128 +5,116 @@
 [![bundle size](https://img.shields.io/badge/minzip-33.2%20kB-blue)](https://bundlephobia.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
-**HTML-first declarative router for Web Components with nested outlets and route lifecycle.** First visit renders a real HTML page; after `AuraRouter.install()`, in-app navigation updates content without a full reload (MPA→SPA).
+**Keep the HTML. Upgrade the navigation.**
+
+Aura Router adds client-side navigation to complete static or server-rendered HTML pages – with nested layouts, route lifecycle hooks, and no framework adapter.
+
+Your host keeps serving real pages. Aura adopts the HTML already on screen and upgrades marked links after load.
 
 ```bash
 npm install @auraui/router
 ```
 
-## Why Aura Router
+[Quick start](#quick-start) · [Demo source](https://github.com/aura-ui/router-preview) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/)
 
-| | |
-| --- | --- |
-| **Routes in HTML** | `<aura-router>`, `<aura-route>`, `<aura-outlet>` — path, layout, view, hooks, and cache in markup |
-| **Nested layouts** | Shared shell stays mounted; only the matched leaf updates in the outlet |
-| **Route lifecycle** | `guard`, `load`, `ready`, `leave`, `unmount`, … — including client redirect chains |
-| **Cache & prefetch** | Route-scoped `cache` (view / data / DOM); intent/tap prefetch on in-app links |
-| **HTML-first, MPA → SPA** | First visit paints server HTML; later navigations update the outlet without a full reload |
-| **SEO-friendly** | Crawlers and link previews read real HTML when the server renders the page — no empty client shell |
-| **Progressive enhancement** | Root-absolute `href`s work without JS; `aura-router-link` upgrades them to client navigation |
+## Why Aura Router?
 
-Works with plain HTML, vanilla custom elements, or Lit. Load full server pages with `url` + `extract` when you need a fragment. See the [guide](./docs/guide.md).
+- **Keep your pages.** Every URL can return useful HTML before Aura runs.
+- **Add SPA navigation.** Mark existing links and update only the view regions affected by the new route.
+- **Grow without a rewrite.** Add nested layouts, lifecycle hooks, prefetching, and caching when you need them.
+
+Works with plain HTML, Web Components, and Lit. Your backend or static host keeps rendering complete pages.
+
+## How it works
+
+1. The browser requests a normal URL.
+2. Your host returns a complete HTML page.
+3. Aura adopts the content already on screen.
+4. Marked same-origin links use client navigation from then on.
+
+> **MPA first. SPA when ready.**
 
 ## Quick start
 
-**1. Install**
+**1. Keep the page you already have**
 
-```ts
+```html
+<main id="content">
+  <h1>Home</h1>
+</main>
+```
+
+Serve a complete page for every URL and keep the same selector around the content you want Aura to update.
+
+**2. Declare routes. Mark the links.**
+
+```html
+<a href="/about/" aura-router-link>About</a>
+
+<aura-outlet></aura-outlet>
+<aura-router extract="#content">
+  <aura-route path="/" view="/"></aura-route>
+  <aura-route path="/about/" view="/about/"></aura-route>
+</aura-router>
+```
+
+`extract` tells Aura which region to take from each complete HTML response. On the first flat page, Aura adopts the matching region already on screen instead of fetching it again.
+
+**3. Start Aura once**
+
+```js
 import { AuraRouter } from '@auraui/router';
 
 AuraRouter.install();
 ```
 
-Or CDN (pin the version):
+That is the upgrade: every URL still opens as a normal page, while marked links navigate through Aura after startup.
+
+## Change the page. Keep the layout.
+
+Nested routes keep shared UI mounted while the child view changes – useful for dashboards, workspaces, and settings screens.
 
 ```html
-<script type="module">
-  import { AuraRouter } from 'https://esm.sh/@auraui/router@0.1.0';
-  AuraRouter.install();
-</script>
-```
-
-Registers `<aura-router>`, `<aura-route>`, and `<aura-outlet>`.
-
-**2. Declare routes**
-
-```html
-<aura-router>
-  <aura-route path="/" view="index.html"></aura-route>
-  <aura-route path="/users" view="users.html"></aura-route>
-  <aura-route path="/about" view="template::about-page"></aura-route>
-  <aura-route path="*" view="template::not-found"></aura-route>
-</aura-router>
-
-<template id="about-page">
-  <h1>About</h1>
-  <p>Static markup or Web Components go here.</p>
-</template>
-
-<template id="not-found">
-  <h1>404</h1>
-</template>
-```
-
-Nested shell (layout stays mounted across children):
-
-```html
-<aura-router>
-  <aura-route path="/app" layout="app-shell" guard="auth">
-    <aura-route path="users" view="users.html" load="users"></aura-route>
-    <aura-route path="settings" view="template::settings"></aura-route>
+<aura-router extract="#content">
+  <aura-route path="/workspace/" layout="workspace-shell">
+    <aura-route path="." view="/workspace/"></aura-route>
+    <aura-route path="settings" view="/workspace/settings/"></aura-route>
   </aura-route>
-  <aura-route path="*" view="template::not-found"></aura-route>
 </aura-router>
 
-<template id="app-shell">
+<template id="workspace-shell">
   <nav><!-- durable chrome --></nav>
   <aura-outlet></aura-outlet>
 </template>
-
-<template id="settings">
-  <h1>Settings</h1>
-</template>
 ```
 
-`guard` / `load` are hook names from `AuraRouter.use` — see [lifecycle hooks](./docs/guide.md#lifecycle-hooks). A bare `view` file name (e.g. `users.html`) is fetched from the server after the first full load.
+Direct nested URLs need matching outlet-shaped HTML and an `aura-router-ssr` marker. See the [nested layout recipe](./docs/recipes/nested.md).
 
-**3. Links**
+## Add features when you need them
 
-```html
-<a href="/" aura-router-link>Home</a>
-<a href="/app/users" aura-router-link>Users</a>
-```
+- [Lifecycle hooks](./docs/guide/04-lifecycle-and-data.md#lifecycle-hooks) – guard, load, ready, leave, and unmount
+- [Prefetch and cache](./docs/recipes/prefetch-cache.md) – configure link prefetch and route-scoped view, data, or DOM cache policies
+- [Authentication guards](./docs/recipes/auth.md) – protect client navigation without hiding server responsibilities
+- [First-paint adoption](./docs/recipes/first-paint.md) – reuse flat or nested HTML on startup
+- [404 handling](./docs/recipes/not-found.md) – keep client and server fallbacks honest
+- [Programmatic navigation](./docs/guide/08-api-reference.md#programmatic-api) – navigate from application code
 
-Prefer root-absolute paths (`/users`). Aura matches `/users` and `/users/` as the same route and keeps the pathname as in the link. Same-origin absolute URLs (`https://your-host/…`) on `[aura-router-link]` also SPA-navigate; other origins keep a full page load — see [How `href` resolves](./docs/guide.md#how-href-resolves).
+## Compatibility
 
-```ts
-document.querySelector('aura-router')?.navigate('/app/users');
-```
+Aura Router targets modern browsers with ES modules, Custom Elements, History API, and `fetch`. Parameterized routes require `URLPattern`.
 
-Playground: [`playground/`](./playground/). Recipes: [`docs/recipes/`](./docs/recipes/).
+It runs in the browser; it is not a Node SSR runtime. Your server or static host remains in control of the HTML response.
 
-## Browsers
+## Project
 
-Modern evergreen browsers (Chrome, Firefox, Safari, Edge) with ES modules, Custom Elements, History API, `fetch`, and `URLPattern` (for `:param` routes).
+Current release: **0.1.0**
 
-No Internet Explorer. No Node SSR runtime — the router runs in the browser. See [LIMITATIONS](./LIMITATIONS.md).
+**Documentation:** [Guide](./docs/guide.md) · [Recipes](./docs/recipes/) · [Playground](./playground/) · [Known limitations](./LIMITATIONS.md)
 
-## Docs
+**Development:** [Changelog](./CHANGELOG.md) · [Roadmap](./ROADMAP.md) · [Contributing](./CONTRIBUTING.md) · [Security](./SECURITY.md)
 
-| | |
-| --- | --- |
-| **Usage guide** | [docs/guide.md](./docs/guide.md) |
-| Questions / feedback | [GitHub Discussions](https://github.com/aura-ui/router/discussions) · [hello@aura-ui.dev](mailto:hello@aura-ui.dev) |
-| Known gaps | [LIMITATIONS.md](./LIMITATIONS.md) |
-| Security | [SECURITY.md](./SECURITY.md) |
-| Roadmap | [ROADMAP.md](./ROADMAP.md) |
-| Changelog | [CHANGELOG.md](./CHANGELOG.md) |
-| Contributing | [CONTRIBUTING.md](./CONTRIBUTING.md) |
-| npm | [@auraui/router](https://www.npmjs.com/package/@auraui/router) |
-
-## Stability
-
-Each version before `1.0.0` may include breaking changes — check the [CHANGELOG](./CHANGELOG.md). See [ROADMAP](./ROADMAP.md).
+**Community:** [GitHub Discussions](https://github.com/aura-ui/router/discussions) · [hello@aura-ui.dev](mailto:hello@aura-ui.dev) · [npm](https://www.npmjs.com/package/@auraui/router)
 
 ## License
 
-MIT covers source code only — not the project name or logos. See [LICENSE](./LICENSE) and [TRADEMARKS.md](./TRADEMARKS.md).
+MIT covers source code only – not the project name or logos. See [LICENSE](./LICENSE) and [TRADEMARKS.md](./TRADEMARKS.md).

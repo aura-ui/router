@@ -40,7 +40,7 @@ import type {
   PrefetchOptions,
   RegisterLoaderOptions,
   RouteHookDefinition,
-  RouteHookFn,
+  RouteHookHandler,
   RouterInvalidateOptions,
   RouterInstance,
 } from '../../aura-routing-engine/core';
@@ -211,11 +211,11 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
    * AuraRouter.use(authHook, { redirect: '/signin' });
    * ```
    */
-  static use(name: string, fn: RouteHookFn, options?: Record<string, unknown>): void;
+  static use(name: string, fn: RouteHookHandler, options?: Record<string, unknown>): void;
   static use(hook: RouteHookDefinition, options?: Record<string, unknown>): void;
-  static use(hookOrName: string | RouteHookDefinition, fnOrOptions?: RouteHookFn | Record<string, unknown>, options?: Record<string, unknown>): void {
+  static use(hookOrName: string | RouteHookDefinition, fnOrOptions?: RouteHookHandler | Record<string, unknown>, options?: Record<string, unknown>): void {
     if (typeof hookOrName === 'string') {
-      defaultHookRegistry.register(defineRouteHook(hookOrName, fnOrOptions as RouteHookFn), options ?? {});
+      defaultHookRegistry.register(defineRouteHook(hookOrName, fnOrOptions as RouteHookHandler), options ?? {});
       return;
     }
     defaultHookRegistry.register(hookOrName, (fnOrOptions as Record<string, unknown>) ?? {});
@@ -299,7 +299,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private ensureEngine(): AuraRoutingEngine {
     if (!this.engine) {
       const { config, onEvent } = connectRouterEngine(this, {
-        syncBranchAndActiveLinks: (href, to) => this.syncBranchAndActiveLinks(href, to),
+        syncBranchAndActiveLinks: (href, to) =>
+          this.syncBranchAndActiveLinks(href, to),
         scroller: this.scroller,
         notFound: this.notFound,
         onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
@@ -322,7 +323,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /** Keep patterns, rewrite hrefs, refresh active links. */
   private applyHashOnlyNavigation(href: string): void {
     if (this._activeRouteBranch.length) {
-      this._activeRouteBranch = this._activeRouteBranch.map((e) => ({ pattern: e.pattern, href }));
+      this._activeRouteBranch = this._activeRouteBranch.map((e) => ({
+        pattern: e.pattern,
+        href,
+      }));
     }
     this.syncActiveLinks(href);
   }
@@ -337,7 +341,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
 
     syncRouterActiveLinks({
       container: this.linksContainerSelector
-        ? this.closest(this.linksContainerSelector) ?? this
+        ? (this.closest(this.linksContainerSelector) ?? this)
         : this.ownerDocument!,
       linksSelector: this.linksSelector,
       linkActiveClass: linkActiveClass ?? undefined,

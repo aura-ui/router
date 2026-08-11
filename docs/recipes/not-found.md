@@ -1,33 +1,16 @@
-# Recipe: 404 & navigation errors
+# Recipe: Not found & navigation errors
 
-> **Goal:** Unknown URLs get a catch-all page; navigation/render failures get a fallback template.  
+> **Goal:** Unknown URLs get a catch-all page; view loading and rendering failures get fallback markup.
 > **Live:** [`playground/`](../../playground/) — click **404** in the nav (client SPA to `/error`).  
-> **API:** [Navigation](../guide.md#navigation) · [Router defaults](../guide.md#router-defaults)
+> **API:** [Not found (404)](../guide/07-errors-and-accessibility.md#not-found-404) · [Navigation errors](../guide/07-errors-and-accessibility.md#navigation-errors)
 
----
-
-## What you get
-
-```text
-No matching route     → path="*" view  (+ not-found event, source: "route")
-Navigation/render fail → error-template on <aura-router>
-No path="*" at all    → error-template can also act as thin 404 fallback
-```
-
-Prefer `path="*"` for a dedicated 404 page. Keep `error-template` for real failures.
-
----
-
-## Routes
+## Routes and templates
 
 ```html
 <aura-router error-template="error">
   <aura-route path="/" view="html::<h1>Home</h1>"></aura-route>
-  <aura-route path="/about" view="template::about-page"></aura-route>
   <aura-route path="*" view="template::not-found"></aura-route>
 </aura-router>
-
-<template id="about-page"><h1>About</h1></template>
 
 <template id="not-found">
   <h1>404</h1>
@@ -37,24 +20,16 @@ Prefer `path="*"` for a dedicated 404 page. Keep `error-template` for real failu
 <template id="error"><h1>Error</h1></template>
 ```
 
-Put `path="*"` **last** so it does not swallow real routes.
+Use the two templates for different jobs:
 
-> **Playground:** the nav link `/error` is handled in the client by `path="*"`. A **hard reload** of `/error` hits the server `/*` handler and returns `index.html` — use the nav link, not a full reload.
+- `path="*"` is the normal application 404 page. Specific routes have higher priority.
+- `error-template` recovers a view that fails to load or render. It is also the final templated fallback when no route matches.
+- Guard and `load` failures run `error` hooks and emit `navigation-error`; they do not automatically mount `error-template`.
 
----
-
-## Try it
-
-```bash
-cd playground && npm install && npm run dev
-```
-
-1. Click **404** in the nav → `template::not-found` (no full page reload).
-2. Open `/about` — still the About route, not `*`.
-
----
+For custom unmatched-URL handling, use `router.setNotFoundHandler()` or the cancelable fallback `not-found` event. See [Custom 404 handling](../guide/07-errors-and-accessibility.md#custom-404-handling) for the precedence.
 
 ## See also
 
+- [Recipes index](./README.md)
 - [`router.html`](../../playground/pages/parts/router.html)
-- Guide: [Navigation](../guide.md#navigation)
+- Guide: [Not found (404)](../guide/07-errors-and-accessibility.md#not-found-404) · [Navigation errors](../guide/07-errors-and-accessibility.md#navigation-errors)

@@ -2,27 +2,14 @@
 
 > **Goal:** Keep shared chrome mounted while sibling pages swap in `<aura-outlet>`.  
 > **Live:** [`playground/`](../../playground/) — `/users` ↔ `/users/1` ↔ `/users/2`.  
-> **API:** [Nested routes & layouts](../guide.md#nested-routes--layouts) · [Lifecycle hooks](../guide.md#lifecycle-hooks)
+> **API:** [Nested routes & layouts](../guide/03-views-and-layouts.md#nested-routes--layouts) · [Same-route updates](../guide/03-views-and-layouts.md#same-route-updates)
 
----
-
-## What you get
-
-```text
-/users      → layout + list (path=".")
-/users/:id  → same layout + detail in the outlet
-```
-
-Prefer root-absolute links (`/users/1`). Same-origin absolute / protocol-relative URLs work too; see [How `href` resolves](../guide.md#how-href-resolves). Route `path="/users/"` and URL `/users` match the same folder index.
-
----
-
-## 1. Routes
+## Routes
 
 ```html
 <aura-route path="/users/" layout="users">
   <aura-route path="." view="users"></aura-route>
-  <aura-route path=":id" view="users/:id" ready="show-user"></aura-route>
+  <aura-route path=":id" view="users/:id"></aura-route>
 </aura-route>
 
 <template id="users">
@@ -33,55 +20,24 @@ Prefer root-absolute links (`/users/1`). Same-origin absolute / protocol-relativ
 </template>
 ```
 
-| Piece | Role |
-| --- | --- |
-| `layout="users"` | Chrome; must contain `<aura-outlet>` |
-| `path="."` | Folder index (`/users`) |
-| `path=":id"` | → `/users/:id` |
-| `view="users/:id"` | URL loader; `:id` from params → fetch `/users/1`, … |
+The layout remains mounted while navigation stays inside `/users`; only the child view changes.
 
----
+- `path="."` is the `/users` index.
+- `path=":id"` matches `/users/1`, `/users/2`, and so on.
+- `view="users/:id"` substitutes the matched id before fetching the view.
 
-## 2. `:id` change and hooks
-
-With **per-id** `view` (`users/:id`), `/users/1` → `/users/2` **remounts** the leaf (new view URL / `viewKey`). Lifecycle: `ready` again — **not** `update`.
-
-```js
-AuraRouter.use('show-user', (ctx) => {
-  console.log(`User id: ${ctx.to.params?.id}`);
-});
-```
-
-Use `update` only when the view key stays the same (same shell HTML, params/query change), e.g. stable `view="user-shell.html"` + data from `load` / params. See guide lifecycle table.
-
-Playground uses `ready="show-user"` on `:id` — check the console when switching User 1 ↔ User 2.
-
----
-
-## 3. Links
+## Links
 
 ```html
 <a href="/users/1" aura-router-link>User 1</a>
 <a href="/users/2" aura-router-link>User 2</a>
 ```
 
----
-
-## Try it
-
-```bash
-cd playground && npm install && npm run dev
-```
-
-1. `/users` — list inside the layout.
-2. **User 1** — layout stays; detail loads (~3s on a cold fetch).
-3. **User 2** — layout stays; leaf remounts; `ready` / `show-user` runs (console).
-4. Back to `/users` — layout still there.
-
----
+Because the resolved view URL changes with `:id`, moving from `/users/1` to `/users/2` remounts the child; any `ready` hook runs again. Use a stable view plus `update` when the same mounted shell should handle every id.
 
 ## See also
 
+- [Recipes index](./README.md)
 - [`router.html`](../../playground/pages/parts/router.html) · [`users.html`](../../playground/pages/users.html)
 - [Auth](./auth.md) — nested + `guard`
-- Guide: [Nested routes & layouts](../guide.md#nested-routes--layouts)
+- Guide: [Nested routes & layouts](../guide/03-views-and-layouts.md#nested-routes--layouts)

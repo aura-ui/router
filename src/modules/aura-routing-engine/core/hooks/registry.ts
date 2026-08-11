@@ -7,7 +7,7 @@
  * @module hooks/registry
  */
 
-import type { GuardResult, RedirectTarget } from '../guard.types';
+import type { GuardCancellation, GuardResult, RedirectTarget } from '../guard.types';
 import type { RouteLifecycleContext } from '../route/types';
 
 import type {
@@ -20,9 +20,14 @@ import { ROUTER_VERSION, satisfies } from './version';
 /** Letters from any script (lowercase / caseless), digits, hyphens; no uppercase. */
 const HOOK_NAME_RE = /^[\p{Ll}\p{Lo}\p{Lm}][\p{Ll}\p{Lo}\p{Lm}\p{N}-]*$/u;
 
-function isRedirectTarget(value: HookResultInput): value is RedirectTarget {
-  return typeof value === 'string'
-    || (typeof value === 'object' && value !== null && 'url' in value && !('type' in value));
+function isRedirectTarget(value: unknown): value is RedirectTarget {
+  return (
+    typeof value === 'string' ||
+    (typeof value === 'object' &&
+      value !== null &&
+      'url' in value &&
+      !('type' in value))
+  );
 }
 
 /**
@@ -43,26 +48,41 @@ export function normalizeHookResult(result: HookResultInput | undefined): GuardR
   if (isRedirectTarget(result)) return result;
 
   if (typeof result === 'object' && result !== null && 'type' in result) {
-    const typed = result as { type: string; url?: string; replace?: boolean };
+    const typed = result as {
+      type: string;
+      url?: string;
+      replace?: boolean;
+      reason?: string;
+    };
     if (typed.type === 'redirect' && typed.url) {
       return {
         url: typed.url,
         ...(typed.replace !== undefined && { replace: typed.replace }),
       };
     }
-    if (typed.type === 'continue') return undefined;
-    if (typed.type === 'cancel') return false;
+    if (typed.type === 'cancel') {
+      return {
+        cancelled: true,
+        ...(typeof typed.reason === 'string' && { reason: typed.reason }),
+      };
+    }
   }
 
   return undefined;
 }
 
-function isTerminalGuardResult(result: GuardResult): result is false | RedirectTarget {
-  return result === false || isRedirectTarget(result);
+function isGuardCancellation(result: GuardResult): result is GuardCancellation {
+  return typeof result === 'object' && result !== null && 'cancelled' in result;
+}
+
+function isTerminalGuardResult(result: GuardResult): result is false | RedirectTarget | GuardCancellation {
+  return (
+    result === false || isRedirectTarget(result) || isGuardCancellation(result)
+  );
 }
 
 interface StoredHook {
-  fn: (ctx: RouteHookContext) => Promise<unknown>;
+  fn: (ctx: RouteHookContext) => unknown | Promise<unknown>;
   version: string;
   options: Record<string, unknown>;
 }
@@ -88,12 +108,12 @@ export class HookRegistry {
    */
   register<TOptions extends Record<string, unknown> = Record<string, unknown>>(
     hook: RouteHookDefinition<TOptions>,
-    options: TOptions = {} as TOptions,
+    options: TOptions = {} as TOptions
   ): void {
     const { name, version, fn, requires } = hook;
     if (!name || !HOOK_NAME_RE.test(name)) {
       throw new Error(
-        `Invalid hook name: "${name}". Use letters (any language; no uppercase), digits, and hyphens; must start with a letter (e.g. "auth", "fetch-user", "авторизация").`,
+        `Invalid hook name: "${name}". Use letters (any language; no uppercase), digits, and hyphens; must start with a letter (e.g. "auth", "fetch-user", "авторизация").`
       );
     }
     const existing = this.entries.get(name);
@@ -115,7 +135,7 @@ export class HookRegistry {
 
     if (requires && !satisfies(ROUTER_VERSION, requires)) {
       throw new Error(
-        `Hook "${name}@${version}" requires router ${requires} (current: ${ROUTER_VERSION})`,
+        `Hook "${name}@${version}" requires router ${requires} (current: ${ROUTER_VERSION})`
       );
     }
 
@@ -148,7 +168,7 @@ export class HookRegistry {
   async run(
     lifecycleCtx: RouteLifecycleContext,
     names: readonly string[],
-    isTransactionActive?: () => boolean,
+    isTransactionActive?: () => boolean
   ): Promise<GuardResult | undefined> {
     for (const name of names) {
       if (!isTransactionActive?.()) return undefined;
@@ -156,12 +176,15 @@ export class HookRegistry {
       const entry = this.entries.get(name);
       if (!entry) {
         console.warn(
-          `Unknown hook "${name}" on route ${lifecycleCtx.route.path} (phase ${lifecycleCtx.phase})`,
+          `Unknown hook "${name}" on route ${lifecycleCtx.route.path} (phase ${lifecycleCtx.phase})`
         );
         continue;
       }
 
-      const hookCtx: RouteHookContext = { ...lifecycleCtx, options: entry.options };
+      const hookCtx: RouteHookContext = {
+        ...lifecycleCtx,
+        options: entry.options,
+      };
       const raw = await entry.fn(hookCtx);
       if (!isTransactionActive?.()) return undefined;
 
@@ -185,12 +208,16 @@ export async function runPhaseHooks(
   registry: HookRegistry,
   lifecycleContext: RouteLifecycleContext,
   hookNames: readonly string[],
-  isTransactionActive: () => boolean,
+  isTransactionActive: () => boolean
 ): Promise<GuardResult> {
   if (!hookNames.length) return undefined;
 
   try {
-    const result = await registry.run(lifecycleContext, hookNames, isTransactionActive);
+    const result = await registry.run(
+      lifecycleContext,
+      hookNames,
+      isTransactionActive
+    );
     if (!isTransactionActive()) return false;
     return result;
   } catch (error) {

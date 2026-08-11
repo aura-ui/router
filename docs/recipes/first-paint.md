@@ -2,39 +2,22 @@
 
 > **Goal:** Server HTML for the current URL is adopted on boot; later clicks are SPA.  
 > **Live:** [`playground/`](../../playground/) — hard-reload `/contacts` or `/login` (flat routes).  
-> **API:** [First paint](../guide.md#first-paint-mpa--spa) · [`extract`](../guide.md#extract--fragment-from-full-html-pages)
+> **API:** [First paint](../guide/05-mpa-to-spa.md#first-paint-mpa--spa) · [`extract`](../guide/03-views-and-layouts.md#extract--fragment-from-full-html-pages)
 
----
+Aura does not render on the server. Your host still returns complete HTML for each URL; Aura adopts that HTML and handles later links as SPA navigation.
 
-## What you get
-
-```text
-First visit (flat + extract)  → adopt #main / .main → no view fetch, no guard/load/ready
-Later clicks                  → aura-router-link → fetch view (+ extract) → SPA
-Nested layout shell           → aura-router-ssr on shell (when shell ≠ extract)
-```
-
-Aura does not run on the server. The host keeps serving HTML pages.
-
----
-
-## Page (flat)
+## Flat page
 
 ```html
-<body>
-  <nav>… durable chrome outside the content root …</nav>
+<div class="main">
+  <h1>Contacts</h1>
+</div>
 
-  <div class="main">
-    <h1>Contacts</h1>
-  </div>
+<aura-router extract=".main">
+  <aura-route path="/contacts" view="contacts"></aura-route>
+</aura-router>
 
-  <aura-router extract=".main">
-    <aura-route path="/contacts" view="contacts"></aura-route>
-    <aura-route path="/about" view="template::about-page"></aura-route>
-  </aura-router>
-
-  <script src="/static/main.js" defer></script>
-</body>
+<script src="/static/main.js" defer></script>
 ```
 
 ```js
@@ -42,41 +25,29 @@ import { AuraRouter } from '@auraui/router';
 AuraRouter.install();
 ```
 
-| Piece | Role |
-| --- | --- |
-| `extract=".main"` | Fragment for SPA fetches **and** flat first-paint adopt |
-| `aura-router-ssr` | Only when a nested **layout shell** differs from the extract node |
+`extract=".main"` identifies both the fragment used for later SPA fetches and the flat view adopted on first paint.
 
-Playground injects the same `<aura-router>` via `@router@` and bundles install in `/static/main.js`.
+## Nested layout
 
----
+For a nested route, return the same outlet structure that Aura would mount on the client. Mark the root layout with `aura-router-ssr`:
 
-## Flat vs nested
-
-| Match | Server markup | Boot |
-| --- | --- | --- |
-| **Flat** route (no layout parent) | Content root matches `extract` | Adopt via `extract` |
-| **Nested** + outlet-shaped markup | `aura-router-ssr` on shell → `<aura-outlet>` → leaf `data-aura-view-root` | Adopt chain |
-| **Nested** + flat blob | e.g. only `.main`, no shell marker / outlets | structure-error / cold entry |
-
-Playground: `/contacts` and `/login` are flat → adopt via `extract=".main"`. `/users` and `/profile` are nested — hard reload does **not** fully adopt a flat leaf blob; use the nested outlet shape + `aura-router-ssr` on the shell when you need adopt. Details: [guide](../guide.md#first-paint-mpa--spa).
-
----
-
-## Try it
-
-```bash
-cd playground && npm install && npm run dev
+```html
+<aura-outlet>
+  <section aura-router-ssr data-aura-view-root>
+    <nav>Settings</nav>
+    <aura-outlet>
+      <main data-aura-view-root>Profile</main>
+    </aura-outlet>
+  </section>
+</aura-outlet>
 ```
 
-1. Hard-reload `/contacts` — response already has `.main`; client should not refetch `contacts` for adopt.
-2. Click **About** — SPA (`template::`, no full reload).
-3. Click **Contacts** — SPA fetch + `extract=".main"`; `cache="off"` → ~1s every time.
-4. Hard-reload `/users` — nested mismatch / cold path, unlike step 1.
+Each layout must contain the outlet for the next level, and each nested view root needs `data-aura-view-root`.
 
----
+> Successful adoption skips `guard`, `load`, and `ready`. The server must return authorized markup and all critical first-paint data. If a nested tree is malformed, Aura keeps the server HTML instead of remounting it immediately.
 
 ## See also
 
+- [Recipes index](./README.md)
 - [`contacts.html`](../../playground/pages/contacts.html) · [`server.js`](../../playground/server.js)
 - [LIMITATIONS](../../LIMITATIONS.md) · [Auth](./auth.md) (when adopt skips `guard`)

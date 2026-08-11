@@ -1,27 +1,13 @@
 # Recipe: Prefetch & cache
 
-> **Goal:** Warm links on hover; cache HTML; turn cache off when every visit must refetch.  
-> **Live:** [`playground/`](../../playground/) — hover nav, then `/contacts` vs `/users/1`.  
-> **API:** [Cache](../guide.md#cache) · [Router defaults](../guide.md#router-defaults)
+> **Goal:** Prepare links before navigation, retain reusable work, and disable durable caching where content should not be kept.
+> **Live:** [`playground/`](../../playground/) — compare durable caching on `/contacts` and `/users/1`.
+> **API:** [Prefetch](../guide/06-navigation-ux.md#prefetch) · [Cache](../guide/06-navigation-ux.md#cache)
 
----
-
-## What you get
-
-```text
-<aura-router prefetch="true" cache cache-time="15">  → tree defaults
-/contacts   cache="off"                              → always network (~1s in playground)
-/users/…    cache-time="10"                          → shorter TTL (still inherits cache mode)
-```
-
-Bare `cache` is valid (view + `load` data). Bare `prefetch` is **not** — use `prefetch="true"` or `prefetch="intent"`.
-
----
-
-## Routes
+## Configuration
 
 ```html
-<aura-router extract=".main" prefetch="true" cache cache-time="15">
+<aura-router extract=".main" prefetch="intent" cache cache-time="15">
   <aura-route path="/contacts" view="contacts" cache="off"></aura-route>
 
   <aura-route path="/users/" layout="users" cache-time="10">
@@ -29,39 +15,31 @@ Bare `cache` is valid (view + `load` data). Bare `prefetch` is **not** — use `
     <aura-route path=":id" view="users/:id"></aura-route>
   </aura-route>
 </aura-router>
-```
 
-| Attr | Meaning |
-| --- | --- |
-| `prefetch="true"` | Same as `intent` — hover / focus warmup on `[aura-router-link]` |
-| `cache` (bare) | Cache **view** HTML and **`load` data** (no DOM keep-alive) |
-| `cache-time` | Long-cache TTL in **seconds** |
-| `cache="off"` | Opt out of inherited cache |
-
-`extract` / `cache` / `cache-time` inherit. On a child, set only what you override (`cache="off"`, `cache-time="10"`). Skeleton UI while fetching is separate — see [Loading](../guide.md#loading) (playground uses `loading-template`).
-
-```html
-<a href="/contacts" aura-router-link>Contacts</a>
+<a href="/contacts" aura-router-link data-prefetch="tap">Contacts</a>
 <a href="/users/1" aura-router-link>User 1</a>
 ```
 
-Optional: `document.querySelector('aura-router')?.invalidate({ cache: 'view' })` — [guide](../guide.md#invalidate-from-code).
+The router provides defaults; child routes and links only declare overrides.
 
----
+- `intent` prepares `load` data after hover or keyboard focus. It does not preload the view.
+- `data-prefetch="tap"` prepares both data and view on pointer down.
+- Bare `cache` retains view payloads and `load` data, but not mounted DOM.
+- `cache-time` is the lifetime in seconds.
+- `cache="off"` disables durable caching for `/contacts`.
 
-## Try it
+Aura may still reuse recent work through a short handoff buffer even when durable caching is off.
 
-```bash
-cd playground && npm install && npm run dev
+## Invalidate after a mutation
+
+```js
+document.querySelector('aura-router')?.invalidate({ cache: 'view' });
 ```
 
-1. Hover **Contacts**, then click — still ~1s every time (`cache="off"`).
-2. Open `/users/1` once (~3s cold), navigate away, return within ~10s — view cache hit.
-3. `/users/2` — different URL → separate cache entry.
-
----
+Use invalidation when cached content becomes stale. The [guide](../guide/06-navigation-ux.md#invalidate-cached-entries) covers data, path, key, and removal options.
 
 ## See also
 
+- [Recipes index](./README.md)
 - [`router.html`](../../playground/pages/parts/router.html) · [`server.js`](../../playground/server.js) delays
-- Guide: [Cache](../guide.md#cache)
+- Guide: [Cache](../guide/06-navigation-ux.md#cache)

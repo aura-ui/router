@@ -167,7 +167,11 @@ export class NavigationPulse {
         this.bus.emit({ type: 'navigation:finish', id });
         return;
       case 'cancelled':
-        this.bus.emit({ type: 'navigation:cancel', id });
+        this.bus.emit({
+          type: 'navigation:cancel',
+          id,
+          ...(result.reason !== undefined && { reason: result.reason }),
+        });
         return;
       case 'redirect':
         this.bus.emit({

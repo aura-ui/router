@@ -2,11 +2,11 @@
 
 > **Goal:** Block a route tree until the user is signed in; redirect to `/login`, then enter the protected shell.  
 > **Live:** [`playground/`](../../playground/) — from another page, click **Profile**, then Sign in.  
-> **API:** [Lifecycle hooks](../guide.md#lifecycle-hooks) · [Nested routes & layouts](../guide.md#nested-routes--layouts)
+> **API:** [Control navigation](../guide.md#control-navigation) · [Nested routes & layouts](../guide.md#nested-routes--layouts)
 
 ---
 
-## What you get
+## Result
 
 ```text
 /login            → public
@@ -14,14 +14,11 @@
 /profile/settings → same guard (inherited from parent)
 ```
 
-**SPA** navigation to `/profile` without a session → `guard="auth"` redirects to `/login`.  
-After Sign in → layout stays mounted; overview ↔ settings swap in the outlet.
-
-> **Adopt vs guard:** successful first-paint adopt skips `guard` / `load` / `ready`. That applies to **flat** routes adopted via `extract` (or `aura-router-ssr`). Playground `/profile` is **nested** with flat server markup, so a hard reload usually runs a normal first navigation — **guard still runs**. See [First paint](./first-paint.md).
+During SPA navigation, `guard="auth"` checks the session before Aura enters `/profile`. The guard is inherited by both child routes. After sign-in, the profile layout stays mounted while its outlet switches between overview and settings.
 
 ---
 
-## 1. Routes
+## 1. Define the protected routes
 
 ```html
 <aura-route path="/login" view="login"></aura-route>
@@ -44,11 +41,11 @@ After Sign in → layout stays mounted; overview ↔ settings swap in the outlet
 </template>
 ```
 
-`guard` on the parent covers every child. Router-level `extract` (if any) is inherited — no need to repeat it on children.
+Putting `guard="auth"` on the parent protects the complete branch. The layout must contain `<aura-outlet>` for its child page.
 
 ---
 
-## 2. Guard + login
+## 2. Register the guard
 
 ```js
 import { AuraRouter } from '@auraui/router';
@@ -61,7 +58,15 @@ AuraRouter.use('auth', () => {
 });
 
 AuraRouter.install();
+```
 
+Returning nothing allows navigation. The redirect object sends unauthenticated users to `/login`; `replace: true` requests history replacement instead of adding another entry. Aura does not commit the blocked `/profile` URL before resolving the redirect.
+
+## 3. Add login and logout actions
+
+In the same module, reuse `AUTH_KEY` from the guard:
+
+```js
 document.addEventListener('click', (e) => {
   const el = e.target instanceof Element ? e.target : null;
   const router = document.querySelector('aura-router');
@@ -79,19 +84,23 @@ document.addEventListener('click', (e) => {
 <button type="button" data-demo-login>Sign in</button>
 ```
 
-| Guard return | Effect |
-| --- | --- |
-| nothing / `undefined` | Allow |
-| `{ type: 'redirect', url, replace? }` | Navigate to `url` |
+Replace `sessionStorage` with your real session source.
 
-Replace `sessionStorage` with your real session check in production.
+## Important: guards are not server security
+
+A guard controls client navigation; it does not protect HTML or API responses. Your server must still enforce authorization.
+
+Successful [first-paint adoption](./first-paint.md) skips `guard`, `load`, and `ready` because the server has already supplied the active page. The server must therefore make the access decision before returning protected markup.
 
 ---
 
 ## Try it
 
+Complete the [one-time playground setup](./README.md#one-time-playground-setup) first.
+
 ```bash
-cd playground && npm install && npm run dev
+cd playground
+npm run dev
 ```
 
 1. From `/` or `/about`, click **Profile** (SPA) → `/login`.
@@ -99,10 +108,12 @@ cd playground && npm install && npm run dev
 3. In the profile subnav, open **Settings** → layout stays.
 4. **Log out** → click **Profile** again → blocked.
 
+Use SPA links for this guard demonstration. A hard reload of `/profile` can adopt the server HTML and skip the guard; the playground server intentionally does not implement real authorization.
+
 ---
 
 ## See also
 
 - [Recipes index](./README.md)
 - [`playground/pages/parts/router.html`](../../playground/pages/parts/router.html) · [`playground/src/main.js`](../../playground/src/main.js)
-- Guide: [Lifecycle hooks](../guide.md#lifecycle-hooks)
+- Guide: [Control navigation](../guide.md#control-navigation)

@@ -4,6 +4,8 @@ Aura Router upgrades ordinary HTML pages with client-side navigation. This is th
 
 > **Current release: 0.1.0.** Pin the package version and check the [changelog](../CHANGELOG.md) when upgrading.
 
+New to Aura Router? Complete the [README Quick start](../README.md#quick-start) first. This guide then proceeds linearly from installation and routing basics to optional features and the API reference.
+
 ## Contents
 
 - [Installation](#installation)
@@ -133,6 +135,8 @@ A minimal router:
 ```
 
 Start with `path`, `view`, marked links, and one outlet. Add layouts, hooks, prefetch, and caching only where they solve a concrete problem.
+
+This example loads HTML fragments. For the complete-page approach shown in the README, use [`extract`](#extract--fragment-from-full-html-pages) and follow [First paint](#first-paint-mpa--spa).
 
 ## Defining routes
 
@@ -652,7 +656,11 @@ All three inherit from `<aura-router>` and parent routes. A child route can over
 Set `scroll-target` to a CSS selector when navigation should reveal a specific element:
 
 ```html
-<aura-route path="/docs" scroll-target="#main" scroll-behavior="smooth"></aura-route>
+<aura-route
+  path="/docs"
+  scroll-target="#main"
+  scroll-behavior="smooth"
+></aura-route>
 ```
 
 Aura calls `scrollIntoView()` when the selector matches. An invalid selector or missing element falls back to the top of the page. Use `scroll-target="none"`, `off`, or `false` to disable an inherited target.
@@ -675,13 +683,13 @@ Prefetch starts route work before navigation. `intent` can prepare load data whi
 
 ### Prefetch modes
 
-| Mode                   | Behaviour                                                                |
-| ---------------------- | ------------------------------------------------------------------------ |
-| `intent`               | Start after pointer or keyboard focus indicates interest                 |
-| `tap`                  | Start on touch or pointer down, just before navigation                    |
-| `manual`               | Start only through `router.prefetch()`                                    |
-| `viewport`, `render`   | Recognised, but automatic DOM triggers are not implemented               |
-| `false`, `off`, `none` | Disable prefetching at the current cascade level                          |
+| Mode                   | Behaviour                                                  |
+| ---------------------- | ---------------------------------------------------------- |
+| `intent`               | Start after pointer or keyboard focus indicates interest   |
+| `tap`                  | Start on touch or pointer down, just before navigation     |
+| `manual`               | Start only through `router.prefetch()`                     |
+| `viewport`, `render`   | Recognised, but automatic DOM triggers are not implemented |
+| `false`, `off`, `none` | Disable prefetching at the current cascade level           |
 
 The default mode is `intent`. On touch devices, Aura uses `tap` when the link or matched route does not provide another policy.
 
@@ -787,12 +795,12 @@ Aura activates loading UI after guards allow navigation and keeps it active whil
 
 ### Loading options
 
-| Attribute             | Purpose                                                           |
-| --------------------- | ----------------------------------------------------------------- |
-| `loading-body-class`  | Add a class to `document.body` while loading                       |
-| `loading-start-event` | Dispatch a start event; default `aura-route-loading`               |
-| `loading-end-event`   | Dispatch an end event; default `aura-route-loading-end`            |
-| `loading-template`    | Stage a template in the outlet until preparation finishes          |
+| Attribute             | Purpose                                                   |
+| --------------------- | --------------------------------------------------------- |
+| `loading-body-class`  | Add a class to `document.body` while loading              |
+| `loading-start-event` | Dispatch a start event; default `aura-route-loading`      |
+| `loading-end-event`   | Dispatch an end event; default `aura-route-loading-end`   |
+| `loading-template`    | Stage a template in the outlet until preparation finishes |
 
 These attributes inherit through parent routes. Use `none`, `off`, or `false` to disable an inherited option.
 
@@ -902,10 +910,10 @@ When a link becomes exact, Aura adds `aria-current="page"`. It removes the attri
 
 ### Exact and branch matches
 
-| Match  | Applied state when configured                                                |
-| ------ | --------------------------------------------------------------------------- |
-| Exact  | Exact class, branch class, and `aria-current="page"`                        |
-| Branch | Branch class only; no `aria-current` for an ancestor link                   |
+| Match  | Applied state when configured                             |
+| ------ | --------------------------------------------------------- |
+| Exact  | Exact class, branch class, and `aria-current="page"`      |
+| Branch | Branch class only; no `aria-current` for an ancestor link |
 
 An exact match requires the same pathname and query string. A trailing slash is ignored. If either URL has a hash, the hashes must also match.
 
@@ -968,7 +976,12 @@ Set shared behaviour once on the router, then override only the routes that diff
 ```html
 <aura-router scroll="auto" prefetch="intent" cache>
   <aura-route path="/feed" view="feed.html"></aura-route>
-  <aura-route path="/checkout" view="checkout.html" cache="off" prefetch="false"></aura-route>
+  <aura-route
+    path="/checkout"
+    view="checkout.html"
+    cache="off"
+    prefetch="false"
+  ></aura-route>
 </aura-router>
 ```
 

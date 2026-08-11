@@ -1,15 +1,30 @@
 # Recipes
 
-Short copy-paste patterns on top of the live [`playground/`](../../playground/). For the full API, see the [Guide](../guide.md).
+Use these focused examples when you need a working pattern without reading the complete guide first. Each recipe includes the minimum configuration, important behaviour, and steps for testing it in [`playground/`](../../playground/).
 
-| Recipe | Pattern |
+| Recipe | Use it when |
 | --- | --- |
-| [Auth guard](./auth.md) | `guard` → redirect → protected layout |
-| [Nested layout](./nested.md) | Parent `layout` + `<aura-outlet>` + `:id` |
-| [Prefetch & cache](./prefetch-cache.md) | Link prefetch, `cache` / `cache-time` / `cache="off"` |
-| [404 & errors](./not-found.md) | `path="*"` + `error-template` |
-| [First paint (MPA→SPA)](./first-paint.md) | Server HTML + `extract` adopt (flat); `aura-router-ssr` for nested shell |
+| [Auth guard](./auth.md) | A route or layout requires sign-in |
+| [Nested layout](./nested.md) | Several pages share one mounted layout |
+| [Prefetch & cache](./prefetch-cache.md) | Links should prepare early and reuse loaded work |
+| [Not found & navigation errors](./not-found.md) | The app needs a 404 page and failure UI |
+| [First paint (MPA → SPA)](./first-paint.md) | Server HTML should become the first active route without refetching |
+
+## One-time playground setup
+
+The playground installs a packed build of the local router. From the repository root:
 
 ```bash
-cd playground && npm install && npm run dev
+npm install
+npm run build
+node -e "require('fs').mkdirSync('playground/dist', { recursive: true })"
+npm pack --pack-destination playground/dist
+
+cd playground
+npm install
+npm run dev
 ```
+
+After setup, later runs only need `cd playground` followed by `npm run dev`. Open the local URL printed by the server.
+
+For complete attribute and API details, use the [Guide](../guide.md).

@@ -13,6 +13,18 @@ describe('NavigationTransactionPipelinePhase.resolveBlockingHookOutcome', () => 
     });
   });
 
+  it('keeps the reason from an explicit cancellation', () => {
+    expect(
+      NavigationTransactionPipelinePhase.resolveBlockingHookOutcome({
+        cancelled: true,
+        reason: 'unsaved-changes',
+      }),
+    ).toEqual({
+      status: 'cancelled',
+      reason: 'unsaved-changes',
+    });
+  });
+
   it('returns redirect when hook returns a URL string', () => {
     expect(NavigationTransactionPipelinePhase.resolveBlockingHookOutcome('/login')).toEqual({
       status: 'redirect',

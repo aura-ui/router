@@ -18,14 +18,14 @@ export interface RouteHookContext<TOptions = Record<string, unknown>>
 }
 
 /**
- * Explicit hook return shapes (preferred over legacy boolean/string).
+ * Explicit object forms for hook control results.
  *
- * @see {@link HookResultInput} for all accepted return types
+ * @see {@link HookResultInput} for concise boolean/string forms
  */
 export type HookResult =
   | void
   | { readonly type: 'continue' }
-  | { readonly type: 'cancel' }
+  | { readonly type: 'cancel'; reason?: string }
   | { readonly type: 'redirect'; url: string; replace?: boolean };
 
 /**

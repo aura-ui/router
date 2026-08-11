@@ -189,12 +189,19 @@ export class NavigationTransactionPipelinePhase {
       return { status: 'redirect', url: hookResult };
     }
 
-    if (hookResult && typeof hookResult === 'object' && 'url' in hookResult) {
-      return {
-        status: 'redirect',
-        url: hookResult.url,
-        ...(hookResult.replace !== undefined && { replace: hookResult.replace }),
-      };
+    if (hookResult && typeof hookResult === 'object') {
+      if ('cancelled' in hookResult) {
+        return {
+          status: 'cancelled',
+          ...(hookResult.reason !== undefined && { reason: hookResult.reason }),
+        };
+      } else if ('url' in hookResult) {
+        return {
+          status: 'redirect',
+          url: hookResult.url,
+          ...(hookResult.replace !== undefined && { replace: hookResult.replace }),
+        };
+      }
     }
 
     return null;
@@ -212,6 +219,11 @@ export class NavigationTransactionPipelinePhase {
   ): void {
     if (hookResult === false) {
       console.warn(`[${phase}] post-commit hook returned false — ignored`);
+      return;
+    }
+
+    if (hookResult && typeof hookResult === 'object' && 'cancelled' in hookResult) {
+      console.warn(`[${phase}] post-commit hook returned cancel — ignored`);
       return;
     }
 

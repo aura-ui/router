@@ -61,7 +61,7 @@ export type NavigationPhaseMode = 'navigation' | 'prefetch';
  * and propagated unchanged up to {@link TransactionResult}.
  */
 export type NavigationShortCircuit =
-  | { status: 'cancelled' }
+  | { status: 'cancelled'; reason?: string }
   | { status: 'redirect'; url: string; replace?: boolean };
 
 // --- Transaction outcomes ---

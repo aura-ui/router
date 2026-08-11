@@ -7,7 +7,7 @@
  * @module hooks/registry
  */
 
-import type { GuardResult, RedirectTarget } from '../guard.types';
+import type { GuardCancellation, GuardResult, RedirectTarget } from '../guard.types';
 import type { RouteLifecycleContext } from '../route/types';
 
 import type {
@@ -20,7 +20,7 @@ import { ROUTER_VERSION, satisfies } from './version';
 /** Letters from any script (lowercase / caseless), digits, hyphens; no uppercase. */
 const HOOK_NAME_RE = /^[\p{Ll}\p{Lo}\p{Lm}][\p{Ll}\p{Lo}\p{Lm}\p{N}-]*$/u;
 
-function isRedirectTarget(value: HookResultInput): value is RedirectTarget {
+function isRedirectTarget(value: unknown): value is RedirectTarget {
   return typeof value === 'string'
     || (typeof value === 'object' && value !== null && 'url' in value && !('type' in value));
 }
@@ -43,7 +43,7 @@ export function normalizeHookResult(result: HookResultInput | undefined): GuardR
   if (isRedirectTarget(result)) return result;
 
   if (typeof result === 'object' && result !== null && 'type' in result) {
-    const typed = result as { type: string; url?: string; replace?: boolean };
+    const typed = result as { type: string; url?: string; replace?: boolean; reason?: string };
     if (typed.type === 'redirect' && typed.url) {
       return {
         url: typed.url,
@@ -51,14 +51,25 @@ export function normalizeHookResult(result: HookResultInput | undefined): GuardR
       };
     }
     if (typed.type === 'continue') return undefined;
-    if (typed.type === 'cancel') return false;
+    if (typed.type === 'cancel') {
+      return {
+        cancelled: true,
+        ...(typeof typed.reason === 'string' && { reason: typed.reason }),
+      };
+    }
   }
 
   return undefined;
 }
 
-function isTerminalGuardResult(result: GuardResult): result is false | RedirectTarget {
-  return result === false || isRedirectTarget(result);
+function isGuardCancellation(result: GuardResult): result is GuardCancellation {
+  return typeof result === 'object' && result !== null && 'cancelled' in result;
+}
+
+function isTerminalGuardResult(
+  result: GuardResult,
+): result is false | RedirectTarget | GuardCancellation {
+  return result === false || isRedirectTarget(result) || isGuardCancellation(result);
 }
 
 interface StoredHook {

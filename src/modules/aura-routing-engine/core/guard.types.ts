@@ -21,11 +21,15 @@ export type RedirectTarget =
   | string
   | { url: string; replace?: boolean };
 
+/** Explicit cancellation with an optional machine-readable reason. */
+export type GuardCancellation = { cancelled: true; reason?: string };
+
 /**
  * Blocking phase hook result after normalization.
  *
  * - `void` / `true` — continue
  * - `false` — cancel navigation
  * - `string` | `{ url, replace? }` — redirect
+ * - `{ cancelled: true, reason? }` — explicit cancel
  */
-export type GuardResult = void | boolean | RedirectTarget;
+export type GuardResult = void | boolean | RedirectTarget | GuardCancellation;

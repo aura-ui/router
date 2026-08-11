@@ -131,7 +131,7 @@ describe('NavigationPulse', () => {
     const pulse = new NavigationPulse(bus);
 
     pulse.settle(1, { status: 'navigationSucceeded' });
-    pulse.settle(2, { status: 'cancelled' });
+    pulse.settle(2, { status: 'cancelled', reason: 'unsaved-changes' });
     pulse.settle(3, { status: 'redirect', url: '/x', replace: true });
     const failure = NavigationFailure.notFound('/missing', null, 'push');
     pulse.settle(4, { status: 'error', failure });
@@ -142,6 +142,11 @@ describe('NavigationPulse', () => {
       'navigation:redirect',
       'navigation:error',
     ]);
+    expect(seen[1]).toEqual({
+      type: 'navigation:cancel',
+      id: 2,
+      reason: 'unsaved-changes',
+    });
   });
 
   it('engine.commitNavigation delegates commitEnd and updates prev', () => {

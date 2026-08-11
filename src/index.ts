@@ -60,6 +60,7 @@ export type {
   LoaderFn,
   RouteHookDefinition,
   RouteHookFn,
+  RouteLoadFn,
   NavigationErrorPhase,
   NavigationFailureCode,
 } from './modules/aura-routing-engine/core';

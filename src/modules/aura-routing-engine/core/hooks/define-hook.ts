@@ -7,10 +7,13 @@
  * @module hooks/define-hook
  */
 
-import type { RouteHookDefinition, RouteHookFn } from './types';
+import type { RouteHookDefinition, RouteHookHandler } from './types';
 
 /** Optional fields for the short `defineRouteHook(name, fn, meta?)` form. */
-export type DefineRouteHookMeta = Pick<Partial<RouteHookDefinition>, 'version' | 'requires'>;
+export type DefineRouteHookMeta = Pick<
+  Partial<RouteHookDefinition>,
+  'version' | 'requires'
+>;
 
 /**
  * Declares a reusable route hook.
@@ -32,14 +35,24 @@ export type DefineRouteHookMeta = Pick<Partial<RouteHookDefinition>, 'version' |
  * });
  * ```
  */
-export function defineRouteHook<TOptions = Record<string, unknown>>(name: string, fn: RouteHookFn<TOptions>, meta?: DefineRouteHookMeta): Readonly<RouteHookDefinition<TOptions>>;
-export function defineRouteHook<TOptions = Record<string, unknown>>(def: RouteHookDefinition<TOptions>): Readonly<RouteHookDefinition<TOptions>>;
-export function defineRouteHook<TOptions = Record<string, unknown>>(nameOrDef: string | RouteHookDefinition<TOptions>, fn?: RouteHookFn<TOptions>, meta?: DefineRouteHookMeta): Readonly<RouteHookDefinition<TOptions>> {
+export function defineRouteHook<TOptions = Record<string, unknown>>(
+  name: string,
+  fn: RouteHookHandler<TOptions>,
+  meta?: DefineRouteHookMeta
+): Readonly<RouteHookDefinition<TOptions>>;
+export function defineRouteHook<TOptions = Record<string, unknown>>(
+  def: RouteHookDefinition<TOptions>
+): Readonly<RouteHookDefinition<TOptions>>;
+export function defineRouteHook<TOptions = Record<string, unknown>>(
+  nameOrDef: string | RouteHookDefinition<TOptions>,
+  fn?: RouteHookHandler<TOptions>,
+  meta?: DefineRouteHookMeta
+): Readonly<RouteHookDefinition<TOptions>> {
   if (typeof nameOrDef !== 'string') return Object.freeze({ ...nameOrDef });
   const def: RouteHookDefinition<TOptions> = {
     name: nameOrDef,
     version: meta?.version ?? '1.0.0',
-    fn: fn as RouteHookFn<TOptions>,
+    fn: fn as RouteHookHandler<TOptions>,
   };
   if (meta?.requires !== undefined) def.requires = meta.requires;
   return Object.freeze(def);

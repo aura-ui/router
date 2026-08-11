@@ -34,9 +34,7 @@ export type {
 } from './core/events';
 export { NavigationPulse } from './core/navigation/navigation-pulse';
 
-export type {
-  NavigationErrorPhase,
-} from './core/failure';
+export type { NavigationErrorPhase } from './core/failure';
 
 export { NavigationFailure } from './core/failure';
 export type {
@@ -99,7 +97,12 @@ export type {
 } from './core/match/url-matcher';
 
 export { isCatchAllRoutePattern } from './core/match/url-matcher';
-export { dataKey, viewKey, viewKeyWithData, resourceKeys } from './core/match/resource-keys';
+export {
+  dataKey,
+  viewKey,
+  viewKeyWithData,
+  resourceKeys,
+} from './core/match/resource-keys';
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';
 
@@ -161,7 +164,11 @@ export {
 } from '../aura-route/core/attr/cache-attr-parser';
 export type { CacheFlags } from '../aura-route/core/attr/cache-attr-parser';
 
-export type { PrefetchConfig, PrefetchOptions, PrefetchMode } from './core/prefetch/types';
+export type {
+  PrefetchConfig,
+  PrefetchOptions,
+  PrefetchMode,
+} from './core/prefetch/types';
 export {
   DEFAULT_ROUTER_PREFETCH_MODE,
   readLinkPrefetchOverride,
@@ -212,6 +219,8 @@ export type {
   RouteHookContext,
   RouteHookDefinition,
   RouteHookFn,
+  RouteLoadFn,
+  RouteHookHandler,
   HookResult,
   HookResultInput,
 } from './core/hooks/types';

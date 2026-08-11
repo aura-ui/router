@@ -1,6 +1,6 @@
 # Recipes
 
-Use these focused examples when you need a working pattern without reading the complete guide first. Each recipe includes the minimum configuration, important behaviour, and steps for testing it in [`playground/`](../../playground/).
+Use these focused examples when you need a working pattern without reading the complete guide first. Each recipe includes the minimum configuration, important behaviour, and a related implementation in [`playground/`](../../playground/).
 
 | Recipe | Use it when |
 | --- | --- |
@@ -10,9 +10,10 @@ Use these focused examples when you need a working pattern without reading the c
 | [Not found & navigation errors](./not-found.md) | The app needs a 404 page and failure UI |
 | [First paint (MPA → SPA)](./first-paint.md) | Server HTML should become the first active route without refetching |
 
-## One-time playground setup
+<details>
+<summary>Run the playground locally</summary>
 
-The playground installs a packed build of the local router. From the repository root:
+The playground uses a packed build of the local router. Run once from the repository root:
 
 ```bash
 npm install
@@ -25,6 +26,8 @@ npm install
 npm run dev
 ```
 
-After setup, later runs only need `cd playground` followed by `npm run dev`. Open the local URL printed by the server.
+Later runs only need `cd playground` followed by `npm run dev`.
 
-For complete attribute and API details, use the [Guide](../guide.md).
+</details>
+
+For complete API details, use the [Guide](../guide.md).

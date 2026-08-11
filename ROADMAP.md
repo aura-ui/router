@@ -48,7 +48,6 @@
 | <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">→</span> | **7.x** Adoption artifacts | document recipes from [`playground/`](./playground/), Playwright E2E, hosted playground |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | **5.5 / 5.6** Basename + typed params | subfolder mount + `:id(int)`-style path types |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | **4.2** Navigation API transport | preferred `window.navigation` + History API fallback |
-| <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | Release **0.1.0** | merge → `main`, npm publish |
 | <span style="background:#64748b;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">·</span> | **6.x** Debugging & performance | Cache DevTools, nav timeline UI, per-nav metrics gate |
 
 ---
@@ -201,7 +200,7 @@ Orchestration: `NavigationCoordinator` → `NavigationTransaction` → `Navigati
 | 7.6 | **Errors & 404 recipe** — custom error boundaries and not-found pages | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | `error-template` + `path="*"` in demo and playground (`/error`); dedicated markdown recipe optional |
 | 7.7 | **Public playground** — hosted demo linked from README (one-click try) | <span style="background:#f59e0b;color:#111;padding:2px 10px;border-radius:4px;font-weight:700">~</span> | Local Fastify [`playground/`](./playground/) is the MPA→SPA reference (linked from README); not hosted yet |
 | 7.8 | **E2E tests** — Playwright suite against example apps | <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✗</span> | No Playwright config yet; natural target: [`playground/`](./playground/) |
-| 7.9 | **Pre-release 0.0.1** — merge to `main`, npm publish | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Published as [`@auraui/router@0.0.1`](https://www.npmjs.com/package/@auraui/router); follow-up **0.1.0** in progress |
+| 7.9 | **Release 0.1.0** — merge to `main`, npm publish | <span style="background:#16a34a;color:#fff;padding:2px 10px;border-radius:4px;font-weight:700">✓</span> | Published as [`@auraui/router@0.1.0`](https://www.npmjs.com/package/@auraui/router) ([GitHub release](https://github.com/aura-ui/router/releases/tag/v0.1.0)); earlier [`0.0.1`](https://www.npmjs.com/package/@auraui/router/v/0.0.1) |
 
 > **Done when:** every major feature has a small, documented example; the playground is one click from README.
 

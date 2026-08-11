@@ -1,14 +1,15 @@
-# Aura Router — Guide
+# Aura Router – Guide
 
 Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/router). For install and a 30-second example, see the [README](../README.md).
 
-> **Experimental (0.x).** Attribute names below (`guard`, `load`, `ready`, …) are the intended public surface — see [ROADMAP](../ROADMAP.md) and [LIMITATIONS](../LIMITATIONS.md) for known gaps. Breaking changes remain possible until `1.0.0`.
+> **Experimental (0.x).** Attribute names below (`guard`, `load`, `ready`, …) are the intended public surface – see [ROADMAP](../ROADMAP.md) and [LIMITATIONS](../LIMITATIONS.md) for known gaps. Breaking changes remain possible until `1.0.0`.
 
-**Browsers:** modern evergreen (Chrome, Firefox, Safari, Edge) with ES modules, Custom Elements, History API, `fetch`, and `URLPattern` (for `:param` routes). No IE. **Browser-only** — no Node SSR runtime; first paint is host HTML + client [adopt](#first-paint-mpa--spa). See the [README](../README.md#browsers). HTML-first Web Components package — no React / Vue adapters in this package.
+**Browsers:** modern evergreen (Chrome, Firefox, Safari, Edge) with ES modules, Custom Elements, History API, `fetch`, and `URLPattern` (for `:param` routes). No IE. **Browser-only** – no Node SSR runtime; first paint is host HTML + client [adopt](#first-paint-mpa--spa). See the [README](../README.md#compatibility). HTML-first Web Components package – no React / Vue adapters in this package.
 
 ## Table of contents
 
-- [Recipes](./recipes/README.md) — short copy-paste patterns (auth, nested, cache, 404, first paint)
+- [Recipes](./recipes/README.md) – short copy-paste patterns (auth, nested, cache, 404, first paint)
+- [Installation](#installation)
 - [Navigation](#navigation)
 - [Route match priority](#route-match-priority)
 - [Views](#views)
@@ -23,20 +24,52 @@ Detailed usage for [`@auraui/router`](https://www.npmjs.com/package/@auraui/rout
 
 ---
 
+## Installation
+
+Install the package and keep the exact version pinned while Aura Router is on the `0.x` release line:
+
+```bash
+npm install --save-exact @auraui/router@0.1.0
+```
+
+Import the package and start Aura once:
+
+```ts
+import { AuraRouter } from '@auraui/router';
+
+AuraRouter.install();
+```
+
+`AuraRouter.install()` registers `<aura-router>`, `<aura-route>`, and `<aura-outlet>`. Register named hooks with `AuraRouter.use(...)` before calling `install()`.
+
+Without a bundler, use a pinned CDN import:
+
+```html
+<script type="module">
+  import { AuraRouter } from 'https://esm.sh/@auraui/router@0.1.0';
+
+  AuraRouter.install();
+</script>
+```
+
+The router runs in the browser. Your backend or static host still serves the HTML for each public URL; mark only the links you want Aura to handle with `aura-router-link`.
+
+---
+
 ## Navigation
 
 | Mechanism | Usage |
 | --- | --- |
 | **Link interception** | `aura-router-link` on `<a href="…">` |
-| **Programmatic** | `router.navigate(path, { replace?, syncHistory? })` — path string only |
+| **Programmatic** | `router.navigate(path, { replace?, syncHistory? })` – path string only |
 | **404 catch-all** | `<aura-route path="*" view="template::not-found">` |
-| **Fallback 404** | `error-template` on `<aura-router>` — see [Router defaults](#router-defaults) |
+| **Fallback 404** | `error-template` on `<aura-router>` – see [Router defaults](#router-defaults) |
 
-`navigate` takes a **path string** (and optional flags). There is no object form and no search-schema attr — put filters in `?query` and read them from the hook context (`ctx.to.query`).
+`navigate` takes a **path string** (and optional flags). There is no object form and no search-schema attr – put filters in `?query` and read them from the hook context (`ctx.to.query`).
 
 ### How `href` resolves
 
-The link’s **`href`** is what matters — for search engines, users without JavaScript, and the router. Only anchors matching `links-selector` (default `[aura-router-link]`) are intercepted. Resolution uses the document URL as base (same rules as a normal `<a>`), then keeps the result only if it stays on the **same origin**.
+The link’s **`href`** is what matters – for search engines, users without JavaScript, and the router. Only anchors matching `links-selector` (default `[aura-router-link]`) are intercepted. Resolution uses the document URL as base (same rules as a normal `<a>`), then keeps the result only if it stays on the **same origin**.
 
 Aura does **not** add a trailing `/` to folder indexes, so path-relative links are easy to get wrong.
 
@@ -53,13 +86,13 @@ Aura does **not** add a trailing `/` to folder indexes, so path-relative links a
 
 | Link in markup | Behavior |
 | --- | --- |
-| `href="https://other-site/…"` or `//other-host/…` | Not intercepted — full browser navigation |
-| `href="#section"` | Not intercepted — normal in-page hash |
+| `href="https://other-site/…"` or `//other-host/…` | Not intercepted – full browser navigation |
+| `href="#section"` | Not intercepted – normal in-page hash |
 | empty / missing `href` | Ignored |
 
 Same-origin checks use the URL `origin` (scheme + host + port), including IDN hosts as the browser normalizes them. Prefetch and active-link matching on `[aura-router-link]` use the same rules.
 
-For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). They work with and without JavaScript, do not depend on trailing slashes, and stay readable in markup. Same-origin absolute URLs (`https://…`, `location.origin`) are fine when a full URL is already in the attribute (e.g. a logo built at runtime) — the router maps them to an in-app path before matching.
+For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). They work with and without JavaScript, do not depend on trailing slashes, and stay readable in markup. Same-origin absolute URLs (`https://…`, `location.origin`) are fine when a full URL is already in the attribute (e.g. a logo built at runtime) – the router maps them to an in-app path before matching.
 
 `router.navigate(path)` takes an **app path** (`/users`, optionally `?query` / `#hash`). Prefer that over full `https://…` strings (link interception is where same-origin absolute URLs are handled).
 
@@ -72,7 +105,7 @@ For MPA→SPA, prefer **root-absolute** links (`/users/1`, `/app/settings`). The
 | **Child segment** | `profile` under `/app/settings` | `/app/settings/profile` |
 | **Leaf** | absolute `/app/settings/profile` | `/app/settings/profile` |
 
-Aura **joins** nested `path` values into one pattern (`/app` + `settings` → `/app/settings`; `/users` + `:id` → `/users/:id`). Matching treats `/users` and `/users/` as the same route. The address bar keeps the pathname as resolved from the link (including a trailing `/` when present) — Aura does not strip or add one. If you need one public canonical URL, handle redirects on the server.
+Aura **joins** nested `path` values into one pattern (`/app` + `settings` → `/app/settings`; `/users` + `:id` → `/users/:id`). Matching treats `/users` and `/users/` as the same route. The address bar keeps the pathname as resolved from the link (including a trailing `/` when present) – Aura does not strip or add one. If you need one public canonical URL, handle redirects on the server.
 
 **Unicode paths.** Write UTF-8 in the `path` attr (Cyrillic, Chinese, etc.). The address bar may show a percent-encoded form (`/%D0%B0…`); Aura decodes it for matching, so both sides resolve to the same route. Percent-encoded `path` attrs are accepted too. The server must still serve those URLs.
 
@@ -84,7 +117,7 @@ Aura **joins** nested `path` values into one pattern (`/app` + `settings` → `/
 
 When several patterns could match the same URL, Aura picks **one** leaf among `matchableNodes` (joined nested patterns). Matching uses the pathname with a trailing `/` stripped (`/users/` → `/users`); the address bar still keeps the link’s form.
 
-**Score (`matchScore`) — higher wins:**
+**Score (`matchScore`) – higher wins:**
 
 | Pattern kind | Example | Score rule |
 | --- | --- | --- |
@@ -96,16 +129,16 @@ When several patterns could match the same URL, Aura picks **one** leaf among `m
 
 1. Look up an **exact static** pattern (`pathname === pattern`, no `:param`, no `*`). That hit is the baseline.
 2. Probe dynamic candidates (`:param`, scoped `/*`, global `*`). A dynamic route wins only if it matches **and** its `matchScore` is **strictly greater** than the current best.
-3. On a **tie**, the current winner stays — so a static route beats a param at the same depth (`/users/about` wins over `/users/:id` for `/users/about`).
+3. On a **tie**, the current winner stays – so a static route beats a param at the same depth (`/users/about` wins over `/users/:id` for `/users/about`).
 4. Among dynamics with the same score, the first matchable candidate that set the best score wins (tree build / declaration order).
 
 ```html
 <aura-route path="/users">
-  <aura-route path="about" view="..."></aura-route>   <!-- /users/about — static, score 2 -->
-  <aura-route path=":id" view="..."></aura-route>     <!-- /users/:id — param, score 2 -->
-  <aura-route path="*" view="..."></aura-route>       <!-- /users/* — scoped, score 0.5 -->
+  <aura-route path="about" view="..."></aura-route>   <!-- /users/about – static, score 2 -->
+  <aura-route path=":id" view="..."></aura-route>     <!-- /users/:id – param, score 2 -->
+  <aura-route path="*" view="..."></aura-route>       <!-- /users/* – scoped, score 0.5 -->
 </aura-route>
-<aura-route path="*" view="template::not-found"></aura-route>  <!-- global * — score -1 -->
+<aura-route path="*" view="template::not-found"></aura-route>  <!-- global * – score -1 -->
 ```
 
 | URL | Wins | Why |
@@ -115,7 +148,7 @@ When several patterns could match the same URL, Aura picks **one** leaf among `m
 | `/users/x/y` | `/users/*` | Param is one segment; scoped catch-all takes the rest (`splat`) |
 | `/other` | `*` | Only global catch-all matches |
 
-`:param` routes need `URLPattern`. Catch-all params use `params.splat` (scoped `/users/*` needs a non-empty tail — `/users/` alone does not match `/users/*`).
+`:param` routes need `URLPattern`. Catch-all params use `params.splat` (scoped `/users/*` needs a non-empty tail – `/users/` alone does not match `/users/*`).
 
 Duplicate **identical** static patterns: the later node in the tree index overwrites the earlier one in the exact map.
 
@@ -127,8 +160,8 @@ The `view` attribute tells the router **what to render**.
 
 **Syntax:** `view="content"` or `view="loader::content"`.
 
-- **No `::`** — shorthand for fetching HTML: `view="users.html"` → `url` loader (HTML-first / MPA→SPA default).
-- **With `::`** — pick a loader explicitly: `html::<p/>`, `template::app-shell`, …
+- **No `::`** – shorthand for fetching HTML: `view="users.html"` → `url` loader (HTML-first / MPA→SPA default).
+- **With `::`** – pick a loader explicitly: `html::<p/>`, `template::app-shell`, …
 
 **Path params in `view`:** use the same `:name` tokens as in `path`. Matched values are substituted into content before load. Only names present in the route params are replaced; unknown `:x` stays as written. Avoids clashes with SSR engines that own `{{ }}` (doT, Handlebars, Twig, …).
 
@@ -137,20 +170,20 @@ The `view` attribute tells the router **what to render**.
 <aura-route path="/users/:id" view="users/:id.html"></aura-route>
 ```
 
-Route markup is **trusted app config** — `url` / bare `view`, `html::`, and `iframe::` have no allowlist. Treat `<aura-route>` attrs like server templates; untrusted strings there are an application XSS risk. Details: [SECURITY.md](../SECURITY.md).
+Route markup is **trusted app config** – `url` / bare `view`, `html::`, and `iframe::` have no allowlist. Treat `<aura-route>` attrs like server templates; untrusted strings there are an application XSS risk. Details: [SECURITY.md](../SECURITY.md).
 
 ### Built-in loaders
 
 | Loader | `content` | Description |
 | --- | --- | --- |
-| `url` | `.html` path | Fetch **HTML** from server — primary HTML-first path |
+| `url` | `.html` path | Fetch **HTML** from server – primary HTML-first path |
 | `html` | markup | Inline HTML in the attribute |
 | `template` | template id | Clone from `<template id="…">` |
 | `component` | tag name | Mount a registered custom element (client-side) |
 | `import` | module path | Dynamic `import()` and register the component (client-side) |
 | `iframe` | URL | Embed external page in `<iframe>` |
 
-Prefer `url`, `html`, and `template` when the page should be real HTML (good for first visit and SEO). Use `component` or `import` when a part of the UI is a Web Component loaded from JavaScript — helpful inside an app, but not a replacement for a full HTML page on first visit.
+Prefer `url`, `html`, and `template` when the page should be real HTML (good for first visit and SEO). Use `component` or `import` when a part of the UI is a Web Component loaded from JavaScript – helpful inside an app, but not a replacement for a full HTML page on first visit.
 
 ```html
 <aura-route path="/users" view="users.html"></aura-route>
@@ -160,11 +193,11 @@ Prefer `url`, `html`, and `template` when the page should be real HTML (good for
 <aura-route path="/embed" view="iframe::https://example.com/widget"></aura-route>
 ```
 
-Use `import` for `.js` / `.ts`, not bare `url` content. Custom elements can also live **inside** fetched or templated HTML — they upgrade like any Web Component page.
+Use `import` for `.js` / `.ts`, not bare `url` content. Custom elements can also live **inside** fetched or templated HTML – they upgrade like any Web Component page.
 
-### `extract` — fragment from full HTML pages
+### `extract` – fragment from full HTML pages
 
-Use `extract` when a fetched page is full HTML and only one node should become the route view — a CSS selector for that root. Applies to `url` views (`view="page.html"` / `url::…`), not to inline `html::…`.
+Use `extract` when a fetched page is full HTML and only one node should become the route view – a CSS selector for that root. Applies to `url` views (`view="page.html"` / `url::…`), not to inline `html::…`.
 
 On **flat** routes the same selector also drives **first-paint adopt**: if the current document already has that node, boot adopts it instead of refetching (no separate `aura-router-ssr` needed). Nested layout shells that are not the extract node still use [`aura-router-ssr`](#first-paint-mpa--spa).
 
@@ -219,7 +252,7 @@ After a successful navigation commit, and when you navigate again to the **same 
 
 `scroll-target` is ignored when restoring a saved position (`scroll="auto"` + back/forward) and when `scroll="none"`.
 
-**Same URL again** (active nav link / `navigate` to the current pathname+search, no pipeline): scroll reasserts like a fresh push — same `scroll` / `scroll-target` / `scroll-behavior` rules. Not the same as a param/query change on one route record (`/users/1` → `/users/2`), which runs the update pipeline and then commit scroll. A same-URL click that only carries a hash (or hash-only change) uses the hash path above (`scroll-behavior` only).
+**Same URL again** (active nav link / `navigate` to the current pathname+search, no pipeline): scroll reasserts like a fresh push – same `scroll` / `scroll-target` / `scroll-behavior` rules. Not the same as a param/query change on one route record (`/users/1` → `/users/2`), which runs the update pipeline and then commit scroll. A same-URL click that only carries a hash (or hash-only change) uses the hash path above (`scroll-behavior` only).
 
 **`scroll-behavior`:** browser values only. `auto` follows the UA / CSS `scroll-behavior` on the scrolling box; `smooth` / `instant` force that mode. If the user has `prefers-reduced-motion: reduce`, `smooth` is forced to `instant`.
 
@@ -229,10 +262,10 @@ After a successful navigation commit, and when you navigate again to the **same 
 
 You can nest routes in two ways:
 
-1. **Layout folder** — parent has `layout` (shared chrome + `<aura-outlet>`). The parent’s own URL is matchable when there is no index child.
-2. **Path group** — parent has children but **no** `layout`: joins path segments / params into child patterns (e.g. `:lang/…`), stays on the match chain, and is **not** a URL endpoint by itself (no shell mounted). Child pages render like flat routes into the router outlet.
+1. **Layout folder** – parent has `layout` (shared chrome + `<aura-outlet>`). The parent’s own URL is matchable when there is no index child.
+2. **Path group** – parent has children but **no** `layout`: joins path segments / params into child patterns (e.g. `:lang/…`), stays on the match chain, and is **not** a URL endpoint by itself (no shell mounted). Child pages render like flat routes into the router outlet.
 
-Both kinds of parent are normal ancestors for **inheritable** attrs (`guard`, `cache`, `extract`, `scroll`, templates, transitions, …) — same rules as any nested `<aura-route>`. `path` itself is not inherited; segments are joined when the route tree is built. `load` / `view` / `layout` / `redirect` stay local (see [Lifecycle hooks](#lifecycle-hooks)).
+Both kinds of parent are normal ancestors for **inheritable** attrs (`guard`, `cache`, `extract`, `scroll`, templates, transitions, …) – same rules as any nested `<aura-route>`. `path` itself is not inherited; segments are joined when the route tree is built. `load` / `view` / `layout` / `redirect` stay local (see [Lifecycle hooks](#lifecycle-hooks)).
 
 ```html
 <template id="app-shell">
@@ -259,8 +292,8 @@ Both kinds of parent are normal ancestors for **inheritable** attrs (`guard`, `c
 | Pattern | Meaning |
 | --- | --- |
 | `layout="template-id"` | Shared layout (`<template>` must contain `<aura-outlet>`) |
-| folder **without** `layout` | Path group — path/params prefix + inherit parent; not a matchable URL by itself |
-| `path="."` | Section home — same URL as the parent folder (e.g. `/app`) |
+| folder **without** `layout` | Path group – path/params prefix + inherit parent; not a matchable URL by itself |
+| `path="."` | Section home – same URL as the parent folder (e.g. `/app`) |
 | `path="settings"` | Child segment joined to parent → `/app/settings` |
 | `href="/app/settings"` | Root-absolute link (recommended in layouts) |
 
@@ -270,7 +303,7 @@ Shared layouts stay mounted across sibling hops.
 
 ## Lifecycle hooks
 
-Register hooks with `defineRouteHook(name, fn)` then `AuraRouter.use(…)`, or directly `AuraRouter.use(name, fn)`. Phase attributes (`guard`, `load`, `ready`, …) list **hook names** to run at that phase — comma-separated.
+Register hooks with `defineRouteHook(name, fn)` then `AuraRouter.use(…)`, or directly `AuraRouter.use(name, fn)`. Phase attributes (`guard`, `load`, `ready`, …) list **hook names** to run at that phase – comma-separated.
 
 ```ts
 import { defineRouteHook, AuraRouter } from '@auraui/router';
@@ -288,7 +321,7 @@ AuraRouter.use(authHook);
 
 `guard="auth"` runs the hook named `auth` during the guard phase. Most lifecycle attrs **inherit** from `<aura-router>` and parent `<aura-route>` down the tree; **`load` is local only** (set it on the route that owns the data).
 
-**Override** with your own value (`guard="admin-only"`). **Opt out** of inheritance with `none`, `off`, or `false` — e.g. `guard="none"`, `cache="off"`, `loading-template="none"`.
+**Override** with your own value (`guard="admin-only"`). **Opt out** of inheritance with `none`, `off`, or `false` – e.g. `guard="none"`, `cache="off"`, `loading-template="none"`.
 
 ### Lifecycle
 
@@ -302,7 +335,7 @@ AuraRouter.use(authHook);
 | `update` | Same route leaf; query, hash or params may change | no | ✓ |
 | `error` | Navigation or render failure | terminal | ✓ |
 
-That is the full lifecycle surface — there are no `reenter` / `detach` / `destroy` / `restore` route attrs.
+That is the full lifecycle surface – there are no `reenter` / `detach` / `destroy` / `restore` route attrs.
 
 ### Presentation
 
@@ -348,9 +381,9 @@ That is the full lifecycle surface — there are no `reenter` / `detach` / `dest
 
 ## First paint (MPA → SPA)
 
-Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. On boot the router **adopts** that markup instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) — put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
+Aura does not run on the server. For SEO and first paint, the host can send **ready HTML** for the current URL. On boot the router **adopts** that markup instead of fetching the route `view` again. Successful adopt also **skips** the navigation lifecycle (`guard` / `load` / `ready`) – put critical data in the server HTML. Later in-app navigations use the normal SPA pipeline.
 
-### Flat pages — `extract`
+### Flat pages – `extract`
 
 For a page route (no `layout` parent), set `extract` to the content root. The same selector is used for SPA fragment cuts **and** first-paint adopt:
 
@@ -377,9 +410,9 @@ For a page route (no `layout` parent), set `extract` to the content root. The sa
 
 No `aura-router-ssr` marker is required for this flat happy path.
 
-### Nested layouts — `aura-router-ssr`
+### Nested layouts – `aura-router-ssr`
 
-When the match includes a **layout** parent, the shell to adopt is often **not** the same node as `extract` (shell vs leaf). Mark the layout root with `aura-router-ssr`. Nested adopt still needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` — `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed.
+When the match includes a **layout** parent, the shell to adopt is often **not** the same node as `extract` (shell vs leaf). Mark the layout root with `aura-router-ssr`. Nested adopt still needs the same shape the client would mount: each layout root is a direct child of its outlet and contains a direct child `<aura-outlet>` whose next view root is marked `data-aura-view-root` (and so on down the chain). The top-level marker may omit `data-aura-view-root` – `outlet.adopt` sets it. Nested levels must already have the attribute for the dry-run plan to succeed.
 
 ```html
 <!-- Server HTML for /settings/profile -->
@@ -409,7 +442,7 @@ When the match includes a **layout** parent, the shell to adopt is often **not**
 | No marker, no `extract` hit, no match, or `redirect` route | Normal first navigation (load `view` as usual) |
 | Match includes a **layout** parent, but markup is only a leaf blob (`extract` / flat SSR) | `structure-error`: keep server HTML, no immediate remount |
 
-Keep durable chrome (site header, primary nav) **outside** the adopted / extract node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` where new pages should appear after the first SPA transition (anywhere in the document — the router reuses the first `<aura-outlet>` it finds unless `outlet` is set).
+Keep durable chrome (site header, primary nav) **outside** the adopted / extract node if it should stay when the first client navigation replaces that view. Place `<aura-outlet>` where new pages should appear after the first SPA transition (anywhere in the document – the router reuses the first `<aura-outlet>` it finds unless `outlet` is set).
 
 ### With `url` + `extract` (revisit)
 
@@ -431,9 +464,9 @@ No extra API beyond `AuraRouter.install()` and a connected `<aura-router>`.
 
 ## Cache
 
-Control what is kept when leaving a route with the `cache` attribute on `<aura-route>` or `<aura-router>` (inherited; child overrides). (Older docs said `preserve` — use `cache` instead. There is no `screen` mode.)
+Control what is kept when leaving a route with the `cache` attribute on `<aura-route>` or `<aura-router>` (inherited; child overrides). (Older docs said `preserve` – use `cache` instead. There is no `screen` mode.)
 
-Modes (not a strict ladder — `cache="dom"` keeps DOM + view, but **not** `load` data):
+Modes (not a strict ladder – `cache="dom"` keeps DOM + view, but **not** `load` data):
 
 | Attr | DOM keep-alive | View payload | `load` data | Use when |
 | --- | --- | --- | --- | --- |
@@ -441,13 +474,13 @@ Modes (not a strict ladder — `cache="dom"` keeps DOM + view, but **not** `load
 | `cache` | | ✓ | ✓ | Cache network/content; remount UI |
 | `cache="view"` | | ✓ | | Only HTML / loader payload |
 | `cache="data"` | | | ✓ | Only `load` hooks |
-| `cache="dom"` | ✓ | ✓ | | Tabs / forms — keep live DOM (`view` is LRU fallback) |
+| `cache="dom"` | ✓ | ✓ | | Tabs / forms – keep live DOM (`view` is LRU fallback) |
 | `cache="all"` | ✓ | ✓ | ✓ | Keep-alive + cached data |
 | `cache="off"` / `none` / `false` | | | | Opt out of inherited cache |
 
 **Long-lived `load` data** needs `cache="data"` (or bare `cache` / `all`). Without it, leaving the route does not keep a durable DataGraph entry. Prefetch → navigate can still reuse in-flight work via a short **handoff buffer** (~30s TTL) even without `cache="data"`.
 
-On navigate, DataGraph is **get/set hit or miss** — not background SWR into the already-visible page. Cache identity includes pathname, params, and the **full** query string (`utm_*` and other noise create separate entries).
+On navigate, DataGraph is **get/set hit or miss** – not background SWR into the already-visible page. Cache identity includes pathname, params, and the **full** query string (`utm_*` and other noise create separate entries).
 
 ```html
 <!-- typical page: cache HTML + load, fresh DOM each visit -->
@@ -479,15 +512,15 @@ router?.invalidate({ path: '/users/:id' });    // one route pattern (not the URL
 router?.invalidate({ path: '/items', policy: 'remove' }); // drop now (default: mark stale)
 ```
 
-Does not remount the current page — navigate or prefetch again to refetch (there is no `router.load()`). Does not clear `cache="dom"` keep-alive. Emits `data-invalidated` (except for `cache: 'view'`).
+Does not remount the current page – navigate or prefetch again to refetch (there is no `router.load()`). Does not clear `cache="dom"` keep-alive. Emits `data-invalidated` (except for `cache: 'view'`).
 
 ---
 
 ## Loading
 
-While a route is preparing (after guards → until loads finish), you can show loading chrome. Prefer a **body class / events** and keep the previous page on screen — that works with page transitions and matches typical SPA UX.
+While a route is preparing (after guards → until loads finish), you can show loading chrome. Prefer a **body class / events** and keep the previous page on screen – that works with page transitions and matches typical SPA UX.
 
-> **Experimental:** `loading-template` may be removed — outlet skeletons rarely match modern SPA loading (previous page + overlay / body chrome). Prefer `loading-body-class` and loading events.
+> **Experimental:** `loading-template` may be removed – outlet skeletons rarely match modern SPA loading (previous page + overlay / body chrome). Prefer `loading-body-class` and loading events.
 
 Optional `loading-template` mounts a skeleton in the outlet when there is **no** page transition.
 
@@ -552,27 +585,27 @@ Some attrs on `<aura-router>` are **defaults for child routes** (override per ro
 
 | Attribute | Description |
 | --- | --- |
-| `guard`, `ready`, `leave`, `unmount`, `update`, `error` | Global hook lists (comma-separated names); **`load` is not inherited** — set per route |
-| `cache` / `cache-time` | Cache modes + TTL (seconds) — see [Cache](#cache) |
+| `guard`, `ready`, `leave`, `unmount`, `update`, `error` | Global hook lists (comma-separated names); **`load` is not inherited** – set per route |
+| `cache` / `cache-time` | Cache modes + TTL (seconds) – see [Cache](#cache) |
 | `loading-body-class` | Body class during prepare |
-| `loading-template` | Skeleton template id (experimental — see [Loading](#loading)) |
+| `loading-template` | Skeleton template id (experimental – see [Loading](#loading)) |
 | `loading-start-event` / `loading-end-event` | Loading event names (`none` / `off` / `false` disables) |
 | `error-template` | Template id on render error; also thin fallback 404 when no `path="*"` (not a nested error-boundary tree) |
 | `extract` | Default CSS selector for `url` fragment extract **and** flat first-paint adopt |
-| `scroll` | Viewport policy after commit (`auto` default, `top`, `none`) — see [Scroll](#scroll) |
+| `scroll` | Viewport policy after commit (`auto` default, `top`, `none`) – see [Scroll](#scroll) |
 | `scroll-target` | Default CSS selector for post-nav `scrollIntoView` |
-| `scroll-behavior` | Default scroll animation (`auto` default, `smooth`, `instant`) — see [Scroll](#scroll) |
+| `scroll-behavior` | Default scroll animation (`auto` default, `smooth`, `instant`) – see [Scroll](#scroll) |
 
 ### Host only (`<aura-router>`)
 
 | Attribute | Description |
 | --- | --- |
-| `links-selector` | In-app links to intercept / scan (default: `[aura-router-link]`). Intercepted `href`s must resolve to the same origin — see [How `href` resolves](#how-href-resolves) |
+| `links-selector` | In-app links to intercept / scan (default: `[aura-router-link]`). Intercepted `href`s must resolve to the same origin – see [How `href` resolves](#how-href-resolves) |
 | `links-container-selector` | Limit active-link scan to a subtree (default: whole document) |
 | `link-active-class` | Class on the matching link |
 | `link-active-branch-class` | Class on section/folder links (prefix match) |
 | `outlet` | CSS selector for the root `<aura-outlet>`. When unset: first `<aura-outlet>` in the document, else auto-create a sibling before the router |
-| `prefetch` | Link prefetch mode: `intent` (default when `true`), `tap`, or `false` / `off`. Per-link: `data-prefetch` on `<a>` — see [Prefetch & cache recipe](./recipes/prefetch-cache.md) |
+| `prefetch` | Link prefetch mode: `intent` (default when `true`), `tap`, or `false` / `off`. Per-link: `data-prefetch` on `<a>` – see [Prefetch & cache recipe](./recipes/prefetch-cache.md) |
 
 ```html
 <aura-router
@@ -596,7 +629,7 @@ import { AuraRouter } from '@auraui/router';
 
 AuraRouter.use('auth', async () => { /* … */ });
 
-// Global defaults — layers match route `cache` (dom / view / data)
+// Global defaults – layers match route `cache` (dom / view / data)
 AuraRouter.configure({
   domCache: { max: 10 },                          // detached DOM (`cache="dom"`)
   viewCache: { max: 50, gcTime: 43_200_000 },     // HTML / loader payloads (~12h)

@@ -12,7 +12,7 @@ Aura Router adds client-side navigation to complete static or server-rendered HT
 
 Your host keeps serving real pages. Aura adopts the HTML already on screen and upgrades marked links after load.
 
-Try it: [Live demo](https://aura-ui.github.io/router-preview/) · [Source](https://github.com/aura-ui/router-preview)
+Try it: [Live demo](https://aura-ui.github.io/router-preview/) · [Open in StackBlitz](https://stackblitz.com/github/aura-ui/router-playground) · [Source](https://github.com/aura-ui/router-preview)
 
 ```bash
 npm install @auraui/router

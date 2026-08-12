@@ -2,13 +2,15 @@
 
 Use these focused examples when you need a working pattern without reading the complete guide first. Each recipe includes the minimum configuration, important behaviour, and a related implementation in [`playground/`](../../playground/).
 
-| Recipe | Use it when |
-| --- | --- |
-| [Auth guard](./auth.md) | A route or layout requires sign-in |
-| [Nested layout](./nested.md) | Several pages share one mounted layout |
-| [Prefetch & cache](./prefetch-cache.md) | Links should prepare early and reuse loaded work |
-| [Not found & navigation errors](./not-found.md) | The app needs a 404 page and failure UI |
-| [First paint (MPA → SPA)](./first-paint.md) | Server HTML should become the first active route without refetching |
+For your first migration, start with [Static site → SPA in 10 minutes](../tutorial.md). Return here when you need one specific pattern.
+
+| Recipe                                          | Use it when                                        |
+| ----------------------------------------------- | -------------------------------------------------- |
+| [Auth guard](./auth.md)                         | A route or layout requires sign-in                 |
+| [Nested layout](./nested.md)                    | Several pages share one mounted layout             |
+| [Prefetch & cache](./prefetch-cache.md)         | Links should prepare early and reuse loaded work   |
+| [Not found & navigation errors](./not-found.md) | The app needs a 404 page and failure UI            |
+| [First-paint reference](./first-paint.md)       | You need flat or nested server-HTML adoption rules |
 
 <details>
 <summary>Run the playground locally</summary>

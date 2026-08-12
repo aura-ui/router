@@ -4,7 +4,7 @@ Aura Router upgrades ordinary HTML pages with client-side navigation. This guide
 
 > **Current release: 0.1.0.** Pin the package version and check the [changelog](../CHANGELOG.md) when upgrading.
 
-New to Aura Router? Complete the [README Quick start](../README.md#quick-start) first, then read these chapters in order.
+New to Aura Router? Complete [Static site → SPA in 10 minutes](./tutorial.md) first, then use these chapters for concepts and API details.
 
 ## Read in order
 
@@ -54,6 +54,7 @@ Use the [recipes](./recipes/README.md) when you want a focused copy-and-paste pa
 
 ## Related documentation
 
+- [10-minute tutorial](./tutorial.md) — upgrade two complete HTML pages and verify progressive enhancement
 - [README](../README.md) — project overview and quick start
 - [Known limitations](../LIMITATIONS.md)
 - [Security policy](../SECURITY.md)

@@ -4,18 +4,18 @@
 
 > Current release: `0.1.0` · Updated: 2026-08-11
 >
-> [README](./README.md) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/README.md) · [Limitations](./LIMITATIONS.md) · [Security](./SECURITY.md) · [Changelog](./CHANGELOG.md)
+> [Tutorial](./docs/tutorial.md) · [README](./README.md) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/README.md) · [Limitations](./LIMITATIONS.md) · [Security](./SECURITY.md) · [Changelog](./CHANGELOG.md)
 
 ## Find your way
 
-| I want to…                                    | Start here                                                                            |
-| --------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Build an app with Aura Router                 | [Guide](./docs/guide.md)                                                              |
-| See what is already available                 | [README](./README.md) → [Changelog](./CHANGELOG.md)                                   |
-| Upgrade an existing HTML site from MPA to SPA | [MPA → SPA](#phase-8--mpa--spa) → [First-paint recipe](./docs/recipes/first-paint.md) |
-| Copy a working pattern                        | [Recipes](./docs/recipes/README.md)                                                   |
-| Understand what is being built now            | [Current focus](#current-focus)                                                       |
-| Contribute to a specific area                 | [Explore the roadmap](#explore-the-roadmap)                                           |
+| I want to…                                    | Start here                                                                         |
+| --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Build an app with Aura Router                 | [Guide](./docs/guide.md)                                                           |
+| See what is already available                 | [README](./README.md) → [Changelog](./CHANGELOG.md)                                |
+| Upgrade an existing HTML site from MPA to SPA | [10-minute tutorial](./docs/tutorial.md) → [MPA → SPA roadmap](#phase-8--mpa--spa) |
+| Copy a working pattern                        | [Recipes](./docs/recipes/README.md)                                                |
+| Understand what is being built now            | [Current focus](#current-focus)                                                    |
+| Contribute to a specific area                 | [Explore the roadmap](#explore-the-roadmap)                                        |
 
 ### Status
 

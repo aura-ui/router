@@ -1,31 +1,42 @@
-# Recipe: First paint (MPA → SPA)
+# First-paint adoption reference
 
-> **Goal:** Server HTML for the current URL is adopted on boot; later clicks are SPA.  
-> **Live:** [`playground/`](../../playground/) — hard-reload `/contacts` or `/login` (flat routes).  
+> **Start here:** Follow [Static site → SPA in 10 minutes](../tutorial.md) for the complete setup.
+>
+> **Goal:** Server HTML for the current URL is adopted on boot; later clicks are SPA.
+>
+> **Live:** [`playground/`](../../playground/) — hard-reload `/contacts` or `/login` (flat routes).
+>
 > **API:** [First paint](../guide/05-mpa-to-spa.md#first-paint-mpa--spa) · [`extract`](../guide/03-views-and-layouts.md#extract--fragment-from-full-html-pages)
 
-Aura does not render on the server. Your host still returns complete HTML for each URL; Aura adopts that HTML and handles later links as SPA navigation.
+Use this page as a compact reference when the initial route has already been configured. Aura does not render on the server: your host returns complete HTML, Aura adopts that HTML on startup, and later marked links use client navigation.
 
 ## Flat page
+
+For a flat matched route, the initial document must contain an element matching the router's `extract` selector:
 
 ```html
 <div class="main">
   <h1>Contacts</h1>
 </div>
 
+<aura-outlet></aura-outlet>
+
 <aura-router extract=".main">
-  <aura-route path="/contacts" view="contacts"></aura-route>
+  <aura-route path="/contacts" view="/contacts"></aura-route>
 </aura-router>
 
-<script src="/static/main.js" defer></script>
+<script type="module" src="/static/main.js"></script>
 ```
+
+Install the custom elements once in `main.js`:
 
 ```js
 import { AuraRouter } from '@auraui/router';
+
 AuraRouter.install();
 ```
 
-`extract=".main"` identifies both the fragment used for later SPA fetches and the flat view adopted on first paint.
+The selector identifies both the node adopted on first paint and the fragment extracted from complete HTML responses during later navigation. No `aura-router-ssr` marker is needed.
 
 ## Nested layout
 

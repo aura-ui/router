@@ -18,6 +18,7 @@
     "README.md",
     "CHANGELOG.md",
     "LIMITATIONS.md",
+    "docs/tutorial.md",
     "docs/guide.md",
     "docs/guide/*",
     "docs/recipes/*"

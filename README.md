@@ -3,7 +3,6 @@
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![CI](https://github.com/aura-ui/router/actions/workflows/ci.yml/badge.svg)](https://github.com/aura-ui/router/actions/workflows/ci.yml)
 [![Live demo](https://img.shields.io/badge/demo-live-brightgreen)](https://aura-ui.github.io/router-preview/)
-[![bundle size](https://img.shields.io/badge/minzip-33.2%20kB-blue)](https://bundlephobia.com/package/@auraui/router)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
 **Keep the HTML. Upgrade the navigation.**
@@ -18,7 +17,7 @@ Try it: [Live demo](https://aura-ui.github.io/router-preview/) · [Open in Stack
 npm install @auraui/router
 ```
 
-[Quick start](#quick-start) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/)
+[10-minute tutorial](./docs/tutorial.md) · [Quick start](#quick-start) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/)
 
 ## Why Aura Router?
 
@@ -38,6 +37,8 @@ Works with plain HTML, Web Components, and Lit. Your backend or static host keep
 > **MPA first. SPA when ready.**
 
 ## Quick start
+
+For a complete two-page migration—including direct URLs, first-paint adoption, no-JavaScript fallback, and troubleshooting—follow [Static site → SPA in 10 minutes](./docs/tutorial.md).
 
 **1. Keep the page you already have**
 

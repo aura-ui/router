@@ -22,15 +22,6 @@ AuraRouter.install();
 
 `install()` defines `<aura-router>`, `<aura-route>`, and `<aura-outlet>`. Register global hooks and custom loaders before the router connects when its initial navigation depends on them. The package also exports the `AuraRoute` and `AuraOutlet` classes for typed DOM access.
 
-Without a bundler:
-
-```html
-<script type="module">
-  import { AuraRouter } from 'https://esm.sh/@auraui/router@0.1.0';
-  AuraRouter.install();
-</script>
-```
-
 Your server or static host must still serve useful HTML for every public URL. Aura Router runs only in the browser.
 
 ## Core concepts

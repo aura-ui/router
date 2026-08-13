@@ -11,7 +11,7 @@ Aura Router adds client-side navigation to complete static or server-rendered HT
 
 Your host keeps serving real pages. Aura adopts the HTML already on screen and upgrades marked links after load.
 
-Try it: [Live demo](https://aura-ui.github.io/router-preview/) · [Open in StackBlitz](https://stackblitz.com/github/aura-ui/router-playground) · [Source](https://github.com/aura-ui/router-preview)
+Try it: [Live demo](https://aura-ui.github.io/router-preview/) · [Open in StackBlitz](https://stackblitz.com/github/aura-ui/router-playground) · [Source](https://github.com/aura-ui/router-preview) · [Article](https://dev.to/aura-ui/why-i-built-an-spa-router-for-html-and-web-components-25dm)
 
 ```bash
 npm install @auraui/router
@@ -117,7 +117,7 @@ Current release: **0.1.0**
 
 **Development:** [Changelog](./CHANGELOG.md) · [Roadmap](./ROADMAP.md) · [Contributing](./CONTRIBUTING.md) · [Security](./SECURITY.md)
 
-**Community:** [GitHub Discussions](https://github.com/aura-ui/router/discussions) · [hello@aura-ui.dev](mailto:hello@aura-ui.dev) · [npm](https://www.npmjs.com/package/@auraui/router)
+**Community:** [Article on DEV.to](https://dev.to/aura-ui/why-i-built-an-spa-router-for-html-and-web-components-25dm) · [GitHub Discussions](https://github.com/aura-ui/router/discussions) · [hello@aura-ui.dev](mailto:hello@aura-ui.dev) · [npm](https://www.npmjs.com/package/@auraui/router)
 
 ## License
 

@@ -111,6 +111,7 @@ The foundation already includes `ViewHandle`, outlet strategies, and view contro
 | 4.0 | Loading state through body classes and DOM events                             |   ✅   | Preferred stable API; `loading-template` remains experimental and may be removed         |
 | 4.1 | **View Transitions API** — browser-managed cross-fades and slides             |   ○    | Wire `document.startViewTransition`, reduced-motion behavior, fallback, and cancellation |
 | 4.2 | **Navigation API** — intercept browser navigation through `window.navigation` |   ○    | Add a navigate/intercept provider while keeping the tested History API fallback          |
+| 4.3 | **Page title & focus** — opt-in metadata sync and focus after navigation       |   ○    | Define title sources, focus policy, nested ownership, first-paint behavior, and tests     |
 
 CSS/WAAPI transitions already work through route attributes in the demo.
 
@@ -174,6 +175,7 @@ The server continues serving ready-made HTML. Aura Router is injected through a 
 | 8.2 | Shared layout injection from CMS, EJS, PHP, or static partials                     |   ✅   | Playground injects `@nav@` / `@router@` from `parts/nav.html` and `parts/router.html`; routes stay HTML-only                                       |
 | 8.3 | Flat and nested first-paint adoption without refetching                            |   ✅   | `extract` handles flat pages; `aura-router-ssr` preserves nested shells; successful adopt skips `guard`, `load`, and `ready`                       |
 | 8.4 | Static MPA reference with direct URLs and no-JS fallback                           |   ✅   | [`router-preview`](https://github.com/aura-ui/router-preview): Vite MPA, static 404, nested adoption, and Playwright coverage                      |
+| 8.5 | **Optional backend adapters** — generate Aura-compatible first-paint markup         |   ○    | Define a framework-neutral server contract, then evaluate adapters for nested layouts and route views                                              |
 
 ---
 

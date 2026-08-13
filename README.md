@@ -7,7 +7,7 @@
 
 **Keep the HTML. Upgrade the navigation.**
 
-Aura Router adds client-side navigation to complete static or server-rendered HTML pages – with nested layouts, route lifecycle hooks, and no framework adapter.
+HTML-first client navigation for complete static or server-rendered HTML pages – with nested layouts, route lifecycle hooks, and no framework adapter.
 
 Your host keeps serving real pages. Aura adopts the HTML already on screen and upgrades marked links after load.
 

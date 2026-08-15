@@ -41,7 +41,7 @@ For `/users/42`, Aura loads `users/42.html`.
 
 ### Search on `view` (not on `path`)
 
-Matching still uses pathname only. To include the current query string when fetching a `url` view:
+Matching still uses pathname only. Search templates on `view` run for every loader before it receives content (not only `url`):
 
 ```html
 <!-- Forward the full current search (MPA-style) -->
@@ -57,8 +57,8 @@ Matching still uses pathname only. To include the current query string when fetc
 </aura-route>
 ```
 
-- `view="…?*"` appends the match's raw `search` (`?…`). An empty search yields no `?`.
-- `view="…?id=:id&tag=:tag"` builds only `key=:token` pairs; missing or empty values are omitted. Remap works (`itemId=:id`).
+- `view="…?*"` appends the match's raw `search` (`?…`). Empty search or bare `?` yields no `?`.
+- `view="…?id=:id&tag=:tag"` builds only `key=:token` pairs; keys and values are URI-encoded; missing or empty values are omitted. Remap works (`itemId=:id`).
 - Use either `?*` or an allowlist, not both. Do not put `?` or `#` in `path`.
 
 Hooks still see the full parsed query on `ctx.to.query` whether or not `view` forwards search.
@@ -154,7 +154,7 @@ Aura then decides whether to reuse the mounted view or remount the route.
 By default, Aura compares the resolved view before and after navigation:
 
 - If the view source is unchanged, Aura keeps the existing DOM, runs `load` again, then calls the route's `update` hooks.
-- If parameter substitution changes the view source, Aura remounts the route.
+- If path/query token substitution or a `view` search template (`?*` / allowlist) changes the view source, Aura remounts the route.
 
 ```html
 <aura-route

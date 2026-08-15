@@ -29,6 +29,8 @@ Use UTF-8 directly in route paths. The browser may display an encoded URL, but A
 
 Parameterized routes require the browser's `URLPattern`. Catch-all values are available as `params.splat`; a scoped `/users/*` requires a non-empty tail.
 
+`path` is pathname only. Do not put `?` or `#` in `path` — matching ignores search and hash, and Aura warns when they appear. Pass query on the URL when navigating; read it in hooks from `ctx.to.query`. To forward search into a `url` view fetch, use the `view` search forms in [Views](./03-views-and-layouts.md#views).
+
 ## Navigation
 
 Mark only links that Aura should intercept:

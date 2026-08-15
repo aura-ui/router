@@ -5,6 +5,7 @@ import { dispatchCustomEvent, getTemplate } from '../../aura-utils/misc';
 import { parseCacheAttr } from './attr/cache-attr-parser';
 import { parseHookList, parseOffableString } from './attr/inherit-attr-parser';
 import { parseMountStrategyAttr } from './attr/mount-strategy-attr-parser';
+import { parsePathAttr } from './attr/path-attr-parser';
 import { parseParamChangeAttr } from './attr/param-change-attr-parser';
 import { parsePrefetchAttr } from './attr/prefetch-attr-parser';
 import { parseScrollAttr } from './attr/scroll-attr-parser';
@@ -68,7 +69,7 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
     return ['layout', 'view', 'extract'];
   }
 
-  @routeAttr({ inherit: false })
+  @routeAttr({ inherit: false, parser: parsePathAttr })
   path: string;
 
   @routeAttr({ inherit: false })

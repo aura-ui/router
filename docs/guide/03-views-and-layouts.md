@@ -31,13 +31,37 @@ A value without `::` is treated as an HTML URL. To use another source, prefix th
 <template id="card"><article>Card content</article></template>
 ```
 
-Before the loader runs, matched route parameters replace corresponding `:name` tokens in its input:
+Before the loader runs, Aura resolves `:name` tokens and optional search templates in `view` content. Tokens resolve from path params and query (`params` win on name collision). Unknown tokens stay unchanged.
 
 ```html
 <aura-route path="/users/:id" view="users/:id.html"></aura-route>
 ```
 
-For `/users/42`, Aura loads `users/42.html`. Tokens without a matching route parameter remain unchanged.
+For `/users/42`, Aura loads `users/42.html`.
+
+### Search on `view` (not on `path`)
+
+Matching still uses pathname only. Search templates on `view` run for every loader before it receives content (not only `url`):
+
+```html
+<!-- Forward the full current search (MPA-style) -->
+<aura-route
+  path="/catalog/item.html"
+  view="/catalog/item.html?*">
+</aura-route>
+
+<!-- Allowlist / remap selected keys from params ∪ query (utm and other keys are omitted) -->
+<aura-route
+  path="/catalog/item.html"
+  view="/catalog/item.html?id=:id&tag=:tag">
+</aura-route>
+```
+
+- `view="…?*"` appends the match's raw `search` (`?…`). Empty search or bare `?` yields no `?`.
+- `view="…?id=:id&tag=:tag"` builds only `key=:token` pairs; keys and values are URI-encoded; missing or empty values are omitted. Remap works (`itemId=:id`).
+- Use either `?*` or an allowlist, not both. Do not put `?` or `#` in `path`.
+
+Hooks still see the full parsed query on `ctx.to.query` whether or not `view` forwards search.
 
 Treat route attributes as trusted application configuration. Aura does not sanitise inline or fetched HTML, or allow-list `url` and `iframe` targets. Never build a `view` value from untrusted input; see [SECURITY.md](../../SECURITY.md).
 
@@ -130,7 +154,7 @@ Aura then decides whether to reuse the mounted view or remount the route.
 By default, Aura compares the resolved view before and after navigation:
 
 - If the view source is unchanged, Aura keeps the existing DOM, runs `load` again, then calls the route's `update` hooks.
-- If parameter substitution changes the view source, Aura remounts the route.
+- If path/query token substitution or a `view` search template (`?*` / allowlist) changes the view source, Aura remounts the route.
 
 ```html
 <aura-route

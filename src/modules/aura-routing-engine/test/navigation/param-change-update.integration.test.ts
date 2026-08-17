@@ -30,7 +30,7 @@ function wireRouteViewController(
     wireMountResolvedView: false,
     loadView: async () => {
       resolveCount++;
-      return { data: resolve() };
+      return { payload: resolve() };
     },
   });
   return { resolveCount: () => resolveCount };

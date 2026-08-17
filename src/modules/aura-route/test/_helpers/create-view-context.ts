@@ -22,7 +22,7 @@ export function createViewContext(options: CreateViewContextOptions): ViewContex
   const ctx = new ViewContext(
     {
       route: createRouteStub(options.route),
-      view: options.view ?? { loadView: async () => ({ data: null }) },
+      view: options.view ?? { loadView: async () => ({ payload: null }) },
       cache: options.cache ?? defaultDomCache,
       mountTarget: {
         appOutlet: () => options.root,

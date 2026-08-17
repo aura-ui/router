@@ -39,8 +39,9 @@ const viewGraph = new ViewGraph({
   cache: new ViewPayloadCache(),
 });
 
-const payload = await viewGraph.loadView(routeInfo, signal, { data: hookSnapshot });
-// ViewPayload: string | Node | null
+const { payload, head } = await viewGraph.loadView(routeInfo, signal, { data: hookSnapshot });
+// payload: string | Node | null
+// head: DocumentHeadValues | undefined (url html; иначе undefined)
 ```
 
 Кастомный loader регистрируется на роутере одной строкой — подробнее в разделе [Кастомный loader](#кастомный-loader).
@@ -60,7 +61,7 @@ type ViewKind = 'layout' | 'view';
 | `layout` | `layout="template-id"` | `template` | всегда `false` |
 | `view` | `view="…"` (см. синтаксис ниже) | `resolvedView.loader` | `cache.view` |
 
-Если для matched route не строится descriptor — нет непустого `layout` на этом узле и нет `resolvedView` (нет `view` или пустой атрибут) — `loadView` возвращает `null`. Это не ошибка.
+Если для matched route не строится descriptor — нет непустого `layout` на этом узле и нет `resolvedView` (нет `view` или пустой атрибут) — `loadView` возвращает `{}`. Это не ошибка.
 
 У узла с `layout` view-атрибут не используется: descriptor всегда строится из `layout` → loader `template`.
 
@@ -81,17 +82,24 @@ type ViewKind = 'layout' | 'view';
 
 | Уровень | Тип | Смысл |
 |---------|-----|--------|
-| Loader | `ViewLoadResult` | `{ kind: 'html' \| 'markup' \| 'fragment', value }` |
-| Graph / mount | `ViewPayload` | `string \| Node` — `result.value` |
+| Loader | `ViewLoadResult` | `{ kind: 'html' \| 'markup' \| 'fragment', value }` (`html` может нести `head`) |
+| Graph | `ViewGraphLoadResult` | `{ payload, head }` / `{ error }` / `{}` |
+| Mount | `ViewPayload` | `string \| Node` — поле `payload` после снятия `kind` |
 
 ```ts
 type ViewLoadResult =
-  | { kind: 'html'; value: string }
+  | { kind: 'html'; value: string; head?: DocumentHeadValues }
   | { kind: 'markup'; value: string }
   | { kind: 'fragment'; value: DocumentFragment };
+
+type ViewGraphLoadResult = {
+  payload?: ViewPayload | null;
+  head?: DocumentHeadValues;
+  error?: TerminalOutcome;
+};
 ```
 
-`ViewGraph` берёт `value` as-is (`html`/`markup` → string, `fragment` → node).
+`ViewGraph` снимает `kind`: `html`/`markup` → string, `fragment` → node; `head` только с `kind: 'html'`. Итог `loadView` / `loadPayload` — `{ payload, head }`, не голый `ViewPayload`.
 
 `LoaderFn` может вернуть `ViewLoadResult` или сахар `string | Node` — `FnLoader` обернёт: `string` → `html`, `Node` → `fragment`.
 
@@ -122,7 +130,7 @@ ViewPayloadCache.resolve(key)?                 ← только если descrip
 LoaderRegistry.get(loader).load(context)
       │
       ▼
-ViewPayload
+{ payload, head }                      ← ViewGraphLoadResult (skip `{}` / `{ error }`)
 ```
 
 **Порты** — узкий surface для DI и моков:
@@ -142,7 +150,7 @@ ViewPayload
 | Orchestration | `ViewGraph`, `ViewGraphDeps`, `ViewPrefetchOptions`, `RouteViewSource`, `ViewLoadPort`, `ViewResolverPort` |
 | Cache | `ViewPayloadCache`, `viewCacheKey` |
 | Registry | `LoaderRegistry`, `createLoaderRegistry`, `defaultLoaderRegistry`, `Loader`, `LoaderClass`, `LoaderFn` |
-| Types | `ViewPayload`, `ViewLoadResult`, `ViewLoadContext`, `ViewDescriptor`, `ViewKind`, `ViewLoaderEnv`, `FetchText` |
+| Types | `ViewPayload`, `ViewSnapshotEntry`, `ViewGraphLoadResult`, `ViewLoadResult`, `ViewLoadContext`, `ViewDescriptor`, `ViewKind`, `ViewLoaderEnv`, `FetchText` |
 
 **Не в barrel** (прямой импорт или `aura-routing-engine/core`): `loaders/*`, `environment.ts`, `markup.ts`.
 
@@ -311,7 +319,7 @@ Prefetch (hover/intent) идёт через speculative prepare → `viewGraph.p
 
 | Ситуация | Поведение |
 |----------|-----------|
-| `signal.aborted` | `null`, без `NavigationError` |
+| `signal.aborted` | navigation: `{ error: { status: 'cancelled' } }`; prefetch: `{}` |
 | throw из loader'а | `createViewLoadError` → `CONTENT_LOAD_FAILED`, phase `render` |
 | ошибка prefetch | подавляется |
 | неизвестный loader id | throw из `registry.get` |

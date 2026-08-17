@@ -33,7 +33,7 @@ describe('ViewGraph', () => {
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: '<layout>users-layout</layout>',
+      payload: '<layout>users-layout</layout>',
       head: undefined,
     });
   });
@@ -46,7 +46,7 @@ describe('ViewGraph', () => {
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: '<p>about</p>',
+      payload: '<p>about</p>',
       head: undefined,
     });
   });
@@ -112,12 +112,12 @@ describe('ViewGraph', () => {
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: '<p>about</p>',
+      payload: '<p>about</p>',
       head: { title: 'About', description: 'Desc' },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: '<p>about</p>',
+      payload: '<p>about</p>',
       head: { title: 'About', description: 'Desc' },
     });
     expect(viewGraph.getCachedHtmlHead(route)).toEqual({
@@ -147,11 +147,11 @@ describe('ViewGraph', () => {
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: '<p>about</p>',
+      payload: '<p>about</p>',
       head: { title: 'About', description: 'Desc' },
     });
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: '<p>about</p>',
+      payload: '<p>about</p>',
       head: { title: 'About', description: 'Desc' },
     });
     expect(loads).toBe(1);
@@ -311,7 +311,7 @@ describe('ViewGraph', () => {
 
     const second = viewGraph.loadView(route, new AbortController().signal, { mode: 'navigation' });
     releaseGate();
-    await expect(second).resolves.toEqual({ data: '<p>2</p>', head: undefined });
+    await expect(second).resolves.toEqual({ payload: '<p>2</p>', head: undefined });
     expect(loads).toBe(2);
   });
 
@@ -334,13 +334,13 @@ describe('ViewGraph', () => {
     const signal = new AbortController().signal;
 
     const first = await viewGraph.loadView(route, signal);
-    expect(first.data).toBeInstanceOf(DocumentFragment);
+    expect(first.payload).toBeInstanceOf(DocumentFragment);
     expect(loads).toBe(1);
 
     // Same handoff + cache.view: fragment must not settle (mount would empty a reused node).
     const second = await viewGraph.loadView(route, signal);
-    expect(second.data).toBeInstanceOf(DocumentFragment);
-    expect(second.data).not.toBe(first.data);
+    expect(second.payload).toBeInstanceOf(DocumentFragment);
+    expect(second.payload).not.toBe(first.payload);
     expect(loads).toBe(2);
   });
 
@@ -372,8 +372,8 @@ describe('ViewGraph', () => {
       viewGraph.load([parent, child], new AbortController().signal),
     ).resolves.toEqual({
       data: [
-        { data: 'parent', head: undefined },
-        { data: 'child', head: undefined },
+        { payload: 'parent', head: undefined },
+        { payload: 'child', head: undefined },
       ],
     });
   });
@@ -636,19 +636,19 @@ describe('ViewGraph', () => {
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: 'layout:shell',
+      payload: 'layout:shell',
       head: undefined,
     });
   });
 
-  it('returns data null when loader yields null', async () => {
+  it('returns payload null when loader yields null', async () => {
     registry.register('html', async () => null);
     const route = matched('/empty-view', {
       resolvedView: { loader: 'html', content: 'x' },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: null,
+      payload: null,
       head: undefined,
     });
   });
@@ -660,7 +660,7 @@ describe('ViewGraph', () => {
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
-      data: '<iframe src="/x"></iframe>',
+      payload: '<iframe src="/x"></iframe>',
       head: undefined,
     });
   });

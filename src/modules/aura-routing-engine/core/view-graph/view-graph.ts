@@ -59,11 +59,11 @@ export type ViewLoadOptions = {
 };
 
 /**
- * `{ data, head }` ok · `{ error }` navigation stop · `{}` soft skip (no descriptor / prefetch).
- * Same shape as DataGraph load results; `head` is document head from url loads (`undefined` if none).
+ * `{ payload, head }` ok · `{ error }` navigation stop · `{}` soft skip (no descriptor / prefetch).
+ * Success fields match {@link ViewSnapshotEntry}. `{ error }` / `{}` match DataGraph; DataGraph success is `{ data }`.
  */
 export type ViewGraphLoadResult = {
-  data?: ViewPayload | null;
+  payload?: ViewPayload | null;
   /** Always present on success; `undefined` when the loader did not extract a document head. */
   head?: DocumentHeadValues;
   error?: TerminalOutcome;
@@ -181,7 +181,7 @@ export class ViewGraph {
 
   /**
    * Load payload for a matched route (`layout` wins over resolved `view` attr).
-   * Single-route entry ({@link ViewResolverPort}). Outcome: `{ data, head }` / `{ error }` / `{}`.
+   * Single-route entry ({@link ViewResolverPort}). Outcome: `{ payload, head }` / `{ error }` / `{}`.
    */
   loadView(
     match: MatchedRouteInfo,
@@ -232,10 +232,7 @@ export class ViewGraph {
 
       if (!isInterestActive(interestSignal, transaction)) return cancelledResult(mode);
 
-      return {
-        data: handoff.payload,
-        head: handoff.head,
-      };
+      return handoff;
     } catch (error) {
       return this.toLoadErrorResult(error, match, interestSignal, mode, transaction);
     } finally {
@@ -294,10 +291,7 @@ export class ViewGraph {
     if (entry === undefined) return undefined;
 
     if (!isInterestActive(interestSignal, transaction)) return cancelledResult(mode);
-    return {
-      data: entry.payload,
-      head: entry.head,
-    };
+    return entry;
   }
 
   /**

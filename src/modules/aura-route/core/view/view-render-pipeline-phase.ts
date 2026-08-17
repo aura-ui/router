@@ -68,7 +68,7 @@ export class ViewRenderPipelinePhase {
 
   /** Load content via port, then mount (or empty placeholder for null content routes). */
   async resolveContent(pass: RenderPass): Promise<void> {
-    const { data, error } = await this.ctx.config.view.loadView(
+    const { payload, error } = await this.ctx.config.view.loadView(
       pass.routeInfo,
       pass.signal,
       pass.data !== undefined ? { data: pass.data } : undefined,
@@ -78,7 +78,7 @@ export class ViewRenderPipelinePhase {
     if (error?.status === 'cancelled') return;
     if (error) throw error;
 
-    this.applyResolvedContent(pass, data ?? null);
+    this.applyResolvedContent(pass, payload ?? null);
   }
 
   /** Recovery UI after resolve failure — does not rethrow. */

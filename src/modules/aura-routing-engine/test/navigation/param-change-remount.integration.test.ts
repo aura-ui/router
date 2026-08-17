@@ -135,7 +135,7 @@ describe('NavigationTransactionPipeline branch remount options', () => {
     enterRoute.route.mountResolvedView = mountResolvedView;
 
     const engine = createMockEngine();
-    (engine.viewGraph!.loadView as jest.Mock).mockResolvedValue({ data: '<span>view-2</span>' });
+    (engine.viewGraph!.loadView as jest.Mock).mockResolvedValue({ payload: '<span>view-2</span>' });
 
     const transaction = createNavigationTransaction({
       engine,

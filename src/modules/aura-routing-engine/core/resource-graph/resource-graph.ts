@@ -235,7 +235,7 @@ export class ResourceGraph {
             result = viewWithDataResult.data?.[j];
           }
         }
-        return { payload: result?.data ?? null, head: result?.head };
+        return { payload: result?.payload ?? null, head: result?.head };
       }),
     };
   }

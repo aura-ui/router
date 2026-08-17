@@ -253,7 +253,7 @@ export function createMockViewGraph(): ViewGraph {
     jest.fn(async (match: MatchedRouteInfo) => {
       const layout =
         typeof match.route.layout === 'string' ? match.route.layout.trim() : '';
-      return { data: layout || (match.route.view?.content ?? null) };
+      return { payload: layout || (match.route.view?.content ?? null) };
     }),
   );
 }

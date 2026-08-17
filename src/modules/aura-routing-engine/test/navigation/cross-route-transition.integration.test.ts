@@ -63,7 +63,7 @@ function wireRoute(
     outlet,
     cache: NO_CACHE,
     wireRevertInFlight: true,
-    loadView: async () => ({ data: markup }),
+    loadView: async () => ({ payload: markup }),
     ...options,
     transition,
   });
@@ -77,7 +77,7 @@ async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteI
   wireEngineViewGraph(
     engine,
     createViewGraphFromLoadView(async (routeInfo) => ({
-      data: routeMarkup.get(routeInfo.route) ?? null,
+      payload: routeMarkup.get(routeInfo.route) ?? null,
     })),
   );
 

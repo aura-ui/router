@@ -170,5 +170,5 @@ export function wireRouteViewController(
 export function loadViewFromParamId(
   resolve: (id: string) => string,
 ): ViewGraph['loadView'] {
-  return async (info: MatchedRouteInfo) => ({ data: resolve(info.params?.id ?? '?') });
+  return async (info: MatchedRouteInfo) => ({ payload: resolve(info.params?.id ?? '?') });
 }

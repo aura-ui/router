@@ -22,7 +22,7 @@ function createPipeline(
     createViewContext({
       root,
       route: overrides.route,
-      view: overrides.view ?? { loadView: async () => ({ data: '<span>ok</span>' }) },
+      view: overrides.view ?? { loadView: async () => ({ payload: '<span>ok</span>' }) },
       cache: overrides.cache,
       plugins: overrides.plugins,
     }),
@@ -67,7 +67,7 @@ describe('ViewRenderPipeline', () => {
 
   it('syncBranchMount mounts pre-resolved content without calling loadView', () => {
     const root = createOutlet();
-    const loadView = jest.fn(async () => ({ data: '<span>from-resolve</span>' }));
+    const loadView = jest.fn(async () => ({ payload: '<span>from-resolve</span>' }));
     const onContentResolved = jest.fn();
     const pipeline = createPipeline(root, {
       view: { loadView },

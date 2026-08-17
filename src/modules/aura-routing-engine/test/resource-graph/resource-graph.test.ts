@@ -123,7 +123,7 @@ describe('ResourceGraph', () => {
     const viewGraph = {
       load: jest.fn(async (routes: MatchedRouteInfo[]) => ({
         data: routes.map((route) =>
-          route.pattern === '/app' ? { data: '<layout/>' } : { data: '<page/>' },
+          route.pattern === '/app' ? { payload: '<layout/>' } : { payload: '<page/>' },
         ),
       })),
     };

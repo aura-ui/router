@@ -31,6 +31,10 @@ export interface AuraRouteInterface {
   /** `scroll-behavior` — native smooth | instant | auto. */
   scrollBehavior: ScrollBehaviorAttr | null;
   extract: string | null;
+  /** `meta-title` — document title template; `null` → HTML head fallback / unchanged. */
+  metaTitle: string | null;
+  /** `meta-description` — description meta template; `null` → HTML head fallback / unchanged. */
+  metaDescription: string | null;
   readonly type: RouteType;
   readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;

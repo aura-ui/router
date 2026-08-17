@@ -2,6 +2,7 @@ import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRoute, RouteDomCache } from '../../aura-route/core';
 import { parseMountStrategyAttr } from '../../aura-route/core/attr/mount-strategy-attr-parser';
 import { parsePrefetchAttr } from '../../aura-route/core/attr/prefetch-attr-parser';
+import { parseOffableString } from '../../aura-route/core/attr/inherit-attr-parser';
 import { parseScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import { parseScrollBehaviorAttr } from '../../aura-route/core/attr/scroll-behavior-attr-parser';
 import {
@@ -129,6 +130,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   /** Default CSS selector: SPA `url` fragment + flat first-paint adopt when no `aura-router-ssr`. */
   @attr({ parser: parseNullableString, cached: true })
   extract: string | null;
+
+  /** Default document title template for child routes. HTML attr: `meta-title`. */
+  @attr({ parser: parseOffableString, cached: true })
+  metaTitle: string | null;
+
+  /** Default description meta template for child routes. HTML attr: `meta-description`. */
+  @attr({ parser: parseOffableString, cached: true })
+  metaDescription: string | null;
 
   /**
    * Default prefetch for `[aura-router-link]` (`intent` | `tap` | `false`).

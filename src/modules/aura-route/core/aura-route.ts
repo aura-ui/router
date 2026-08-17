@@ -84,6 +84,14 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseOffableString })
   extract: string | null;
 
+  /** Document `<title>` template (`:param` tokens like `view`). HTML attr: `meta-title`. */
+  @routeAttr({ parser: parseOffableString })
+  metaTitle: string | null;
+
+  /** Document description meta template. HTML attr: `meta-description`. */
+  @routeAttr({ parser: parseOffableString })
+  metaDescription: string | null;
+
   @routeAttr({ parser: parseOffableString })
   loadingTemplate: string | null;
 

@@ -7,3 +7,10 @@ export type DocumentMetaValues = {
   dir?: string;
   tags?: Record<string, string>;
 };
+
+/** True when title, html attrs, or at least one tag is set. */
+export function hasDocumentMeta(meta: DocumentMetaValues | null | undefined): meta is DocumentMetaValues {
+  if (!meta) return false;
+  if (meta.title || meta.lang || meta.dir) return true;
+  return Object.values(meta.tags ?? {}).some(Boolean);
+}

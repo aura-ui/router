@@ -1,7 +1,6 @@
 import { stringToHtml } from '../../../aura-utils/misc/dom';
-import { hasDocumentMeta } from './resolve';
 import { getHeadTags } from './schema';
-import type { DocumentMetaValues } from './types';
+import { hasDocumentMeta, type DocumentMetaValues } from './types';
 
 export type PreparedHtml = {
   fragment: string;

@@ -7,8 +7,9 @@ import {
   hasDocumentMeta,
   resolveDocumentMetaWithParams,
   configureDocumentMeta,
+  CANONICAL_ID,
+  META_DESCRIPTION_ID,
 } from '../../core/document';
-import { CANONICAL_ID, META_DESCRIPTION_ID } from '../../core/document/schema';
 
 const FULL_PAGE = `<!DOCTYPE html>
 <html>

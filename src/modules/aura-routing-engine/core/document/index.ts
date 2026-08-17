@@ -1,4 +1,11 @@
 export { extractDocumentMeta, processHtml } from './extract';
-export { hasDocumentMeta, resolveDocumentMetaWithParams } from './resolve';
-export { configureDocumentMeta, type HeadTagInput } from './schema';
-export type { DocumentMetaValues } from './types';
+export { resolveDocumentMetaWithParams } from './resolve';
+export {
+  CANONICAL_ID,
+  META_DESCRIPTION_ID,
+  configureDocumentMeta,
+  getHeadTags,
+  type HeadTagInput,
+  type HeadTagSpec,
+} from './schema';
+export { hasDocumentMeta, type DocumentMetaValues } from './types';

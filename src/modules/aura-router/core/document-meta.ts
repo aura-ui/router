@@ -1,6 +1,5 @@
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
-import { resolveDocumentMetaWithParams, type DocumentMetaValues } from '../../aura-routing-engine/core/document';
-import { getHeadTags, type HeadTagSpec } from '../../aura-routing-engine/core/document/schema';
+import { getHeadTags, resolveDocumentMetaWithParams, type DocumentMetaValues, type HeadTagSpec } from '../../aura-routing-engine/core/document';
 
 /** Marks tags this apply wrote. Next omit removes only those. */
 const OWNED = 'data-aura-head';

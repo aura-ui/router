@@ -1,14 +1,7 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { substituteTokens } from '../route-tree/resolve-view-content';
 import { CANONICAL_ID, META_DESCRIPTION_ID } from './schema';
-import type { DocumentMetaValues } from './types';
-
-/** True when title, html attrs, or at least one tag is set. */
-export function hasDocumentMeta(meta: DocumentMetaValues | null | undefined): meta is DocumentMetaValues {
-  if (!meta) return false;
-  if (meta.title || meta.lang || meta.dir) return true;
-  return Object.values(meta.tags ?? {}).some(Boolean);
-}
+import { hasDocumentMeta, type DocumentMetaValues } from './types';
 
 /**
  * Bind match params/query into route meta attrs, overlay on htmlMeta.

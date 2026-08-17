@@ -12,7 +12,7 @@ export type HeadTagSpec = {
 /** User-facing tag to copy from fetched `<head>`. `id` / `selector` / `valueAttr` are derived. */
 export type HeadTagInput = Pick<HeadTagSpec, 'tag' | 'attrs'>;
 
-function headTag(tag: 'meta' | 'link', attrs: Record<string, string>): HeadTagSpec {
+export function headTag(tag: 'meta' | 'link', attrs: Record<string, string>): HeadTagSpec {
   const pairs = Object.entries(attrs);
   return {
     tag,
@@ -30,7 +30,7 @@ const canonical = headTag('link', { rel: 'canonical' });
 export const CANONICAL_ID = canonical.id;
 
 /** Default extract/apply set. Title is handled separately. */
-const defaultHeadTags: readonly HeadTagSpec[] = [
+export const DEFAULT_HEAD_TAGS: readonly HeadTagSpec[] = [
   description,
   canonical,
   headTag('meta', { property: 'og:title' }),
@@ -44,12 +44,12 @@ const defaultHeadTags: readonly HeadTagSpec[] = [
 
 let configuredHeadTags: HeadTagSpec[] = [];
 
-/** Defaults plus `configureDocumentMeta(tags)`. */
+/** Defaults plus {@link configureDocumentMeta}(tags). */
 export function getHeadTags(): readonly HeadTagSpec[] {
-  return configuredHeadTags.length === 0 ? defaultHeadTags : defaultHeadTags.concat(configuredHeadTags);
+  return configuredHeadTags.length === 0 ? DEFAULT_HEAD_TAGS : DEFAULT_HEAD_TAGS.concat(configuredHeadTags);
 }
 
-/** Replace configured tags. `[]` (or omit) clears. Call before the first fetch. */
+/** Append extra tags to the default set. `[]` clears. Call before the first fetch. */
 export function configureDocumentMeta(tags: readonly HeadTagInput[] = []): void {
   configuredHeadTags = tags.map((item) => headTag(item.tag, item.attrs));
 }

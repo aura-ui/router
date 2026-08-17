@@ -2,7 +2,7 @@
 
 Load route content, extract regions from complete pages, and preserve shared layouts.
 
-[← Routes and navigation](./02-routes-and-navigation.md) · [Guide index](../guide.md) · [Lifecycle and route data →](./04-lifecycle-and-data.md)
+[← Routes and navigation](./02-routes-and-navigation.md) · [Guide index](../guide.md) · [Document meta →](./09-document-meta.md)
 
 ---
 
@@ -104,6 +104,8 @@ Here, `/about` mounts the complete `#main` element, including the element itself
 
 If the selector does not match, Aura warns and falls back to the full response. Set `extract` to `none`, `off`, `false`, or an empty value to disable an inherited selector. On a flat initial route, the same selector also enables [first-paint adoption](./05-mpa-to-spa.md#first-paint-mpa--spa).
 
+Aura also reads document meta from the full HTML response — title, description, canonical, and social tags. See [Document meta](./09-document-meta.md).
+
 ## Nested routes & layouts
 
 Nested routes let several pages share UI without remounting it on every navigation. The parent route provides a layout, and its child routes provide the changing content.
@@ -183,4 +185,4 @@ Hash-only navigation is different: it performs anchor scrolling without running 
 
 ---
 
-[← Routes and navigation](./02-routes-and-navigation.md) · [Guide index](../guide.md) · [Lifecycle and route data →](./04-lifecycle-and-data.md)
+[← Routes and navigation](./02-routes-and-navigation.md) · [Guide index](../guide.md) · [Document meta →](./09-document-meta.md)

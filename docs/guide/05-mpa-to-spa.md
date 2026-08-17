@@ -1,4 +1,4 @@
-# Chapter 5 — First paint: MPA → SPA
+# Chapter 6 — First paint: MPA → SPA
 
 Adopt server-rendered HTML on startup without refetching the current route.
 

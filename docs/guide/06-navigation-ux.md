@@ -1,4 +1,4 @@
-# Chapter 6 — Navigation experience
+# Chapter 7 — Navigation experience
 
 Control scrolling, prefetching, caching, and loading feedback.
 

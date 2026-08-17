@@ -1,4 +1,4 @@
-# Chapter 8 — API reference
+# Chapter 9 — API reference
 
 Look up router defaults, JavaScript methods, DOM events, and compatibility requirements.
 
@@ -16,6 +16,7 @@ Attributes on `<aura-router>` have one of two roles: they either provide default
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Hooks                | `guard`, `ready`, `leave`, `unmount`, `update`, `error`; never `load`                                             |
 | Views/errors/loading | `extract`, `error-template`, `loading-template`, `loading-body-class`, `loading-start-event`, `loading-end-event` |
+| Document meta        | `meta-title`, `meta-title-template`, `meta-description`, `meta-canonical`                                         |
 | Navigation policy    | `param-change`, `scroll`, `scroll-target`, `scroll-behavior`, `prefetch`                                          |
 | Cache                | `cache`, `cache-time`, `cache-refresh`                                                                            |
 | Transitions          | `transition`, `transition-in`, `transition-out`, `transition-order`                                               |
@@ -65,15 +66,20 @@ AuraRouter.configure(options: AuraRouterConfigureOptions): void
 
 `install()` registers Aura's custom elements. Call it once during application setup.
 
-`configure()` sets shared cache options and the global not-found handler. Configuration cache times use milliseconds:
+`configure()` sets shared cache options, document meta slots, and the global not-found handler. Configuration cache times use milliseconds:
 
 ```ts
 AuraRouter.configure({
   domCache: { max: 10 },
   viewCache: { max: 50, gcTime: 43_200_000 },
   dataCache: { staleTime: 30_000, gcTime: 300_000 },
+  documentMeta: {
+    tags: [{ tag: 'meta', attrs: { name: 'theme-color' } }],
+  },
 });
 ```
+
+See [Document meta](./09-document-meta.md) for title, description, canonical, and `documentMeta.tags`.
 
 ### Register hooks and loaders
 

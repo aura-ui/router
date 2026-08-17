@@ -1,4 +1,4 @@
-# Chapter 7 — Errors and accessibility
+# Chapter 8 — Errors and accessibility
 
 Handle missing routes and failures, then keep navigation state accessible.
 

@@ -147,6 +147,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ parser: parseOffableString, cached: true })
   metaDescription: string | null;
 
+  /** Default canonical href for child routes. HTML attr: `meta-canonical`. */
+  @attr({ parser: parseOffableString, cached: true })
+  metaCanonical: string | null;
+
   /**
    * Default prefetch for `[aura-router-link]` (`intent` | `tap` | `false`).
    * Per-link override: `data-prefetch` on `<a>`.

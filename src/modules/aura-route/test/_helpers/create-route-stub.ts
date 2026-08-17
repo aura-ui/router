@@ -24,6 +24,7 @@ export function createRouteStub(overrides: Partial<AuraRouteInterface> = {}): Au
     metaTitle: null,
     metaTitleTemplate: null,
     metaDescription: null,
+    metaCanonical: null,
     cacheTime: null,
     cacheRefresh: null,
     cache: NO_CACHE,

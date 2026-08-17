@@ -58,6 +58,7 @@ type MutableRouteRecord = Omit<RouteInstance, 'extract' | 'transition'> & {
   metaTitle: null;
   metaTitleTemplate: null;
   metaDescription: null;
+  metaCanonical: null;
   cacheTime: null;
   cacheRefresh: null;
   extract: string | null;
@@ -108,6 +109,7 @@ export function wireRouteViewController(
   routeRecord.metaTitle = null;
   routeRecord.metaTitleTemplate = null;
   routeRecord.metaDescription = null;
+  routeRecord.metaCanonical = null;
   routeRecord.cacheTime = null;
   routeRecord.cacheRefresh = null;
   routeRecord.extract = routeRecord.extract ?? null;

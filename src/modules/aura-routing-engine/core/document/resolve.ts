@@ -1,6 +1,6 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { substituteTokens } from '../route-tree/resolve-view-content';
-import { META_DESCRIPTION_ID } from './schema';
+import { CANONICAL_ID, META_DESCRIPTION_ID } from './schema';
 import type { DocumentHeadValues } from './types';
 
 /** True when title or at least one tag is set. */
@@ -11,15 +11,19 @@ export function hasDocumentHead(head: DocumentHeadValues | null | undefined): he
 }
 
 /**
- * Bind match params/query into `meta-title` / `meta-description`, overlay on htmlHead.
- * `meta-title-template` wraps the page title (`%s`). Canonical and other HTML fields pass through.
- * Empty → `null`.
+ * Bind match params/query into route meta attrs, overlay on htmlHead.
+ * `meta-title-template` wraps the page title (`%s`). Empty → `null`.
  *
  * `:name` only (path wins over query). `?` is literal — not view-search syntax.
  */
 export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: DocumentHeadValues): DocumentHeadValues | null {
-  const { metaTitle, metaDescription, metaTitleTemplate } = to.route;
-  if (metaTitle == null && metaDescription == null && metaTitleTemplate == null) {
+  const { metaTitle, metaDescription, metaTitleTemplate, metaCanonical } = to.route;
+  if (
+    metaTitle == null &&
+    metaDescription == null &&
+    metaTitleTemplate == null &&
+    metaCanonical == null
+  ) {
     return hasDocumentHead(htmlHead) ? htmlHead : null;
   }
 
@@ -27,6 +31,9 @@ export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: D
   const head: DocumentHeadValues = { ...htmlHead };
   if (metaDescription != null) {
     head.tags = { ...head.tags, [META_DESCRIPTION_ID]: substituteTokens(metaDescription, vars) };
+  }
+  if (metaCanonical != null) {
+    head.tags = { ...head.tags, [CANONICAL_ID]: substituteTokens(metaCanonical, vars) };
   }
 
   const title = resolveTitle(to.route, htmlHead?.title, vars);

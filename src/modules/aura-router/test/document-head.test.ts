@@ -11,6 +11,7 @@ function matchedRoute(
   attrs: {
     metaTitle?: string;
     metaDescription?: string;
+    metaCanonical?: string;
     params?: Record<string, string>;
   } = {},
 ) {
@@ -21,6 +22,7 @@ function matchedRoute(
   route.setAttribute('path', path);
   if (attrs.metaTitle) route.setAttribute('meta-title', attrs.metaTitle);
   if (attrs.metaDescription) route.setAttribute('meta-description', attrs.metaDescription);
+  if (attrs.metaCanonical) route.setAttribute('meta-canonical', attrs.metaCanonical);
 
   return {
     href: path,
@@ -114,6 +116,19 @@ describe('applyDocumentHead', () => {
     applyDocumentHead(matchedRoute('/empty'));
 
     expect(document.querySelector('meta[name="description"]')).toBeNull();
+  });
+
+  it('writes canonical from meta-canonical attr', () => {
+    applyDocumentHead(
+      matchedRoute('/users/:id', {
+        metaCanonical: 'https://example.com/users/:id',
+        params: { id: '7' },
+      }),
+    );
+
+    expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
+      'https://example.com/users/7',
+    );
   });
 
   it('writes and reverts open graph tags from htmlHead', () => {

@@ -8,7 +8,7 @@ import {
   resolveDocumentHeadWithParams,
   configureDocumentHead,
 } from '../../core/document';
-import { META_DESCRIPTION_ID } from '../../core/document/schema';
+import { CANONICAL_ID, META_DESCRIPTION_ID } from '../../core/document/schema';
 
 const FULL_PAGE = `<!DOCTYPE html>
 <html>
@@ -27,6 +27,7 @@ function matchedRoute(
     metaTitle?: string;
     metaTitleTemplate?: string;
     metaDescription?: string;
+    metaCanonical?: string;
     params?: Record<string, string>;
     query?: Record<string, string>;
   } = {},
@@ -39,6 +40,7 @@ function matchedRoute(
   if (attrs.metaTitle) route.setAttribute('meta-title', attrs.metaTitle);
   if (attrs.metaTitleTemplate) route.setAttribute('meta-title-template', attrs.metaTitleTemplate);
   if (attrs.metaDescription) route.setAttribute('meta-description', attrs.metaDescription);
+  if (attrs.metaCanonical) route.setAttribute('meta-canonical', attrs.metaCanonical);
 
   return {
     href: path,
@@ -57,7 +59,7 @@ describe('hasDocumentHead', () => {
   it('is true when title or a tag is set', () => {
     expect(hasDocumentHead({ title: 'A' })).toBe(true);
     expect(hasDocumentHead({ tags: { [META_DESCRIPTION_ID]: 'D' } })).toBe(true);
-    expect(hasDocumentHead({ tags: { 'link:rel:canonical': 'https://x' } })).toBe(true);
+    expect(hasDocumentHead({ tags: { [CANONICAL_ID]: 'https://x' } })).toBe(true);
     expect(hasDocumentHead({})).toBe(false);
     expect(hasDocumentHead(undefined)).toBe(false);
   });
@@ -82,7 +84,7 @@ describe('extractDocumentHead', () => {
     </head></html>`;
     expect(extractDocumentHead(stringToHtml(html))).toEqual({
       title: 'T',
-      tags: { 'link:rel:canonical': 'https://example.com/about' },
+      tags: { [CANONICAL_ID]: 'https://example.com/about' },
     });
   });
 
@@ -166,11 +168,26 @@ describe('resolveDocumentHeadWithParams', () => {
     expect(
       resolveDocumentHeadWithParams(matchedRoute('/about', { metaTitle: 'Attr title' }), {
         title: 'HTML title',
-        tags: { 'link:rel:canonical': 'https://example.com/about' },
+        tags: { [CANONICAL_ID]: 'https://example.com/about' },
       }),
     ).toEqual({
       title: 'Attr title',
-      tags: { 'link:rel:canonical': 'https://example.com/about' },
+      tags: { [CANONICAL_ID]: 'https://example.com/about' },
+    });
+  });
+
+  it('overlays meta-canonical on htmlHead with :param tokens', () => {
+    const to = matchedRoute('/users/:id', {
+      metaCanonical: 'https://example.com/users/:id',
+      params: { id: '42' },
+    });
+    expect(resolveDocumentHeadWithParams(to)).toEqual({
+      tags: { [CANONICAL_ID]: 'https://example.com/users/42' },
+    });
+    expect(
+      resolveDocumentHeadWithParams(to, { tags: { [CANONICAL_ID]: 'https://example.com/wrong' } }),
+    ).toEqual({
+      tags: { [CANONICAL_ID]: 'https://example.com/users/42' },
     });
   });
 

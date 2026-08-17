@@ -96,6 +96,10 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseOffableString })
   metaDescription: string | null;
 
+  /** Canonical link href (`:param` tokens). HTML attr: `meta-canonical`. */
+  @routeAttr({ parser: parseOffableString })
+  metaCanonical: string | null;
+
   @routeAttr({ parser: parseOffableString })
   loadingTemplate: string | null;
 

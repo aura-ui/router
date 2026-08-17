@@ -37,6 +37,8 @@ export interface AuraRouteInterface {
   metaTitleTemplate: string | null;
   /** `meta-description` — description meta (`:param` tokens); `null` → HTML head fallback / unchanged. */
   metaDescription: string | null;
+  /** `meta-canonical` — canonical link href (`:param` tokens); `null` → HTML head fallback / unchanged. */
+  metaCanonical: string | null;
   readonly type: RouteType;
   readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;

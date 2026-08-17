@@ -26,10 +26,13 @@ function headTag(tag: 'meta' | 'link', attrs: Record<string, string>): HeadTagSp
 const description = headTag('meta', { name: 'description' });
 export const META_DESCRIPTION_ID = description.id;
 
+const canonical = headTag('link', { rel: 'canonical' });
+export const CANONICAL_ID = canonical.id;
+
 /** Default extract/apply set. Title is handled separately. */
 const defaultHeadTags: readonly HeadTagSpec[] = [
   description,
-  headTag('link', { rel: 'canonical' }),
+  canonical,
   headTag('meta', { property: 'og:title' }),
   headTag('meta', { property: 'og:description' }),
   headTag('meta', { property: 'og:image' }),

@@ -337,7 +337,6 @@ export class ViewGraph {
       );
       const payload = result?.value ?? null;
       const head = result?.kind === 'html' ? result.head : undefined;
-      const handoff: ViewSnapshotEntry = { payload, head };
 
       if (descriptor.cache && typeof payload === 'string') {
         const key = resolveViewCacheKey(match, data);
@@ -353,7 +352,7 @@ export class ViewGraph {
         }
       }
 
-      return handoff;
+      return { payload, head };
     } catch (error: unknown) {
       throwIfAborted(workSignal);
       throw createViewLoadError(descriptor.loader, match.pattern, error);

@@ -1,7 +1,10 @@
 /** @jest-environment jsdom */
 
 import { AuraRoute } from '../../aura-route/core/aura-route';
-import { applyDocumentHead } from '../core/document-head';
+
+type ApplyDocumentHead = typeof import('../core/document-head').applyDocumentHead;
+
+let applyDocumentHead: ApplyDocumentHead;
 
 function matchedRoute(
   path: string,
@@ -32,6 +35,11 @@ function matchedRoute(
 }
 
 describe('applyDocumentHead', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    applyDocumentHead = require('../core/document-head').applyDocumentHead;
+  });
+
   afterEach(() => {
     document.title = '';
     document.head.querySelector('meta[name="description"]')?.remove();
@@ -67,9 +75,44 @@ describe('applyDocumentHead', () => {
     expect(document.querySelector('meta[name="description"]')).toBeNull();
   });
 
-  it('is a no-op when there is nothing to apply', () => {
+  it('leaves title and unmarked boot tags when there is nothing to apply', () => {
     document.title = 'Keep';
+    const boot = document.head.appendChild(document.createElement('meta'));
+    boot.setAttribute('name', 'description');
+    boot.setAttribute('content', 'Site');
+
     applyDocumentHead(matchedRoute('/x'));
+
     expect(document.title).toBe('Keep');
+    expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe('Site');
+  });
+
+  it('restores boot title when the next resolve omits it', () => {
+    document.title = 'Shell';
+    applyDocumentHead(matchedRoute('/a', { metaTitle: 'A' }));
+    applyDocumentHead(matchedRoute('/b'));
+
+    expect(document.title).toBe('Shell');
+  });
+
+  it('removes owned description and canonical when the next resolve omits them', () => {
+    applyDocumentHead(matchedRoute('/a', { metaTitle: 'A', metaDescription: 'About' }), {
+      canonical: 'https://example.com/a',
+    });
+    applyDocumentHead(matchedRoute('/b'));
+
+    expect(document.querySelector('meta[name="description"]')).toBeNull();
+    expect(document.querySelector('link[rel="canonical"]')).toBeNull();
+  });
+
+  it('takes over a boot description and removes it on the next omit', () => {
+    const boot = document.head.appendChild(document.createElement('meta'));
+    boot.setAttribute('name', 'description');
+    boot.setAttribute('content', 'Site');
+
+    applyDocumentHead(matchedRoute('/about', { metaDescription: 'About' }));
+    applyDocumentHead(matchedRoute('/empty'));
+
+    expect(document.querySelector('meta[name="description"]')).toBeNull();
   });
 });

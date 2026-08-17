@@ -32,18 +32,18 @@ export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: D
 }
 
 /**
- * 1. Page title = local `meta-title` or HTML `<title>` (inherited attr is not a page title).
- * 2. Template + page title → wrap `%s`. Otherwise attr (local or inherited) or HTML.
+ * 1. Local `meta-title` or HTML `<title>` (inherited attr is not this).
+ * 2. Template + that title → wrap `%s`. Otherwise attr (local or inherited) or HTML.
  */
 function resolveTitle(route: MatchedRouteInfo['route'], htmlTitle: string | undefined, vars: Record<string, string>): string | undefined {
   const { metaTitle, metaTitleTemplate } = route;
   const attrTitle = metaTitle != null ? substituteTokens(metaTitle, vars) : null;
   const hasLocalTitle = route.hasAttribute('meta-title');
-  const pageTitle = hasLocalTitle && attrTitle != null ? attrTitle : htmlTitle;
+  const localOrHtmlTitle = hasLocalTitle && attrTitle != null ? attrTitle : htmlTitle;
 
-  if (metaTitleTemplate != null && pageTitle) {
+  if (metaTitleTemplate != null && localOrHtmlTitle) {
     const template = substituteTokens(metaTitleTemplate, vars);
-    return template.includes('%s') ? template.split('%s').join(pageTitle) : pageTitle;
+    return template.includes('%s') ? template.split('%s').join(localOrHtmlTitle) : localOrHtmlTitle;
   }
 
   return attrTitle ?? htmlTitle;

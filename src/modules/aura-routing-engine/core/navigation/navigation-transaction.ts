@@ -3,12 +3,9 @@ import type { DataSnapshot } from '../data-graph';
 import { type NavigationErrorPhase } from '../failure';
 import type { HistoryAction, NavigateHistoryOptions } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import {
-  canUseDomCacheFastPath,
-  canUseViewCacheFastPath,
-} from '../route-tree/can-use-fast-path';
+import { canUseDomCacheFastPath, canUseViewCacheFastPath } from '../route-tree/can-use-fast-path';
 import { buildTransitionPlan, type TransitionMap } from '../route-tree/transition-plan';
-import type { ViewPayload } from '../view-graph';
+import type { ViewSnapshotEntry } from '../view-graph';
 import { ViewCommitTracker } from '../view-mount/view-commit-tracker';
 import { rollbackUncommittedViews } from '../view-mount/view-mount-rollback';
 
@@ -51,7 +48,7 @@ export class NavigationTransaction {
   historyCommitted = false;
 
   dataSnapshot?: DataSnapshot;
-  viewSnapshot?: readonly (ViewPayload | null)[];
+  viewSnapshot?: readonly ViewSnapshotEntry[];
 
   constructor(
     transactionId: number,
@@ -92,7 +89,9 @@ export class NavigationTransaction {
     }
   }
 
-  /** View success gate: `prev` + tracker (URL was written earlier in the pipeline). */
+  /**
+   * View success gate: `prev` + tracker (URL was written earlier in the pipeline).
+   */
   commitNavigation(): void {
     this.engine.commitNavigation(this);
     this.viewCommitTracker.markViewCommitted();

@@ -4,7 +4,7 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
   jest.requireActual('../_helpers/jest/mock-view-commit-render').mockViewCommitRender());
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import { createMatchedRoute, createMockTransaction } from '../_helpers/create-mock-transaction';
+import { createMatchedRoute, createMockTransaction, asViewSnapshot } from '../_helpers/create-mock-transaction';
 import { resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 import { asLoadHook } from '../_helpers/resource-graph-fixtures';
 
@@ -36,7 +36,7 @@ describe('NavigationTransactionPipeline ResourceGraph prepare boundary (E6)', ()
       .spyOn(transaction.engine.resourceGraph, 'load')
       .mockResolvedValue({
         data: new Map([[enter.dataKey!, { ok: true }]]),
-        view: ['<span/>'],
+        view: asViewSnapshot('<span/>'),
       });
     const dataLoad = jest.spyOn(transaction.engine.dataGraph, 'load');
     const viewLoad = jest.spyOn(transaction.engine.viewGraph, 'load');
@@ -62,7 +62,7 @@ describe('NavigationTransactionPipeline ResourceGraph prepare boundary (E6)', ()
   it('runLoads / runUpdate wire RG result onto transaction snapshots', async () => {
     const enter = createMatchedRoute('/page', { load: ['data'], update: ['sync'] });
     const data = new Map([[enter.dataKey!, { id: 9 }]]);
-    const view = ['<wired/>'];
+    const view = asViewSnapshot('<wired/>');
 
     for (const mode of ['loads', 'update'] as const) {
       const transaction = createMockTransaction({

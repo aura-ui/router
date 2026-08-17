@@ -8,7 +8,7 @@ import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { PHASES } from '../../core/navigation/lifecycle-phases';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as branchMount from '../../core/view-mount/branch-mount';
-import { createMatchedRoute, createMockTransaction } from '../_helpers/create-mock-transaction';
+import { createMatchedRoute, createMockTransaction, asViewSnapshot } from '../_helpers/create-mock-transaction';
 import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 describe('NavigationTransactionPipeline phase hook attrs', () => {
@@ -64,13 +64,13 @@ describe('NavigationTransactionPipeline branch mount data', () => {
       transitionOrder: null,
     });
     transaction.dataSnapshot = snapshot;
-    transaction.viewSnapshot = ['<page/>'];
+    transaction.viewSnapshot = asViewSnapshot('<page/>');
 
     await new NavigationTransactionPipeline(transaction).runRender();
 
     expect(mountEnterBranchSpy).toHaveBeenCalledWith(
       [enterRoute],
-      ['<page/>'],
+      asViewSnapshot('<page/>'),
       expect.objectContaining({ dataSnapshot: snapshot }),
     );
     expect(mockRunViewCommit).not.toHaveBeenCalled();
@@ -197,7 +197,7 @@ describe('NavigationTransactionPipeline branch render cancellation', () => {
       enterRoutes: [createMatchedRoute('/page')],
       transitionOrder: null,
     });
-    transaction.viewSnapshot = ['<page/>'];
+    transaction.viewSnapshot = asViewSnapshot('<page/>');
 
     await new NavigationTransactionPipeline(transaction).runRender();
 
@@ -215,7 +215,7 @@ describe('NavigationTransactionPipeline branch render cancellation', () => {
       enterRoutes: [createMatchedRoute('/a'), createMatchedRoute('/b')],
       transitionOrder: null,
     });
-    transaction.viewSnapshot = ['<a/>', '<b/>'];
+    transaction.viewSnapshot = asViewSnapshot('<a/>', '<b/>');
     jest.spyOn(transaction, 'isActive').mockImplementation(() => active);
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRender();

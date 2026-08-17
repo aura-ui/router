@@ -22,6 +22,7 @@ failure handling in `failure/README.md`.
 | `view-mount/` | View staging/commit tracking, fast-path `runViewCommit`, branch mount (`branch-mount` → `mountResolvedView`), staged-view rollback. |
 | `failure/` | Model only: `NavigationError` (cause) in `navigation-error.ts`, `NavigationFailure` (terminal snapshot) in `navigation-failure.ts`. Apply side effects → `navigation-outcome.ts`. |
 | `resource-graph/` | Prepare composition root: owns `HandoffCache`, `DataGraph`, `ViewGraph`; sole `load()` entry for navigation and speculative prepare; supersede pin (`pinSharedBufferFor`). |
+| `document/` | Document head contract: `DocumentHeadValues`, extract from HTML, resolve attrs vs htmlHead. Host apply stays in `aura-router`. |
 | `view-graph/` | Route view attrs → payload cache → loader payload. Owned by `ResourceGraph` (not called directly from pipeline). |
 | `data-graph/` | Route `load` hooks, SWR `cache.data`. Owned by `ResourceGraph` (not called directly from pipeline). |
 | `invalidate-router-cache.ts` | Shared invalidate helpers for data/view caches (`key` / route pattern / `match` / all). |

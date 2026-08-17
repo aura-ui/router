@@ -1,6 +1,6 @@
 import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { ViewGraph, RouteInstance } from '../../core';
+import type { ViewGraph, RouteInstance, ViewPayload, ViewSnapshotEntry } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { EventBus } from '../../core/events';
@@ -23,6 +23,13 @@ import {
 import { createTestRoute } from './create-test-route';
 import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
 import { withResolvedView } from './with-resolved-view';
+
+/** View snapshot entries for pipeline / ResourceGraph fixtures (`head` unset). */
+export function asViewSnapshot(
+  ...payloads: readonly (ViewPayload | null)[]
+): ViewSnapshotEntry[] {
+  return payloads.map((payload) => ({ payload, head: undefined }));
+}
 
 /** Match-level fields that may be mixed into the second arg of {@link createMatchedRoute}. */
 type MatchedRouteFieldOverrides = Partial<
@@ -227,6 +234,7 @@ export function createViewGraphFromLoadView(
   return {
     loadView,
     hasCachedView: jest.fn().mockReturnValue(false),
+    getCachedHtmlHead: jest.fn().mockReturnValue(undefined),
     destroy: jest.fn(),
     invalidate: jest.fn().mockReturnValue(0),
     load: jest.fn(async (matches: readonly MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {

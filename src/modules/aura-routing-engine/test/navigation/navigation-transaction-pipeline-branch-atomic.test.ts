@@ -6,7 +6,7 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
 import { NavigationError, NavigationFailure } from '../../core/failure';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as branchMount from '../../core/view-mount/branch-mount';
-import { createMatchedRoute } from '../_helpers/create-mock-transaction';
+import { createMatchedRoute, asViewSnapshot } from '../_helpers/create-mock-transaction';
 import {
   mockRunPhaseHooks,
   mockRunViewCommit,
@@ -56,10 +56,10 @@ describe('NavigationTransactionPipeline branch prepare > commit render', () => {
       [layout, index],
       expect.objectContaining({ transaction }),
     );
-    expect(transaction.viewSnapshot).toBeUndefined();
+    expect(transaction.viewSnapshot).toEqual(asViewSnapshot('<span/>', '<span/>'));
     expect(mountEnterBranchSpy).toHaveBeenCalledWith(
       [layout, index],
-      ['<span/>', '<span/>'],
+      asViewSnapshot('<span/>', '<span/>'),
       expect.objectContaining({
         signal: transaction.signal,
         paramChangeRemount: false,
@@ -119,7 +119,7 @@ describe('NavigationTransactionPipeline branch prepare > commit render', () => {
 
     jest.spyOn(transaction.engine.resourceGraph, 'load').mockImplementation(async () => {
       callOrder.push('load');
-      return { view: ['<page/>'] };
+      return { view: asViewSnapshot('<page/>') };
     });
     mountEnterBranchSpy.mockImplementation(() => {
       callOrder.push('apply');
@@ -332,7 +332,7 @@ describe('NavigationTransactionPipeline branch transition matrix', () => {
 
     jest.spyOn(transaction.engine.resourceGraph, 'load').mockImplementation(async () => {
       callOrder.push('load');
-      return { view: ['<page/>'] };
+      return { view: asViewSnapshot('<page/>') };
     });
     mountEnterBranchSpy.mockImplementation(() => {
       callOrder.push('apply');

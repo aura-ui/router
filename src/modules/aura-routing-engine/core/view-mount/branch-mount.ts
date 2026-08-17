@@ -7,7 +7,7 @@ import type { MountResolvedViewOptions } from '../../../aura-route/core/types';
 import type { DataSnapshot } from '../data-graph';
 import { resolveRouteData } from '../data-graph/route-data';
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { ViewPayload } from '../view-graph';
+import type { ViewSnapshotEntry } from '../view-graph';
 
 import { isRenderError } from './view-commit-render';
 
@@ -29,7 +29,7 @@ export type MountEnterBranchResult =
  */
 export function mountEnterBranch(
   enterRoutes: readonly MatchedRouteInfo[],
-  viewSnapshot: readonly (ViewPayload | null)[],
+  viewSnapshot: readonly ViewSnapshotEntry[],
   ctx: BranchMountContext,
 ): MountEnterBranchResult {
   if (ctx.aborted()) return { status: 'aborted' };
@@ -51,7 +51,7 @@ export function mountEnterBranch(
       : undefined;
     const options: MountResolvedViewOptions = {
       parentSignal: ctx.signal,
-      preResolvedView: viewSnapshot[i]!,
+      preResolvedView: viewSnapshot[i]!.payload,
       ...(data !== undefined && { data }),
       ...(ctx.paramChangeRemount ? { paramChangeRemount: true } : {}),
     };

@@ -136,7 +136,7 @@ export class NavigationPulse {
 
   /** Emits `navigation:commit:end` + `node:activate` for enter routes. */
   commitEnd(tx: NavigationTransaction): void {
-    const { from, to, action, hash, transactionId, transitionPlan } = tx;
+    const { from, to, action, hash, transactionId, transitionPlan, viewSnapshot, engine } = tx;
     this.bus.emit({
       type: 'navigation:commit:end',
       id: transactionId,
@@ -144,6 +144,7 @@ export class NavigationPulse {
       to,
       action,
       hash,
+      htmlHead: viewSnapshot?.[viewSnapshot.length - 1]?.head ?? engine.viewGraph.getCachedHtmlHead(to), // ?? - for update and fast path
     });
     for (const route of transitionPlan?.enterRoutes ?? []) {
       this.bus.emit({

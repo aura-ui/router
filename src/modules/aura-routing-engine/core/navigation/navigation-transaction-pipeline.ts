@@ -316,11 +316,10 @@ export class NavigationTransactionPipeline {
 
   /**
    * Atomic render: sync-mount {@link NavigationTransaction.viewSnapshot} into the DOM.
-   * Clears the snapshot after read. Missing snapshot → `cancelled`.
+   * Missing snapshot → `cancelled`.
    */
   private commitEnterBranchToDom(): PipelineStepResult | Promise<PipelineStepResult> {
     const viewSnapshot = this.transaction.viewSnapshot;
-    this.transaction.viewSnapshot = undefined;
     if (!viewSnapshot) return { status: 'cancelled' };
 
     const tx = this.transaction;

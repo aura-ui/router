@@ -1,4 +1,5 @@
 import { stringToHtml } from '../../../aura-utils/misc/dom';
+import { hasDocumentHead } from './resolve';
 import { getHeadTags } from './schema';
 import type { DocumentHeadValues } from './types';
 
@@ -23,11 +24,16 @@ export function processHtml(html: string, selector: string | null | undefined, h
   return { fragment: html, head };
 }
 
-/** Title + {@link getHeadTags}. Empty → `undefined`. */
+/** Title, `<html lang|dir>`, and {@link getHeadTags}. Empty → `undefined`. */
 export function extractDocumentHead(doc: Document): DocumentHeadValues | undefined {
   const head: DocumentHeadValues = {};
   const title = doc.title.trim();
   if (title) head.title = title;
+
+  const lang = doc.documentElement.getAttribute('lang')?.trim();
+  if (lang) head.lang = lang;
+  const dir = doc.documentElement.getAttribute('dir')?.trim();
+  if (dir) head.dir = dir;
 
   const tags: Record<string, string> = {};
   for (const spec of getHeadTags()) {
@@ -36,5 +42,5 @@ export function extractDocumentHead(doc: Document): DocumentHeadValues | undefin
   }
   if (Object.keys(tags).length) head.tags = tags;
 
-  return head.title || head.tags ? head : undefined;
+  return hasDocumentHead(head) ? head : undefined;
 }

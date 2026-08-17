@@ -6,6 +6,8 @@ import { getHeadTags, type HeadTagSpec } from '../../aura-routing-engine/core/do
 const OWNED = 'data-aura-head';
 
 let bootTitle: string | undefined;
+let bootLang: string | undefined;
+let bootDir: string | undefined;
 
 /** Sync live `document` head after view commit. */
 export function applyDocumentHead(to: MatchedRouteInfo, htmlHead?: DocumentHeadValues): void {
@@ -15,9 +17,20 @@ export function applyDocumentHead(to: MatchedRouteInfo, htmlHead?: DocumentHeadV
   if (resolved?.title !== undefined) document.title = resolved.title;
   else document.title = bootTitle;
 
+  bootLang ??= document.documentElement.getAttribute('lang') ?? '';
+  bootDir ??= document.documentElement.getAttribute('dir') ?? '';
+  syncHtmlAttr('lang', resolved?.lang, bootLang);
+  syncHtmlAttr('dir', resolved?.dir, bootDir);
+
   for (const spec of getHeadTags()) {
     syncOwnedTag(spec, resolved?.tags?.[spec.id]);
   }
+}
+
+function syncHtmlAttr(name: 'lang' | 'dir', value: string | undefined, boot: string): void {
+  const next = value !== undefined ? value : boot;
+  if (next) document.documentElement.setAttribute(name, next);
+  else document.documentElement.removeAttribute(name);
 }
 
 function syncOwnedTag(spec: HeadTagSpec, value: string | undefined): void {

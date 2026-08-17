@@ -44,6 +44,8 @@ describe('applyDocumentHead', () => {
 
   afterEach(() => {
     document.title = '';
+    document.documentElement.removeAttribute('lang');
+    document.documentElement.removeAttribute('dir');
     document.head.replaceChildren();
     document.body.replaceChildren();
     require('../../aura-routing-engine/core/document').configureDocumentHead();
@@ -129,6 +131,17 @@ describe('applyDocumentHead', () => {
     expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
       'https://example.com/users/7',
     );
+  });
+
+  it('writes and restores boot lang and dir from htmlHead', () => {
+    document.documentElement.setAttribute('lang', 'en');
+    applyDocumentHead(matchedRoute('/de'), { lang: 'de', dir: 'rtl' });
+    expect(document.documentElement.getAttribute('lang')).toBe('de');
+    expect(document.documentElement.getAttribute('dir')).toBe('rtl');
+
+    applyDocumentHead(matchedRoute('/empty'));
+    expect(document.documentElement.getAttribute('lang')).toBe('en');
+    expect(document.documentElement.hasAttribute('dir')).toBe(false);
   });
 
   it('writes and reverts open graph tags from htmlHead', () => {

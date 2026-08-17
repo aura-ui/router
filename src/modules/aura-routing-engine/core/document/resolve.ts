@@ -3,10 +3,10 @@ import { substituteTokens } from '../route-tree/resolve-view-content';
 import { CANONICAL_ID, META_DESCRIPTION_ID } from './schema';
 import type { DocumentHeadValues } from './types';
 
-/** True when title or at least one tag is set. */
+/** True when title, html attrs, or at least one tag is set. */
 export function hasDocumentHead(head: DocumentHeadValues | null | undefined): head is DocumentHeadValues {
   if (!head) return false;
-  if (head.title) return true;
+  if (head.title || head.lang || head.dir) return true;
   return Object.values(head.tags ?? {}).some(Boolean);
 }
 

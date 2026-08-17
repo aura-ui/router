@@ -56,8 +56,10 @@ function matchedRoute(
 }
 
 describe('hasDocumentHead', () => {
-  it('is true when title or a tag is set', () => {
+  it('is true when title, html attrs, or a tag is set', () => {
     expect(hasDocumentHead({ title: 'A' })).toBe(true);
+    expect(hasDocumentHead({ lang: 'de' })).toBe(true);
+    expect(hasDocumentHead({ dir: 'rtl' })).toBe(true);
     expect(hasDocumentHead({ tags: { [META_DESCRIPTION_ID]: 'D' } })).toBe(true);
     expect(hasDocumentHead({ tags: { [CANONICAL_ID]: 'https://x' } })).toBe(true);
     expect(hasDocumentHead({})).toBe(false);
@@ -100,6 +102,15 @@ describe('extractDocumentHead', () => {
         'meta:property:og:image': 'https://img/og.png',
         'meta:name:twitter:card': 'summary',
       },
+    });
+  });
+
+  it('reads lang and dir from the html element', () => {
+    const html = `<html lang="de" dir="rtl"><head><title>T</title></head></html>`;
+    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+      title: 'T',
+      lang: 'de',
+      dir: 'rtl',
     });
   });
 

@@ -9,22 +9,14 @@ export function applyDocumentHead(to: MatchedRouteInfo, htmlHead?: DocumentHeadV
   if (head.title !== undefined) document.title = head.title;
 
   if (head.description !== undefined) {
-    let el = document.querySelector('meta[name="description"]');
-    if (!el) {
-      el = document.createElement('meta');
-      el.setAttribute('name', 'description');
-      document.head.appendChild(el);
-    }
+    const el = document.head.querySelector('meta[name="description"]') ?? document.head.appendChild(document.createElement('meta'));
+    el.setAttribute('name', 'description');
     el.setAttribute('content', head.description);
   }
 
   if (head.canonical !== undefined) {
-    let el = document.querySelector('link[rel="canonical"]');
-    if (!el) {
-      el = document.createElement('link');
-      el.setAttribute('rel', 'canonical');
-      document.head.appendChild(el);
-    }
+    const el = document.head.querySelector('link[rel="canonical"]') ?? document.head.appendChild(document.createElement('link'));
+    el.setAttribute('rel', 'canonical');
     el.setAttribute('href', head.canonical);
   }
 }

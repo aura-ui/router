@@ -1,4 +1,4 @@
-export { extractDocumentHead, processHtml } from './extract';
-export { hasDocumentHead, resolveDocumentHeadWithParams } from './resolve';
-export { configureDocumentHead, type HeadTagInput } from './schema';
-export type { DocumentHeadValues } from './types';
+export { extractDocumentMeta, processHtml } from './extract';
+export { hasDocumentMeta, resolveDocumentMetaWithParams } from './resolve';
+export { configureDocumentMeta, type HeadTagInput } from './schema';
+export type { DocumentMetaValues } from './types';

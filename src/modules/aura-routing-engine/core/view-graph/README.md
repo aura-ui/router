@@ -39,9 +39,9 @@ const viewGraph = new ViewGraph({
   cache: new ViewPayloadCache(),
 });
 
-const { payload, head } = await viewGraph.loadView(routeInfo, signal, { data: hookSnapshot });
+const { payload, meta } = await viewGraph.loadView(routeInfo, signal, { data: hookSnapshot });
 // payload: string | Node | null
-// head: DocumentHeadValues | undefined (url html; иначе undefined)
+// meta: DocumentMetaValues | undefined (url html; иначе undefined)
 ```
 
 Кастомный loader регистрируется на роутере одной строкой — подробнее в разделе [Кастомный loader](#кастомный-loader).
@@ -82,24 +82,24 @@ type ViewKind = 'layout' | 'view';
 
 | Уровень | Тип | Смысл |
 |---------|-----|--------|
-| Loader | `ViewLoadResult` | `{ kind: 'html' \| 'markup' \| 'fragment', value }` (`html` может нести `head`) |
-| Graph | `ViewGraphLoadResult` | `{ payload, head }` / `{ error }` / `{}` |
+| Loader | `ViewLoadResult` | `{ kind: 'html' \| 'markup' \| 'fragment', value }` (`html` может нести `meta`) |
+| Graph | `ViewGraphLoadResult` | `{ payload, meta }` / `{ error }` / `{}` |
 | Mount | `ViewPayload` | `string \| Node` — поле `payload` после снятия `kind` |
 
 ```ts
 type ViewLoadResult =
-  | { kind: 'html'; value: string; head?: DocumentHeadValues }
+  | { kind: 'html'; value: string; meta?: DocumentMetaValues }
   | { kind: 'markup'; value: string }
   | { kind: 'fragment'; value: DocumentFragment };
 
 type ViewGraphLoadResult = {
   payload?: ViewPayload | null;
-  head?: DocumentHeadValues;
+  meta?: DocumentMetaValues;
   error?: TerminalOutcome;
 };
 ```
 
-`ViewGraph` снимает `kind`: `html`/`markup` → string, `fragment` → node; `head` только с `kind: 'html'`. Итог `loadView` / `loadPayload` — `{ payload, head }`, не голый `ViewPayload`.
+`ViewGraph` снимает `kind`: `html`/`markup` → string, `fragment` → node; `meta` только с `kind: 'html'`. Итог `loadView` / `loadPayload` — `{ payload, meta }`, не голый `ViewPayload`.
 
 `LoaderFn` может вернуть `ViewLoadResult` или сахар `string | Node` — `FnLoader` обернёт: `string` → `html`, `Node` → `fragment`.
 
@@ -130,7 +130,7 @@ ViewPayloadCache.resolve(key)?                 ← только если descrip
 LoaderRegistry.get(loader).load(context)
       │
       ▼
-{ payload, head }                      ← ViewGraphLoadResult (skip `{}` / `{ error }`)
+{ payload, meta }                      ← ViewGraphLoadResult (skip `{}` / `{ error }`)
 ```
 
 **Порты** — узкий surface для DI и моков:

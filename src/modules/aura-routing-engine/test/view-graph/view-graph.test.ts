@@ -34,7 +34,7 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<layout>users-layout</layout>',
-      head: undefined,
+      meta: undefined,
     });
   });
 
@@ -47,7 +47,7 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: undefined,
+      meta: undefined,
     });
   });
 
@@ -95,11 +95,11 @@ describe('ViewGraph', () => {
     expect(viewGraph.hasCachedView(route)).toBe(false);
   });
 
-  it('colocates document head on load results and restores it from cache.view hits', async () => {
+  it('colocates document meta on load results and restores it from cache.view hits', async () => {
     registry.register('html', async () => ({
       kind: 'html' as const,
       value: '<p>about</p>',
-      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
+      meta: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     }));
     const route = matched('/about', {
       route: {
@@ -113,27 +113,27 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
+      meta: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
+      meta: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
-    expect(viewGraph.getCachedHtmlHead(route)).toEqual({
+    expect(viewGraph.getCachedHtmlMeta(route)).toEqual({
       title: 'About',
       tags: { 'meta:name:description': 'Desc' },
     });
   });
 
-  it('keeps document head on handoff settle when cache.view is off', async () => {
+  it('keeps document meta on handoff settle when cache.view is off', async () => {
     let loads = 0;
     registry.register('html', async () => {
       loads++;
       return {
         kind: 'html' as const,
         value: '<p>about</p>',
-        head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
+        meta: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
       };
     });
     const route = matched('/about', {
@@ -143,19 +143,19 @@ describe('ViewGraph', () => {
         cache: { dom: false, view: false, data: false },
       },
       resolvedView: { loader: 'html', content: 'x' },
-      viewKey: 'view:/about-head-handoff',
+      viewKey: 'view:/about-meta-handoff',
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
+      meta: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
+      meta: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
     expect(loads).toBe(1);
-    expect(viewGraph.getCachedHtmlHead(route)).toBeUndefined();
+    expect(viewGraph.getCachedHtmlMeta(route)).toBeUndefined();
   });
 
   it('caches string payloads when cache.view is enabled', async () => {
@@ -311,7 +311,7 @@ describe('ViewGraph', () => {
 
     const second = viewGraph.loadView(route, new AbortController().signal, { mode: 'navigation' });
     releaseGate();
-    await expect(second).resolves.toEqual({ payload: '<p>2</p>', head: undefined });
+    await expect(second).resolves.toEqual({ payload: '<p>2</p>', meta: undefined });
     expect(loads).toBe(2);
   });
 
@@ -372,8 +372,8 @@ describe('ViewGraph', () => {
       viewGraph.load([parent, child], new AbortController().signal),
     ).resolves.toEqual({
       data: [
-        { payload: 'parent', head: undefined },
-        { payload: 'child', head: undefined },
+        { payload: 'parent', meta: undefined },
+        { payload: 'child', meta: undefined },
       ],
     });
   });
@@ -637,7 +637,7 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: 'layout:shell',
-      head: undefined,
+      meta: undefined,
     });
   });
 
@@ -649,7 +649,7 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: null,
-      head: undefined,
+      meta: undefined,
     });
   });
 
@@ -661,7 +661,7 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<iframe src="/x"></iframe>',
-      head: undefined,
+      meta: undefined,
     });
   });
 

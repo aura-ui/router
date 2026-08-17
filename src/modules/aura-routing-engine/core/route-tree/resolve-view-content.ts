@@ -15,7 +15,7 @@ export type ResolveViewContentInput = {
   search?: string;
 };
 
-/** Replace `:name` from `vars`. Missing tokens stay. Also used by document head attrs. */
+/** Replace `:name` from `vars`. Missing tokens stay. Also used by document meta route attrs. */
 export function substituteTokens(template: string, vars: Record<string, string>): string {
   if (!template.includes(':')) return template;
   return template.replace(TOKEN, (token, name: string) => vars[name] ?? token);

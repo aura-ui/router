@@ -106,14 +106,14 @@ export {
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';
 
-// --- Document head (title/description contract) ---
+// --- Document meta (title/description contract) ---
 
 export {
-  hasDocumentHead,
-  extractDocumentHead,
-  resolveDocumentHeadWithParams,
-  configureDocumentHead,
-  type DocumentHeadValues,
+  hasDocumentMeta,
+  extractDocumentMeta,
+  resolveDocumentMetaWithParams,
+  configureDocumentMeta,
+  type DocumentMetaValues,
   type HeadTagInput,
 } from './core/document';
 

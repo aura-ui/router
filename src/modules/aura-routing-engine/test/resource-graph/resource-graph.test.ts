@@ -107,8 +107,8 @@ describe('ResourceGraph', () => {
     });
     expect(result.data?.get('k')).toEqual({ ok: true });
     expect(result.view).toEqual([
-      { payload: null, head: undefined },
-      { payload: null, head: undefined },
+      { payload: null, meta: undefined },
+      { payload: null, meta: undefined },
     ]);
   });
 
@@ -138,8 +138,8 @@ describe('ResourceGraph', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.view).toEqual([
-      { payload: '<layout/>', head: undefined },
-      { payload: '<page/>', head: undefined },
+      { payload: '<layout/>', meta: undefined },
+      { payload: '<page/>', meta: undefined },
     ]);
   });
 

@@ -1,5 +1,5 @@
 /** Extracted document metadata: `<title>`, `<html lang|dir>`, and managed `<head>` tags. */
-export type DocumentHeadValues = {
+export type DocumentMetaValues = {
   title?: string;
   /** From `<html lang>`. */
   lang?: string;

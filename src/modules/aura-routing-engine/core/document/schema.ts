@@ -44,12 +44,12 @@ const defaultHeadTags: readonly HeadTagSpec[] = [
 
 let configuredHeadTags: HeadTagSpec[] = [];
 
-/** Defaults plus `configureDocumentHead(tags)`. */
+/** Defaults plus `configureDocumentMeta(tags)`. */
 export function getHeadTags(): readonly HeadTagSpec[] {
   return configuredHeadTags.length === 0 ? defaultHeadTags : defaultHeadTags.concat(configuredHeadTags);
 }
 
 /** Replace configured tags. `[]` (or omit) clears. Call before the first fetch. */
-export function configureDocumentHead(tags: readonly HeadTagInput[] = []): void {
+export function configureDocumentMeta(tags: readonly HeadTagInput[] = []): void {
   configuredHeadTags = tags.map((item) => headTag(item.tag, item.attrs));
 }

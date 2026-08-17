@@ -1,22 +1,25 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { substituteTokens } from '../route-tree/resolve-view-content';
 import { CANONICAL_ID, META_DESCRIPTION_ID } from './schema';
-import type { DocumentHeadValues } from './types';
+import type { DocumentMetaValues } from './types';
 
 /** True when title, html attrs, or at least one tag is set. */
-export function hasDocumentHead(head: DocumentHeadValues | null | undefined): head is DocumentHeadValues {
-  if (!head) return false;
-  if (head.title || head.lang || head.dir) return true;
-  return Object.values(head.tags ?? {}).some(Boolean);
+export function hasDocumentMeta(meta: DocumentMetaValues | null | undefined): meta is DocumentMetaValues {
+  if (!meta) return false;
+  if (meta.title || meta.lang || meta.dir) return true;
+  return Object.values(meta.tags ?? {}).some(Boolean);
 }
 
 /**
- * Bind match params/query into route meta attrs, overlay on htmlHead.
+ * Bind match params/query into route meta attrs, overlay on htmlMeta.
  * `meta-title-template` wraps the page title (`%s`). Empty → `null`.
  *
  * `:name` only (path wins over query). `?` is literal — not view-search syntax.
  */
-export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: DocumentHeadValues): DocumentHeadValues | null {
+export function resolveDocumentMetaWithParams(
+  to: MatchedRouteInfo,
+  htmlMeta?: DocumentMetaValues,
+): DocumentMetaValues | null {
   const { metaTitle, metaDescription, metaTitleTemplate, metaCanonical } = to.route;
   if (
     metaTitle == null &&
@@ -24,22 +27,22 @@ export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: D
     metaTitleTemplate == null &&
     metaCanonical == null
   ) {
-    return hasDocumentHead(htmlHead) ? htmlHead : null;
+    return hasDocumentMeta(htmlMeta) ? htmlMeta : null;
   }
 
   const vars = { ...to.query, ...to.params };
-  const head: DocumentHeadValues = { ...htmlHead };
+  const meta: DocumentMetaValues = { ...htmlMeta };
   if (metaDescription != null) {
-    head.tags = { ...head.tags, [META_DESCRIPTION_ID]: substituteTokens(metaDescription, vars) };
+    meta.tags = { ...meta.tags, [META_DESCRIPTION_ID]: substituteTokens(metaDescription, vars) };
   }
   if (metaCanonical != null) {
-    head.tags = { ...head.tags, [CANONICAL_ID]: substituteTokens(metaCanonical, vars) };
+    meta.tags = { ...meta.tags, [CANONICAL_ID]: substituteTokens(metaCanonical, vars) };
   }
 
-  const title = resolveTitle(to.route, htmlHead?.title, vars);
-  if (title !== undefined) head.title = title;
+  const title = resolveTitle(to.route, htmlMeta?.title, vars);
+  if (title !== undefined) meta.title = title;
 
-  return hasDocumentHead(head) ? head : null;
+  return hasDocumentMeta(meta) ? meta : null;
 }
 
 /**

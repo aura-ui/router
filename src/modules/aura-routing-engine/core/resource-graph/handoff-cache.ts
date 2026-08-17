@@ -47,13 +47,13 @@ export type HandoffCacheOptions = {
  * Long-lived route revisit stays behind `cache.data` / `cache.view`.
  *
  * {@link DocumentFragment} is never persisted (one-shot DOM; mount empties it) —
- * bare fragments or ViewGraph values `{ payload: DocumentFragment, head }`.
+ * bare fragments or ViewGraph values `{ payload: DocumentFragment, meta }`.
  * In-flight join still works; a later resolve reloads / re-clones.
  *
  * Work-signal policy: {@link HandoffWorkRegistry} (короткая модель interest / workSignal / hold).
  *
  * Owned by {@link ResourceGraph}; DataGraph / ViewGraph share one instance
- * (different keys; view values may wrap payload+head).
+ * (different keys; view values may wrap payload+meta).
  */
 export class HandoffCache extends AuraResolvableSwrCache<unknown> {
   private readonly work = new HandoffWorkRegistry();

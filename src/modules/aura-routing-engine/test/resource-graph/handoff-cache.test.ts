@@ -83,12 +83,12 @@ describe('HandoffCache', () => {
       loads++;
       const fragment = document.createDocumentFragment();
       fragment.appendChild(document.createElement('section'));
-      return { payload: fragment, head: { title: 'X' } };
+      return { payload: fragment, meta: { title: 'X' } };
     });
 
     expect(first).toEqual({
       payload: expect.any(DocumentFragment),
-      head: { title: 'X' },
+      meta: { title: 'X' },
     });
     expect(handoff.get('view-frag')).toBeUndefined();
 

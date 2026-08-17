@@ -144,7 +144,7 @@ export class NavigationPulse {
       to,
       action,
       hash,
-      htmlHead: viewSnapshot?.[viewSnapshot.length - 1]?.head ?? engine.viewGraph.getCachedHtmlHead(to), // ?? - for update and fast path
+      htmlMeta: viewSnapshot?.[viewSnapshot.length - 1]?.meta ?? engine.viewGraph.getCachedHtmlMeta(to), // ?? - for update and fast path
     });
     for (const route of transitionPlan?.enterRoutes ?? []) {
       this.bus.emit({

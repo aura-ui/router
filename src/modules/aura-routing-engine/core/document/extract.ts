@@ -1,46 +1,46 @@
 import { stringToHtml } from '../../../aura-utils/misc/dom';
-import { hasDocumentHead } from './resolve';
+import { hasDocumentMeta } from './resolve';
 import { getHeadTags } from './schema';
-import type { DocumentHeadValues } from './types';
+import type { DocumentMetaValues } from './types';
 
 export type PreparedHtml = {
   fragment: string;
-  head: DocumentHeadValues | undefined;
+  meta: DocumentMetaValues | undefined;
 };
 
 /**
- * One parse pass: optional `extract` fragment + document head from `<head>`.
- * On extract miss, warns and keeps full `html`. `head` is always present (`undefined` if empty).
+ * One parse pass: optional `extract` fragment + document meta from `<head>`.
+ * On extract miss, warns and keeps full `html`. `meta` is always present (`undefined` if empty).
  */
 export function processHtml(html: string, selector: string | null | undefined, href: string): PreparedHtml {
   const doc = stringToHtml(html);
-  const head = extractDocumentHead(doc);
-  if (!selector) return { fragment: html, head };
+  const meta = extractDocumentMeta(doc);
+  if (!selector) return { fragment: html, meta };
 
   const el = doc.querySelector(selector);
-  if (el) return { fragment: el.outerHTML, head };
+  if (el) return { fragment: el.outerHTML, meta };
 
   console.warn(`Nothing found for extract selector "${selector}" — using full HTML. Page — ${href}`);
-  return { fragment: html, head };
+  return { fragment: html, meta };
 }
 
 /** Title, `<html lang|dir>`, and {@link getHeadTags}. Empty → `undefined`. */
-export function extractDocumentHead(doc: Document): DocumentHeadValues | undefined {
-  const head: DocumentHeadValues = {};
+export function extractDocumentMeta(doc: Document): DocumentMetaValues | undefined {
+  const meta: DocumentMetaValues = {};
   const title = doc.title.trim();
-  if (title) head.title = title;
+  if (title) meta.title = title;
 
   const lang = doc.documentElement.getAttribute('lang')?.trim();
-  if (lang) head.lang = lang;
+  if (lang) meta.lang = lang;
   const dir = doc.documentElement.getAttribute('dir')?.trim();
-  if (dir) head.dir = dir;
+  if (dir) meta.dir = dir;
 
   const tags: Record<string, string> = {};
   for (const spec of getHeadTags()) {
     const value = doc.querySelector(spec.selector)?.getAttribute(spec.valueAttr)?.trim();
     if (value) tags[spec.id] = value;
   }
-  if (Object.keys(tags).length) head.tags = tags;
+  if (Object.keys(tags).length) meta.tags = tags;
 
-  return hasDocumentHead(head) ? head : undefined;
+  return hasDocumentMeta(meta) ? meta : undefined;
 }

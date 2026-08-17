@@ -10,11 +10,11 @@ export class UrlLoader extends Loader {
   async load(ctx: ViewLoadContext): Promise<ViewLoadResult | null> {
     const { content, signal, extract, route } = ctx;
     const html = await this.env.fetchText(this.env.resolveUrl(content), signal);
-    const { fragment, head } = processHtml(html, extract, route.href);
+    const { fragment, meta } = processHtml(html, extract, route.href);
     return {
       kind: 'html',
       value: fragment,
-      head,
+      meta,
     };
   }
 }

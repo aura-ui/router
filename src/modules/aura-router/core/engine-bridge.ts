@@ -122,7 +122,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
         action: event.action,
         hash: event.hash,
       });
-      applyDocumentMeta(event.to, event.htmlHead);
+      applyDocumentMeta(event.to, event.htmlMeta);
       syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION, navigationDomDetail(event.from, event.to));
       return;

@@ -82,7 +82,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     // Handoff only — not long `cache.*`.
     expect(dataGraph.getData(route)).toBeUndefined();
     expect(handoff.get(route.dataKey!)).toEqual({ id: 1 });
-    expect(handoff.get(route.viewKey!)).toEqual({ payload: '<span>users</span>', head: undefined });
+    expect(handoff.get(route.viewKey!)).toEqual({ payload: '<span>users</span>', meta: undefined });
 
     const navTx = prepareTx(branch, engine, 'navigation');
     const result = await resourceGraph.load(branch, {
@@ -297,7 +297,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(dataLoads).toBe(1);
     expect(viewLoads).toBe(1);
     expect(handoff.get(route.dataKey!)).toEqual({ n: 1 });
-    expect(handoff.get(route.viewKey!)).toEqual({ payload: '<span>1</span>', head: undefined });
+    expect(handoff.get(route.viewKey!)).toEqual({ payload: '<span>1</span>', meta: undefined });
 
     resourceGraph.consumeSharedBufferFor(branch);
     expect(handoff.get(route.dataKey!)).toBeUndefined();

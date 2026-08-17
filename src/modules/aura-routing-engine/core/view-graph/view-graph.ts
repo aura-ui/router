@@ -3,7 +3,7 @@ import { AuraResolvableSwrCache } from '../../../aura-cache/core/aura-resolvable
 import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
-import { type DocumentHeadValues } from '../document';
+import { type DocumentMetaValues } from '../document';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
 import type { LoadHookMode } from '../data-graph';
 import { createViewLoadError } from '../failure';
@@ -23,10 +23,10 @@ import type { ViewDescriptor, ViewLoadContext, ViewPayload, ViewSnapshotEntry } 
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
-/** Long `cache.view` entry: string payload + document head (same invalidate / gc lifecycle). */
+/** Long `cache.view` entry: string payload + document meta (same invalidate / gc lifecycle). */
 type ViewCacheEntry = {
   payload: string;
-  head: DocumentHeadValues | undefined;
+  meta: DocumentMetaValues | undefined;
 };
 
 /** Options for the long-lived `cache.view` store. */
@@ -59,13 +59,13 @@ export type ViewLoadOptions = {
 };
 
 /**
- * `{ payload, head }` ok · `{ error }` navigation stop · `{}` soft skip (no descriptor / prefetch).
+ * `{ payload, meta }` ok · `{ error }` navigation stop · `{}` soft skip (no descriptor / prefetch).
  * Success fields match {@link ViewSnapshotEntry}. `{ error }` / `{}` match DataGraph; DataGraph success is `{ data }`.
  */
 export type ViewGraphLoadResult = {
   payload?: ViewPayload | null;
-  /** Always present on success; `undefined` when the loader did not extract a document head. */
-  head?: DocumentHeadValues;
+  /** Always present on success; `undefined` when the loader did not extract document meta. */
+  meta?: DocumentMetaValues;
   error?: TerminalOutcome;
 };
 
@@ -100,7 +100,7 @@ export type RouteViewSource = {
  *
  * Shared prepare: {@link HandoffCache.hold} → loader/`workSignal`; interest →
  * {@link awaitUntilAbort}; `finally` → release.
- * Handoff value for view keys is `{ payload, head }` (head survives prefetch joins).
+ * Handoff value for view keys is `{ payload, meta }` (meta survives prefetch joins).
  * Long revisit: string payloads with `cache.view` stay in {@link AuraResolvableSwrCache}
  * as {@link ViewCacheEntry} (`DocumentFragment` is never long-cached — mount empties it).
  */
@@ -181,7 +181,7 @@ export class ViewGraph {
 
   /**
    * Load payload for a matched route (`layout` wins over resolved `view` attr).
-   * Single-route entry ({@link ViewResolverPort}). Outcome: `{ payload, head }` / `{ error }` / `{}`.
+   * Single-route entry ({@link ViewResolverPort}). Outcome: `{ payload, meta }` / `{ error }` / `{}`.
    */
   loadView(
     match: MatchedRouteInfo,
@@ -253,19 +253,19 @@ export class ViewGraph {
   }
 
   /**
-   * Document head colocated with a warm `cache.view` entry (same key as {@link hasCachedView}).
-   * Used when prepare skipped loads (view-cache fast path / update) but commit still needs head.
+   * Document meta colocated with a warm `cache.view` entry (same key as {@link hasCachedView}).
+   * Used when prepare skipped loads (view-cache fast path / update) but commit still needs meta.
    */
-  getCachedHtmlHead(match: MatchedRouteInfo): DocumentHeadValues | undefined {
+  getCachedHtmlMeta(match: MatchedRouteInfo): DocumentMetaValues | undefined {
     const key = resolveViewCacheKey(match);
     if (!key) return undefined;
-    return this.cache.get(key)?.head;
+    return this.cache.get(key)?.meta;
   }
 
   /**
    * Invalidate long `cache.view` entries ({@link RouterInvalidateOptions}, default policy `stale`).
    * Clears the shared prepare handoff buffer so the next load/prefetch cannot reuse stale settles.
-   * Document head is part of each entry — invalidated with the payload.
+   * Document meta is part of each entry — invalidated with the payload.
    */
   invalidate(options: RouterInvalidateOptions = {}): number {
     const count = invalidateRouterCache(this.cache, options, 'stale');
@@ -330,14 +330,14 @@ export class ViewGraph {
         buildLoadContext(match, descriptor, workSignal, data),
       );
       const payload = result?.value ?? null;
-      const head = result?.kind === 'html' ? result.head : undefined;
+      const meta = result?.kind === 'html' ? result.meta : undefined;
 
       if (descriptor.cache && typeof payload === 'string') {
         const key = resolveViewCacheKey(match, data);
         if (key) {
           this.cache.set(
             key,
-            { payload, head },
+            { payload, meta },
             {
               gcTime: match.route.cacheTime ?? undefined,
               staleTime: match.route.cacheRefresh ?? undefined,
@@ -346,7 +346,7 @@ export class ViewGraph {
         }
       }
 
-      return { payload, head };
+      return { payload, meta };
     } catch (error: unknown) {
       throwIfAborted(workSignal);
       throw createViewLoadError(descriptor.loader, match.pattern, error);

@@ -31,13 +31,13 @@ export interface AuraRouteInterface {
   /** `scroll-behavior` — native smooth | instant | auto. */
   scrollBehavior: ScrollBehaviorAttr | null;
   extract: string | null;
-  /** `meta-title` — document title (`:param` tokens); `null` → HTML head fallback / unchanged. */
+  /** `meta-title` — document title (`:param` tokens); `null` → extracted HTML meta fallback / unchanged. */
   metaTitle: string | null;
   /** `meta-title-template` — wraps the page title (`%s`); `null` → no wrap. */
   metaTitleTemplate: string | null;
-  /** `meta-description` — description meta (`:param` tokens); `null` → HTML head fallback / unchanged. */
+  /** `meta-description` — description meta (`:param` tokens); `null` → extracted HTML meta fallback / unchanged. */
   metaDescription: string | null;
-  /** `meta-canonical` — canonical link href (`:param` tokens); `null` → HTML head fallback / unchanged. */
+  /** `meta-canonical` — canonical link href (`:param` tokens); `null` → extracted HTML meta fallback / unchanged. */
   metaCanonical: string | null;
   readonly type: RouteType;
   readonly transition: RouteTransitionType;

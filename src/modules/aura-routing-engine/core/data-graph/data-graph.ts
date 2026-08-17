@@ -37,7 +37,7 @@ export type DataSnapshot = ReadonlyMap<string, unknown>;
 
 /**
  * `{ data }` ok · `{ error }` navigation stop · `{}` soft skip (no hooks / prefetch).
- * Shared with ViewGraph: `{ error }` / skip `{}`. Success field here is `data`; ViewGraph uses `{ payload, head }`.
+ * Shared with ViewGraph: `{ error }` / skip `{}`. Success field here is `data`; ViewGraph uses `{ payload, meta }`.
  */
 export type DataGraphRouteLoadResult<T = unknown> = {
   data?: T;

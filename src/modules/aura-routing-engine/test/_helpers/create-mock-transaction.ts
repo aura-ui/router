@@ -24,11 +24,11 @@ import { createTestRoute } from './create-test-route';
 import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
 import { withResolvedView } from './with-resolved-view';
 
-/** View snapshot entries for pipeline / ResourceGraph fixtures (`head` unset). */
+/** View snapshot entries for pipeline / ResourceGraph fixtures (`meta` unset). */
 export function asViewSnapshot(
   ...payloads: readonly (ViewPayload | null)[]
 ): ViewSnapshotEntry[] {
-  return payloads.map((payload) => ({ payload, head: undefined }));
+  return payloads.map((payload) => ({ payload, meta: undefined }));
 }
 
 /** Match-level fields that may be mixed into the second arg of {@link createMatchedRoute}. */
@@ -234,7 +234,7 @@ export function createViewGraphFromLoadView(
   return {
     loadView,
     hasCachedView: jest.fn().mockReturnValue(false),
-    getCachedHtmlHead: jest.fn().mockReturnValue(undefined),
+    getCachedHtmlMeta: jest.fn().mockReturnValue(undefined),
     destroy: jest.fn(),
     invalidate: jest.fn().mockReturnValue(0),
     load: jest.fn(async (matches: readonly MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {

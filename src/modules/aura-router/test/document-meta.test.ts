@@ -48,7 +48,7 @@ describe('applyDocumentMeta', () => {
     document.documentElement.removeAttribute('dir');
     document.head.replaceChildren();
     document.body.replaceChildren();
-    require('../../aura-routing-engine/core/document').configureDocumentHead();
+    require('../../aura-routing-engine/core/document').configureDocumentMeta();
   });
 
   it('writes document.title and creates description meta', () => {
@@ -66,7 +66,7 @@ describe('applyDocumentMeta', () => {
     );
   });
 
-  it('writes canonical from htmlHead even without description', () => {
+  it('writes canonical from htmlMeta even without description', () => {
     applyDocumentMeta(matchedRoute('/about'), {
       title: 'About',
       tags: { 'link:rel:canonical': 'https://example.com/about' },
@@ -133,7 +133,7 @@ describe('applyDocumentMeta', () => {
     );
   });
 
-  it('writes and restores boot lang and dir from htmlHead', () => {
+  it('writes and restores boot lang and dir from htmlMeta', () => {
     document.documentElement.setAttribute('lang', 'en');
     applyDocumentMeta(matchedRoute('/de'), { lang: 'de', dir: 'rtl' });
     expect(document.documentElement.getAttribute('lang')).toBe('de');
@@ -144,7 +144,7 @@ describe('applyDocumentMeta', () => {
     expect(document.documentElement.hasAttribute('dir')).toBe(false);
   });
 
-  it('writes and reverts open graph tags from htmlHead', () => {
+  it('writes and reverts open graph tags from htmlMeta', () => {
     applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:property:og:title': 'Share A' } });
     expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe('Share A');
 
@@ -155,7 +155,7 @@ describe('applyDocumentMeta', () => {
   it('applies tags registered via AuraRouter.configure', () => {
     const { AuraRouter } = require('../core/aura-router');
     AuraRouter.configure({
-      documentHead: { tags: [{ tag: 'meta', attrs: { name: 'theme-color' } }] },
+      documentMeta: { tags: [{ tag: 'meta', attrs: { name: 'theme-color' } }] },
     });
 
     applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });

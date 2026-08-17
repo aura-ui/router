@@ -1,5 +1,5 @@
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
-import { resolveDocumentHeadWithParams, type DocumentHeadValues } from '../../aura-routing-engine/core/document';
+import { resolveDocumentMetaWithParams, type DocumentMetaValues } from '../../aura-routing-engine/core/document';
 import { getHeadTags, type HeadTagSpec } from '../../aura-routing-engine/core/document/schema';
 
 /** Marks tags this apply wrote. Next omit removes only those. */
@@ -10,8 +10,8 @@ let bootLang: string | undefined;
 let bootDir: string | undefined;
 
 /** Sync live document meta (title, `<html lang|dir>`, managed `<head>` tags) after view commit. */
-export function applyDocumentMeta(to: MatchedRouteInfo, htmlHead?: DocumentHeadValues): void {
-  const resolved = resolveDocumentHeadWithParams(to, htmlHead);
+export function applyDocumentMeta(to: MatchedRouteInfo, htmlMeta?: DocumentMetaValues): void {
+  const resolved = resolveDocumentMetaWithParams(to, htmlMeta);
 
   bootTitle ??= document.title;
   if (resolved?.title !== undefined) document.title = resolved.title;

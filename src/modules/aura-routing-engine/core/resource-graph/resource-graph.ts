@@ -40,7 +40,7 @@ export type ResourceGraphResolveResult = {
   error?: PipelineStepResult;
   /** DataGraph snapshot for the enter branch. */
   data?: DataSnapshot;
-  /** View entries in `enterRoutes` order (`payload` + colocated `head`). No content → `payload: null`. */
+  /** View entries in `enterRoutes` order (`payload` + colocated `meta`). No content → `payload: null`. */
   view?: readonly ViewSnapshotEntry[];
 };
 
@@ -235,7 +235,7 @@ export class ResourceGraph {
             result = viewWithDataResult.data?.[j];
           }
         }
-        return { payload: result?.payload ?? null, head: result?.head };
+        return { payload: result?.payload ?? null, meta: result?.meta };
       }),
     };
   }

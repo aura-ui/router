@@ -3,10 +3,10 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
 import { stringToHtml } from '../../../aura-utils/misc/dom';
 import {
-  extractDocumentHead,
-  hasDocumentHead,
-  resolveDocumentHeadWithParams,
-  configureDocumentHead,
+  extractDocumentMeta,
+  hasDocumentMeta,
+  resolveDocumentMetaWithParams,
+  configureDocumentMeta,
 } from '../../core/document';
 import { CANONICAL_ID, META_DESCRIPTION_ID } from '../../core/document/schema';
 
@@ -55,25 +55,25 @@ function matchedRoute(
   };
 }
 
-describe('hasDocumentHead', () => {
+describe('hasDocumentMeta', () => {
   it('is true when title, html attrs, or a tag is set', () => {
-    expect(hasDocumentHead({ title: 'A' })).toBe(true);
-    expect(hasDocumentHead({ lang: 'de' })).toBe(true);
-    expect(hasDocumentHead({ dir: 'rtl' })).toBe(true);
-    expect(hasDocumentHead({ tags: { [META_DESCRIPTION_ID]: 'D' } })).toBe(true);
-    expect(hasDocumentHead({ tags: { [CANONICAL_ID]: 'https://x' } })).toBe(true);
-    expect(hasDocumentHead({})).toBe(false);
-    expect(hasDocumentHead(undefined)).toBe(false);
+    expect(hasDocumentMeta({ title: 'A' })).toBe(true);
+    expect(hasDocumentMeta({ lang: 'de' })).toBe(true);
+    expect(hasDocumentMeta({ dir: 'rtl' })).toBe(true);
+    expect(hasDocumentMeta({ tags: { [META_DESCRIPTION_ID]: 'D' } })).toBe(true);
+    expect(hasDocumentMeta({ tags: { [CANONICAL_ID]: 'https://x' } })).toBe(true);
+    expect(hasDocumentMeta({})).toBe(false);
+    expect(hasDocumentMeta(undefined)).toBe(false);
   });
 });
 
-describe('extractDocumentHead', () => {
+describe('extractDocumentMeta', () => {
   afterEach(() => {
-    configureDocumentHead();
+    configureDocumentMeta();
   });
 
   it('reads title and description from a parsed document', () => {
-    expect(extractDocumentHead(stringToHtml(FULL_PAGE))).toEqual({
+    expect(extractDocumentMeta(stringToHtml(FULL_PAGE))).toEqual({
       title: 'Legacy',
       tags: { [META_DESCRIPTION_ID]: 'About page' },
     });
@@ -84,7 +84,7 @@ describe('extractDocumentHead', () => {
       <title>T</title>
       <link rel="canonical" href="https://example.com/about" />
     </head></html>`;
-    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+    expect(extractDocumentMeta(stringToHtml(html))).toEqual({
       title: 'T',
       tags: { [CANONICAL_ID]: 'https://example.com/about' },
     });
@@ -96,7 +96,7 @@ describe('extractDocumentHead', () => {
       <meta property="og:image" content="https://img/og.png" />
       <meta name="twitter:card" content="summary" />
     </head></html>`;
-    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+    expect(extractDocumentMeta(stringToHtml(html))).toEqual({
       tags: {
         'meta:property:og:title': 'OG',
         'meta:property:og:image': 'https://img/og.png',
@@ -107,25 +107,25 @@ describe('extractDocumentHead', () => {
 
   it('reads lang and dir from the html element', () => {
     const html = `<html lang="de" dir="rtl"><head><title>T</title></head></html>`;
-    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+    expect(extractDocumentMeta(stringToHtml(html))).toEqual({
       title: 'T',
       lang: 'de',
       dir: 'rtl',
     });
   });
 
-  it('returns undefined when head fields are absent', () => {
-    expect(extractDocumentHead(stringToHtml('<div>no head</div>'))).toBeUndefined();
+  it('returns undefined when meta fields are absent', () => {
+    expect(extractDocumentMeta(stringToHtml('<div>no head</div>'))).toBeUndefined();
   });
 
   it('keeps default tags when configured tags are added', () => {
-    configureDocumentHead([{ tag: 'meta', attrs: { name: 'theme-color' } }]);
+    configureDocumentMeta([{ tag: 'meta', attrs: { name: 'theme-color' } }]);
     const html = `<html><head>
       <title>T</title>
       <meta name="description" content="Desc" />
       <meta name="theme-color" content="#111" />
     </head></html>`;
-    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+    expect(extractDocumentMeta(stringToHtml(html))).toEqual({
       title: 'T',
       tags: {
         [META_DESCRIPTION_ID]: 'Desc',
@@ -135,17 +135,17 @@ describe('extractDocumentHead', () => {
   });
 
   it('reads link tags with multiple identifying attrs', () => {
-    configureDocumentHead([{ tag: 'link', attrs: { rel: 'alternate', hreflang: 'en' } }]);
+    configureDocumentMeta([{ tag: 'link', attrs: { rel: 'alternate', hreflang: 'en' } }]);
     const html = `<html><head>
       <link rel="alternate" hreflang="en" href="https://example.com/en" />
     </head></html>`;
-    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+    expect(extractDocumentMeta(stringToHtml(html))).toEqual({
       tags: { 'link:rel:alternate:hreflang:en': 'https://example.com/en' },
     });
   });
 });
 
-describe('resolveDocumentHeadWithParams', () => {
+describe('resolveDocumentMetaWithParams', () => {
   afterEach(() => {
     document.body.replaceChildren();
   });
@@ -157,15 +157,15 @@ describe('resolveDocumentHeadWithParams', () => {
       params: { id: '42' },
     });
 
-    expect(resolveDocumentHeadWithParams(to)).toEqual({
+    expect(resolveDocumentMetaWithParams(to)).toEqual({
       title: 'User 42',
       tags: { [META_DESCRIPTION_ID]: 'Profile 42' },
     });
   });
 
-  it('falls back to htmlHead argument when attrs are absent', () => {
+  it('falls back to htmlMeta argument when attrs are absent', () => {
     expect(
-      resolveDocumentHeadWithParams(matchedRoute('/about'), {
+      resolveDocumentMetaWithParams(matchedRoute('/about'), {
         title: 'About from HTML',
         tags: { [META_DESCRIPTION_ID]: 'HTML desc' },
       }),
@@ -177,7 +177,7 @@ describe('resolveDocumentHeadWithParams', () => {
 
   it('keeps extracted canonical when attrs only set title', () => {
     expect(
-      resolveDocumentHeadWithParams(matchedRoute('/about', { metaTitle: 'Attr title' }), {
+      resolveDocumentMetaWithParams(matchedRoute('/about', { metaTitle: 'Attr title' }), {
         title: 'HTML title',
         tags: { [CANONICAL_ID]: 'https://example.com/about' },
       }),
@@ -187,28 +187,28 @@ describe('resolveDocumentHeadWithParams', () => {
     });
   });
 
-  it('overlays meta-canonical on htmlHead with :param tokens', () => {
+  it('overlays meta-canonical on htmlMeta with :param tokens', () => {
     const to = matchedRoute('/users/:id', {
       metaCanonical: 'https://example.com/users/:id',
       params: { id: '42' },
     });
-    expect(resolveDocumentHeadWithParams(to)).toEqual({
+    expect(resolveDocumentMetaWithParams(to)).toEqual({
       tags: { [CANONICAL_ID]: 'https://example.com/users/42' },
     });
     expect(
-      resolveDocumentHeadWithParams(to, { tags: { [CANONICAL_ID]: 'https://example.com/wrong' } }),
+      resolveDocumentMetaWithParams(to, { tags: { [CANONICAL_ID]: 'https://example.com/wrong' } }),
     ).toEqual({
       tags: { [CANONICAL_ID]: 'https://example.com/users/42' },
     });
   });
 
-  it('returns null when no attrs and no htmlHead', () => {
-    expect(resolveDocumentHeadWithParams(matchedRoute('/empty'))).toBeNull();
+  it('returns null when no attrs and no htmlMeta', () => {
+    expect(resolveDocumentMetaWithParams(matchedRoute('/empty'))).toBeNull();
   });
 
   it('keeps literal ? in title (not view-search syntax)', () => {
     expect(
-      resolveDocumentHeadWithParams(
+      resolveDocumentMetaWithParams(
         matchedRoute('/faq', { metaTitle: 'FAQ?' }),
       ),
     ).toEqual({ title: 'FAQ?' });
@@ -216,7 +216,7 @@ describe('resolveDocumentHeadWithParams', () => {
 
   it('fills :name from query when the param is absent', () => {
     expect(
-      resolveDocumentHeadWithParams(
+      resolveDocumentMetaWithParams(
         matchedRoute('/search', { metaTitle: 'q=:q', query: { q: 'aura' } }),
       ),
     ).toEqual({ title: 'q=aura' });
@@ -224,7 +224,7 @@ describe('resolveDocumentHeadWithParams', () => {
 
   it('wraps local meta-title with meta-title-template', () => {
     expect(
-      resolveDocumentHeadWithParams(
+      resolveDocumentMetaWithParams(
         matchedRoute('/users/:id', {
           metaTitle: 'User :id',
           metaTitleTemplate: '%s | App',
@@ -236,7 +236,7 @@ describe('resolveDocumentHeadWithParams', () => {
 
   it('wraps HTML title when meta-title is absent', () => {
     expect(
-      resolveDocumentHeadWithParams(
+      resolveDocumentMetaWithParams(
         matchedRoute('/about', { metaTitleTemplate: '%s | App' }),
         { title: 'About from HTML' },
       ),
@@ -251,12 +251,12 @@ describe('resolveDocumentHeadWithParams', () => {
     router.append(to.route);
     document.body.append(router);
 
-    expect(resolveDocumentHeadWithParams(to)).toEqual({ title: 'App' });
+    expect(resolveDocumentMetaWithParams(to)).toEqual({ title: 'App' });
   });
 
   it('does not wrap when meta-title-template is none', () => {
     expect(
-      resolveDocumentHeadWithParams(
+      resolveDocumentMetaWithParams(
         matchedRoute('/landing', { metaTitle: 'Launch', metaTitleTemplate: 'none' }),
       ),
     ).toEqual({ title: 'Launch' });
@@ -271,7 +271,7 @@ describe('resolveDocumentHeadWithParams', () => {
     document.body.append(router);
 
     expect(
-      resolveDocumentHeadWithParams(to, { title: 'About from HTML' }),
+      resolveDocumentMetaWithParams(to, { title: 'About from HTML' }),
     ).toEqual({ title: 'About from HTML | App' });
   });
 });

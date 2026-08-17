@@ -222,20 +222,21 @@ export class ResourceGraph {
 
     if (mode === 'prefetch') return {};
 
-    const viewResults = enterRoutes.map((match) => {
-      const i = viewRoutes.indexOf(match);
-      if (i >= 0) return viewResult.data?.[i];
-      const j = viewWithDataRoutes.indexOf(match);
-      if (j >= 0) return viewWithDataResult.data?.[j];
-      return undefined;
-    });
-
     return {
       ...(dataResult.data && { data: dataResult.data }),
-      view: viewResults.map((result) => ({
-        payload: result?.data ?? null,
-        head: result?.head,
-      })),
+      view: enterRoutes.map((match) => {
+        const i = viewRoutes.indexOf(match);
+        if (i !== -1) {
+          const result = viewResult.data?.[i];
+          return { payload: result?.data ?? null, head: result?.head };
+        }
+        const j = viewWithDataRoutes.indexOf(match);
+        if (j !== -1) {
+          const result = viewWithDataResult.data?.[j];
+          return { payload: result?.data ?? null, head: result?.head };
+        }
+        return { payload: null, head: undefined };
+      }),
     };
   }
 

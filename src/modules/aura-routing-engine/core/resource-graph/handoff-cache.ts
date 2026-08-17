@@ -46,12 +46,14 @@ export type HandoffCacheOptions = {
  * Thin specialization of {@link AuraResolvableSwrCache}: default TTL, no SWR.
  * Long-lived route revisit stays behind `cache.data` / `cache.view`.
  *
- * {@link DocumentFragment} is never persisted (one-shot DOM; mount empties it).
+ * {@link DocumentFragment} is never persisted (one-shot DOM; mount empties it) —
+ * bare fragments or ViewGraph values `{ payload: DocumentFragment, head }`.
  * In-flight join still works; a later resolve reloads / re-clones.
  *
  * Work-signal policy: {@link HandoffWorkRegistry} (короткая модель interest / workSignal / hold).
  *
- * Owned by {@link ResourceGraph}; DataGraph / ViewGraph share one instance.
+ * Owned by {@link ResourceGraph}; DataGraph / ViewGraph share one instance
+ * (different keys; view values may wrap payload+head).
  */
 export class HandoffCache extends AuraResolvableSwrCache<unknown> {
   private readonly work = new HandoffWorkRegistry();
@@ -72,8 +74,7 @@ export class HandoffCache extends AuraResolvableSwrCache<unknown> {
       invalidatePolicy: 'remove',
       onRemove,
       // One-shot DOM: mount empties the node; never settle fragments for reuse.
-      write: (value) =>
-        !(typeof DocumentFragment !== 'undefined' && value instanceof DocumentFragment),
+      write: (value) => !holdsDocumentFragment(value),
       onSettled,
     });
   }
@@ -112,4 +113,12 @@ export class HandoffCache extends AuraResolvableSwrCache<unknown> {
     this.work.destroy();
     super.destroy();
   }
+}
+
+/** Bare {@link DocumentFragment}, or ViewGraph `{ payload: DocumentFragment }`. */
+function holdsDocumentFragment(value: unknown): boolean {
+  if (typeof DocumentFragment === 'undefined') return false;
+  if (value instanceof DocumentFragment) return true;
+  if (value === null || typeof value !== 'object' || !('payload' in value)) return false;
+  return (value as { payload: unknown }).payload instanceof DocumentFragment;
 }

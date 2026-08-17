@@ -1,9 +1,4 @@
-import {
-  DataGraph,
-  type DataGraphCacheOptions,
-  type DataGraphLoadResult,
-  type DataSnapshot,
-} from '../data-graph';
+import { DataGraph, type DataGraphCacheOptions, type DataGraphLoadResult, type DataSnapshot } from '../data-graph';
 import type { HookRegistry } from '../hooks/registry';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import { viewKeyWithData } from '../match/resource-keys';
@@ -11,11 +6,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
 import { getActiveChain } from '../route-tree/matched-chain';
-import {
-  ViewGraph,
-  type ViewGraphCacheOptions,
-  type ViewPayload,
-} from '../view-graph';
+import { ViewGraph, type ViewGraphCacheOptions, type ViewSnapshotEntry } from '../view-graph';
 import type { LoaderRegistry } from '../view-graph/registry';
 
 import { HandoffCache, type HandoffCacheOptions } from './handoff-cache';
@@ -49,8 +40,8 @@ export type ResourceGraphResolveResult = {
   error?: PipelineStepResult;
   /** DataGraph snapshot for the enter branch. */
   data?: DataSnapshot;
-  /** View payloads in `enterRoutes` order. No content → `null`. */
-  view?: readonly (ViewPayload | null)[];
+  /** View entries in `enterRoutes` order (`payload` + colocated `head`). No content → `payload: null`. */
+  view?: readonly ViewSnapshotEntry[];
 };
 
 /**
@@ -231,15 +222,20 @@ export class ResourceGraph {
 
     if (mode === 'prefetch') return {};
 
+    const viewResults = enterRoutes.map((match) => {
+      const i = viewRoutes.indexOf(match);
+      if (i >= 0) return viewResult.data?.[i];
+      const j = viewWithDataRoutes.indexOf(match);
+      if (j >= 0) return viewWithDataResult.data?.[j];
+      return undefined;
+    });
+
     return {
       ...(dataResult.data && { data: dataResult.data }),
-      view: enterRoutes.map((match) => {
-        const i = viewRoutes.indexOf(match);
-        if (i >= 0) return viewResult.data?.[i]?.data ?? null;
-        const j = viewWithDataRoutes.indexOf(match);
-        if (j >= 0) return viewWithDataResult.data?.[j]?.data ?? null;
-        return null;
-      }),
+      view: viewResults.map((result) => ({
+        payload: result?.data ?? null,
+        head: result?.head,
+      })),
     };
   }
 

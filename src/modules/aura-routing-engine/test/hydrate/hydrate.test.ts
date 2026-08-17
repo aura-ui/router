@@ -3,6 +3,7 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { AURA_ROUTER_SSR_ATTR } from '../../../aura-router/core';
 import { hydrate } from '../../core/hydrate/hydrate';
+import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 import { createEngineHarness } from '../_helpers/engine-harness';
 import {
   createDomRedirectRoute,
@@ -441,7 +442,8 @@ describe('bootstrap SSR structure-error recovery', () => {
     await engine.bootstrap(layoutRoot, rootOutlet);
     expect(document.body.contains(layoutRoot)).toBe(true);
 
-    engine.commitNavigation({ hash: '' } as never);
+    jest.spyOn(engine.pulse, 'commitEnd').mockImplementation(() => {});
+    engine.commitNavigation({} as NavigationTransaction);
 
     expect(document.body.contains(layoutRoot)).toBe(false);
   });

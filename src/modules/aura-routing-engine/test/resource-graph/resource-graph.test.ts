@@ -106,7 +106,10 @@ describe('ResourceGraph', () => {
       mode: 'navigation',
     });
     expect(result.data?.get('k')).toEqual({ ok: true });
-    expect(result.view).toEqual([null, null]);
+    expect(result.view).toEqual([
+      { payload: null, head: undefined },
+      { payload: null, head: undefined },
+    ]);
   });
 
   it('navigation load assembles view payloads in enterRoutes order', async () => {
@@ -134,7 +137,10 @@ describe('ResourceGraph', () => {
     const result = await graph.load(branch, { branch, transaction });
 
     expect(result.error).toBeUndefined();
-    expect(result.view).toEqual(['<layout/>', '<page/>']);
+    expect(result.view).toEqual([
+      { payload: '<layout/>', head: undefined },
+      { payload: '<page/>', head: undefined },
+    ]);
   });
 
   it('prefetch mode warms data and views and returns soft empty result', async () => {

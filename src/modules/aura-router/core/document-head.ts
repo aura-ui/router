@@ -9,14 +9,14 @@ let bootTitle: string | undefined;
 
 /** Sync live `document` head after view commit. */
 export function applyDocumentHead(to: MatchedRouteInfo, htmlHead?: DocumentHeadValues): void {
-  const head = resolveDocumentHeadWithParams(to, htmlHead);
+  const resolved = resolveDocumentHeadWithParams(to, htmlHead);
 
   bootTitle ??= document.title;
-  if (head?.title !== undefined) document.title = head.title;
+  if (resolved?.title !== undefined) document.title = resolved.title;
   else document.title = bootTitle;
 
   for (const spec of headTags) {
-    syncOwnedTag(spec, head?.tags?.[spec.id]);
+    syncOwnedTag(spec, resolved?.tags?.[spec.id]);
   }
 }
 
@@ -28,7 +28,7 @@ function syncOwnedTag(spec: HeadTagSpec, value: string | undefined): void {
 
   const el =
     document.head.querySelector(spec.selector) ?? document.head.appendChild(document.createElement(spec.tag));
-  for (const [name, attrValue] of Object.entries(spec.attrs)) el.setAttribute(name, attrValue);
+  for (const [attr, attrValue] of Object.entries(spec.attrs)) el.setAttribute(attr, attrValue);
   el.setAttribute(spec.valueAttr, value);
   el.setAttribute(OWNED, '');
 }

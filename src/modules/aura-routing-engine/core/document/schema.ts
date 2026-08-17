@@ -1,4 +1,4 @@
-/** Tag copied from a fetched `<head>` into the live document (not `document.title`). */
+/** Spec of a managed `<head>` tag (not `document.title`). */
 export type HeadTagSpec = {
   readonly tag: 'meta' | 'link';
   /** Identifying attributes: selector, and written on create. */

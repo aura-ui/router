@@ -25,6 +25,7 @@ describe('UrlLoader', () => {
     await expect(loader.load(pageCtx())).resolves.toEqual({
       kind: 'html',
       value: '<div id="root">full</div>',
+      head: undefined,
     });
 
     expect(fetchText).toHaveBeenCalledWith('http://test/page.html', expect.any(AbortSignal));
@@ -39,6 +40,20 @@ describe('UrlLoader', () => {
     await expect(loader.load(pageCtx({ extract: '#content' }))).resolves.toEqual({
       kind: 'html',
       value: '<div id="content"><span>part</span></div>',
+      head: undefined,
+    });
+  });
+
+  it('returns document head from the fetched HTML head', async () => {
+    const fetchText = jest.fn().mockResolvedValue(
+      '<!DOCTYPE html><html><head><title>About</title><meta name="description" content="Desc"></head><body><main id="c">x</main></body></html>',
+    );
+    const loader = new UrlLoader(env(fetchText));
+
+    await expect(loader.load(pageCtx({ extract: '#c' }))).resolves.toEqual({
+      kind: 'html',
+      value: '<main id="c">x</main>',
+      head: { title: 'About', description: 'Desc' },
     });
   });
 
@@ -51,6 +66,7 @@ describe('UrlLoader', () => {
     await expect(loader.load(pageCtx({ extract: '#missing' }))).resolves.toEqual({
       kind: 'html',
       value: full,
+      head: undefined,
     });
 
     expect(warn).toHaveBeenCalledWith(

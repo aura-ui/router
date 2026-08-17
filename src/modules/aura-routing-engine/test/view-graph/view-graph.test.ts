@@ -34,6 +34,7 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       data: '<layout>users-layout</layout>',
+      head: undefined,
     });
   });
 
@@ -44,7 +45,10 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: '<p>about</p>' },
     });
 
-    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({ data: '<p>about</p>' });
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: '<p>about</p>',
+      head: undefined,
+    });
   });
 
   it('returns null immediately when signal is already aborted', async () => {
@@ -89,6 +93,69 @@ describe('ViewGraph', () => {
 
     await viewGraph.loadView(route, new AbortController().signal);
     expect(viewGraph.hasCachedView(route)).toBe(false);
+  });
+
+  it('colocates document head on load results and restores it from cache.view hits', async () => {
+    registry.register('html', async () => ({
+      kind: 'html' as const,
+      value: '<p>about</p>',
+      head: { title: 'About', description: 'Desc' },
+    }));
+    const route = matched('/about', {
+      route: {
+        layout: '',
+        view: { loader: 'html', content: 'x' },
+        cache: { dom: false, view: true, data: false },
+      },
+      resolvedView: { loader: 'html', content: 'x' },
+      viewKey: 'view:/about',
+    });
+
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: '<p>about</p>',
+      head: { title: 'About', description: 'Desc' },
+    });
+
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: '<p>about</p>',
+      head: { title: 'About', description: 'Desc' },
+    });
+    expect(viewGraph.getCachedHtmlHead(route)).toEqual({
+      title: 'About',
+      description: 'Desc',
+    });
+  });
+
+  it('keeps document head on handoff settle when cache.view is off', async () => {
+    let loads = 0;
+    registry.register('html', async () => {
+      loads++;
+      return {
+        kind: 'html' as const,
+        value: '<p>about</p>',
+        head: { title: 'About', description: 'Desc' },
+      };
+    });
+    const route = matched('/about', {
+      route: {
+        layout: '',
+        view: { loader: 'html', content: 'x' },
+        cache: { dom: false, view: false, data: false },
+      },
+      resolvedView: { loader: 'html', content: 'x' },
+      viewKey: 'view:/about-head-handoff',
+    });
+
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: '<p>about</p>',
+      head: { title: 'About', description: 'Desc' },
+    });
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: '<p>about</p>',
+      head: { title: 'About', description: 'Desc' },
+    });
+    expect(loads).toBe(1);
+    expect(viewGraph.getCachedHtmlHead(route)).toBeUndefined();
   });
 
   it('caches string payloads when cache.view is enabled', async () => {
@@ -244,7 +311,7 @@ describe('ViewGraph', () => {
 
     const second = viewGraph.loadView(route, new AbortController().signal, { mode: 'navigation' });
     releaseGate();
-    await expect(second).resolves.toEqual({ data: '<p>2</p>' });
+    await expect(second).resolves.toEqual({ data: '<p>2</p>', head: undefined });
     expect(loads).toBe(2);
   });
 
@@ -303,7 +370,12 @@ describe('ViewGraph', () => {
 
     await expect(
       viewGraph.load([parent, child], new AbortController().signal),
-    ).resolves.toEqual({ data: [{ data: 'parent' }, { data: 'child' }] });
+    ).resolves.toEqual({
+      data: [
+        { data: 'parent', head: undefined },
+        { data: 'child', head: undefined },
+      ],
+    });
   });
 
   it('load accepts a per-route data resolver', async () => {
@@ -565,6 +637,7 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       data: 'layout:shell',
+      head: undefined,
     });
   });
 
@@ -574,7 +647,10 @@ describe('ViewGraph', () => {
       resolvedView: { loader: 'html', content: 'x' },
     });
 
-    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({ data: null });
+    await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
+      data: null,
+      head: undefined,
+    });
   });
 
   it('collapses markup loader results to string payload', async () => {
@@ -585,6 +661,7 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       data: '<iframe src="/x"></iframe>',
+      head: undefined,
     });
   });
 

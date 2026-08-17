@@ -2,7 +2,7 @@
 
 **Declarative routing for Web Components — what is shipped, what is being built, and why it matters.**
 
-> Current release: `0.1.0` · Updated: 2026-08-11
+> Current release: `0.1.0` · Updated: 2026-08-18
 >
 > [Tutorial](./docs/tutorial.md) · [README](./README.md) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/README.md) · [Limitations](./LIMITATIONS.md) · [Security](./SECURITY.md) · [Changelog](./CHANGELOG.md)
 
@@ -111,7 +111,8 @@ The foundation already includes `ViewHandle`, outlet strategies, and view contro
 | 4.0 | Loading state through body classes and DOM events                             |   ✅   | Preferred stable API; `loading-template` remains experimental and may be removed         |
 | 4.1 | **View Transitions API** — browser-managed cross-fades and slides             |   ○    | Wire `document.startViewTransition`, reduced-motion behavior, fallback, and cancellation |
 | 4.2 | **Navigation API** — intercept browser navigation through `window.navigation` |   ○    | Add a navigate/intercept provider while keeping the tested History API fallback          |
-| 4.3 | **Page title & focus** — opt-in metadata sync and focus after navigation       |   ○    | Define title sources, focus policy, nested ownership, first-paint behavior, and tests     |
+|4.3a| **Document meta** — title, description, canonical, OG/Twitter on navigation   |   ✅   | [Guide ch. 4](./docs/guide/04-document-meta.md): extract from fetched HTML, route attrs, `AuraRouter.configure({ documentMeta })`, boot revert |
+|4.3b| **Focus after navigation** — accessible focus policy                          |   ○    | Define focus targets, skip rules, nested ownership, first-paint behavior, and tests     |
 
 CSS/WAAPI transitions already work through route attributes in the demo.
 
@@ -121,7 +122,7 @@ CSS/WAAPI transitions already work through route attributes in the demo.
 
 |    # | Developer outcome                                                    | Status | What remains                                                                                                      |
 | ---: | -------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------- |
-|  5.1 | Route attributes for `view`, `guard`, `load`, `ready`, and `cache`   |   ✅   | Documented in the [Guide](./docs/guide.md), including cache, errors, and router links                             |
+|  5.1 | Route attributes for `view`, `guard`, `load`, `ready`, `cache`, and document meta |   ✅   | Documented in the [Guide](./docs/guide.md), including [document meta](./docs/guide/04-document-meta.md), cache, errors, and router links |
 |  5.2 | Familiar lifecycle and navigation phase names                        |   ✅   | Public phases and their order are documented and tested                                                           |
 | 5.2a | Named hooks through `AuraRouter.use()` / `defineRouteHook()`         |   ✅   | Registration, options, version checks, removal, and shared usage are implemented                                  |
 | 5.3a | Nested routes, layouts, outlets, and path-only parents               |   ✅   | Available in the engine, guide, demo, playground, and [nested recipe](./docs/recipes/nested.md)                   |
@@ -162,6 +163,7 @@ Local microbenchmarks, smoke checks, bundle-size CI, `EventBus`, and `Navigation
 |  7.8 | Playwright E2E for the static MPA example                                            |   ✅   | Direct HTML, SPA navigation, history, nested persistence, no-JS fallback, and real 404                                                |
 |  7.9 | Publish `@auraui/router@0.1.0`                                                       |   ✅   | [npm package](https://www.npmjs.com/package/@auraui/router) · [GitHub release](https://github.com/aura-ui/router/releases/tag/v0.1.0) |
 | 7.10 | **E2E in CI** — browser coverage on every pull request                               |   🎯   | Run the existing Playwright suite as an automated required check with failure artifacts                                               |
+| 7.11 | **Document meta guide** — title, head tags, and route attrs on navigation          |   ✅   | [Guide ch. 4](./docs/guide/04-document-meta.md)                                                                                       |
 
 ## Phase 8 — MPA → SPA
 

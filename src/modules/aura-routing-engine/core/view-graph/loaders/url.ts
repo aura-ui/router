@@ -1,6 +1,6 @@
-import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
 import { processHtml } from '../../document';
 import { Loader } from '../loader';
+import type { LoaderId } from '../../../../aura-route/core/attr/view-attr-parser';
 import type { ViewLoadContext, ViewLoadResult } from '../types';
 
 /** `view="partials/page.html"` or `view="url::…"` — fetch; route `extract` attr selects a fragment. */

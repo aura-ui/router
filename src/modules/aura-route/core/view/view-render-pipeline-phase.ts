@@ -1,8 +1,4 @@
-import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
-import type { ViewRenderResult } from '../../../aura-routing-engine/route-api';
 import { escapeHtml, getTemplate } from '../../../aura-utils/misc';
-import type { AuraRouteInterface } from '../types';
-
 import {
   applyMountToSnapshot,
   hasActiveMount,
@@ -10,6 +6,9 @@ import {
   warnMissingLayoutOutlet,
   type MountContext,
 } from './outlet-adapter';
+import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import type { ViewRenderResult } from '../../../aura-routing-engine/route-api';
+import type { AuraRouteInterface } from '../types';
 import type { RenderPass, ViewPayload } from './types';
 import type { ViewContext } from './view-context';
 

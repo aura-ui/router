@@ -13,6 +13,7 @@ import {
   dispatchNotFound,
   emit,
 } from './navigation-events';
+import { applyDocumentMeta } from './document-meta';
 import type {
   AuraRoutingEngineConfig,
   EngineEvent,
@@ -20,7 +21,6 @@ import type {
 } from '../../aura-routing-engine/core';
 import type { AuraRouterNotFoundController } from './not-found-controller';
 import type { Scroller } from './scroller';
-import { applyDocumentMeta } from './document-meta';
 
 /** Deps the engine↔host bridge needs from `<aura-router>` (not the whole element API). */
 export type RouterEngineBridgeDeps = {

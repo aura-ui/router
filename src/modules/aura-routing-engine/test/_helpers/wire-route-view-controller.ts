@@ -1,13 +1,13 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import {
   NO_TRANSITION,
   type RouteTransitionType,
 } from '../../../aura-route/core/attr/transition-attr-parser';
-import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
-import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
+import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteInstance, RouteLifecycleContext } from '../../core/route/types';
 import type { ViewGraph } from '../../core/view-graph';

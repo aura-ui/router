@@ -1,13 +1,7 @@
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { ENGINE_DEFAULTS } from '../../core/aura-routing-engine-config';
-import type { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import type {
-  HandoffCache,
-  ResourceGraph,
-} from '../../core/resource-graph';
 import { LoaderRegistry } from '../../core/view-graph';
 import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 import {
@@ -17,6 +11,12 @@ import {
   createResourceGraphStack,
   createResourcePrepareTransaction,
 } from '../_helpers/resource-graph-fixtures';
+import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
+import type { DataGraph } from '../../core/data-graph';
+import type {
+  HandoffCache,
+  ResourceGraph,
+} from '../../core/resource-graph';
 
 describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
   let hooks: HookRegistry;

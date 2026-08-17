@@ -3,13 +3,12 @@
  *
  * @module view-mount/branch-mount
  */
+import { resolveRouteData } from '../data-graph/route-data';
+import { isRenderError } from './view-commit-render';
 import type { MountResolvedViewOptions } from '../../../aura-route/core/types';
 import type { DataSnapshot } from '../data-graph';
-import { resolveRouteData } from '../data-graph/route-data';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { ViewSnapshotEntry } from '../view-graph';
-
-import { isRenderError } from './view-commit-render';
 
 export type BranchMountContext = {
   signal: AbortSignal;

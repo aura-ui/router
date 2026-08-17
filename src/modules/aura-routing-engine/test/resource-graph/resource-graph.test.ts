@@ -1,14 +1,14 @@
-import type { DataGraph } from '../../core/data-graph';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { ResourceGraph } from '../../core/resource-graph';
-import type { ViewGraph } from '../../core/view-graph';
 import { createViewGraphFromLoadView } from '../_helpers/create-mock-transaction';
 import {
   buildResourceLoadPlan,
   createResourceGraphRoute,
   createTestResourceGraph,
 } from '../_helpers/resource-graph-fixtures';
+import type { DataGraph } from '../../core/data-graph';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { ResourceGraph } from '../../core/resource-graph';
+import type { ViewGraph } from '../../core/view-graph';
 
 const createGraph = (
   viewGraph: ViewGraph,

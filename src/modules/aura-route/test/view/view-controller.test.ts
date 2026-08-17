@@ -1,9 +1,7 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE, type MatchedRouteInfo } from '../../../aura-routing-engine/core';
-import type { AuraRouteInterface, RouteRenderOptions } from '../../core/types';
 import { RouteViewController } from '../../core/view';
 import { RouteDomCache, destroyViewRoot, domCacheKey } from '../../core/view/dom-cache';
-import type { ViewResolverPort, DomCachePort } from '../../core/view/types';
 import {
   createMatchedRouteInfo,
   createMockDomCache,
@@ -13,6 +11,8 @@ import {
   defineAuraOutlet,
   layoutWithOutlet,
 } from '../_helpers';
+import type { AuraRouteInterface, RouteRenderOptions } from '../../core/types';
+import type { ViewResolverPort, DomCachePort } from '../../core/view/types';
 
 function createController(
   path: string,

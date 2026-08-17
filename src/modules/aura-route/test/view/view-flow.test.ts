@@ -1,8 +1,6 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
-import type { AuraRouteInterface } from '../../core/types';
 import { defaultDomCache } from '../../core/view/dom-cache';
-import type { ViewResolverPort } from '../../core/view/types';
 import { RouteViewController } from '../../core/view/view-controller';
 import {
   createMatchedRouteInfo,
@@ -10,6 +8,8 @@ import {
   createRouteStub,
   defineAuraOutlet,
 } from '../_helpers';
+import type { AuraRouteInterface } from '../../core/types';
+import type { ViewResolverPort } from '../../core/view/types';
 
 function createController(
   root: AuraOutlet,

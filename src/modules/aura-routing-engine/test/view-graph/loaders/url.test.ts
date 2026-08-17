@@ -1,6 +1,6 @@
 import { UrlLoader } from '../../../core/view-graph/loaders/url';
-import type { ViewLoaderEnv } from '../../../core/view-graph/types';
 import { createTestLoaderEnv, createViewLoadContext } from '../../_helpers/view-load-context';
+import type { ViewLoaderEnv } from '../../../core/view-graph/types';
 
 function env(fetchText: ViewLoaderEnv['fetchText']): ViewLoaderEnv {
   return createTestLoaderEnv({

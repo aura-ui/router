@@ -1,9 +1,9 @@
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { HandoffCache } from '../../core/resource-graph';
 import { ViewGraph, LoaderRegistry } from '../../core/view-graph';
 import { createViewGraphRoute as matched } from '../_helpers/create-mock-transaction';
 import { asHtmlLoader } from '../_helpers/resource-graph-fixtures';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 
 describe('ViewGraph', () => {
   let registry: LoaderRegistry;

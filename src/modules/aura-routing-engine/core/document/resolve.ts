@@ -1,7 +1,7 @@
-import type { MatchedRouteInfo } from '../match/url-matcher';
 import { substituteTokens } from '../route-tree/resolve-view-content';
 import { CANONICAL_ID, META_DESCRIPTION_ID } from './schema';
 import { hasDocumentMeta, type DocumentMetaValues } from './types';
+import type { MatchedRouteInfo } from '../match/url-matcher';
 
 /**
  * Combine leaf `htmlMeta` with route meta attrs for the committed match.

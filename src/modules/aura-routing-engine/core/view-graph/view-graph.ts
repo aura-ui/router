@@ -1,23 +1,22 @@
-import type { SwrCacheOptions } from '../../../aura-cache/core';
 import { AuraResolvableSwrCache } from '../../../aura-cache/core/aura-resolvable-swr-cache';
-import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
 import { type DocumentMetaValues } from '../document';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
-import type { LoadHookMode } from '../data-graph';
 import { createViewLoadError } from '../failure';
 import { invalidateRouterCache } from '../invalidate-router-cache';
-import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import { viewKey, viewKeyWithData } from '../match/resource-keys';
+import { HandoffCache } from '../resource-graph/handoff-cache';
+import { defaultLoaderRegistry } from './registry';
+import type { SwrCacheOptions } from '../../../aura-cache/core';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import type { LoadHookMode } from '../data-graph';
+import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
-import { HandoffCache } from '../resource-graph/handoff-cache';
 import type { HandoffWaiter } from '../resource-graph/handoff-work-registry';
 import type { ResolvedView } from '../route-tree/resolved-view';
-
-import { defaultLoaderRegistry } from './registry';
 import type { LoaderRegistry } from './registry';
 import type { ViewDescriptor, ViewLoadContext, ViewPayload, ViewSnapshotEntry } from './types';
 

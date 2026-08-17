@@ -1,6 +1,4 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import type { AuraRouteInterface } from '../../core/types';
-import type { ViewContext } from '../../core/view/view-context';
 import { ViewRenderPipeline } from '../../core/view/view-render-pipeline';
 import {
   createOutlet,
@@ -8,6 +6,8 @@ import {
   createViewContext,
   defineAuraOutlet,
 } from '../_helpers';
+import type { AuraRouteInterface } from '../../core/types';
+import type { ViewContext } from '../../core/view/view-context';
 
 function createPipeline(
   root: AuraOutlet,

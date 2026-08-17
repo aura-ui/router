@@ -1,11 +1,10 @@
+import { defaultDomCache } from '../../core/view/dom-cache';
+import { ViewContext } from '../../core/view/view-context';
+import { createRouteStub } from './create-route-stub';
 import type { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import type { AuraRouteInterface } from '../../core/types';
-import { defaultDomCache } from '../../core/view/dom-cache';
 import type { MountSnapshot } from '../../core/view/outlet-adapter';
 import type { RouteViewConfig } from '../../core/view/types';
-import { ViewContext } from '../../core/view/view-context';
-
-import { createRouteStub } from './create-route-stub';
 
 export type CreateViewContextOptions = {
   root: AuraOutlet;

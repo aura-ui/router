@@ -1,15 +1,14 @@
-import type { SwrCacheOptions } from '../../../aura-cache/core';
 import {
   AuraResolvableSwrCache,
   type ResolvableSwrCachePolicy,
 } from '../../../aura-cache/core/aura-resolvable-swr-cache';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
-
 import {
   HandoffWorkRegistry,
   type HandoffWaiter,
   type HandoffWaiterKind,
 } from './handoff-work-registry';
+import type { SwrCacheOptions } from '../../../aura-cache/core';
 
 export type { HandoffWaiter, HandoffWaiterKind } from './handoff-work-registry';
 

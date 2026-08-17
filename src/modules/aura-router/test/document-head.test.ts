@@ -122,4 +122,17 @@ describe('applyDocumentHead', () => {
     applyDocumentHead(matchedRoute('/b'));
     expect(document.querySelector('meta[property="og:title"]')).toBeNull();
   });
+
+  it('writes and reverts configured tags from AuraRouter.configure', () => {
+    const { AuraRouter } = require('../core/aura-router');
+    AuraRouter.configure({
+      documentHead: { tags: [{ tag: 'meta', attrs: { name: 'theme-color' } }] },
+    });
+
+    applyDocumentHead(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#111');
+
+    applyDocumentHead(matchedRoute('/b'));
+    expect(document.querySelector('meta[name="theme-color"]')).toBeNull();
+  });
 });

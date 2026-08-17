@@ -9,6 +9,9 @@ export type HeadTagSpec = {
   readonly selector: string;
 };
 
+/** User-facing tag to copy from fetched `<head>`. `id` / `selector` / `valueAttr` are derived. */
+export type HeadTagInput = Pick<HeadTagSpec, 'tag' | 'attrs'>;
+
 function headTag(tag: 'meta' | 'link', attrs: Record<string, string>): HeadTagSpec {
   const pairs = Object.entries(attrs);
   return {
@@ -24,7 +27,7 @@ const description = headTag('meta', { name: 'description' });
 export const META_DESCRIPTION_ID = description.id;
 
 /** Default extract/apply set. Title is handled separately. */
-export const headTags: readonly HeadTagSpec[] = [
+const defaultHeadTags: readonly HeadTagSpec[] = [
   description,
   headTag('link', { rel: 'canonical' }),
   headTag('meta', { property: 'og:title' }),
@@ -35,3 +38,15 @@ export const headTags: readonly HeadTagSpec[] = [
   headTag('meta', { name: 'twitter:title' }),
   headTag('meta', { name: 'twitter:image' }),
 ];
+
+let configuredHeadTags: HeadTagSpec[] = [];
+
+/** Defaults plus `configureDocumentHead(tags)`. */
+export function getHeadTags(): readonly HeadTagSpec[] {
+  return configuredHeadTags.length === 0 ? defaultHeadTags : defaultHeadTags.concat(configuredHeadTags);
+}
+
+/** Replace configured tags. `[]` (or omit) clears. Call before the first fetch. */
+export function configureDocumentHead(tags: readonly HeadTagInput[] = []): void {
+  configuredHeadTags = tags.map((item) => headTag(item.tag, item.attrs));
+}

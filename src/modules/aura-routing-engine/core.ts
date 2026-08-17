@@ -108,7 +108,14 @@ export type { GuardResult, RedirectTarget } from './core/guard.types';
 
 // --- Document head (title/description contract) ---
 
-export { hasDocumentHead, extractDocumentHead, resolveDocumentHeadWithParams, type DocumentHeadValues } from './core/document';
+export {
+  hasDocumentHead,
+  extractDocumentHead,
+  resolveDocumentHeadWithParams,
+  configureDocumentHead,
+  type DocumentHeadValues,
+  type HeadTagInput,
+} from './core/document';
 
 // --- View graph (view payloads: load, prefetch, payload cache) ---
 

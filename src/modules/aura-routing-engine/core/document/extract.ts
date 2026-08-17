@@ -1,5 +1,5 @@
 import { stringToHtml } from '../../../aura-utils/misc/dom';
-import { headTags } from './schema';
+import { getHeadTags } from './schema';
 import type { DocumentHeadValues } from './types';
 
 export type PreparedHtml = {
@@ -23,14 +23,14 @@ export function processHtml(html: string, selector: string | null | undefined, h
   return { fragment: html, head };
 }
 
-/** Title + {@link headTags}. Empty → `undefined`. */
+/** Title + {@link getHeadTags}. Empty → `undefined`. */
 export function extractDocumentHead(doc: Document): DocumentHeadValues | undefined {
   const head: DocumentHeadValues = {};
   const title = doc.title.trim();
   if (title) head.title = title;
 
   const tags: Record<string, string> = {};
-  for (const spec of headTags) {
+  for (const spec of getHeadTags()) {
     const value = doc.querySelector(spec.selector)?.getAttribute(spec.valueAttr)?.trim();
     if (value) tags[spec.id] = value;
   }

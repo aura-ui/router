@@ -6,6 +6,7 @@ import {
   extractDocumentHead,
   hasDocumentHead,
   resolveDocumentHeadWithParams,
+  configureDocumentHead,
 } from '../../core/document';
 import { META_DESCRIPTION_ID } from '../../core/document/schema';
 
@@ -98,6 +99,18 @@ describe('extractDocumentHead', () => {
 
   it('returns undefined when head fields are absent', () => {
     expect(extractDocumentHead(stringToHtml('<div>no head</div>'))).toBeUndefined();
+  });
+
+  it('reads configured tags from configureDocumentHead', () => {
+    configureDocumentHead([{ tag: 'meta', attrs: { name: 'theme-color' } }]);
+    try {
+      const html = `<html><head><meta name="theme-color" content="#111" /></head></html>`;
+      expect(extractDocumentHead(stringToHtml(html))).toEqual({
+        tags: { 'meta:name:theme-color': '#111' },
+      });
+    } finally {
+      configureDocumentHead();
+    }
   });
 });
 

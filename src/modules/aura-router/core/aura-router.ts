@@ -13,6 +13,7 @@ import {
   defaultHookRegistry,
   defineRouteHook,
   resolvePrefetchEngineConfig,
+  configureDocumentHead,
 } from '../../aura-routing-engine/core';
 import { syncRouterActiveLinks, toActiveRouteBranch } from '../../aura-routing-engine/core/link-active';
 import { attr } from '../../aura-utils/decorators';
@@ -33,6 +34,7 @@ import type { ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import type { ScrollBehaviorAttr } from '../../aura-route/core/attr/scroll-behavior-attr-parser';
 import type {
   DataGraphCacheOptions,
+  HeadTagInput,
   Loader,
   LoaderFn,
   LoaderId,
@@ -60,6 +62,8 @@ export interface AuraRouterConfigureOptions {
   dataCache?: DataGraphCacheOptions;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает error-template. */
   notFoundHandler?: NotFoundHandler | null;
+  /** Additional tags copied from fetched `<head>` (appended to the default SEO/OG set). Call before the first fetch. */
+  documentHead?: { tags?: readonly HeadTagInput[] };
 }
 
 /**
@@ -210,6 +214,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);
+    }
+    if (options.documentHead?.tags) {
+      configureDocumentHead(options.documentHead.tags);
     }
   }
 

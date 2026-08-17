@@ -1,6 +1,6 @@
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 import { resolveDocumentHeadWithParams, type DocumentHeadValues } from '../../aura-routing-engine/core/document';
-import { headTags, type HeadTagSpec } from '../../aura-routing-engine/core/document/schema';
+import { getHeadTags, type HeadTagSpec } from '../../aura-routing-engine/core/document/schema';
 
 /** Marks tags this apply wrote. Next omit removes only those. */
 const OWNED = 'data-aura-head';
@@ -15,7 +15,7 @@ export function applyDocumentHead(to: MatchedRouteInfo, htmlHead?: DocumentHeadV
   if (resolved?.title !== undefined) document.title = resolved.title;
   else document.title = bootTitle;
 
-  for (const spec of headTags) {
+  for (const spec of getHeadTags()) {
     syncOwnedTag(spec, resolved?.tags?.[spec.id]);
   }
 }

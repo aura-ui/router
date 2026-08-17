@@ -9,26 +9,18 @@ export function hasDocumentHead(head: DocumentHeadValues | null | undefined): he
 }
 
 /**
- * Resolve leaf document head for a navigation.
- * Attrs (`meta-title` / `meta-description`, `:param` tokens) →
- * HTML head from this navigation's load / view-cache → none.
+ * Bind match params/query into `meta-title` / `meta-description`, overlay on htmlHead.
+ * Canonical and other HTML fields pass through. Empty → `null`.
  */
-export function resolveDocumentHead(to: MatchedRouteInfo, htmlHead?: DocumentHeadValues): DocumentHeadValues | null {
+export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: DocumentHeadValues): DocumentHeadValues | null {
+  const { metaTitle, metaDescription } = to.route;
+  if (metaTitle == null && metaDescription == null) {
+    return hasDocumentHead(htmlHead) ? htmlHead : null;
+  }
+
   const vars = { params: to.params, query: to.query };
-
-  const title =
-    to.route.metaTitle != null
-      ? resolveViewContent(to.route.metaTitle, vars)
-      : htmlHead?.title;
-  const description =
-    to.route.metaDescription != null
-      ? resolveViewContent(to.route.metaDescription, vars)
-      : htmlHead?.description;
-
-  const head: DocumentHeadValues = {
-    ...htmlHead,
-    ...(title !== undefined && { title }),
-    ...(description !== undefined && { description }),
-  };
+  const head: DocumentHeadValues = { ...htmlHead };
+  if (metaTitle != null) head.title = resolveViewContent(metaTitle, vars);
+  if (metaDescription != null) head.description = resolveViewContent(metaDescription, vars);
   return hasDocumentHead(head) ? head : null;
 }

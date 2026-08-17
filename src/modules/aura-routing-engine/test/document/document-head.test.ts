@@ -64,6 +64,10 @@ describe('hasDocumentHead', () => {
 });
 
 describe('extractDocumentHead', () => {
+  afterEach(() => {
+    configureDocumentHead();
+  });
+
   it('reads title and description from a parsed document', () => {
     expect(extractDocumentHead(stringToHtml(FULL_PAGE))).toEqual({
       title: 'Legacy',
@@ -101,16 +105,30 @@ describe('extractDocumentHead', () => {
     expect(extractDocumentHead(stringToHtml('<div>no head</div>'))).toBeUndefined();
   });
 
-  it('reads configured tags from configureDocumentHead', () => {
+  it('keeps default tags when configured tags are added', () => {
     configureDocumentHead([{ tag: 'meta', attrs: { name: 'theme-color' } }]);
-    try {
-      const html = `<html><head><meta name="theme-color" content="#111" /></head></html>`;
-      expect(extractDocumentHead(stringToHtml(html))).toEqual({
-        tags: { 'meta:name:theme-color': '#111' },
-      });
-    } finally {
-      configureDocumentHead();
-    }
+    const html = `<html><head>
+      <title>T</title>
+      <meta name="description" content="Desc" />
+      <meta name="theme-color" content="#111" />
+    </head></html>`;
+    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+      title: 'T',
+      tags: {
+        [META_DESCRIPTION_ID]: 'Desc',
+        'meta:name:theme-color': '#111',
+      },
+    });
+  });
+
+  it('reads link tags with multiple identifying attrs', () => {
+    configureDocumentHead([{ tag: 'link', attrs: { rel: 'alternate', hreflang: 'en' } }]);
+    const html = `<html><head>
+      <link rel="alternate" hreflang="en" href="https://example.com/en" />
+    </head></html>`;
+    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+      tags: { 'link:rel:alternate:hreflang:en': 'https://example.com/en' },
+    });
   });
 });
 

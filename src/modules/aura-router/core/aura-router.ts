@@ -215,8 +215,8 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);
     }
-    if (options.documentHead?.tags) {
-      configureDocumentHead(options.documentHead.tags);
+    if ('tags' in (options.documentHead ?? {})) {
+      configureDocumentHead(options.documentHead!.tags);
     }
   }
 

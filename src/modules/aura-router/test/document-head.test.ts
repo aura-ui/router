@@ -42,8 +42,7 @@ describe('applyDocumentHead', () => {
 
   afterEach(() => {
     document.title = '';
-    document.head.querySelector('meta[name="description"]')?.remove();
-    document.head.querySelector('link[rel="canonical"]')?.remove();
+    document.head.replaceChildren();
     document.body.replaceChildren();
   });
 
@@ -65,7 +64,7 @@ describe('applyDocumentHead', () => {
   it('writes canonical from htmlHead even without description', () => {
     applyDocumentHead(matchedRoute('/about'), {
       title: 'About',
-      canonical: 'https://example.com/about',
+      tags: { 'link:rel:canonical': 'https://example.com/about' },
     });
 
     expect(document.title).toBe('About');
@@ -97,7 +96,7 @@ describe('applyDocumentHead', () => {
 
   it('removes owned description and canonical when the next resolve omits them', () => {
     applyDocumentHead(matchedRoute('/a', { metaTitle: 'A', metaDescription: 'About' }), {
-      canonical: 'https://example.com/a',
+      tags: { 'link:rel:canonical': 'https://example.com/a' },
     });
     applyDocumentHead(matchedRoute('/b'));
 
@@ -114,5 +113,13 @@ describe('applyDocumentHead', () => {
     applyDocumentHead(matchedRoute('/empty'));
 
     expect(document.querySelector('meta[name="description"]')).toBeNull();
+  });
+
+  it('writes and reverts open graph tags from htmlHead', () => {
+    applyDocumentHead(matchedRoute('/a'), { tags: { 'meta:property:og:title': 'Share A' } });
+    expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe('Share A');
+
+    applyDocumentHead(matchedRoute('/b'));
+    expect(document.querySelector('meta[property="og:title"]')).toBeNull();
   });
 });

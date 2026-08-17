@@ -1,6 +1,5 @@
 import { stringToHtml } from '../../../aura-utils/misc/dom';
-import { hasDocumentHead } from './resolve';
-import { headExtraction, type HeadExtractionRule } from './schema';
+import { headTags } from './schema';
 import type { DocumentHeadValues } from './types';
 
 export type PreparedHtml = {
@@ -24,12 +23,18 @@ export function processHtml(html: string, selector: string | null | undefined, h
   return { fragment: html, head };
 }
 
-/** Apply {@link headExtraction} (or a custom schema) to a parsed document. Empty → `undefined`. */
-export function extractDocumentHead(doc: Document, schema: readonly HeadExtractionRule[] = headExtraction): DocumentHeadValues | undefined {
+/** Title + {@link headTags}. Empty → `undefined`. */
+export function extractDocumentHead(doc: Document): DocumentHeadValues | undefined {
   const head: DocumentHeadValues = {};
-  for (const { key, select } of schema) {
-    const value = select(doc);
-    if (value) head[key] = value;
+  const title = doc.title.trim();
+  if (title) head.title = title;
+
+  const tags: Record<string, string> = {};
+  for (const spec of headTags) {
+    const value = doc.querySelector(spec.selector)?.getAttribute(spec.valueAttr)?.trim();
+    if (value) tags[spec.id] = value;
   }
-  return hasDocumentHead(head) ? head : undefined;
+  if (Object.keys(tags).length) head.tags = tags;
+
+  return head.title || head.tags ? head : undefined;
 }

@@ -99,7 +99,7 @@ describe('ViewGraph', () => {
     registry.register('html', async () => ({
       kind: 'html' as const,
       value: '<p>about</p>',
-      head: { title: 'About', description: 'Desc' },
+      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     }));
     const route = matched('/about', {
       route: {
@@ -113,16 +113,16 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: { title: 'About', description: 'Desc' },
+      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: { title: 'About', description: 'Desc' },
+      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
     expect(viewGraph.getCachedHtmlHead(route)).toEqual({
       title: 'About',
-      description: 'Desc',
+      tags: { 'meta:name:description': 'Desc' },
     });
   });
 
@@ -133,7 +133,7 @@ describe('ViewGraph', () => {
       return {
         kind: 'html' as const,
         value: '<p>about</p>',
-        head: { title: 'About', description: 'Desc' },
+        head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
       };
     });
     const route = matched('/about', {
@@ -148,11 +148,11 @@ describe('ViewGraph', () => {
 
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: { title: 'About', description: 'Desc' },
+      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
     await expect(viewGraph.loadView(route, new AbortController().signal)).resolves.toEqual({
       payload: '<p>about</p>',
-      head: { title: 'About', description: 'Desc' },
+      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
     expect(loads).toBe(1);
     expect(viewGraph.getCachedHtmlHead(route)).toBeUndefined();

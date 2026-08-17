@@ -53,7 +53,7 @@ describe('UrlLoader', () => {
     await expect(loader.load(pageCtx({ extract: '#c' }))).resolves.toEqual({
       kind: 'html',
       value: '<main id="c">x</main>',
-      head: { title: 'About', description: 'Desc' },
+      head: { title: 'About', tags: { 'meta:name:description': 'Desc' } },
     });
   });
 

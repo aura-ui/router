@@ -1,11 +1,13 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import { substituteTokens } from '../route-tree/resolve-view-content';
+import { META_DESCRIPTION_ID } from './schema';
 import type { DocumentHeadValues } from './types';
 
-/** True when at least one head field is present (rejects `{}` / empty strings). */
+/** True when title or at least one tag is set. */
 export function hasDocumentHead(head: DocumentHeadValues | null | undefined): head is DocumentHeadValues {
   if (!head) return false;
-  return Object.values(head).some(Boolean);
+  if (head.title) return true;
+  return Object.values(head.tags ?? {}).some(Boolean);
 }
 
 /**
@@ -23,7 +25,9 @@ export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: D
 
   const vars = { ...to.query, ...to.params };
   const head: DocumentHeadValues = { ...htmlHead };
-  if (metaDescription != null) head.description = substituteTokens(metaDescription, vars);
+  if (metaDescription != null) {
+    head.tags = { ...head.tags, [META_DESCRIPTION_ID]: substituteTokens(metaDescription, vars) };
+  }
 
   const title = resolveTitle(to.route, htmlHead?.title, vars);
   if (title !== undefined) head.title = title;

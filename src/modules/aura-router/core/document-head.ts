@@ -1,7 +1,8 @@
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 import { resolveDocumentHeadWithParams, type DocumentHeadValues } from '../../aura-routing-engine/core/document';
+import { headTags, type HeadTagSpec } from '../../aura-routing-engine/core/document/schema';
 
-/** Marks description/canonical this apply wrote. Next omit removes only those. */
+/** Marks tags this apply wrote. Next omit removes only those. */
 const OWNED = 'data-aura-head';
 
 let bootTitle: string | undefined;
@@ -14,23 +15,20 @@ export function applyDocumentHead(to: MatchedRouteInfo, htmlHead?: DocumentHeadV
   if (head?.title !== undefined) document.title = head.title;
   else document.title = bootTitle;
 
-  const description = head?.description;
-  if (description !== undefined) {
-    const el = document.head.querySelector('meta[name="description"]') ?? document.head.appendChild(document.createElement('meta'));
-    el.setAttribute('name', 'description');
-    el.setAttribute('content', description);
-    el.setAttribute(OWNED, '');
-  } else {
-    document.head.querySelector(`meta[name="description"][${OWNED}]`)?.remove();
+  for (const spec of headTags) {
+    syncOwnedTag(spec, head?.tags?.[spec.id]);
+  }
+}
+
+function syncOwnedTag(spec: HeadTagSpec, value: string | undefined): void {
+  if (value === undefined) {
+    document.head.querySelector(`${spec.selector}[${OWNED}]`)?.remove();
+    return;
   }
 
-  const canonical = head?.canonical;
-  if (canonical !== undefined) {
-    const el = document.head.querySelector('link[rel="canonical"]') ?? document.head.appendChild(document.createElement('link'));
-    el.setAttribute('rel', 'canonical');
-    el.setAttribute('href', canonical);
-    el.setAttribute(OWNED, '');
-  } else {
-    document.head.querySelector(`link[rel="canonical"][${OWNED}]`)?.remove();
-  }
+  const el =
+    document.head.querySelector(spec.selector) ?? document.head.appendChild(document.createElement(spec.tag));
+  for (const [name, attrValue] of Object.entries(spec.attrs)) el.setAttribute(name, attrValue);
+  el.setAttribute(spec.valueAttr, value);
+  el.setAttribute(OWNED, '');
 }

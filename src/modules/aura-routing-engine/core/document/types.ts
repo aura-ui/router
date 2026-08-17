@@ -1,6 +1,5 @@
-/** Head fields extracted from a parsed document (`<title>`, `<meta>`, `<link>`). */
+/** Head extracted from a parsed document. Title is special; other tags are keyed by schema ids (`meta:name:description`). */
 export type DocumentHeadValues = {
   title?: string;
-  description?: string;
-  canonical?: string;
+  tags?: Record<string, string>;
 };

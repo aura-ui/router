@@ -7,6 +7,7 @@ import {
   hasDocumentHead,
   resolveDocumentHeadWithParams,
 } from '../../core/document';
+import { META_DESCRIPTION_ID } from '../../core/document/schema';
 
 const FULL_PAGE = `<!DOCTYPE html>
 <html>
@@ -52,10 +53,10 @@ function matchedRoute(
 }
 
 describe('hasDocumentHead', () => {
-  it('is true when title or description is set', () => {
+  it('is true when title or a tag is set', () => {
     expect(hasDocumentHead({ title: 'A' })).toBe(true);
-    expect(hasDocumentHead({ description: 'D' })).toBe(true);
-    expect(hasDocumentHead({ canonical: 'https://x' })).toBe(true);
+    expect(hasDocumentHead({ tags: { [META_DESCRIPTION_ID]: 'D' } })).toBe(true);
+    expect(hasDocumentHead({ tags: { 'link:rel:canonical': 'https://x' } })).toBe(true);
     expect(hasDocumentHead({})).toBe(false);
     expect(hasDocumentHead(undefined)).toBe(false);
   });
@@ -65,7 +66,7 @@ describe('extractDocumentHead', () => {
   it('reads title and description from a parsed document', () => {
     expect(extractDocumentHead(stringToHtml(FULL_PAGE))).toEqual({
       title: 'Legacy',
-      description: 'About page',
+      tags: { [META_DESCRIPTION_ID]: 'About page' },
     });
   });
 
@@ -76,7 +77,22 @@ describe('extractDocumentHead', () => {
     </head></html>`;
     expect(extractDocumentHead(stringToHtml(html))).toEqual({
       title: 'T',
-      canonical: 'https://example.com/about',
+      tags: { 'link:rel:canonical': 'https://example.com/about' },
+    });
+  });
+
+  it('reads open graph and twitter tags', () => {
+    const html = `<html><head>
+      <meta property="og:title" content="OG" />
+      <meta property="og:image" content="https://img/og.png" />
+      <meta name="twitter:card" content="summary" />
+    </head></html>`;
+    expect(extractDocumentHead(stringToHtml(html))).toEqual({
+      tags: {
+        'meta:property:og:title': 'OG',
+        'meta:property:og:image': 'https://img/og.png',
+        'meta:name:twitter:card': 'summary',
+      },
     });
   });
 
@@ -99,7 +115,7 @@ describe('resolveDocumentHeadWithParams', () => {
 
     expect(resolveDocumentHeadWithParams(to)).toEqual({
       title: 'User 42',
-      description: 'Profile 42',
+      tags: { [META_DESCRIPTION_ID]: 'Profile 42' },
     });
   });
 
@@ -107,11 +123,11 @@ describe('resolveDocumentHeadWithParams', () => {
     expect(
       resolveDocumentHeadWithParams(matchedRoute('/about'), {
         title: 'About from HTML',
-        description: 'HTML desc',
+        tags: { [META_DESCRIPTION_ID]: 'HTML desc' },
       }),
     ).toEqual({
       title: 'About from HTML',
-      description: 'HTML desc',
+      tags: { [META_DESCRIPTION_ID]: 'HTML desc' },
     });
   });
 
@@ -119,11 +135,11 @@ describe('resolveDocumentHeadWithParams', () => {
     expect(
       resolveDocumentHeadWithParams(matchedRoute('/about', { metaTitle: 'Attr title' }), {
         title: 'HTML title',
-        canonical: 'https://example.com/about',
+        tags: { 'link:rel:canonical': 'https://example.com/about' },
       }),
     ).toEqual({
       title: 'Attr title',
-      canonical: 'https://example.com/about',
+      tags: { 'link:rel:canonical': 'https://example.com/about' },
     });
   });
 

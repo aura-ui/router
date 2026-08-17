@@ -23,6 +23,7 @@ function matchedRoute(
   path: string,
   attrs: {
     metaTitle?: string;
+    metaTitleTemplate?: string;
     metaDescription?: string;
     params?: Record<string, string>;
     query?: Record<string, string>;
@@ -34,6 +35,7 @@ function matchedRoute(
   const route = document.createElement(AuraRoute.is) as AuraRoute;
   route.setAttribute('path', path);
   if (attrs.metaTitle) route.setAttribute('meta-title', attrs.metaTitle);
+  if (attrs.metaTitleTemplate) route.setAttribute('meta-title-template', attrs.metaTitleTemplate);
   if (attrs.metaDescription) route.setAttribute('meta-description', attrs.metaDescription);
 
   return {
@@ -143,5 +145,58 @@ describe('resolveDocumentHeadWithParams', () => {
         matchedRoute('/search', { metaTitle: 'q=:q', query: { q: 'aura' } }),
       ),
     ).toEqual({ title: 'q=aura' });
+  });
+
+  it('wraps local meta-title with meta-title-template', () => {
+    expect(
+      resolveDocumentHeadWithParams(
+        matchedRoute('/users/:id', {
+          metaTitle: 'User :id',
+          metaTitleTemplate: '%s | App',
+          params: { id: '42' },
+        }),
+      ),
+    ).toEqual({ title: 'User 42 | App' });
+  });
+
+  it('wraps HTML title when meta-title is absent', () => {
+    expect(
+      resolveDocumentHeadWithParams(
+        matchedRoute('/about', { metaTitleTemplate: '%s | App' }),
+        { title: 'About from HTML' },
+      ),
+    ).toEqual({ title: 'About from HTML | App' });
+  });
+
+  it('uses inherited meta-title as default without wrapping', () => {
+    const router = document.createElement('aura-router');
+    router.setAttribute('meta-title', 'App');
+    router.setAttribute('meta-title-template', '%s | App');
+    const to = matchedRoute('/home');
+    router.append(to.route);
+    document.body.append(router);
+
+    expect(resolveDocumentHeadWithParams(to)).toEqual({ title: 'App' });
+  });
+
+  it('does not wrap when meta-title-template is none', () => {
+    expect(
+      resolveDocumentHeadWithParams(
+        matchedRoute('/landing', { metaTitle: 'Launch', metaTitleTemplate: 'none' }),
+      ),
+    ).toEqual({ title: 'Launch' });
+  });
+
+  it('wraps HTML title after meta-title none (inherit opt-out)', () => {
+    const router = document.createElement('aura-router');
+    router.setAttribute('meta-title', 'App');
+    router.setAttribute('meta-title-template', '%s | App');
+    const to = matchedRoute('/bare', { metaTitle: 'none' });
+    router.append(to.route);
+    document.body.append(router);
+
+    expect(
+      resolveDocumentHeadWithParams(to, { title: 'About from HTML' }),
+    ).toEqual({ title: 'About from HTML | App' });
   });
 });

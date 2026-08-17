@@ -56,6 +56,7 @@ type MutableRouteRecord = Omit<RouteInstance, 'extract' | 'transition'> & {
   scrollTarget: null;
   scrollBehavior: null;
   metaTitle: null;
+  metaTitleTemplate: null;
   metaDescription: null;
   cacheTime: null;
   cacheRefresh: null;
@@ -105,6 +106,7 @@ export function wireRouteViewController(
   routeRecord.scrollTarget = null;
   routeRecord.scrollBehavior = null;
   routeRecord.metaTitle = null;
+  routeRecord.metaTitleTemplate = null;
   routeRecord.metaDescription = null;
   routeRecord.cacheTime = null;
   routeRecord.cacheRefresh = null;

@@ -131,11 +131,15 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ parser: parseNullableString, cached: true })
   extract: string | null;
 
-  /** Default document title template for child routes. HTML attr: `meta-title`. */
+  /** Default document title for child routes. HTML attr: `meta-title`. */
   @attr({ parser: parseOffableString, cached: true })
   metaTitle: string | null;
 
-  /** Default description meta template for child routes. HTML attr: `meta-description`. */
+  /** Title wrap for child routes (`%s` = page title). HTML attr: `meta-title-template`. */
+  @attr({ parser: parseOffableString, cached: true })
+  metaTitleTemplate: string | null;
+
+  /** Default description meta for child routes. HTML attr: `meta-description`. */
   @attr({ parser: parseOffableString, cached: true })
   metaDescription: string | null;
 

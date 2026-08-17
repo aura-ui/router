@@ -22,6 +22,7 @@ export function createRouteStub(overrides: Partial<AuraRouteInterface> = {}): Au
     scrollTarget: null,
     scrollBehavior: null,
     metaTitle: null,
+    metaTitleTemplate: null,
     metaDescription: null,
     cacheTime: null,
     cacheRefresh: null,

@@ -1,8 +1,8 @@
-# Chapter 8 — Errors and accessibility
+﻿# Chapter 8 — Errors and accessibility
 
 Handle missing routes and failures, then keep navigation state accessible.
 
-[← Navigation experience](./06-navigation-ux.md) · [Guide index](../guide.md) · [API reference →](./08-api-reference.md)
+[← Navigation experience](./07-navigation-ux.md) · [Guide index](../guide.md) · [API reference →](./09-api-reference.md)
 
 ---
 
@@ -112,4 +112,4 @@ Aura manages `aria-current`, but does not move focus when a new view commits. Wh
 
 ---
 
-[← Navigation experience](./06-navigation-ux.md) · [Guide index](../guide.md) · [API reference →](./08-api-reference.md)
+[← Navigation experience](./07-navigation-ux.md) · [Guide index](../guide.md) · [API reference →](./09-api-reference.md)

@@ -1,8 +1,8 @@
-# Chapter 4 — Document meta
+﻿# Chapter 4 — Document meta
 
 Each in-app navigation can update the tab title, `<html lang>` / `<html dir>`, and selected tags in `<head>` — description, canonical, Open Graph, Twitter, and any slots you register. Aura applies these changes automatically after a successful commit. No hooks are required.
 
-[← Views and layouts](./03-views-and-layouts.md) · [Guide index](../guide.md) · [Lifecycle and route data →](./04-lifecycle-and-data.md)
+[← Views and layouts](./03-views-and-layouts.md) · [Guide index](../guide.md) · [Lifecycle and route data →](./05-lifecycle-and-data.md)
 
 ---
 
@@ -230,4 +230,4 @@ HTML meta from a layout route's own `view` does **not** merge into the child. To
 
 ---
 
-[← Views and layouts](./03-views-and-layouts.md) · [Guide index](../guide.md) · [Lifecycle and route data →](./04-lifecycle-and-data.md)
+[← Views and layouts](./03-views-and-layouts.md) · [Guide index](../guide.md) · [Lifecycle and route data →](./05-lifecycle-and-data.md)

@@ -1,4 +1,4 @@
-# First-paint adoption reference
+﻿# First-paint adoption reference
 
 > **Start here:** Follow [Static site → SPA in 10 minutes](../tutorial.md) for the complete setup.
 >
@@ -6,7 +6,7 @@
 >
 > **Live:** [`playground/`](../../playground/) — hard-reload `/contacts` or `/login` (flat routes).
 >
-> **API:** [First paint](../guide/05-mpa-to-spa.md#first-paint-mpa--spa) · [`extract`](../guide/03-views-and-layouts.md#extract--fragment-from-full-html-pages)
+> **API:** [First paint](../guide/06-mpa-to-spa.md#first-paint-mpa--spa) · [`extract`](../guide/03-views-and-layouts.md#extract--fragment-from-full-html-pages)
 
 Use this page as a compact reference when the initial route has already been configured. Aura does not render on the server: your host returns complete HTML, Aura adopts that HTML on startup, and later marked links use client navigation.
 

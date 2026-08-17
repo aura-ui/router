@@ -1,8 +1,8 @@
-# Chapter 7 — Navigation experience
+﻿# Chapter 7 — Navigation experience
 
 Control scrolling, prefetching, caching, and loading feedback.
 
-[← First paint: MPA → SPA](./05-mpa-to-spa.md) · [Guide index](../guide.md) · [Errors and accessibility →](./07-errors-and-accessibility.md)
+[← First paint: MPA → SPA](./06-mpa-to-spa.md) · [Guide index](../guide.md) · [Errors and accessibility →](./08-errors-and-accessibility.md)
 
 ---
 
@@ -212,4 +212,4 @@ Aura stages the skeleton without immediately discarding the committed view. When
 
 ---
 
-[← First paint: MPA → SPA](./05-mpa-to-spa.md) · [Guide index](../guide.md) · [Errors and accessibility →](./07-errors-and-accessibility.md)
+[← First paint: MPA → SPA](./06-mpa-to-spa.md) · [Guide index](../guide.md) · [Errors and accessibility →](./08-errors-and-accessibility.md)

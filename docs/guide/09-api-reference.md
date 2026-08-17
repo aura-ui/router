@@ -1,8 +1,8 @@
-# Chapter 9 — API reference
+﻿# Chapter 9 — API reference
 
 Look up router defaults, JavaScript methods, DOM events, and compatibility requirements.
 
-[← Errors and accessibility](./07-errors-and-accessibility.md) · [Guide index](../guide.md)
+[← Errors and accessibility](./08-errors-and-accessibility.md) · [Guide index](../guide.md)
 
 ---
 
@@ -79,7 +79,7 @@ AuraRouter.configure({
 });
 ```
 
-See [Document meta](./09-document-meta.md) for title, description, canonical, and `documentMeta.tags`.
+See [Document meta](./04-document-meta.md) for title, description, canonical, and `documentMeta.tags`.
 
 ### Register hooks and loaders
 
@@ -105,7 +105,7 @@ router.prefetch(href, { mode?, signal?, force? }?): Promise<void>
 
 `navigate()` accepts a string path and uses history push by default. Set `replace: true` to replace the current entry, or `syncHistory: false` when another integration owns the address bar. Navigation continues asynchronously; observe its outcome through hooks or DOM events.
 
-`prefetch()` prepares a route without changing the current URL. It returns when the prefetch work settles; see [Prefetch](./06-navigation-ux.md#prefetch) for modes and safeguards.
+`prefetch()` prepares a route without changing the current URL. It returns when the prefetch work settles; see [Prefetch](./07-navigation-ux.md#prefetch) for modes and safeguards.
 
 ### Invalidate, refresh, and fallback
 
@@ -119,7 +119,7 @@ router.setNotFoundHandler(handler | null): void
 
 `refreshRoutes()` rebuilds matching from all descendant `<aura-route>` elements after route markup is added, removed, or reordered.
 
-`setNotFoundHandler()` sets an instance-level fallback; pass `null` to clear it. See [Custom 404 handling](./07-errors-and-accessibility.md#custom-404-handling) for precedence.
+`setNotFoundHandler()` sets an instance-level fallback; pass `null` to clear it. See [Custom 404 handling](./08-errors-and-accessibility.md#custom-404-handling) for precedence.
 
 ### Read runtime state
 
@@ -184,4 +184,4 @@ The package is HTML-first and has no React or Vue adapter. Custom elements and L
 
 ---
 
-[← Errors and accessibility](./07-errors-and-accessibility.md) · [Guide index](../guide.md)
+[← Errors and accessibility](./08-errors-and-accessibility.md) · [Guide index](../guide.md)

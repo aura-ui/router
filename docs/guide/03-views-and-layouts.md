@@ -1,8 +1,8 @@
-# Chapter 3 — Views and layouts
+﻿# Chapter 3 — Views and layouts
 
 Load route content, extract regions from complete pages, and preserve shared layouts.
 
-[← Routes and navigation](./02-routes-and-navigation.md) · [Guide index](../guide.md) · [Document meta →](./09-document-meta.md)
+[← Routes and navigation](./02-routes-and-navigation.md) · [Guide index](../guide.md) · [Document meta →](./04-document-meta.md)
 
 ---
 
@@ -102,9 +102,9 @@ When a URL returns a complete HTML page, `extract` selects the part Aura should 
 
 Here, `/about` mounts the complete `#main` element, including the element itself. The `/raw` route disables the router's inherited selector and mounts the full response.
 
-If the selector does not match, Aura warns and falls back to the full response. Set `extract` to `none`, `off`, `false`, or an empty value to disable an inherited selector. On a flat initial route, the same selector also enables [first-paint adoption](./05-mpa-to-spa.md#first-paint-mpa--spa).
+If the selector does not match, Aura warns and falls back to the full response. Set `extract` to `none`, `off`, `false`, or an empty value to disable an inherited selector. On a flat initial route, the same selector also enables [first-paint adoption](./06-mpa-to-spa.md#first-paint-mpa--spa).
 
-Aura also reads document meta from the full HTML response — title, description, canonical, and social tags. See [Document meta](./09-document-meta.md).
+Aura also reads document meta from the full HTML response — title, description, canonical, and social tags. See [Document meta](./04-document-meta.md).
 
 ## Nested routes & layouts
 
@@ -143,7 +143,7 @@ Here, the child matches URLs such as `/en/about`, while the parent's `guard` app
 
 Layout parents and path-only parent routes both pass most route policy to their children. `path`, `view`, `layout`, `redirect`, and `load` always stay local.
 
-For the server-rendered HTML required when a nested URL loads directly, see [First paint](./05-mpa-to-spa.md#first-paint-mpa--spa).
+For the server-rendered HTML required when a nested URL loads directly, see [First paint](./06-mpa-to-spa.md#first-paint-mpa--spa).
 
 ## Same-route updates
 
@@ -185,4 +185,4 @@ Hash-only navigation is different: it performs anchor scrolling without running 
 
 ---
 
-[← Routes and navigation](./02-routes-and-navigation.md) · [Guide index](../guide.md) · [Document meta →](./09-document-meta.md)
+[← Routes and navigation](./02-routes-and-navigation.md) · [Guide index](../guide.md) · [Document meta →](./04-document-meta.md)

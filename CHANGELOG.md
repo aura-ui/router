@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to `@auraui/router` are documented here.
 
@@ -18,7 +18,7 @@ Package version in `package.json` is **`0.1.0`**, published as [`@auraui/router`
 
 - **`scroll` attr** — values are `auto` | `top` | `none` (was `restore` | `top` | `manual`). Absent `scroll` now defaults to `auto` (push → top, back → restore). Opt out with `scroll="none"`. See [#9](https://github.com/aura-ui/router/pull/9).
 - **`:param` in `view` content** — path tokens like `view=":lang/page.html"` / `users/:id.html` resolve from matched route params (same shape as `path`; SSR-friendly vs mustache). `{{param}}` placeholders in `view` are removed. Docs: [Views](./docs/guide/03-views-and-layouts.md#views).
-- **Flat first-paint adopt** — flat pages adopt via `extract` (same selector as SPA fragments); nested layout shells that differ from `extract` still use `aura-router-ssr`. See [#15](https://github.com/aura-ui/router/pull/15). Guide: [First paint (MPA → SPA)](./docs/guide/05-mpa-to-spa.md#first-paint-mpa--spa).
+- **Flat first-paint adopt** — flat pages adopt via `extract` (same selector as SPA fragments); nested layout shells that differ from `extract` still use `aura-router-ssr`. See [#15](https://github.com/aura-ui/router/pull/15). Guide: [First paint (MPA → SPA)](./docs/guide/06-mpa-to-spa.md#first-paint-mpa--spa).
 
 ### Added
 
@@ -73,7 +73,7 @@ Package version in `package.json` is **`0.1.0`**, published as [`@auraui/router`
 - Href matching for nested routes ignores trailing `/` (`/users` ≈ `/users/`); the address bar is not rewritten — prefer root-absolute nav links for MPA→SPA.
 - Active links (class + `aria-current`) for `[aura-router-link]`; host `link-*` attrs; branch active class.
 - Nested `<aura-outlet>`; root outlet auto-created as sibling of `<aura-router>` when missing; `AuraRouter.prefetch()`, link prefetch cascade (intent / tap).
-- **First-paint hydration (MPA → SPA)** — mark server HTML with `aura-router-ssr`; on boot the engine **adopts** flat or nested markup (nested needs outlet + `data-aura-view-root` chain) instead of refetching; mismatch / redirect / missing marker falls back to normal `initNavigate`. Guide: [docs/guide.md](./docs/guide/05-mpa-to-spa.md#first-paint-mpa--spa).
+- **First-paint hydration (MPA → SPA)** — mark server HTML with `aura-router-ssr`; on boot the engine **adopts** flat or nested markup (nested needs outlet + `data-aura-view-root` chain) instead of refetching; mismatch / redirect / missing marker falls back to normal `initNavigate`. Guide: [docs/guide.md](./docs/guide/06-mpa-to-spa.md#first-paint-mpa--spa).
 - DataGraph long cache with global `staleTime` (~30s); unified `router.invalidate({ cache: 'data' | 'view' | 'all' })` and `data-invalidated` event.
 - Resource graph (data + view load, resource keys, handoff / shared buffer, in-flight join).
 - Transition-plan fast paths (`canUseDomCacheFastPath`, `canUseViewCacheFastPath`).

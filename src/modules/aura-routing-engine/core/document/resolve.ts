@@ -1,5 +1,5 @@
 import type { MatchedRouteInfo } from '../match/url-matcher';
-import { resolveViewContent } from '../route-tree/resolve-view-content';
+import { substituteTokens } from '../route-tree/resolve-view-content';
 import type { DocumentHeadValues } from './types';
 
 /** True when at least one head field is present (rejects `{}` / empty strings). */
@@ -11,6 +11,8 @@ export function hasDocumentHead(head: DocumentHeadValues | null | undefined): he
 /**
  * Bind match params/query into `meta-title` / `meta-description`, overlay on htmlHead.
  * Canonical and other HTML fields pass through. Empty → `null`.
+ *
+ * `:name` only (path wins over query). `?` is literal — not view-search syntax.
  */
 export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: DocumentHeadValues): DocumentHeadValues | null {
   const { metaTitle, metaDescription } = to.route;
@@ -18,9 +20,9 @@ export function resolveDocumentHeadWithParams(to: MatchedRouteInfo, htmlHead?: D
     return hasDocumentHead(htmlHead) ? htmlHead : null;
   }
 
-  const vars = { params: to.params, query: to.query };
+  const vars = { ...to.query, ...to.params };
   const head: DocumentHeadValues = { ...htmlHead };
-  if (metaTitle != null) head.title = resolveViewContent(metaTitle, vars);
-  if (metaDescription != null) head.description = resolveViewContent(metaDescription, vars);
+  if (metaTitle != null) head.title = substituteTokens(metaTitle, vars);
+  if (metaDescription != null) head.description = substituteTokens(metaDescription, vars);
   return hasDocumentHead(head) ? head : null;
 }

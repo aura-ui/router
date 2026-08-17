@@ -181,7 +181,7 @@ export class ViewGraph {
 
   /**
    * Load payload for a matched route (`layout` wins over resolved `view` attr).
-   * Single-route entry ({@link ViewResolverPort}). Outcome: `{ data, meta? }` / `{ error }` / `{}`.
+   * Single-route entry ({@link ViewResolverPort}). Outcome: `{ data, head }` / `{ error }` / `{}`.
    */
   loadView(
     match: MatchedRouteInfo,

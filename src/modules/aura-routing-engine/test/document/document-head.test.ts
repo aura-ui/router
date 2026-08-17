@@ -25,6 +25,7 @@ function matchedRoute(
     metaTitle?: string;
     metaDescription?: string;
     params?: Record<string, string>;
+    query?: Record<string, string>;
   } = {},
 ) {
   if (!customElements.get(AuraRoute.is)) {
@@ -43,6 +44,7 @@ function matchedRoute(
     pattern: path,
     route,
     params: attrs.params,
+    query: attrs.query,
     viewKey: `view:${path}`,
   };
 }
@@ -125,5 +127,21 @@ describe('resolveDocumentHeadWithParams', () => {
 
   it('returns null when no attrs and no htmlHead', () => {
     expect(resolveDocumentHeadWithParams(matchedRoute('/empty'))).toBeNull();
+  });
+
+  it('keeps literal ? in title (not view-search syntax)', () => {
+    expect(
+      resolveDocumentHeadWithParams(
+        matchedRoute('/faq', { metaTitle: 'FAQ?' }),
+      ),
+    ).toEqual({ title: 'FAQ?' });
+  });
+
+  it('fills :name from query when the param is absent', () => {
+    expect(
+      resolveDocumentHeadWithParams(
+        matchedRoute('/search', { metaTitle: 'q=:q', query: { q: 'aura' } }),
+      ),
+    ).toEqual({ title: 'q=aura' });
   });
 });

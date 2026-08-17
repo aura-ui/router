@@ -2,14 +2,23 @@ import { stringToHtml } from '../../../aura-utils/misc/dom';
 import { getHeadTags } from './schema';
 import { hasDocumentMeta, type DocumentMetaValues } from './types';
 
+/** Result of parsing a fetched HTML string in {@link processHtml}. */
 export type PreparedHtml = {
+  /** Mount fragment (full html, matched `outerHTML`, or original on extract miss). */
   fragment: string;
+  /** Document meta from the parsed document; `undefined` when no head fields matched. */
   meta: DocumentMetaValues | undefined;
 };
 
 /**
- * One parse pass: optional `extract` fragment + document meta from `<head>`.
- * On extract miss, warns and keeps full `html`. `meta` is always present (`undefined` if empty).
+ * Parse HTML once: optional `extract` fragment + {@link extractDocumentMeta}.
+ *
+ * Meta is always read from the **full** parsed document, not from the extracted subtree.
+ * Without a selector, `fragment` is the original string. On extract miss, warns and keeps
+ * the full `html` as `fragment`.
+ *
+ * @param selector Route `extract` attr, or null/undefined to skip fragment extraction.
+ * @param href Route URL — logged when the selector matches nothing.
  */
 export function processHtml(html: string, selector: string | null | undefined, href: string): PreparedHtml {
   const doc = stringToHtml(html);
@@ -23,7 +32,11 @@ export function processHtml(html: string, selector: string | null | undefined, h
   return { fragment: html, meta };
 }
 
-/** Title, `<html lang|dir>`, and {@link getHeadTags}. Empty → `undefined`. */
+/**
+ * Read title, `<html lang|dir>`, and slots from {@link getHeadTags} on a parsed document.
+ *
+ * @returns `undefined` when {@link hasDocumentMeta} is false (caller treats as “no meta”).
+ */
 export function extractDocumentMeta(doc: Document): DocumentMetaValues | undefined {
   const meta: DocumentMetaValues = {};
   const title = doc.title.trim();

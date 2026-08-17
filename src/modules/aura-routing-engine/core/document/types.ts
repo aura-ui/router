@@ -1,14 +1,25 @@
-/** Extracted document metadata: `<title>`, `<html lang|dir>`, and managed `<head>` tags. */
+/**
+ * Document metadata for one navigation target (extract output and resolve output share this shape).
+ *
+ * Produced by {@link extractDocumentMeta} and/or {@link resolveDocumentMetaWithParams}.
+ * Host apply writes the resolved result to the live document after commit
+ * (`aura-router/core/document-meta.ts`).
+ */
 export type DocumentMetaValues = {
+  /** Page title (`document.title` / `<title>`). */
   title?: string;
-  /** From `<html lang>`. */
+  /** From fetched `<html lang>`. */
   lang?: string;
-  /** From `<html dir>`. */
+  /** From fetched `<html dir>`. */
   dir?: string;
+  /**
+   * Managed `<head>` slot values keyed by {@link HeadTagSpec.id}
+   * (e.g. `meta:name:description`, `link:rel:canonical`, `meta:property:og:title`).
+   */
   tags?: Record<string, string>;
 };
 
-/** True when title, html attrs, or at least one tag is set. */
+/** Non-empty {@link DocumentMetaValues} (at least one field set). */
 export function hasDocumentMeta(meta: DocumentMetaValues | null | undefined): meta is DocumentMetaValues {
   if (!meta) return false;
   if (meta.title || meta.lang || meta.dir) return true;

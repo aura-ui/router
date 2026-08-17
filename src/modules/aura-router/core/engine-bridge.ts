@@ -20,7 +20,7 @@ import type {
 } from '../../aura-routing-engine/core';
 import type { AuraRouterNotFoundController } from './not-found-controller';
 import type { Scroller } from './scroller';
-import { applyDocumentHead } from './document-head';
+import { applyDocumentMeta } from './document-meta';
 
 /** Deps the engine↔host bridge needs from `<aura-router>` (not the whole element API). */
 export type RouterEngineBridgeDeps = {
@@ -122,7 +122,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
         action: event.action,
         hash: event.hash,
       });
-      applyDocumentHead(event.to, event.htmlHead);
+      applyDocumentMeta(event.to, event.htmlHead);
       syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION, navigationDomDetail(event.from, event.to));
       return;

@@ -2,9 +2,9 @@
 
 import { AuraRoute } from '../../aura-route/core/aura-route';
 
-type ApplyDocumentHead = typeof import('../core/document-head').applyDocumentHead;
+type ApplyDocumentMeta = typeof import('../core/document-meta').applyDocumentMeta;
 
-let applyDocumentHead: ApplyDocumentHead;
+let applyDocumentMeta: ApplyDocumentMeta;
 
 function matchedRoute(
   path: string,
@@ -36,10 +36,10 @@ function matchedRoute(
   };
 }
 
-describe('applyDocumentHead', () => {
+describe('applyDocumentMeta', () => {
   beforeEach(() => {
     jest.resetModules();
-    applyDocumentHead = require('../core/document-head').applyDocumentHead;
+    applyDocumentMeta = require('../core/document-meta').applyDocumentMeta;
   });
 
   afterEach(() => {
@@ -52,7 +52,7 @@ describe('applyDocumentHead', () => {
   });
 
   it('writes document.title and creates description meta', () => {
-    applyDocumentHead(
+    applyDocumentMeta(
       matchedRoute('/users/:id', {
         metaTitle: 'User :id',
         metaDescription: 'Hello :id',
@@ -67,7 +67,7 @@ describe('applyDocumentHead', () => {
   });
 
   it('writes canonical from htmlHead even without description', () => {
-    applyDocumentHead(matchedRoute('/about'), {
+    applyDocumentMeta(matchedRoute('/about'), {
       title: 'About',
       tags: { 'link:rel:canonical': 'https://example.com/about' },
     });
@@ -85,7 +85,7 @@ describe('applyDocumentHead', () => {
     boot.setAttribute('name', 'description');
     boot.setAttribute('content', 'Site');
 
-    applyDocumentHead(matchedRoute('/x'));
+    applyDocumentMeta(matchedRoute('/x'));
 
     expect(document.title).toBe('Keep');
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe('Site');
@@ -93,17 +93,17 @@ describe('applyDocumentHead', () => {
 
   it('restores boot title when the next resolve omits it', () => {
     document.title = 'Shell';
-    applyDocumentHead(matchedRoute('/a', { metaTitle: 'A' }));
-    applyDocumentHead(matchedRoute('/b'));
+    applyDocumentMeta(matchedRoute('/a', { metaTitle: 'A' }));
+    applyDocumentMeta(matchedRoute('/b'));
 
     expect(document.title).toBe('Shell');
   });
 
   it('removes owned description and canonical when the next resolve omits them', () => {
-    applyDocumentHead(matchedRoute('/a', { metaTitle: 'A', metaDescription: 'About' }), {
+    applyDocumentMeta(matchedRoute('/a', { metaTitle: 'A', metaDescription: 'About' }), {
       tags: { 'link:rel:canonical': 'https://example.com/a' },
     });
-    applyDocumentHead(matchedRoute('/b'));
+    applyDocumentMeta(matchedRoute('/b'));
 
     expect(document.querySelector('meta[name="description"]')).toBeNull();
     expect(document.querySelector('link[rel="canonical"]')).toBeNull();
@@ -114,14 +114,14 @@ describe('applyDocumentHead', () => {
     boot.setAttribute('name', 'description');
     boot.setAttribute('content', 'Site');
 
-    applyDocumentHead(matchedRoute('/about', { metaDescription: 'About' }));
-    applyDocumentHead(matchedRoute('/empty'));
+    applyDocumentMeta(matchedRoute('/about', { metaDescription: 'About' }));
+    applyDocumentMeta(matchedRoute('/empty'));
 
     expect(document.querySelector('meta[name="description"]')).toBeNull();
   });
 
   it('writes canonical from meta-canonical attr', () => {
-    applyDocumentHead(
+    applyDocumentMeta(
       matchedRoute('/users/:id', {
         metaCanonical: 'https://example.com/users/:id',
         params: { id: '7' },
@@ -135,20 +135,20 @@ describe('applyDocumentHead', () => {
 
   it('writes and restores boot lang and dir from htmlHead', () => {
     document.documentElement.setAttribute('lang', 'en');
-    applyDocumentHead(matchedRoute('/de'), { lang: 'de', dir: 'rtl' });
+    applyDocumentMeta(matchedRoute('/de'), { lang: 'de', dir: 'rtl' });
     expect(document.documentElement.getAttribute('lang')).toBe('de');
     expect(document.documentElement.getAttribute('dir')).toBe('rtl');
 
-    applyDocumentHead(matchedRoute('/empty'));
+    applyDocumentMeta(matchedRoute('/empty'));
     expect(document.documentElement.getAttribute('lang')).toBe('en');
     expect(document.documentElement.hasAttribute('dir')).toBe(false);
   });
 
   it('writes and reverts open graph tags from htmlHead', () => {
-    applyDocumentHead(matchedRoute('/a'), { tags: { 'meta:property:og:title': 'Share A' } });
+    applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:property:og:title': 'Share A' } });
     expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe('Share A');
 
-    applyDocumentHead(matchedRoute('/b'));
+    applyDocumentMeta(matchedRoute('/b'));
     expect(document.querySelector('meta[property="og:title"]')).toBeNull();
   });
 
@@ -158,7 +158,7 @@ describe('applyDocumentHead', () => {
       documentHead: { tags: [{ tag: 'meta', attrs: { name: 'theme-color' } }] },
     });
 
-    applyDocumentHead(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });
+    applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#111');
   });
 });

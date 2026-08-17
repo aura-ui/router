@@ -5,6 +5,7 @@ import { stringToHtml } from '../../../aura-utils/misc/dom';
 import {
   extractDocumentMeta,
   hasDocumentMeta,
+  processHtml,
   resolveDocumentMetaWithParams,
   configureDocumentMeta,
   CANONICAL_ID,
@@ -54,6 +55,20 @@ function matchedRoute(
     query: attrs.query,
     viewKey: `view:${path}`,
   };
+}
+
+function routeUnderRouter(
+  routeAttrs: Parameters<typeof matchedRoute>[1] = {},
+  routerAttrs: Record<string, string> = {},
+) {
+  const router = document.createElement('aura-router');
+  for (const [name, value] of Object.entries(routerAttrs)) {
+    router.setAttribute(name, value);
+  }
+  const to = matchedRoute('/page', routeAttrs);
+  router.append(to.route);
+  document.body.append(router);
+  return to;
 }
 
 describe('hasDocumentMeta', () => {
@@ -146,6 +161,42 @@ describe('extractDocumentMeta', () => {
   });
 });
 
+describe('processHtml', () => {
+  it('returns the original string when extract is omitted', () => {
+    expect(processHtml(FULL_PAGE, null, '/about')).toEqual({
+      fragment: FULL_PAGE,
+      meta: {
+        title: 'Legacy',
+        tags: { [META_DESCRIPTION_ID]: 'About page' },
+      },
+    });
+  });
+
+  it('extracts a fragment but reads meta from the full document', () => {
+    const { fragment, meta } = processHtml(FULL_PAGE, '#content', '/about');
+    expect(fragment).toBe('<main id="content"><h1>About</h1></main>');
+    expect(meta).toEqual({
+      title: 'Legacy',
+      tags: { [META_DESCRIPTION_ID]: 'About page' },
+    });
+  });
+
+  it('warns and keeps full html when the selector misses', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(processHtml(FULL_PAGE, '#missing', '/about')).toEqual({
+      fragment: FULL_PAGE,
+      meta: {
+        title: 'Legacy',
+        tags: { [META_DESCRIPTION_ID]: 'About page' },
+      },
+    });
+    expect(warn).toHaveBeenCalledWith(
+      'Nothing found for extract selector "#missing" — using full HTML. Page — /about',
+    );
+    warn.mockRestore();
+  });
+});
+
 describe('resolveDocumentMetaWithParams', () => {
   afterEach(() => {
     document.body.replaceChildren();
@@ -223,6 +274,36 @@ describe('resolveDocumentMetaWithParams', () => {
     ).toEqual({ title: 'q=aura' });
   });
 
+  it('prefers path params over query for :name tokens', () => {
+    expect(
+      resolveDocumentMetaWithParams(
+        matchedRoute('/items/:id', {
+          metaTitle: ':id/:q',
+          params: { id: '1' },
+          query: { q: 'query', id: '9' },
+        }),
+      ),
+    ).toEqual({ title: '1/query' });
+  });
+
+  it('passes lang and dir through from htmlMeta', () => {
+    expect(
+      resolveDocumentMetaWithParams(matchedRoute('/de', { metaTitle: 'DE' }), {
+        lang: 'de',
+        dir: 'rtl',
+      }),
+    ).toEqual({ title: 'DE', lang: 'de', dir: 'rtl' });
+  });
+
+  it('uses page title as-is when the template has no %s', () => {
+    expect(
+      resolveDocumentMetaWithParams(
+        matchedRoute('/about', { metaTitleTemplate: 'Ignored prefix' }),
+        { title: 'About' },
+      ),
+    ).toEqual({ title: 'About' });
+  });
+
   it('wraps local meta-title with meta-title-template', () => {
     expect(
       resolveDocumentMetaWithParams(
@@ -245,13 +326,7 @@ describe('resolveDocumentMetaWithParams', () => {
   });
 
   it('uses inherited meta-title as default without wrapping', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('meta-title', 'App');
-    router.setAttribute('meta-title-template', '%s | App');
-    const to = matchedRoute('/home');
-    router.append(to.route);
-    document.body.append(router);
-
+    const to = routeUnderRouter({}, { 'meta-title': 'App', 'meta-title-template': '%s | App' });
     expect(resolveDocumentMetaWithParams(to)).toEqual({ title: 'App' });
   });
 
@@ -264,13 +339,10 @@ describe('resolveDocumentMetaWithParams', () => {
   });
 
   it('wraps HTML title after meta-title none (inherit opt-out)', () => {
-    const router = document.createElement('aura-router');
-    router.setAttribute('meta-title', 'App');
-    router.setAttribute('meta-title-template', '%s | App');
-    const to = matchedRoute('/bare', { metaTitle: 'none' });
-    router.append(to.route);
-    document.body.append(router);
-
+    const to = routeUnderRouter(
+      { metaTitle: 'none' },
+      { 'meta-title': 'App', 'meta-title-template': '%s | App' },
+    );
     expect(
       resolveDocumentMetaWithParams(to, { title: 'About from HTML' }),
     ).toEqual({ title: 'About from HTML | App' });

@@ -33,6 +33,7 @@ export { Loader, type LoaderClass } from './loader';
 export type {
   LoaderFn,
   ViewPayload,
+  ViewSnapshotEntry,
   ViewLoadContext,
   ViewLoadResult,
   ViewDescriptor,

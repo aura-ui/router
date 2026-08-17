@@ -226,16 +226,16 @@ export class ResourceGraph {
       ...(dataResult.data && { data: dataResult.data }),
       view: enterRoutes.map((match) => {
         const i = viewRoutes.indexOf(match);
+        let result;
         if (i !== -1) {
-          const result = viewResult.data?.[i];
-          return { payload: result?.data ?? null, head: result?.head };
+          result = viewResult.data?.[i];
+        } else {
+          const j = viewWithDataRoutes.indexOf(match);
+          if (j !== -1) {
+            result = viewWithDataResult.data?.[j];
+          }
         }
-        const j = viewWithDataRoutes.indexOf(match);
-        if (j !== -1) {
-          const result = viewWithDataResult.data?.[j];
-          return { payload: result?.data ?? null, head: result?.head };
-        }
-        return { payload: null, head: undefined };
+        return { payload: result?.data ?? null, head: result?.head };
       }),
     };
   }

@@ -1,6 +1,7 @@
 import type { NavigationFailure } from '../failure';
 import type { HistoryAction } from '../history/provider.types';
 import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { DocumentHeadValues } from '../document';
 
 /** How the address bar came to match the navigation target. */
 export type UrlAlignedSource = 'write' | 'browser';
@@ -32,6 +33,8 @@ export type EngineEvent =
   | (NavId & NavEndpoints & {
       type: 'navigation:commit:end';
       hash: string;
+      /** HTML head from the leaf url view for this navigation (attrs still win in apply). */
+      htmlHead: DocumentHeadValues | undefined;
     })
   | (NavId & { type: 'navigation:finish' })
   | (NavId & { type: 'navigation:cancel'; reason?: string })

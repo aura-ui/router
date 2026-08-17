@@ -75,6 +75,30 @@ describe('HandoffCache', () => {
     expect(second.childNodes.length).toBe(1);
   });
 
+  it('does not persist ViewGraph settle when payload is DocumentFragment', async () => {
+    handoff = new HandoffCache();
+    let loads = 0;
+
+    const first = await handoff.resolve('view-frag', async () => {
+      loads++;
+      const fragment = document.createDocumentFragment();
+      fragment.appendChild(document.createElement('section'));
+      return { payload: fragment, head: { title: 'X' } };
+    });
+
+    expect(first).toEqual({
+      payload: expect.any(DocumentFragment),
+      head: { title: 'X' },
+    });
+    expect(handoff.get('view-frag')).toBeUndefined();
+
+    await handoff.resolve('view-frag', async () => {
+      loads++;
+      return { payload: document.createDocumentFragment() };
+    });
+    expect(loads).toBe(2);
+  });
+
   it('still dedupes in-flight DocumentFragment loads', async () => {
     handoff = new HandoffCache();
     let loads = 0;

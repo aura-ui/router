@@ -23,9 +23,9 @@ import type { ViewDescriptor, ViewLoadContext, ViewPayload, ViewSnapshotEntry } 
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
-/** Long `cache.view` entry: mount string + document head (same invalidate / gc lifecycle). */
+/** Long `cache.view` entry: string payload + document head (same invalidate / gc lifecycle). */
 type ViewCacheEntry = {
-  value: string;
+  payload: string;
   head: DocumentHeadValues | undefined;
 };
 
@@ -295,7 +295,7 @@ export class ViewGraph {
 
     if (!isInterestActive(interestSignal, transaction)) return cancelledResult(mode);
     return {
-      data: entry.value,
+      data: entry.payload,
       head: entry.head,
     };
   }
@@ -312,7 +312,7 @@ export class ViewGraph {
     return this.sharedBuffer.resolve(key, async () => {
       if (useLongCache) {
         const entry = this.cache.get(key);
-        if (entry !== undefined) return { payload: entry.value, head: entry.head };
+        if (entry !== undefined) return entry;
       }
 
       return load();
@@ -343,7 +343,7 @@ export class ViewGraph {
         if (key) {
           this.cache.set(
             key,
-            { value: payload, head },
+            { payload, head },
             {
               gcTime: match.route.cacheTime ?? undefined,
               staleTime: match.route.cacheRefresh ?? undefined,

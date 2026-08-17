@@ -4,22 +4,23 @@ import { CANONICAL_ID, META_DESCRIPTION_ID } from './schema';
 import { hasDocumentMeta, type DocumentMetaValues } from './types';
 
 /**
- * Merge leaf `htmlMeta` with route meta attrs for the committed match.
+ * Combine leaf `htmlMeta` with route meta attrs for the committed match.
  *
  * Route attrs (`meta-title`, `meta-description`, `meta-canonical`, `meta-title-template`)
- * overlay `htmlMeta` when set on the matched route element (including inherited attrs).
- * When all four are `null`, returns `htmlMeta` unchanged, or `null` if empty.
+ * overlay values from HTML when set on the matched route (including inherited attrs).
  *
- * Title: `meta-title-template` wraps local `meta-title` or HTML `<title>` (`%s`);
- * otherwise inherited / attr / HTML title (local `meta-title` attribute wins over HTML for `%s`).
- * Description and canonical attrs replace the matching {@link HeadTagSpec.id} slot
- * (`lang` / `dir` pass through from `htmlMeta` only — no route attrs yet).
+ * When all four attrs are `null`, returns `htmlMeta` unchanged, or `null` if empty.
  *
- * `:name` tokens: path params override query on the same key.
+ * Title rules:
+ * - `meta-title-template` + page title → `%s` substitution (local `meta-title` or HTML `<title>`).
+ * - Otherwise → inherited / attr `meta-title`, then HTML `<title>`.
+ *
+ * `lang` / `dir` pass through from `htmlMeta` only (no route attrs yet).
+ * `:name` tokens in attrs: path params override query on the same key.
  *
  * @param to Committed leaf match (`to.route` carries inherited attrs).
- * @param htmlMeta Meta from the leaf url view (`viewSnapshot[last]` / cache); absent for non-`html` loaders.
- * @returns Resolved meta for apply, or `null` when empty (host still reverts owned fields to boot).
+ * @param htmlMeta Meta from the leaf url view; absent for non-url loaders.
+ * @returns Meta ready for apply, or `null` when empty (host still reverts to boot state).
  */
 export function resolveDocumentMetaWithParams(
   to: MatchedRouteInfo,
@@ -51,10 +52,10 @@ export function resolveDocumentMetaWithParams(
 }
 
 /**
- * Title for resolve: template wrap when set, else inherited / attr / HTML fallback.
+ * Resolve title for {@link resolveDocumentMetaWithParams}.
  *
- * Local `meta-title` (attribute present on the route element) wins over HTML `<title>` for `%s`.
- * Inherited `meta-title` on an ancestor applies when the leaf has no local `meta-title`.
+ * Local `meta-title` (attribute on the route element) wins over HTML `<title>` for `%s`.
+ * Inherited `meta-title` from an ancestor applies when the leaf has no local attr.
  */
 function resolveTitle(route: MatchedRouteInfo['route'], htmlTitle: string | undefined, vars: Record<string, string>): string | undefined {
   const { metaTitle, metaTitleTemplate } = route;

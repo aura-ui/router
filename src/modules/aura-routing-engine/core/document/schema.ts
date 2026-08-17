@@ -1,23 +1,24 @@
 /**
- * Registry of managed `<head>` tags (extract + apply share one list).
+ * Registry of `<head>` tags that extract reads and apply writes.
  *
- * `document.title` is outside this schema. Owned revert (`data-aura-head`) is implemented
- * in `aura-router/core/document-meta.ts`, not here.
+ * `document.title` and `<html lang|dir>` are separate fields, not part of this list.
+ * Apply marks tags it creates with `data-aura-head` — see `aura-router/core/document-meta.ts`.
  */
 
-/** Internal spec for one extract/apply `<meta>` or `<link>` slot. */
+/** One managed `<meta>` or `<link>` slot — shared by extract and apply. */
 export type HeadTagSpec = {
   readonly tag: 'meta' | 'link';
-  /** Identifying attributes — used for DOM selector and re-create on apply. */
+  /** Identifying attributes — used to build the DOM selector. */
   readonly attrs: Record<string, string>;
-  /** Attribute read/written for the slot value (`content` or `href`). */
+  /** Where the value lives: `content` for meta, `href` for link. */
   readonly valueAttr: 'content' | 'href';
   /** Stable key in {@link DocumentMetaValues.tags}, e.g. `meta:property:og:title`. */
   readonly id: string;
+  /** CSS selector used to find the tag in `<head>`. */
   readonly selector: string;
 };
 
-/** App-level configure input; `id`, `selector`, and `valueAttr` are derived. */
+/** Input for {@link configureDocumentMeta}; `id`, `selector`, and `valueAttr` are derived. */
 export type HeadTagInput = Pick<HeadTagSpec, 'tag' | 'attrs'>;
 
 function headTag(tag: 'meta' | 'link', attrs: Record<string, string>): HeadTagSpec {
@@ -31,13 +32,13 @@ function headTag(tag: 'meta' | 'link', attrs: Record<string, string>): HeadTagSp
   };
 }
 
-/** {@link HeadTagSpec.id} for `<meta name="description">`. */
+/** Tag id for `<meta name="description">`. */
 export const META_DESCRIPTION_ID = headTag('meta', { name: 'description' }).id;
 
-/** {@link HeadTagSpec.id} for `<link rel="canonical">`. */
+/** Tag id for `<link rel="canonical">`. */
 export const CANONICAL_ID = headTag('link', { rel: 'canonical' }).id;
 
-/** Built-in SEO / OG / Twitter slots (see {@link getHeadTags}). */
+/** Built-in slots: description, canonical, Open Graph, Twitter. */
 export const DEFAULT_HEAD_TAGS: readonly HeadTagSpec[] = [
   headTag('meta', { name: 'description' }),
   headTag('link', { rel: 'canonical' }),
@@ -52,16 +53,16 @@ export const DEFAULT_HEAD_TAGS: readonly HeadTagSpec[] = [
 
 let configuredHeadTags: HeadTagSpec[] = [];
 
-/** Default slots plus any tags from {@link configureDocumentMeta}. */
+/** Default slots plus any added via {@link configureDocumentMeta}. */
 export function getHeadTags(): readonly HeadTagSpec[] {
   return configuredHeadTags.length === 0 ? DEFAULT_HEAD_TAGS : DEFAULT_HEAD_TAGS.concat(configuredHeadTags);
 }
 
 /**
- * Register extra extract/apply slots (appended to {@link DEFAULT_HEAD_TAGS}).
+ * Register extra `<head>` slots (appended after {@link DEFAULT_HEAD_TAGS}).
  *
- * Call before the first url fetch — e.g. `AuraRouter.configure({ documentMeta: { tags } })`
- * (only runs when `documentMeta.tags` is present in options). Direct call: default `[]` clears.
+ * Call before the first url fetch — e.g. via `AuraRouter.configure({ documentMeta: { tags } })`.
+ * Passing `[]` clears configured slots.
  */
 export function configureDocumentMeta(tags: readonly HeadTagInput[] = []): void {
   configuredHeadTags = tags.map((item) => headTag(item.tag, item.attrs));

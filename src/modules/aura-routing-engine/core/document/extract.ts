@@ -2,23 +2,23 @@ import { stringToHtml } from '../../../aura-utils/misc/dom';
 import { getHeadTags } from './schema';
 import { hasDocumentMeta, type DocumentMetaValues } from './types';
 
-/** Result of parsing a fetched HTML string in {@link processHtml}. */
+/** Output of {@link processHtml} — view fragment plus extracted meta. */
 export type PreparedHtml = {
-  /** Mount fragment (full html, matched `outerHTML`, or original on extract miss). */
+  /** HTML to mount: full page, matched `outerHTML`, or original on extract miss. */
   fragment: string;
-  /** Document meta from the parsed document; `undefined` when no head fields matched. */
+  /** Meta from the parsed document; `undefined` when nothing matched. */
   meta: DocumentMetaValues | undefined;
 };
 
 /**
- * Parse HTML once: optional `extract` fragment + {@link extractDocumentMeta}.
+ * Parse fetched HTML once: extract a view fragment and read document meta.
  *
- * Meta is always read from the **full** parsed document, not from the extracted subtree.
- * Without a selector, `fragment` is the original string. On extract miss, warns and keeps
- * the full `html` as `fragment`.
+ * Meta always comes from the **full** parsed document, not from the extracted subtree.
+ * Without a selector, `fragment` is the original string.
+ * On selector miss, logs a warning and keeps the full `html` as `fragment`.
  *
  * @param selector Route `extract` attr, or null/undefined to skip fragment extraction.
- * @param href Route URL — logged when the selector matches nothing.
+ * @param href Route URL — included in the warning when the selector matches nothing.
  */
 export function processHtml(html: string, selector: string | null | undefined, href: string): PreparedHtml {
   const doc = stringToHtml(html);
@@ -33,9 +33,9 @@ export function processHtml(html: string, selector: string | null | undefined, h
 }
 
 /**
- * Read title, `<html lang|dir>`, and slots from {@link getHeadTags} on a parsed document.
+ * Read title, `<html lang|dir>`, and registered `<head>` slots from a parsed document.
  *
- * @returns `undefined` when {@link hasDocumentMeta} is false (caller treats as “no meta”).
+ * @returns `undefined` when nothing was found ({@link hasDocumentMeta} is false).
  */
 export function extractDocumentMeta(doc: Document): DocumentMetaValues | undefined {
   const meta: DocumentMetaValues = {};

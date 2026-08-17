@@ -1,14 +1,20 @@
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 import { getHeadTags, resolveDocumentMetaWithParams, type DocumentMetaValues, type HeadTagSpec } from '../../aura-routing-engine/core/document';
 
-/** Marks tags this apply wrote. Next omit removes only those. */
+/** Marker on tags written by apply — only marked tags are removed on omit. */
 const OWNED = 'data-aura-head';
 
 let bootTitle: string | undefined;
 let bootLang: string | undefined;
 let bootDir: string | undefined;
 
-/** Sync live document meta (title, `<html lang|dir>`, managed `<head>` tags) after view commit. */
+/**
+ * Write resolved meta to the live document after view commit.
+ *
+ * Updates `document.title`, `<html lang|dir>`, and managed `<head>` tags.
+ * Tags this function creates are marked `data-aura-head`; on omit they are removed
+ * and title/lang/dir revert to values captured before the first apply (boot state).
+ */
 export function applyDocumentMeta(to: MatchedRouteInfo, htmlMeta?: DocumentMetaValues): void {
   const resolved = resolveDocumentMetaWithParams(to, htmlMeta);
 
@@ -26,12 +32,14 @@ export function applyDocumentMeta(to: MatchedRouteInfo, htmlMeta?: DocumentMetaV
   }
 }
 
+/** Write or revert a root attribute (`lang` / `dir`) against boot snapshot. */
 function syncRootAttr(name: 'lang' | 'dir', value: string | undefined, boot: string): void {
   const next = value !== undefined ? value : boot;
   if (next) document.documentElement.setAttribute(name, next);
   else document.documentElement.removeAttribute(name);
 }
 
+/** Write, update, or remove one managed `<head>` tag. */
 function syncHeadTag(spec: HeadTagSpec, value: string | undefined): void {
   if (value === undefined) {
     document.head.querySelector(`${spec.selector}[${OWNED}]`)?.remove();

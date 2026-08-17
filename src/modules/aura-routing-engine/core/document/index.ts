@@ -1,3 +1,8 @@
+/**
+ * Document meta pipeline — extract from HTML, resolve with route attrs, registry of `<head>` slots.
+ *
+ * Writing to the live document is host-only: `aura-router/core/document-meta.ts`.
+ */
 export { extractDocumentMeta, processHtml } from './extract';
 export { resolveDocumentMetaWithParams } from './resolve';
 export {

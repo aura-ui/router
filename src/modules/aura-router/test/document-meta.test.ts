@@ -3,10 +3,8 @@
 import { AuraRoute } from '../../aura-route/core/aura-route';
 
 type ApplyDocumentMeta = typeof import('../core/document-meta').applyDocumentMeta;
-type OptimisticDocumentMeta = import('../core/document-meta-optimistic').OptimisticDocumentMeta;
 
 let applyDocumentMeta: ApplyDocumentMeta;
-let optimisticMeta: OptimisticDocumentMeta;
 
 function matchedRoute(
   path: string,
@@ -42,8 +40,6 @@ describe('applyDocumentMeta', () => {
   beforeEach(() => {
     jest.resetModules();
     applyDocumentMeta = require('../core/document-meta').applyDocumentMeta;
-    const { OptimisticDocumentMeta } = require('../core/document-meta-optimistic');
-    optimisticMeta = new OptimisticDocumentMeta();
   });
 
   afterEach(() => {
@@ -164,71 +160,5 @@ describe('applyDocumentMeta', () => {
 
     applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#111');
-  });
-
-  it('previews title and rolls back on matching cancel id', () => {
-    document.title = 'Shell';
-    optimisticMeta.preview(10, matchedRoute('/a', { metaTitle: 'A' }));
-    expect(document.title).toBe('A');
-
-    optimisticMeta.rollback(10);
-    expect(document.title).toBe('Shell');
-  });
-
-  it('does not rollback preview for a different navigation id', () => {
-    document.title = 'Shell';
-    optimisticMeta.preview(10, matchedRoute('/a', { metaTitle: 'A' }));
-    optimisticMeta.rollback(11);
-    expect(document.title).toBe('A');
-  });
-
-  it('keeps boot title when preview runs before the first apply', () => {
-    document.title = 'Shell';
-    const to = matchedRoute('/a', { metaTitle: 'A' });
-    optimisticMeta.preview(1, to);
-    applyDocumentMeta(to);
-    optimisticMeta.clear(1);
-    applyDocumentMeta(matchedRoute('/b'));
-    expect(document.title).toBe('Shell');
-  });
-
-  it('keeps title after commit clears preview state', () => {
-    document.title = 'Shell';
-    const to = matchedRoute('/a', { metaTitle: 'A' });
-    optimisticMeta.preview(10, to);
-    applyDocumentMeta(to);
-    optimisticMeta.clear(10);
-    optimisticMeta.rollback(10);
-    expect(document.title).toBe('A');
-  });
-
-  it('does not restore shell when a loser is cancelled after the winner commits', () => {
-    document.title = 'Shell';
-    const winner = matchedRoute('/about', { metaTitle: 'About' });
-    optimisticMeta.preview(1, matchedRoute('/slow', { metaTitle: 'Slow' }));
-    optimisticMeta.preview(2, winner);
-    applyDocumentMeta(winner);
-    optimisticMeta.clear(2);
-    optimisticMeta.rollback(1);
-    expect(document.title).toBe('About');
-  });
-
-  it('ignores preview when route does not resolve explicit title', () => {
-    document.title = 'Shell';
-    optimisticMeta.preview(10, matchedRoute('/a'));
-    expect(document.title).toBe('Shell');
-  });
-
-  it('restores stable title after overlapping previews are cancelled', () => {
-    document.title = 'Shell';
-    optimisticMeta.preview(1, matchedRoute('/slow', { metaTitle: 'Slow' }));
-    optimisticMeta.preview(2, matchedRoute('/about', { metaTitle: 'About' }));
-    expect(document.title).toBe('About');
-
-    optimisticMeta.rollback(2);
-    expect(document.title).toBe('Slow');
-
-    optimisticMeta.rollback(1);
-    expect(document.title).toBe('Shell');
   });
 });

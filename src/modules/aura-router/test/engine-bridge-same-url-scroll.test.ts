@@ -1,7 +1,6 @@
 /** @jest-environment jsdom */
 
 import { connectRouterEngine } from '../core/engine-bridge';
-import { OptimisticDocumentMeta } from '../core/document-meta-optimistic';
 import { Scroller } from '../core/scroller';
 import {
   asScrollContainer,
@@ -36,7 +35,6 @@ describe('connectRouterEngine onScroll', () => {
       syncBranchAndActiveLinks: jest.fn(),
       scroller: { apply },
       notFound: { recover: jest.fn(), clear: jest.fn() },
-      optimisticMeta: new OptimisticDocumentMeta(),
       onHashOnlyNavigation: jest.fn(),
     });
     const to = matchedScrollRoute('/about', createScrollRoute('/about', 'top'));
@@ -57,7 +55,6 @@ describe('connectRouterEngine onScroll', () => {
       syncBranchAndActiveLinks: jest.fn(),
       scroller: { apply },
       notFound: { recover: jest.fn(), clear: jest.fn() },
-      optimisticMeta: new OptimisticDocumentMeta(),
       onHashOnlyNavigation: jest.fn(),
     });
     const to = matchedScrollRoute('/docs', createScrollRoute('/docs', 'top', undefined, 'smooth'));
@@ -78,7 +75,6 @@ describe('connectRouterEngine onScroll', () => {
       syncBranchAndActiveLinks: jest.fn(),
       scroller,
       notFound: { recover: jest.fn(), clear: jest.fn() },
-      optimisticMeta: new OptimisticDocumentMeta(),
       onHashOnlyNavigation: jest.fn(),
     });
 

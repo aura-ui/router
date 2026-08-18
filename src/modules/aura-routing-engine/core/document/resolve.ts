@@ -49,13 +49,21 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
 }
 
 /**
- * Resolve title for {@link resolveDocumentMetaWithParams}.
+ * Resolve document title from route attrs (`meta-title` / `meta-title-template`)
+ * and optional HTML `<title>`.
  *
  * Local `meta-title` (attribute on the route element) wins over HTML `<title>` for `%s`.
  * Inherited `meta-title` from an ancestor applies when the leaf has no local attr.
+ * Pass `vars` when the caller already merged query/params (avoids a second alloc).
  */
-function resolveTitle(route: MatchedRouteInfo['route'], htmlTitle: string | undefined, vars: Record<string, string>): string | undefined {
+export function resolveTitle(
+  route: MatchedRouteInfo['route'],
+  htmlTitle?: string,
+  vars: Record<string, string> = {},
+): string | undefined {
   const { metaTitle, metaTitleTemplate } = route;
+  if (metaTitle == null && metaTitleTemplate == null) return htmlTitle;
+
   const attrTitle = metaTitle != null ? substituteTokens(metaTitle, vars) : null;
   const hasLocalTitle = route.hasAttribute('meta-title');
   const localOrHtmlTitle = hasLocalTitle && attrTitle != null ? attrTitle : htmlTitle;

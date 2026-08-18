@@ -2,9 +2,9 @@
 
 import { AuraRoute } from '../../aura-route/core/aura-route';
 import { resolveDocumentMetaWithParams, type DocumentMetaValues } from '../../aura-routing-engine/core/document';
-import { OptimisticDocumentMeta } from '../core/document-meta-optimistic';
 
 type ApplyDocumentMeta = typeof import('../core/document-meta').applyDocumentMeta;
+type OptimisticDocumentMeta = import('../core/document-meta-optimistic').OptimisticDocumentMeta;
 
 let applyDocumentMeta: ApplyDocumentMeta;
 let optimisticMeta: OptimisticDocumentMeta;
@@ -47,6 +47,7 @@ describe('applyDocumentMeta', () => {
   beforeEach(() => {
     jest.resetModules();
     applyDocumentMeta = require('../core/document-meta').applyDocumentMeta;
+    const { OptimisticDocumentMeta } = require('../core/document-meta-optimistic');
     optimisticMeta = new OptimisticDocumentMeta();
   });
 
@@ -186,11 +187,21 @@ describe('applyDocumentMeta', () => {
     expect(document.title).toBe('A');
   });
 
+  it('keeps boot title when preview runs before the first apply', () => {
+    document.title = 'Shell';
+    const to = matchedRoute('/a', { metaTitle: 'A' });
+    optimisticMeta.preview(1, to);
+    applyRouteMeta(to);
+    optimisticMeta.clear(1);
+    applyRouteMeta(matchedRoute('/b'));
+    expect(document.title).toBe('Shell');
+  });
+
   it('keeps title after commit clears preview state', () => {
     document.title = 'Shell';
     const to = matchedRoute('/a', { metaTitle: 'A' });
     optimisticMeta.preview(10, to);
-    applyDocumentMeta(optimisticMeta.resolveForCommit(10, to));
+    applyRouteMeta(to);
     optimisticMeta.clear(10);
     optimisticMeta.rollback(10);
     expect(document.title).toBe('A');

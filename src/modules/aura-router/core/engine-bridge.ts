@@ -1,4 +1,4 @@
-import { isCatchAllRoutePattern } from '../../aura-routing-engine/core';
+import { isCatchAllRoutePattern, resolveDocumentMetaWithParams } from '../../aura-routing-engine/core';
 import {
   AURA_ROUTER_NAVIGATION_START,
   AURA_ROUTER_NAVIGATION,
@@ -125,7 +125,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
         action: event.action,
         hash: event.hash,
       });
-      applyDocumentMeta(optimisticMeta.resolveForCommit(event.id, event.to, event.htmlMeta));
+      applyDocumentMeta(resolveDocumentMetaWithParams(event.to, event.htmlMeta));
       optimisticMeta.clear(event.id);
       syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION, navigationDomDetail(event.from, event.to));
@@ -150,11 +150,10 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
       return;
 
     case 'navigation:error':
-      if (!event.failure.viewCommitted) {
-        optimisticMeta.rollback(event.id);
-      }
       if (event.failure.viewCommitted) {
         notFound.clear();
+      } else {
+        optimisticMeta.rollback(event.id);
       }
       // Fallback NOT_FOUND already handled in config `onNotFound` (active links + DOM + recover).
       if (event.failure.isNotFound) {

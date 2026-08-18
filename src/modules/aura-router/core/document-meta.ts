@@ -8,6 +8,15 @@ let bootLang: string | undefined;
 let bootDir: string | undefined;
 
 /**
+ * Snapshot boot `document.title` before the first apply or optimistic preview.
+ * Preview writes title before commit; without this, first apply would treat
+ * the optimistic title as boot and later omits would restore the wrong value.
+ */
+export function captureDocumentTitleBoot(): string {
+  return (bootTitle ??= document.title);
+}
+
+/**
  * Write resolved meta to the live document after view commit.
  *
  * Updates `document.title`, `<html lang|dir>`, and managed `<head>` tags.
@@ -15,9 +24,9 @@ let bootDir: string | undefined;
  * and title/lang/dir revert to values captured before the first apply (boot state).
  */
 export function applyDocumentMeta(resolved: DocumentMetaValues | null): void {
-  bootTitle ??= document.title;
+  const boot = captureDocumentTitleBoot();
   if (resolved?.title !== undefined) document.title = resolved.title;
-  else document.title = bootTitle;
+  else document.title = boot;
 
   bootLang ??= document.documentElement.getAttribute('lang') ?? '';
   bootDir ??= document.documentElement.getAttribute('dir') ?? '';

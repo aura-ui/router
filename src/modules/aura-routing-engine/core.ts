@@ -112,7 +112,6 @@ export {
   hasDocumentMeta,
   extractDocumentMeta,
   resolveDocumentMetaWithParams,
-  resolveTitle,
   configureDocumentMeta,
   type DocumentMetaValues,
   type HeadTagInput,

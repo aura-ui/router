@@ -7,7 +7,6 @@ import {
   hasDocumentMeta,
   processHtml,
   resolveDocumentMetaWithParams,
-  resolveTitle,
   configureDocumentMeta,
   CANONICAL_ID,
   META_DESCRIPTION_ID,
@@ -354,20 +353,5 @@ describe('resolveDocumentMetaWithParams', () => {
     expect(
       resolveDocumentMetaWithParams(to, { title: 'About from HTML' }),
     ).toEqual({ title: 'About from HTML | App' });
-  });
-});
-
-describe('resolveTitle', () => {
-  afterEach(() => {
-    document.body.replaceChildren();
-  });
-
-  it('resolves meta-title tokens without htmlMeta', () => {
-    const to = matchedRoute('/users/:id', { metaTitle: 'User :id', params: { id: '42' } });
-    expect(resolveTitle(to.route, undefined, { ...to.query, ...to.params })).toBe('User 42');
-  });
-
-  it('returns undefined when there is no title attr or HTML title', () => {
-    expect(resolveTitle(matchedRoute('/empty').route)).toBeUndefined();
   });
 });

@@ -35,22 +35,8 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
 
   const vars = { ...to.query, ...to.params };
   const meta: DocumentMetaValues = { ...htmlMeta };
-  if (meta.tags) meta.tags = { ...meta.tags };
-
-  if (metaDescription != null) {
-    const value = substituteTokens(metaDescription, vars).trim();
-    if (value) {
-      meta.tags ??= {};
-      meta.tags[META_DESCRIPTION_ID] = value;
-    }
-  }
-  if (metaCanonical != null) {
-    const value = substituteTokens(metaCanonical, vars).trim();
-    if (value) {
-      meta.tags ??= {};
-      meta.tags[CANONICAL_ID] = value;
-    }
-  }
+  overlayTag(meta, META_DESCRIPTION_ID, metaDescription, vars);
+  overlayTag(meta, CANONICAL_ID, metaCanonical, vars);
 
   const title = resolveTitle(to, htmlMeta?.title, vars);
   if (title !== undefined) meta.title = title;
@@ -85,4 +71,11 @@ export function resolveTitle(to: MatchedRouteInfo, htmlTitle?: string, vars?: Re
 
   const template = substituteTokens(metaTitleTemplate, vars).trim();
   return template.includes('%s') ? template.replace('%s', () => localOrHtmlTitle) : localOrHtmlTitle;
+}
+
+/** Copy-on-write overlay. Empty / whitespace results are skipped so HTML tags stay. */
+function overlayTag(meta: DocumentMetaValues, id: string, template: string | null, vars: Record<string, string>): void {
+  if (template == null) return;
+  const value = substituteTokens(template, vars).trim();
+  if (value) meta.tags = { ...meta.tags, [id]: value };
 }

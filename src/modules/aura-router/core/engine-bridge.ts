@@ -1,4 +1,4 @@
-import { isCatchAllRoutePattern, resolveDocumentMetaWithParams } from '../../aura-routing-engine/core';
+import { isCatchAllRoutePattern } from '../../aura-routing-engine/core';
 import {
   AURA_ROUTER_NAVIGATION_START,
   AURA_ROUTER_NAVIGATION,
@@ -125,7 +125,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
         action: event.action,
         hash: event.hash,
       });
-      applyDocumentMeta(resolveDocumentMetaWithParams(event.to, event.htmlMeta));
+      applyDocumentMeta(event.to, event.htmlMeta);
       optimisticMeta.clear(event.id);
       syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION, navigationDomDetail(event.from, event.to));

@@ -1,4 +1,5 @@
-import { getHeadTags, type DocumentMetaValues, type HeadTagSpec } from '../../aura-routing-engine/core/document';
+import { getHeadTags, resolveDocumentMetaWithParams, type DocumentMetaValues, type HeadTagSpec } from '../../aura-routing-engine/core/document';
+import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 
 /** Marker on tags written by apply — only marked tags are removed on omit. */
 const OWNED = 'data-aura-head';
@@ -23,7 +24,8 @@ export function captureDocumentTitleBoot(): string {
  * Tags this function creates are marked `data-aura-head`; on omit they are removed
  * and title/lang/dir revert to values captured before the first apply (boot state).
  */
-export function applyDocumentMeta(resolved: DocumentMetaValues | null): void {
+export function applyDocumentMeta(to: MatchedRouteInfo, htmlMeta?: DocumentMetaValues): void {
+  const resolved = resolveDocumentMetaWithParams(to, htmlMeta);
   const boot = captureDocumentTitleBoot();
   if (resolved?.title !== undefined) document.title = resolved.title;
   else document.title = boot;

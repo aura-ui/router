@@ -9,10 +9,8 @@ export class DocumentTitlePreview {
   private readonly previews: { id: number; title: string }[] = [];
 
   preview(id: number, to: MatchedRouteInfo): void {
-    const { metaTitle, metaTitleTemplate } = to.route;
-    if (metaTitle == null && metaTitleTemplate == null) return;
-
-    const title = resolveTitle(to.route, undefined, { ...to.query, ...to.params });
+    // No htmlMeta at url-aligned — resolveTitle returns undefined when only a template exists.
+    const title = resolveTitle(to);
     if (title === undefined) return;
 
     if (this.baseTitle === undefined) {

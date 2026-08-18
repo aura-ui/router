@@ -42,7 +42,7 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
     meta.tags = { ...meta.tags, [CANONICAL_ID]: substituteTokens(metaCanonical, vars) };
   }
 
-  const title = resolveTitle(to.route, htmlMeta?.title, vars);
+  const title = resolveTitle(to, htmlMeta?.title, vars);
   if (title !== undefined) meta.title = title;
 
   return hasDocumentMeta(meta) ? meta : null;
@@ -59,10 +59,12 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
  *
  * Pass `vars` when the caller already merged query/params (avoids a second alloc).
  */
-export function resolveTitle(route: MatchedRouteInfo['route'], htmlTitle?: string, vars: Record<string, string> = {}): string | undefined {
+export function resolveTitle(to: MatchedRouteInfo, htmlTitle?: string, vars?: Record<string, string>): string | undefined {
+  const route = to.route;
   const { metaTitle, metaTitleTemplate } = route;
   if (metaTitle == null && metaTitleTemplate == null) return htmlTitle;
 
+  vars ??= { ...to.query, ...to.params };
   const attrTitle = metaTitle != null ? substituteTokens(metaTitle, vars) : undefined;
   if (metaTitleTemplate == null) return attrTitle ?? htmlTitle;
 

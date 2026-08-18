@@ -177,7 +177,7 @@ Meta хранится рядом с HTML-фрагментом view — в одн
 ```ts
 meta = { ...htmlMeta };
 // overlay attrs → tags[META_DESCRIPTION_ID], tags[CANONICAL_ID]
-// title ← resolveTitle(route, htmlMeta?.title, vars)
+// title ← resolveTitle(to, htmlMeta?.title, vars)
 ```
 
 `vars = { ...to.query, ...to.params }` — **path перекрывает query** при совпадении имени.

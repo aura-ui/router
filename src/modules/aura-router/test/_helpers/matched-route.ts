@@ -1,5 +1,7 @@
 import { AuraRoute } from '../../../aura-route/core/aura-route';
+import { configureDocumentMeta } from '../../../aura-routing-engine/core/document';
 
+import { DOCUMENT_META_BOOT } from '../../core/document-meta';
 export function matchedRoute(
   path: string,
   attrs: {
@@ -36,5 +38,6 @@ export function resetDocumentMetaDom(): void {
   document.documentElement.removeAttribute('dir');
   document.head.replaceChildren();
   document.body.replaceChildren();
-  require('../../../aura-routing-engine/core/document').configureDocumentMeta();
+  delete (document as Document & { [DOCUMENT_META_BOOT]?: unknown })[DOCUMENT_META_BOOT];
+  configureDocumentMeta();
 }

@@ -9,12 +9,19 @@ import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-
 /** Marker on tags written by apply — only marked tags are removed on omit. */
 const OWNED = 'data-aura-head';
 
-/** DOM values captured before the first apply (revert target on omit). */
-const boot = {
-  title: undefined as string | undefined,
-  lang: undefined as string | undefined,
-  dir: undefined as string | undefined,
+/** Per-document snapshot captured before the first apply (revert target on omit). */
+export const DOCUMENT_META_BOOT = Symbol.for('aura.documentMeta.boot');
+
+type Boot = {
+  title?: string;
+  lang?: string;
+  dir?: string;
 };
+
+function getBoot(): Boot {
+  const doc = document as Document & { [DOCUMENT_META_BOOT]?: Boot };
+  return (doc[DOCUMENT_META_BOOT] ??= {});
+}
 
 /**
  * Snapshot boot `document.title` before the first apply or optimistic preview.
@@ -22,6 +29,7 @@ const boot = {
  * the optimistic title as boot and later omits would restore the wrong value.
  */
 export function captureDocumentTitleBoot(): string {
+  const boot = getBoot();
   return (boot.title ??= document.title);
 }
 
@@ -34,6 +42,7 @@ export function captureDocumentTitleBoot(): string {
  */
 export function applyDocumentMeta(to: MatchedRouteInfo, htmlMeta?: DocumentMetaValues): void {
   const meta = resolveDocumentMetaWithParams(to, htmlMeta);
+  const boot = getBoot();
   const titleBoot = captureDocumentTitleBoot();
 
   document.title = meta?.title !== undefined ? meta.title : titleBoot;

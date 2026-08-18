@@ -5,7 +5,7 @@
 Модуль `core/document/` в **engine** готовит эти данные в три шага:
 
 1. **Extract** — читает meta из HTML, полученного по url (title, атрибуты `<html>`, теги из `<head>`).
-2. **Resolve** — накладывает атрибуты маршрута (`meta-title`, `meta-description`, …) поверх того, что пришло из HTML.
+2. **Resolve** — опциональный overlay route attrs поверх HTML.
 3. **Registry** — хранит список управляемых `<head>`-слотов; один и тот же список используется при чтении и при записи.
 
 Запись в живой `document` engine **не делает**. После успешного commit host вызывает [`applyDocumentMeta`](../../../aura-router/core/document-meta.ts) из `aura-router` — это происходит на событии `navigation:commit:end`.
@@ -242,15 +242,12 @@ Apply **владеет** только тегами, которые сам пом
 
 Opt-out от inherit: `none` / `off` / `false` / пустая строка → `null` (`parseOffableString`).
 
-Пример:
+Пример html-first: полный title в HTML страницы, без client wrap. Overlay — у не-url view.
 
 ```html
-<aura-router meta-title-template="%s | My App">
-  <aura-route path="/users/:id"
-              meta-title="User :id"
-              meta-description="Profile :id"
-              meta-canonical="https://example.com/users/:id">
-  </aura-route>
+<aura-router>
+  <aura-route path="/users/:id" view="users/:id.html"></aura-route>
+  <aura-route path="/about" view="template::about" meta-title="About"></aura-route>
 </aura-router>
 ```
 

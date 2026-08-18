@@ -6,7 +6,7 @@
              cache
              cache-time="15">
   <aura-route path="/" view="/"></aura-route>
-  <aura-route path="/about" view="template::about-page"></aura-route>
+  <aura-route path="/about" view="template::about-page" meta-title="About"></aura-route>
   <aura-route path="/login" view="login"></aura-route>
 
   <aura-route path="/contacts" view="contacts" cache="off" loading-template="loading"></aura-route>
@@ -21,7 +21,7 @@
     <aura-route path="settings" view="profile/settings"></aura-route>
   </aura-route>
 
-  <aura-route path="*" view="template::not-found"></aura-route>
+  <aura-route path="*" view="template::not-found" meta-title="Not found"></aura-route>
 </aura-router>
 
 <template id="users">

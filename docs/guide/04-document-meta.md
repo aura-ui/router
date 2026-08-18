@@ -2,29 +2,49 @@
 
 Each in-app navigation can update the tab title, `<html lang>` / `<html dir>`, and selected tags in `<head>` — description, canonical, Open Graph, Twitter, and any slots you register. Aura applies these changes automatically after a successful commit. No hooks are required.
 
+**Per-page meta lives in the HTML page.** Put the complete `<title>` (including any site suffix), description, canonical, and social tags in the document you already serve. Hard reload, no-JS, and client navigation then show the same title. Route attributes are an overlay for cases HTML cannot cover: non-url views, same-route param updates, or a rare override.
+
 [← Views and layouts](./03-views-and-layouts.md) · [Guide index](../guide.md) · [Lifecycle and route data →](./05-lifecycle-and-data.md)
 
 ---
 
-## Two sources of meta
+## HTML is the source of truth
 
-Aura combines two inputs on every navigation:
+On a `url` view (`view="about.html"`, `view="/about/"`, and other url loaders), Aura reads meta from the **full HTML response** of the **leaf** route — even when [`extract`](./03-views-and-layouts.md#extract--fragment-from-full-html-pages) mounts only part of the page.
 
-1. **HTML meta** — read from the **leaf** route's fetched page (`view="page.html"` and other `url` loaders).
-2. **Route attrs** — `meta-title`, `meta-title-template`, `meta-description`, and `meta-canonical` on the matched route, including values inherited from `<aura-router>` and parent routes.
+```html
+<!-- about.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>About | My App</title>
+    <meta name="description" content="Who we are" />
+    <link rel="canonical" href="https://example.com/about" />
+  </head>
+  <body>
+    <main id="content">…</main>
+  </body>
+</html>
+```
 
-Inline loaders (`html::`, `template::`, `component::`, `import::`, and custom loaders) do not carry HTML meta. On those routes, only route attrs (and boot defaults) apply.
+```html
+<aura-router extract="#content">
+  <aura-route path="/about" view="about.html"></aura-route>
+</aura-router>
+```
+
+The route does **not** repeat the page title. Unset overlay attrs leave the fetched `<title>` unchanged.
 
 ```text
-Leaf page HTML  ──►  title, lang, dir, <head> tags
+Leaf page HTML  ──►  title, lang, dir, <head> tags   (default)
         +
-Route attrs     ──►  overlay / override
+Route attrs     ──►  overlay only when you need it
         │
         ▼
 Live document   ──►  after navigation:commit
 ```
 
-Meta is always parsed from the **full HTML response**, even when [`extract`](./03-views-and-layouts.md#extract--fragment-from-full-html-pages) mounts only part of the page into the outlet.
+Inline loaders (`html::`, `template::`, `component::`, `import::`, and custom loaders) do not carry HTML meta. On those routes, use route attrs (or accept boot defaults).
 
 ## Fields from fetched HTML
 
@@ -50,113 +70,90 @@ For `<head>` tags, Aura only **removes tags it wrote itself** (marked internally
 
 When a managed slot matches an existing shell tag, Aura may **reuse and update** that element — for example, replacing a default description with a page-specific one. If the next route omits that slot, Aura removes only its owned copy; an unmarked shell tag that was never taken over remains unchanged.
 
-Put site-wide defaults in the boot `<head>`. Put per-page values in fetched HTML or route attrs.
+Put site-wide defaults in the boot `<head>`. Put per-page values in each fetched HTML file.
 
-## Route attributes
+## Overlay attrs
+
+Use `meta-title`, `meta-description`, and `meta-canonical` when HTML cannot supply the value — not as a second copy of a url page's `<head>`.
+
+| When | What to set |
+| ---- | ----------- |
+| `template::` / `html::` / other non-url views | `meta-title` (and description/canonical if needed) on that route |
+| Same-route param/query update (view reused, only data reloads) | `meta-title="User :id"` and other token attrs on that route |
+| Rare override of a fetched page | the matching attr on that route |
 
 | HTML attribute | Effect |
 | -------------- | ------ |
-| `meta-title` | Sets the page title; supports `:param` tokens |
-| `meta-title-template` | Wraps the page title; `%s` is the placeholder |
-| `meta-description` | Sets `<meta name="description" content="…">` |
-| `meta-canonical` | Sets `<link rel="canonical" href="…">` |
+| `meta-title` | Overlay for the page title; supports `:param` tokens |
+| `meta-title-template` | Opt-in wrap of the page title (`%s`); see [Title template](#title-template-opt-in) |
+| `meta-description` | Overlay for `<meta name="description">` |
+| `meta-canonical` | Overlay for `<link rel="canonical">` |
 
-Attrs inherit from `<aura-router>` and from **parent routes**, the same way as `scroll` and `extract`. A child overrides an inherited value.
+Attrs inherit from `<aura-router>` and from **parent routes**, the same way as `scroll` and `extract`. A child overrides an inherited value. Opt out with `none`, `off`, `false`, or an empty value.
 
-Opt out with `none`, `off`, `false`, or an empty value:
+### Non-url views
 
 ```html
-<aura-route path="/raw" view="raw.html" meta-description="none"></aura-route>
+<aura-route path="/about" view="template::about-page" meta-title="About"></aura-route>
 ```
 
-### Tokens
+There is no fetched `<title>`, so the route attr is the page title.
 
-`:name` tokens resolve from path params and query — the same rules as in `view`. Path params win when the same name appears in both:
+### Same-route param updates
+
+When `/users/1` → `/users/2` **reuses** the mounted view ([same-route updates](./03-views-and-layouts.md#same-route-updates)), Aura does not fetch HTML again. `htmlMeta` stays whatever the first page had — so a `<title>` in `users/shell.html` will not become “User 2”.
+
+Token attrs on the route are the overlay for that gap. They resolve from the **new** params on commit:
 
 ```html
 <aura-route
   path="/users/:id"
-  view="users/:id.html"
+  view="users/shell.html"
+  load="fetch-user"
+  update="apply-user"
   meta-title="User :id"
-  meta-description="Profile of user :id"
+  meta-description="Profile :id"
   meta-canonical="https://example.com/users/:id"
 ></aura-route>
 ```
 
-For `/users/42`, the tab title becomes `User 42`.
+That is **not** the same as `view="users/:id.html"`. There the resolved file changes (`users/1.html` → `users/2.html`), Aura remounts, and each page can carry its own `<title>`. Prefer HTML meta in that html-first case; use token attrs when the shell is reused and only data reloads.
 
-A `?` in a title string is literal. Meta attrs do not use the search syntax from [`view`](./03-views-and-layouts.md#search-on-view-not-on-path).
+### Rare override
 
-### Title templates
+When both HTML and a route attr provide a value, **the attr wins** for title, description, and canonical. Other fields from the fetched page are kept.
 
-Use `meta-title-template` on `<aura-router>` or a parent route to suffix or wrap page titles:
+```html
+<aura-route path="/preview" view="preview.html" meta-title="Preview"></aura-route>
+```
+
+### Tokens
+
+`:name` tokens resolve from path params and query — the same rules as in `view`. Path params win when the same name appears in both. A `?` in a title string is literal. Meta attrs do not use the search syntax from [`view`](./03-views-and-layouts.md#search-on-view-not-on-path).
+
+## Title template (opt-in)
+
+`meta-title-template` wraps the resolved page title. **Unset is the html-first default:** Aura copies the HTML `<title>` (or `meta-title`) as-is.
+
+Use it when titles come from **route attrs** — template views, param-update shells — and you want one suffix on the router instead of repeating it on every `meta-title`:
 
 ```html
 <aura-router meta-title-template="%s | My App">
-  <aura-route path="/about" view="about.html"></aura-route>
+  <aura-route path="/about" view="template::about-page" meta-title="About"></aura-route>
+  <aura-route path="/users/:id" view="users/shell.html" meta-title="User :id"></aura-route>
 </aura-router>
 ```
 
-If `about.html` contains `<title>About</title>`, the tab title becomes `About | My App`.
+Do **not** use it to brand fetched HTML pages. A server `<title>About</title>` plus `%s | My App` means a direct visit shows `About` and a client navigation shows `About | My App`. If the HTML already includes the suffix, the client doubles it. Put the full title in each HTML file instead.
 
 Rules:
 
 - `%s` is replaced with the **page title**.
 - The page title is a **local** `meta-title` on the route element when present; otherwise the HTML `<title>`.
-- An inherited `meta-title` sets the default title but is **not** used as the `%s` source unless the leaf route also declares `meta-title`.
+- An inherited `meta-title` from `<aura-router>` is a fallback when there is nothing to wrap — it is **not** the `%s` source.
 - If the template contains no `%s`, Aura uses the page title as-is — the template text is not prepended.
 
-Examples:
-
-```html
-<!-- Local title + inherited wrap → User 42 | My App -->
-<aura-router meta-title-template="%s | My App">
-  <aura-route path="/users/:id" meta-title="User :id" view="users/:id.html"></aura-route>
-</aura-router>
-
-<!-- HTML title + wrap → About | My App -->
-<aura-router meta-title-template="%s | My App">
-  <aura-route path="/about" view="about.html"></aura-route>
-</aura-router>
-
-<!-- Inherited site title only → My App (no local title, no HTML title to wrap) -->
-<aura-router meta-title="My App" meta-title-template="%s | My App">
-  <aura-route path="/" view="home.html"></aura-route>
-</aura-router>
-```
-
 Set `meta-title-template="none"` on a route to opt out of an inherited wrap.
-
-### Route attrs vs HTML
-
-When both HTML and route attrs provide a value, **route attrs win** for title, description, and canonical.
-
-When a route sets only some attrs, values from the fetched HTML are kept for the rest. For example, `meta-title` replaces the HTML `<title>` but leaves an extracted canonical link unchanged.
-
-## Site-wide defaults
-
-Three patterns cover most applications:
-
-**1. Boot shell `<head>`**
-
-Favicon, analytics, and other static tags in your initial HTML. Aura does not remove unmarked shell tags.
-
-**2. Inherited route attrs**
-
-Shared suffix, default description, or canonical pattern on `<aura-router>` or a layout parent:
-
-```html
-<aura-router meta-title-template="%s | My App" meta-description="Product docs">
-  <aura-route path="/docs" view="docs.html"></aura-route>
-  <aura-route path="/pricing" view="pricing.html" meta-description="Plans and pricing"></aura-route>
-</aura-router>
-```
-
-The `/docs` route inherits both attrs. `/pricing` overrides the description.
-
-**3. Per-page HTML**
-
-Each fetched page carries its own `<title>` and `<meta>` tags. Add route attrs only where HTML is generic or shared.
 
 ## Extra head tags
 
@@ -186,47 +183,34 @@ Two rules apply in a layout + child setup:
 | **HTML meta** | Only the **leaf page's** fetched HTML is used — not HTML from the layout template or a parent route's `view`. |
 | **Route attrs** | Inherited from `<aura-router>` and **parent routes**, including the layout route. |
 
-```html
-<aura-route path="/app" layout="app-shell" meta-description="My App">
-  <aura-route path="settings" view="app/settings.html"></aura-route>
-</aura-route>
-```
-
-For `/app/settings`, description comes from inherited `meta-description="My App"` unless `settings.html` or a attrs on the child route override it.
-
-HTML meta from a layout route's own `view` does **not** merge into the child. To share a description across nested pages, use inherited attrs on the layout or router, or tags in the boot shell — not HTML meta from the layout's fetched page alone.
+HTML meta from a layout route's own `view` does **not** merge into the child. Put the complete title on each leaf HTML page (or in overlay attrs when there is no page). A client-only wrap will not match a direct visit to that URL.
 
 ## Limitations (0.x)
 
 - **`lang` / `dir` from HTML only** — no route attrs yet; set them in fetched pages or manage them manually.
-- **Non-url loaders** — rely on route attrs; without attrs, title / lang / dir revert to boot and managed tags are cleared.
+- **Non-url loaders** — rely on overlay attrs; without attrs, title / lang / dir revert to boot and managed tags are cleared.
 - **Scripts and styles** — Aura does not reconcile `<script>`, `<link rel="stylesheet">`, or other head assets on navigation.
-- **No HTML meta merge** — parent and child HTML meta are not combined; use inherited attrs or boot defaults for shared values.
+- **No HTML meta merge** — parent and child HTML meta are not combined.
 
 ## Quick reference
 
 ```html
-<aura-router meta-title-template="%s | My App">
-  <aura-route
-    path="/users/:id"
-    view="users/:id.html"
-    meta-title="User :id"
-    meta-description="Profile :id"
-    meta-canonical="https://example.com/users/:id"
-  ></aura-route>
+<aura-router>
+  <aura-route path="/about" view="about.html"></aura-route>
+  <aura-route path="/info" view="template::info" meta-title="Info"></aura-route>
 </aura-router>
 ```
 
 | Goal | How |
 | ---- | --- |
-| Title from HTML | Fetch a page with `<title>` |
-| Title suffix | `meta-title-template="%s \| App"` on `<aura-router>` or a parent |
-| Fixed title | `meta-title="…"` on a route or router |
-| Description / canonical | Tags in fetched HTML, or `meta-description` / `meta-canonical` attrs |
+| Title, description, canonical | Tags in the fetched HTML page (full `<title>`, including any suffix) |
+| Non-url view title | `meta-title` on that route |
+| Param update, same shell | `meta-title="User :id"` (HTML is not refetched) |
+| Shared suffix for attr titles | `meta-title-template="%s \| App"` — opt-in; diverges from server HTML if you also wrap fetched pages |
+| Override a fetched field | matching `meta-*` attr on that route (rare) |
 | Opt out of inherit | `meta-*="none"` on the route |
 | Custom meta name | `AuraRouter.configure({ documentMeta: { tags: […] } })` |
 | Site-wide shell tags | Boot HTML `<head>` |
-| Shared meta in nested apps | Inherit attrs on layout or router — not HTML from the layout page |
 
 ---
 

@@ -168,7 +168,7 @@ By default, Aura compares the resolved view before and after navigation:
 </aura-route>
 ```
 
-In this example, moving from `/users/1` to `/users/2` keeps `users/shell.html` mounted. `fetch-user` loads the new data, and `apply-user` updates the existing DOM. Aura does not patch that DOM automatically – the `update` hook must apply the new data.
+In this example, moving from `/users/1` to `/users/2` keeps `users/shell.html` mounted. `fetch-user` loads the new data, and `apply-user` updates the existing DOM. Aura does not patch that DOM automatically – the `update` hook must apply the new data. Document meta from the first HTML file stays too; overlay token attrs if the tab title should follow `:id` ([Document meta](./04-document-meta.md#same-route-param-updates)).
 
 With `view="users/:id.html"`, the resolved source changes from `users/1.html` to `users/2.html`, so Aura remounts the route instead.
 

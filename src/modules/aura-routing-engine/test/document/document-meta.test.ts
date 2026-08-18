@@ -202,6 +202,21 @@ describe('processHtml', () => {
     );
     warn.mockRestore();
   });
+
+  it('warns and keeps full html when the selector is invalid CSS', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(processHtml(FULL_PAGE, '#[', '/about')).toEqual({
+      fragment: FULL_PAGE,
+      meta: {
+        title: 'Legacy',
+        tags: { [META_DESCRIPTION_ID]: 'About page' },
+      },
+    });
+    expect(warn).toHaveBeenCalledWith(
+      'Nothing found for extract selector "#[" — using full HTML. Page — /about',
+    );
+    warn.mockRestore();
+  });
 });
 
 describe('resolveDocumentMetaWithParams', () => {

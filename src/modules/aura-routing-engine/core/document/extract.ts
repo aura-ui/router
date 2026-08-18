@@ -15,7 +15,7 @@ export type PreparedHtml = {
  *
  * Meta always comes from the **full** parsed document, not from the extracted subtree.
  * Without a selector, `fragment` is the original string.
- * On selector miss, logs a warning and keeps the full `html` as `fragment`.
+ * On selector miss or invalid CSS, logs a warning and keeps the full `html` as `fragment`.
  *
  * @param selector Route `extract` attr, or null/undefined to skip fragment extraction.
  * @param href Route URL — included in the warning when the selector matches nothing.
@@ -25,7 +25,12 @@ export function processHtml(html: string, selector: string | null | undefined, h
   const meta = extractDocumentMeta(doc);
   if (!selector) return { fragment: html, meta };
 
-  const el = doc.querySelector(selector);
+  let el: Element | null = null;
+  try {
+    el = doc.querySelector(selector);
+  } catch {
+    // Invalid CSS selector — same fallback as a miss.
+  }
   if (el) return { fragment: el.outerHTML, meta };
 
   console.warn(`Nothing found for extract selector "${selector}" — using full HTML. Page — ${href}`);

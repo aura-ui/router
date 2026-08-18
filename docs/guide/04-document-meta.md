@@ -2,7 +2,7 @@
 
 Each in-app navigation can update the tab title, `<html lang>` / `<html dir>`, and selected tags in `<head>` — description, canonical, Open Graph, Twitter, and any slots you register. Aura applies these changes automatically after a successful commit. No hooks are required.
 
-**Per-page meta lives in the HTML page.** Put the complete `<title>` (including any site suffix), description, canonical, and social tags in the document you already serve. Hard reload, no-JS, and client navigation then show the same title. Route attributes are an overlay for cases HTML cannot cover: non-url views, same-route param updates, or a rare override.
+**Per-page meta lives in the HTML page.** Put the complete `<title>` (including any site suffix), description, canonical, and social tags in the document you already serve. Hard reload, no-JS, and the committed client navigation then show the same title. Route attributes overlay when HTML cannot cover the case — non-url views, same-route param updates — and when you want the **tab title to change on click**, before the page has loaded.
 
 [← Views and layouts](./03-views-and-layouts.md) · [Guide index](../guide.md) · [Lifecycle and route data →](./05-lifecycle-and-data.md)
 
@@ -36,12 +36,12 @@ On a `url` view (`view="about.html"`, `view="/about/"`, and other url loaders), 
 The route does **not** repeat the page title. Unset overlay attrs leave the fetched `<title>` unchanged.
 
 ```text
-Leaf page HTML  ──►  title, lang, dir, <head> tags   (default)
+Leaf page HTML  ──►  title, lang, dir, <head> tags   (at commit)
         +
-Route attrs     ──►  overlay only when you need it
+Route attrs     ──►  overlay; title may preview as soon as the URL aligns
         │
         ▼
-Live document   ──►  after navigation:commit
+Live document
 ```
 
 Inline loaders (`html::`, `template::`, `component::`, `import::`, and custom loaders) do not carry HTML meta. On those routes, use route attrs (or accept boot defaults).
@@ -74,12 +74,17 @@ Put site-wide defaults in the boot `<head>`. Put per-page values in each fetched
 
 ## Overlay attrs
 
-Use `meta-title`, `meta-description`, and `meta-canonical` when HTML cannot supply the value — not as a second copy of a url page's `<head>`.
+Without route title attrs, the tab keeps the previous title until the view is fetched and committed. Active links already reflect the new URL, so the tab can look late. Set `meta-title` (and optionally `meta-title-template`) when you want the tab to update **immediately** on navigation — Aura previews `document.title` as soon as the URL aligns, then confirms it at commit or rolls it back on cancel.
+
+That is the main reason to put `meta-title` on a url route that already has `<title>` in HTML: the HTML stays the source for hard reload and SEO; the attr is the instant client preview. Keep the two in sync, or the tab will flash one title and settle on another.
+
+Attrs also cover cases HTML cannot supply at all:
 
 | When | What to set |
 | ---- | ----------- |
-| `template::` / `html::` / other non-url views | `meta-title` (and description/canonical if needed) on that route |
-| Same-route param/query update (view reused, only data reloads) | `meta-title="User :id"` and other token attrs on that route |
+| Instant tab title (url or not) | `meta-title` on the route — preview at URL align, before fetch |
+| `template::` / `html::` / other non-url views | `meta-title` (and description/canonical if needed) |
+| Same-route param/query update (view reused, only data reloads) | `meta-title="User :id"` and other token attrs |
 | Rare override of a fetched page | the matching attr on that route |
 
 | HTML attribute | Effect |
@@ -90,6 +95,16 @@ Use `meta-title`, `meta-description`, and `meta-canonical` when HTML cannot supp
 | `meta-canonical` | Overlay for `<link rel="canonical">` |
 
 Attrs inherit from `<aura-router>` and from **parent routes**, the same way as `scroll` and `extract`. A child overrides an inherited value. Opt out with `none`, `off`, `false`, or an empty value.
+
+### Instant tab title
+
+```html
+<aura-route path="/about" view="about.html" meta-title="About | My App"></aura-route>
+```
+
+The click updates the tab at once. After fetch, Aura applies meta from the HTML (and any attrs). Description, canonical, and social tags still wait for the page — only title can preview.
+
+Without `meta-title`, `/about` keeps the previous tab title until `about.html` has loaded.
 
 ### Non-url views
 
@@ -103,7 +118,7 @@ There is no fetched `<title>`, so the route attr is the page title.
 
 When `/users/1` → `/users/2` **reuses** the mounted view ([same-route updates](./03-views-and-layouts.md#same-route-updates)), Aura does not fetch HTML again. `htmlMeta` stays whatever the first page had — so a `<title>` in `users/shell.html` will not become “User 2”.
 
-Token attrs on the route are the overlay for that gap. They resolve from the **new** params on commit:
+Token attrs on the route fill that gap. They resolve from the **new** params as soon as the URL aligns (preview) and again at commit:
 
 ```html
 <aura-route
@@ -196,7 +211,7 @@ HTML meta from a layout route's own `view` does **not** merge into the child. Pu
 
 ```html
 <aura-router>
-  <aura-route path="/about" view="about.html"></aura-route>
+  <aura-route path="/about" view="about.html" meta-title="About | My App"></aura-route>
   <aura-route path="/info" view="template::info" meta-title="Info"></aura-route>
 </aura-router>
 ```
@@ -204,6 +219,7 @@ HTML meta from a layout route's own `view` does **not** merge into the child. Pu
 | Goal | How |
 | ---- | --- |
 | Title, description, canonical | Tags in the fetched HTML page (full `<title>`, including any suffix) |
+| Instant tab title while the page loads | `meta-title` on the route (preview at URL align) |
 | Non-url view title | `meta-title` on that route |
 | Param update, same shell | `meta-title="User :id"` (HTML is not refetched) |
 | Shared suffix for attr titles | `meta-title-template="%s \| App"` — opt-in; diverges from server HTML if you also wrap fetched pages |

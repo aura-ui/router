@@ -52,8 +52,11 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
  * Resolve document title from route attrs (`meta-title` / `meta-title-template`)
  * and optional HTML `<title>`.
  *
- * Local `meta-title` (attribute on the route element) wins over HTML `<title>` for `%s`.
- * Inherited `meta-title` from an ancestor applies when the leaf has no local attr.
+ * `%s` in the template uses a **page title**: local `meta-title` on the route
+ * element, else HTML `<title>`. Inherited ancestor `meta-title` is not a page
+ * title — it is only the fallback when there is nothing to wrap.
+ * `meta-title="none"` is local-but-empty, so wrap uses HTML.
+ *
  * Pass `vars` when the caller already merged query/params (avoids a second alloc).
  */
 export function resolveTitle(
@@ -64,14 +67,12 @@ export function resolveTitle(
   const { metaTitle, metaTitleTemplate } = route;
   if (metaTitle == null && metaTitleTemplate == null) return htmlTitle;
 
-  const attrTitle = metaTitle != null ? substituteTokens(metaTitle, vars) : null;
-  const hasLocalTitle = route.hasAttribute('meta-title');
-  const localOrHtmlTitle = hasLocalTitle && attrTitle != null ? attrTitle : htmlTitle;
+  const attrTitle = metaTitle != null ? substituteTokens(metaTitle, vars) : undefined;
+  if (metaTitleTemplate == null) return attrTitle ?? htmlTitle;
 
-  if (metaTitleTemplate != null && localOrHtmlTitle) {
-    const template = substituteTokens(metaTitleTemplate, vars);
-    return template.includes('%s') ? template.split('%s').join(localOrHtmlTitle) : localOrHtmlTitle;
-  }
+  const localOrHtmlTitle = (route.hasAttribute('meta-title') ? attrTitle : undefined) ?? htmlTitle;
+  if (!localOrHtmlTitle) return attrTitle;
 
-  return attrTitle ?? htmlTitle;
+  const template = substituteTokens(metaTitleTemplate, vars);
+  return template.includes('%s') ? template.split('%s').join(localOrHtmlTitle) : localOrHtmlTitle;
 }

@@ -331,6 +331,13 @@ describe('resolveDocumentMetaWithParams', () => {
     expect(resolveDocumentMetaWithParams(to)).toEqual({ title: 'App' });
   });
 
+  it('wraps HTML title rather than inherited meta-title', () => {
+    const to = routeUnderRouter({}, { 'meta-title': 'App', 'meta-title-template': '%s | App' });
+    expect(resolveDocumentMetaWithParams(to, { title: 'About' })).toEqual({
+      title: 'About | App',
+    });
+  });
+
   it('does not wrap when meta-title-template is none', () => {
     expect(
       resolveDocumentMetaWithParams(

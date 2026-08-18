@@ -189,7 +189,7 @@ meta = { ...htmlMeta };
    - шаблон с `%s` → подставляет заголовок (`%s | App`); без `%s` → берётся заголовок страницы как есть.
 2. Иначе: inherited / attr `meta-title`, иначе `<title>` из HTML.
 
-**Локальный vs inherited:** `route.hasAttribute('meta-title')` — локальный attr перекрывает HTML для `%s`; inherited `meta-title` с `<aura-router>` не считается локальным, но участвует в fallback `attrTitle ?? htmlTitle`.
+**Локальный vs inherited:** `route.hasAttribute('meta-title')` — локальный attr перекрывает HTML для `%s`; inherited `meta-title` с родительского `<aura-route>` не считается локальным, но участвует в fallback `attrTitle ?? htmlTitle`. С `<aura-router>` title/description/canonical **не** наследуются — только `meta-title-template`.
 
 ### Description / canonical
 
@@ -231,14 +231,14 @@ Apply **владеет** только тегами, которые сам пом
 
 ## Route attrs и inherit
 
-На `<aura-route>` и `<aura-router>` (inherit на детей):
+На `<aura-route>` (inherit на детей). На `<aura-router>` — только шаблон заголовка:
 
-| HTML attr | Свойство | Эффект |
-|-----------|----------|--------|
-| `meta-title` | `metaTitle` | Title overlay / `%s` source |
-| `meta-title-template` | `metaTitleTemplate` | `%s \| App` wrap |
-| `meta-description` | `metaDescription` | description slot |
-| `meta-canonical` | `metaCanonical` | canonical href |
+| HTML attr | Свойство | Где | Эффект |
+|-----------|----------|-----|--------|
+| `meta-title` | `metaTitle` | route (+ parent routes) | Title overlay / `%s` source |
+| `meta-title-template` | `metaTitleTemplate` | route + `<aura-router>` | `%s \| App` wrap |
+| `meta-description` | `metaDescription` | route (+ parent routes) | description slot |
+| `meta-canonical` | `metaCanonical` | route (+ parent routes) | canonical href |
 
 Opt-out от inherit: `none` / `off` / `false` / пустая строка → `null` (`parseOffableString`).
 
@@ -270,7 +270,7 @@ AuraRouter.configure({
 - Срабатывает только если в options есть `'tags' in documentMeta` (явный `tags: []` очищает список).
 - Вызывать **до первого fetch** — иначе warm cache может не знать о новых слотах.
 
-Site-wide meta без per-route attrs: boot shell `<head>`, inherit на `<aura-router>`, configure — предпочтительнее merge layout→leaf.
+Site-wide meta без per-route attrs: boot shell `<head>`, `meta-title-template` на `<aura-router>`, configure — предпочтительнее merge layout→leaf.
 
 ---
 
@@ -278,7 +278,7 @@ Site-wide meta без per-route attrs: boot shell `<head>`, inherit на `<aura-
 
 На commit в resolve/apply попадает meta **только листового** маршрута (`viewSnapshot[last]`). Meta layout-уровней сохраняется в snapshot при prepare, но в финальный commit **не сливается**.
 
-**Почему не merge root→leaf:** при наивном слиянии defaults родителя «оживают», когда у листа поле omit — и ломается откат к boot: страница без description оставила бы description от layout. Общие defaults лучше задавать через boot shell `<head>`, inherit attrs на `<aura-router>` и `configureDocumentMeta`.
+**Почему не merge root→leaf:** при наивном слиянии defaults родителя «оживают», когда у листа поле omit — и ломается откат к boot: страница без description оставила бы description от layout. Общие defaults лучше задавать через boot shell `<head>`, inherit на родительском `<aura-route>` и `configureDocumentMeta`.
 
 ---
 

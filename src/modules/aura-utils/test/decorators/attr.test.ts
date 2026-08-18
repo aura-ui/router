@@ -63,6 +63,28 @@ describe('@attr inherit', () => {
     root.remove();
   });
 
+  it('inheritFrom skips ancestors that are not the host tag', () => {
+    class ScopedHost extends HTMLElement {
+      @attr({ inherit: true, inheritFrom: 'scoped-root' }) label: string | null;
+    }
+    const scopedTag = 'scoped-inherit-host';
+    if (!customElements.get(scopedTag)) customElements.define(scopedTag, ScopedHost);
+    if (!customElements.get('scoped-root')) {
+      customElements.define('scoped-root', class extends HTMLElement {});
+    }
+
+    const skipped = document.createElement('div');
+    skipped.setAttribute('label', 'skipped');
+    const host = document.createElement('scoped-root');
+    host.setAttribute('label', 'from-host');
+    const child = document.createElement(scopedTag) as ScopedHost;
+    skipped.append(host);
+    host.append(child);
+    document.body.append(skipped);
+
+    expect(child.label).toBe('from-host');
+  });
+
   it('off keywords are passed to parser when present locally', () => {
     const root = document.createElement('div');
     root.setAttribute('label', 'parent');

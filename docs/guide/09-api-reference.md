@@ -16,7 +16,7 @@ Attributes on `<aura-router>` have one of two roles: they either provide default
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Hooks                | `guard`, `ready`, `leave`, `unmount`, `update`, `error`; never `load`                                             |
 | Views/errors/loading | `extract`, `error-template`, `loading-template`, `loading-body-class`, `loading-start-event`, `loading-end-event` |
-| Document meta        | `meta-title`, `meta-title-template`, `meta-description`, `meta-canonical`                                         |
+| Document meta        | `meta-title-template`                                                                                             |
 | Navigation policy    | `param-change`, `scroll`, `scroll-target`, `scroll-behavior`, `prefetch`                                          |
 | Cache                | `cache`, `cache-time`, `cache-refresh`                                                                            |
 | Transitions          | `transition`, `transition-in`, `transition-out`, `transition-order`                                               |
@@ -24,6 +24,8 @@ Attributes on `<aura-router>` have one of two roles: they either provide default
 A child route can override any inherited value. Where supported, `none`, `off`, or `false` disables the inherited behaviour.
 
 `load` is intentionally route-local and never inherits from `<aura-router>` or a parent route.
+
+`meta-title`, `meta-description`, and `meta-canonical` belong on `<aura-route>`. They inherit through parent routes, not from `<aura-router>`.
 
 ### Router-only settings
 

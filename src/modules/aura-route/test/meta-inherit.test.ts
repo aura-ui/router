@@ -4,7 +4,7 @@ jest.mock('../../aura-router/core/aura-router', () => ({
   },
 }));
 
-import { defineAuraRoute, mountAuraRouteUnderRouter } from './_helpers';
+import { defineAuraRoute, createAuraRoute, mountAuraRoute, mountAuraRouteUnderRouter } from './_helpers';
 
 describe('AuraRoute meta inherit', () => {
   beforeAll(() => {
@@ -15,29 +15,54 @@ describe('AuraRoute meta inherit', () => {
     document.body.replaceChildren();
   });
 
-  it('inherits meta-title from aura-router', () => {
+  it('does not inherit meta-title from aura-router', () => {
     const child = mountAuraRouteUnderRouter(
       { path: '/feed' },
       { 'meta-title': 'App' },
     );
 
+    expect(child.metaTitle).toBeNull();
+  });
+
+  it('does not inherit meta-description or meta-canonical from aura-router', () => {
+    const child = mountAuraRouteUnderRouter(
+      { path: '/feed' },
+      { 'meta-description': 'Site', 'meta-canonical': 'https://example.com' },
+    );
+
+    expect(child.metaDescription).toBeNull();
+    expect(child.metaCanonical).toBeNull();
+  });
+
+  it('inherits meta-title from parent aura-route', () => {
+    const parent = createAuraRoute({ path: '/app', 'meta-title': 'App' });
+    const child = mountAuraRoute({ path: '/app/feed' }, { parent });
+
     expect(child.metaTitle).toBe('App');
   });
 
+  it('inherits meta-description and meta-canonical from parent aura-route', () => {
+    const parent = createAuraRoute({
+      path: '/app',
+      'meta-description': 'Section',
+      'meta-canonical': 'https://example.com/app',
+    });
+    const child = mountAuraRoute({ path: '/app/feed' }, { parent });
+
+    expect(child.metaDescription).toBe('Section');
+    expect(child.metaCanonical).toBe('https://example.com/app');
+  });
+
   it('child overrides inherited meta-title', () => {
-    const child = mountAuraRouteUnderRouter(
-      { path: '/about', 'meta-title': 'About' },
-      { 'meta-title': 'App' },
-    );
+    const parent = createAuraRoute({ path: '/app', 'meta-title': 'App' });
+    const child = mountAuraRoute({ path: '/about', 'meta-title': 'About' }, { parent });
 
     expect(child.metaTitle).toBe('About');
   });
 
   it('meta-title="none" opts out of inherited title', () => {
-    const child = mountAuraRouteUnderRouter(
-      { path: '/bare', 'meta-title': 'none' },
-      { 'meta-title': 'App' },
-    );
+    const parent = createAuraRoute({ path: '/app', 'meta-title': 'App' });
+    const child = mountAuraRoute({ path: '/bare', 'meta-title': 'none' }, { parent });
 
     expect(child.metaTitle).toBeNull();
   });

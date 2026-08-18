@@ -34,8 +34,8 @@ function cacheOf(el: HTMLElement, create = false): Map<string, unknown> | undefi
 }
 
 /** Reads an attribute from the nearest ancestor that defines it (not from `element`). */
-const getInherited = (el: HTMLElement, name: string): string | null =>
-  el.parentElement?.closest(`[${name}]`)?.getAttribute(name) ?? null;
+const getInherited = (el: HTMLElement, name: string, host?: string): string | null =>
+  el.parentElement?.closest(host ? `${host}[${name}]` : `[${name}]`)?.getAttribute(name) ?? null;
 
 /** `@attr` decorator configuration. */
 export type AttrConfig<T = string> = {
@@ -49,6 +49,11 @@ export type AttrConfig<T = string> = {
    * Has no effect when omitted or falsy.
    */
   inherit?: boolean | string;
+  /**
+   * When `inherit` is on, `closest()` looks for this host tag with the attribute
+   * (`aura-route[meta-title]`). Default: any ancestor (`[name]`).
+   */
+  inheritFrom?: string;
   /** Prefix attribute with `data-`. */
   dataAttr?: boolean;
   /** Value when the attribute is absent on DOM (`null` raw). Does not set an initial DOM attribute. */
@@ -71,6 +76,7 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
     const name = (config.dataAttr ? 'data-' : '') + toKebabCase(config.name || propName);
     const inheritName = typeof config.inherit === 'string' ? config.inherit : name;
     const inherit = !!config.inherit;
+    const inheritFrom = config.inheritFrom;
     const hasDefault = 'defaultValue' in config;
     const parser = config.parser || defaultParser;
 
@@ -78,7 +84,7 @@ export const attr = <T = string>(config: AttrConfig<T> = {}) => {
       let raw: string | null;
       if (!inherit) raw = el.getAttribute(name);
       else if (el.hasAttribute(name)) raw = el.getAttribute(name);
-      else raw = getInherited(el, inheritName);
+      else raw = getInherited(el, inheritName, inheritFrom);
 
       const input = (raw === null && hasDefault) ? config.defaultValue : raw;
       return parser(input as string | null) as T | null;

@@ -57,16 +57,23 @@ function matchedRoute(
   };
 }
 
-function routeUnderRouter(
+function routeUnderParent(
   routeAttrs: Parameters<typeof matchedRoute>[1] = {},
+  parentAttrs: Record<string, string> = {},
   routerAttrs: Record<string, string> = {},
 ) {
   const router = document.createElement('aura-router');
   for (const [name, value] of Object.entries(routerAttrs)) {
     router.setAttribute(name, value);
   }
+  const parent = document.createElement('aura-route');
+  parent.setAttribute('path', '/section');
+  for (const [name, value] of Object.entries(parentAttrs)) {
+    parent.setAttribute(name, value);
+  }
   const to = matchedRoute('/page', routeAttrs);
-  router.append(to.route);
+  parent.append(to.route);
+  router.append(parent);
   document.body.append(router);
   return to;
 }
@@ -326,12 +333,12 @@ describe('resolveDocumentMetaWithParams', () => {
   });
 
   it('uses inherited meta-title as default without wrapping', () => {
-    const to = routeUnderRouter({}, { 'meta-title': 'App', 'meta-title-template': '%s | App' });
+    const to = routeUnderParent({}, { 'meta-title': 'App' }, { 'meta-title-template': '%s | App' });
     expect(resolveDocumentMetaWithParams(to)).toEqual({ title: 'App' });
   });
 
   it('wraps HTML title rather than inherited meta-title', () => {
-    const to = routeUnderRouter({}, { 'meta-title': 'App', 'meta-title-template': '%s | App' });
+    const to = routeUnderParent({}, { 'meta-title': 'App' }, { 'meta-title-template': '%s | App' });
     expect(resolveDocumentMetaWithParams(to, { title: 'About' })).toEqual({
       title: 'About | App',
     });
@@ -346,9 +353,10 @@ describe('resolveDocumentMetaWithParams', () => {
   });
 
   it('wraps HTML title after meta-title none (inherit opt-out)', () => {
-    const to = routeUnderRouter(
+    const to = routeUnderParent(
       { metaTitle: 'none' },
-      { 'meta-title': 'App', 'meta-title-template': '%s | App' },
+      { 'meta-title': 'App' },
+      { 'meta-title-template': '%s | App' },
     );
     expect(
       resolveDocumentMetaWithParams(to, { title: 'About from HTML' }),

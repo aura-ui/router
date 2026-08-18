@@ -53,7 +53,7 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
  * and optional HTML `<title>`.
  *
  * `%s` in the template uses a **page title**: local `meta-title` on the route
- * element, else HTML `<title>`. Inherited ancestor `meta-title` is not a page
+ * element, else HTML `<title>`. Inherited parent-route `meta-title` is not a page
  * title — it is only the fallback when there is nothing to wrap.
  * `meta-title="none"` is local-but-empty, so wrap uses HTML.
  *

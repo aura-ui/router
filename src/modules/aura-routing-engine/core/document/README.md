@@ -186,8 +186,10 @@ meta = { ...htmlMeta };
 
 1. Если задан `meta-title-template` и есть «заголовок страницы»:
    - заголовок страницы = локальный `meta-title` (атрибут **на элементе route**), иначе `<title>` из HTML;
-   - шаблон с `%s` → подставляет заголовок (`%s | App`); без `%s` → берётся заголовок страницы как есть.
+   - шаблон с `%s` → подставляет заголовок в **первое** `%s` (`%s | App`); без `%s` → заголовок страницы как есть.
 2. Иначе: inherited / attr `meta-title`, иначе `<title>` из HTML.
+
+Пустой / whitespace результат после `:param` (как в extract) не пишется — берётся HTML fallback.
 
 **Локальный vs inherited:** `route.hasAttribute('meta-title')` — локальный attr перекрывает HTML для `%s`; inherited `meta-title` с родительского `<aura-route>` не считается локальным, но участвует в fallback `attrTitle ?? htmlTitle`. С `<aura-router>` title/description/canonical **не** наследуются — только `meta-title-template`.
 

@@ -35,11 +35,21 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
 
   const vars = { ...to.query, ...to.params };
   const meta: DocumentMetaValues = { ...htmlMeta };
+  if (meta.tags) meta.tags = { ...meta.tags };
+
   if (metaDescription != null) {
-    meta.tags = { ...meta.tags, [META_DESCRIPTION_ID]: substituteTokens(metaDescription, vars) };
+    const value = substituteTokens(metaDescription, vars).trim();
+    if (value) {
+      meta.tags ??= {};
+      meta.tags[META_DESCRIPTION_ID] = value;
+    }
   }
   if (metaCanonical != null) {
-    meta.tags = { ...meta.tags, [CANONICAL_ID]: substituteTokens(metaCanonical, vars) };
+    const value = substituteTokens(metaCanonical, vars).trim();
+    if (value) {
+      meta.tags ??= {};
+      meta.tags[CANONICAL_ID] = value;
+    }
   }
 
   const title = resolveTitle(to, htmlMeta?.title, vars);
@@ -53,9 +63,11 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
  * and optional HTML `<title>`.
  *
  * `%s` in the template uses a **page title**: local `meta-title` on the route
- * element, else HTML `<title>`. Inherited parent-route `meta-title` is not a page
- * title — it is only the fallback when there is nothing to wrap.
+ * element, else HTML `<title>`. Only the first `%s` is replaced.
+ * Inherited parent-route `meta-title` is not a page title — it is only the
+ * fallback when there is nothing to wrap.
  * `meta-title="none"` is local-but-empty, so wrap uses HTML.
+ * Empty / whitespace token results are omitted (HTML fallback, same as extract).
  *
  * Pass `vars` when the caller already merged query/params (avoids a second alloc).
  */
@@ -65,12 +77,12 @@ export function resolveTitle(to: MatchedRouteInfo, htmlTitle?: string, vars?: Re
   if (metaTitle == null && metaTitleTemplate == null) return htmlTitle;
 
   vars ??= { ...to.query, ...to.params };
-  const attrTitle = metaTitle != null ? substituteTokens(metaTitle, vars) : undefined;
+  const attrTitle = metaTitle != null ? substituteTokens(metaTitle, vars).trim() || undefined : undefined;
   if (metaTitleTemplate == null) return attrTitle ?? htmlTitle;
 
   const localOrHtmlTitle = (route.hasAttribute('meta-title') ? attrTitle : undefined) ?? htmlTitle;
   if (!localOrHtmlTitle) return attrTitle;
 
-  const template = substituteTokens(metaTitleTemplate, vars);
-  return template.includes('%s') ? template.split('%s').join(localOrHtmlTitle) : localOrHtmlTitle;
+  const template = substituteTokens(metaTitleTemplate, vars).trim();
+  return template.includes('%s') ? template.replace('%s', () => localOrHtmlTitle) : localOrHtmlTitle;
 }

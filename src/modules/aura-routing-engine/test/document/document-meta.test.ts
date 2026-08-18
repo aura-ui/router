@@ -377,4 +377,39 @@ describe('resolveDocumentMetaWithParams', () => {
       resolveDocumentMetaWithParams(to, { title: 'About from HTML' }),
     ).toEqual({ title: 'About from HTML | App' });
   });
+
+  it('omits whitespace-only token results and falls back to HTML', () => {
+    expect(
+      resolveDocumentMetaWithParams(
+        matchedRoute('/users/:id', {
+          metaTitle: ':id',
+          metaDescription: ':id',
+          metaCanonical: ':id',
+          params: { id: '   ' },
+        }),
+        {
+          title: 'About',
+          tags: {
+            [META_DESCRIPTION_ID]: 'HTML desc',
+            [CANONICAL_ID]: 'https://example.com/about',
+          },
+        },
+      ),
+    ).toEqual({
+      title: 'About',
+      tags: {
+        [META_DESCRIPTION_ID]: 'HTML desc',
+        [CANONICAL_ID]: 'https://example.com/about',
+      },
+    });
+  });
+
+  it('replaces only the first %s in meta-title-template', () => {
+    expect(
+      resolveDocumentMetaWithParams(
+        matchedRoute('/about', { metaTitleTemplate: '%s | %s' }),
+        { title: 'About' },
+      ),
+    ).toEqual({ title: 'About | %s' });
+  });
 });

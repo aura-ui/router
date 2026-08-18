@@ -1,12 +1,20 @@
-import { getHeadTags, resolveDocumentMetaWithParams, type DocumentMetaValues, type HeadTagSpec } from '../../aura-routing-engine/core/document';
+import {
+  getHeadTags,
+  resolveDocumentMetaWithParams,
+  type DocumentMetaValues,
+  type HeadTagSpec,
+} from '../../aura-routing-engine/core/document';
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 
 /** Marker on tags written by apply — only marked tags are removed on omit. */
 const OWNED = 'data-aura-head';
 
-let bootTitle: string | undefined;
-let bootLang: string | undefined;
-let bootDir: string | undefined;
+/** DOM values captured before the first apply (revert target on omit). */
+const boot = {
+  title: undefined as string | undefined,
+  lang: undefined as string | undefined,
+  dir: undefined as string | undefined,
+};
 
 /**
  * Snapshot boot `document.title` before the first apply or optimistic preview.
@@ -14,7 +22,7 @@ let bootDir: string | undefined;
  * the optimistic title as boot and later omits would restore the wrong value.
  */
 export function captureDocumentTitleBoot(): string {
-  return (bootTitle ??= document.title);
+  return (boot.title ??= document.title);
 }
 
 /**
@@ -25,36 +33,36 @@ export function captureDocumentTitleBoot(): string {
  * and title/lang/dir revert to values captured before the first apply (boot state).
  */
 export function applyDocumentMeta(to: MatchedRouteInfo, htmlMeta?: DocumentMetaValues): void {
-  const resolved = resolveDocumentMetaWithParams(to, htmlMeta);
-  const boot = captureDocumentTitleBoot();
-  document.title = resolved?.title !== undefined ? resolved.title : boot;
+  const meta = resolveDocumentMetaWithParams(to, htmlMeta);
+  const titleBoot = captureDocumentTitleBoot();
 
-  bootLang ??= document.documentElement.getAttribute('lang') ?? '';
-  bootDir ??= document.documentElement.getAttribute('dir') ?? '';
-  syncRootAttr('lang', resolved?.lang, bootLang);
-  syncRootAttr('dir', resolved?.dir, bootDir);
+  document.title = meta?.title !== undefined ? meta.title : titleBoot;
+
+  boot.lang ??= document.documentElement.getAttribute('lang') ?? '';
+  boot.dir ??= document.documentElement.getAttribute('dir') ?? '';
+  applyRootAttr('lang', meta?.lang, boot.lang);
+  applyRootAttr('dir', meta?.dir, boot.dir);
 
   for (const spec of getHeadTags()) {
-    syncHeadTag(spec, resolved?.tags?.[spec.id]);
+    applyHeadTag(spec, meta?.tags?.[spec.id]);
   }
 }
 
-/** Write or revert a root attribute (`lang` / `dir`) against boot snapshot. */
-function syncRootAttr(name: 'lang' | 'dir', value: string | undefined, boot: string): void {
-  const next = value !== undefined ? value : boot;
+/** Apply resolved value or revert `<html lang|dir>` to boot snapshot. */
+function applyRootAttr(name: 'lang' | 'dir', value: string | undefined, bootValue: string): void {
+  const next = value !== undefined ? value : bootValue;
   if (next) document.documentElement.setAttribute(name, next);
   else document.documentElement.removeAttribute(name);
 }
 
-/** Write, update, or remove one managed `<head>` tag. */
-function syncHeadTag(spec: HeadTagSpec, value: string | undefined): void {
+/** Apply resolved head tag value or remove an owned tag on omit. */
+function applyHeadTag(spec: HeadTagSpec, value: string | undefined): void {
   if (value === undefined) {
     document.head.querySelector(`${spec.selector}[${OWNED}]`)?.remove();
     return;
   }
 
-  const el =
-    document.head.querySelector(spec.selector) ?? document.head.appendChild(document.createElement(spec.tag));
+  const el = document.head.querySelector(spec.selector) ?? document.head.appendChild(document.createElement(spec.tag));
   for (const [attr, attrValue] of Object.entries(spec.attrs)) el.setAttribute(attr, attrValue);
   el.setAttribute(spec.valueAttr, value);
   el.setAttribute(OWNED, '');

@@ -1,59 +1,18 @@
 /** @jest-environment jsdom */
 
-import { AuraRoute } from '../../aura-route/core/aura-route';
+import { matchedRoute, resetDocumentMetaDom } from './_helpers/matched-route';
 
 type ApplyDocumentMeta = typeof import('../core/document-meta').applyDocumentMeta;
-type DocumentTitlePreview = import('../core/document-meta-optimistic').DocumentTitlePreview;
 
 let applyDocumentMeta: ApplyDocumentMeta;
-let titlePreview: DocumentTitlePreview;
-
-function matchedRoute(
-  path: string,
-  attrs: {
-    metaTitle?: string;
-    metaDescription?: string;
-    metaCanonical?: string;
-    params?: Record<string, string>;
-  } = {},
-) {
-  if (!customElements.get(AuraRoute.is)) {
-    customElements.define(AuraRoute.is, AuraRoute);
-  }
-  const route = document.createElement(AuraRoute.is) as AuraRoute;
-  route.setAttribute('path', path);
-  if (attrs.metaTitle) route.setAttribute('meta-title', attrs.metaTitle);
-  if (attrs.metaDescription) route.setAttribute('meta-description', attrs.metaDescription);
-  if (attrs.metaCanonical) route.setAttribute('meta-canonical', attrs.metaCanonical);
-
-  return {
-    href: path,
-    pathname: path,
-    search: '',
-    hash: '',
-    pattern: path,
-    route,
-    params: attrs.params,
-    viewKey: `view:${path}`,
-  };
-}
 
 describe('applyDocumentMeta', () => {
   beforeEach(() => {
     jest.resetModules();
     applyDocumentMeta = require('../core/document-meta').applyDocumentMeta;
-    const { DocumentTitlePreview } = require('../core/document-meta-optimistic');
-    titlePreview = new DocumentTitlePreview();
   });
 
-  afterEach(() => {
-    document.title = '';
-    document.documentElement.removeAttribute('lang');
-    document.documentElement.removeAttribute('dir');
-    document.head.replaceChildren();
-    document.body.replaceChildren();
-    require('../../aura-routing-engine/core/document').configureDocumentMeta();
-  });
+  afterEach(resetDocumentMetaDom);
 
   it('writes document.title and creates description meta', () => {
     applyDocumentMeta(
@@ -148,6 +107,14 @@ describe('applyDocumentMeta', () => {
     expect(document.documentElement.hasAttribute('dir')).toBe(false);
   });
 
+  it('restores boot dir when the next resolve omits it', () => {
+    document.documentElement.setAttribute('dir', 'ltr');
+    applyDocumentMeta(matchedRoute('/a'), { dir: 'rtl' });
+    applyDocumentMeta(matchedRoute('/b'));
+
+    expect(document.documentElement.getAttribute('dir')).toBe('ltr');
+  });
+
   it('writes and reverts open graph tags from htmlMeta', () => {
     applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:property:og:title': 'Share A' } });
     expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe('Share A');
@@ -164,71 +131,5 @@ describe('applyDocumentMeta', () => {
 
     applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#111');
-  });
-
-  it('previews title and rolls back on matching cancel id', () => {
-    document.title = 'Shell';
-    titlePreview.preview(10, matchedRoute('/a', { metaTitle: 'A' }));
-    expect(document.title).toBe('A');
-
-    titlePreview.cancel(10);
-    expect(document.title).toBe('Shell');
-  });
-
-  it('does not cancel preview for a different navigation id', () => {
-    document.title = 'Shell';
-    titlePreview.preview(10, matchedRoute('/a', { metaTitle: 'A' }));
-    titlePreview.cancel(11);
-    expect(document.title).toBe('A');
-  });
-
-  it('keeps boot title when preview runs before the first apply', () => {
-    document.title = 'Shell';
-    const to = matchedRoute('/a', { metaTitle: 'A' });
-    titlePreview.preview(1, to);
-    applyDocumentMeta(to);
-    titlePreview.commit();
-    applyDocumentMeta(matchedRoute('/b'));
-    expect(document.title).toBe('Shell');
-  });
-
-  it('keeps title after commit clears preview state', () => {
-    document.title = 'Shell';
-    const to = matchedRoute('/a', { metaTitle: 'A' });
-    titlePreview.preview(10, to);
-    applyDocumentMeta(to);
-    titlePreview.commit();
-    titlePreview.cancel(10);
-    expect(document.title).toBe('A');
-  });
-
-  it('does not restore shell when a loser is cancelled after the winner commits', () => {
-    document.title = 'Shell';
-    const winner = matchedRoute('/about', { metaTitle: 'About' });
-    titlePreview.preview(1, matchedRoute('/slow', { metaTitle: 'Slow' }));
-    titlePreview.preview(2, winner);
-    applyDocumentMeta(winner);
-    titlePreview.commit();
-    titlePreview.cancel(1);
-    expect(document.title).toBe('About');
-  });
-
-  it('ignores preview when route does not resolve explicit title', () => {
-    document.title = 'Shell';
-    titlePreview.preview(10, matchedRoute('/a'));
-    expect(document.title).toBe('Shell');
-  });
-
-  it('restores stable title after overlapping previews are cancelled', () => {
-    document.title = 'Shell';
-    titlePreview.preview(1, matchedRoute('/slow', { metaTitle: 'Slow' }));
-    titlePreview.preview(2, matchedRoute('/about', { metaTitle: 'About' }));
-    expect(document.title).toBe('About');
-
-    titlePreview.cancel(2);
-    expect(document.title).toBe('Slow');
-
-    titlePreview.cancel(1);
-    expect(document.title).toBe('Shell');
   });
 });

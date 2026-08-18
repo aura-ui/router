@@ -1,29 +1,35 @@
-import type { SwrCacheOptions } from '../../../aura-cache/core';
 import { AuraResolvableSwrCache } from '../../../aura-cache/core/aura-resolvable-swr-cache';
-import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import { awaitUntilAbort } from '../../../aura-utils/async/await-until-abort';
 import { runConcurrent } from '../../../aura-utils/async/run-concurrent';
+import { type DocumentMetaValues } from '../document';
 import { ENGINE_DEFAULTS } from '../aura-routing-engine-config';
-import type { LoadHookMode } from '../data-graph';
 import { createViewLoadError } from '../failure';
 import { invalidateRouterCache } from '../invalidate-router-cache';
-import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import { viewKey, viewKeyWithData } from '../match/resource-keys';
+import { HandoffCache } from '../resource-graph/handoff-cache';
+import { defaultLoaderRegistry } from './registry';
+import type { SwrCacheOptions } from '../../../aura-cache/core';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import type { LoadHookMode } from '../data-graph';
+import type { RouterInvalidateOptions } from '../invalidate-router-cache';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
-import { HandoffCache } from '../resource-graph/handoff-cache';
 import type { HandoffWaiter } from '../resource-graph/handoff-work-registry';
 import type { ResolvedView } from '../route-tree/resolved-view';
-
-import { defaultLoaderRegistry } from './registry';
 import type { LoaderRegistry } from './registry';
-import type { ViewDescriptor, ViewLoadContext, ViewPayload } from './types';
+import type { ViewDescriptor, ViewLoadContext, ViewPayload, ViewSnapshotEntry } from './types';
 
 type TerminalOutcome = Exclude<PipelineStepResult, null>;
 
+/** Long `cache.view` entry: string payload + document meta (same invalidate / gc lifecycle). */
+type ViewCacheEntry = {
+  payload: string;
+  meta: DocumentMetaValues | undefined;
+};
+
 /** Options for the long-lived `cache.view` store. */
-export type ViewGraphCacheOptions = Pick<SwrCacheOptions<string>, 'max' | 'staleTime' | 'gcTime'>;
+export type ViewGraphCacheOptions = Pick<SwrCacheOptions<ViewCacheEntry>, 'max' | 'staleTime' | 'gcTime'>;
 
 export type ViewGraphDeps = {
   /** Defaults to {@link defaultLoaderRegistry}. */
@@ -52,11 +58,13 @@ export type ViewLoadOptions = {
 };
 
 /**
- * `{ data }` ok · `{ error }` navigation stop · `{}` soft skip (no descriptor / prefetch).
- * Same shape as DataGraph load results.
+ * `{ payload, meta }` ok · `{ error }` navigation stop · `{}` soft skip (no descriptor / prefetch).
+ * Success fields match {@link ViewSnapshotEntry}. `{ error }` / `{}` match DataGraph; DataGraph success is `{ data }`.
  */
 export type ViewGraphLoadResult = {
-  data?: ViewPayload | null;
+  payload?: ViewPayload | null;
+  /** Always present on success; `undefined` when the loader did not extract document meta. */
+  meta?: DocumentMetaValues;
   error?: TerminalOutcome;
 };
 
@@ -91,14 +99,15 @@ export type RouteViewSource = {
  *
  * Shared prepare: {@link HandoffCache.hold} → loader/`workSignal`; interest →
  * {@link awaitUntilAbort}; `finally` → release.
+ * Handoff value for view keys is `{ payload, meta }` (meta survives prefetch joins).
  * Long revisit: string payloads with `cache.view` stay in {@link AuraResolvableSwrCache}
- * (`DocumentFragment` is never long-cached — mount empties it).
+ * as {@link ViewCacheEntry} (`DocumentFragment` is never long-cached — mount empties it).
  */
 export class ViewGraph {
   private static defaultCacheOptions: ViewGraphCacheOptions = {};
 
   private readonly registry: LoaderRegistry;
-  private readonly cache: AuraResolvableSwrCache<string>;
+  private readonly cache: AuraResolvableSwrCache<ViewCacheEntry>;
   private readonly sharedBuffer: HandoffCache;
 
   /** Default `cache.view` options for engine-created graphs. */
@@ -171,7 +180,7 @@ export class ViewGraph {
 
   /**
    * Load payload for a matched route (`layout` wins over resolved `view` attr).
-   * Single-route entry ({@link ViewResolverPort}). Outcome: `{ data }` / `{ error }` / `{}`.
+   * Single-route entry ({@link ViewResolverPort}). Outcome: `{ payload, meta }` / `{ error }` / `{}`.
    */
   loadView(
     match: MatchedRouteInfo,
@@ -212,16 +221,17 @@ export class ViewGraph {
     const waiter = this.sharedBuffer.hold(key, mode);
 
     try {
-      const shared = this.runSharedLoad(match, key, useLongCache, () =>
+      const shared = this.runSharedLoad(key, useLongCache, () =>
         this.runViewLoader(descriptor, match, waiter.workSignal, data),
       );
       // Interest may detach before settle; don't leave an unhandled rejection on shared.
       void shared.catch(() => {
       });
-      const payload = await awaitUntilAbort(shared, interestSignal);
+      const handoff = await awaitUntilAbort(shared, interestSignal);
 
       if (!isInterestActive(interestSignal, transaction)) return cancelledResult(mode);
-      return { data: payload };
+
+      return handoff;
     } catch (error) {
       return this.toLoadErrorResult(error, match, interestSignal, mode, transaction);
     } finally {
@@ -242,8 +252,19 @@ export class ViewGraph {
   }
 
   /**
+   * Document meta colocated with a warm `cache.view` entry (same key as {@link hasCachedView}).
+   * Used when prepare skipped loads (view-cache fast path / update) but commit still needs meta.
+   */
+  getCachedHtmlMeta(match: MatchedRouteInfo): DocumentMetaValues | undefined {
+    const key = resolveViewCacheKey(match);
+    if (!key) return undefined;
+    return this.cache.get(key)?.meta;
+  }
+
+  /**
    * Invalidate long `cache.view` entries ({@link RouterInvalidateOptions}, default policy `stale`).
    * Clears the shared prepare handoff buffer so the next load/prefetch cannot reuse stale settles.
+   * Document meta is part of each entry — invalidated with the payload.
    */
   invalidate(options: RouterInvalidateOptions = {}): number {
     const count = invalidateRouterCache(this.cache, options, 'stale');
@@ -265,41 +286,30 @@ export class ViewGraph {
   ): ViewGraphLoadResult | undefined {
     if (!useLongCache) return undefined;
 
-    const payload = this.cache.get(key);
-    if (payload === undefined) return undefined;
+    const entry = this.cache.get(key);
+    if (entry === undefined) return undefined;
 
     if (!isInterestActive(interestSignal, transaction)) return cancelledResult(mode);
-    return { data: payload };
+    return entry;
   }
 
   /**
-   * Handoff (+ optional long `cache.view`).
+   * Handoff (+ optional long `cache.view` rebuild into handoff value).
    * Factory uses the waiter {@link HandoffWaiter.workSignal}, not caller interest.
    */
   private runSharedLoad(
-    match: MatchedRouteInfo,
     key: string,
     useLongCache: boolean,
-    load: () => Promise<ViewPayload | null>,
-  ): Promise<ViewPayload | null> {
+    load: () => Promise<ViewSnapshotEntry>,
+  ): Promise<ViewSnapshotEntry> {
     return this.sharedBuffer.resolve(key, async () => {
       if (useLongCache) {
-        const payload = this.cache.get(key);
-        if (payload !== undefined) return payload;
+        const entry = this.cache.get(key);
+        if (entry !== undefined) return entry;
       }
 
-      const payload = await load();
-
-      // Strings only — DocumentFragment is one-shot DOM (mount empties it).
-      if (useLongCache && typeof payload === 'string') {
-        this.cache.set(key, payload, {
-          gcTime: match.route.cacheTime ?? undefined,
-          staleTime: match.route.cacheRefresh ?? undefined,
-        });
-      }
-
-      return payload;
-    });
+      return load();
+    }) as Promise<ViewSnapshotEntry>;
   }
 
   /**
@@ -311,14 +321,31 @@ export class ViewGraph {
     match: MatchedRouteInfo,
     workSignal: AbortSignal,
     data?: unknown,
-  ): Promise<ViewPayload | null> {
+  ): Promise<ViewSnapshotEntry> {
     throwIfAborted(workSignal);
 
     try {
       const result = await this.registry.get(descriptor.loader).load(
         buildLoadContext(match, descriptor, workSignal, data),
       );
-      return result?.value ?? null;
+      const payload = result?.value ?? null;
+      const meta = result?.kind === 'html' ? result.meta : undefined;
+
+      if (descriptor.cache && typeof payload === 'string') {
+        const key = resolveViewCacheKey(match, data);
+        if (key) {
+          this.cache.set(
+            key,
+            { payload, meta },
+            {
+              gcTime: match.route.cacheTime ?? undefined,
+              staleTime: match.route.cacheRefresh ?? undefined,
+            },
+          );
+        }
+      }
+
+      return { payload, meta };
     } catch (error: unknown) {
       throwIfAborted(workSignal);
       throw createViewLoadError(descriptor.loader, match.pattern, error);

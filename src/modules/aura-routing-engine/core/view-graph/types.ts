@@ -1,19 +1,26 @@
 import type { LoaderId } from '../../../aura-route/core/attr/view-attr-parser';
+import type { DocumentMetaValues } from '../document';
 
 /** Mount-ready payload: HTML string or DOM node. */
 export type ViewPayload = Node | string;
+
+/** Prepare/commit view snapshot: mount payload + colocated document meta (leaf used at commit). */
+export type ViewSnapshotEntry = {
+  payload: ViewPayload | null;
+  meta: DocumentMetaValues | undefined;
+};
 
 /** `layout` — template slot; `view` — route content from `view` attr. */
 export type ViewKind = 'layout' | 'view';
 
 /**
  * Loader result: tagged `{ kind, value }`.
- * - `html` — document / partial HTML string
+ * - `html` — document / partial HTML string (`meta` = optional document meta from full documents)
  * - `markup` — synthesized element markup string
  * - `fragment` — mount-ready DOM fragment
  */
 export type ViewLoadResult =
-  | { readonly kind: 'html'; readonly value: string }
+  | { readonly kind: 'html'; readonly value: string; readonly meta?: DocumentMetaValues }
   | { readonly kind: 'markup'; readonly value: string }
   | { readonly kind: 'fragment'; readonly value: DocumentFragment };
 

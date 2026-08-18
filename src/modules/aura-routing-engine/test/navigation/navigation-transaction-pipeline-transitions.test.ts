@@ -5,7 +5,7 @@ jest.mock('../../core/view-mount/view-commit-render', () =>
 
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
 import * as branchMount from '../../core/view-mount/branch-mount';
-import { createMatchedRoute, createMockTransaction } from '../_helpers/create-mock-transaction';
+import { createMatchedRoute, createMockTransaction, asViewSnapshot } from '../_helpers/create-mock-transaction';
 import { mockRunPhaseHooks, mockRunViewCommit, resetPipelineMocks } from '../_helpers/jest/pipeline-mocks';
 
 describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () => {
@@ -26,7 +26,7 @@ describe('NavigationTransactionPipeline.runRenderWithTransition (parallel)', () 
     transaction: ReturnType<typeof createMockTransaction>,
     contents: readonly (string | null)[] = ['<page/>'],
   ) {
-    transaction.viewSnapshot = contents;
+    transaction.viewSnapshot = asViewSnapshot(...contents);
     return transaction;
   }
 
@@ -238,7 +238,7 @@ describe('NavigationTransactionPipeline transition + remount order', () => {
       enterRoutes: [enterRoute],
     });
     transaction.transitionPlan.paramChangeRemount = true;
-    // loads already done — render path only (contents set by runLoads in full pipeline)
+    // loads already done ? render path only (contents set by runLoads in full pipeline)
     // For order assertion use loads + render:
     const pipeline = new NavigationTransactionPipeline(transaction);
     await pipeline.runLoads();
@@ -277,7 +277,7 @@ describe('NavigationTransactionPipeline parallel transition edge cases', () => {
       exitRoutes: [createMatchedRoute('/from', { transitionOut: ['fade'] })],
       enterRoutes: [createMatchedRoute('/to', { transitionIn: ['fade'] })],
     });
-    transaction.viewSnapshot = ['<page/>'];
+    transaction.viewSnapshot = asViewSnapshot('<page/>');
     jest.spyOn(transaction, 'isActive').mockImplementation(() => active);
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
@@ -298,7 +298,7 @@ describe('NavigationTransactionPipeline parallel transition edge cases', () => {
         }),
       ],
     });
-    transaction.viewSnapshot = ['<page/>'];
+    transaction.viewSnapshot = asViewSnapshot('<page/>');
 
     const outcome = await new NavigationTransactionPipeline(transaction).runRenderWithTransition();
 

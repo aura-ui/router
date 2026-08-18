@@ -106,6 +106,17 @@ export {
 
 export type { GuardResult, RedirectTarget } from './core/guard.types';
 
+// --- Document meta (title/description contract) ---
+
+export {
+  hasDocumentMeta,
+  extractDocumentMeta,
+  resolveDocumentMetaWithParams,
+  configureDocumentMeta,
+  type DocumentMetaValues,
+  type HeadTagInput,
+} from './core/document';
+
 // --- View graph (view payloads: load, prefetch, payload cache) ---
 
 export {
@@ -151,6 +162,7 @@ export type {
   RegisterLoaderOptions,
   ViewLoadContext,
   ViewPayload,
+  ViewSnapshotEntry,
 } from './core/view-graph';
 
 export type { LoaderId } from '../aura-route/core/attr/view-attr-parser';

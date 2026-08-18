@@ -42,9 +42,9 @@ export interface DomCachePort {
   put(key: string, root: ViewRoot): void;
 }
 
-/** Outcome of one view/layout resolve — same shape as engine ViewGraph / DataGraph. */
+/** Outcome of one view/layout resolve — success field is `payload` (ViewGraph), not DataGraph `data`. */
 export type ViewResolveResult = {
-  data?: ViewPayload | null;
+  payload?: ViewPayload | null;
   error?: { status: 'cancelled' } | { status: string; [key: string]: unknown };
 };
 

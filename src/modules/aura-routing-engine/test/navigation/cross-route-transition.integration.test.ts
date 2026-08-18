@@ -4,9 +4,6 @@ jest.mock('../../core/hooks/registry', () =>
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
 import { NO_TRANSITION } from '../../../aura-route/core/attr/transition-attr-parser';
-import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteInstance } from '../../core/route/types';
 import {
   createMatchedRoute,
   createMockEngine,
@@ -24,6 +21,9 @@ import {
   wireRouteViewController,
   type WireRouteViewControllerOptions,
 } from '../_helpers/wire-route-view-controller';
+import type { RouteTransitionType } from '../../../aura-route/core/attr/transition-attr-parser';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { RouteInstance } from '../../core/route/types';
 
 const routeMarkup = new WeakMap<RouteInstance, string>();
 
@@ -63,7 +63,7 @@ function wireRoute(
     outlet,
     cache: NO_CACHE,
     wireRevertInFlight: true,
-    loadView: async () => ({ data: markup }),
+    loadView: async () => ({ payload: markup }),
     ...options,
     transition,
   });
@@ -77,7 +77,7 @@ async function runCrossRouteNavigation(from: MatchedRouteInfo, to: MatchedRouteI
   wireEngineViewGraph(
     engine,
     createViewGraphFromLoadView(async (routeInfo) => ({
-      data: routeMarkup.get(routeInfo.route) ?? null,
+      payload: routeMarkup.get(routeInfo.route) ?? null,
     })),
   );
 

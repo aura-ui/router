@@ -1,8 +1,4 @@
-import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
-import type { ViewRenderResult } from '../../../aura-routing-engine/route-api';
 import { escapeHtml, getTemplate } from '../../../aura-utils/misc';
-import type { AuraRouteInterface } from '../types';
-
 import {
   applyMountToSnapshot,
   hasActiveMount,
@@ -10,6 +6,9 @@ import {
   warnMissingLayoutOutlet,
   type MountContext,
 } from './outlet-adapter';
+import type { ViewRoot } from '../../../aura-outlet/core/aura-outlet';
+import type { ViewRenderResult } from '../../../aura-routing-engine/route-api';
+import type { AuraRouteInterface } from '../types';
 import type { RenderPass, ViewPayload } from './types';
 import type { ViewContext } from './view-context';
 
@@ -68,7 +67,7 @@ export class ViewRenderPipelinePhase {
 
   /** Load content via port, then mount (or empty placeholder for null content routes). */
   async resolveContent(pass: RenderPass): Promise<void> {
-    const { data, error } = await this.ctx.config.view.loadView(
+    const { payload, error } = await this.ctx.config.view.loadView(
       pass.routeInfo,
       pass.signal,
       pass.data !== undefined ? { data: pass.data } : undefined,
@@ -78,7 +77,7 @@ export class ViewRenderPipelinePhase {
     if (error?.status === 'cancelled') return;
     if (error) throw error;
 
-    this.applyResolvedContent(pass, data ?? null);
+    this.applyResolvedContent(pass, payload ?? null);
   }
 
   /** Recovery UI after resolve failure — does not rethrow. */

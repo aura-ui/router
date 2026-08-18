@@ -1,4 +1,4 @@
-# Chapter 1 — Fundamentals
+﻿# Chapter 1 — Fundamentals
 
 Install Aura Router, understand its three elements, and create the first routes.
 
@@ -57,7 +57,7 @@ A minimal router:
 
 Start with `path`, `view`, marked links, and one outlet. Add layouts, hooks, prefetch, and caching only where they solve a concrete problem.
 
-This example loads HTML fragments. For the complete-page approach shown in the README, use [`extract`](./03-views-and-layouts.md#extract--fragment-from-full-html-pages) and follow [First paint](./05-mpa-to-spa.md#first-paint-mpa--spa).
+This example loads HTML fragments. For the complete-page approach shown in the README, use [`extract`](./03-views-and-layouts.md#extract--fragment-from-full-html-pages) and follow [First paint](./06-mpa-to-spa.md#first-paint-mpa--spa).
 
 ---
 

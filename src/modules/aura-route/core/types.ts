@@ -31,6 +31,14 @@ export interface AuraRouteInterface {
   /** `scroll-behavior` — native smooth | instant | auto. */
   scrollBehavior: ScrollBehaviorAttr | null;
   extract: string | null;
+  /** `meta-title` — document title (`:param` tokens); `null` → extracted HTML meta fallback / unchanged. Inherits from parent routes, not `<aura-router>`. */
+  metaTitle: string | null;
+  /** `meta-title-template` — wraps the page title (`%s`); `null` → no wrap. */
+  metaTitleTemplate: string | null;
+  /** `meta-description` — description meta (`:param` tokens); `null` → extracted HTML meta fallback / unchanged. Inherits from parent routes, not `<aura-router>`. */
+  metaDescription: string | null;
+  /** `meta-canonical` — canonical link href (`:param` tokens); `null` → extracted HTML meta fallback / unchanged. Inherits from parent routes, not `<aura-router>`. */
+  metaCanonical: string | null;
   readonly type: RouteType;
   readonly transition: RouteTransitionType;
   readonly hasLayout: boolean;

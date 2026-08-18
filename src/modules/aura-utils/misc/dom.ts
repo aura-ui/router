@@ -16,28 +16,7 @@ export const getTemplate = (id: string) => {
   return template?.content.cloneNode(true) as DocumentFragment;
 };
 
-/**
- * Extracts a DOM subtree from an HTML string as a markup string.
- *
- * Parses `html` with `DOMParser` (suitable for full documents and partials).
- *
- * @param html - Raw HTML response (e.g. from a `url` loader fetch).
- * @param selector - CSS selector for the element to extract.
- * @returns `outerHTML` of the first matching element, or `null` when nothing matches.
- */
-export function extractHtmlFragment(html: string, selector: string): string | null {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.querySelector(selector)?.outerHTML ?? null;
-}
-
-/**
- * Applies route `extract` to an HTML string.
- * On miss, warns and returns `html` unchanged.
- */
-export function applyHtmlExtract(html: string, extract: string | null | undefined, href: string): string {
-  if (!extract) return html;
-  const fragment = extractHtmlFragment(html, extract);
-  if (fragment != null) return fragment;
-  console.warn(`Nothing found for extract selector "${extract}" — using full HTML. Page — ${href}`);
-  return html;
+/** Parse an HTML string into a `Document` (`DOMParser`). */
+export function stringToHtml(html: string): Document {
+  return new DOMParser().parseFromString(html, 'text/html');
 }

@@ -3,8 +3,6 @@ jest.mock('../../core/hooks/registry', () =>
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { RouteNode } from '../../core/route-tree/route-node.types';
 import {
   createUsersIdMatch,
   createUsersIdNode,
@@ -14,6 +12,8 @@ import { setupViewIntegrationTests } from '../_helpers/integration-setup';
 import { mockRunPhaseHooks } from '../_helpers/jest/hook-mocks';
 import { createTestOutlet } from '../_helpers/jest/navigation-fixtures';
 import { wireRouteViewController as wireRouteView } from '../_helpers/wire-route-view-controller';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { RouteNode } from '../../core/route-tree/route-node.types';
 
 function wireRouteViewController(
   node: RouteNode,
@@ -30,7 +30,7 @@ function wireRouteViewController(
     wireMountResolvedView: false,
     loadView: async () => {
       resolveCount++;
-      return { data: resolve() };
+      return { payload: resolve() };
     },
   });
   return { resolveCount: () => resolveCount };

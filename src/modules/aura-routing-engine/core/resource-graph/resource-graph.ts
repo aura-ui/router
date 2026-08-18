@@ -1,24 +1,14 @@
-import {
-  DataGraph,
-  type DataGraphCacheOptions,
-  type DataGraphLoadResult,
-  type DataSnapshot,
-} from '../data-graph';
+import { DataGraph, type DataGraphCacheOptions, type DataGraphLoadResult, type DataSnapshot } from '../data-graph';
+import { viewKeyWithData } from '../match/resource-keys';
+import { getActiveChain } from '../route-tree/matched-chain';
+import { ViewGraph, type ViewGraphCacheOptions, type ViewSnapshotEntry } from '../view-graph';
+import { HandoffCache, type HandoffCacheOptions } from './handoff-cache';
 import type { HookRegistry } from '../hooks/registry';
 import type { RouterInvalidateOptions } from '../invalidate-router-cache';
-import { viewKeyWithData } from '../match/resource-keys';
 import type { MatchedRouteInfo } from '../match/url-matcher';
 import type { NavigationTransaction } from '../navigation/navigation-transaction';
 import type { PipelineStepResult } from '../navigation/types';
-import { getActiveChain } from '../route-tree/matched-chain';
-import {
-  ViewGraph,
-  type ViewGraphCacheOptions,
-  type ViewPayload,
-} from '../view-graph';
 import type { LoaderRegistry } from '../view-graph/registry';
-
-import { HandoffCache, type HandoffCacheOptions } from './handoff-cache';
 import type { HandoffWaiter } from './handoff-work-registry';
 
 export type ResourceGraphRunContext = {
@@ -49,8 +39,8 @@ export type ResourceGraphResolveResult = {
   error?: PipelineStepResult;
   /** DataGraph snapshot for the enter branch. */
   data?: DataSnapshot;
-  /** View payloads in `enterRoutes` order. No content → `null`. */
-  view?: readonly (ViewPayload | null)[];
+  /** View entries in `enterRoutes` order (`payload` + colocated `meta`). No content → `payload: null`. */
+  view?: readonly ViewSnapshotEntry[];
 };
 
 /**
@@ -235,10 +225,16 @@ export class ResourceGraph {
       ...(dataResult.data && { data: dataResult.data }),
       view: enterRoutes.map((match) => {
         const i = viewRoutes.indexOf(match);
-        if (i >= 0) return viewResult.data?.[i]?.data ?? null;
-        const j = viewWithDataRoutes.indexOf(match);
-        if (j >= 0) return viewWithDataResult.data?.[j]?.data ?? null;
-        return null;
+        let result;
+        if (i !== -1) {
+          result = viewResult.data?.[i];
+        } else {
+          const j = viewWithDataRoutes.indexOf(match);
+          if (j !== -1) {
+            result = viewWithDataResult.data?.[j];
+          }
+        }
+        return { payload: result?.payload ?? null, meta: result?.meta };
       }),
     };
   }

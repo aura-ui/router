@@ -2,6 +2,7 @@ import { AuraOutlet } from '../../aura-outlet/core/aura-outlet';
 import { AuraRoute, RouteDomCache } from '../../aura-route/core';
 import { parseMountStrategyAttr } from '../../aura-route/core/attr/mount-strategy-attr-parser';
 import { parsePrefetchAttr } from '../../aura-route/core/attr/prefetch-attr-parser';
+import { parseOffableString } from '../../aura-route/core/attr/inherit-attr-parser';
 import { parseScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import { parseScrollBehaviorAttr } from '../../aura-route/core/attr/scroll-behavior-attr-parser';
 import {
@@ -12,6 +13,7 @@ import {
   defaultHookRegistry,
   defineRouteHook,
   resolvePrefetchEngineConfig,
+  configureDocumentMeta,
 } from '../../aura-routing-engine/core';
 import { syncRouterActiveLinks, toActiveRouteBranch } from '../../aura-routing-engine/core/link-active';
 import { attr } from '../../aura-utils/decorators';
@@ -22,6 +24,7 @@ import { resolveAppOutlet } from './outlet-resolver';
 import { AURA_ROUTER_DATA_INVALIDATED, emit } from './navigation-events';
 import { connectRouterEngine } from './engine-bridge';
 import { AuraRouterNotFoundController } from './not-found-controller';
+import { DocumentTitlePreview } from './document-meta-optimistic';
 import { Scroller } from './scroller';
 import type { SwrCacheOptions } from '../../aura-cache/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
@@ -32,6 +35,7 @@ import type { ScrollAttr } from '../../aura-route/core/attr/scroll-attr-parser';
 import type { ScrollBehaviorAttr } from '../../aura-route/core/attr/scroll-behavior-attr-parser';
 import type {
   DataGraphCacheOptions,
+  HeadTagInput,
   Loader,
   LoaderFn,
   LoaderId,
@@ -59,6 +63,8 @@ export interface AuraRouterConfigureOptions {
   dataCache?: DataGraphCacheOptions;
   /** Fallback 404 handler (когда нет `<aura-route path="*">`). Перекрывает error-template. */
   notFoundHandler?: NotFoundHandler | null;
+  /** Additional tags copied from fetched `<head>` (appended to the default SEO/OG set). Call before the first fetch. */
+  documentMeta?: { tags?: readonly HeadTagInput[] };
 }
 
 /**
@@ -130,6 +136,10 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ parser: parseNullableString, cached: true })
   extract: string | null;
 
+  /** Title wrap for child routes (`%s` = page title). HTML attr: `meta-title-template`. */
+  @attr({ parser: parseOffableString, cached: true })
+  metaTitleTemplate: string | null;
+
   /**
    * Default prefetch for `[aura-router-link]` (`intent` | `tap` | `false`).
    * Per-link override: `data-prefetch` on `<a>`.
@@ -144,6 +154,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private engine?: AuraRoutingEngine;
   private readonly scroller = new Scroller();
   private readonly notFound = new AuraRouterNotFoundController(this);
+  private readonly titlePreview = new DocumentTitlePreview();
   private _activeRouteBranch: ActiveRouteBranchEntry[] = [];
 
   /**
@@ -197,6 +208,9 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
     }
     if ('notFoundHandler' in options) {
       AuraRouterNotFoundController.configure(options.notFoundHandler);
+    }
+    if ('tags' in (options.documentMeta ?? {})) {
+      configureDocumentMeta(options.documentMeta!.tags);
     }
   }
 
@@ -303,6 +317,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           this.syncBranchAndActiveLinks(href, to),
         scroller: this.scroller,
         notFound: this.notFound,
+        titlePreview: this.titlePreview,
         onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
       });
       this.engine = new AuraRoutingEngine(this, {

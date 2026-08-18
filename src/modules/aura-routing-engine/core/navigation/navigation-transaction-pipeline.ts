@@ -10,16 +10,15 @@
  *
  * @module navigation/navigation-transaction-pipeline
  */
-import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { isThenable } from '../../../aura-utils/async/is-thenable';
-import type { MatchedRouteInfo } from '../match/url-matcher';
-import type { TransitionMap } from '../route-tree/transition-plan';
 import { mountEnterBranch } from '../view-mount/branch-mount';
 import { isRenderError, runViewCommit } from '../view-mount/view-commit-render';
-
 import { PHASES } from './lifecycle-phases';
 import { NavigationTransaction } from './navigation-transaction';
 import { NavigationTransactionPipelinePhase } from './navigation-transaction-pipeline-phase';
+import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
+import type { MatchedRouteInfo } from '../match/url-matcher';
+import type { TransitionMap } from '../route-tree/transition-plan';
 import type { PipelinePhaseDefinition, PipelineStepResult } from './types';
 
 /**
@@ -316,11 +315,10 @@ export class NavigationTransactionPipeline {
 
   /**
    * Atomic render: sync-mount {@link NavigationTransaction.viewSnapshot} into the DOM.
-   * Clears the snapshot after read. Missing snapshot → `cancelled`.
+   * Missing snapshot → `cancelled`.
    */
   private commitEnterBranchToDom(): PipelineStepResult | Promise<PipelineStepResult> {
     const viewSnapshot = this.transaction.viewSnapshot;
-    this.transaction.viewSnapshot = undefined;
     if (!viewSnapshot) return { status: 'cancelled' };
 
     const tx = this.transaction;

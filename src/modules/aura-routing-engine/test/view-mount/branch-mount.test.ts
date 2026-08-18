@@ -1,5 +1,5 @@
 import { mountEnterBranch } from '../../core/view-mount/branch-mount';
-import { createMatchedRoute } from '../_helpers/create-mock-transaction';
+import { asViewSnapshot, createMatchedRoute } from '../_helpers/create-mock-transaction';
 
 describe('mountEnterBranch', () => {
   it('mounts enter routes in order with pre-resolved contents', () => {
@@ -20,7 +20,7 @@ describe('mountEnterBranch', () => {
     const signal = new AbortController().signal;
     const result = mountEnterBranch(
       [layout, index],
-      ['<layout/>', '<index/>'],
+      asViewSnapshot('<layout/>', '<index/>'),
       { signal, aborted: () => false },
     );
 
@@ -45,7 +45,7 @@ describe('mountEnterBranch', () => {
 
     const result = mountEnterBranch(
       [first, second],
-      ['<a/>', '<b/>'],
+      asViewSnapshot('<a/>', '<b/>'),
       {
         signal: new AbortController().signal,
         aborted: () => active,
@@ -69,7 +69,7 @@ describe('mountEnterBranch', () => {
 
     const result = mountEnterBranch(
       [layout, index],
-      ['<layout/>', '<index/>'],
+      asViewSnapshot('<layout/>', '<index/>'),
       { signal: new AbortController().signal, aborted: () => false },
     );
 
@@ -90,7 +90,7 @@ describe('mountEnterBranch', () => {
 
     mountEnterBranch(
       [layout, index],
-      ['<layout/>', '<index/>'],
+      asViewSnapshot('<layout/>', '<index/>'),
       {
         signal: new AbortController().signal,
         aborted: () => false,

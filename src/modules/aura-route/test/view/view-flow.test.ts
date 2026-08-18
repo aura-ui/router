@@ -1,8 +1,6 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
 import { NO_TRANSITION } from '../../core/attr/transition-attr-parser';
-import type { AuraRouteInterface } from '../../core/types';
 import { defaultDomCache } from '../../core/view/dom-cache';
-import type { ViewResolverPort } from '../../core/view/types';
 import { RouteViewController } from '../../core/view/view-controller';
 import {
   createMatchedRouteInfo,
@@ -10,6 +8,8 @@ import {
   createRouteStub,
   defineAuraOutlet,
 } from '../_helpers';
+import type { AuraRouteInterface } from '../../core/types';
+import type { ViewResolverPort } from '../../core/view/types';
 
 function createController(
   root: AuraOutlet,
@@ -64,8 +64,8 @@ describe('view flow (controller → outlet)', () => {
     const { controller } = createController(root, {
       loadView: async (routeInfo) => {
         resolveCount++;
-        if (routeInfo?.pathname === '/old') return { data: '<span>old</span>' };
-        return { data: '<span>new</span>' };
+        if (routeInfo?.pathname === '/old') return { payload: '<span>old</span>' };
+        return { payload: '<span>new</span>' };
       },
     }, '/', true);
 
@@ -87,7 +87,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       loadView: async (routeInfo) =>
-        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
+        ({ payload: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
     await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
@@ -100,7 +100,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       loadView: async (routeInfo) =>
-        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
+        ({ payload: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
     await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
@@ -115,7 +115,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       loadView: async (routeInfo) =>
-        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
+        ({ payload: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     });
 
     await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
@@ -131,7 +131,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller, route } = createController(root, {
       loadView: async (routeInfo) =>
-        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
+        ({ payload: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     }, '/', true);
 
     await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
@@ -151,7 +151,7 @@ describe('view flow (controller → outlet)', () => {
   it('revertInFlightView clears transition inline styles on active view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      loadView: async () => ({ data: '<span>page</span>' }),
+      loadView: async () => ({ payload: '<span>page</span>' }),
     });
 
     await controller.resolveAndMountView(createMatchedRouteInfo('/page'));
@@ -169,7 +169,7 @@ describe('view flow (controller → outlet)', () => {
     const root = createOutlet();
     const { controller } = createController(root, {
       loadView: async (routeInfo) =>
-        ({ data: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
+        ({ payload: routeInfo?.pathname === '/old' ? '<span>old</span>' : '<span>new</span>' }),
     }, '/', true);
 
     await controller.resolveAndMountView(createMatchedRouteInfo('/old'));
@@ -183,7 +183,7 @@ describe('view flow (controller → outlet)', () => {
   it('onUnmount clears a committed single view', async () => {
     const root = createOutlet();
     const { controller } = createController(root, {
-      loadView: async () => ({ data: '<span>page</span>' }),
+      loadView: async () => ({ payload: '<span>page</span>' }),
     });
 
     await controller.resolveAndMountView(createMatchedRouteInfo('/page'));

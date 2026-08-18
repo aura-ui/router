@@ -1,28 +1,34 @@
-import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { ViewGraph, RouteInstance } from '../../core';
 import { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { DataGraph } from '../../core/data-graph';
 import { EventBus } from '../../core/events';
-import type {
-  HistoryAction,
-  NavigateHistoryOptions,
-} from '../../core/history/provider.types';
 import { HookRegistry } from '../../core/hooks/registry';
 import { resourceKeys } from '../../core/match/resource-keys';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationPulse } from '../../core/navigation/navigation-pulse';
 import { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { NavigationTransactionOptions } from '../../core/navigation/types';
 import { HandoffCache, ResourceGraph } from '../../core/resource-graph';
 import {
   finalizeTransitionPlan,
   type TransitionMap,
 } from '../../core/route-tree/transition-plan';
-
 import { createTestRoute } from './create-test-route';
 import { DEFAULT_PUSH_NAV_OPTIONS } from './jest/constants';
 import { withResolvedView } from './with-resolved-view';
+import type { TransitionOrderType } from '../../../aura-route/core/attr/transition-order-attr-parser';
+import type { ViewGraph, RouteInstance, ViewPayload, ViewSnapshotEntry } from '../../core';
+import type {
+  HistoryAction,
+  NavigateHistoryOptions,
+} from '../../core/history/provider.types';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { NavigationTransactionOptions } from '../../core/navigation/types';
+
+/** View snapshot entries for pipeline / ResourceGraph fixtures (`meta` unset). */
+export function asViewSnapshot(
+  ...payloads: readonly (ViewPayload | null)[]
+): ViewSnapshotEntry[] {
+  return payloads.map((payload) => ({ payload, meta: undefined }));
+}
 
 /** Match-level fields that may be mixed into the second arg of {@link createMatchedRoute}. */
 type MatchedRouteFieldOverrides = Partial<
@@ -227,6 +233,7 @@ export function createViewGraphFromLoadView(
   return {
     loadView,
     hasCachedView: jest.fn().mockReturnValue(false),
+    getCachedHtmlMeta: jest.fn().mockReturnValue(undefined),
     destroy: jest.fn(),
     invalidate: jest.fn().mockReturnValue(0),
     load: jest.fn(async (matches: readonly MatchedRouteInfo[], signal: AbortSignal, options?: unknown) => {
@@ -245,7 +252,7 @@ export function createMockViewGraph(): ViewGraph {
     jest.fn(async (match: MatchedRouteInfo) => {
       const layout =
         typeof match.route.layout === 'string' ? match.route.layout.trim() : '';
-      return { data: layout || (match.route.view?.content ?? null) };
+      return { payload: layout || (match.route.view?.content ?? null) };
     }),
   );
 }

@@ -84,6 +84,22 @@ export class AuraRoute extends HTMLElement implements AuraRouteInterface, RouteI
   @routeAttr({ parser: parseOffableString })
   extract: string | null;
 
+  /** Document `<title>` (`:param` tokens like `view`). HTML attr: `meta-title`. Inherits from parent routes, not `<aura-router>`. */
+  @routeAttr({ parser: parseOffableString, inheritFrom: 'aura-route' })
+  metaTitle: string | null;
+
+  /** Wraps the page title (`%s`). HTML attr: `meta-title-template`. */
+  @routeAttr({ parser: parseOffableString })
+  metaTitleTemplate: string | null;
+
+  /** Document description meta (`:param` tokens). HTML attr: `meta-description`. Inherits from parent routes, not `<aura-router>`. */
+  @routeAttr({ parser: parseOffableString, inheritFrom: 'aura-route' })
+  metaDescription: string | null;
+
+  /** Canonical link href (`:param` tokens). HTML attr: `meta-canonical`. Inherits from parent routes, not `<aura-router>`. */
+  @routeAttr({ parser: parseOffableString, inheritFrom: 'aura-route' })
+  metaCanonical: string | null;
+
   @routeAttr({ parser: parseOffableString })
   loadingTemplate: string | null;
 

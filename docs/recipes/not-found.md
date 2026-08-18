@@ -1,8 +1,8 @@
-# Recipe: Not found & navigation errors
+﻿# Recipe: Not found & navigation errors
 
 > **Goal:** Unknown URLs get a catch-all page; view loading and rendering failures get fallback markup.
 > **Live:** [`playground/`](../../playground/) — click **404** in the nav (client SPA to `/error`).  
-> **API:** [Not found (404)](../guide/07-errors-and-accessibility.md#not-found-404) · [Navigation errors](../guide/07-errors-and-accessibility.md#navigation-errors)
+> **API:** [Not found (404)](../guide/08-errors-and-accessibility.md#not-found-404) · [Navigation errors](../guide/08-errors-and-accessibility.md#navigation-errors)
 
 ## Routes and templates
 
@@ -26,10 +26,10 @@ Use the two templates for different jobs:
 - `error-template` recovers a view that fails to load or render. It is also the final templated fallback when no route matches.
 - Guard and `load` failures run `error` hooks and emit `navigation-error`; they do not automatically mount `error-template`.
 
-For custom unmatched-URL handling, use `router.setNotFoundHandler()` or the cancelable fallback `not-found` event. See [Custom 404 handling](../guide/07-errors-and-accessibility.md#custom-404-handling) for the precedence.
+For custom unmatched-URL handling, use `router.setNotFoundHandler()` or the cancelable fallback `not-found` event. See [Custom 404 handling](../guide/08-errors-and-accessibility.md#custom-404-handling) for the precedence.
 
 ## See also
 
 - [Recipes index](./README.md)
 - [`router.html`](../../playground/pages/parts/router.html)
-- Guide: [Not found (404)](../guide/07-errors-and-accessibility.md#not-found-404) · [Navigation errors](../guide/07-errors-and-accessibility.md#navigation-errors)
+- Guide: [Not found (404)](../guide/08-errors-and-accessibility.md#not-found-404) · [Navigation errors](../guide/08-errors-and-accessibility.md#navigation-errors)

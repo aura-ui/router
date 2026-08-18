@@ -2,11 +2,8 @@ jest.mock('../../core/hooks/registry', () =>
   jest.requireActual('../_helpers/jest/mock-hooks-registry').mockHooksRegistry());
 
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import type { RouteNode } from '../../core/route-tree/route-node.types';
 import { buildTransitionPlan } from '../../core/route-tree/transition-plan';
-import type { ViewGraph } from '../../core/view-graph';
 import {
   createUsersIdMatch,
   createUsersIdNode,
@@ -23,6 +20,9 @@ import {
   loadViewFromParamId,
   wireRouteViewController as wireRouteView,
 } from '../_helpers/wire-route-view-controller';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { RouteNode } from '../../core/route-tree/route-node.types';
+import type { ViewGraph } from '../../core/view-graph';
 
 function wireRouteViewController(
   node: RouteNode,
@@ -135,7 +135,7 @@ describe('NavigationTransactionPipeline branch remount options', () => {
     enterRoute.route.mountResolvedView = mountResolvedView;
 
     const engine = createMockEngine();
-    (engine.viewGraph!.loadView as jest.Mock).mockResolvedValue({ data: '<span>view-2</span>' });
+    (engine.viewGraph!.loadView as jest.Mock).mockResolvedValue({ payload: '<span>view-2</span>' });
 
     const transaction = createNavigationTransaction({
       engine,

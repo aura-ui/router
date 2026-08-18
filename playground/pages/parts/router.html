@@ -5,15 +5,15 @@
              prefetch="true"
              cache
              cache-time="15">
-  <aura-route path="/" view="/"></aura-route>
-  <aura-route path="/about" view="template::about-page"></aura-route>
+  <aura-route path="/" view="/" meta-title="Home"></aura-route>
+  <aura-route path="/about" view="template::about-page" meta-title="About"></aura-route>
   <aura-route path="/login" view="login"></aura-route>
 
-  <aura-route path="/contacts" view="contacts" cache="off" loading-template="loading"></aura-route>
+  <aura-route path="/contacts" view="contacts" cache="off" meta-title="Contacts" loading-template="loading"></aura-route>
 
   <aura-route path="/users/" layout="users" cache-time="10" loading-template="loading">
-    <aura-route path="." view="users"></aura-route>
-    <aura-route path=":id" view="users/:id" ready="show-user"></aura-route>
+    <aura-route path="." view="users" meta-title="Users"></aura-route>
+    <aura-route path=":id" view="users/:id" meta-title="user :id" ready="show-user"></aura-route>
   </aura-route>
 
   <aura-route path="/profile" layout="profile-layout" guard="auth">
@@ -21,7 +21,7 @@
     <aura-route path="settings" view="profile/settings"></aura-route>
   </aura-route>
 
-  <aura-route path="*" view="template::not-found"></aura-route>
+  <aura-route path="*" view="template::not-found" meta-title="Not found"></aura-route>
 </aura-router>
 
 <template id="users">

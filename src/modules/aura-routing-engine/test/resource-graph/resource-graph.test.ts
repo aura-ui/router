@@ -1,14 +1,14 @@
-import type { DataGraph } from '../../core/data-graph';
-import type { MatchedRouteInfo } from '../../core/match/url-matcher';
-import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
-import type { ResourceGraph } from '../../core/resource-graph';
-import type { ViewGraph } from '../../core/view-graph';
 import { createViewGraphFromLoadView } from '../_helpers/create-mock-transaction';
 import {
   buildResourceLoadPlan,
   createResourceGraphRoute,
   createTestResourceGraph,
 } from '../_helpers/resource-graph-fixtures';
+import type { DataGraph } from '../../core/data-graph';
+import type { MatchedRouteInfo } from '../../core/match/url-matcher';
+import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
+import type { ResourceGraph } from '../../core/resource-graph';
+import type { ViewGraph } from '../../core/view-graph';
 
 const createGraph = (
   viewGraph: ViewGraph,
@@ -106,7 +106,10 @@ describe('ResourceGraph', () => {
       mode: 'navigation',
     });
     expect(result.data?.get('k')).toEqual({ ok: true });
-    expect(result.view).toEqual([null, null]);
+    expect(result.view).toEqual([
+      { payload: null, meta: undefined },
+      { payload: null, meta: undefined },
+    ]);
   });
 
   it('navigation load assembles view payloads in enterRoutes order', async () => {
@@ -120,7 +123,7 @@ describe('ResourceGraph', () => {
     const viewGraph = {
       load: jest.fn(async (routes: MatchedRouteInfo[]) => ({
         data: routes.map((route) =>
-          route.pattern === '/app' ? { data: '<layout/>' } : { data: '<page/>' },
+          route.pattern === '/app' ? { payload: '<layout/>' } : { payload: '<page/>' },
         ),
       })),
     };
@@ -134,7 +137,10 @@ describe('ResourceGraph', () => {
     const result = await graph.load(branch, { branch, transaction });
 
     expect(result.error).toBeUndefined();
-    expect(result.view).toEqual(['<layout/>', '<page/>']);
+    expect(result.view).toEqual([
+      { payload: '<layout/>', meta: undefined },
+      { payload: '<page/>', meta: undefined },
+    ]);
   });
 
   it('prefetch mode warms data and views and returns soft empty result', async () => {

@@ -1,8 +1,8 @@
-# Chapter 5 — First paint: MPA → SPA
+﻿# Chapter 6 — First paint: MPA → SPA
 
 Adopt server-rendered HTML on startup without refetching the current route.
 
-[← Lifecycle and route data](./04-lifecycle-and-data.md) · [Guide index](../guide.md) · [Navigation experience →](./06-navigation-ux.md)
+[← Lifecycle and route data](./05-lifecycle-and-data.md) · [Guide index](../guide.md) · [Navigation experience →](./07-navigation-ux.md)
 
 ---
 
@@ -68,4 +68,4 @@ Adoption is a bootstrap-only shortcut. Returning to an adopted URL later uses th
 
 ---
 
-[← Lifecycle and route data](./04-lifecycle-and-data.md) · [Guide index](../guide.md) · [Navigation experience →](./06-navigation-ux.md)
+[← Lifecycle and route data](./05-lifecycle-and-data.md) · [Guide index](../guide.md) · [Navigation experience →](./07-navigation-ux.md)

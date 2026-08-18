@@ -8,6 +8,7 @@ import {
   createDomRedirectRoute,
   createDomRoute,
 } from '../_helpers/test-route-dom';
+import type { NavigationTransaction } from '../../core/navigation/navigation-transaction';
 
 function ensureOutletElement(): void {
   if (!customElements.get(AuraOutlet.is)) {
@@ -441,7 +442,8 @@ describe('bootstrap SSR structure-error recovery', () => {
     await engine.bootstrap(layoutRoot, rootOutlet);
     expect(document.body.contains(layoutRoot)).toBe(true);
 
-    engine.commitNavigation({ hash: '' } as never);
+    jest.spyOn(engine.pulse, 'commitEnd').mockImplementation(() => {});
+    engine.commitNavigation({} as NavigationTransaction);
 
     expect(document.body.contains(layoutRoot)).toBe(false);
   });

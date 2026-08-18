@@ -1,8 +1,8 @@
-# Chapter 4 — Lifecycle and route data
+﻿# Chapter 5 — Lifecycle and route data
 
 Add guards, data loading, cleanup, updates, and transitions through named hooks.
 
-[← Views and layouts](./03-views-and-layouts.md) · [Guide index](../guide.md) · [First paint: MPA → SPA →](./05-mpa-to-spa.md)
+[← Document meta](./04-document-meta.md) · [Guide index](../guide.md) · [First paint: MPA → SPA →](./06-mpa-to-spa.md)
 
 ---
 
@@ -163,4 +163,4 @@ Use `none`, `off`, or `false` to opt out of inherited hooks or transition sides.
 
 ---
 
-[← Views and layouts](./03-views-and-layouts.md) · [Guide index](../guide.md) · [First paint: MPA → SPA →](./05-mpa-to-spa.md)
+[← Document meta](./04-document-meta.md) · [Guide index](../guide.md) · [First paint: MPA → SPA →](./06-mpa-to-spa.md)

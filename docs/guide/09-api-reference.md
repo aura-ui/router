@@ -1,8 +1,8 @@
-# Chapter 8 — API reference
+﻿# Chapter 9 — API reference
 
 Look up router defaults, JavaScript methods, DOM events, and compatibility requirements.
 
-[← Errors and accessibility](./07-errors-and-accessibility.md) · [Guide index](../guide.md)
+[← Errors and accessibility](./08-errors-and-accessibility.md) · [Guide index](../guide.md)
 
 ---
 
@@ -16,6 +16,7 @@ Attributes on `<aura-router>` have one of two roles: they either provide default
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Hooks                | `guard`, `ready`, `leave`, `unmount`, `update`, `error`; never `load`                                             |
 | Views/errors/loading | `extract`, `error-template`, `loading-template`, `loading-body-class`, `loading-start-event`, `loading-end-event` |
+| Document meta        | `meta-title-template`                                                                                             |
 | Navigation policy    | `param-change`, `scroll`, `scroll-target`, `scroll-behavior`, `prefetch`                                          |
 | Cache                | `cache`, `cache-time`, `cache-refresh`                                                                            |
 | Transitions          | `transition`, `transition-in`, `transition-out`, `transition-order`                                               |
@@ -23,6 +24,8 @@ Attributes on `<aura-router>` have one of two roles: they either provide default
 A child route can override any inherited value. Where supported, `none`, `off`, or `false` disables the inherited behaviour.
 
 `load` is intentionally route-local and never inherits from `<aura-router>` or a parent route.
+
+`meta-title`, `meta-description`, and `meta-canonical` belong on `<aura-route>`. They inherit through parent routes, not from `<aura-router>`.
 
 ### Router-only settings
 
@@ -65,15 +68,20 @@ AuraRouter.configure(options: AuraRouterConfigureOptions): void
 
 `install()` registers Aura's custom elements. Call it once during application setup.
 
-`configure()` sets shared cache options and the global not-found handler. Configuration cache times use milliseconds:
+`configure()` sets shared cache options, document meta slots, and the global not-found handler. Configuration cache times use milliseconds:
 
 ```ts
 AuraRouter.configure({
   domCache: { max: 10 },
   viewCache: { max: 50, gcTime: 43_200_000 },
   dataCache: { staleTime: 30_000, gcTime: 300_000 },
+  documentMeta: {
+    tags: [{ tag: 'meta', attrs: { name: 'theme-color' } }],
+  },
 });
 ```
+
+See [Document meta](./04-document-meta.md) for title, description, canonical, and `documentMeta.tags`.
 
 ### Register hooks and loaders
 
@@ -99,7 +107,7 @@ router.prefetch(href, { mode?, signal?, force? }?): Promise<void>
 
 `navigate()` accepts a string path and uses history push by default. Set `replace: true` to replace the current entry, or `syncHistory: false` when another integration owns the address bar. Navigation continues asynchronously; observe its outcome through hooks or DOM events.
 
-`prefetch()` prepares a route without changing the current URL. It returns when the prefetch work settles; see [Prefetch](./06-navigation-ux.md#prefetch) for modes and safeguards.
+`prefetch()` prepares a route without changing the current URL. It returns when the prefetch work settles; see [Prefetch](./07-navigation-ux.md#prefetch) for modes and safeguards.
 
 ### Invalidate, refresh, and fallback
 
@@ -113,7 +121,7 @@ router.setNotFoundHandler(handler | null): void
 
 `refreshRoutes()` rebuilds matching from all descendant `<aura-route>` elements after route markup is added, removed, or reordered.
 
-`setNotFoundHandler()` sets an instance-level fallback; pass `null` to clear it. See [Custom 404 handling](./07-errors-and-accessibility.md#custom-404-handling) for precedence.
+`setNotFoundHandler()` sets an instance-level fallback; pass `null` to clear it. See [Custom 404 handling](./08-errors-and-accessibility.md#custom-404-handling) for precedence.
 
 ### Read runtime state
 
@@ -178,4 +186,4 @@ The package is HTML-first and has no React or Vue adapter. Custom elements and L
 
 ---
 
-[← Errors and accessibility](./07-errors-and-accessibility.md) · [Guide index](../guide.md)
+[← Errors and accessibility](./08-errors-and-accessibility.md) · [Guide index](../guide.md)

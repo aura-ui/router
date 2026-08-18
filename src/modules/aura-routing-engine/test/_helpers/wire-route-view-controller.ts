@@ -1,13 +1,13 @@
 import { AuraOutlet } from '../../../aura-outlet/core/aura-outlet';
-import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
 import {
   NO_TRANSITION,
   type RouteTransitionType,
 } from '../../../aura-route/core/attr/transition-attr-parser';
-import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
-import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import { domCacheKey } from '../../../aura-route/core/view/dom-cache';
 import { RouteViewController } from '../../../aura-route/core/view/view-controller';
+import type { CacheFlags } from '../../../aura-route/core/attr/cache-attr-parser';
+import type { ViewAttrDescriptor } from '../../../aura-route/core/attr/view-attr-parser';
+import type { AuraRouteInterface } from '../../../aura-route/core/types';
 import type { MatchedRouteInfo } from '../../core/match/url-matcher';
 import type { RouteInstance, RouteLifecycleContext } from '../../core/route/types';
 import type { ViewGraph } from '../../core/view-graph';
@@ -55,6 +55,10 @@ type MutableRouteRecord = Omit<RouteInstance, 'extract' | 'transition'> & {
   scrollPolicy: null;
   scrollTarget: null;
   scrollBehavior: null;
+  metaTitle: null;
+  metaTitleTemplate: null;
+  metaDescription: null;
+  metaCanonical: null;
   cacheTime: null;
   cacheRefresh: null;
   extract: string | null;
@@ -102,6 +106,10 @@ export function wireRouteViewController(
   routeRecord.scrollPolicy = null;
   routeRecord.scrollTarget = null;
   routeRecord.scrollBehavior = null;
+  routeRecord.metaTitle = null;
+  routeRecord.metaTitleTemplate = null;
+  routeRecord.metaDescription = null;
+  routeRecord.metaCanonical = null;
   routeRecord.cacheTime = null;
   routeRecord.cacheRefresh = null;
   routeRecord.extract = routeRecord.extract ?? null;
@@ -166,5 +174,5 @@ export function wireRouteViewController(
 export function loadViewFromParamId(
   resolve: (id: string) => string,
 ): ViewGraph['loadView'] {
-  return async (info: MatchedRouteInfo) => ({ data: resolve(info.params?.id ?? '?') });
+  return async (info: MatchedRouteInfo) => ({ payload: resolve(info.params?.id ?? '?') });
 }

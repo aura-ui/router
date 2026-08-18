@@ -1,13 +1,7 @@
 import { NO_CACHE } from '../../../aura-route/core/attr/cache-attr-parser';
-import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
 import { ENGINE_DEFAULTS } from '../../core/aura-routing-engine-config';
-import type { DataGraph } from '../../core/data-graph';
 import { HookRegistry } from '../../core/hooks/registry';
 import { NavigationTransactionPipeline } from '../../core/navigation/navigation-transaction-pipeline';
-import type {
-  HandoffCache,
-  ResourceGraph,
-} from '../../core/resource-graph';
 import { LoaderRegistry } from '../../core/view-graph';
 import { createMatchedRoute } from '../_helpers/create-mock-transaction';
 import {
@@ -17,6 +11,12 @@ import {
   createResourceGraphStack,
   createResourcePrepareTransaction,
 } from '../_helpers/resource-graph-fixtures';
+import type { AuraRoutingEngine } from '../../core/aura-routing-engine';
+import type { DataGraph } from '../../core/data-graph';
+import type {
+  HandoffCache,
+  ResourceGraph,
+} from '../../core/resource-graph';
 
 describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
   let hooks: HookRegistry;
@@ -82,7 +82,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     // Handoff only — not long `cache.*`.
     expect(dataGraph.getData(route)).toBeUndefined();
     expect(handoff.get(route.dataKey!)).toEqual({ id: 1 });
-    expect(handoff.get(route.viewKey!)).toBe('<span>users</span>');
+    expect(handoff.get(route.viewKey!)).toEqual({ payload: '<span>users</span>', meta: undefined });
 
     const navTx = prepareTx(branch, engine, 'navigation');
     const result = await resourceGraph.load(branch, {
@@ -94,7 +94,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(dataLoads).toBe(1);
     expect(viewLoads).toBe(1);
     expect(result.data?.get(route.dataKey!)).toEqual({ id: 1 });
-    expect(result.view?.[0]).toBe('<span>users</span>');
+    expect(result.view?.[0]?.payload).toBe('<span>users</span>');
   });
 
   it('E2b: in-flight join — navigation overlaps unsettled prefetch (1 data + 1 view)', async () => {
@@ -154,7 +154,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(dataLoads).toBe(1);
     expect(viewLoads).toBe(1);
     expect(result.data?.get(route.dataKey!)).toEqual({ id: 2 });
-    expect(result.view?.[0]).toBe('<span>overlap</span>');
+    expect(result.view?.[0]?.payload).toBe('<span>overlap</span>');
   });
 
   it('E3: abort prefetch mid-flight; navigation joins data + view once', async () => {
@@ -219,7 +219,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(dataLoads).toBe(1);
     expect(viewLoads).toBe(1);
     expect(result.data?.get(route.dataKey!)).toEqual({ id: 1 });
-    expect(result.view?.[0]).toBe('<span>users</span>');
+    expect(result.view?.[0]?.payload).toBe('<span>users</span>');
   });
 
   it('E4: cache.data on — after handoff clear, revisit hits long cache', async () => {
@@ -297,7 +297,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(dataLoads).toBe(1);
     expect(viewLoads).toBe(1);
     expect(handoff.get(route.dataKey!)).toEqual({ n: 1 });
-    expect(handoff.get(route.viewKey!)).toBe('<span>1</span>');
+    expect(handoff.get(route.viewKey!)).toEqual({ payload: '<span>1</span>', meta: undefined });
 
     resourceGraph.consumeSharedBufferFor(branch);
     expect(handoff.get(route.dataKey!)).toBeUndefined();
@@ -312,7 +312,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(dataLoads).toBe(2);
     expect(viewLoads).toBe(2);
     expect(second.data?.get(route.dataKey!)).toEqual({ n: 2 });
-    expect(second.view?.[0]).toBe('<span>2</span>');
+    expect(second.view?.[0]?.payload).toBe('<span>2</span>');
   });
 
   it('E5: cache.* off + handoff TTL expire → second navigation reloads data + view', async () => {
@@ -370,7 +370,7 @@ describe('ResourceGraph prepare coherence (E2–E5, E7)', () => {
     expect(dataLoads).toBe(2);
     expect(viewLoads).toBe(2);
     expect(second.data?.get(route.dataKey!)).toEqual({ n: 2 });
-    expect(second.view?.[0]).toBe('<span>2</span>');
+    expect(second.view?.[0]?.payload).toBe('<span>2</span>');
   });
 
   it('E7: update path joins the same prepare handoff (1 data load)', async () => {

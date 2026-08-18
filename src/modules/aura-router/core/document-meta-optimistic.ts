@@ -1,7 +1,7 @@
 import { resolveDocumentMetaWithParams, type DocumentMetaValues } from '../../aura-routing-engine/core/document';
 import type { MatchedRouteInfo } from '../../aura-routing-engine/core/match/url-matcher';
 
-/** Optimistic title preview + pending resolve cache for in-flight navigations. */
+/** Optimistic `document.title` preview + pending resolve cache for in-flight navigations. */
 export class OptimisticDocumentMeta {
   private pendingBaseTitle: string | null = null;
   private readonly pendingTitleById = new Map<number, string>();
@@ -27,6 +27,10 @@ export class OptimisticDocumentMeta {
     if (this.pendingTitleOrder.length === 0) this.pendingBaseTitle = null;
   }
 
+  /**
+   * Resolve for commit, reusing preview when inputs match.
+   * Reuse is safe only when `htmlMeta` is absent (same as preview).
+   */
   resolveForCommit(id: number, to: MatchedRouteInfo, htmlMeta?: DocumentMetaValues): DocumentMetaValues | null {
     if (htmlMeta === undefined && this.pendingResolvedById.has(id)) {
       return this.pendingResolvedById.get(id) ?? null;
@@ -34,6 +38,7 @@ export class OptimisticDocumentMeta {
     return resolveDocumentMetaWithParams(to, htmlMeta);
   }
 
+  /** Drop preview state after successful commit (title already written by apply). */
   clear(id: number): void {
     this.pendingResolvedById.delete(id);
     if (this.removePendingTitle(id) && this.pendingTitleOrder.length === 0) this.pendingBaseTitle = null;

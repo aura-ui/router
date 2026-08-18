@@ -29,7 +29,7 @@ export type RouterEngineBridgeDeps = {
   syncBranchAndActiveLinks: (href: string, to?: MatchedRouteInfo | null) => void;
   scroller: Pick<Scroller, 'apply'>;
   notFound: Pick<AuraRouterNotFoundController, 'recover' | 'clear'>;
-  optimisticMeta: Pick<OptimisticDocumentMeta, 'preview' | 'rollback' | 'resolveForCommit' | 'clear'>;
+  optimisticMeta: OptimisticDocumentMeta;
   onHashOnlyNavigation: (href: string) => void;
 };
 

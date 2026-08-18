@@ -1,18 +1,15 @@
 /** @jest-environment jsdom */
 
+import { applyDocumentMeta } from '../core/document-meta';
+import { DocumentTitlePreview } from '../core/document-meta-optimistic';
+
 import { matchedRoute, resetDocumentMetaDom } from './_helpers/matched-route';
 
-type ApplyDocumentMeta = typeof import('../core/document-meta').applyDocumentMeta;
-type DocumentTitlePreview = import('../core/document-meta-optimistic').DocumentTitlePreview;
-
-let applyDocumentMeta: ApplyDocumentMeta;
-let titlePreview: DocumentTitlePreview;
-
 describe('DocumentTitlePreview', () => {
+  let titlePreview: DocumentTitlePreview;
+
   beforeEach(() => {
-    jest.resetModules();
-    applyDocumentMeta = require('../core/document-meta').applyDocumentMeta;
-    titlePreview = new (require('../core/document-meta-optimistic').DocumentTitlePreview)();
+    titlePreview = new DocumentTitlePreview();
   });
 
   afterEach(resetDocumentMetaDom);

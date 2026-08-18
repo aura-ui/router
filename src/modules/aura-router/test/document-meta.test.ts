@@ -1,17 +1,11 @@
 /** @jest-environment jsdom */
 
+import { AuraRouter } from '../core/aura-router';
+import { applyDocumentMeta } from '../core/document-meta';
+
 import { matchedRoute, resetDocumentMetaDom } from './_helpers/matched-route';
 
-type ApplyDocumentMeta = typeof import('../core/document-meta').applyDocumentMeta;
-
-let applyDocumentMeta: ApplyDocumentMeta;
-
 describe('applyDocumentMeta', () => {
-  beforeEach(() => {
-    jest.resetModules();
-    applyDocumentMeta = require('../core/document-meta').applyDocumentMeta;
-  });
-
   afterEach(resetDocumentMetaDom);
 
   it('writes document.title and creates description meta', () => {
@@ -124,7 +118,6 @@ describe('applyDocumentMeta', () => {
   });
 
   it('applies tags registered via AuraRouter.configure', () => {
-    const { AuraRouter } = require('../core/aura-router');
     AuraRouter.configure({
       documentMeta: { tags: [{ tag: 'meta', attrs: { name: 'theme-color' } }] },
     });

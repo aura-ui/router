@@ -3,8 +3,14 @@
 import { AuraRoute } from '../../aura-route/core/aura-route';
 
 type ApplyDocumentMeta = typeof import('../core/document-meta').applyDocumentMeta;
+type PreviewDocumentTitle = typeof import('../core/document-meta').previewDocumentTitle;
+type ConfirmDocumentTitle = typeof import('../core/document-meta').confirmDocumentTitle;
+type RollbackDocumentTitle = typeof import('../core/document-meta').rollbackDocumentTitle;
 
 let applyDocumentMeta: ApplyDocumentMeta;
+let previewDocumentTitle: PreviewDocumentTitle;
+let confirmDocumentTitle: ConfirmDocumentTitle;
+let rollbackDocumentTitle: RollbackDocumentTitle;
 
 function matchedRoute(
   path: string,
@@ -39,7 +45,12 @@ function matchedRoute(
 describe('applyDocumentMeta', () => {
   beforeEach(() => {
     jest.resetModules();
-    applyDocumentMeta = require('../core/document-meta').applyDocumentMeta;
+    ({
+      applyDocumentMeta,
+      previewDocumentTitle,
+      confirmDocumentTitle,
+      rollbackDocumentTitle,
+    } = require('../core/document-meta'));
   });
 
   afterEach(() => {
@@ -160,5 +171,48 @@ describe('applyDocumentMeta', () => {
 
     applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#111');
+  });
+
+  it('previews title and rolls back on matching cancel id', () => {
+    document.title = 'Shell';
+    previewDocumentTitle(10, matchedRoute('/a', { metaTitle: 'A' }));
+    expect(document.title).toBe('A');
+
+    rollbackDocumentTitle(10);
+    expect(document.title).toBe('Shell');
+  });
+
+  it('does not rollback preview for a different navigation id', () => {
+    document.title = 'Shell';
+    previewDocumentTitle(10, matchedRoute('/a', { metaTitle: 'A' }));
+    rollbackDocumentTitle(11);
+    expect(document.title).toBe('A');
+  });
+
+  it('keeps title when preview is confirmed', () => {
+    document.title = 'Shell';
+    previewDocumentTitle(10, matchedRoute('/a', { metaTitle: 'A' }));
+    confirmDocumentTitle(10);
+    rollbackDocumentTitle(10);
+    expect(document.title).toBe('A');
+  });
+
+  it('ignores preview when route does not resolve explicit title', () => {
+    document.title = 'Shell';
+    previewDocumentTitle(10, matchedRoute('/a'));
+    expect(document.title).toBe('Shell');
+  });
+
+  it('restores stable title after overlapping previews are cancelled', () => {
+    document.title = 'Shell';
+    previewDocumentTitle(1, matchedRoute('/slow', { metaTitle: 'Slow' }));
+    previewDocumentTitle(2, matchedRoute('/about', { metaTitle: 'About' }));
+    expect(document.title).toBe('About');
+
+    rollbackDocumentTitle(2);
+    expect(document.title).toBe('Slow');
+
+    rollbackDocumentTitle(1);
+    expect(document.title).toBe('Shell');
   });
 });

@@ -13,7 +13,13 @@ import {
   dispatchNotFound,
   emit,
 } from './navigation-events';
-import { applyDocumentMeta } from './document-meta';
+import {
+  applyResolvedDocumentMeta,
+  confirmDocumentTitle,
+  previewDocumentTitle,
+  resolvePendingDocumentMeta,
+  rollbackDocumentTitle,
+} from './document-meta';
 import type {
   AuraRoutingEngineConfig,
   EngineEvent,
@@ -82,6 +88,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
 
   switch (event.type) {
     case 'navigation:url-aligned':
+      previewDocumentTitle(event.id, event.to);
       syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION_START, navigationDomDetail(event.from, event.to));
       return;
@@ -122,7 +129,9 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
         action: event.action,
         hash: event.hash,
       });
-      applyDocumentMeta(event.to, event.htmlMeta);
+      const resolvedMeta = resolvePendingDocumentMeta(event.id, event.to, event.htmlMeta);
+      applyResolvedDocumentMeta(resolvedMeta);
+      confirmDocumentTitle(event.id);
       syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION, navigationDomDetail(event.from, event.to));
       return;
@@ -132,10 +141,12 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
       return;
 
     case 'navigation:cancel':
+      rollbackDocumentTitle(event.id);
       emit(host, AURA_ROUTER_NAVIGATION_CANCEL, { id: event.id, reason: event.reason });
       return;
 
     case 'navigation:redirect':
+      rollbackDocumentTitle(event.id);
       emit(host, AURA_ROUTER_NAVIGATION_REDIRECT, {
         id: event.id,
         url: event.url,
@@ -144,6 +155,9 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
       return;
 
     case 'navigation:error':
+      if (!event.failure.viewCommitted) {
+        rollbackDocumentTitle(event.id);
+      }
       if (event.failure.viewCommitted) {
         notFound.clear();
       }

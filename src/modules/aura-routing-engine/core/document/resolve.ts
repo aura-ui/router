@@ -22,10 +22,7 @@ import type { MatchedRouteInfo } from '../match/url-matcher';
  * @param htmlMeta Meta from the leaf url view; absent for non-url loaders.
  * @returns Meta ready for apply, or `null` when empty (host still reverts to boot state).
  */
-export function resolveDocumentMetaWithParams(
-  to: MatchedRouteInfo,
-  htmlMeta?: DocumentMetaValues,
-): DocumentMetaValues | null {
+export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: DocumentMetaValues): DocumentMetaValues | null {
   const { metaTitle, metaDescription, metaTitleTemplate, metaCanonical } = to.route;
   if (
     metaTitle == null &&

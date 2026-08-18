@@ -202,6 +202,17 @@ describe('applyDocumentMeta', () => {
     expect(document.title).toBe('A');
   });
 
+  it('does not restore shell when a loser is cancelled after the winner commits', () => {
+    document.title = 'Shell';
+    const winner = matchedRoute('/about', { metaTitle: 'About' });
+    optimisticMeta.preview(1, matchedRoute('/slow', { metaTitle: 'Slow' }));
+    optimisticMeta.preview(2, winner);
+    applyDocumentMeta(winner);
+    optimisticMeta.clear(2);
+    optimisticMeta.rollback(1);
+    expect(document.title).toBe('About');
+  });
+
   it('ignores preview when route does not resolve explicit title', () => {
     document.title = 'Shell';
     optimisticMeta.preview(10, matchedRoute('/a'));

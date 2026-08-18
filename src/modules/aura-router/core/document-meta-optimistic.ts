@@ -4,46 +4,45 @@ import { captureDocumentTitleBoot } from './document-meta';
 
 /** Optimistic `document.title` preview for in-flight navigations. */
 export class OptimisticDocumentMeta {
-  private pendingBaseTitle: string | null = null;
-  private readonly pendingTitleById = new Map<number, string>();
-  private readonly pendingTitleOrder: number[] = [];
+  /** `document.title` when the first overlapping preview started. */
+  private restoreTitle: string | undefined;
+  private readonly stack: { id: number; title: string }[] = [];
 
   preview(id: number, to: MatchedRouteInfo): void {
-    captureDocumentTitleBoot();
     const { metaTitle, metaTitleTemplate } = to.route;
     if (metaTitle == null && metaTitleTemplate == null) return;
+
     const title = resolveTitle(to.route, undefined, { ...to.query, ...to.params });
     if (title === undefined) return;
-    if (this.pendingBaseTitle === null) this.pendingBaseTitle = document.title;
-    this.pendingTitleById.set(id, title);
-    const index = this.pendingTitleOrder.indexOf(id);
-    if (index !== -1) this.pendingTitleOrder.splice(index, 1);
-    this.pendingTitleOrder.push(id);
+
+    if (this.restoreTitle === undefined) {
+      captureDocumentTitleBoot();
+      this.restoreTitle = document.title;
+    }
+    this.remove(id);
+    this.stack.push({ id, title });
     document.title = title;
   }
 
   rollback(id: number): void {
-    if (!this.removePendingTitle(id)) return;
-    document.title = this.currentPendingTitle() ?? this.pendingBaseTitle ?? document.title;
-    if (this.pendingTitleOrder.length === 0) this.pendingBaseTitle = null;
+    if (!this.remove(id)) return;
+    document.title = this.stack.at(-1)?.title ?? this.restoreTitle ?? document.title;
+    if (this.stack.length === 0) this.restoreTitle = undefined;
   }
 
-  /** Drop preview state after successful commit (title already written by apply). */
-  clear(id: number): void {
-    if (this.removePendingTitle(id) && this.pendingTitleOrder.length === 0) this.pendingBaseTitle = null;
+  /**
+   * Drop all preview state after successful commit (title already written by apply).
+   * Clears the whole stack so a late cancel of a superseded nav cannot restore shell.
+   */
+  clear(_id: number): void {
+    this.stack.length = 0;
+    this.restoreTitle = undefined;
   }
 
-  private currentPendingTitle(): string | undefined {
-    const lastId = this.pendingTitleOrder.at(-1);
-    if (lastId === undefined) return undefined;
-    return this.pendingTitleById.get(lastId);
-  }
-
-  private removePendingTitle(id: number): boolean {
-    if (!this.pendingTitleById.has(id)) return false;
-    this.pendingTitleById.delete(id);
-    const index = this.pendingTitleOrder.indexOf(id);
-    if (index !== -1) this.pendingTitleOrder.splice(index, 1);
+  private remove(id: number): boolean {
+    const i = this.stack.findIndex((item) => item.id === id);
+    if (i === -1) return false;
+    this.stack.splice(i, 1);
     return true;
   }
 }

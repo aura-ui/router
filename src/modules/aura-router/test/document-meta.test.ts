@@ -1,16 +1,13 @@
 /** @jest-environment jsdom */
 
 import { AuraRoute } from '../../aura-route/core/aura-route';
+import { resolveDocumentMetaWithParams, type DocumentMetaValues } from '../../aura-routing-engine/core/document';
+import { OptimisticDocumentMeta } from '../core/document-meta-optimistic';
 
 type ApplyDocumentMeta = typeof import('../core/document-meta').applyDocumentMeta;
-type PreviewDocumentTitle = typeof import('../core/document-meta').previewDocumentTitle;
-type ConfirmDocumentTitle = typeof import('../core/document-meta').confirmDocumentTitle;
-type RollbackDocumentTitle = typeof import('../core/document-meta').rollbackDocumentTitle;
 
 let applyDocumentMeta: ApplyDocumentMeta;
-let previewDocumentTitle: PreviewDocumentTitle;
-let confirmDocumentTitle: ConfirmDocumentTitle;
-let rollbackDocumentTitle: RollbackDocumentTitle;
+let optimisticMeta: OptimisticDocumentMeta;
 
 function matchedRoute(
   path: string,
@@ -42,15 +39,15 @@ function matchedRoute(
   };
 }
 
+function applyRouteMeta(to: ReturnType<typeof matchedRoute>, htmlMeta?: DocumentMetaValues): void {
+  applyDocumentMeta(resolveDocumentMetaWithParams(to, htmlMeta));
+}
+
 describe('applyDocumentMeta', () => {
   beforeEach(() => {
     jest.resetModules();
-    ({
-      applyDocumentMeta,
-      previewDocumentTitle,
-      confirmDocumentTitle,
-      rollbackDocumentTitle,
-    } = require('../core/document-meta'));
+    applyDocumentMeta = require('../core/document-meta').applyDocumentMeta;
+    optimisticMeta = new OptimisticDocumentMeta();
   });
 
   afterEach(() => {
@@ -63,7 +60,7 @@ describe('applyDocumentMeta', () => {
   });
 
   it('writes document.title and creates description meta', () => {
-    applyDocumentMeta(
+    applyRouteMeta(
       matchedRoute('/users/:id', {
         metaTitle: 'User :id',
         metaDescription: 'Hello :id',
@@ -78,7 +75,7 @@ describe('applyDocumentMeta', () => {
   });
 
   it('writes canonical from htmlMeta even without description', () => {
-    applyDocumentMeta(matchedRoute('/about'), {
+    applyRouteMeta(matchedRoute('/about'), {
       title: 'About',
       tags: { 'link:rel:canonical': 'https://example.com/about' },
     });
@@ -96,7 +93,7 @@ describe('applyDocumentMeta', () => {
     boot.setAttribute('name', 'description');
     boot.setAttribute('content', 'Site');
 
-    applyDocumentMeta(matchedRoute('/x'));
+    applyRouteMeta(matchedRoute('/x'));
 
     expect(document.title).toBe('Keep');
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe('Site');
@@ -104,17 +101,17 @@ describe('applyDocumentMeta', () => {
 
   it('restores boot title when the next resolve omits it', () => {
     document.title = 'Shell';
-    applyDocumentMeta(matchedRoute('/a', { metaTitle: 'A' }));
-    applyDocumentMeta(matchedRoute('/b'));
+    applyRouteMeta(matchedRoute('/a', { metaTitle: 'A' }));
+    applyRouteMeta(matchedRoute('/b'));
 
     expect(document.title).toBe('Shell');
   });
 
   it('removes owned description and canonical when the next resolve omits them', () => {
-    applyDocumentMeta(matchedRoute('/a', { metaTitle: 'A', metaDescription: 'About' }), {
+    applyRouteMeta(matchedRoute('/a', { metaTitle: 'A', metaDescription: 'About' }), {
       tags: { 'link:rel:canonical': 'https://example.com/a' },
     });
-    applyDocumentMeta(matchedRoute('/b'));
+    applyRouteMeta(matchedRoute('/b'));
 
     expect(document.querySelector('meta[name="description"]')).toBeNull();
     expect(document.querySelector('link[rel="canonical"]')).toBeNull();
@@ -125,14 +122,14 @@ describe('applyDocumentMeta', () => {
     boot.setAttribute('name', 'description');
     boot.setAttribute('content', 'Site');
 
-    applyDocumentMeta(matchedRoute('/about', { metaDescription: 'About' }));
-    applyDocumentMeta(matchedRoute('/empty'));
+    applyRouteMeta(matchedRoute('/about', { metaDescription: 'About' }));
+    applyRouteMeta(matchedRoute('/empty'));
 
     expect(document.querySelector('meta[name="description"]')).toBeNull();
   });
 
   it('writes canonical from meta-canonical attr', () => {
-    applyDocumentMeta(
+    applyRouteMeta(
       matchedRoute('/users/:id', {
         metaCanonical: 'https://example.com/users/:id',
         params: { id: '7' },
@@ -146,20 +143,20 @@ describe('applyDocumentMeta', () => {
 
   it('writes and restores boot lang and dir from htmlMeta', () => {
     document.documentElement.setAttribute('lang', 'en');
-    applyDocumentMeta(matchedRoute('/de'), { lang: 'de', dir: 'rtl' });
+    applyRouteMeta(matchedRoute('/de'), { lang: 'de', dir: 'rtl' });
     expect(document.documentElement.getAttribute('lang')).toBe('de');
     expect(document.documentElement.getAttribute('dir')).toBe('rtl');
 
-    applyDocumentMeta(matchedRoute('/empty'));
+    applyRouteMeta(matchedRoute('/empty'));
     expect(document.documentElement.getAttribute('lang')).toBe('en');
     expect(document.documentElement.hasAttribute('dir')).toBe(false);
   });
 
   it('writes and reverts open graph tags from htmlMeta', () => {
-    applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:property:og:title': 'Share A' } });
+    applyRouteMeta(matchedRoute('/a'), { tags: { 'meta:property:og:title': 'Share A' } });
     expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe('Share A');
 
-    applyDocumentMeta(matchedRoute('/b'));
+    applyRouteMeta(matchedRoute('/b'));
     expect(document.querySelector('meta[property="og:title"]')).toBeNull();
   });
 
@@ -169,50 +166,52 @@ describe('applyDocumentMeta', () => {
       documentMeta: { tags: [{ tag: 'meta', attrs: { name: 'theme-color' } }] },
     });
 
-    applyDocumentMeta(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });
+    applyRouteMeta(matchedRoute('/a'), { tags: { 'meta:name:theme-color': '#111' } });
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#111');
   });
 
   it('previews title and rolls back on matching cancel id', () => {
     document.title = 'Shell';
-    previewDocumentTitle(10, matchedRoute('/a', { metaTitle: 'A' }));
+    optimisticMeta.preview(10, matchedRoute('/a', { metaTitle: 'A' }));
     expect(document.title).toBe('A');
 
-    rollbackDocumentTitle(10);
+    optimisticMeta.rollback(10);
     expect(document.title).toBe('Shell');
   });
 
   it('does not rollback preview for a different navigation id', () => {
     document.title = 'Shell';
-    previewDocumentTitle(10, matchedRoute('/a', { metaTitle: 'A' }));
-    rollbackDocumentTitle(11);
+    optimisticMeta.preview(10, matchedRoute('/a', { metaTitle: 'A' }));
+    optimisticMeta.rollback(11);
     expect(document.title).toBe('A');
   });
 
-  it('keeps title when preview is confirmed', () => {
+  it('keeps title after commit clears preview state', () => {
     document.title = 'Shell';
-    previewDocumentTitle(10, matchedRoute('/a', { metaTitle: 'A' }));
-    confirmDocumentTitle(10);
-    rollbackDocumentTitle(10);
+    const to = matchedRoute('/a', { metaTitle: 'A' });
+    optimisticMeta.preview(10, to);
+    applyDocumentMeta(optimisticMeta.resolveForCommit(10, to));
+    optimisticMeta.clear(10);
+    optimisticMeta.rollback(10);
     expect(document.title).toBe('A');
   });
 
   it('ignores preview when route does not resolve explicit title', () => {
     document.title = 'Shell';
-    previewDocumentTitle(10, matchedRoute('/a'));
+    optimisticMeta.preview(10, matchedRoute('/a'));
     expect(document.title).toBe('Shell');
   });
 
   it('restores stable title after overlapping previews are cancelled', () => {
     document.title = 'Shell';
-    previewDocumentTitle(1, matchedRoute('/slow', { metaTitle: 'Slow' }));
-    previewDocumentTitle(2, matchedRoute('/about', { metaTitle: 'About' }));
+    optimisticMeta.preview(1, matchedRoute('/slow', { metaTitle: 'Slow' }));
+    optimisticMeta.preview(2, matchedRoute('/about', { metaTitle: 'About' }));
     expect(document.title).toBe('About');
 
-    rollbackDocumentTitle(2);
+    optimisticMeta.rollback(2);
     expect(document.title).toBe('Slow');
 
-    rollbackDocumentTitle(1);
+    optimisticMeta.rollback(1);
     expect(document.title).toBe('Shell');
   });
 });

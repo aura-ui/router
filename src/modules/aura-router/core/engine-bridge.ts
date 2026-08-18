@@ -14,6 +14,7 @@ import {
   emit,
 } from './navigation-events';
 import { applyDocumentMeta } from './document-meta';
+import type { OptimisticDocumentMeta } from './document-meta-optimistic';
 import type {
   AuraRoutingEngineConfig,
   EngineEvent,
@@ -28,6 +29,7 @@ export type RouterEngineBridgeDeps = {
   syncBranchAndActiveLinks: (href: string, to?: MatchedRouteInfo | null) => void;
   scroller: Pick<Scroller, 'apply'>;
   notFound: Pick<AuraRouterNotFoundController, 'recover' | 'clear'>;
+  optimisticMeta: OptimisticDocumentMeta;
   onHashOnlyNavigation: (href: string) => void;
 };
 
@@ -78,10 +80,11 @@ export function connectRouterEngine(host: HTMLElement, deps: RouterEngineBridgeD
  * Stay: `nav-state-restore` → active links / branch after cancel-pending.
  */
 function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: EngineEvent): void {
-  const { syncBranchAndActiveLinks, scroller, notFound } = deps;
+  const { syncBranchAndActiveLinks, scroller, notFound, optimisticMeta } = deps;
 
   switch (event.type) {
     case 'navigation:url-aligned':
+      optimisticMeta.preview(event.id, event.to);
       syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION_START, navigationDomDetail(event.from, event.to));
       return;
@@ -123,6 +126,7 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
         hash: event.hash,
       });
       applyDocumentMeta(event.to, event.htmlMeta);
+      optimisticMeta.clear(event.id);
       syncBranchAndActiveLinks(event.to.href, event.to);
       emit(host, AURA_ROUTER_NAVIGATION, navigationDomDetail(event.from, event.to));
       return;
@@ -132,10 +136,12 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
       return;
 
     case 'navigation:cancel':
+      optimisticMeta.rollback(event.id);
       emit(host, AURA_ROUTER_NAVIGATION_CANCEL, { id: event.id, reason: event.reason });
       return;
 
     case 'navigation:redirect':
+      optimisticMeta.rollback(event.id);
       emit(host, AURA_ROUTER_NAVIGATION_REDIRECT, {
         id: event.id,
         url: event.url,
@@ -146,6 +152,8 @@ function onEngineEvent(host: HTMLElement, deps: RouterEngineBridgeDeps, event: E
     case 'navigation:error':
       if (event.failure.viewCommitted) {
         notFound.clear();
+      } else {
+        optimisticMeta.rollback(event.id);
       }
       // Fallback NOT_FOUND already handled in config `onNotFound` (active links + DOM + recover).
       if (event.failure.isNotFound) {

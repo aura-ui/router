@@ -24,6 +24,7 @@ import { resolveAppOutlet } from './outlet-resolver';
 import { AURA_ROUTER_DATA_INVALIDATED, emit } from './navigation-events';
 import { connectRouterEngine } from './engine-bridge';
 import { AuraRouterNotFoundController } from './not-found-controller';
+import { OptimisticDocumentMeta } from './document-meta-optimistic';
 import { Scroller } from './scroller';
 import type { SwrCacheOptions } from '../../aura-cache/core';
 import type { ViewRoot } from '../../aura-outlet/core/aura-outlet';
@@ -165,6 +166,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   private engine?: AuraRoutingEngine;
   private readonly scroller = new Scroller();
   private readonly notFound = new AuraRouterNotFoundController(this);
+  private readonly optimisticMeta = new OptimisticDocumentMeta();
   private _activeRouteBranch: ActiveRouteBranchEntry[] = [];
 
   /**
@@ -327,6 +329,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
           this.syncBranchAndActiveLinks(href, to),
         scroller: this.scroller,
         notFound: this.notFound,
+        optimisticMeta: this.optimisticMeta,
         onHashOnlyNavigation: (href) => this.applyHashOnlyNavigation(href),
       });
       this.engine = new AuraRoutingEngine(this, {

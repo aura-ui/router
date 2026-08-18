@@ -59,7 +59,7 @@ export function resolveDocumentMetaWithParams(to: MatchedRouteInfo, htmlMeta?: D
  *
  * Pass `vars` when the caller already merged query/params (avoids a second alloc).
  */
-function resolveTitle(route: MatchedRouteInfo['route'], htmlTitle?: string, vars: Record<string, string> = {}): string | undefined {
+export function resolveTitle(route: MatchedRouteInfo['route'], htmlTitle?: string, vars: Record<string, string> = {}): string | undefined {
   const { metaTitle, metaTitleTemplate } = route;
   if (metaTitle == null && metaTitleTemplate == null) return htmlTitle;
 

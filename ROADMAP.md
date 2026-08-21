@@ -2,7 +2,7 @@
 
 **Declarative routing for Web Components — what is shipped, what is being built, and why it matters.**
 
-> Current release: `0.1.0` · Updated: 2026-08-18
+> Current release: `0.2.0` · Updated: 2026-08-21
 >
 > [Tutorial](./docs/tutorial.md) · [README](./README.md) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/README.md) · [Limitations](./LIMITATIONS.md) · [Security](./SECURITY.md) · [Changelog](./CHANGELOG.md)
 
@@ -25,7 +25,7 @@
 
 ## Current focus
 
-These are the three outcomes that matter most right now.
+These are the outcomes that matter most right now.
 
 ### 🎯 8.1 — One clear MPA → SPA migration path
 
@@ -34,14 +34,6 @@ Turn the existing guide, recipe, draft article, playground, and [`router-preview
 **Why it matters:** a developer with a traditional HTML site should be able to adopt client navigation without reverse-engineering the router or adding an Aura server runtime.
 
 **Finish line:** one guide covers server HTML, router injection, flat and nested first paint, link upgrades, deployment, no-JS behavior, and common failure modes.
-
-### 🎯 7.7 — A demo you can open, not just clone
-
-Deploy [`aura-ui/router-preview`](https://github.com/aura-ui/router-preview) and link it from the README.
-
-**Why it matters:** developers should be able to verify direct URLs, SPA navigation, nested layouts, and no-JS fallback before installing anything.
-
-**Finish line:** stable public URL, working direct routes, verified fallback, and a prominent README link.
 
 ### 🎯 7.10 — Browser tests on every change
 
@@ -62,7 +54,7 @@ Run the existing Playwright suite automatically in CI.
 | **1** | Explicit, typed, and testable navigation stages             | ✅ Shipped  |
 | **2** | Predictable route-data loading, caching, and revalidation   | 🟡 Building |
 | **3** | Update changed route DOM without losing component state     | 🟡 Building |
-| **4** | Navigation built on modern browser APIs with safe fallbacks |  ○ Planned  |
+| **4** | Navigation built on modern browser APIs with safe fallbacks | 🟡 Building |
 | **5** | Configure routes in HTML with typed JavaScript APIs         | 🟡 Building |
 | **6** | Navigation timing and cache diagnostics                     | 🟡 Building |
 | **7** | Runnable examples for common routing patterns               | 🟡 Building |
@@ -128,7 +120,6 @@ CSS/WAAPI transitions already work through route attributes in the demo.
 | 5.3a | Nested routes, layouts, outlets, and path-only parents               |   ✅   | Available in the engine, guide, demo, playground, and [nested recipe](./docs/recipes/nested.md)                   |
 | 5.3b | **Colocated route folders** — optional route/template convention     |   ○    | Define build-time file-system and automatic template wiring, then document it in a runnable example               |
 |  5.4 | **Optional `/min` entry** — small core with opt-in capabilities      |   ○    | Validate the size/value target and plugin boundaries; the default `@auraui/router` package stays full             |
-|  5.5 | **Basename** — mount under `/app`, GitHub Pages, or a multi-SPA host |   ○    | Add router attr/config and consistent strip/join behavior for matching, links, redirects, navigation, and history |
 | 5.6a | **Typed params** — `:userId(int)`, `:slug(slug)`                     |   ○    | Keep types inline in `path`—not a separate `params` attr—define builtins, reject mismatches, and test conflicts   |
 | 5.6b | **Optional params** — `:section?`, `:page(int)?`                     |   🟡   | Define route priority, add conflict tests, and document public support                                            |
 |  5.7 | **Hook cause** — distinguish `enter`, `prefetch`, and `stay`         |   ○    | Add typed context values so speculative work can avoid analytics or committed DOM side effects                    |
@@ -159,9 +150,9 @@ Local microbenchmarks, smoke checks, bundle-size CI, `EventBus`, and `Navigation
 |  7.4 | Async auth guard, login redirect, and protected layout shell                         |   ✅   | Runnable playground flow and [auth recipe](./docs/recipes/auth.md)                                                                    |
 |  7.5 | Link intent, cache modes, and invalidation                                           |   ✅   | Playground and [prefetch/cache recipe](./docs/recipes/prefetch-cache.md); navigation SWR remains in 2.1                               |
 |  7.6 | Catch-all routes and not-found fallback handling                                     |   ✅   | Demo, playground, and [not-found recipe](./docs/recipes/not-found.md)                                                                 |
-|  7.7 | **Hosted demo** — one-click public preview                                           |   🎯   | Deploy `router-preview`, verify production routes and no-JS fallback, then link it from README                                        |
+|  7.7 | **Hosted demo** — one-click public preview                                           |   ✅   | [Live demo](https://aura-ui.github.io/router-preview/) · [Source](https://github.com/aura-ui/router-preview) · linked from README      |
 |  7.8 | Playwright E2E for the static MPA example                                            |   ✅   | Direct HTML, SPA navigation, history, nested persistence, no-JS fallback, and real 404                                                |
-|  7.9 | Publish `@auraui/router@0.1.0`                                                       |   ✅   | [npm package](https://www.npmjs.com/package/@auraui/router) · [GitHub release](https://github.com/aura-ui/router/releases/tag/v0.1.0) |
+|  7.9 | Publish `@auraui/router@0.2.0`                                                       |   ✅   | [npm package](https://www.npmjs.com/package/@auraui/router) · [GitHub release](https://github.com/aura-ui/router/releases/tag/v0.2.0) |
 | 7.10 | **E2E in CI** — browser coverage on every pull request                               |   🎯   | Run the existing Playwright suite as an automated required check with failure artifacts                                               |
 | 7.11 | **Document meta guide** — title, head tags, and route attrs on navigation          |   ✅   | [Guide ch. 4](./docs/guide/04-document-meta.md)                                                                                       |
 

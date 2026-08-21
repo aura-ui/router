@@ -4,13 +4,29 @@ All notable changes to `@auraui/router` are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Package version in `package.json` is **`0.1.0`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router).
+Package version in `package.json` is **`0.2.0`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router).
 
 ## Unreleased
 
+## [0.2.0](https://github.com/aura-ui/router/compare/v0.1.0...v0.2.0) - 21.08.2026
+
+### ⚠ BREAKING CHANGES
+
+- **Hook continuation** — `{ type: 'continue' }` is no longer recognized. Return `void`, `undefined`, or `true` to proceed. See [#20](https://github.com/aura-ui/router/pull/20).
+
 ### Added
 
-- Explicit `{ type: 'cancel', reason? }` hook results propagate their optional machine-readable reason to the `navigation-cancel` event.
+- **Typed load hooks** — export `RouteLoadFn` for typed, data-producing `load` hooks. Docs: [Lifecycle and route data](./docs/guide/05-lifecycle-and-data.md). See [#20](https://github.com/aura-ui/router/pull/20).
+- **Cancel reasons** — `{ type: 'cancel', reason? }` propagates the optional machine-readable reason to the `navigation-cancel` event.
+- **View search** — resolve query on `view`: `?*` (raw match search) or allowlist/remap (`?id=:id&tag=:tag`). Docs: [Views](./docs/guide/03-views-and-layouts.md#views). See [#28](https://github.com/aura-ui/router/pull/28).
+- **Document meta** — sync document title, description, canonical, and OG/Twitter on navigation (from leaf HTML `url` views, with route attrs `meta-title` / `meta-title-template` / `meta-description` / `meta-canonical` and optional `AuraRouter.configure({ documentMeta })` slots). Docs: [Document meta](./docs/guide/04-document-meta.md). See [#29](https://github.com/aura-ui/router/pull/29).
+
+### Documentation
+
+- Split the guide into focused chapters with prev/next navigation; `docs/guide.md` is the index. See [#20](https://github.com/aura-ui/router/pull/20).
+- Add [10-minute tutorial](./docs/tutorial.md). See [#23](https://github.com/aura-ui/router/pull/23).
+- Lead README with HTML-first client navigation; add live demo, StackBlitz playground, and dev.to article links.
+- Refocus roadmap; clarify recipes (auth, nested, prefetch-cache, not-found, first-paint).
 
 ## [0.1.0](https://github.com/aura-ui/router/compare/v0.0.1...v0.1.0) - 10.08.2026
 

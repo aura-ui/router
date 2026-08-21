@@ -2,7 +2,7 @@
 
 Aura Router upgrades ordinary HTML pages with client-side navigation. This guide is the canonical documentation for [`@auraui/router`](https://www.npmjs.com/package/@auraui/router).
 
-> **Current release: 0.1.0.** Pin the package version and check the [changelog](../CHANGELOG.md) when upgrading.
+> **Current release: 0.2.0.** Pin the package version and check the [changelog](../CHANGELOG.md) when upgrading.
 
 New to Aura Router? Complete [Static site → SPA in 10 minutes](./tutorial.md) first, then use these chapters for concepts and API details.
 

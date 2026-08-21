@@ -18,13 +18,12 @@ import type { RouteNode, RouteTreeSnapshot } from './route-node.types';
  * @example [home, settings→profile] → roots: [homeNode, settingsNode], settingsNode.children: [profileNode]
  */
 export function buildRouteTree(routes: AuraRoute[]): RouteTreeSnapshot {
-  const knownRoutes = new Set(routes);
-  const { rootRoutes, childRoutesByParent } = buildParentChildHierarchy(routes, knownRoutes);
+  const { rootRoutes, routeChildren } = buildParentChildHierarchy(routes);
   const nodesByPattern = new Map<string, RouteNode>();
   const matchableNodes: RouteNode[] = [];
 
-  const rootNodes = rootRoutes.map((rootRoute) =>
-    buildRouteNode(rootRoute, null, 0, nodesByPattern, matchableNodes, childRoutesByParent),
+  const rootNodes = rootRoutes.map((route) =>
+    buildRouteNode(route, null, 0, nodesByPattern, matchableNodes, routeChildren),
   );
 
   return { roots: rootNodes, nodesByPattern, matchableNodes };
@@ -52,28 +51,29 @@ export function collectRouteSubtreeNodes(node: RouteNode): RouteNode[] {
  * Строит иерархию parent → children из flat-списка (один проход, без querySelectorAll на каждый узел).
  * @example settings.parent=null; profile.parent=settings
  */
-function buildParentChildHierarchy(
-  routes: AuraRoute[],
-  knownRoutes: Set<AuraRoute>,
-): { rootRoutes: AuraRoute[]; childRoutesByParent: Map<AuraRoute, AuraRoute[]> } {
-  const childRoutesByParent = new Map<AuraRoute, AuraRoute[]>();
+function buildParentChildHierarchy(routes: AuraRoute[]): {
+  rootRoutes: AuraRoute[];
+  routeChildren: Map<AuraRoute, AuraRoute[]>
+} {
+  const knownRoutes = new Set(routes);
+  const routeChildren = new Map<AuraRoute, AuraRoute[]>();
   const rootRoutes: AuraRoute[] = [];
 
   for (const route of routes) {
     const parentRoute = findParentRoute(route, knownRoutes);
     if (parentRoute) {
-      let siblings = childRoutesByParent.get(parentRoute);
-      if (!siblings) {
-        siblings = [];
-        childRoutesByParent.set(parentRoute, siblings);
+      let children = routeChildren.get(parentRoute);
+      if (!children) {
+        children = [];
+        routeChildren.set(parentRoute, children);
       }
-      siblings.push(route);
+      children.push(route);
     } else {
       rootRoutes.push(route);
     }
   }
 
-  return { rootRoutes, childRoutesByParent };
+  return { rootRoutes, routeChildren };
 }
 
 /**
@@ -81,20 +81,23 @@ function buildParentChildHierarchy(
  * @example profile внутри settings → settings; top-level → null
  */
 function findParentRoute(route: AuraRoute, knownRoutes: Set<AuraRoute>): AuraRoute | null {
-  const closestMethod = route.parentElement?.closest;
-  if (typeof closestMethod !== 'function') return null;
+  const parentElement = route.parentElement;
+  if (!parentElement) return null;
 
-  const parentRoute = route.parentElement?.closest(AuraRoute.is) as AuraRoute | null;
+  const parentRoute = typeof parentElement.closest === 'function'
+    ? parentElement.closest(AuraRoute.is) as AuraRoute
+    : null;
+
   return parentRoute && knownRoutes.has(parentRoute) ? parentRoute : null;
 }
 
 /**
  * Прямые дочерние `<aura-route>` того же уровня (siblings) для `parentRoute`.
  *
- * Основной источник — `childRoutesByParent` из `buildParentChildHierarchy`: все элементы
+ * Основной источник — `routeChildren` из `buildParentChildHierarchy`: все элементы
  * из входного `routes[]`, у которых родитель есть в `knownRoutes`.
  *
- * DOM fallback (`queryDirectChildRoutes`) нужен, когда в `routes[]` передан только parent,
+ * DOM fallback (`queryDirectRouteChildren`) нужен, когда в `routes[]` передан только parent,
  * а дети существуют в разметке, но не попали в массив — их нет в `knownRoutes` и map.
  * @example buildRouteTree([settings]) при `<aura-route path="profile">` внутри settings в DOM
  *
@@ -102,17 +105,14 @@ function findParentRoute(route: AuraRoute, knownRoutes: Set<AuraRoute>): AuraRou
  * `<aura-route>`, поэтому для родителей с детьми достаточно map. Fallback всё равно вызывается
  * на листьях (map пуст → `querySelectorAll` → `[]`) — это ожидаемо и безопасно.
  */
-function getDirectChildRoutes(
-  parentRoute: AuraRoute,
-  childRoutesByParent: Map<AuraRoute, AuraRoute[]>,
-): AuraRoute[] {
-  const siblings = childRoutesByParent.get(parentRoute);
-  if (siblings?.length) return siblings;
-  return queryDirectChildRoutes(parentRoute);
+function getDirectRouteChildren(parentRoute: AuraRoute, routeChildren: Map<AuraRoute, AuraRoute[]>): AuraRoute[] {
+  const children = routeChildren.get(parentRoute);
+  if (children?.length) return children;
+  return queryDirectRouteChildren(parentRoute);
 }
 
 /** DOM fallback: `:scope > aura-route`, когда дети не были переданы во flat `routes[]`. */
-function queryDirectChildRoutes(parentRoute: AuraRoute): AuraRoute[] {
+function queryDirectRouteChildren(parentRoute: AuraRoute): AuraRoute[] {
   if (typeof parentRoute.querySelectorAll !== 'function') return [];
   return Array.from(parentRoute.querySelectorAll<AuraRoute>(`:scope > ${AuraRoute.is}`));
 }
@@ -127,7 +127,7 @@ function buildRouteNode(
   depth: number,
   nodesByPattern: Map<string, RouteNode>,
   matchableNodes: RouteNode[],
-  childRoutesByParent: Map<AuraRoute, AuraRoute[]>,
+  routeChildren: Map<AuraRoute, AuraRoute[]>,
 ): RouteNode {
   const segment = normalizeRouteSegment((route as unknown as Element).getAttribute('path') ?? '');
   const pattern = resolvePattern(parentNode?.pattern ?? null, segment);
@@ -152,9 +152,9 @@ function buildRouteNode(
   node.branch = parentNode ? parentNode.branch.concat(node) : [node];
   nodesByPattern.set(pattern, node);
 
-  for (const childRoute of getDirectChildRoutes(route, childRoutesByParent)) {
+  for (const childRoute of getDirectRouteChildren(route, routeChildren)) {
     node.children.push(
-      buildRouteNode(childRoute, node, depth + 1, nodesByPattern, matchableNodes, childRoutesByParent),
+      buildRouteNode(childRoute, node, depth + 1, nodesByPattern, matchableNodes, routeChildren),
     );
   }
 

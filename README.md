@@ -111,7 +111,7 @@ It runs in the browser; it is not a Node SSR runtime. Your server or static host
 
 ## Project
 
-Current release: **0.1.0**
+Current release: **0.2.0**
 
 **Documentation:** [Guide](./docs/guide.md) · [Recipes](./docs/recipes/) · [Playground](./playground/) · [Known limitations](./LIMITATIONS.md)
 

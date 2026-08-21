@@ -19,7 +19,7 @@ Report via a [private GitHub security advisory](https://github.com/aura-ui/route
 
 Please include:
 
-1. Package / commit (e.g. `@auraui/router@0.1.0` or a commit SHA)
+1. Package / commit (e.g. `@auraui/router@0.2.0` or a commit SHA)
 2. Impact (what an attacker can do)
 3. Minimal reproduction (HTML + JS)
 4. Whether the attack needs attacker-controlled route markup or other already-trusted app config

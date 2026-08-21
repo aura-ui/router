@@ -28,7 +28,7 @@ Each URL must return a complete HTML page. Aura Router enhances those pages in t
 If the site does not have a `package.json`, run `npm init -y`. Then install Aura Router and Vite:
 
 ```bash
-npm install --save-exact @auraui/router@0.1.0
+npm install --save-exact @auraui/router@0.2.0
 npm install --save-dev vite
 ```
 
@@ -127,7 +127,7 @@ If your HTML site is already served over HTTP, skip steps 1 and 4. Follow steps 
 
 ```html
 <script type="module">
-  import { AuraRouter } from 'https://esm.sh/@auraui/router@0.1.0';
+  import { AuraRouter } from 'https://esm.sh/@auraui/router@0.2.0';
   AuraRouter.install();
 </script>
 ```

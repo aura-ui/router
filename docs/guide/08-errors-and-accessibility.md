@@ -94,7 +94,7 @@ URLs with a hash do not receive branch matches.
 
 ### Link scope
 
-`links-container-selector` narrows scanning to the closest matching ancestor of the router. `links-selector` controls both interception and scanning and defaults to `[aura-router-link]`.
+`links-container-selector` narrows scanning to the closest matching ancestor of the router. `links-selector` controls both interception and scanning and defaults to `[data-aura-link]`.
 
 ### Read the active route branch
 

@@ -112,7 +112,7 @@ Nested routes let several pages share UI without remounting it on every navigati
 
 ```html
 <template id="app-shell">
-  <nav><a href="/app/settings" aura-router-link>Settings</a></nav>
+  <nav><a href="/app/settings" data-aura-link>Settings</a></nav>
   <aura-outlet></aura-outlet>
 </template>
 

@@ -6,8 +6,8 @@
   <h2>Плоские маршруты</h2>
   <p>Два независимых path ссылаются на разные view. При переходе между «Страница A» и «Страница B» роутер выгружает текущий view и монтирует новый в тот же outlet. Шапка и панель навигации остаются на месте — они объявлены вне роутера.</p>
   <nav class="demo-links">
-    <a href="/features/routing-basics/a" aura-router-link>Страница A</a>
-    <a href="/features/routing-basics/b" aura-router-link>Страница B</a>
+    <a href="/features/routing-basics/a" data-aura-link>Страница A</a>
+    <a href="/features/routing-basics/b" data-aura-link>Страница B</a>
   </nav>
 
   <div class="demo-code-window">
@@ -25,15 +25,15 @@
   <aura-route path="/features/routing-basics/b" view="features/routing-basics/page-b.html"></aura-route>
 </aura-router>
 
-<a href="/features/routing-basics/a" aura-router-link>Страница A</a>
-<a href="/features/routing-basics/b" aura-router-link>Страница B</a>
+<a href="/features/routing-basics/a" data-aura-link>Страница A</a>
+<a href="/features/routing-basics/b" data-aura-link>Страница B</a>
   </template>
 
   <h2>История браузера</h2>
-  <p>Клик по ссылке с <code>aura-router-link</code> добавляет запись в session history. Последовательность A → B → «Назад» вернёт страницу A: и URL, и контент восстановятся без перезагрузки документа.</p>
+  <p>Клик по ссылке с <code>data-aura-link</code> добавляет запись в session history. Последовательность A → B → «Назад» вернёт страницу A: и URL, и контент восстановятся без перезагрузки документа.</p>
   <nav class="demo-links">
-    <a href="/features/routing-basics/a" aura-router-link>Страница A</a>
-    <a href="/features/routing-basics/b" aura-router-link>Страница B</a>
+    <a href="/features/routing-basics/a" data-aura-link>Страница A</a>
+    <a href="/features/routing-basics/b" data-aura-link>Страница B</a>
   </nav>
   <p class="demo-hint">Откройте A, перейдите на B, затем нажмите «Назад» в браузере.</p>
 </article>

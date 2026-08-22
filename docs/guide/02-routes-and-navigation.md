@@ -36,7 +36,7 @@ Parameterized routes require the browser's `URLPattern`. Catch-all values are av
 Mark only links that Aura should intercept:
 
 ```html
-<a href="/users/42?tab=profile" aura-router-link>User</a>
+<a href="/users/42?tab=profile" data-aura-link>User</a>
 ```
 
 Aura resolves the anchor's `href` as the browser does, requires the result to stay on the same origin, then navigates with `pathname + search + hash`.

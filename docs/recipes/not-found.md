@@ -14,7 +14,7 @@
 
 <template id="not-found">
   <h1>404</h1>
-  <p><a href="/" aura-router-link>Home</a></p>
+  <p><a href="/" data-aura-link>Home</a></p>
 </template>
 
 <template id="error"><h1>Error</h1></template>

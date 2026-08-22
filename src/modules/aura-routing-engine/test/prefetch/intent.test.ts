@@ -47,7 +47,7 @@ describe('LinkIntentSource', () => {
     const source = createLinkIntentSource(bus);
     source.start();
 
-    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
+    document.body.innerHTML = '<a href="/about" data-aura-link>About</a>';
     document.querySelector('a')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
     expect(listener).toHaveBeenCalledWith({
@@ -68,7 +68,7 @@ describe('LinkIntentSource', () => {
     const source = createLinkIntentSource(bus);
     source.start();
 
-    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
+    document.body.innerHTML = '<a href="/about" data-aura-link>About</a>';
     const link = document.querySelector('a')!;
     link.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
 
@@ -102,7 +102,7 @@ describe('LinkIntentSource', () => {
     source.start();
 
     document.body.innerHTML =
-      '<a href="/about" aura-router-link data-prefetch="tap">About</a>';
+      '<a href="/about" data-aura-link data-prefetch="tap">About</a>';
     document.querySelector('a')!.dispatchEvent(new TouchEvent('touchstart', { bubbles: true }));
 
     expect(listener).toHaveBeenCalledWith(

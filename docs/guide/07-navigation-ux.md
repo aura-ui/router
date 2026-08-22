@@ -81,7 +81,7 @@ Route-level `prefetch` inherits through parent routes. Use a child route or link
   <aura-route path="/docs" prefetch="tap" view="docs.html"></aura-route>
 </aura-router>
 
-<a href="/docs" aura-router-link data-prefetch="false">Docs</a>
+<a href="/docs" data-aura-link data-prefetch="false">Docs</a>
 ```
 
 An absent `prefetch` attribute does not disable the feature; Aura falls back to `intent`. Set `prefetch="false"`, `off`, or `none` explicitly to opt out.

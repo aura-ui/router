@@ -1,8 +1,4 @@
-import {
-  getCurrentAppHref,
-  toDocumentResolutionBase,
-  resolveInAppHref,
-} from '../link-active/app-href';
+import { getCurrentAppHref, toDocumentResolutionBase, resolveInAppHref } from '../link-active/app-href';
 
 export function findRouterLink(
   target: EventTarget | null,

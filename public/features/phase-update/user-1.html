@@ -4,8 +4,8 @@
   <p>Параметр <code>id</code>: <strong data-demo-param="id">—</strong></p>
 
   <nav class="demo-links">
-    <a href="/features/phase-update/remount/1" aura-router-link>User 1</a>
-    <a href="/features/phase-update/remount/2" aura-router-link>User 2</a>
+    <a href="/features/phase-update/remount/1" data-aura-link>User 1</a>
+    <a href="/features/phase-update/remount/2" data-aura-link>User 2</a>
   </nav>
 
   <p class="demo-hint">Переключайте User 1 ↔ User 2: synthetic exit/enter leaf, render, unmount.</p>
@@ -21,7 +21,7 @@
 <aura-route path="/features/phase-update/remount/:id"
             view="features/phase-update/user-:id.html"></aura-route>
 
-<a href="/features/phase-update/remount/1" aura-router-link>User 1</a>
-<a href="/features/phase-update/remount/2" aura-router-link>User 2</a>
+<a href="/features/phase-update/remount/1" data-aura-link>User 1</a>
+<a href="/features/phase-update/remount/2" data-aura-link>User 2</a>
   </template>
 </article>

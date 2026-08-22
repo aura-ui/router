@@ -483,7 +483,7 @@ describe('PrefetchPipeline', () => {
     });
 
     pipeline.start();
-    document.body.innerHTML = '<a href="/settings/profile" aura-router-link>Profile</a>';
+    document.body.innerHTML = '<a href="/settings/profile" data-aura-link>Profile</a>';
     document.querySelector('a')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
     expect(intents).toContain('schedule');

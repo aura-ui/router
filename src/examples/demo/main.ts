@@ -51,7 +51,7 @@ if (router) {
 document.addEventListener(
   'click',
   (event) => {
-    if ((event.target as Element).closest('[aura-router-link]')) {
+    if ((event.target as Element).closest('[data-aura-link]')) {
       scheduleDemoUiRefresh();
     }
   },

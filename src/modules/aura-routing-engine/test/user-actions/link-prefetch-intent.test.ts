@@ -29,7 +29,7 @@ describe('LinkPrefetchIntentTracker', () => {
     const tracker = createTracker({ scheduleIntent, cancelIntent });
 
     tracker.start();
-    dispatchAnchorMouseEvent('mouseover', '<a href="/about" aura-router-link>About</a>');
+    dispatchAnchorMouseEvent('mouseover', '<a href="/about" data-aura-link>About</a>');
 
     expect(scheduleIntent).toHaveBeenCalledWith('/about', 'intent');
   });
@@ -41,7 +41,7 @@ describe('LinkPrefetchIntentTracker', () => {
     tracker.start();
     dispatchAnchorMouseEvent(
       'mouseover',
-      '<a href="/about" aura-router-link data-prefetch="false">About</a>',
+      '<a href="/about" data-aura-link data-prefetch="false">About</a>',
     );
 
     expect(scheduleIntent).not.toHaveBeenCalled();
@@ -52,7 +52,7 @@ describe('LinkPrefetchIntentTracker', () => {
     const tracker = createTracker({ scheduleIntent: jest.fn(), cancelIntent });
 
     tracker.start();
-    dispatchAnchorMouseEvent('mouseout', '<a href="/about" aura-router-link>About</a>', {
+    dispatchAnchorMouseEvent('mouseout', '<a href="/about" data-aura-link>About</a>', {
       relatedTarget: document.body,
     });
 

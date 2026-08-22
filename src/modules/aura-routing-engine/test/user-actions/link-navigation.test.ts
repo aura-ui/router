@@ -27,7 +27,7 @@ describe('LinkNavigationTracker', () => {
 
   it('emits navigation on click', () => {
     tracker.start();
-    const event = clickAnchor('<a href="/about" aura-router-link>About</a>');
+    const event = clickAnchor('<a href="/about" data-aura-link>About</a>');
 
     expect(event.defaultPrevented).toBe(true);
     expectNavigation('/about');
@@ -35,33 +35,33 @@ describe('LinkNavigationTracker', () => {
 
   it('ignores external links', () => {
     tracker.start();
-    clickAnchor('<a href="https://example.com" aura-router-link>External</a>');
+    clickAnchor('<a href="https://example.com" data-aura-link>External</a>');
     expect(onNavigation).not.toHaveBeenCalled();
   });
 
   it('navigates same-origin absolute href as in-app path', () => {
     window.history.replaceState({}, '', '/app/settings/');
     tracker.start();
-    clickAnchor(`<a href="${window.location.origin}/главная.html" aura-router-link>Home</a>`);
+    clickAnchor(`<a href="${window.location.origin}/главная.html" data-aura-link>Home</a>`);
     expectNavigation('/главная.html');
   });
 
   it('navigates same-origin origin root as /', () => {
     tracker.start();
-    clickAnchor(`<a href="${window.location.origin}" aura-router-link>Root</a>`);
+    clickAnchor(`<a href="${window.location.origin}" data-aura-link>Root</a>`);
     expectNavigation('/');
   });
 
   it('resolves path-relative href against current location', () => {
     window.history.replaceState({}, '', '/app/settings/');
     tracker.start();
-    clickAnchor('<a href="profile" aura-router-link>Profile</a>');
+    clickAnchor('<a href="profile" data-aura-link>Profile</a>');
     expectNavigation('/app/settings/profile');
   });
 
   it('stop pauses clicks; start resumes with the same handler', () => {
     tracker.start();
-    document.body.innerHTML = '<a href="/about" aura-router-link>About</a>';
+    document.body.innerHTML = '<a href="/about" data-aura-link>About</a>';
     const link = document.querySelector('a')!;
 
     tracker.stop();
@@ -74,13 +74,13 @@ describe('LinkNavigationTracker', () => {
   });
 
   it.each([
-    ['ctrlKey', { ctrlKey: true }, '<a href="/about" aura-router-link>About</a>'],
-    ['metaKey', { metaKey: true }, '<a href="/about" aura-router-link>About</a>'],
-    ['shiftKey', { shiftKey: true }, '<a href="/about" aura-router-link>About</a>'],
-    ['altKey', { altKey: true }, '<a href="/about" aura-router-link>About</a>'],
-    ['middle button', { button: 1 }, '<a href="/about" aura-router-link>About</a>'],
-    ['target=_blank', {}, '<a href="/about" target="_blank" aura-router-link>About</a>'],
-    ['download', {}, '<a href="/file.pdf" download aura-router-link>File</a>'],
+    ['ctrlKey', { ctrlKey: true }, '<a href="/about" data-aura-link>About</a>'],
+    ['metaKey', { metaKey: true }, '<a href="/about" data-aura-link>About</a>'],
+    ['shiftKey', { shiftKey: true }, '<a href="/about" data-aura-link>About</a>'],
+    ['altKey', { altKey: true }, '<a href="/about" data-aura-link>About</a>'],
+    ['middle button', { button: 1 }, '<a href="/about" data-aura-link>About</a>'],
+    ['target=_blank', {}, '<a href="/about" target="_blank" data-aura-link>About</a>'],
+    ['download', {}, '<a href="/file.pdf" download data-aura-link>File</a>'],
   ] as const)('lets the browser handle %s', (_label, init, html) => {
     tracker.start();
     const event = clickAnchor(html, init);
@@ -94,7 +94,7 @@ describe('LinkNavigationTracker', () => {
     document.addEventListener('click', prevent, true);
     try {
       tracker.start();
-      clickAnchor('<a href="/about" aura-router-link>About</a>');
+      clickAnchor('<a href="/about" data-aura-link>About</a>');
       expect(onNavigation).not.toHaveBeenCalled();
     } finally {
       document.removeEventListener('click', prevent, true);

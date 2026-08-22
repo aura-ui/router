@@ -31,9 +31,9 @@ AuraRouter.configure({ notFoundHandler: (url, router) => { /* ... */ } });
 | Атрибут | Описание |
 |---------|----------|
 | `prefetch` | Default prefetch для in-app ссылок: `intent` (default), `tap`, `false` / `none` (off). Override на ссылке: `data-prefetch`. |
-| `links-selector` | CSS-селектор in-app ссылок для перехвата кликов. По умолчанию: `[aura-router-link]`. Same-origin absolute `https://…` / `//…` тоже SPA; чужой origin — обычный переход (см. [guide — How href resolves](../../../docs/guide/02-routes-and-navigation.md#how-href-resolves)). |
+| `links-selector` | CSS-селектор in-app ссылок для перехвата кликов. По умолчанию: `[data-aura-link]`. Same-origin absolute `https://…` / `//…` тоже SPA; чужой origin — обычный переход (см. [guide — How href resolves](../../../docs/guide/02-routes-and-navigation.md#how-href-resolves)). |
 | `links-container-selector` | Опционально сужает поиск ссылок для active-state до предка (по умолчанию — весь документ). |
-| `link-active-class` | CSS-класс точного совпадения URL на `[aura-router-link]`. |
+| `link-active-class` | CSS-класс точного совпадения URL на `[data-aura-link]`. |
 | `link-active-branch-class` | CSS-класс prefix-совпадения (активная ветка / раздел). |
 | `error-template` | Id `<template>`: default для route `error-template` (наследование) и thin fallback-404, когда нет `<aura-route path="*">`. |
 | `loading-template` | Default id `<template>` (наследование). Монтируется в outlet в окне prepare: после guards → до конца `runLoads`. |

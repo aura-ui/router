@@ -53,7 +53,7 @@ Serve a complete page for every URL and keep the same selector around the conten
 **2. Declare routes. Mark the links.**
 
 ```html
-<a href="/about/" aura-router-link>About</a>
+<a href="/about/" data-aura-link>About</a>
 
 <aura-outlet></aura-outlet>
 <aura-router extract="#content">

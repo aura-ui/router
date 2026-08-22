@@ -4,7 +4,7 @@ function renderNavLinks(basePath: string, links: DemoNavLink[]): string {
   return links
     .map(
       (link) =>
-        `<a href="${basePath}${link.path}" aura-router-link>${link.label}</a>`,
+        `<a href="${basePath}${link.path}" data-aura-link>${link.label}</a>`,
     )
     .join('\n        ');
 }

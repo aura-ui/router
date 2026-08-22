@@ -32,7 +32,7 @@ A child route can override any inherited value. Where supported, `none`, `off`, 
 | Attribute                  | Default / purpose                                                         |
 | -------------------------- | ------------------------------------------------------------------------- |
 | `outlet`                   | Selector; otherwise first document outlet, otherwise auto-created sibling |
-| `links-selector`           | `[aura-router-link]`                                                      |
+| `links-selector`           | `[data-aura-link]`                                                      |
 | `links-container-selector` | Whole document when absent                                                |
 | `link-active-class`        | No default; classes for exact active links                                |
 | `link-active-branch-class` | No default; classes for active parent-section links                       |

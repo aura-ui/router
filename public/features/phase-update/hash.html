@@ -5,9 +5,9 @@
   <p>Активный якорь: <code>#<span data-demo-param="section">—</span></code></p>
 
   <nav class="demo-links">
-    <a href="/features/phase-update/hash#one" aura-router-link>#one</a>
-    <a href="/features/phase-update/hash#two" aura-router-link>#two</a>
-    <a href="/features/phase-update/hash#three" aura-router-link>#three</a>
+    <a href="/features/phase-update/hash#one" data-aura-link>#one</a>
+    <a href="/features/phase-update/hash#two" data-aura-link>#two</a>
+    <a href="/features/phase-update/hash#three" data-aura-link>#three</a>
   </nav>
 
   <p class="demo-hint">Переключайте якоря: view не remount-ится, обновляются только URL и scroll.</p>
@@ -22,8 +22,8 @@
   <template id="phase-update-hash-code">
 <aura-route path="/features/phase-update/hash" view="features/phase-update/hash.html"></aura-route>
 
-<a href="/features/phase-update/hash#one" aura-router-link>#one</a>
-<a href="/features/phase-update/hash#two" aura-router-link>#two</a>
+<a href="/features/phase-update/hash#one" data-aura-link>#one</a>
+<a href="/features/phase-update/hash#two" data-aura-link>#two</a>
   </template>
 
   <section id="one" class="demo-hash-section">

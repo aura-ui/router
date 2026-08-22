@@ -103,14 +103,14 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   @attr({ readonly: true, cached: true })
   loadingEndEvent: string;
 
-  @attr({ defaultValue: '[aura-router-link]' })
+  @attr({ defaultValue: '[data-aura-link]' })
   linksSelector: string;
 
   /** Optional ancestor that narrows the active-link scan (default: whole document). */
   @attr({ parser: parseNullableString, cached: true })
   linksContainerSelector: string | null;
 
-  /** CSS class toggled on `[aura-router-link]` when its resolved href matches the current URL. */
+  /** CSS class toggled on `[data-aura-link]` when its resolved href matches the current URL. */
   @attr({ parser: parseNullableString, cached: true })
   linkActiveClass: string | null;
 
@@ -141,7 +141,7 @@ export class AuraRouter extends HTMLElement implements RouterInstance {
   metaTitleTemplate: string | null;
 
   /**
-   * Default prefetch for `[aura-router-link]` (`intent` | `tap` | `false`).
+   * Default prefetch for `[data-aura-link]` (`intent` | `tap` | `false`).
    * Per-link override: `data-prefetch` on `<a>`.
    */
   @attr({ parser: parsePrefetchAttr, cached: true, name: 'prefetch' })

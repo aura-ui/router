@@ -12,8 +12,8 @@
   </ul>
   <p>Текущий режим: <code data-demo-param="transition-order">parallel</code></p>
   <nav class="demo-links">
-    <a href="/features/animations/a" aura-router-link>Страница A</a>
-    <a href="/features/animations/b" aura-router-link>Страница B</a>
+    <a href="/features/animations/a" data-aura-link>Страница A</a>
+    <a href="/features/animations/b" data-aura-link>Страница B</a>
   </nav>
 
   <div class="demo-code-window">
@@ -37,8 +37,8 @@
   <h2>Хук fade</h2>
   <p>Core не содержит встроенных анимаций — только фазы pipeline и staged mount. Хук <code>fade</code> анимирует <code>[data-aura-view-root]</code> на фазах <code>transitionOut</code> / <code>transitionIn</code>. При <code>prefers-reduced-motion</code> анимация пропускается.</p>
   <nav class="demo-links">
-    <a href="/features/animations/a" aura-router-link>Страница A</a>
-    <a href="/features/animations/b" aura-router-link>Страница B</a>
+    <a href="/features/animations/a" data-aura-link>Страница A</a>
+    <a href="/features/animations/b" data-aura-link>Страница B</a>
   </nav>
   <p class="demo-hint">Смените порядок на панели, затем несколько раз переключитесь A ↔ B — шапка и URL-бар остаются, меняется только timing перехода.</p>
 </article>

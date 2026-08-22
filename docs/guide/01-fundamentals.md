@@ -44,8 +44,8 @@ A minimal router:
 
 ```html
 <nav>
-  <a href="/" aura-router-link>Home</a>
-  <a href="/about" aura-router-link>About</a>
+  <a href="/" data-aura-link>Home</a>
+  <a href="/about" data-aura-link>About</a>
 </nav>
 
 <aura-outlet></aura-outlet>

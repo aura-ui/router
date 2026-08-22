@@ -39,7 +39,7 @@ body:
     id: repro
     attributes:
       label: Minimal reproduction
-      description: Smallest HTML + JS that shows the bug, or a link to a fork/playground. Prefer root-absolute paths and `aura-router-link`.
+      description: Smallest HTML + JS that shows the bug, or a link to a fork/playground. Prefer root-absolute paths and `data-aura-link`.
       placeholder: |
         ```html
         <aura-router>

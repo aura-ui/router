@@ -16,8 +16,8 @@
   </aura-route>
 </aura-router>
 
-<a href="/contacts" aura-router-link data-prefetch="tap">Contacts</a>
-<a href="/users/1" aura-router-link>User 1</a>
+<a href="/contacts" data-aura-link data-prefetch="tap">Contacts</a>
+<a href="/users/1" data-aura-link>User 1</a>
 ```
 
 The router provides defaults; child routes and links only declare overrides.

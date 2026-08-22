@@ -29,8 +29,8 @@ The layout remains mounted while navigation stays inside `/users`; only the chil
 ## Links
 
 ```html
-<a href="/users/1" aura-router-link>User 1</a>
-<a href="/users/2" aura-router-link>User 2</a>
+<a href="/users/1" data-aura-link>User 1</a>
+<a href="/users/2" data-aura-link>User 2</a>
 ```
 
 Because the resolved view URL changes with `:id`, moving from `/users/1` to `/users/2` remounts the child; any `ready` hook runs again. Use a stable view plus `update` when the same mounted shell should handle every id.

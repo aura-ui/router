@@ -33,11 +33,21 @@ Parameterized routes require the browser's `URLPattern`. Catch-all values are av
 
 ## Navigation
 
-Mark only links that Aura should intercept:
+Mark only the links that Aura should intercept.
 
+Use the `data-aura-link` attribute as the default marker for such links:
 ```html
-<a href="/users/42?tab=profile" aura-router-link>User</a>
+<a href="/users/42?tab=profile" data-aura-link>User</a>
 ```
+You can customize which links are processed by configuring the `links-selector` in `<aura-router>`. For example, to use a different attribute:
+```html
+<aura-router links-selector="[data-spa-link]"></aura-router>
+```
+Or to handle all anchor tags on the page:
+```html
+<aura-router links-selector="a"></aura-router>
+```
+**Warning:** In this mode, every intercepted link must have a corresponding route defined in the router configuration. Failing to define a route for a URL will result in a 404 error, even if the page exists on the server.
 
 Aura resolves the anchor's `href` as the browser does, requires the result to stay on the same origin, then navigates with `pathname + search + hash`.
 

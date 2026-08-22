@@ -37,8 +37,8 @@
     <h2>Profile</h2>
     <p class="hint">requires login (guard="auth")</p>
     <div class="subnav">
-      <a href="/profile" aura-router-link>Overview</a>
-      <a href="/profile/settings" aura-router-link>Settings</a>
+      <a href="/profile" data-aura-link>Overview</a>
+      <a href="/profile/settings" data-aura-link>Settings</a>
       <button type="button" data-demo-logout>Log out</button>
     </div>
     <aura-outlet></aura-outlet>
@@ -56,7 +56,7 @@
   <div class="main">
     <h1>404</h1>
     <p>Route not found (path="*").</p>
-    <p><a href="/" aura-router-link>Home</a></p>
+    <p><a href="/" data-aura-link>Home</a></p>
   </div>
 </template>
 

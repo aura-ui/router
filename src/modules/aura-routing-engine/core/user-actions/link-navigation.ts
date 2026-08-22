@@ -21,7 +21,7 @@ function shouldHandleLinkClick(event: MouseEvent, anchor: HTMLAnchorElement): bo
   return true;
 }
 
-/** Click on `[aura-router-link]` → navigation request. */
+/** Click on `[data-aura-link]` → navigation request. */
 export class LinkNavigationTracker {
   private handler?: NavigationHandler;
   private listening = false;

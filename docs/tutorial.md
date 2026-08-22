@@ -47,8 +47,8 @@ Create `index.html`:
   </head>
   <body>
     <nav aria-label="Main navigation">
-      <a href="/" aura-router-link>Home</a>
-      <a href="/about/" aura-router-link>About</a>
+      <a href="/" data-aura-link>Home</a>
+      <a href="/about/" data-aura-link>About</a>
     </nav>
 
     <main id="content">
@@ -115,7 +115,7 @@ Open the local URL printed by Vite, then check:
 
 ## If it does not work
 
-**A link performs a full reload:** confirm that it has `aura-router-link` and points to the same origin.
+**A link performs a full reload:** confirm that it has `data-aura-link` and points to the same origin.
 
 **The wrong markup appears:** every page response must contain the selector configured in `extract` (`#content` here).
 

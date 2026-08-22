@@ -4,9 +4,9 @@
   <p>Параметр <code>id</code>: <strong data-demo-param="id">—</strong></p>
 
   <nav class="demo-links">
-    <a href="/features/phase-update/update/1" aura-router-link>User 1</a>
-    <a href="/features/phase-update/update/2" aura-router-link>User 2</a>
-    <a href="/features/phase-update/update/3" aura-router-link>User 3</a>
+    <a href="/features/phase-update/update/1" data-aura-link>User 1</a>
+    <a href="/features/phase-update/update/2" data-aura-link>User 2</a>
+    <a href="/features/phase-update/update/3" data-aura-link>User 3</a>
   </nav>
 
   <p class="demo-hint">Переключайте User 1 ↔ User 2 ↔ User 3: тот же viewKey, меняется только param <code>id</code>.</p>
@@ -21,8 +21,8 @@
   <template id="phase-update-update-code">
 <aura-route path="/features/phase-update/update/:id" view="features/phase-update/user-shell.html"></aura-route>
 
-<a href="/features/phase-update/update/1" aura-router-link>User 1</a>
-<a href="/features/phase-update/update/2" aura-router-link>User 2</a>
-<a href="/features/phase-update/update/3" aura-router-link>User 3</a>
+<a href="/features/phase-update/update/1" data-aura-link>User 1</a>
+<a href="/features/phase-update/update/2" data-aura-link>User 2</a>
+<a href="/features/phase-update/update/3" data-aura-link>User 3</a>
   </template>
 </article>

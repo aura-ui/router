@@ -91,8 +91,8 @@ describe('AuraRouter fallback not-found (ensureEngine onNotFound)', () => {
     router.setAttribute('link-active-class', 'is-active');
     router.innerHTML = `
       <nav>
-        <a href="/" aura-router-link>Home</a>
-        <a href="/about" aura-router-link>About</a>
+        <a href="/" data-aura-link>Home</a>
+        <a href="/about" data-aura-link>About</a>
       </nav>
       <aura-outlet></aura-outlet>
       <aura-route path="/" view="html::<p>home</p>"></aura-route>

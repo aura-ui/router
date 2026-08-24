@@ -14,7 +14,7 @@ body:
     attributes:
       label: Package version
       description: Exact npm version (or commit SHA if from git).
-      placeholder: "@auraui/router@0.2.0"
+      placeholder: "@auraui/router@0.3.0"
     validations:
       required: true
   - type: input

@@ -2,7 +2,7 @@
 
 **Declarative routing for Web Components — what is shipped, what is being built, and why it matters.**
 
-> Current release: `0.2.0` · Updated: 2026-08-21
+> Current release: `0.3.0` · Updated: 2026-08-25
 >
 > [Tutorial](./docs/tutorial.md) · [README](./README.md) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/README.md) · [Limitations](./LIMITATIONS.md) · [Security](./SECURITY.md) · [Changelog](./CHANGELOG.md)
 

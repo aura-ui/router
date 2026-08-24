@@ -1,10 +1,10 @@
 # Known limitations
 
-Honest gaps for the current **`0.2.0`** tree — public surface that can surprise authors. Shipped contract: [docs/guide.md](./docs/guide.md) · [SECURITY.md](./SECURITY.md). Planned work: [ROADMAP.md](./ROADMAP.md). History: [CHANGELOG.md](./CHANGELOG.md).
+Honest gaps for the current **`0.3.0`** tree — public surface that can surprise authors. Shipped contract: [docs/guide.md](./docs/guide.md) · [SECURITY.md](./SECURITY.md). Planned work: [ROADMAP.md](./ROADMAP.md). History: [CHANGELOG.md](./CHANGELOG.md).
 
 ## Status
 
-- **Published on npm** — [`@auraui/router@0.2.0`](https://www.npmjs.com/package/@auraui/router). Still 0.x: pin exact versions; do not treat as a frozen production contract until `1.0.0`.
+- **Published on npm** — [`@auraui/router@0.3.0`](https://www.npmjs.com/package/@auraui/router). Still 0.x: pin exact versions; do not treat as a frozen production contract until `1.0.0`.
 - **0.x semver** — expect breaking changes until `1.0.0`.
 - **Docs may lag code** — trust shipped attrs on `<aura-route>` / [README](./README.md) / [guide](./docs/guide.md) over older design notes.
 

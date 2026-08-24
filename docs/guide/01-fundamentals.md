@@ -11,7 +11,7 @@ Install Aura Router, understand its three elements, and create the first routes.
 Pin the current `0.x` release, import the package, then install the custom elements once:
 
 ```bash
-npm install --save-exact @auraui/router@0.2.0
+npm install --save-exact @auraui/router@0.3.0
 ```
 
 ```ts

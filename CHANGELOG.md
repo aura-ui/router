@@ -4,9 +4,19 @@ All notable changes to `@auraui/router` are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Package version in `package.json` is **`0.2.0`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router).
+Package version in `package.json` is **`0.3.0`**, published as [`@auraui/router`](https://www.npmjs.com/package/@auraui/router).
 
 ## Unreleased
+
+## [0.3.0](https://github.com/aura-ui/router/compare/v0.2.0...v0.3.0) - 25.08.2026
+
+### ⚠ BREAKING CHANGES
+
+- **In-app link marker** — default `links-selector` is now `[data-aura-link]` (was `[aura-router-link]`). Rename the attribute on your anchors, or set `links-selector="[aura-router-link]"` on `<aura-router>` to keep the old marker. Docs: [Routes and navigation](./docs/guide/02-routes-and-navigation.md). See [#34](https://github.com/aura-ui/router/pull/34).
+
+### Documentation
+
+- README: add **MANA** design principles (Minimal, Aligned, Native, Additive) alongside MAGA. See [#35](https://github.com/aura-ui/router/pull/35).
 
 ## [0.2.0](https://github.com/aura-ui/router/compare/v0.1.0...v0.2.0) - 21.08.2026
 

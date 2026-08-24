@@ -17,7 +17,7 @@ Try it: [Live demo](https://aura-ui.github.io/router-preview/) · [Open in Stack
 npm install @auraui/router
 ```
 
-[10-minute tutorial](./docs/tutorial.md) · [Quick start](#quick-start) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/)
+[10-minute tutorial](./docs/tutorial.md) · [Quick start](#quick-start) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/) · [MAGA](https://github.com/aura-ui/MAGA)
 
 ## Why Aura Router?
 
@@ -26,6 +26,19 @@ npm install @auraui/router
 - **Grow without a rewrite.** Add nested layouts, lifecycle hooks, prefetching, and caching when you need them.
 
 Works with plain HTML, Web Components, and Lit. Your backend or static host keeps rendering complete pages.
+
+## Design principles
+
+Aura Router follows [**MAGA**](https://github.com/aura-ui/MAGA) — and its discipline **MANA** (Minimal, Aligned, Native, Additive):
+
+- **Minimal** — the smallest layer that upgrades navigation, not a second application model
+- **Aligned** — ordinary `<a href>` stays a link; the URL stays a URL
+- **Native** — URL, history, DOM, and HTML responses remain the substrate
+- **Additive** — without JavaScript, marked links can still fall back to the server
+
+MANA does not ban abstractions. It is how Aura judges them.
+
+Vision and full essay: [aura-ui/MAGA](https://github.com/aura-ui/MAGA)
 
 ## How it works
 
@@ -113,7 +126,7 @@ It runs in the browser; it is not a Node SSR runtime. Your server or static host
 
 Current release: **0.2.0**
 
-**Documentation:** [Guide](./docs/guide.md) · [Recipes](./docs/recipes/) · [Playground](./playground/) · [Known limitations](./LIMITATIONS.md)
+**Documentation:** [Guide](./docs/guide.md) · [Recipes](./docs/recipes/) · [MAGA](https://github.com/aura-ui/MAGA) · [Playground](./playground/) · [Known limitations](./LIMITATIONS.md)
 
 **Development:** [Changelog](./CHANGELOG.md) · [Roadmap](./ROADMAP.md) · [Contributing](./CONTRIBUTING.md) · [Security](./SECURITY.md)
 

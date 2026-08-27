@@ -1,7 +1,7 @@
 {
   "name": "@auraui/router",
   "version": "0.3.0",
-  "description": "HTML-first declarative router. Real HTML pages with client navigation (MPA→SPA). Works with plain HTML or Web Components.",
+  "description": "HTML-first client navigation for real HTML pages (MPA→SPA). Works with plain HTML, Web Components, or Lit.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -21,7 +21,8 @@
     "docs/tutorial.md",
     "docs/guide.md",
     "docs/guide/*",
-    "docs/recipes/*"
+    "docs/recipes/*",
+    "docs/what-aura-is-not.md"
   ],
   "sideEffects": false,
   "publishConfig": {

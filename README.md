@@ -3,11 +3,12 @@
 [![npm version](https://img.shields.io/npm/v/@auraui/router.svg)](https://www.npmjs.com/package/@auraui/router)
 [![CI](https://github.com/aura-ui/router/actions/workflows/ci.yml/badge.svg)](https://github.com/aura-ui/router/actions/workflows/ci.yml)
 [![Live demo](https://img.shields.io/badge/demo-live-brightgreen)](https://aura-ui.github.io/router-preview/)
+[![Mentioned in Awesome Web Components](https://awesome.re/mentioned-badge.svg)](https://github.com/web-padawan/awesome-web-components#components)
 [![license](https://img.shields.io/npm/l/@auraui/router.svg)](./LICENSE)
 
 **Keep the HTML. Upgrade the navigation.**
 
-HTML-first client navigation for complete static or server-rendered HTML pages – with nested layouts, route lifecycle hooks, and no framework adapter.
+HTML-first client navigation for complete static, SSR, or CMS pages – with nested layouts, route lifecycle hooks, and no framework adapter.
 
 Your host keeps serving real pages. Aura adopts the HTML already on screen and upgrades marked links after load.
 

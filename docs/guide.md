@@ -59,6 +59,7 @@ Use the [recipes](./recipes/README.md) when you want a focused copy-and-paste pa
 ## Related documentation
 
 - [10-minute tutorial](./tutorial.md) — upgrade two complete HTML pages and verify progressive enhancement
+- [What Aura is not](./what-aura-is-not.md) — boundaries vs Turbo / Unpoly / swup / htmx; forms stay in the app
 - [README](../README.md) — project overview and quick start
 - [Known limitations](../LIMITATIONS.md)
 - [Security policy](../SECURITY.md)

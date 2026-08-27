@@ -127,7 +127,7 @@ It runs in the browser; it is not a Node SSR runtime. Your server or static host
 
 Current release: **0.3.0**
 
-**Documentation:** [Guide](./docs/guide.md) · [Recipes](./docs/recipes/) · [MAGA](https://github.com/aura-ui/MAGA) · [Playground](./playground/) · [Known limitations](./LIMITATIONS.md)
+**Documentation:** [Guide](./docs/guide.md) · [What Aura is not](./docs/what-aura-is-not.md) · [Recipes](./docs/recipes/) · [MAGA](https://github.com/aura-ui/MAGA) · [Playground](./playground/) · [Known limitations](./LIMITATIONS.md)
 
 **Development:** [Changelog](./CHANGELOG.md) · [Roadmap](./ROADMAP.md) · [Contributing](./CONTRIBUTING.md) · [Security](./SECURITY.md)
 

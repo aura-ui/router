@@ -1,8 +1,8 @@
 # Aura Router — Roadmap
 
-**Declarative routing for Web Components — what is shipped, what is being built, and why it matters.**
+**HTML-first navigation for Web Components and plain pages — what is shipped, what is being built, and why it matters.**
 
-> Current release: `0.3.0` · Updated: 2026-08-25
+> Current release: `0.3.0` · Updated: 2026-08-27
 >
 > [Tutorial](./docs/tutorial.md) · [README](./README.md) · [Guide](./docs/guide.md) · [Recipes](./docs/recipes/README.md) · [Limitations](./LIMITATIONS.md) · [Security](./SECURITY.md) · [Changelog](./CHANGELOG.md)
 
@@ -13,6 +13,7 @@
 | Build an app with Aura Router                 | [Guide](./docs/guide.md)                                                           |
 | See what is already available                 | [README](./README.md) → [Changelog](./CHANGELOG.md)                                |
 | Upgrade an existing HTML site from MPA to SPA | [10-minute tutorial](./docs/tutorial.md) → [MPA → SPA roadmap](#phase-8--mpa--spa) |
+| See what Aura is not (vs Turbo / Unpoly / swup / htmx) | [What Aura is not](./docs/what-aura-is-not.md) |
 | Copy a working pattern                        | [Recipes](./docs/recipes/README.md)                                                |
 | Understand what is being built now            | [Current focus](#current-focus)                                                    |
 | Contribute to a specific area                 | [Explore the roadmap](#explore-the-roadmap)                                        |
